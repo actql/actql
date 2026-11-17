@@ -16,13 +16,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "HubSpotAccountObservationFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
@@ -68,13 +61,6 @@
           "async": false
         },
         {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "projectHubSpotAccountIdentity",
           "parameters": [
             "moon",
@@ -89,12 +75,10 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "HubSpotAccountObservationFailure/constructor:constructor/constructor:constructor",
             "observeHubSpotAccount",
             "observeHubSpotAccount/observeHubSpotAccount",
             "observeHubSpotAccount/observeHubSpotAccount#2",
-            "positive/positive",
             "observeHubSpotAccount/response/accountResource"
           ],
           "exports": [
@@ -289,24 +273,10 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "HubSpotObjectReadFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -387,15 +357,6 @@
           "async": false
         },
         {
-          "name": "readHubSpotObjects/receive/receive",
-          "parameters": [
-            "operation",
-            "path",
-            "query"
-          ],
-          "async": true
-        },
-        {
           "name": "readHubSpotObjects/receive/receive/response/response",
           "parameters": [
             "options"
@@ -405,30 +366,6 @@
         {
           "name": "readHubSpotObjects/receive/receive/response/response/response",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readHubSpotObjects/recheckProperties/recheckProperties",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "readHubSpotObjects/slot/slot",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readHubSpotObjects/verify/verify",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "segment/segment",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -443,9 +380,7 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "HubSpotObjectReadFailure/constructor:constructor/constructor:constructor",
-            "positive/positive",
             "readHubSpotObjects",
             "readHubSpotObjects/account/account",
             "readHubSpotObjects/authorization/authorization",
@@ -455,13 +390,8 @@
             "readHubSpotObjects/readHubSpotObjects#3",
             "readHubSpotObjects/readHubSpotObjects#4",
             "readHubSpotObjects/readHubSpotObjects#5",
-            "readHubSpotObjects/receive/receive",
             "readHubSpotObjects/receive/receive/response/response",
             "readHubSpotObjects/receive/receive/response/response/response",
-            "readHubSpotObjects/recheckProperties/recheckProperties",
-            "readHubSpotObjects/slot/slot",
-            "readHubSpotObjects/verify/verify",
-            "segment/segment",
             "segment/segment/segment"
           ],
           "exports": [
@@ -608,20 +538,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "canonical/canonical",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledHubSpotSourceProfile",
           "parameters": [
             "profile"
@@ -664,13 +580,6 @@
           "async": false
         },
         {
-          "name": "checkSite",
-          "parameters": [
-            "site"
-          ],
-          "async": false
-        },
-        {
           "name": "checkSite/checkSite",
           "parameters": [
             "key"
@@ -678,48 +587,9 @@
           "async": false
         },
         {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "closed/closed",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "closedMetadata/closedMetadata",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
           "name": "closedMetadata/closedMetadata/closedMetadata",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "decodeMetadataBody",
-          "parameters": [
-            "encoded",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
           ],
           "async": false
         },
@@ -887,14 +757,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledHubSpotSource/target/target",
-          "parameters": [
-            "resource",
-            "fields"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledHubSpotSource/target/target/original/original",
           "parameters": [
             "value"
@@ -956,32 +818,6 @@
           "async": false
         },
         {
-          "name": "metadataBodyBytes",
-          "parameters": [
-            "encoded",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareHubSpotMaterials",
-          "parameters": [
-            "profile",
-            "moon",
-            "provider",
-            "construction",
-            "finish"
-          ],
-          "async": true
-        },
-        {
           "name": "prepareHubSpotMaterials/init:project/init:project",
           "parameters": [],
           "async": false
@@ -1019,27 +855,9 @@
           "async": false
         },
         {
-          "name": "readInputs",
-          "parameters": [
-            "profile",
-            "readers"
-          ],
-          "async": true
-        },
-        {
           "name": "readInputs/readInputs",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "siteBinding",
-          "parameters": [
-            "contextCid",
-            "runtimeBundleCid",
-            "metadataCid",
-            "site"
           ],
           "async": false
         },
@@ -1055,22 +873,14 @@
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
-            "canonical/canonical",
             "checkInstalledHubSpotSourceProfile",
             "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile",
             "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#2",
             "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#3",
             "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#4",
             "checkInstalledHubSpotSourceProfile/checkInstalledHubSpotSourceProfile#5",
-            "checkSite",
             "checkSite/checkSite",
-            "cid/cid",
-            "closed/closed",
-            "closedMetadata/closedMetadata",
             "closedMetadata/closedMetadata/closedMetadata",
-            "decodeMetadataBody",
-            "fail/fail",
             "installedHubSpotSiteBinding",
             "installedHubSpotSourceIdentityParts",
             "installedHubSpotSourceIdentityParts/readers/readers",
@@ -1093,7 +903,6 @@
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/init:prepareReadSequence",
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/objectType/objectType",
             "loadInstalledHubSpotSource/readerBounds/readerBounds",
-            "loadInstalledHubSpotSource/target/target",
             "loadInstalledHubSpotSource/target/target/original/original",
             "loadInstalledHubSpotSource/targets/targets",
             "loadInstalledHubSpotSource/targets/targets/targets",
@@ -1103,18 +912,13 @@
             "loadInstalledHubSpotSource/targetUnits/targetUnits/targetUnits",
             "loadInstalledHubSpotSource/targetUnits/targetUnits#2",
             "loadInstalledHubSpotSource/view/view",
-            "metadataBodyBytes",
-            "positive/positive",
-            "prepareHubSpotMaterials",
             "prepareHubSpotMaterials/init:project/init:project",
             "prepareHubSpotMaterials/prepareHubSpotMaterials",
             "prepareHubSpotMaterials/projected/init:project/init:project",
             "prepareHubSpotMaterials/projected/projected",
             "prepareInstalledHubSpotMaterials",
             "prepareInstalledHubSpotMaterials/prepareInstalledHubSpotMaterials",
-            "readInputs",
             "readInputs/readInputs",
-            "siteBinding",
             "text/text"
           ],
           "exports": [
@@ -1269,24 +1073,10 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "HubSpotTargetReadFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -1343,16 +1133,6 @@
           "async": false
         },
         {
-          "name": "readHubSpotRecordTargets/receive/receive",
-          "parameters": [
-            "operation",
-            "path",
-            "method",
-            "requestBody"
-          ],
-          "async": true
-        },
-        {
           "name": "readHubSpotRecordTargets/receive/receive/response/response",
           "parameters": [
             "options"
@@ -1362,30 +1142,6 @@
         {
           "name": "readHubSpotRecordTargets/receive/receive/response/response/response",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readHubSpotRecordTargets/recheckProperties/recheckProperties",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "readHubSpotRecordTargets/slot/slot",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "readHubSpotRecordTargets/verify/verify",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "segment/segment",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -1400,22 +1156,15 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "HubSpotTargetReadFailure/constructor:constructor/constructor:constructor",
-            "positive/positive",
             "readHubSpotRecordTargets",
             "readHubSpotRecordTargets/account/account",
             "readHubSpotRecordTargets/provider/provider",
             "readHubSpotRecordTargets/readHubSpotRecordTargets",
             "readHubSpotRecordTargets/readHubSpotRecordTargets#2",
             "readHubSpotRecordTargets/readHubSpotRecordTargets#3",
-            "readHubSpotRecordTargets/receive/receive",
             "readHubSpotRecordTargets/receive/receive/response/response",
             "readHubSpotRecordTargets/receive/receive/response/response/response",
-            "readHubSpotRecordTargets/recheckProperties/recheckProperties",
-            "readHubSpotRecordTargets/slot/slot",
-            "readHubSpotRecordTargets/verify/verify",
-            "segment/segment",
             "segment/segment/segment"
           ],
           "exports": [
@@ -1502,24 +1251,10 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "HubSpotRecordWriteFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -1537,13 +1272,6 @@
           "name": "projectHubSpotRecordWriteObservation/projectHubSpotRecordWriteObservation",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "segment/segment",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -1586,17 +1314,6 @@
           "async": false
         },
         {
-          "name": "sendRawHubSpotRecordBatch/receive/receive",
-          "parameters": [
-            "selected",
-            "index",
-            "path",
-            "method",
-            "payload"
-          ],
-          "async": true
-        },
-        {
           "name": "sendRawHubSpotRecordBatch/receive/receive/response/response",
           "parameters": [
             "options"
@@ -1628,36 +1345,24 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "sendRawHubSpotRecordBatch/verify/verify",
-          "parameters": [
-            "selected"
-          ],
-          "async": true
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "HubSpotRecordWriteFailure/constructor:constructor/constructor:constructor",
-            "positive/positive",
             "projectHubSpotRecordWriteObservation",
             "projectHubSpotRecordWriteObservation/projectHubSpotRecordWriteObservation",
-            "segment/segment",
             "segment/segment/segment",
             "sendRawHubSpotRecordBatch",
             "sendRawHubSpotRecordBatch/account/account",
             "sendRawHubSpotRecordBatch/provider/provider",
-            "sendRawHubSpotRecordBatch/receive/receive",
             "sendRawHubSpotRecordBatch/receive/receive/response/response",
             "sendRawHubSpotRecordBatch/receive/receive/response/response/response",
             "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch",
             "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#2",
-            "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#3",
-            "sendRawHubSpotRecordBatch/verify/verify"
+            "sendRawHubSpotRecordBatch/sendRawHubSpotRecordBatch#3"
           ],
           "exports": [
             "HUBSPOT_BATCH_WRITE_OPERATIONS",
@@ -1738,21 +1443,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "method/method",
-          "parameters": [
-            "receiver",
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "method/method/method",
           "parameters": [
             "args"
@@ -1798,8 +1488,6 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
-            "method/method",
             "method/method/method",
             "prepareInstalledHubSpotUpdateMappings",
             "prepareInstalledHubSpotUpdateMappings/bounds/bounds",
@@ -1884,13 +1572,6 @@
         "createHubSpotUpdateRequestAdapter"
       ],
       "operations": [
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
         {
           "name": "createHubSpotUpdateRequestAdapter",
           "parameters": [
@@ -2000,13 +1681,6 @@
           "async": false
         },
         {
-          "name": "createHubSpotUpdateRequestAdapter/installed/installed",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "createHubSpotUpdateRequestAdapter/installed/installed/installed",
           "parameters": [
             "name"
@@ -2037,46 +1711,9 @@
           "async": false
         },
         {
-          "name": "encode/encode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "exact/exact",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "method/method",
-          "parameters": [
-            "receiver",
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "method/method/method",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "own/own",
-          "parameters": [
-            "value",
-            "names"
           ],
           "async": false
         },
@@ -2108,7 +1745,6 @@
         {
           "operations": [
             "<module>",
-            "cid/cid",
             "createHubSpotUpdateRequestAdapter",
             "createHubSpotUpdateRequestAdapter/assertFinalized/assertFinalized",
             "createHubSpotUpdateRequestAdapter/createHubSpotUpdateRequestAdapter",
@@ -2123,17 +1759,11 @@
             "createHubSpotUpdateRequestAdapter/init:prepareTargetRead/init:prepareTargetRead/init:prepareTargetRead",
             "createHubSpotUpdateRequestAdapter/init:requestFacts/init:requestFacts",
             "createHubSpotUpdateRequestAdapter/init:restore/init:restore",
-            "createHubSpotUpdateRequestAdapter/installed/installed",
             "createHubSpotUpdateRequestAdapter/installed/installed/installed",
             "createHubSpotUpdateRequestAdapter/native/native",
             "createHubSpotUpdateRequestAdapter/prepare/prepare",
             "createHubSpotUpdateRequestAdapter/savedWire/savedWire",
-            "encode/encode",
-            "exact/exact",
-            "fail/fail",
-            "method/method",
             "method/method/method",
-            "own/own",
             "own/own/own",
             "own/own/own#2"
           ],
@@ -2217,24 +1847,9 @@
       ],
       "operations": [
         {
-          "name": "capture/capture",
-          "parameters": [
-            "object",
-            "names"
-          ],
-          "async": false
-        },
-        {
           "name": "capture/capture/capture",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -2247,14 +1862,6 @@
             "requests",
             "limits",
             "maxRows"
-          ],
-          "async": false
-        },
-        {
-          "name": "createHubSpotUpdateObservationAdapter/account/account",
-          "parameters": [
-            "read",
-            "rowIndex"
           ],
           "async": false
         },
@@ -2337,24 +1944,6 @@
           "async": false
         },
         {
-          "name": "createHubSpotUpdateObservationAdapter/scope/scope",
-          "parameters": [
-            "authorizationFor",
-            "readChild",
-            "verify",
-            "signal",
-            "observations"
-          ],
-          "async": false
-        },
-        {
-          "name": "createHubSpotUpdateObservationAdapter/scope/scope/current/current",
-          "parameters": [
-            "slot"
-          ],
-          "async": true
-        },
-        {
           "name": "createHubSpotUpdateObservationAdapter/scope/scope/scope",
           "parameters": [
             "value"
@@ -2387,38 +1976,10 @@
           "async": true
         },
         {
-          "name": "createHubSpotUpdateObservationAdapter/selected/selected",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "encode/encode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "HubSpotUpdateObservationFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations"
-          ],
-          "async": false
-        },
-        {
-          "name": "segment/segment",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -2446,11 +2007,8 @@
         {
           "operations": [
             "<module>",
-            "capture/capture",
             "capture/capture/capture",
-            "cid/cid",
             "createHubSpotUpdateObservationAdapter",
-            "createHubSpotUpdateObservationAdapter/account/account",
             "createHubSpotUpdateObservationAdapter/account/account/account",
             "createHubSpotUpdateObservationAdapter/catalog/catalog",
             "createHubSpotUpdateObservationAdapter/createHubSpotUpdateObservationAdapter",
@@ -2459,16 +2017,10 @@
             "createHubSpotUpdateObservationAdapter/init:describe/init:describe",
             "createHubSpotUpdateObservationAdapter/init:observeTargets/init:observeTargets",
             "createHubSpotUpdateObservationAdapter/init:observeTargets/init:observeTargets/observed/observed",
-            "createHubSpotUpdateObservationAdapter/scope/scope",
-            "createHubSpotUpdateObservationAdapter/scope/scope/current/current",
             "createHubSpotUpdateObservationAdapter/scope/scope/scope",
             "createHubSpotUpdateObservationAdapter/scope/scope/scope/input/input",
             "createHubSpotUpdateObservationAdapter/scope/scope/scope#2",
-            "createHubSpotUpdateObservationAdapter/selected/selected",
-            "encode/encode",
-            "fail/fail",
             "HubSpotUpdateObservationFailure/constructor:constructor/constructor:constructor",
-            "segment/segment",
             "segment/segment/segment",
             "createHubSpotUpdateObservationAdapter/catalog/catalog/project/project",
             "createHubSpotUpdateObservationAdapter/catalog/catalog/responsePreparation/init:prepare/init:prepare",
@@ -2601,14 +2153,6 @@
       ],
       "operations": [
         {
-          "name": "capture/capture",
-          "parameters": [
-            "receiver",
-            "names"
-          ],
-          "async": false
-        },
-        {
           "name": "capture/capture/capture",
           "parameters": [
             "name"
@@ -2619,27 +2163,6 @@
           "name": "capture/capture/capture/capture",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "encode/encode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -2664,21 +2187,6 @@
             "maxMembers",
             "maxRecoveryBytes",
             "requestRecheckCapacity"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/authorize/authorize",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "hubspotUpdateDriver/frame/frame",
-          "parameters": [
-            "member",
-            "current"
           ],
           "async": false
         },
@@ -2790,18 +2298,6 @@
           "async": true
         },
         {
-          "name": "hubspotUpdateDriver/metadataReader/metadataReader",
-          "parameters": [
-            "member",
-            "runInvocationCid",
-            "dispatchRequestCid",
-            "signal",
-            "controlConstruction",
-            "targetAuthorization"
-          ],
-          "async": false
-        },
-        {
           "name": "hubspotUpdateDriver/metadataReader/metadataReader/decision/decision",
           "parameters": [
             "slot"
@@ -2822,13 +2318,6 @@
             "slot"
           ],
           "async": true
-        },
-        {
-          "name": "hubspotUpdateDriver/metadataReader/metadataReader/resourceFor/resourceFor",
-          "parameters": [
-            "slot"
-          ],
-          "async": false
         },
         {
           "name": "hubspotUpdateDriver/responsePolicy/responsePolicy",
@@ -2881,30 +2370,9 @@
           "async": false
         },
         {
-          "name": "hubspotUpdateDriver/selected/selected",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "hubspotUpdateDriver/targetReadLimits/targetReadLimits",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "isCid/isCid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "memberFacts/memberFacts",
-          "parameters": [
-            "member"
           ],
           "async": false
         },
@@ -2916,23 +2384,9 @@
           "async": false
         },
         {
-          "name": "segment/segment",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "segment/segment/segment",
           "parameters": [
             "unit"
-          ],
-          "async": false
-        },
-        {
-          "name": "wireCid/wireCid",
-          "parameters": [
-            "wire"
           ],
           "async": false
         }
@@ -2957,15 +2411,9 @@
         {
           "operations": [
             "<module>",
-            "capture/capture",
             "capture/capture/capture",
             "capture/capture/capture/capture",
-            "cid/cid",
-            "encode/encode",
-            "fail/fail",
             "hubspotUpdateDriver",
-            "hubspotUpdateDriver/authorize/authorize",
-            "hubspotUpdateDriver/frame/frame",
             "hubspotUpdateDriver/hubspotUpdateDriver",
             "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval",
             "hubspotUpdateDriver/init:admitTargetReadApproval/init:admitTargetReadApproval/matched/matched",
@@ -2980,25 +2428,18 @@
             "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry",
             "hubspotUpdateDriver/init:recoveryEntry/init:recoveryEntry/wires/wires",
             "hubspotUpdateDriver/init:send/init:send",
-            "hubspotUpdateDriver/metadataReader/metadataReader",
             "hubspotUpdateDriver/metadataReader/metadataReader/decision/decision",
             "hubspotUpdateDriver/metadataReader/metadataReader/init:authorizationFor/init:authorizationFor",
             "hubspotUpdateDriver/metadataReader/metadataReader/init:verify/init:verify",
-            "hubspotUpdateDriver/metadataReader/metadataReader/resourceFor/resourceFor",
             "hubspotUpdateDriver/responsePolicy/responsePolicy",
             "hubspotUpdateDriver/restore/restore",
             "hubspotUpdateDriver/restore/restore/indexes/indexes",
             "hubspotUpdateDriver/restore/restore/restore",
             "hubspotUpdateDriver/restore/restore/restore/restore",
             "hubspotUpdateDriver/restore/restore/restore#2",
-            "hubspotUpdateDriver/selected/selected",
             "hubspotUpdateDriver/targetReadLimits/targetReadLimits",
-            "isCid/isCid",
-            "memberFacts/memberFacts",
             "positive/positive",
-            "segment/segment",
-            "segment/segment/segment",
-            "wireCid/wireCid"
+            "segment/segment/segment"
           ],
           "exports": [
             "HUBSPOT_INSTALLED_UPDATE_OPERATION",
@@ -3115,58 +2556,11 @@
           "async": false
         },
         {
-          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/capturedExtent/capturedExtent",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
           "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/inputExtent/inputExtent",
           "parameters": [
             "previewWire",
             "recovery",
             "memberIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/operationExtent/operationExtent",
-          "parameters": [
-            "operation",
-            "capacity",
-            "transfer",
-            "physical"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical",
-          "parameters": [
-            "phase",
-            "slot",
-            "resource",
-            "perRow",
-            "operation",
-            "position",
-            "requestBytes",
-            "responseBytes",
-            "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/extentOf/extentOf",
-          "parameters": [
-            "values"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/physicalProfile/physicalProfile",
-          "parameters": [
-            "bytes",
-            "geometry"
           ],
           "async": false
         },
@@ -3201,46 +2595,9 @@
           "async": false
         },
         {
-          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/profile/profile",
-          "parameters": [
-            "targetBytes",
-            "metadataBytes",
-            "metadataKind",
-            "geometry"
-          ],
-          "async": false
-        },
-        {
           "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/profile/profile/profile",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/quantities/quantities",
-          "parameters": [
-            "original",
-            "hostBytes",
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/quote/quote",
-          "parameters": [
-            "kind",
-            "input",
-            "output",
-            "sizes"
-          ],
-          "async": false
-        },
-        {
-          "name": "data/data",
-          "parameters": [
-            "object",
-            "names"
           ],
           "async": false
         },
@@ -3252,30 +2609,9 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "method/method",
-          "parameters": [
-            "receiver",
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "method/method/method",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "numbers/numbers",
-          "parameters": [
-            "object",
-            "names"
           ],
           "async": false
         },
@@ -3307,27 +2643,15 @@
             "<module>",
             "captureHubSpotEffectPlanRecipeBuilder",
             "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe",
-            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/capturedExtent/capturedExtent",
             "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/inputExtent/inputExtent",
-            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/operationExtent/operationExtent",
-            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical",
-            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/extentOf/extentOf",
             "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/responseExtent/responseExtent",
             "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/prepareHubSpotEffectPlanRecipe",
             "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/prepareHubSpotEffectPlanRecipe#2",
             "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/prepareHubSpotEffectPlanRecipe#3",
-            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/profile/profile",
             "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/profile/profile/profile",
-            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/quantities/quantities",
-            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/quote/quote",
-            "data/data",
             "data/data/data",
-            "fail/fail",
-            "method/method",
             "method/method/method",
-            "numbers/numbers",
-            "positive/positive",
-            "captureHubSpotEffectPlanRecipeBuilder/prepareHubSpotEffectPlanRecipe/physical/physical/physicalProfile/physicalProfile"
+            "positive/positive"
           ],
           "exports": [
             "captureHubSpotEffectPlanRecipeBuilder"
@@ -3500,16 +2824,6 @@
       ],
       "operations": [
         {
-          "name": "bindingFor",
-          "parameters": [
-            "member",
-            "unit",
-            "siteBindingCid",
-            "generationCid"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledHubSpotEffectProfile",
           "parameters": [
             "profile"
@@ -3524,38 +2838,9 @@
           "async": false
         },
         {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "closed/closed",
-          "parameters": [
-            "value",
-            "names"
-          ],
-          "async": false
-        },
-        {
           "name": "closed/closed/closed",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "encode/encode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -3788,16 +3073,6 @@
           "async": false
         },
         {
-          "name": "membersOf",
-          "parameters": [
-            "moon",
-            "prepared",
-            "unit",
-            "installed"
-          ],
-          "async": false
-        },
-        {
           "name": "membersOf/members/members",
           "parameters": [
             "effectId"
@@ -3828,31 +3103,9 @@
           "async": false
         },
         {
-          "name": "method/method",
-          "parameters": [
-            "receiver",
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "method/method/method",
           "parameters": [
             "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "nativeLimits",
-          "parameters": [
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -3861,14 +3114,9 @@
         {
           "operations": [
             "<module>",
-            "bindingFor",
             "checkInstalledHubSpotEffectProfile",
             "checkInstalledHubSpotEffectProfile/checkInstalledHubSpotEffectProfile",
-            "cid/cid",
-            "closed/closed",
             "closed/closed/closed",
-            "encode/encode",
-            "fail/fail",
             "installedHubSpotEffectIdentityParts",
             "installedHubSpotEffectIdentityParts/readers/readers",
             "installedHubSpotTargetReadInventory",
@@ -3899,15 +3147,11 @@
             "loadInstalledHubSpotEffect/textUnits/textUnits#2",
             "loadInstalledHubSpotEffect/textUnits/textUnits#3",
             "loadInstalledHubSpotEffect/textUnits/textUnits/textUnits",
-            "membersOf",
             "membersOf/members/members",
             "membersOf/members/members#2",
             "membersOf/members/members/mapping/mapping",
             "membersOf/membersOf",
-            "method/method",
-            "method/method/method",
-            "nativeLimits",
-            "text/text"
+            "method/method/method"
           ],
           "exports": [
             "INSTALLED_HUBSPOT_EFFECT_VERSION",
@@ -4033,13 +3277,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareHubSpotManagedSequence",
           "parameters": [
             "moon",
@@ -4051,11 +3288,6 @@
             "authorizeMetadata",
             "responseCapacity"
           ],
-          "async": false
-        },
-        {
-          "name": "prepareHubSpotManagedSequence/current/current",
-          "parameters": [],
           "async": false
         },
         {
@@ -4080,16 +3312,6 @@
           "async": false
         },
         {
-          "name": "prepareHubSpotManagedSequence/init:read/init:read/receive/receive",
-          "parameters": [
-            "operation",
-            "path",
-            "query",
-            "project"
-          ],
-          "async": true
-        },
-        {
           "name": "prepareHubSpotManagedSequence/init:read/init:read/receive/receive/init:prepare/init:prepare",
           "parameters": [],
           "async": false
@@ -4100,11 +3322,6 @@
             "response"
           ],
           "async": false
-        },
-        {
-          "name": "prepareHubSpotManagedSequence/init:read/init:read/recheckProperties/recheckProperties",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "prepareHubSpotManagedSequence/init:read/init:read/recheckProperties/recheckProperties/recheckProperties",
@@ -4175,13 +3392,6 @@
           "async": false
         },
         {
-          "name": "segment/segment",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "segment/segment/segment",
           "parameters": [
             "unit"
@@ -4200,16 +3410,12 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "prepareHubSpotManagedSequence",
-            "prepareHubSpotManagedSequence/current/current",
             "prepareHubSpotManagedSequence/init:read/init:read",
             "prepareHubSpotManagedSequence/init:read/init:read/init:read",
             "prepareHubSpotManagedSequence/init:read/init:read/page/page",
-            "prepareHubSpotManagedSequence/init:read/init:read/receive/receive",
             "prepareHubSpotManagedSequence/init:read/init:read/receive/receive/init:prepare/init:prepare",
             "prepareHubSpotManagedSequence/init:read/init:read/receive/receive/init:prepare/init:prepare/init:project/init:project",
-            "prepareHubSpotManagedSequence/init:read/init:read/recheckProperties/recheckProperties",
             "prepareHubSpotManagedSequence/init:read/init:read/recheckProperties/recheckProperties/recheckProperties",
             "prepareHubSpotManagedSequence/init:responseCapacity/init:responseCapacity",
             "prepareHubSpotManagedSequence/init:responseCapacity/init:responseCapacity/init:responseCapacity",
@@ -4219,7 +3425,6 @@
             "prepareHubSpotManagedSequence/prepareHubSpotManagedSequence#3",
             "prepareHubSpotManagedSequence/provider/provider",
             "prepareHubSpotManagedSequence/request/request",
-            "segment/segment",
             "segment/segment/segment"
           ],
           "exports": [

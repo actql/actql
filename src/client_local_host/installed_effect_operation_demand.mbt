@@ -463,6 +463,8 @@ pub fn prepare_installed_effect_operation_demand_with_controls(
 struct ClientInstalledEffectManagedPlan {
   prepared : @publication_host.PreparedClientEffectComputation
   request : @publication_host.ClientRequestIdentity
+  mut keyed_original : @publication_host.ClientEffectKeyedOriginal?
+  mut keyed_inventory : ClientInstalledEffectKeyedInventory?
   query_time : @publication_host.ClientQueryTimePreparation?
   model : ClientInstalledEffectModelDemand?
   content : ClientInstalledEffectContentPreparation?
@@ -1317,13 +1319,43 @@ fn prepare_installed_effect_managed_plan_owned(
   }
   guard installed_direct_occurrences_layout(whole_sources.length())
     is Some((selector_retained, _)) &&
+    installed_effect_member_selection_layout(selected_operations.length())
+    is Some((member_retained, member_execution)) &&
     @execution.checked_preparation_add_product(controls, selector_retained, 1L)
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(controls, member_retained, 1L)
     is Some(controls) &&
     @execution.checked_preparation_add_product(controls, phase_retained, 1L)
     is Some(controls) else {
     return Err(InsufficientCapacity)
   }
-  let temporary = temporary + phase_workspace
+  guard @execution.checked_preparation_add_product(
+      temporary + phase_workspace,
+      member_execution - member_retained,
+      1L,
+    )
+    is Some(temporary) else {
+    return Err(InsufficientCapacity)
+  }
+  let model_count = model
+    .map(value => value.components.map(values => values.length()).unwrap_or(1))
+    .unwrap_or(0)
+  guard @execution.checked_preparation_add_product(
+      controls,
+      installed_effect_keyed_plan_field_bytes(),
+      1L,
+    )
+    is Some(controls) else {
+    return Err(InsufficientCapacity)
+  }
+  guard installed_model_selection_layout(model_count)
+    is Some((model_r, model_e)) &&
+    @execution.checked_preparation_add_product(controls, model_r, 1L)
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(temporary, model_e - model_r, 1L)
+    is Some(temporary) else {
+    return Err(InsufficientCapacity)
+  }
   if retained > 9223372036854775807L - controls ||
     execution > 9223372036854775807L - controls - temporary {
     return Err(Unsupported)
@@ -1401,6 +1433,8 @@ fn prepare_installed_effect_managed_plan_owned(
   Ok({
     prepared,
     request,
+    keyed_original: None,
+    keyed_inventory: None,
     query_time,
     model,
     content,

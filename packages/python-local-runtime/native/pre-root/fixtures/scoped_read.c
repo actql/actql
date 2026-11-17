@@ -57,6 +57,15 @@ static int observed_mprotect(void *p,size_t n,int prot) {
     }
     return mprotect(p,n,prot);
 }
+#ifdef ACTQL_READ_PROCESS_OBSERVATION
+static bool observe_process_calls;
+static size_t process_calls;
+static pid_t fixture_observed_getpid(void) {
+    if(observe_process_calls) process_calls++;
+    return getpid();
+}
+#define getpid fixture_observed_getpid
+#endif
 #define mi_malloc observed_mi_malloc
 #define mi_free observed_mi_free
 #define malloc observed_malloc
@@ -70,6 +79,9 @@ static int observed_mprotect(void *p,size_t n,int prot) {
 #undef calloc
 #undef free
 #undef mprotect
+#ifdef ACTQL_READ_PROCESS_OBSERVATION
+#undef getpid
+#endif
 #ifdef ACTQL_F_CALLER_CASES
 /* Test-only projection of this translation unit's same provider/TLS. It does
  * not adopt a Common pair, installed Host, resource profile or worker. */
@@ -270,12 +282,7 @@ static bool alias_only_cleanup(void) {
     assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY && context->closing);
     assert(actql_native_owned_enter(lease)==0);
     assert(actql_read_context_enter(context)==ACTQL_OWNED_INVALID);
-#ifdef ACTQL_ALIAS_CLEANUP_ENTRY
     assert(actql_read_context_enter_cleanup(context)==0);
-#else
-    /* The original ABI used the normal entry for this SAME cleanup request. */
-    assert(actql_read_context_enter(context)==0);
-#endif
     assert(context->users==0 && context->active==1 && context->closing);
     assert(actql_read_context_retain(context)==ACTQL_OWNED_INVALID);
     assert(actql_read_context_enter(context)==ACTQL_OWNED_INVALID);
@@ -676,6 +683,41 @@ static bool allocation_domain_failure_observation(void) {
     assert(actql_native_owned_try_close(&parent)==0 && parent==NULL);
     return true;
 }
+
+#ifdef ACTQL_READ_PROCESS_OBSERVATION
+/* Observe real process queries in the existing provider, not a cached PID or
+ * substitute allocator. Keep a live sentinel while measuring each free. */
+static bool managed_process_observations(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    void *sentinel=actql_native_moon_scoped_allocate(32); assert(sentinel);
+    void *values[32];
+    process_calls=0; observe_process_calls=true;
+    for(size_t i=0;i<32;i++) {
+        values[i]=actql_native_moon_scoped_allocate(32); assert(values[i]);
+        memset(values[i],(int)(i+1),32);
+    }
+    observe_process_calls=false; size_t allocation_calls=process_calls;
+    for(size_t i=0;i<32;i++) assert(((unsigned char *)values[i])[31]==i+1);
+    process_calls=0; observe_process_calls=true;
+    for(size_t i=0;i<32;i++) actql_native_moon_scoped_free(values[i]);
+    observe_process_calls=false; size_t free_calls=process_calls;
+    /* Measured prior costs were six queries per allocation and four per free.
+     * Bound redundant work without freezing a private helper count or layout. */
+    assert(allocation_calls>0 && allocation_calls<6*32);
+    assert(free_calls>0 && free_calls<4*32);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    actql_native_moon_scoped_free(sentinel); /* Original provenance after leave. */
+    finish(&lease,&context);
+    printf("{\"allocationCalls\":32,\"allocationProcessQueries\":%zu,"
+           "\"freeCalls\":32,\"freeProcessQueries\":%zu}\n",allocation_calls,free_calls);
+    return true;
+}
+#endif
 
 /* Keep the original 64-page fixture. A real generic File prefix places the
  * managed page after other original extents, as in command preparation. LLVM
@@ -1541,6 +1583,13 @@ static void read_raw_activation_failure(unsigned mode, bool managed) {
 int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
     setbuf(stdout,NULL);
+#ifdef ACTQL_READ_PROCESS_OBSERVATION
+    if(argc==2 && strcmp(argv[1],"--managed-process-observations-only")==0) {
+        assert(managed_process_observations());
+        puts("{\"case\":\"same-original-process-observations\",\"passed\":1,\"failed\":0}");
+        return 0;
+    }
+#endif
 #ifdef ACTQL_READ_SEARCH_WORK
     if(argc==2 && strcmp(argv[1],"--managed-page-wrap-fallback-only")==0) {
         assert(managed_page_wrap_fallback());

@@ -26,7 +26,8 @@
     "control_token": "sha256:2a388b541a648dab8799ed93530d5a0b7fcca2c0cf84db69d18b5dca60bc9f3b",
     "inference_barrier": "sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd",
     "native_file_content_read": "sha256:087884120840e8d5c74043dfd74af35ccb7b535d9a9e8c01d68a45f9afb76e08",
-    "declared_file_content_read": "sha256:3385e23c7a3046cffb522dea96c81722d3dba3ae688d9007b49e317386da7d0c"
+    "declared_file_content_read": "sha256:3385e23c7a3046cffb522dea96c81722d3dba3ae688d9007b49e317386da7d0c",
+    "installed_row_source_read": "sha256:3dbdbd48a456fbfc9838dae8eb2f3b9b7577ef9ec8c74b57d5f3f66f475dffbe"
   },
   "schemas": {
     "lookup_source": {
@@ -7578,7 +7579,45 @@
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
+    },
+    "installed_row_source_read": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-installed-row-source-read-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "source_view_contract_cid",
+        "request_schema_cid",
+        "response_schema_cid",
+        "response_encoding",
+        "transport_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-installed-row-source-read/0.1"
+        },
+        "source_view_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "response_encoding": {
+          "const": "typed_json_row_array"
+        },
+        "transport_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
     }
   },
-  "registry_cid": "sha256:a2a36ed8b80fe14d535b2624426a8f032cedd3efd93ba5a334f74a92a4f8ad7b"
+  "registry_cid": "sha256:cdcbf5f5d765bfca98b1d617ebf128f891bbbb6934003db4d97f5f03319aac65"
 }

@@ -3,12 +3,17 @@
 // No Native Host, Account, Store, durable Run or physical backing is supplied.
 fn native_publication_workspace_fixture(
   rows : Int,
+  expanded_text? : Bool = false,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
   @publication_host.PreparedClientProgram,
 ) raise {
-  let document = request_native_numeric_public_program(rows)
+  let document = if expanded_text {
+    original_cross_text_working_program()
+  } else {
+    request_native_numeric_public_program(rows)
+  }
   let input = [1]
   let parent = begin_request_preparation(
     request_parent_fixture(input),
@@ -22,8 +27,41 @@ fn native_publication_workspace_fixture(
   ).unwrap()
   let wire = request_numeric_local_environment(
     @publication_host.client_local_product_assets().environment,
-    rows,
+    if expanded_text {
+      1024
+    } else {
+      rows
+    },
   )
+  let wire = if expanded_text {
+    // The original Native resource-shape operator selects 1024 rows and
+    // 16MiB artifacts; preserve that exact profile for this Common isolation.
+    let parsed = @json.parse(wire)
+    guard parsed is Object(base) &&
+      base["host_policy_profile"] is Object(profile) &&
+      profile["capacity"] is Object(capacity) else {
+      fail("original resource-shape Environment")
+    }
+    base.remove("evidence_bundle_cid")
+    capacity["max_artifact_bytes"] = Json::number(16777216.0)
+    let body = @identity.stringify_value(
+      @identity.from_json(parsed, 100000, 100, 1000000),
+      1000000,
+      100000,
+      100,
+    )
+    base["evidence_bundle_cid"] = @json.parse(
+      "\"sha256:" + @sha.hex(@utf8.encode(body)) + "\"",
+    )
+    @identity.stringify_value(
+      @identity.from_json(parsed, 100000, 100, 1000000),
+      1000000,
+      100000,
+      100,
+    )
+  } else {
+    wire
+  }
   let environment = @publication_host.admit_client_check_environment(
     wire,
     request_numeric_environment_cid(wire),
@@ -82,8 +120,13 @@ fn native_publication_workspace_component(
   snapshot? : Bool = false,
   chain? : Bool = false,
   only_foreign? : Bool = false,
+  expanded_text? : Bool = false,
+  read_validation? : Int = 0,
 ) -> Unit raise {
-  let (parent, _input, prepared) = native_publication_workspace_fixture(rows)
+  let (parent, _input, prepared) = native_publication_workspace_fixture(
+    rows,
+    expanded_text~,
+  )
   let assets = @publication_host.client_local_product_assets()
   let contracts = parent.program_source_free.unwrap().installed_contracts
   let requirements = prepare_source_free_local_requirements(
@@ -113,6 +156,11 @@ fn native_publication_workspace_component(
     "publication-workspace-component",
   ).unwrap()
   let run = begin_request_program_managed_run(parent, request).unwrap()
+  if expanded_text {
+    let ledger = run.ledger.unwrap()
+    assert_eq(@resources.ledger_limits(ledger).retained_bytes, 536870912L)
+    assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
+  }
   let mut original_compilation : @publication_host.ClientCompiledRun? = None
   let mut original_observation : @publication.RunEvidenceValue? = None
   if snapshot {
@@ -379,7 +427,9 @@ fn native_publication_workspace_component(
       .unwrap()
     // Metadata bounds are not a full-row snapshot allowance. Refusal leaves
     // the same identified original available to its funded continuation.
-    assert_true(stream.admit_captured_snapshot(65536, 8192, 64) is Err(_))
+    if read_validation == 0 {
+      assert_true(stream.admit_captured_snapshot(65536, 8192, 64) is Err(_))
+    }
     let cursor = match begin_program_snapshot(publication, stream) {
       Ok(value) => value
       Err(issue) => {
@@ -469,30 +519,33 @@ fn native_publication_workspace_component(
         ()
       }
       let recorded = finish_program_capture(capture).unwrap()
-      let check = @publication.start_effect_free_run_evidence_check(
-        definition,
-        invocation,
-        [result_definition],
-        [artifact],
-        manifest,
-        receipt,
-        recorded,
-        65536,
-        8192,
-        64,
-        @publication.publication_evidence_workspace(8192),
-      )
-      let mut refused = false
-      while !refused {
-        match check.advance(256) {
-          Ok((true, _)) =>
-            fail("Metadata bounds unexpectedly covered full Effect context")
-          Ok((false, _)) => ()
-          Err(EvidenceEmbeddedIdentity("effect_context_cid")) => refused = true
-          Err(_) => fail("Unrelated legacy full-context refusal")
+      if read_validation == 0 {
+        let check = @publication.start_effect_free_run_evidence_check(
+          definition,
+          invocation,
+          [result_definition],
+          [artifact],
+          manifest,
+          receipt,
+          recorded,
+          65536,
+          8192,
+          64,
+          @publication.publication_evidence_workspace(8192),
+        )
+        let mut refused = false
+        while !refused {
+          match check.advance(256) {
+            Ok((true, _)) =>
+              fail("Metadata bounds unexpectedly covered full Effect context")
+            Ok((false, _)) => ()
+            Err(EvidenceEmbeddedIdentity("effect_context_cid")) =>
+              refused = true
+            Err(_) => fail("Unrelated legacy full-context refusal")
+          }
         }
+        check.cancel()
       }
-      check.cancel()
       // Independently recheck the actual complete contract through the existing
       // measured Core plan, without reusing the capture issuer's completed fact.
       // This component control supplies no physical Host/Store grant.
@@ -591,6 +644,38 @@ fn native_publication_workspace_component(
         8192,
         64,
       ).unwrap()
+      if expanded_text {
+        // Native closes this completed export bridge after persistence and
+        // capture, before pending.commit revalidates the retained originals.
+        output.close()
+      }
+      if read_validation != 0 {
+        native_publication_read_funding_component(
+          parent.ledger,
+          capture,
+          definition,
+          invocation,
+          [result_definition],
+          [artifact],
+          [derivation],
+          [ordering],
+          [retention],
+          [binding],
+          manifest,
+          receipt,
+          recorded,
+          request_contract,
+          attempt,
+          index,
+          rows,
+          read_validation,
+        )
+        output.close()
+        assert_true(execution.close())
+        retire_installed_managed_run(run).unwrap()
+        assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+        return
+      }
       check_program_commit_validation(
         capture,
         definition,
@@ -834,5 +919,433 @@ test "ordinary export refuses copied publication continuation before bridge cons
     false,
     snapshot=true,
     only_foreign=true,
+  )
+}
+
+///|
+test "original expanded Text snapshot capture and commit validate under the same owner" {
+  native_publication_workspace_component(
+    512,
+    false,
+    snapshot=true,
+    chain=true,
+    expanded_text=true,
+  )
+}
+
+///|
+// Actual compiled/snapshot/capture/index fixtures above supply semantic originals.
+// This independent Resource ledger exercises the Read-funding port, not a
+// physical Native Read/Store acknowledgement or an extra business Run grant.
+fn native_publication_read_funding_component(
+  business : @resources.Ledger,
+  capture : ClientProgramCapture,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  recorded : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index : @publication.PublicationContract,
+  rows : Int,
+  mode : Int,
+) -> Unit raise {
+  // Count the actual typed metadata occurrences independently. Captured rows
+  // are deliberately excluded; the six owned list copies each contain one.
+  let mut metadata_nodes = 0
+  for
+    contract in [
+      definition,
+      invocation,
+      definitions[0],
+      artifacts[0],
+      derivations[0],
+      orderings[0],
+      retentions[0],
+      bindings[0],
+      manifest,
+      receipt,
+      request,
+      attempt,
+      index,
+    ] {
+    let (_, nodes, _) = @publication.publication_contract_wire_usage(contract).unwrap()
+    metadata_nodes += nodes
+  }
+  assert_true(metadata_nodes > 6 && metadata_nodes != rows)
+  // Cover every nominal contract occurrence in the explicit observer
+  // workspace, including captured metadata. This structural allowance is
+  // independent of the SAME Read's unchanged retained/execution budgets.
+  let (_, captured_nodes, _) = @publication.publication_contract_wire_usage(
+    recorded,
+  ).unwrap()
+  let visitor_workspace = @publication.publication_evidence_workspace(
+    metadata_nodes + captured_nodes,
+  )
+  let old_quotes = (
+    capture.publication.retained_quote,
+    capture.publication.execution_quote,
+    capture.validation_retained,
+  )
+  let limits = @resources.ledger_limits(business)
+  let before_pressure = @resources.ledger_usage(business)
+  let pressure = @resources.reserve_capacity(
+    business,
+    limits.retained_bytes -
+    before_pressure.held_bytes -
+    before_pressure.reserved_retention_bytes,
+    limits.execution_bytes - before_pressure.reserved_execution_bytes,
+  ).unwrap()
+  let business_before = @resources.ledger_usage(business)
+  assert_true(
+    @resources.reserve_capacity(business, 1L, 0L) is Err(RetentionLimit),
+  )
+  assert_true(
+    @resources.reserve_capacity(business, 0L, 1L) is Err(ExecutionLimit),
+  )
+  let read = @resources.create_ledger({
+    ..limits,
+    execution_bytes: if mode == 2 || mode == 8 {
+      publication_projection_execution - 1L
+    } else {
+      limits.execution_bytes
+    },
+  }).unwrap()
+  let reservation = @resources.reserve_capacity(read, 0L, 0L).unwrap()
+  let retained = Ref(0L)
+  let execution = Ref(0L)
+  let phases : Array[Int] = []
+  let inventory_slots = Ref(-1)
+  let inventory_arrays = Ref(-1)
+  let plan_nodes = Ref(-1)
+  let controller_before_scaffold = Ref(false)
+  let controller : Ref[ClientProgramValidation?] = Ref(None)
+  let read_current = Ref(true)
+  let visited = Ref(0)
+  let escaped : Ref[
+    (
+      @publication.PublicationCommitPreparation,
+      @publication.PublicationCommitReadView,
+    )?,
+  ] = Ref(None)
+  let fund = fn(demand : ClientProgramValidationReadDemand) {
+    if !read_current.val {
+      return Err(Owner(ForeignOriginal))
+    }
+    let phase = match demand.phase {
+      Scaffold => 0
+      Inventory => 1
+      Plan => 2
+      Fence => 3
+    }
+    phases.push(phase)
+    if phase == 0 {
+      controller_before_scaffold.val = capture.validation is Some(_)
+    }
+    let r = Int64::max(retained.val, demand.retained_bytes)
+    let e = Int64::max(execution.val, demand.execution_bytes)
+    match @resources.grow_capacity_reservation(read, reservation, r, e) {
+      Err(issue) => return Err(Owner(Capacity(@resources.Resource(issue))))
+      Ok(_) => ()
+    }
+    retained.val = r
+    execution.val = e
+    if phase == 1 {
+      inventory_slots.val = demand.copied_slots
+      inventory_arrays.val = demand.copied_arrays
+      controller.val = capture.validation
+      if mode == 3 {
+        cancel_program_capture(capture)
+      }
+      if mode == 4 {
+        definitions.push(definitions[0])
+      }
+    }
+    if phase == 2 {
+      plan_nodes.val = demand.metadata_nodes
+    }
+    Ok(())
+  }
+  let same_consumer_owner = Ref(false)
+  let same_consumer_checker = Ref(false)
+  let reentrant_consumer_refused = Ref(false)
+  let consumer_view_count = Ref(0)
+  let consumer_view_released = Ref(false)
+  let checked = if mode >= 5 {
+    let result = with_program_commit_validation_view_in_read(
+      capture,
+      definition,
+      invocation,
+      definitions,
+      artifacts,
+      derivations,
+      orderings,
+      retentions,
+      bindings,
+      manifest,
+      receipt,
+      recorded,
+      request,
+      attempt,
+      index,
+      visitor_workspace,
+      if mode == 9 {
+        1
+      } else {
+        16
+      },
+      if mode == 9 {
+        1
+      } else {
+        1000
+      },
+      fund,
+      fn(owner, checker) {
+        visited.val += 1
+        same_consumer_owner.val = capture.validation is Some(original) &&
+          physical_equal(original, owner)
+        same_consumer_checker.val = borrow_program_commit_validation(owner)
+          is Some(original) &&
+          physical_equal(original, checker)
+        reentrant_consumer_refused.val = new_program_validation(capture, true)
+          is Err(Owner(WrongPhase))
+        let view = match checker.finish_view() {
+          Ok(value) => value
+          Err(_) => return Err("consumer-view-unavailable")
+        }
+        escaped.val = Some((checker, view))
+        consumer_view_count.val = checker.view_count(view).unwrap_or(0)
+        consumer_view_released.val = checker.release_view(view) is Ok(_)
+        if mode == 6 || mode == 7 {
+          read_current.val = false
+        }
+        if mode == 7 {
+          Err("original-consumer-error")
+        } else {
+          Ok(17)
+        }
+      },
+    )
+    match mode {
+      5 => {
+        assert_true(result is Ok(Some(Ok(17))))
+        assert_eq(visited.val, 1)
+      }
+      6 => {
+        assert_true(result is Err(Owner(ForeignOriginal)))
+        assert_eq(visited.val, 1)
+      }
+      7 => {
+        assert_true(result is Ok(Some(Err("original-consumer-error"))))
+        assert_eq(visited.val, 1)
+      }
+      8 => {
+        assert_true(
+          result is Err(Owner(Capacity(@resources.Resource(ExecutionLimit)))),
+        )
+        assert_eq(visited.val, 0)
+      }
+      9 => {
+        assert_true(result is Ok(None))
+        assert_eq(visited.val, 0)
+      }
+      _ => fail("unknown actual Read visitor case")
+    }
+    if visited.val > 0 {
+      assert_true(same_consumer_owner.val)
+      assert_true(same_consumer_checker.val)
+      assert_true(reentrant_consumer_refused.val)
+      assert_true(consumer_view_count.val > 0)
+      assert_true(consumer_view_released.val)
+    }
+    if escaped.val is Some((checker, view)) {
+      assert_true(checker.view_count(view) is Err(_))
+    }
+    match result {
+      Err(issue) if mode == 8 => Err(issue)
+      _ => Ok(())
+    }
+  } else {
+    check_program_commit_validation_in_read(
+      capture, definition, invocation, definitions, artifacts, derivations, orderings,
+      retentions, bindings, manifest, receipt, recorded, request, attempt, index,
+      fund,
+    )
+  }
+  assert_false(controller_before_scaffold.val)
+  assert_true(capture.validation is None)
+  assert_eq(@resources.ledger_usage(business), business_before)
+  assert_eq(
+    (
+      capture.publication.retained_quote,
+      capture.publication.execution_quote,
+      capture.validation_retained,
+    ),
+    old_quotes,
+  )
+  match mode {
+    2 | 8 => {
+      assert_true(
+        checked is Err(Owner(Capacity(@resources.Resource(ExecutionLimit)))),
+      )
+      assert_eq(phases, [0])
+      assert_eq(retained.val, 0L)
+      assert_eq(execution.val, 0L)
+      assert_true(controller.val is None)
+    }
+    3 => {
+      assert_true(checked is Err(Owner(ForeignOriginal)))
+      assert_eq(phases, [0, 1])
+      assert_true(capture.issuer is None)
+      let value = controller.val.unwrap()
+      assert_true(value.closed && value.plan is None && value.commit is None)
+    }
+    4 => {
+      assert_true(checked is Err(Owner(Policy)))
+      assert_eq(phases, [0, 1])
+      assert_eq(definitions.length(), 2)
+      let value = controller.val.unwrap()
+      assert_true(value.closed && value.plan is None && value.commit is None)
+    }
+    _ => {
+      checked.unwrap()
+      assert_true(phases.length() > 3)
+      assert_eq([phases[0], phases[1], phases[2]], [0, 1, 2])
+      for i in 3..<phases.length() {
+        assert_eq(phases[i], 3)
+      }
+      assert_eq(plan_nodes.val, metadata_nodes)
+      assert_true(retained.val > 0L && execution.val > 0L)
+      let value = controller.val.unwrap()
+      assert_true(value.closed && value.plan is None && value.commit is None)
+    }
+  }
+  if mode != 2 && mode != 8 {
+    assert_eq(inventory_slots.val, 6)
+    assert_eq(inventory_arrays.val, 6)
+  }
+  let paid = @resources.ledger_usage(read)
+  assert_eq(paid.reserved_retention_bytes, retained.val)
+  assert_eq(paid.reserved_execution_bytes, execution.val)
+  assert_eq(paid.attempts, 0)
+  assert_eq(paid.transferred_bytes, 0L)
+  @resources.settle_capacity(read, reservation).unwrap()
+  assert_eq(@resources.ledger_usage(read).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(read).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(read).reserved_execution_bytes, 0L)
+  @resources.settle_capacity(business, pressure).unwrap()
+  assert_eq(
+    @resources.ledger_usage(business).reserved_retention_bytes,
+    before_pressure.reserved_retention_bytes,
+  )
+  assert_eq(
+    @resources.ledger_usage(business).reserved_execution_bytes,
+    before_pressure.reserved_execution_bytes,
+  )
+}
+
+///|
+test "original publication commit uses independent funded Read with no remaining business capacity" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=1,
+  )
+}
+
+///|
+test "publication Read funding refusal precedes controller and preserves original business reservation" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=2,
+  )
+}
+
+///|
+test "publication Read current cancellation and copied-array growth stop before plan construction" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=3,
+  )
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=4,
+  )
+}
+
+///|
+test "expanded 512-row Text publication validates metadata on independent Read without business growth" {
+  native_publication_workspace_component(
+    512,
+    false,
+    snapshot=true,
+    chain=true,
+    expanded_text=true,
+    read_validation=1,
+  )
+}
+
+///|
+test "publication Read visitor keeps same original loan through consumer then invalidates all views" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=5,
+  )
+}
+
+///|
+test "publication Read visitor refuses lost Read but preserves consumer primary and exact prefix" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=6,
+  )
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=7,
+  )
+}
+
+///|
+test "publication Read visitor low execution and unfinished bounded validation never enter consumer" {
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=8,
+  )
+  native_publication_workspace_component(
+    2,
+    false,
+    snapshot=true,
+    chain=true,
+    read_validation=9,
   )
 }

@@ -121,6 +121,15 @@ test('public retained expression comparison publishes and stops inside its Text 
     assert.equal(dispatches, 1);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
+    const ref = execution.ref;
+    await client.close();
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory, retainedRelationOutput: true, authorization}});
+    const attached = await client.attach(ref);
+    for (const name of names) assert.deepEqual(await attached.result(name).all(), [{id: 1}]);
+    assert.equal(advances, successfulAdvances);
+    assert.equal(dispatches, 1);
+
     cancelling = true;
     const cancelSource = JSON.stringify(program('public-expression-comparison-cancel'));
     const cancelOptions = {format: 'json', submissionRef: client.newSubmission({nonce: 'public-expression-comparison-cancel'})};

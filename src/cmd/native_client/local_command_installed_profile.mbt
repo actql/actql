@@ -31,10 +31,24 @@ fn local_command_installed_profile(
     read_budget.workspace_execution,
     read_budget.read_execution,
   ]).unwrap_or_else(() => stop("LocalCommandPreparationLayoutUnavailable"))
-  let read_payload = native_storage_sum([read_retained, read_execution]).unwrap_or_else(() => {
-      stop("LocalCommandPreparationLayoutUnavailable")
-    },
+  // Initial Read working extents above are unchanged. Later original Result
+  // constructors use the SAME ordinary finite policy, rather than treating
+  // that small startup basis as a separate all-input ceiling. The original
+  // window acquires only actual checked demand before allocation.
+  let read_policy = @local_values.client_local_preparation_initial_limits(
+    @local_values.client_local_resource_policy(),
+  ).unwrap_or_else(() => stop("LocalCommandPreparationLayoutUnavailable"))
+  let declared_read_retained = Int64::max(
+    read_retained,
+    read_policy.retained_bytes,
   )
+  let declared_read_execution = Int64::max(
+    read_execution,
+    read_policy.execution_bytes,
+  )
+  let read_payload = native_storage_sum([
+    declared_read_retained, declared_read_execution,
+  ]).unwrap_or_else(() => stop("LocalCommandPreparationLayoutUnavailable"))
   // Use actual provider control/context geometry for each complete domain.
   // SQLite's existing occupied-page facility includes its contained heap;
   // adding that heap again would quote the same bytes twice.
@@ -82,8 +96,8 @@ fn local_command_installed_profile(
       attempts: 64,
       holdings: 32,
       transfer_bytes: 8L * mib,
-      retained_bytes: read_retained,
-      execution_bytes: read_execution,
+      retained_bytes: declared_read_retained,
+      execution_bytes: declared_read_execution,
     },
     sqlite_domain_bytes: sqlite_domain,
     sqlite_domain_limits: {

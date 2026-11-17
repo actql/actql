@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {scopedModelHolding} from './model-custody-fixture.mjs';
 import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
-import {inferPreparationFailureData} from './packed-infer-preparation-diagnostic.mjs';
+import {inferTerminalFailureData, createInferFailureObserver} from './packed-infer-preparation-diagnostic.mjs';
 import {execFileSync} from 'node:child_process';
 import {createDecipheriv, createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
@@ -9,46 +9,10 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {types as nodeTypes} from 'node:util';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {canonical, cid, configuration, program, expected} from
   './installed-infer-fixture.mjs';
-
-// Reuse the existing dispatch observer without serializing its original Error,
-// Run reference, input, message or stack. Diagnostics never change execution.
-function inferDispatchFailureData(detail) {
-  const own = (record, key) => {
-    if (record === null || typeof record !== 'object' || nodeTypes.isProxy(record)) return undefined;
-    const field = Object.getOwnPropertyDescriptor(record, key);
-    return field && Object.hasOwn(field, 'value') ? field.value : undefined;
-  };
-  const data = {};
-  for (const key of ['code', 'primaryCode']) {
-    const value = own(detail, key);
-    if (typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(value)) data[key] = value;
-  }
-  for (const key of ['issueTag', 'nestedIssueTag']) {
-    const value = own(detail, key);
-    if (Number.isSafeInteger(value) && value >= 0 && value <= 65535) data[key] = value;
-  }
-  return Object.keys(data).length === 0 ? undefined : Object.freeze(data);
-}
-
-function inferTerminalFailureData(terminal) {
-  const own = (record, key) => {
-    if (record === null || typeof record !== 'object' || nodeTypes.isProxy(record)) return undefined;
-    const field = Object.getOwnPropertyDescriptor(record, key);
-    return field && Object.hasOwn(field, 'value') ? field.value : undefined;
-  };
-  const data = {};
-  for (const [key, value] of [['status', own(terminal, 'status')],
-    ['nextAction', own(own(terminal, 'next_action'), 'kind')],
-    ['terminalCode', own(own(terminal, 'terminal_error'), 'code')]]) {
-    if (typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(value)) data[key] = value;
-  }
-  return Object.freeze(data);
-}
 
 const mode = process.argv[2];
 const transport = process.argv[3] ?? 'local';
@@ -117,26 +81,10 @@ let stopBeforeAcknowledgement;
 let started;
 const ready = new Promise(resolve => { started = resolve; });
 const inferFailureObservations = [];
-let inferFailureObserved = false;
-let dispatchFailureObserved = false;
-authorization.observe = (name, detail) => {
-  if (name === 'dispatch_failed' && !dispatchFailureObserved) {
-    const data = inferDispatchFailureData(detail);
-    if (data === undefined) return;
-    dispatchFailureObserved = true;
-    const observed = Object.freeze({event: name, ...data, calls});
-    inferFailureObservations.push(observed);
-    console.error(JSON.stringify(observed));
-    return;
-  }
-  if (name !== 'infer_preparation_rejected' || inferFailureObserved) return;
-  const data = inferPreparationFailureData(detail);
-  if (data === undefined) return;
-  inferFailureObserved = true;
-  const observed = Object.freeze({event: name, ...data});
-  inferFailureObservations.push(observed);
-  console.error(JSON.stringify(observed));
-};
+authorization.observe = createInferFailureObserver({
+  record:value=>inferFailureObservations.push(value),
+  emit:value=>console.error(JSON.stringify(value)), readCalls:()=>calls,
+});
 authorization.faultInjection = async name => {
   if (mode === 'approval-stop-cancel' && name === 'infer_model_settlement_committed' && !cancelled) {
     await ready;

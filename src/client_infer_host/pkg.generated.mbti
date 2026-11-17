@@ -17,6 +17,7 @@ import {
   "actql/actql/source_value",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -60,6 +61,8 @@ pub fn bind_dispatch_admission(Execution, @run_publication_host.ClientInferDispa
 
 pub fn bind_egress_admission(Execution, @run_publication_host.ClientInferEgressAdmission) -> Result[Unit, Issue]
 
+pub fn bind_installed_effect_publication_invocation(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, @run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientCompiledRun, InvocationBinding) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @client_local_host.ClientClosedValuesPreparationIssue]
+
 pub fn bind_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[InvocationBinding, InvocationBindingIssue]
 
 pub fn bind_issued_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, ObservationIssuance) -> Result[InvocationBinding, InvocationBindingIssue]
@@ -91,6 +94,8 @@ pub fn borrow_original_live_model_relations(OutputUse, @run_publication_host.Cli
 pub fn borrow_original_restored_host_output(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> (@execution_relation.CompletedOutput, @model_execution.ModelExecution)?
 
 pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
+
+pub fn call_scope_snapshot(Execution) -> Result[String, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn call_settlement(Execution) -> @model_execution.ModelCallSettlement?
 
@@ -132,6 +137,8 @@ pub fn finish_original_model_current_state_writer(Execution, @run_publication_ho
 
 pub fn finish_result_publication(ResultPublication) -> Result[@run_publication_host.PublicationOutputExport, ResultPublicationIssue]
 
+pub fn funded_stopped_attempt_count(Execution) -> Int?
+
 pub fn grow_original_infer_publication_capacity(Execution, @model_execution.OriginalModelPublicationCapacity, Int64, Int64) -> Result[Unit, Issue]
 
 pub fn handoff_pending(Execution) -> Bool
@@ -139,6 +146,8 @@ pub fn handoff_pending(Execution) -> Bool
 pub fn identity_pending(Execution) -> Bool
 
 pub fn invocation_binding_invocation(InvocationBinding) -> @run_publication.PublicationContract?
+
+pub fn invocation_binding_matches_run(InvocationBinding, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn invocation_binding_observation(InvocationBinding) -> @run_publication.RunEvidenceValue?
 
@@ -190,6 +199,8 @@ pub fn observation_issuance_source_originals(ObservationIssuance) -> Array[@run_
 
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
 
+pub fn original_infer_capture_inventory_capacity(Execution, @model_execution.OriginalModelPublicationCapacity) -> Result[(Int, Int64, Int64), Issue]
+
 pub fn original_local_model_observation_body(LocalModelObservation) -> @run_publication.CapturedEffectDependencyBody?
 
 pub fn original_local_model_observation_coordinates(LocalModelObservation) -> (Int, Int, Int)?
@@ -231,6 +242,8 @@ pub fn preconsumer_model_unit_identity_start_capacity(OutputUse, @run_publicatio
 pub fn preconsumer_model_unit_observation_capacity(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedRelationExportReceipt, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn prepare_original_model_current_state_writer(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int, Int, Int) -> Result[OriginalModelCurrentStateWriter, @physical_resources.OriginalStateWriteIssue]
+
+pub fn prepare_original_restored_send_mask(Execution) -> Result[Int, Issue]
 
 pub fn prepare_preconsumer_model_unit_observation(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> @run_publication.CapturedEffectDependencyBody?
 
@@ -314,7 +327,7 @@ pub fn start_preconsumer_model_unit_identity(OutputUse, @run_publication_host.Cl
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, @client_local_host.ClientInstalledSequenceContracts, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
-pub fn start_restored_composed_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, String, Array[String], () -> Bool, Limits, sources? : @run_publication_host.ClientInferComposedSources?, saved_scope? : @run_publication_host.ClientInferSavedCallScope?, reference_issuer? : @value_admission.ReferenceIssuer, root? : (@execution_relation.GeneratedSequence?, @physical_resources.Ledger)?) -> Result[Execution, Issue]
+pub fn start_restored_composed_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, String, Array[String], () -> Bool, Limits, sources? : @run_publication_host.ClientInferComposedSources?, saved_scope? : @run_publication_host.ClientInferSavedCallScope?, reference_issuer? : @value_admission.ReferenceIssuer, root? : (@execution_relation.GeneratedSequence?, @physical_resources.Ledger)?, original_read? : (@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @ref.Ref[(Int64, Int64)])?) -> Result[Execution, Issue]
 
 pub fn start_restored_generated_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @client_local_host.ClientInstalledSequenceContracts, String, @model_execution.ModelProvider, String, String, String, Array[String], () -> Bool, Limits, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 

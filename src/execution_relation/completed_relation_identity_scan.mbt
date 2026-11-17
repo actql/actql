@@ -105,6 +105,7 @@ pub fn start_completed_relation_identity_scan(
   incremental_metadata? : Bool = false,
   retain_body? : Bool = false,
   source_input? : SuppliedRelationRead? = None,
+  producer_input? : ProducerRead? = None,
 ) -> Result[CompletedRelationIdentityScan, CompletedExportIssue] {
   if !completed_output_available(source) {
     return Err(Unavailable)
@@ -112,6 +113,14 @@ pub fn start_completed_relation_identity_scan(
   guard source.table is Some(table) else { return Err(NotCellRepresentation) }
   if source_input is Some(read) &&
     !completed_source_input_matches_read(source, read) {
+    return Err(Unavailable)
+  }
+  if producer_input is Some(read) &&
+    (
+      source_input is Some(_) ||
+      read.bound.projection is Some(_) ||
+      !producer_read_matches_completed_output(read, source)
+    ) {
     return Err(Unavailable)
   }
   if max_work < 0 || max_workspace_slots < 0 {
@@ -131,14 +140,31 @@ pub fn start_completed_relation_identity_scan(
     reserve_slots(workspace, fixed_slots) else {
     return Err(Admission(CaptureLimit))
   }
-  let prepared = if source_input is Some(_) {
+  let prepared = if source_input is Some(_) || producer_input is Some(_) {
     guard completed_export_preparation_workspace_slots(payload_wire.max_columns)
       is Some(slots) else {
       return Err(Wire(InvalidLimits))
     }
     start_completed_export_rows_metadata(
       source,
-      completed_output_export_rows(source),
+      match producer_input {
+        None => completed_output_export_rows(source)
+        Some(read) =>
+          {
+            // The exact immutable receiving view, including Presence, retains
+            // the same source table and row occurrences. It is no completed
+            // Step and creates neither another admission nor a row copy.
+            // Source binding has no projection aliases: preparation resolved
+            // each receiving name against this exact physical spelling.
+            table,
+            schema: read.schema,
+            names: Array::makei(@schema.field_count(read.schema), index => {
+              RelationRows::field_names(table)[read.columns[index]]
+            }),
+            columns: Some(read.columns),
+            rows: None,
+          }
+      },
       max_rows,
       values,
       payload_wire,

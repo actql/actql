@@ -29,8 +29,14 @@ test "optional Effect copy uses measured input and bundle demand without a desti
   assert_true(
     client_effect_model_evidence_copy_capacity(256, 10, 3, frame, -1, 2) is None,
   )
+  let many = client_effect_model_evidence_copy_capacity(
+    256, 10, 3, frame, 12, 129,
+  ).unwrap()
   assert_true(
-    client_effect_model_evidence_copy_capacity(256, 10, 3, frame, 12, 129)
-    is None,
+    @execution.execution_capacity_retained_bytes(many) >
+    @execution.execution_capacity_retained_bytes(small),
+  )
+  assert_true(
+    client_effect_model_evidence_copy_capacity(256, 10, 3, frame, 12, 0) is None,
   )
 }

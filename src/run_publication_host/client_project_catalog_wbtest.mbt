@@ -43,14 +43,17 @@ test "project catalog rejects malformed unused entries and duplicates at every d
 }
 
 ///|
-test "project catalog retains empty declared range and exact bounded intake" {
+test "project catalog retains empty declared range and original wire geometry" {
   let wire = "{\"connections\":{}}"
   let empty = admit_client_project_catalog(wire).unwrap()
   assert_eq(empty.count(), 0)
   assert_eq(empty.at(0), None)
   let exact = wire + String::make(65536 - wire.length(), ' ')
   assert_eq(admit_client_project_catalog(exact).unwrap().original_wire(), exact)
-  assert_true(admit_client_project_catalog(exact + " ") is Err(InvalidCatalog))
+  assert_eq(
+    admit_client_project_catalog(exact + " ").unwrap().original_wire(),
+    exact + " ",
+  )
   let deep = "{\"connections\":{\"x\":{\"value\":" +
     "[".repeat(17) +
     "0" +

@@ -95,9 +95,47 @@ fn grow_program_validation(
   value : ClientProgramValidation,
   retained : Int64,
   execution : Int64,
+  read_funding? : ((ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ])? = None,
+  read_phase? : ClientProgramValidationReadPhase = Plan,
+  copied_slots? : Int = 0,
+  copied_arrays? : Int = 0,
+  metadata_nodes? : Int = 0,
 ) -> Result[Unit, ClientProgramValidationIssue] {
   if !validation_original(value) {
     return Err(Owner(ForeignOriginal))
+  }
+  if read_funding is Some(fund) {
+    if retained < 0L ||
+      execution < 0L ||
+      copied_slots < 0 ||
+      copied_arrays < 0 ||
+      metadata_nodes < 0 {
+      return Err(Owner(Policy))
+    }
+    // The immutable capture remains with its original Run. This synchronous
+    // metadata checker belongs to the caller's current Read, including all
+    // copied references and temporary validation workspace. Do not grow the
+    // parked Run's reservation or publish a Read quote as Run retention.
+    match
+      fund({
+        retained_bytes: retained,
+        execution_bytes: execution,
+        copied_slots,
+        copied_arrays,
+        metadata_nodes,
+        phase: read_phase,
+      }) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    return if validation_original(value) {
+      Ok(())
+    } else {
+      Err(Owner(ForeignOriginal))
+    }
   }
   let capture = value.capture
   let publication = capture.publication
@@ -138,18 +176,34 @@ fn fund_validation_inventory(
   value : ClientProgramValidation,
   slots : Int64,
   arrays : Int,
+  read_funding? : ((ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ])? = None,
 ) -> Result[Unit, ClientProgramValidationIssue] {
   guard program_validation_inventory_layout(slots, arrays) is Some(units) &&
     @execution.preparation_representation_cost(units) is Some(retained) else {
     return Err(Owner(Policy))
   }
-  grow_program_validation(value, retained, publication_projection_execution)
+  grow_program_validation(
+    value,
+    retained,
+    publication_projection_execution,
+    read_funding~,
+    read_phase=Inventory,
+    copied_slots=slots.to_int(),
+    copied_arrays=arrays,
+  )
 }
 
 ///|
 fn finish_program_validation_plan(
   value : ClientProgramValidation,
   plan : @publication.PublicationValidationPlan,
+  read_funding? : ((ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ])? = None,
 ) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
   value.plan = Some(plan)
   // This Host recipe owns metadata validation only. An unmatched/stale capture
@@ -163,7 +217,16 @@ fn finish_program_validation_plan(
     @execution.preparation_representation_cost(layout.temporary) is Some(e) else {
     return validation_failure(value, Owner(Policy))
   }
-  match grow_program_validation(value, r, e) {
+  match
+    grow_program_validation(
+      value,
+      r,
+      e,
+      read_funding~,
+      copied_slots=slots,
+      copied_arrays=arrays,
+      metadata_nodes=metadata,
+    ) {
     Err(issue) => return validation_failure(value, issue)
     Ok(_) => ()
   }
@@ -236,6 +299,48 @@ pub fn prepare_program_commit_validation(
   attempt : @publication.PublicationContract,
   index_entry : @publication.PublicationContract,
 ) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
+  prepare_program_commit_validation_funded(
+    capture,
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    derivations,
+    orderings,
+    retentions,
+    bindings,
+    manifest,
+    receipt,
+    captured_run,
+    request,
+    attempt,
+    index_entry,
+    None,
+  )
+}
+
+///|
+fn prepare_program_commit_validation_funded(
+  capture : ClientProgramCapture,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  read_funding : ((ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ])?,
+) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
   let value = match new_program_validation(capture, true) {
     Ok(v) => v
     Err(e) => return Err(e)
@@ -246,7 +351,7 @@ pub fn prepare_program_commit_validation(
     orderings.length().to_int64() +
     retentions.length().to_int64() +
     bindings.length().to_int64()
-  match fund_validation_inventory(value, slots, 6) {
+  match fund_validation_inventory(value, slots, 6, read_funding~) {
     Err(issue) => return validation_failure(value, issue)
     Ok(_) => ()
   }
@@ -284,7 +389,7 @@ pub fn prepare_program_commit_validation(
     is Some(plan) else {
     return validation_failure(value, Owner(Policy))
   }
-  finish_program_validation_plan(value, plan)
+  finish_program_validation_plan(value, plan, read_funding~)
 }
 
 ///|
@@ -295,7 +400,7 @@ pub fn start_program_validation(
   if !validation_original(value) {
     return Err(Owner(ForeignOriginal))
   }
-  guard value.plan is Some(plan) else { return Err(Owner(WrongPhase)) }
+  guard value.plan is Some(_) else { return Err(Owner(WrongPhase)) }
   match
     grow_program_validation(
       value,
@@ -305,6 +410,18 @@ pub fn start_program_validation(
     Err(issue) => return validation_failure(value, issue)
     Ok(_) => ()
   }
+  start_program_validation_prequoted(value, max_workspace~)
+}
+
+///|
+fn start_program_validation_prequoted(
+  value : ClientProgramValidation,
+  max_workspace? : Int? = None,
+) -> Result[ClientProgramValidation, ClientProgramValidationIssue] {
+  if !validation_original(value) {
+    return Err(Owner(ForeignOriginal))
+  }
+  guard value.plan is Some(plan) else { return Err(Owner(WrongPhase)) }
   guard @publication.publication_validation_plan_reuses_capture(plan)
     is Some(true) else {
     return validation_failure(value, Owner(ForeignOriginal))
@@ -327,9 +444,77 @@ pub fn start_program_validation(
 }
 
 ///|
+// The Run's current callback can invalidate the caller Read. Recheck the
+// exact Read after that callback and before accepting any further progress.
+fn fence_program_validation_read(
+  value : ClientProgramValidation,
+  read_funding : ((ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ])?,
+) -> Result[Unit, ClientProgramValidationIssue] {
+  match read_funding {
+    None => Ok(())
+    Some(fund) => {
+      match
+        fund({
+          retained_bytes: 0L,
+          execution_bytes: 0L,
+          copied_slots: 0,
+          copied_arrays: 0,
+          metadata_nodes: 0,
+          phase: Fence,
+        }) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      if validation_original(value) {
+        Ok(())
+      } else {
+        Err(Owner(ForeignOriginal))
+      }
+    }
+  }
+}
+
+///|
+fn finish_program_validation_read_step(
+  value : ClientProgramValidation,
+  result : Result[(Bool, Int), ClientProgramValidationIssue],
+  read_funding : ((ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ])?,
+) -> Result[(Bool, Int), ClientProgramValidationIssue] {
+  if read_funding is None {
+    return result
+  }
+  match result {
+    Err(issue) => Err(issue)
+    Ok(progress) =>
+      match fence_program_validation_read(value, read_funding) {
+        Err(issue) => Err(issue)
+        Ok(_) => Ok(progress)
+      }
+  }
+}
+
+///|
 pub fn advance_program_validation(
   value : ClientProgramValidation,
   quantum : Int,
+) -> Result[(Bool, Int), ClientProgramValidationIssue] {
+  advance_program_validation_funded(value, quantum, None)
+}
+
+///|
+fn advance_program_validation_funded(
+  value : ClientProgramValidation,
+  quantum : Int,
+  read_funding : ((ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ])?,
 ) -> Result[(Bool, Int), ClientProgramValidationIssue] {
   if !validation_original(value) {
     return Err(Owner(ForeignOriginal))
@@ -338,14 +523,20 @@ pub fn advance_program_validation(
     Err(issue) => return Err(Owner(issue))
     Ok(_) => ()
   }
+  match fence_program_validation_read(value, read_funding) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if !validation_original(value) {
     return Err(Owner(ForeignOriginal))
   }
   if value.chain is Some(checker) {
-    return checker.advance(quantum).map_err(issue => Chain(issue))
+    let result = checker.advance(quantum).map_err(issue => Chain(issue))
+    return finish_program_validation_read_step(value, result, read_funding)
   }
   if value.commit is Some(checker) {
-    return checker.advance(quantum).map_err(issue => Commit(issue))
+    let result = checker.advance(quantum).map_err(issue => Commit(issue))
+    return finish_program_validation_read_step(value, result, read_funding)
   }
   Err(Owner(WrongPhase))
 }
@@ -354,11 +545,26 @@ pub fn advance_program_validation(
 pub fn finish_program_validation(
   value : ClientProgramValidation,
 ) -> Result[Unit, ClientProgramValidationIssue] {
+  finish_program_validation_funded(value, None)
+}
+
+///|
+fn finish_program_validation_funded(
+  value : ClientProgramValidation,
+  read_funding : ((ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ])?,
+) -> Result[Unit, ClientProgramValidationIssue] {
   if !validation_original(value) {
     return Err(Owner(ForeignOriginal))
   }
   match refresh_publication_original(value.capture.publication) {
     Err(issue) => return Err(Owner(issue))
+    Ok(_) => ()
+  }
+  match fence_program_validation_read(value, read_funding) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   if !validation_original(value) {
@@ -373,6 +579,10 @@ pub fn finish_program_validation(
   }
   match result {
     Ok(_) => {
+      match fence_program_validation_read(value, read_funding) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
       cancel_program_validation(value)
       Ok(())
     }
@@ -401,15 +611,146 @@ pub fn check_program_commit_validation(
   attempt : @publication.PublicationContract,
   index_entry : @publication.PublicationContract,
 ) -> Result[Unit, ClientProgramValidationIssue] {
+  check_program_commit_validation_funded(
+    capture,
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    derivations,
+    orderings,
+    retentions,
+    bindings,
+    manifest,
+    receipt,
+    captured_run,
+    request,
+    attempt,
+    index_entry,
+    None,
+  )
+}
+
+///|
+/// Validate immutable publication metadata using the actual caller Read.
+pub fn check_program_commit_validation_in_read(
+  capture : ClientProgramCapture,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  fund_read : (ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ],
+) -> Result[Unit, ClientProgramValidationIssue] {
+  // Capture correspondence is DATA from the original Run, not permission to
+  // allocate through its parked business context. This entry is synchronous:
+  // no validation handle or Read-funded alias escapes the caller's Read.
+  guard publication_original_body(capture.publication) is Some(_) &&
+    capture.publication.capture is Some(original) &&
+    physical_equal(original, capture) &&
+    capture.issuer is Some(_) else {
+    return Err(Owner(ForeignOriginal))
+  }
+  if capture.validation is Some(_) {
+    return Err(Owner(WrongPhase))
+  }
+  // Fund the existing finite quote/controller scaffold before its first
+  // allocation. Later requests are absolute lower bounds; the caller keeps
+  // their maximum on the SAME current Read and never returns a Run grant.
+  match
+    fund_read({
+      retained_bytes: 0L,
+      execution_bytes: publication_projection_execution,
+      copied_slots: 0,
+      copied_arrays: 0,
+      metadata_nodes: 0,
+      phase: Scaffold,
+    }) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  check_program_commit_validation_funded(
+    capture,
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    derivations,
+    orderings,
+    retentions,
+    bindings,
+    manifest,
+    receipt,
+    captured_run,
+    request,
+    attempt,
+    index_entry,
+    Some(fund_read),
+  )
+}
+
+///|
+fn check_program_commit_validation_funded(
+  capture : ClientProgramCapture,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  read_funding : ((ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ])?,
+) -> Result[Unit, ClientProgramValidationIssue] {
   let validation = match
-    prepare_program_commit_validation(
+    prepare_program_commit_validation_funded(
       capture, run_definition, invocation, definitions, artifacts, derivations, orderings,
       retentions, bindings, manifest, receipt, captured_run, request, attempt, index_entry,
+      read_funding,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match start_program_validation(validation) {
+  let started = match read_funding {
+    None => start_program_validation(validation)
+    Some(fund) =>
+      // Refresh the caller's physical Read fence without reducing its funded
+      // peak. The full immutable plan/layout was funded during preparation.
+      match
+        fund({
+          retained_bytes: 0L,
+          execution_bytes: 0L,
+          copied_slots: 0,
+          copied_arrays: 0,
+          metadata_nodes: 0,
+          phase: Fence,
+        }) {
+        Err(issue) => Err(issue)
+        Ok(_) => start_program_validation_prequoted(validation)
+      }
+  }
+  match started {
     Ok(_) => ()
     Err(issue) => {
       cancel_program_validation(validation)
@@ -418,7 +759,7 @@ pub fn check_program_commit_validation(
   }
   let mut done = false
   while !done {
-    match advance_program_validation(validation, 256) {
+    match advance_program_validation_funded(validation, 256, read_funding) {
       Ok((ready, _)) => done = ready
       Err(issue) => {
         cancel_program_validation(validation)
@@ -426,7 +767,7 @@ pub fn check_program_commit_validation(
       }
     }
   }
-  match finish_program_validation(validation) {
+  match finish_program_validation_funded(validation, read_funding) {
     Ok(_) => Ok(())
     Err(issue) => {
       cancel_program_validation(validation)

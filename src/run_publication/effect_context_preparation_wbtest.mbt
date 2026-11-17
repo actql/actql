@@ -12,6 +12,7 @@ fn context_test_start(
   nodes? : Int = 1000,
   depth? : Int = 16,
   workspace? : Int = 10000,
+  dependencies? : CapturedEffectDependencyInventory? = None,
 ) -> EffectContextPreparation {
   let authoring : RunEvidenceValue = {
     name: "authoring_context",
@@ -24,7 +25,7 @@ fn context_test_start(
     snapshots,
     [],
     [],
-    { bodies: [], wire: "[]", },
+    dependencies.unwrap_or({ bodies: [], roots: [], wire: "[]", }),
     [],
     authoring,
     [],
@@ -153,20 +154,35 @@ test "Effect context cancellation inside emitted Text keeps the original snapsho
 }
 
 ///|
-test "Effect context cancellation retires emission parsing admission and hashing" {
+test "Effect context cancellation retires dependency streaming emission and hashing" {
   let mut phases = (false, false, false, false, false)
-  // The dependency envelope still uses actual parse/admission phases. The
-  // assembled outer body no longer enters those phases.
+  let wire = "{\"sort\":\"relation\",\"value\":[{\"n\":7}]}"
+  let cid = "sha256:" + @sha.text_hex(wire).unwrap()
+  let body = admit_hashed_effect_dependency_body(
+    "relation_value", cid, wire, 10000, 1000, 16,
+  ).unwrap()
+  let inventory = issue_captured_effect_dependency_inventory(
+    [body],
+    [body],
+    {
+      max_entries: 1,
+      max_total_bytes: 10000,
+      max_depth: 64,
+      max_references: 10,
+    },
+    1000,
+    16,
+  ).unwrap()
   for wanted in 0..<5 {
-    let preparation = context_test_start()
+    let preparation = context_test_start(dependencies=Some(inventory))
     let mut reached = false
     for _ in 0..<10000 {
       ignore(preparation.advance(1).unwrap())
       let matches = match (wanted, preparation.phase) {
         (0, Value(_)) => true
-        (1, Parse(_, false)) => true
-        (2, Decode(_, false)) => true
-        (3, Canonical(_, false)) => true
+        (1, DependencyEntry(_)) => true
+        (2, DependencyField(_, _)) => true
+        (3, DependencyValue(_, _)) => true
         (4, Hash(_)) => true
         _ => false
       }
@@ -234,7 +250,7 @@ test "Effect context sorted IDs retain the original member plan position" {
       [],
       [],
       [],
-      { bodies: [], wire: "[]", },
+      { bodies: [], roots: [], wire: "[]", },
       [],
       authoring,
       [],
@@ -259,4 +275,81 @@ test "Effect context sorted IDs retain the original member plan position" {
     Some(effect_receipt_test_cid("3")),
     None,
   ])
+}
+
+///|
+test "Effect context streams the exact admitted dependency subtree with independent full preimage and finite limits" {
+  let wire = "{\"sort\":\"relation\",\"value\":[{\"n\":7}]}"
+  let cid = "sha256:e8bcf06fa1b3f3cf9a14c35dc39efc56bef5be1821e9cc207648014e69f9a862"
+  let body = admit_hashed_effect_dependency_body(
+    "relation_value", cid, wire, 10000, 1000, 16,
+  ).unwrap()
+  let inventory = issue_captured_effect_dependency_inventory(
+    [body],
+    [body],
+    {
+      max_entries: 1,
+      max_total_bytes: 10000,
+      max_depth: 64,
+      max_references: 10,
+    },
+    1000,
+    16,
+  ).unwrap()
+  let expected_inventory = "[{\"body\":" +
+    wire +
+    ",\"cid\":\"" +
+    cid +
+    "\",\"kind\":\"relation_value\"}]"
+  assert_eq(inventory.wire, expected_inventory)
+  let preimage = context_test_body().replace(
+    old="\"effect_dependency_inventory\":[]",
+    new="\"effect_dependency_inventory\":" + expected_inventory,
+  )
+  let identity = "sha256:" + @sha.text_hex(preimage).unwrap()
+  let expected = preimage.replace(
+    old=",\"effect_dependency_inventory\"",
+    new=",\"effect_context_cid\":\"" +
+      identity +
+      "\",\"effect_dependency_inventory\"",
+  )
+  let mut prior_work = None
+  for quantum in [1, 7, 64] {
+    let issuer = context_test_start(
+      dependencies=Some(inventory),
+      bytes=preimage.length(),
+      nodes=25,
+      depth=6,
+    )
+    let (value, used) = context_test_finish(issuer, quantum).unwrap()
+    assert_eq(@json.stringify_value(value, 10000, 1000, 16), expected)
+    guard @json.object_field(value, "effect_dependency_inventory")
+      is Some(@json.Array(entries)) &&
+      @json.array_at(entries, 0) is Some(entry) &&
+      @json.object_field(entry, "body") is Some(actual) else {
+      fail("missing original dependency")
+    }
+    // DATA subtree identity only. This conveys neither Source custody nor
+    // permission; the outer issuer still checks its original graph and owners.
+    assert_true(physical_equal(actual, body.value))
+    if prior_work is Some(previous) {
+      assert_eq(used, previous)
+    }
+    prior_work = Some(used)
+    assert_true(issuer.inputs is None && issuer.writer is None)
+  }
+  for
+    issuer in [
+      context_test_start(
+        dependencies=Some(inventory),
+        bytes=preimage.length() - 1,
+      ),
+      context_test_start(dependencies=Some(inventory), nodes=24),
+      context_test_start(dependencies=Some(inventory), depth=5),
+    ] {
+    assert_true(context_test_finish(issuer, 1) is Err(CaptureIssuanceEncoding))
+    assert_true(issuer.inputs is None && issuer.writer is None)
+  }
+  assert_eq(inventory.wire, expected_inventory)
+  assert_eq(body.wire, wire)
 }

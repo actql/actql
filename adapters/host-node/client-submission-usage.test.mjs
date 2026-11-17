@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync,StatementSync} from 'node:sqlite';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {stageLegacySubmissionUsageCounters} from './fixtures/journal-legacy-usage.fixture.mjs';
 
 const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
@@ -268,6 +269,18 @@ for(const afterCommit of [false,true]) {
     const directory = await mkdtemp(join(tmpdir(),'actql-submission-usage-adoption-'));
     let journal;
     t.after(async()=>{journal?.close(); await rm(directory,{recursive:true});});
+    // Target retained-format adoption, not unpublished fresh initialization.
+    // The existing fresh schema commits before it publishes any format marker.
+    openClientRequestJournal(directory).close();
+    const legacy = new DatabaseSync(join(directory,'client-requests.sqlite3'));
+    try {
+      for(const table of ['client_submitted_intent_usage','client_submission_restart_usage']) {
+        for(const suffix of ['insert','delete','update']) legacy.exec(`DROP TRIGGER ${table}_${suffix}`);
+        legacy.exec(`DROP TABLE ${table}`);
+      }
+      removeRequestRowUsage(legacy);
+      legacy.exec('PRAGMA user_version=0');
+    } finally {legacy.close();}
     const exec = DatabaseSync.prototype.exec;
     let lost = false;
     const intercepted = t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
@@ -306,6 +319,7 @@ for(const marker of ['absent','partial']) {
     const retained = f.journal.recordSubmittedIntent(reference,intent(),fields,moon);
     f.journal.close();
     const before = f.database(db=>{
+      stageLegacySubmissionUsageCounters(db);
       removeRequestRowUsage(db);
       db.exec('PRAGMA user_version=0');
       return {...db.prepare('SELECT * FROM client_submitted_intent_usage').get()};
@@ -318,7 +332,7 @@ for(const marker of ['absent','partial']) {
     assert.equal(reopened.lookupSubmittedIntent(reference,fields,moon).requestId,retained.requestId);
     assert.deepEqual(counter.scans,[]);
     f.database(db=>{
-      assert.equal(db.prepare('PRAGMA user_version').get().user_version,2);
+      assert.equal(db.prepare('PRAGMA user_version').get().user_version,3);
       assert.deepEqual({...db.prepare('SELECT * FROM client_submitted_intent_usage').get()},before);
       assert.equal(db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,1);
     });

@@ -62,7 +62,7 @@ pub fn AdmittedAccountConfiguration::entry_count(
 
 ///|
 fn valid_name(value : String) -> Bool {
-  value.length() > 0 && value.length() <= MAX_NAME_LENGTH
+  value.length() > 0
 }
 
 ///|
@@ -95,9 +95,6 @@ fn compile_selector(
     AnyOf(values) => {
       if values.is_empty() {
         raise AdmissionStop(EmptyAnyOf(entry_id, location))
-      }
-      if values.length() > MAX_SELECTOR_VALUES {
-        raise AdmissionStop(SelectorTooLarge(entry_id, location))
       }
       for value in values {
         if !valid_name(value) {
@@ -139,15 +136,13 @@ fn compile_box(
 ///|
 fn compile_entry(
   entry : RawAccountEntry,
+  bounds : AccountCanonicalBounds,
 ) -> (CompiledEntry, CanonicalEntry) raise AdmissionStop {
-  if entry.exclusions.length() > MAX_EXCLUSIONS_PER_ENTRY {
-    raise AdmissionStop(TooManyExclusions(entry.entry_id))
-  }
   let scope = compile_box(entry.entry_id, None, entry.scope)
   let keyed : Array[(String, Region, SelectorBox)] = []
   for index, exclusion in entry.exclusions {
     let region = compile_box(entry.entry_id, Some(index), exclusion)
-    let text = match box_canonical_text(exclusion) {
+    let text = match box_canonical_text(exclusion, bounds=Some(bounds)) {
       Some(text) => text
       None => raise AdmissionStop(CanonicalDocumentTooLarge)
     }
@@ -205,6 +200,7 @@ pub fn admit_account_configuration(
 fn admit_with_overlap_budget(
   raw : RawAccountConfiguration,
   overlap_steps : Int,
+  geometry_out? : Ref[AccountCanonicalBounds?]? = None,
 ) -> Result[AdmittedAccountConfiguration, ConfigurationIssue] {
   if !valid_name(raw.account_id) {
     return Err(InvalidAccountId)
@@ -216,18 +212,17 @@ fn admit_with_overlap_budget(
       }
     None => ()
   }
-  if raw.entries.length() > MAX_ENTRIES {
-    return Err(TooManyEntries(raw.entries.length()))
-  }
-  if first_unnormalized(raw) is Some(path) {
+  let geometry = new_account_canonical_geometry()
+  if first_unnormalized(raw, geometry) is Some(path) {
     return Err(NonNormalizedText(path))
   }
+  let bounds = geometry.bounds()
   let compiled : Array[(CompiledEntry, CanonicalEntry)] = []
   for index, entry in raw.entries {
     if !valid_name(entry.entry_id) {
       return Err(InvalidEntryId(index))
     }
-    compiled.push(compile_entry(entry)) catch {
+    compiled.push(compile_entry(entry, bounds)) catch {
       AdmissionStop(issue) => return Err(issue)
     }
   }
@@ -245,12 +240,20 @@ fn admit_with_overlap_budget(
     for j in (i + 1)..<entries.length() {
       let first = entries[i]
       let second = entries[j]
+      // Inspecting the pair is work even when equal outcomes need no set
+      // operation. Charge before any operation, without an Int subtraction
+      // that can wrap after larger finite selectors are admitted.
+      let work = if first.outcome == second.outcome {
+        1L
+      } else {
+        first.scope.work(second.scope)
+      }
+      if work > budget.val.to_int64() {
+        return Err(OverlapCheckBudgetExceeded(first.entry_id, second.entry_id))
+      }
+      budget.val -= work.to_int()
       if first.outcome == second.outcome {
         continue
-      }
-      budget.val = budget.val - first.scope.work(second.scope)
-      if budget.val < 0 {
-        return Err(OverlapCheckBudgetExceeded(first.entry_id, second.entry_id))
       }
       let common = match first.scope.intersect(second.scope) {
         None => continue
@@ -284,9 +287,12 @@ fn admit_with_overlap_budget(
     raw.bootstrap,
     compiled.map(item => item.1),
   )
-  let configuration_cid = match document_cid(document) {
+  let configuration_cid = match document_cid(document, bounds=Some(bounds)) {
     Some(cid) => cid
     None => return Err(CanonicalDocumentTooLarge)
+  }
+  if geometry_out is Some(output) {
+    output.val = Some(bounds)
   }
   Ok({
     account_id: raw.account_id,

@@ -44,8 +44,7 @@ pub fn NativeLocalHostConnection::install_effect_reviewer(
   NativeLocalInstalledEffectReviewer,
   NativeLocalEffectReviewerBindingIssue,
 ] {
-  guard configuration_file is Some(file) &&
-    self.session.settings.files.length() <= 8 else {
+  guard configuration_file is Some(file) else {
     return Err(ReviewerUnavailable)
   }
   let bytes = match self.selected_configuration(file) {

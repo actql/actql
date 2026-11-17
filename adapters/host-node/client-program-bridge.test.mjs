@@ -2806,8 +2806,7 @@ async function effectFixture({splitSource = false,
     mappingCid: mapping.mapping_contract_cid};
 }
 
-test('one acquired Effect Program captures and computes from its owner',
-  async t => {
+async function acquiredEffectOwnerFixture(t, phase) {
     const effect = await effectFixture({writeKind: 'update'});
     const baseWire = await readFile(new URL(
       '../../spec/local-check-environment.json', import.meta.url), 'utf8');
@@ -3202,7 +3201,10 @@ test('one acquired Effect Program captures and computes from its owner',
         // inventory from the checked graph, not a caller dependency list.
         assert.throws(() => checked(moon.clientProgramPinEffectSources(host,
           1)), 'the upstream Result also consumes a bounded pin');
-        const pinResult = moon.clientProgramPinEffectSources(host, 2);
+        // Managed Catalog export consumes this Run's original funded pin and
+        // Work continuation, rather than a separately bounded legacy pin.
+        const pinResult = moon.clientProgramInstalledEffectDependencySourcesPin(
+          managedRun, prepared, request, managedRecord.operationPlan, host, 2);
         assert.equal(pinResult.$tag, 1,
           pinResult.$tag === 0 ? `RunIssue ${pinResult._0.$tag}: ${JSON.stringify(pinResult._0)}` : undefined);
         const pins = checked(pinResult);
@@ -3389,13 +3391,14 @@ test('one acquired Effect Program captures and computes from its owner',
           }});
           const plan = computed.publicationPlan;
           const options = {moon, checkedOwner: prepared, execution, inputs: pins,
+            dependencyConstruction: managedRecord.controlConstruction,
             maxMembers: 1, maxGroupingWork: 100, limits,
             store, maxBytes: outputLimits.maxWireBytes, control,
             invocation: plan.invocation, retention: plan.results[0].retention,
             sourceBindingCid: cid('c'), contractLimits: plan.contractLimits,
             localEvidenceContext: plan.localEvidenceContext};
           let sources;
-          try {
+          const exercisePayloadCustody = async () => {
             sources = await preparePinnedEffectSourceSet(options);
             assert.equal(sources.members.length, 1);
             assert.deepEqual(sources.dependencies.map(entry =>
@@ -3543,11 +3546,21 @@ test('one acquired Effect Program captures and computes from its owner',
               invocation: plan.invocation, results: plan.results,
               outputLimits, contractLimits: plan.contractLimits,
             });
-            const adopt = sourceSet => retainPinnedEffectDependencyPayloads({
-              sources: sourceSet, execution, store, storedResults: retainedResults,
-              control, runDefinition: plan.runDefinition,
+            // Borrow the already issued inventory; this cleanup experiment
+            // must not invoke the one-shot group constructor a second time.
+            const adopt = sourceSet => retainCompletedEffectDependencyPayloads({
+              execution, store, storedResults: retainedResults, control,
+              runDefinition: plan.runDefinition, dependencyInventoryWire,
+              dependencyConstruction: managedRecord.controlConstruction,
+              dependencies: sourceSet.dependencies.map(({payload}) => ({
+                artifact: payload.localResultArtifact,
+                physical: payload.physical, prepared: payload.prepared,
+              })),
             });
-            assert.throws(() => adopt({...sources}), /InvalidEffectDependencySetOwner/);
+            assert.throws(() => retainPinnedEffectDependencyPayloads({
+              sources: {...sources}, execution, store, storedResults: retainedResults,
+              control, runDefinition: plan.runDefinition,
+            }), /InvalidEffectDependencySetOwner/);
             assert.throws(() => retainCompletedEffectDependencyPayloads({
               execution, store, storedResults: retainedResults, control,
               runDefinition: plan.runDefinition,
@@ -3589,8 +3602,10 @@ test('one acquired Effect Program captures and computes from its owner',
             assert.equal(await releaseCompletedRunPreparedPayloads(
               retainedResults, control), false);
             sources = undefined;
-            // A later reservation failure must retain an earlier producer's
-            // failed deletion owner, not leak it or rerun Compute on retry.
+          };
+          const exerciseFailedExport = async () => {
+            // A consumer reservation failure retains this fresh original's
+            // earlier producer cleanup owner without replaying Compute.
             const reserveFailure = new Error('ConsumerReservationFailed');
             const releaseFailure = new Error('ProducerReleaseFailed');
             let reservations = 0;
@@ -3632,8 +3647,18 @@ test('one acquired Effect Program captures and computes from its owner',
             assert.equal(reservations, 2,
               'cleanup never prepares a new consumer or recomputes input');
 
-            // Re-export the same retained computation for durable custody;
-            // no Source query or Compute is executed by capture or recovery.
+          };
+          try {
+            if (phase === 'payload-custody') {
+              await exercisePayloadCustody();
+              return;
+            }
+            if (phase === 'failed-export') {
+              await exerciseFailedExport();
+              return;
+            }
+            // The independent durable case has its own original Run. Issue
+            // its inventory once through the ordinary adoption boundary.
             sources = await preparePinnedEffectSourceSet(options);
             const durableResults = await storeCompletedRunResultSet({
               execution, store, control, runDefinition: plan.runDefinition,
@@ -3686,7 +3711,10 @@ test('one acquired Effect Program captures and computes from its owner',
             });
             const savedInventory = JSON.parse(computation.capturedRun.wire)
               .effect_context.effect_dependency_inventory;
-            assert.deepEqual(savedInventory, dependencyInventory);
+            assert.deepEqual(savedInventory.filter(entry =>
+              entry.kind === 'relation_value').map(entry =>
+              JSON.stringify(entry.body.value)).sort(),
+            [JSON.stringify([{id: 2}, {id: 3}]), JSON.stringify([{id: 3}])].sort());
             await suspendCompletedEffectfulComputation({execution, store,
               storedResults: durableResults, control, computation, preview});
             for (const payload of sources.payloads) {
@@ -3730,7 +3758,16 @@ test('one acquired Effect Program captures and computes from its owner',
         checked(moon.clientProgramInstalledEffectOperationConstructionComplete(componentConstruction));
       }
     }
-  });
+}
+
+test('one acquired Effect Program captures and computes from its owner', async t => {
+  await t.test('same original inventory retains payload cleanup custody', t =>
+    acquiredEffectOwnerFixture(t, 'payload-custody'));
+  await t.test('fresh original keeps producer custody after consumer export failure', t =>
+    acquiredEffectOwnerFixture(t, 'failed-export'));
+  await t.test('fresh original inventory captures and restores durable dependencies', t =>
+    acquiredEffectOwnerFixture(t, 'durable-capture'));
+});
 
 function effectInputPreview(prepared, evidence, definition, invocation,
   mappingCid, artifactCid, writeKind = 'create',
@@ -6057,10 +6094,13 @@ test('Effect source set shares exact owners and retains failed cleanup',
     }
   });
 
+test('same Result source bindings retain both original Artifact holdings', t =>
+  exerciseEffectSourceSet(t, {writeKind: 'update', distinctSourceBindings: true}));
+
 // Optional physical Table acceptance reuses these checked computation/capture
 // owners; it does not clone the source, substitute caller rows or require
 // Python for the ordinary Host suite.
-export async function exerciseEffectSourceSet(t, {distinctResults = false,
+export async function exerciseEffectSourceSet(t, {distinctResults = false, distinctSourceBindings = false,
   writeKind = 'store', empty = false, privateTableInput = false, sparseTableInput = false, onTablePreview, target,
   mappingRef, minimumApproval, prepareCaptureResults = false, onCompletedTableRun, transformDocument, dependencyPolicy} = {}) {
         assert.ok(onTablePreview === undefined || onCompletedTableRun === undefined,
@@ -6169,7 +6209,8 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             const writer = physical.createPreparedObjectWriter(...args);
             return Object.freeze({...writer, async seal(...args) {
               const sealed = await writer.seal(...args);
-              if (onTablePreview !== undefined) return sealed;
+              // Durable commits need the Store's nominal prepared owner.
+              if (onTablePreview !== undefined || distinctSourceBindings) return sealed;
               return Object.freeze({...sealed, prepared: Object.freeze({
                 ...sealed.prepared,
                 async release() {
@@ -6190,11 +6231,21 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             metadata_delete_by: '2026-09-24T04:00:00.000Z',
             clock_contract_cid: cid('0')}), publicationLimits);
         const issuedArguments = [];
+        const manifestArguments = [];
+        const separatePayloads = distinctResults || distinctSourceBindings;
+        const memberSourceBindings = distinctSourceBindings ? Object.freeze([
+          Object.freeze({memberIndex: 0, sourceBindingCid: cid('c')}),
+          Object.freeze({memberIndex: 1, sourceBindingCid: cid('9')}),
+        ]) : undefined;
         let mappingIssuanceCount = 0;
         const issuerName = privateTableInput ?
           'issueSourceFreeLocalEffectTableArtifact' :
           'issueSourceFreeLocalEffectResultArtifact';
         const issuerControl = Object.freeze({...control,
+          issueLocalEffectResultManifest(...args) {
+            manifestArguments.push(args);
+            return control.issueLocalEffectResultManifest(...args);
+          },
           localEffectTableStorageMapping(...args) {
             mappingIssuanceCount++;
             return control.localEffectTableStorageMapping(...args);
@@ -6217,7 +6268,9 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
         const options = {moon, checkedOwner: prepared, execution, inputs,
           // The one-Result fixture needs five work units; distinct Results
           // need eight, including all three Manifest-to-payload matches.
-          maxMembers: 2, maxGroupingWork: distinctResults ? 8 : 5,
+          // Separate bindings add two original binding checks to the first case.
+          maxMembers: 2, maxGroupingWork: distinctResults ? 8 : distinctSourceBindings ? 7 : 5,
+          ...(memberSourceBindings === undefined ? {} : {memberSourceBindings}),
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store, maxBytes: 100000, control: issuerControl,
@@ -6228,6 +6281,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             prepared, evidence, definition, invocation, observation),
         };
         let sources, capturedResults;
+        const sourceHoldings = [];
         try {
           if (onCompletedTableRun !== undefined) {
             // The installed connection owns Result publication and Effect pins
@@ -6267,8 +6321,8 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             assert.equal(writers, 0, 'Incomplete grouping stops before the first Store writer');
           }
           sources = await preparePinnedEffectSourceSet(options);
-          assert.equal(sources.payloads.length, distinctResults ? 2 : 1);
-          assert.equal(issuedArguments.length, distinctResults ? 2 : 1);
+          assert.equal(sources.payloads.length, separatePayloads ? 2 : 1);
+          assert.equal(issuedArguments.length, separatePayloads ? 2 : 1);
           const tableLimits = {maxWireBytes: 65536, maxNodes: 4096,
             maxDepth: 16, maxWork: 1000};
           const artifact = sources.members[0].payload.localResultArtifact;
@@ -6624,17 +6678,82 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             assert.throws(() => control[issuerName](...args),
             {code: 'MoonBitHostFailure'});
           }
-          assert.equal(writers, privateTableInput ? 2 : distinctResults ? 2 : 1);
+          assert.equal(writers, privateTableInput || separatePayloads ? 2 : 1);
           assert.equal(sources.members[0].payload.summary.logicalCid,
             sources.members[1].payload.summary.logicalCid);
           assert.equal(sources.members[0].payload ===
-            sources.members[1].payload, !distinctResults);
+            sources.members[1].payload, !separatePayloads);
           assert.equal(sources.members[0].payload.localManifest,
             sources.members[1].payload.localManifest);
           const manifestBody = JSON.parse(
             sources.members[0].payload.localManifest.wire);
           assert.deepEqual(Object.keys(manifestBody.results),
             distinctResults ? ['other', 'rows'] : ['rows']);
+          if (distinctSourceBindings) {
+            const artifacts = sources.members.map(({payload}) => payload.localResultArtifact);
+            assert.notEqual(artifacts[0], artifacts[1]);
+            assert.equal(artifacts[0].identity, artifacts[1].identity);
+            assert.equal(manifestBody.results.rows, artifacts[0].identity);
+            assert.equal(manifestArguments.length, 1);
+            assert.equal(manifestArguments[0][2].length, 2);
+            for (const [index, artifact] of artifacts.entries()) {
+              assert.equal(manifestArguments[0][2][index], artifact);
+              assert.equal(JSON.parse(sources.members[index].payload.summary.artifact.wire)
+                .source_binding_cid, memberSourceBindings[index].sourceBindingCid);
+            }
+            const manifest = sources.payloads[0].localManifest;
+            const localInvocation = manifestArguments[0][1];
+            assert.equal(control.reuseOriginalEffectUnitManifest(prepared,
+              localInvocation, artifacts, manifest), manifest);
+            assert.throws(() => control.reuseOriginalEffectUnitManifest(prepared,
+              localInvocation, [artifacts[0], {...artifacts[1]}], manifest),
+            {message: 'ForeignOriginalEffectUnitArtifact'});
+            assert.throws(() => control.reuseOriginalEffectUnitManifest(prepared,
+              localInvocation, [artifacts[0], artifacts[0]], manifest),
+            {message: 'ForeignOriginalEffectUnitManifest'});
+            const requestScope = checked(moon.strategyEffectLogicalRequestScope(
+              cid('e'), 'separate-source-bindings', 128));
+            const draft = JSON.parse(effectInputPreview(prepared, evidence, definition,
+              invocation, fixture.mappingCid, sources.payloads[0].summary.artifact.identity,
+              'update', [1, 2], [1, 2], ['first', 'second'], [cid('0'), cid('1')],
+              requestScope, {templateOnly: true}).wire);
+            for (const [index, member] of draft.effects.entries()) {
+              member.source_binding_cid = memberSourceBindings[index].sourceBindingCid;
+              member.result_artifact_cid = sources.members[index].payload.summary.artifact.identity;
+            }
+            const authored = checked(moon.clientProgramAuthorEffectPreview(canonicalJson(draft),
+              draft.run_identity_cid, draft.authoring_context.authoring_context_cid,
+              requestScope, 20000, 1000, 20, 2, 4, 128, 8, 3));
+            const admittedPreview = control.admitEffectComputationPreview(authored._0,
+              control.admit('run_definition', moon.strategyPublicationContractJson(definition), publicationLimits),
+              control.admitRunEvidence('authoring_context', canonicalJson(draft.authoring_context), publicationLimits),
+              publicationLimits);
+            const holdingOptions = {sources, store, control: issuerControl,
+              preview: admittedPreview, invocation: options.invocation};
+            assert.throws(() => preparePinnedEffectSourceHoldings({...holdingOptions,
+              sources: {...sources}}), {message: 'InvalidEffectSourceSetOwner'});
+            assert.throws(() => preparePinnedEffectSourceHoldings({...holdingOptions,
+              resultArtifacts: [...artifacts].reverse()}), {message: 'ForeignEffectSourceResultArtifact'});
+            const owner = preparePinnedEffectSourceHoldings(holdingOptions);
+            sourceHoldings.push(...owner.holdings);
+            await owner.commit();
+            assert.notEqual(sourceHoldings[0].holdingCid, sourceHoldings[1].holdingCid);
+            assert.notEqual(sources.payloads[0].prepared, sources.payloads[1].prepared);
+            for (const [index, holding] of sourceHoldings.entries()) {
+              assert.equal(holding.localResultArtifact, artifacts[index]);
+              assert.deepEqual(await store.inspectPhysicalHolding(holding.holdingCid), holding.record);
+            }
+            assert.ok(physical.status().storedBytes > 0);
+            for (const [index, holding] of sourceHoldings.entries()) {
+              assert.equal((await store.retirePhysicalHolding(holding.holdingCid)).deleted, true);
+              if (index === 0) {
+                assert.ok(physical.status().storedBytes > 0, 'The second holding retains the shared bytes');
+                assert.deepEqual(await store.inspectPhysicalHolding(sourceHoldings[1].holdingCid),
+                  sourceHoldings[1].record);
+              }
+            }
+            sourceHoldings.length = 0;
+          }
           if (privateTableInput) {
             assert.deepEqual(Object.keys(manifestBody.table_inputs), ['rows']);
             const sourceBody = JSON.parse(sources.members[0].payload.summary.artifact.wire);
@@ -6671,6 +6790,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           if (error.cause !== undefined) t.diagnostic(inspect(error.cause, {depth: 10}));
           throw error;
         } finally {
+          for (const holding of sourceHoldings) await store.retirePhysicalHolding(holding.holdingCid);
           if (inputs !== undefined) moon.clientProgramReleaseEffectInputs(inputs);
           for (const payload of sources?.payloads ?? []) {
             if (payload.prepared.status().pending) await payload.prepared.release();

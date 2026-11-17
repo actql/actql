@@ -4,8 +4,8 @@
 struct AdaptiveDispatch[E] {
   driver : DispatchDriver
   registry : @connector.CapabilityRegistry
-  root_rows : Int64
-  root_bytes : Int64
+  root_rows : Int64?
+  root_bytes : Int64?
   output_rows_per_mille : Array[Int?]
   limits : @strategy.SearchLimits
   estimate_work : Int
@@ -40,7 +40,9 @@ pub fn[E] open_adaptive_dispatch(
   estimate_work : Int,
 ) -> Result[AdaptiveDispatch[E], AdaptiveEstimateIssue[E]] {
   let run = driver.owner.run
+  let first = @strategy.captured_compute_first_task(run)
   if dispatch_driver_pending(driver) ||
+    (first != 0 && first != 1 && first != 2) ||
     limits.max_work < 0 ||
     limits.max_offers < 0 ||
     limits.max_strategies < 1 ||
@@ -49,11 +51,19 @@ pub fn[E] open_adaptive_dispatch(
     estimate_work > limits.max_work ||
     output_rows_per_mille.length() > limits.max_work ||
     output_rows_per_mille.length() !=
-    @strategy.graph_task_count(@strategy.captured_dag_graph(run)) - 1 {
+    @strategy.graph_task_count(@strategy.captured_dag_graph(run)) - first {
     return Err(InvalidConfiguration)
   }
-  guard @strategy.captured_execution_root_statistics(run) is Some(root) else {
-    return Err(InvalidConfiguration)
+  // Source-free and two-capture tasks have no single acquired root statistic.
+  // Preserve unknown quantities; never substitute one independent capture's
+  // rows/bytes for both. Exact ready inputs refine their Local offer later.
+  let root = if first != 1 {
+    None
+  } else {
+    guard @strategy.captured_execution_root_statistics(run) is Some(root) else {
+      return Err(InvalidConfiguration)
+    }
+    Some(root)
   }
   let registration_limit = if limits.max_offers <
     limits.max_work - output_rows_per_mille.length() {
@@ -94,8 +104,8 @@ pub fn[E] open_adaptive_dispatch(
     driver,
     registry,
     implementations,
-    root_rows: root.rows.to_int64(),
-    root_bytes: root.canonical_wire_bytes.to_int64(),
+    root_rows: root.map(value => value.rows.to_int64()),
+    root_bytes: root.map(value => value.canonical_wire_bytes.to_int64()),
     output_rows_per_mille: output_rows_per_mille.copy(),
     limits,
     estimate_work,
@@ -355,6 +365,7 @@ fn[E] rebuild_adaptive_dispatch(
   let run = policy.driver.owner.run
   let graph = @strategy.captured_dag_graph(run)
   let count = @strategy.graph_task_count(graph)
+  let first = @strategy.captured_compute_first_task(run)
   let edges = @strategy.graph_data_count(graph)
   if count > policy.limits.max_work || edges > policy.limits.max_work - count {
     return Err(InvalidConfiguration)
@@ -381,10 +392,12 @@ fn[E] rebuild_adaptive_dispatch(
     parents[edge.consumer].push(edge.producer)
   }
   let rows : Array[Int64?] = Array::make(count, None)
-  rows[0] = Some(policy.root_rows)
+  if first == 1 {
+    rows[0] = policy.root_rows
+  }
   let offers = []
-  for task in 1..<count {
-    let output_fraction = policy.output_rows_per_mille[task - 1]
+  for task in first..<count {
+    let output_fraction = policy.output_rows_per_mille[task - first]
     let input_rows = match
       sum_dispatch_quantities(parents[task].map(parent => rows[parent])) {
       Ok(value) => value
@@ -395,8 +408,8 @@ fn[E] rebuild_adaptive_dispatch(
     let input_bytes = match
       sum_dispatch_quantities(
         parents[task].map(parent => {
-          if parent == 0 {
-            Some(policy.root_bytes)
+          if first == 1 && parent == 0 {
+            policy.root_bytes
           } else {
             None
           }
@@ -416,13 +429,18 @@ fn[E] rebuild_adaptive_dispatch(
     } else {
       Some(0L)
     }
-    rows[task] = match
-      (if join { pairs } else { input_rows }, output_fraction) {
-      (Some(value), Some(fraction)) => {
-        let f = fraction.to_int64()
-        Some(value / 1000L * f + (value % 1000L * f + 999L) / 1000L)
+    rows[task] = if first == 0 && parents[task].is_empty() {
+      // Zero input rows do not prove zero output from an intrinsic Values
+      // task. Only its actual completion supplies that row count.
+      None
+    } else {
+      match (if join { pairs } else { input_rows }, output_fraction) {
+        (Some(value), Some(fraction)) => {
+          let f = fraction.to_int64()
+          Some(value / 1000L * f + (value % 1000L * f + 999L) / 1000L)
+        }
+        _ => None
       }
-      _ => None
     }
     if @strategy.captured_task_target(run, task) is Some(target) &&
       @strategy.captured_task_output(run, task, target) is Some(output) {

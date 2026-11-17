@@ -1,4 +1,27 @@
 ///|
+// Price the closed context inventory with independent unit tariffs, rather
+// than copying a refused byte demand. These synthetic grants only arrange
+// the zero-spare scan boundary; they are not an installed memory profile.
+fn original_input_body_zero_spare_setup() -> Int64 {
+  let unit = fn(headers, references, words) {
+    @relation.preparation_representation_cost({
+      record_headers: headers,
+      reference_slots: references,
+      scalar_words: words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+  }
+  // Original bootstrap3 + claimed Read7; the identity context retains its
+  // tuple/Ref, scalar emitter report and opaque materialization-link envelope.
+  3L +
+  7L +
+  12L * unit(1L, 0L, 0L) +
+  24L * unit(0L, 1L, 0L) +
+  20L * unit(0L, 0L, 1L)
+}
+
+///|
 // Actual checked input/Read/Model with the existing fixture provider and
 // synthetic explicit byte grants. This is not installed physical admission.
 test "original first input scan retains its body through Model and the same accepted observation" {
@@ -121,7 +144,8 @@ test "original first input scan capacity refusal preserves its read and never ca
   let (active, ledger, consumer) = original_observation_test_start(
     provider=original_funded_start_provider(calls),
     input_body=true,
-    input_read_ceiling=Some(10L),
+    // Admit the complete fixed context, leaving no byte for the first scan.
+    input_read_ceiling=Some(original_input_body_zero_spare_setup()),
   )
   assert_true(
     fixture_finish(active)
@@ -139,46 +163,69 @@ test "original first input scan capacity refusal preserves its read and never ca
   assert_eq(calls.val, 0)
   assert_true(active.identity is None)
   assert_true(active.original_preparation is Some(_))
-  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 10L)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    original_input_body_zero_spare_setup(),
+  )
   assert_true(cleanup(active).unwrap())
   original_composed_test_release(ledger, consumer)
 }
 
 ///|
-test "original restored input body refuses capacity and cancellation before scanning or Model" {
+test "original restored input body refuses import capacity and cancellation before scanning or Model" {
+  // resource-case-id: original_restored_input_capacity_cancel
   for stop in [false, true] {
     let calls = Ref(0)
-    let (active, ledger, consumer) = original_observation_test_start(
+    let selected = Ref((0L, 0L))
+    let (attempted, ledger, consumer) = original_observation_test_attempt(
       provider=original_funded_start_provider(calls),
       input_body=true,
       restored_input=true,
-      input_read_ceiling=if stop { None } else { Some(10L) },
+      short_restored_import=if stop { None } else { Some(selected) },
     )
-    assert_true(active.identity_body is Some(_))
-    assert_true(active.identity is None)
     if stop {
+      let active = original_observation_test_started(attempted)
+      assert_true(active.identity_body is Some(_))
+      assert_true(active.identity is None)
+      // This actual original Read restores one saved row with two columns;
+      // metadata cardinality cannot be inferred from the row cardinality.
+      let input = @input.client_infer_completed_input(active.input).unwrap()
+      assert_eq(@relation.completed_row_count(input), 1)
+      assert_eq(@relation.completed_column_count(input), 2)
+      let roundtrip = @input.export_client_infer_retained_input(
+        input, "original-read-roundtrip",
+      ).unwrap()
+      let descriptor = @input.read_client_infer_retained_input_descriptor(
+        @input.client_infer_retained_input_export_descriptor(roundtrip),
+      ).unwrap()
+      assert_eq(descriptor.rows, 1)
+      assert_eq(descriptor.columns, 2)
+      assert_eq(descriptor.input_count, 0)
+      assert_eq(@input.client_infer_retained_input_export_rows(roundtrip), [
+        "{\"id\":\"a\",\"text\":\"hello\"}",
+      ])
       assert_true(cancel(active))
       assert_true(fixture_finish(active) is Stopped(..))
+      assert_true(active.identity is None)
+      assert_true(active.original_preparation is Some(_))
+      assert_true(cleanup(active).unwrap())
     } else {
+      // A real original Read admits its fixed context and descriptor before
+      // rejecting the import's independently priced demand by exactly1 byte.
+      // No Execution/identity scan or Model is constructed on this branch.
       assert_true(
-        fixture_finish(active)
-        is Failed(
-          OriginalCapacity(
-            @publication_host.Read(
-              @publication_host.Resource(
-                @resources.Resource(@resources.RetentionLimit)
-              )
-            )
-          ),
-          ..
-        ),
+        attempted is Err(Input(@input.RetainedInput(@input.CustodyUnavailable))),
       )
-      assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 10L)
+      let usage = @resources.ledger_usage(ledger)
+      assert_true(
+        selected.val.0 < standard_limits().model.ledger.retained_bytes,
+      )
+      assert_eq(
+        selected.val.0 - usage.held_bytes - usage.reserved_retention_bytes,
+        selected.val.1 - 1L,
+      )
     }
     assert_eq(calls.val, 0)
-    assert_true(active.identity is None)
-    assert_true(active.original_preparation is Some(_))
-    assert_true(cleanup(active).unwrap())
     original_composed_test_release(ledger, consumer)
   }
 }
@@ -211,37 +258,33 @@ test "original restored input body rejects a foreign checked Read before scan co
     () => true,
   )
   let foreign_before = @resources.ledger_usage(foreign_ledger)
-  let active = start_original_restored_composed(
-    occurrence,
-    plan,
-    prefix,
-    original_funded_start_provider(calls),
-    @input.client_infer_retained_input_export_binding(exported),
-    @input.client_infer_retained_input_export_descriptor(exported),
-    @input.client_infer_retained_input_export_rows(exported),
-    () => true,
-    saved,
-    limits,
-    compiled,
-    definition,
-    consumer,
-    7L,
-    5L,
-    100L,
-    5L,
-    input_body_read=Some(foreign_read),
-  ).unwrap()
   assert_true(
-    fixture_finish(active)
-    is Failed(
-      OriginalCapacity(@publication_host.Read(@publication_host.ForeignRun)),
-      ..
+    start_original_restored_composed(
+      occurrence,
+      plan,
+      prefix,
+      original_funded_start_provider(calls),
+      @input.client_infer_retained_input_export_binding(exported),
+      @input.client_infer_retained_input_export_descriptor(exported),
+      @input.client_infer_retained_input_export_rows(exported),
+      () => true,
+      saved,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      100L,
+      5L,
+      input_body_read=Some(foreign_read),
+    )
+    is Err(
+      OriginalCapacity(@publication_host.Read(@publication_host.ForeignRun))
     ),
   )
   assert_eq(calls.val, 0)
-  assert_true(active.identity is None)
   assert_eq(@resources.ledger_usage(foreign_ledger), foreign_before)
-  assert_true(cleanup(active).unwrap())
   original_composed_test_release(ledger, consumer)
   original_composed_test_release(foreign_ledger, foreign_consumer)
 }

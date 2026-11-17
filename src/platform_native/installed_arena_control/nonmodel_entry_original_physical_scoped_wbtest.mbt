@@ -131,6 +131,7 @@ fn nonmodel_physical_entry_case(
   prepared_body? : Bool = false,
   prepared_refusal? : Bool = false,
   publication? : Bool = false,
+  publication_window? : Int = 0,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let sqlite_path = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
@@ -303,7 +304,13 @@ fn nonmodel_physical_entry_case(
   host.return_backing_borrow(backing).unwrap()
   host.prepare_domain_read(read_domain).unwrap()
   host.prepare_domain_read(sqlite_domain).unwrap()
-  host.prepare_domain_read(business_domain).unwrap()
+  if publication_window > 0 {
+    host
+    .prepare_domain_read(business_domain, execution_ceiling=business_extent)
+    .retained_execution_value("publication window: prepare business Read")
+  } else {
+    host.prepare_domain_read(business_domain).unwrap()
+  }
   let input = Ref(71)
   let mut initial : @resources.BackedPreparationAdmission[Ref[Int]]? = None
   let execution = if prepared_body {
@@ -313,7 +320,7 @@ fn nonmodel_physical_entry_case(
         bootstrap_retained: 4096L,
         bootstrap_execution: 4096L,
       })
-      .unwrap() {
+      .retained_execution_value("prepared entry: original Request execution") {
       ReadyRequestExecution(value, original) => {
         initial = Some(original)
         value
@@ -355,7 +362,11 @@ fn nonmodel_physical_entry_case(
       1024L * page + read_entry_bytes,
     )
     .unwrap()
-  let proved = if initial is Some(original) {
+  let proved = if publication_window > 0 && initial is Some(original) {
+    nonmodel_publication_window_original_work(
+      host, pair, read, execution, original, input, publication_window,
+    )
+  } else if initial is Some(original) {
     nonmodel_prepared_original_work(
       host,
       pair,
@@ -873,4 +884,219 @@ test "prepared Native Work borrows SAME body and leaves physical retirement to o
 ///|
 test "refused prepared Native Work keeps original debit and cannot reissue its entry" {
   nonmodel_physical_entry_case(true, prepared_body=true, prepared_refusal=true)
+}
+
+///|
+// Actual prepared-body publication reserve under the same claimed entry.
+// Mode1 stays inside the acquired prefix, mode2 requests new backing after
+// return to Journal Read, and mode3 funds that same demand before the return.
+// This proves a finite component boundary, not the ordinary512MiB CLI case.
+fn nonmodel_publication_window_original_work(
+  host : InstalledArenaHost,
+  pair : InstalledArenaLocalHostResources,
+  read : InstalledArenaOriginalRead,
+  execution : InstalledArenaRetainedExecution,
+  initial : @resources.BackedPreparationAdmission[Ref[Int]],
+  input : Ref[Int],
+  mode : Int,
+) -> Bool raise {
+  let page = domain_page_bytes()
+  let ledger = @resources.start_backed_preparation_admission(initial, input).retained_execution_value(
+    "publication window stage 1",
+  )
+  // All Request/body/census controls are constructed in the original outer
+  // control lifetime. Only the fixed Work below is constructed in Journal Read.
+  let capacity : @resources.PreparationCapacity[Ref[Int], Ref[Int]] = @resources.reserve_preparation_capacity_inventory(
+    ledger,
+    input,
+    page,
+    page,
+    max_borrowers=4,
+  ).retained_execution_value("publication window stage 2")
+  let body = Ref(79)
+  @resources.complete_preparation_capacity(capacity, input, body, page, page).retained_execution_value(
+    "publication window stage 3",
+  )
+  let (original, same, retirement, holder) = @resources.adopt_backed_preparation_admission(
+    initial, input, capacity, body,
+  ).retained_execution_value("publication window stage 4")
+  assert_true(physical_equal(same, ledger))
+  let admission = @resources.backed_prepared_run_admission(original)
+  let work_bytes = 4096L
+  host
+  .enter_local_host_phase(pair, HostRead)
+  .retained_execution_value("publication window stage 5")
+  let entry = match
+    host.prepare_domain_nonmodel_prepared_work_entry(
+      pair, read, execution, admission, body, work_bytes, work_bytes,
+    ) {
+    Some(Ok(ReadyNonModelWorkEntry(value))) => value
+    _ => fail("publication window: original prepared entry refused")
+  }
+  host
+  .leave_local_host_phase(pair)
+  .retained_execution_value("publication window stage 6")
+  host
+  .enter_domain_retained_execution(execution)
+  .retained_execution_value("publication window stage 7")
+  assert_true(
+    entry.take_entered_ledger(execution, work_bytes, work_bytes) is Some(actual) &&
+    physical_equal(actual, ledger),
+  )
+  let retained = (if mode == 1 { page } else { 4L * page }) + work_bytes
+  let working = (if mode == 1 { page } else { 8L * page }) + work_bytes
+  let initial_window = 4L * page
+  if mode == 1 {
+    assert_true(retained + working <= initial_window)
+  } else {
+    assert_true(retained + working > initial_window)
+  }
+  if mode == 3 {
+    let before_growth = host
+      .observe_domain_inventory(execution.domain)
+      .retained_execution_value("publication window stage 8").capacity_bytes
+    @resources.reserve_preparation_publication_phase(
+      holder, body, retained, working,
+    ).retained_execution_value("publication window stage 9")
+    assert_true(
+      host
+      .observe_domain_inventory(execution.domain)
+      .retained_execution_value("publication window stage 10").capacity_bytes >
+      before_growth,
+    )
+  }
+  let physical_before = host
+    .observe_domain_inventory(execution.domain)
+    .retained_execution_value(
+      "publication window: entered inventory before handoff",
+    ).capacity_bytes
+  host
+  .leave_domain_retained_execution(execution)
+  .retained_execution_value("publication window stage 11")
+  host
+  .enter_local_host_phase(pair, HostRead)
+  .retained_execution_value("publication window stage 12")
+  assert_true(entry.matches_publication_scope())
+  assert_false(entry.matches_business_scope(false))
+  // The actual current context belongs to Journal Read. The business Read
+  // remains a genuine current original, but is physically unentered here.
+  let domain = execution.domain
+  assert_true(host.require_domain_read_current(domain) is Ok(_))
+  assert_true(
+    domain.backing.require_backed_read_context_entered(
+      host,
+      domain.domain.unwrap(),
+      domain,
+    )
+    is Err(@bootstrap.Bootstrap(@bootstrap.Physical(_))),
+  )
+  let before = @resources.ledger_usage(ledger)
+  let selected = @resources.reserve_preparation_publication_phase(
+    holder, body, retained, working,
+  )
+  if mode == 2 {
+    assert_true(selected is Err(Resource(@resources.ChildFundingUnavailable)))
+    assert_eq(@resources.ledger_usage(ledger), before)
+  } else {
+    assert_true(selected is Ok(_))
+    assert_eq(
+      @resources.ledger_usage(ledger).reserved_retention_bytes,
+      retained,
+    )
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, working)
+  }
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    before.transferred_bytes,
+  )
+  assert_true(entry.matches_publication_scope())
+  // The original Native window_issue is private to its physical owner. This
+  // fixture does not synthesize it or add an inspection API. Its public exact
+  // entered/current observations above remain separate from Resource17.
+  host
+  .leave_local_host_phase(pair)
+  .retained_execution_value("publication window stage 15")
+  host
+  .enter_domain_retained_execution(execution)
+  .retained_execution_value("publication window stage 16")
+  assert_eq(
+    host
+    .observe_domain_inventory(domain)
+    .retained_execution_value(
+      "publication window: entered inventory after handoff",
+    ).capacity_bytes,
+    physical_before,
+  )
+  assert_true(entry.finish_business_cleanup())
+  host
+  .leave_domain_retained_execution(execution)
+  .retained_execution_value("publication window stage 17")
+  assert_false(entry.close_after_original_return())
+  assert_false(
+    @resources.retire_transferred_preparation(retirement).retained_execution_value(
+      "publication window stage 18",
+    ),
+  )
+  assert_false(
+    @resources.return_preparation_body_borrow(holder).retained_execution_value(
+      "publication window stage 19",
+    ),
+  )
+  assert_true(
+    @resources.release_backed_preparation_holder(original).retained_execution_value(
+      "publication window stage 20",
+    ),
+  )
+  assert_true(
+    @resources.retire_transferred_preparation(retirement).retained_execution_value(
+      "publication window stage 21",
+    ),
+  )
+  // Only the actual physical owner can close the same execution and admit
+  // final Resource cleanup. Logical holder return is never that ACK.
+  host
+  .close_domain_retained_execution(execution)
+  .retained_execution_value("publication window stage 22")
+  @resources.cleanup_backed_prepared_run_admission(original).retained_execution_value(
+    "publication window stage 23",
+  )
+  assert_true(entry.close_after_original_return())
+  assert_true(
+    execution.physical_retired && execution.reported && execution.closed,
+  )
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  true
+}
+
+///|
+test "publication window uses the same funded prefix while business is parked in Journal Read" {
+  nonmodel_physical_entry_case(
+    true,
+    windowed=true,
+    prepared_body=true,
+    publication_window=1,
+  )
+}
+
+///|
+test "publication window refuses new backing while business is parked in Journal Read" {
+  nonmodel_physical_entry_case(
+    true,
+    windowed=true,
+    prepared_body=true,
+    publication_window=2,
+  )
+}
+
+///|
+test "publication window prefunding in business permits the same later Journal Read phase" {
+  nonmodel_physical_entry_case(
+    true,
+    windowed=true,
+    prepared_body=true,
+    publication_window=3,
+  )
 }

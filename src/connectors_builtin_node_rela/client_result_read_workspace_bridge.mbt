@@ -110,3 +110,56 @@ pub fn client_program_reconcile_request_result_read_serializer(
     parent, input, serializer,
   )
 }
+
+///|
+#export_name("clientProgramBeginRequestResultReadWire")
+pub fn client_program_begin_request_result_read_wire(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  payload_bytes : Int64,
+  row_count : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.begin_request_result_read_wire(
+    parent, input, payload_bytes, row_count,
+  )
+}
+
+///|
+#export_name("clientProgramGrowRequestResultReadFrame")
+pub fn client_program_grow_request_result_read_frame(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  units : Int,
+) -> Result[(Int, Int), @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.grow_request_result_read_frame(parent, input, units)
+}
+
+///|
+#export_name("clientProgramBeginRequestResultReadWireRow")
+pub fn client_program_begin_request_result_read_wire_row(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  wire : String,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.begin_request_result_read_wire_row(parent, input, wire)
+}
+
+///|
+#export_name("clientProgramAdvanceRequestResultReadWireRow")
+pub fn client_program_advance_request_result_read_wire_row(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  quantum : Int,
+) -> Result[(Bool, Int, Int), @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.advance_request_result_read_wire_row(
+    parent, input, quantum,
+  )
+}

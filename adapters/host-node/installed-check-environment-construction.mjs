@@ -42,9 +42,37 @@ function textShape(value) {
   }
   return {output, normalized};
 }
+
+// The same actual Local canonicalizer's scalar preflight. It constructs no
+// normalized String, JSON token, body or CID before its caller reserves.
+export function installedCanonicalTextConstructionShape(value) {
+  return textShape(value);
+}
+
+// The existing Checkpoint binding has three fixed String fields per Source.
+// Account admission later supplies two SHA256 CIDs (71 UTF16 units each), or
+// the shorter null configuration. No prospective CID or body is constructed.
+export function installedCheckpointBindingCanonicalConstructionGeometry(count, sourceOutput, sourceNormalized) {
+  if ([count, sourceOutput, sourceNormalized].some(value => typeof value !== 'bigint' || value < 0n) ||
+      sourceOutput < 2n * count) invalid();
+  const keyUnits = BigInt('source_ref'.length + 'configuration_cid'.length + 'context_cid'.length);
+  const outerKey = BigInt('source_authorization_bindings'.length);
+  const leaves = sourceOutput + 2n * 73n * count;
+  // Object braces, three quoted keys, colons and commas. Recursive counts
+  // include the actual scalar tokens, row, Array and outer object once each.
+  const rows = leaves + (keyUnits + 13n) * count;
+  const array = 2n + rows + (count === 0n ? 0n : count - 1n);
+  const output = array + outerKey + 5n;
+  const measured = {nodes: 8n * count + 3n, output,
+    recursive: leaves + rows + array + output,
+    normalized: sourceNormalized + (2n * 71n + keyUnits) * count + outerKey};
+  const workspace = zero();
+  addCanonical(workspace, measured, 1n, 1n);
+  return workspace;
+}
 function shape(value, parent = undefined, depth = 0) {
   if (depth > 256) invalid();
-  let nodes = 1n, output, recursive = 0n, normalized = 0n;
+  let nodes = 1n, output, recursive = 0n, normalized = 0n, fields = 0n;
   if (value === null) output = 4n;
   else if (typeof value === 'boolean') output = value ? 4n : 5n;
   else if (typeof value === 'number') output = 25n;
@@ -70,8 +98,9 @@ function shape(value, parent = undefined, depth = 0) {
       nodes += child.nodes + 1n; normalized += child.normalized; count++;
     }
     if (array && count !== BigInt(value.length)) invalid();
+    fields = count;
   }
-  return {nodes, output, recursive: recursive + output, normalized};
+  return {nodes, output, recursive: recursive + output, normalized, fields};
 }
 function addCanonical(workspace, measured, calls = 1n, hashes = 0n) {
   // Object.entries/pairs/filter/replacement pairs+array, sort scratch, mapped
@@ -102,11 +131,97 @@ function addSequentialCanonical(workspace, largest, measured, calls = 1n, hashes
  * The borrowed String is not copied here. No admission or validity is inferred. */
 export function installedEnvironmentParseConstructionGeometry(originalWire) {
   const input = sourceJsonWireGeometry(originalWire);
-  // Census record plus fourteen scalar fields; parsed result plus two fields.
+  // Native JSON.parse does not parse detached JSON text inside String values.
+  // The existing same-wire scan separately bounds the actual returned tree;
+  // all text and malformed-prefix decoding remain in the byte/text envelope.
+  const nodes = input.retained.nodes;
+  // Census record plus fifteen scalar fields; parsed result plus two fields.
   // The same funded freeze traversal computes these counts, with no extra parse.
-  return stage({nodes: input.nodes + 18n, text: 2n * input.units, wire: 0n},
-    {nodes: 5n * input.nodes + 4n, text: 10n * input.units, wire: 0n},
-    {inputUnits: input.units, inputNodes: input.nodes});
+  return stage({nodes: nodes + 19n, text: 2n * input.units, wire: 0n},
+    {nodes: 5n * nodes + 4n, text: 10n * input.units, wire: 0n},
+    {inputUnits: input.units, inputNodes: nodes});
+}
+
+// Observe this already-owned immutable graph once. These two synchronous
+// native constructors have separate actual returns: the full-wire comparison
+// retains only the original document reference; the body/CID phase retains a
+// shallow root and result/index records, borrowing the same parsed children.
+// Source's existing native-input owner reconciles each actual closed phase.
+export function installedEnvironmentDocumentConstructionStages(frozenDocument) {
+  const measured = shape(frozenDocument), comparison = zero(), body = zero();
+  addCanonical(comparison, measured);
+  addCanonical(body, measured, 1n, 1n);
+  return Object.freeze({
+    comparison: stage({nodes: 2n, text: 0n, wire: 0n}, comparison),
+    body: stage({nodes: measured.fields + 20n, text: 2n * 71n, wire: 0n}, body),
+  });
+}
+
+// The existing SDK writer uses dataKeys:true: it checks text and numbers but
+// does not normalize keys or values. Measure that ACTUAL writer, including
+// parent entries and completed sibling encodings while one child recurses.
+// The original frozen graph is borrowed; no encoding is constructed here.
+function dataWriterShape(value, depth = 0) {
+  if (depth > 256) invalid();
+  let output, peakNodes = 4n, peakText = 0n;
+  const text = value => {
+    let units = 2n;
+    for (let i = 0; i < value.length; i++) {
+      const code = value.charCodeAt(i);
+      units += code === 34 || code === 92 || code === 8 || code === 9 ||
+        code === 10 || code === 12 || code === 13 ? 2n : code < 32 ? 6n : 1n;
+    }
+    return units;
+  };
+  if (value === null) output = 4n;
+  else if (typeof value === 'boolean') output = value ? 4n : 5n;
+  else if (typeof value === 'number') output = 25n;
+  else if (typeof value === 'string') output = text(value);
+  else {
+    if (typeof value !== 'object' || nodeTypes.isProxy(value) || !Object.isFrozen(value)) invalid();
+    const array = Array.isArray(value);
+    if (Object.getPrototypeOf(value) !== (array ? Array.prototype : Object.prototype)) invalid();
+    let fields = 0n, largestNodes = 0n, largestText = 0n;
+    output = 2n;
+    for (const key of Reflect.ownKeys(value)) {
+      if (array && key === 'length') continue;
+      const property = Object.getOwnPropertyDescriptor(value, key);
+      if (typeof key !== 'string' || !property || !Object.hasOwn(property, 'value') || !property.enumerable) invalid();
+      if (property.value === undefined && !array) continue;
+      const child = dataWriterShape(property.value, depth + 1);
+      if (fields > 0n) output++;
+      if (!array) output += text(key) + 1n;
+      output += child.output; fields++;
+      if (child.peakNodes > largestNodes) largestNodes = child.peakNodes;
+      if (child.peakText > largestText) largestText = child.peakText;
+    }
+    // Conservatively coexist all entries/pairs/filter/replacement/key/Set/
+    // sort/map arrays at this level, plus the largest active child. Earlier
+    // sibling constructor workspaces have returned; their texts remain below.
+    peakNodes = (array ? fields + 4n : 12n * fields + 16n) + largestNodes;
+    peakText = 6n * output + largestText;
+  }
+  if (2n * output > peakText) peakText = 2n * output;
+  return {output, peakNodes, peakText};
+}
+
+export function installedEnvironmentDataWriterConstructionGeometry(original, hash = false) {
+  const measured = dataWriterShape(original);
+  return stage({nodes: hash ? 4n : 48n, text: hash ? 2n * 71n : 2n * measured.output, wire: 0n},
+    {nodes: measured.peakNodes + 8n, text: measured.peakText + (hash ? 2n * 135n : 0n),
+      wire: hash ? 3n * measured.output + 128n : 0n});
+}
+
+export function installedEnvironmentMemberSortConstructionGeometry(originals) {
+  let nodes = 0n, text = 0n, wire = 0n;
+  for (const original of originals) {
+    const measured = installedEnvironmentDataWriterConstructionGeometry(original, true);
+    if (measured.nodes > nodes) nodes = measured.nodes;
+    if (measured.text > text) text = measured.text;
+    if (measured.wire > wire) wire = measured.wire;
+  }
+  return stage({nodes: 2n, text: 0n, wire: 0n},
+    {nodes: nodes + BigInt(originals.length) + 4n, text: text + 2n * 71n, wire});
 }
 
 /** After funded parse/freeze: canonical encoding comparison, shallow body

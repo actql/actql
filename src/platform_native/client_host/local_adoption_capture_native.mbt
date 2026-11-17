@@ -152,6 +152,7 @@ pub fn NativeLocalAdoptionCapture::open(
   self : NativeLocalAdoptionCapture,
   product? : NativeLocalProductConfigurationCapture? = None,
   operator_host? : NativeLocalOperatorHostOriginal? = None,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> NativeLocalAdoptionCaptureReply {
   if self.closing {
     return self.reply(OpenCapturedAdoption, Some(AdoptionCaptureClosed))
@@ -189,6 +190,7 @@ pub fn NativeLocalAdoptionCapture::open(
         root_opening=self.root_opening,
         product_original~,
         operator_host~,
+        construction~,
       ) {
       Ok(session) => AdoptionAcquired(session)
       Err(issue) => {
@@ -270,6 +272,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
   max_records : Int,
   max_snapshot_bytes : Int64,
   max_retained_intent_bytes? : Int64 = 67108864L,
+  metadata_retained? : Int64 = 0L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -281,6 +284,7 @@ pub fn NativeLocalAdoptionCapture::capture_journal_with_original_resources(
     false,
     None,
     max_retained_intent_bytes~,
+    metadata_retained~,
   )
 }
 
@@ -297,6 +301,7 @@ pub fn NativeLocalAdoptionCapture::capture_command_journal_with_original_resourc
   max_records : Int,
   max_snapshot_bytes : Int64,
   max_retained_intent_bytes? : Int64 = 67108864L,
+  metadata_retained? : Int64 = 0L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -308,6 +313,7 @@ pub fn NativeLocalAdoptionCapture::capture_command_journal_with_original_resourc
     true,
     None,
     max_retained_intent_bytes~,
+    metadata_retained~,
   )
 }
 
@@ -326,6 +332,7 @@ fn NativeLocalAdoptionCapture::capture_original_journal_resources(
     @host.ClientLocalSigningBootstrapPolicy,
   )?,
   max_retained_intent_bytes? : Int64 = 67108864L,
+  metadata_retained? : Int64 = 0L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   let session = match self.journal_capture_session() {
     Err(issue) => return Err(issue)
@@ -341,6 +348,7 @@ fn NativeLocalAdoptionCapture::capture_original_journal_resources(
     max_records,
     max_snapshot_bytes,
     max_retained_intent_bytes~,
+    metadata_retained~,
   )
   let journal = { ..prepared, command_preparation_journal, initial_signing, }
   self.journal = Some(journal)
@@ -362,6 +370,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_journal_with_original_resourc
   max_records : Int,
   max_snapshot_bytes : Int64,
   max_retained_intent_bytes? : Int64 = 67108864L,
+  metadata_retained? : Int64 = 0L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -373,6 +382,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_journal_with_original_resourc
     false,
     Some((material, policy)),
     max_retained_intent_bytes~,
+    metadata_retained~,
   )
 }
 
@@ -390,6 +400,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_command_journal_with_original
   max_records : Int,
   max_snapshot_bytes : Int64,
   max_retained_intent_bytes? : Int64 = 67108864L,
+  metadata_retained? : Int64 = 0L,
 ) -> Result[NativeLocalJournalCapture, NativeLocalAdoptionCaptureIssue] {
   self.capture_original_journal_resources(
     host,
@@ -401,6 +412,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_command_journal_with_original
     true,
     Some((material, policy)),
     max_retained_intent_bytes~,
+    metadata_retained~,
   )
 }
 
@@ -409,6 +421,7 @@ pub fn NativeLocalAdoptionCapture::capture_initial_command_journal_with_original
 /// handed to the journal, its whole binding check owns current observation.
 pub fn NativeLocalAdoptionCapture::check_current(
   self : NativeLocalAdoptionCapture,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> NativeLocalAdoptionCaptureReply {
   if self.closing {
     return self.reply(ObserveCapturedAdoption, Some(AdoptionCaptureClosed))
@@ -426,7 +439,7 @@ pub fn NativeLocalAdoptionCapture::check_current(
       AdoptionOpenUnconfirmed => Some(AdoptionOpeningUnconfirmed)
       AdoptionRefused => Some(AdoptionOriginal(self.original.issue()))
       AdoptionAcquired(session) =>
-        match session.check_original() {
+        match session.check_original(construction~) {
           Ok(_) => None
           Err(issue) => Some(AdoptionOriginal(issue))
         }

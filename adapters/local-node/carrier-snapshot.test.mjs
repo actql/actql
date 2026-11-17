@@ -32,12 +32,12 @@ function operationFixture() {
     released = check; events.push('prepare'); return operation;
   }}};
 }
-async function fileFixture() {
+async function fileFixture({capacityBytes = 256} = {}) {
   const parent = new URL('../../_build/carrier-snapshot-transport/', import.meta.url);
   await mkdir(parent, {recursive:true});
   const directory = await mkdtemp(new URL('case-', parent));
   const store = await createLocalRetainedStore({parentDirectory:directory,
-    capacityBytes:256,maxFrameBytes:256,maxEntries:1});
+    capacityBytes,maxFrameBytes:256,maxEntries:1});
   return {directory,store};
 }
 
@@ -274,6 +274,65 @@ test('Relation Store roundtrip preserves ordered missing/NULL/value rows after s
   assert.deepEqual(await readdir(directory),[]);
 });
 
+test('Relation reload framer uses exact sealed byte geometry only after the original reload grant', async () => {
+  const {directory,store} = await fileFixture({capacityBytes: 180000000});
+  const f = relationFixture();
+  f.operation.frames.maxBytes = f.operation.frames.maxRowBytes = 180000000;
+  let constructions = 0;
+  const observed = {...moon, strategyPrepareDurableResultRowFrames(...limits) {
+    constructions++;
+    assert.equal(f.events.includes('reload'), true);
+    assert.equal(f.operation.source_available(), false);
+    assert.deepEqual(limits, [f.identity.bytes, 3, f.identity.bytes, 8, 256]);
+    return moon.strategyPrepareDurableResultRowFrames(...limits);
+  }};
+  const owner = prepareLocalRelationSnapshot(f.operations, () => store, checked, undefined, observed);
+  await owner.roundtrip();
+  assert.equal(constructions, 1);
+  assert.deepEqual(f.restored, f.rows);
+  assert.equal(store.status().reservedBytes, 0);
+  assert.deepEqual(await readdir(directory), []);
+});
+
+for (const rowLimit of [18, 2]) {
+  test(`Relation sealed geometry preserves explicit smaller row policy ${rowLimit}`, async () => {
+    const {directory,store} = await fileFixture();
+    const f = relationFixture();
+    f.operation.frames.maxRowBytes = rowLimit;
+    let constructions = 0;
+    const observed = {...moon, strategyPrepareDurableResultRowFrames(...limits) {
+      constructions++;
+      assert.deepEqual(limits, [f.identity.bytes, 3, rowLimit, 8, 256]);
+      return moon.strategyPrepareDurableResultRowFrames(...limits);
+    }};
+    const owner = prepareLocalRelationSnapshot(f.operations, () => store, checked, undefined, observed);
+    if (rowLimit === 18) await owner.roundtrip();
+    else {
+      await assert.rejects(owner.roundtrip(), {code: 'MoonBitHostFailure'});
+      assert.equal(f.events.includes('restore'), false);
+      await owner.cleanupHandle.retry();
+    }
+    assert.equal(constructions, 1);
+    assert.equal(store.status().reservedBytes, 0);
+    assert.deepEqual(await readdir(directory), []);
+  });
+}
+
+test('Relation refused original reload grant constructs no row framer and retains the primary cause', async () => {
+  const {directory,store} = await fileFixture();
+  const f = relationFixture(), failure = new Error('OriginalReloadGrantRefused');
+  f.operation.begin_reload = () => {throw failure;};
+  const observed = {...moon, strategyPrepareDurableResultRowFrames() {
+    assert.fail('refused original cannot construct a receiving framer');
+  }};
+  const owner = prepareLocalRelationSnapshot(f.operations, () => store, checked, undefined, observed);
+  await assert.rejects(owner.roundtrip(), error => error === failure);
+  assert.equal(owner.cleanupHandle.status().pending, true);
+  await owner.cleanupHandle.retry();
+  assert.equal(store.status().reservedBytes, 0);
+  assert.deepEqual(await readdir(directory), []);
+});
+
 test('Relation snapshot retires reference roots after file release and before finish', async () => {
   const {directory,store} = await fileFixture();
   const f = relationFixture();
@@ -339,7 +398,10 @@ test('Relation cancellation after original output revocation retains cleanup and
   f.operation.begin_reload = () => {
     begin(); controller.abort(new Error('RelationReloadCancelled'));
   };
-  const owner = prepareLocalRelationSnapshot(f.operations,() => store,checked,controller.signal,moon);
+  const observed = {...moon, strategyPrepareDurableResultRowFrames() {
+    assert.fail('cancelled original cannot construct a receiving framer');
+  }};
+  const owner = prepareLocalRelationSnapshot(f.operations,() => store,checked,controller.signal,observed);
   await assert.rejects(owner.roundtrip(),/RelationReloadCancelled/);
   assert.throws(() => f.operations.output_row(0),/OriginalOutputUnavailable/);
   assert.equal(f.events.includes('restore'),false);
@@ -476,3 +538,85 @@ test('Relation cancellation inside bounded save cannot borrow staged output or a
   assert.equal(owner.cleanupHandle.status().pending,true);
   await owner.cleanupHandle.retry();assert.deepEqual(await readdir(directory),[]);
 });
+
+for (const boundary of ['acknowledged seal', 'failed seal', 'abort after seal']) {
+  test(`Relation ${boundary} retains export custody until the actual seal promise settles`, async () => {
+    const {directory,store}=await fileFixture();const f=relationFixture();
+    const controller=new AbortController(), failure=new Error('OriginalSealBoundary');
+    let enter, resume;const entered=new Promise(resolve=>{enter=resolve;});
+    const gate=new Promise(resolve=>{resume=resolve;});let acknowledged=false;
+    const release=f.operation.release_source;
+    f.operation.release_source=(...args)=>{
+      assert.equal(acknowledged,true,'no Core release/reuse before physical seal ACK');
+      return release(...args);
+    };
+    const lease={...store,reserve(amount){
+      const writer=store.reserve(amount);
+      return {...writer,async seal(identity){
+        enter();await gate;
+        if(boundary==='failed seal')throw failure;
+        const body=await writer.seal(identity);acknowledged=true;
+        if(boundary==='abort after seal')controller.abort(failure);
+        return body;
+      }};
+    }};
+    const owner=prepareLocalRelationSnapshot(f.operations,()=>lease,checked,controller.signal,moon);
+    const flight=owner.roundtrip();const rejected=boundary==='acknowledged seal'?undefined:
+      assert.rejects(flight,error=>error===failure);
+    await entered;
+    assert.equal(f.events.includes('revoke-source'),false);
+    assert.equal(f.events.includes('reload'),false);
+    assert.equal(owner.cleanupHandle.status().pending,true);
+    assert(store.status().reservedBytes>0,'unacknowledged Store bytes remain owned');
+    resume();
+    if(rejected){await rejected;assert.equal(f.events.includes('reload'),false);
+      assert.equal(f.events.includes('revoke-source'),false);await owner.cleanupHandle.retry();}
+    else await flight;
+    assert.equal(store.status().reservedBytes,0);assert.deepEqual(await readdir(directory),[]);
+  });
+}
+
+
+for (const boundary of ['append', 'seal']) {
+  test(`Relation lost ${boundary} acknowledgement preserves the source and exact Store cleanup owner`, async () => {
+    const {directory, store} = await fileFixture();
+    const f = relationFixture();
+    const primary = new Error('RelationWriteAcknowledgementLost');
+    const cleanupFailure = new Error('RelationPhysicalCleanupPending');
+    let factories = 0, writes = 0, cleanups = 0;
+    const lease = {...store, reserve(bytes) {
+      const writer = store.reserve(bytes);
+      return {...writer,
+        async [boundary](...args) {
+          writes++;
+          await writer[boundary](...args);
+          throw primary;
+        },
+      };
+    }, async cleanup() {
+      if (++cleanups === 1) throw cleanupFailure;
+      return store.cleanup();
+    }};
+    const owner = prepareLocalRelationSnapshot(f.operations, () => {
+      factories++;
+      return lease;
+    }, checked, undefined, moon);
+    await assert.rejects(owner.roundtrip(), error => error === primary);
+    assert.equal(f.operation.source_available(), true);
+    assert.deepEqual(f.operations.output_row(0), f.rows[0]);
+    assert.equal(f.events.includes('reload'), false);
+    assert.equal(f.events.includes('finish'), false);
+    assert.equal(owner.cleanupHandle.status().pending, true);
+    await assert.rejects(owner.cleanupHandle.retry(), error => error === cleanupFailure);
+    assert.equal(owner.cleanupHandle.status().pending, true);
+    assert.ok(store.status().reservedBytes > 0);
+    assert.deepEqual(await owner.cleanupHandle.retry(), {pending: false});
+    assert.deepEqual(await owner.cleanupHandle.retry(), {pending: false});
+    assert.equal(factories, 1);
+    assert.equal(writes, 1);
+    assert.equal(cleanups, 2);
+    assert.equal(store.status().reservedBytes, 0);
+    assert.equal(store.status().cleanupPending, false);
+    assert.deepEqual(await readdir(directory), []);
+  });
+}

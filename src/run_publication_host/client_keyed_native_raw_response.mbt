@@ -47,7 +47,7 @@ pub fn prepare_client_keyed_native_raw_response(
     state.left.composed is Some(original) &&
     physical_equal(original.compiled, compiled) &&
     physical_equal(original.definition, definition) &&
-    original.plan.keyed is Some(component) else {
+    client_composed_keyed_original_component(original) is Some(component) else {
     return Err(Assembly("foreign_native_raw_response"))
   }
   if captured_epoch <
@@ -71,10 +71,9 @@ pub fn prepare_client_keyed_native_raw_response(
   // retention wires. Fund their bounded escaping plus this raw descriptor,
   // rather than treating the accepted wire ceiling as allocated backing.
   // Native keeps its original codec and reservation policy unchanged.
-  let codec_bytes = if @publication.publication_contract_name(
+  let codec_bytes = if @publication.read_profile_uses_installed_rows(
       component.original.profile,
-    ) ==
-    "declared_file_content_read" {
+    ) {
     let units = binding_wire.length().to_int64() +
       @publication.publication_contract_json(retention).length().to_int64() +
       content_cid.length().to_int64() +

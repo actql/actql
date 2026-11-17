@@ -1,6 +1,7 @@
 ///|
 fn runtime_requirements_union_prepared(
   sql? : String? = None,
+  source_json? : String? = None,
 ) -> @publication_host.PreparedClientProgram raise {
   let assets = @publication_host.client_local_product_assets()
   guard @json.parse(assets.environment) is Object(fields) &&
@@ -21,6 +22,15 @@ fn runtime_requirements_union_prepared(
     let original = @frontend.lower(text, @frontend.Sql, Some(context)).unwrap()
     return @publication_host.prepare_parsed_effect_free_client_program(
       original.program.unwrap(),
+      environment,
+      None,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap()
+  }
+  if source_json is Some(source) {
+    return @publication_host.prepare_effect_free_client_program(
+      source,
+      Json,
       environment,
       None,
       @publication_host.client_standard_program_preparation_limits(),
@@ -105,4 +115,164 @@ test "managed runtime UNION requirements follow checked demand beyond fixed slot
       @resources.reserve_attempt(small, 0L, 0L, 0L) is Err(AttemptLimit),
     )
   }
+}
+
+///|
+// The failing ordinary CLI SQL, with the same installed requirements and
+// finite Ledger. This does not stand in for Native service/Run admission.
+fn runtime_number_group_execute(
+  prepared : @publication_host.PreparedClientProgram,
+  expected : Array[Json],
+  description : String,
+) -> Unit raise {
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let requirements = prepare_source_free_runtime_requirements_result(
+    prepared,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let limits = requirements.maximum_limits()
+  assert_eq(limits.execution_bytes, 536870912L)
+  let ledger = @resources.create_ledger(limits).unwrap()
+  let setup = open_source_free_local_retained_host_on_ledger(
+    prepared,
+    ledger,
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    requirements=Some(requirements),
+  ).unwrap()
+  let output = match
+    execute_source_free_local_tasks_guarded(
+      setup,
+      16,
+      requirements.finalization_round_limit(prepared).unwrap(),
+      () => true,
+    ) {
+    Ok(value) => value
+    Err(failure) => {
+      let issue = match local_values_execution_failure_issue(failure) {
+        Driver(ExecutionCapacityRefusal(original, needed, available, policy)) =>
+          "Driver/ExecutionCapacityRefusal/" +
+          @debug.to_string((original, needed, available, policy))
+        Driver(Execution(@strategy.Physical(original))) =>
+          "Driver/Execution/Physical/" + @debug.to_string(original)
+        Driver(
+          Configuration(
+            @connector.Execution(
+              @execution.Rows(step, @execution.LogicalRows(original))
+            )
+          )
+        ) =>
+          "Driver/Configuration/Execution/LogicalRows/" +
+          @debug.to_string((step, original))
+        Driver(
+          Configuration(
+            @connector.Execution(@execution.Capture(step, original))
+          )
+        ) =>
+          "Driver/Configuration/Execution/Capture/" +
+          @debug.to_string((step, original))
+        Driver(Configuration(_)) => "Driver/Configuration/other"
+        Driver(Preparation(_)) => "Driver/Preparation"
+        Driver(Execution(_)) => "Driver/Execution/other"
+        Driver(ManagedValues(_)) => "Driver/ManagedValues"
+        Driver(ManagedCopy(original)) =>
+          "Driver/ManagedCopy/" + @debug.to_string(original)
+        Driver(ManagedRetention(original)) =>
+          "Driver/ManagedRetention/" + @debug.to_string(original)
+        Driver(_) => "Driver/other"
+        _ => "non-Driver"
+      }
+      if !retry_local_values_execution_failure_cleanup(failure) {
+        fail("ordinary grouped cleanup pending; original refusal: " + issue)
+      }
+      fail(
+        "ordinary grouped original refused: " +
+        issue +
+        "; original input: " +
+        description,
+      )
+    }
+  }
+  let rows = output.rows().unwrap().map(row => @json.parse(row))
+  assert_eq(rows, expected)
+  assert_true(output.close())
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
+fn runtime_number_group_case(
+  query : String,
+  expected : Array[Json],
+) -> Unit raise {
+  runtime_number_group_execute(
+    runtime_requirements_union_prepared(sql=Some(query)),
+    expected,
+    query,
+  )
+}
+
+///|
+test "ordinary grouped numeric SQL executes its original retained task chain" {
+  runtime_number_group_case(
+    "WITH x AS (SELECT 'a' AS bucket, 1 AS n UNION ALL SELECT 'a' AS bucket, 2 AS n UNION ALL SELECT 'b' AS bucket, 4 AS n) SELECT bucket, SUM(n) AS total, AVG(n) AS average FROM x GROUP BY bucket ORDER BY bucket",
+    [
+      @json.parse("{\"bucket\":\"a\",\"total\":3,\"average\":1.5}"),
+      @json.parse("{\"bucket\":\"b\",\"total\":4,\"average\":4}"),
+    ],
+  )
+}
+
+///|
+test "ordinary direct Number groups retain empty and NULL aggregate semantics" {
+  for
+    query in [
+      "WITH x AS (SELECT 1 AS n WHERE FALSE) SELECT SUM(n) AS total, AVG(n) AS average FROM x",
+      "WITH x AS (SELECT CAST(NULL AS NUMBER) AS n UNION ALL SELECT CAST(NULL AS NUMBER) AS n) SELECT SUM(n) AS total, AVG(n) AS average FROM x",
+    ] {
+    runtime_number_group_case(query, [
+      @json.parse("{\"total\":null,\"average\":null}"),
+    ])
+  }
+}
+
+///|
+test "ordinary COUNT identities retain anonymous UNION and PIVOT rows within the original budget" {
+  runtime_number_group_case(
+    "(SELECT COUNT(*) AS sales, COUNT(CAST(NULL AS FLOAT64)) AS other, 'Q1' AS quarter UNION ALL SELECT COUNT(*), COUNT(CAST(NULL AS FLOAT64)), 'Q2') |> PIVOT(MAX(sales) FOR quarter IN ('Q2' AS second,'Q1' AS first))",
+    [@json.parse("{\"other\":0,\"second\":1,\"first\":1}")],
+  )
+}
+
+///|
+test "ordinary PIVOT preserves unbounded-schema text keys duplicates and NULL values" {
+  let source =
+    #|{"version":"actql/0.1","id":"fixture.pipe_pivot","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"product":{"type":"string","nullable":false},"sales":{"type":"number","nullable":true},"quarter":{"type":"string","nullable":false}},"rows":[{"product":"kale","sales":51,"quarter":"Q1"},{"product":"kale","sales":51,"quarter":"Q1"},{"product":"kale","sales":null,"quarter":"Q2"}]},"as":"sales"},{"from":"sales","pivot":{"index":["product"],"column":"quarter","value":"sales","values":["Q2","Q1"],"aggregate":"count"}},{"select":["product",{"second":"Q2"},{"first":"Q1"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["product","second","first"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  runtime_number_group_execute(
+    runtime_requirements_union_prepared(source_json=Some(source)),
+    [@json.parse("{\"product\":\"kale\",\"second\":0,\"first\":2}")],
+    "original duplicate-null JSON PIVOT",
+  )
+}
+
+///|
+test "ordinary filtered subquery LEFT JOIN preserves missing-side NULL under the original budget" {
+  let source =
+    #|{"id":"fixture.filtered_subquery_join","results":{"answer":{"from":{"result":"rows","stage":"main"}}},"stages":[{"id":"main","inputs":{},"results":{"rows":{"fields":["a","d"],"from":"aql_join_output_7"}},"steps":[{"as":"aql_script_seed_3","values":{"rows":[{"a":1,"b":"x"},{"a":1,"b":"x"},{"a":2,"b":"y"},{"a":null,"b":"n"}],"schema":{"a":{"nullable":true,"type":"number"},"b":{"nullable":false,"type":"string"}}}},{"as":"aql_script_cte_2","from":"aql_script_seed_3","select":["a","b"]},{"as":"aql_script_seed_5","values":{"rows":[{"c":1,"d":"x"},{"c":3,"d":"z"},{"c":null,"d":"n"}],"schema":{"c":{"nullable":true,"type":"number"},"d":{"nullable":false,"type":"string"}}}},{"as":"aql_script_cte_4","from":"aql_script_seed_5","select":["c","d"]},{"as":"aql_join_prefiltered_6","filter":{"gt":[{"field":"a"},{"literal":1}]},"from":"aql_script_cte_2"},{"as":"aql_join_output_7","from":"aql_join_prefiltered_6","join":{"kind":"left","max_output_rows":1000,"on":[{"left":"a","right":"c"}],"select":{"a":"left.a","d":"right.d"},"with":"aql_script_cte_4"}}]}],"version":"actql/0.1"}
+  runtime_number_group_execute(
+    runtime_requirements_union_prepared(source_json=Some(source)),
+    [@json.parse("{\"a\":2,\"d\":null}")],
+    "original filtered subquery LEFT JOIN",
+  )
 }

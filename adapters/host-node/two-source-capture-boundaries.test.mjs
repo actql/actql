@@ -10,7 +10,6 @@ import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
 import {nativeSourceIdentityMatches} from '../connectors/duckdb/node/host.mjs';
 import {openCapturedDuckDBSource} from './captured-duckdb-source.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
-import {installedSourcePaths} from './installed-source.mjs';
 import {observeDuckDBCalls, twoSourceCaptureFixture} from
   './two-source-capture.fixture.mjs';
 
@@ -29,28 +28,6 @@ const capturedRows = {
     {id: 3, amount: 301}, {id: 4, amount: 400}],
 };
 
-test('plural source configuration is bounded, copied and exclusive', () => {
-  const paths = ['/owned/left.json', '/owned/right.json'];
-  const admitted = installedSourcePaths({sourceProfilePaths: paths});
-  paths[0] = '/changed.json';
-  assert.deepEqual(admitted, ['/owned/left.json', '/owned/right.json']);
-  assert.equal(Object.isFrozen(admitted), true);
-  assert.deepEqual(installedSourcePaths({sourceProfilePath: '/single.json'}, '/fallback.json'),
-    ['/single.json']);
-  // The installed inventory admits up to 128 authorities independently of
-  // this fixture's selected two-source execution shape.
-  const maximum = Array.from({length: 128}, (_, index) => `/owned/source-${index}.json`);
-  assert.deepEqual(installedSourcePaths({sourceProfilePaths: maximum}), maximum);
-  for (const sourceProfilePaths of [[], ['/left'], ['/same', '/same'],
-    ['relative', '/right'], [...maximum, '/owned/overflow.json'], 'not-an-array']) {
-    assert.throws(() => installedSourcePaths({sourceProfilePaths}),
-      {message: 'InvalidInstalledSourceProfiles'});
-  }
-  assert.throws(() => installedSourcePaths({sourceProfilePaths: [...admitted],
-    sourceProfilePath: '/single.json'}), {message: 'InvalidInstalledSourceProfiles'});
-  assert.throws(() => installedSourcePaths({sourceProfilePaths: [...admitted]}, '/env.json'),
-    {message: 'InvalidInstalledSourceProfiles'});
-});
 
 for (const equalContent of [false, true]) {
   test(`two live captures bind every tuple member (${equalContent ? 'equal' : 'distinct'} content)`, async t => {

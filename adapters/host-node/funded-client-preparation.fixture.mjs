@@ -11,9 +11,9 @@ import {freezeInput} from '../../packages/sdk/internal/private-source-preparatio
 // Only the installation identity/current port is supplied by this fixture;
 // no shaped preparation, standalone Root or fallback compiler is admitted.
 export async function fundedClientPreparation(t, {moon, environment, allowEffects = false, http = false,
-  valuesMaxRows, retainedRelationOutput = false, sourcePublication}) {
+  valuesMaxRows, retainedRelationOutput = false, sourcePublication, preparationPorts}) {
   const fixture = await openFundedClientPreparation({moon, environment, allowEffects, http,
-    valuesMaxRows, retainedRelationOutput, sourcePublication});
+    valuesMaxRows, retainedRelationOutput, sourcePublication, preparationPorts});
   t.after(fixture.close);
   return http ? Object.freeze({prepare: fixture.prepare, prepareRequest: fixture.prepareRequest,
     prepareSubmit: fixture.prepareSubmit, submission: fixture.submission}) : fixture.prepare;
@@ -22,7 +22,13 @@ export async function fundedClientPreparation(t, {moon, environment, allowEffect
 // Process fixtures have their own finally block, not a Node TestContext.
 // Both entrances use this SAME owner and its original teardown below.
 export async function openFundedClientPreparation({moon, environment, allowEffects = false, http = false,
-  valuesMaxRows, sequenceContracts, retainedRelationOutput = false, sourcePublication}) {
+  valuesMaxRows, sequenceContracts, retainedRelationOutput = false, sourcePublication, preparationPorts}) {
+  // A retained normal Common must use its SAME installed Request/CJS owner.
+  // These explicit fixture ports select actual modules, never shaped parents.
+  const ports = preparationPorts ?? {prepareOrdinarySourceManagedInstallation,
+    installNodeClientProgramPreparation};
+  assert.equal(typeof ports.prepareOrdinarySourceManagedInstallation, 'function');
+  assert.equal(typeof ports.installNodeClientProgramPreparation, 'function');
   if (typeof retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidFixtureRetainedOutputProfile');
   }
@@ -62,7 +68,7 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
     retained.delete(prepared);
     if (kind === 'effect_free') prepare.retireOriginal(prepared);
   };
-  const view = await prepareOrdinarySourceManagedInstallation(originals, {
+  const view = await ports.prepareOrdinarySourceManagedInstallation(originals, {
     validator: current, retainedValidator: current,
     preparationContext(actual) {current(actual); return context;},
     retireInitialPreparation(actual, prepared) {
@@ -72,7 +78,7 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
       // followed by the manager returning its same typed Effect borrower.
     },
   }, false);
-  prepare = installNodeClientProgramPreparation({moon, environment, allowEffects, valuesMaxRows,
+  prepare = ports.installNodeClientProgramPreparation({moon, environment, allowEffects, valuesMaxRows,
     async getFundedPreparation(request, selected, verifier, signal) {
       assert.strictEqual(selected, environment);
       // HTTP already retained this SAME original before snapshot/dispatch.

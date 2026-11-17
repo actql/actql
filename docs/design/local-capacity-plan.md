@@ -68,6 +68,39 @@ that byte guard. The [scalar wire derivation](../../src/client_local_host/scalar
 has no separate 1,000,000-byte cap. Consumer wire profiles and Store ceilings
 remain independent.
 
+For the existing flat JSON Number/Boolean/Text representation, the same
+schema visitor retains a representation flag alongside its node inventory.
+The wire guard uses that original flag and the existing ValueBudget counter:
+every UTF-8 Text or field-name byte already consumes that counter's `max_work`.
+Its unchanged finite limit therefore bounds these bytes without a second text
+policy. The original JSON escape and punctuation formula then bounds their
+wire representation. This is not a conversion from compilation, Ledger or CPU
+work to bytes. Recursive values, Decimal, references and Content keep their
+own existing proof or conservative profile; a node count alone proves no
+flat wire representation. Original literal Values retain their complete cached
+byte recipe even when it is smaller than a general output envelope.
+
+The default bounded Values and audited row chains fund actual persistent
+output on the same Task before each output commit. The existing Local module retains its selected default startup capacity once,
+alongside its original constructor selection. Dispatch preparation and repeated
+Run reads return that same stored capacity; only a genuinely different checked
+sequence refinement requires its own original-envelope calculation. The module
+container quote includes these retained per-slot records before construction.
+Dispatch preparation retains
+the same startup capacity that its selected default constructors consume;
+it does not first demand the maximum possible future output. Every child's
+fixed metadata and full live scratch remain backed. Sequential child scratch
+can retire while earlier accepted output remains retained. Bounded Values
+borrows its original frozen cells and measures/rechecks them with its funded
+cursors; it constructs no generic input forest or canonical measurement body.
+The Source-free Host commits its same registered managed realization for the
+next actual Task after input preparation. It no longer preselects every future
+Task against a simultaneous worst-case DATA envelope. The task start still
+admits all of its real simultaneous inputs, constructor and output holdings.
+Generic and injected providers keep their original complete envelopes. None of
+these constructor facts refund consumed work, bypass value/type admission,
+relax the explicit row framing guard, or acknowledge pending cleanup.
+
 Schema traversal, field names, bridge/completion inventories and Result view
 workspace use separate typed limits retained by
 [`capacity_plan.mbt`](../../src/client_local_host/capacity_plan.mbt). A smaller row
@@ -628,3 +661,20 @@ This composition is neither initial construction funding nor a tariff for
 provider closures, module controls or physical storage. Those independently
 live representations must be reserved by the original preparation owner
 before construction, and retired only through their actual borrowers.
+
+## Logical rows and physical windows
+
+The checked flat-row wire proof configures the complete row bound used by Local
+imports and by the fixed-record measurement guard. The latter's
+`max_value_bytes` argument measures the entire encoded row object, including
+all fields; it is not an independent per-cell ceiling. Neither bound is clipped
+to a physical batch size. Import/export batch windows remain bounded separately.
+These immutable limits do not reserve memory: the existing same-task admission
+must cover the actual row, decode and failed-child overlap before construction.
+
+The default sequence binding inventory follows the same retained checked demand
+fold. Each binding/projection occurrence consumes a visit before it is retained,
+so its cumulative `work_used` bounds those occurrences. The default keeps its
+original allowance and adds that bound with checked Int arithmetic. This is a
+count inequality in this particular fold, not an exchange of execution work for
+memory or a new resource grant. Explicit `SequenceLimits` remain unchanged.

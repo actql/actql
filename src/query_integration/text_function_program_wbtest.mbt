@@ -32,7 +32,7 @@ test "ordinary source-free Program installs REPLACE and LENGTH through the retai
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(setup),
   )
-  assert_true(@strategy.captured_dag_strategy(run) is Some(_))
+  assert_true(@strategy.captured_dag_strategy(run) is None)
   assert_eq(@strategy.graph_task_count(@strategy.captured_dag_graph(run)), 1)
   assert_eq(
     @local_driver.local_dispatch_rejection(
@@ -41,11 +41,25 @@ test "ordinary source-free Program installs REPLACE and LENGTH through the retai
     ),
     None,
   )
-  @strategy.stop_captured_dag(run)
-  @strategy.refresh_captured_retention(run)
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  let ledger = @strategy.captured_dag_ledger(run)
+  let execution = @client_local_host.execute_source_free_values_guarded(
+    setup,
+    16,
+    10000,
+    () => true,
+  ).unwrap()
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), ledger))
+  assert_true(@strategy.captured_task_completed(run, 0))
+  // Independent scalar results in the declared projection order:
+  // nonoverlapping replacement and Unicode scalars.
+  assert_eq(execution.rows().unwrap(), [
+    "{\"id\":1,\"replaced\":\"bXna\",\"length\":3}",
+  ])
+  assert_true(execution.close())
+  let usage = @resources.ledger_usage(ledger)
   assert_eq(
     (usage.attempts, usage.held_bytes, usage.reserved_execution_bytes),
-    (0, 0L, 0L),
+    (1, 0L, 0L),
   )
+  assert_eq(usage.reserved_retention_bytes, 0L)
 }

@@ -63,6 +63,8 @@ const document = await readFile(join(repository,
 await writeFile(join(root, 'values.json'), document);
 await writeFile(join(root, 'embedded-client.mjs'), await readFile(join(
   repository, 'scripts/fixtures/packed-embedded-checkpoint.mjs')));
+await writeFile(join(root, 'checkpoint-observation.mjs'), await readFile(join(
+  repository, 'scripts/fixtures/checkpoint-observation.mjs')));
 await writeFile(join(root, 'synthetic-historical-held-values.mjs'), await readFile(join(
   repository, 'scripts/fixtures/synthetic-historical-held-values.mjs')));
 

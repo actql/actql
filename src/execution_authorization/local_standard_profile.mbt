@@ -40,8 +40,8 @@ pub(all) enum LocalStandardProfileIssue {
 
 ///|
 // Both Local materializers emit one finite Account configuration. Check its
-// actual entry inventory before allocating entries or duplicate indexes, using
-// the SAME admission Owner's bound rather than separate Source/Task ceilings.
+// actual entry inventory before allocating entries or duplicate indexes.
+// Keep the array representation bound, not a separate Source/Task allowance.
 fn local_profile_entry_inventory(
   sources : Int,
   tasks : Int,
@@ -50,9 +50,6 @@ fn local_profile_entry_inventory(
   let count = sources.to_int64() + tasks.to_int64() + fixed.to_int64()
   if count > 2147483647L {
     return Err(CanonicalDocumentTooLarge)
-  }
-  if count > MAX_ENTRIES.to_int64() {
-    return Err(TooManyEntries(count.to_int()))
   }
   Ok(())
 }
@@ -85,6 +82,27 @@ fn local_standard_entry(
 /// Same-Run Result/control, Credential, egress, resource and approval checks
 /// remain with their existing Owners; delegation is not an Effect permit.
 pub fn local_standard_account_configuration(
+  subjects : LocalStandardAccountSubjects,
+) -> Result[String, LocalStandardProfileIssue] {
+  local_standard_account_configuration_original(subjects)
+}
+
+///|
+/// Same policy builder/admission, with its complete constructor envelope
+/// admitted before entry arrays, duplicate indexes or canonical text exist.
+pub fn local_standard_account_configuration_prepared(
+  subjects : LocalStandardAccountSubjects,
+  prepare : (AccountConfigurationConstruction) -> Bool,
+) -> Result[String, LocalStandardProfileIssue]? {
+  guard local_standard_account_construction(subjects) is Some(request) &&
+    prepare(request) else {
+    return None
+  }
+  Some(local_standard_account_configuration_original(subjects))
+}
+
+///|
+fn local_standard_account_configuration_original(
   subjects : LocalStandardAccountSubjects,
 ) -> Result[String, LocalStandardProfileIssue] {
   if !valid_name(subjects.account_id) ||
@@ -202,7 +220,13 @@ pub fn local_standard_account_configuration(
     bootstrap: Some(local_standard_profile_identity()),
     entries,
   }
-  match admit_account_configuration(raw) {
+  let geometry : Ref[AccountCanonicalBounds?] = Ref(None)
+  match
+    admit_with_overlap_budget(
+      raw,
+      MAX_OVERLAP_WORK,
+      geometry_out=Some(geometry),
+    ) {
     Err(issue) => return Err(Configuration(issue))
     Ok(_) => ()
   }
@@ -219,17 +243,142 @@ pub fn local_standard_account_configuration(
       exclusions: [],
     }),
   )
-  guard canonical_value_of(document) is Some(value) else {
+  guard geometry.val is Some(bounds) &&
+    canonical_value_of(document, bounds=Some(bounds)) is Some(value) else {
     return Err(Configuration(CanonicalDocumentTooLarge))
   }
   Ok(
     @canonical_json.stringify_value(
       value,
-      MAX_CONFIG_INPUT_BYTES,
-      CANONICAL_MAX_NODES,
+      bounds.encoded_bytes,
+      bounds.nodes,
       CANONICAL_MAX_DEPTH,
     ),
   ) catch {
     _ => Err(Configuration(CanonicalDocumentTooLarge))
   }
+}
+
+///|
+fn local_standard_account_construction(
+  subjects : LocalStandardAccountSubjects,
+) -> AccountConfigurationConstruction? {
+  let entries = subjects.configured_connections.length().to_int64() +
+    subjects.model_tasks.length().to_int64() +
+    5L
+  if entries > 2147483647L {
+    return None
+  }
+  // Closed standard entries own four selector positions and fixed operation
+  // tokens. Count each borrowed name occurrence before building any array.
+  guard @counts.checked_nonnegative_add_product(
+      subjects.account_id.length().to_int64(),
+      entries,
+      subjects.principal.length().to_int64() +
+      subjects.control_connection.length().to_int64() +
+      256L,
+    )
+    is Some(initial_text) else {
+    return None
+  }
+  let mut text = initial_text
+  let mut longest = Int::max(
+    subjects.account_id.length(),
+    Int::max(subjects.principal.length(), subjects.control_connection.length()),
+  )
+  for value in subjects.configured_connections {
+    guard @counts.checked_nonnegative_add_product(
+        text,
+        value.length().to_int64(),
+        1L,
+      )
+      is Some(next) else {
+      return None
+    }
+    text = next
+    longest = Int::max(longest, value.length())
+  }
+  for task in subjects.model_tasks {
+    guard @counts.checked_nonnegative_add_product(
+        text,
+        task.0.length().to_int64() + task.1.length().to_int64(),
+        1L,
+      )
+      is Some(next) else {
+      return None
+    }
+    text = next
+    longest = Int::max(longest, Int::max(task.0.length(), task.1.length()))
+  }
+  if subjects.request_target is Some(value) {
+    guard @counts.checked_nonnegative_add_product(
+        text,
+        value.0.length().to_int64() + value.1.length().to_int64(),
+        1L,
+      )
+      is Some(next) else {
+      return None
+    }
+    text = next
+    longest = Int::max(longest, Int::max(value.0.length(), value.1.length()))
+  }
+  if subjects.signing_key_resource is Some(value) {
+    guard @counts.checked_nonnegative_add_product(
+        text,
+        value.length().to_int64(),
+        1L,
+      )
+      is Some(next) else {
+      return None
+    }
+    text = next
+    longest = Int::max(longest, value.length())
+  }
+  guard @canonical.nfc_lf_retained_output_units(text) is Some(normalized) &&
+    @canonical.nfc_lf_construction_scratch_extent(Int::max(longest, 128))
+    is Some(nfc) &&
+    @shape.collection_construction_extent({
+      records: 96L * entries + 64L,
+      record_references: 256L * entries + 128L,
+      record_words: 128L * entries + 64L,
+      reference_arrays: 80L * entries + 32L,
+      reference_items: 256L * entries + 128L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 16L * entries + 4L,
+      map_entries: 64L * entries + 16L,
+    })
+    is Some(forest) else {
+    return None
+  }
+  // Native Json + canonical frozen forests, compiled selectors, keyed/sorted
+  // entries and the returned canonical String coexist. The fixed standard
+  // policy uses no exclusions, so overlap has one pair region, not an n² forest.
+  guard @counts.checked_nonnegative_add_product(512L * entries, normalized, 6L)
+    is Some(output_bound) else {
+    return None
+  }
+  let output = account_representation_limit(output_bound)
+  guard @encode.text_writer_construction_inventory(
+      output,
+      account_representation_limit(64L * entries + 16L),
+      CANONICAL_MAX_DEPTH,
+    )
+    is Some(writer) else {
+    return None
+  }
+  let retained = account_construction_units(1L, 0L, 0L, output.to_int64())
+  Some({
+    retained,
+    execution: account_construction_units(
+      forest.record_headers + nfc.record_headers + writer.record_headers + 32L,
+      forest.reference_slots +
+      nfc.reference_slots +
+      writer.reference_slots +
+      64L,
+      forest.scalar_words + nfc.scalar_words + writer.scalar_words + 128L,
+      4L * normalized + nfc.owned_utf16_units + writer.owned_utf16_units,
+      wire=256L,
+    ),
+  })
 }

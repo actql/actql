@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {runtimeTupleFromFields, runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 // Execute the actual private Host binding with explicit nominal Core/Journal
 // ports. This is not ordinary Host, current Common or STORE execution evidence.
@@ -23,7 +24,7 @@ const declarations=nodes.filter(node=>node.type==='VariableDeclarator'&&node.id.
 assert.equal(currents.length,1);assert.equal(declarations.length,1);
 const [current]=currents,[declaration]=declarations;
 
-function fixture() {
+function fixture(shape) {
   const prepareds=new WeakSet(),alloweds=new WeakMap(),definitions=new WeakSet(),identities=new WeakSet();
   const runs=new Map(),originals=new WeakMap(),calls=[];
   let live=true,owned=true,authorization='authorization',bindFailure;
@@ -40,6 +41,8 @@ function fixture() {
   };
   const actual=handles();
   const moon={
+    clientProgramInstalledEffectManagedPlanShape(value){assert.strictEqual(value,plan);
+      return runtimeTupleFromFields({0:shape.rows,1:shape.members});},
     clientRequestCallerId(value){assert(identities.has(value));return 'request';},
     clientRequestAuthorityScopeCid(value){assert(identities.has(value));return 'authority';},
     strategyPublicationContractIdentity(value){assert(definitions.has(value));return 'definition';},
@@ -61,12 +64,14 @@ function fixture() {
   }};
   const preparation={assertResultPublicationCurrent:assertProjectRuntime,
     localFilesEffectLimits(value){calls.push('limits');assert.strictEqual(value,moon);return limits;}};
-  const port=Function('moon','preparation','journal','control','namespaceId','authorityScopeCid',
+  const plan={},managed={runtime:moon,prepared:actual.prepared,request:actual.identity,operationPlan:plan,
+    controlConstruction(receiver,method,args){assert.strictEqual(receiver,moon);return Reflect.apply(method,receiver,args);}};
+  const port=Function('moon','preparation','journal','control','namespaceId','authorityScopeCid','runtimeField',
     'assertProjectRuntime','localFileEffectRuns','localFileEffectOriginals','clientOperationError','checked',
     `${source.slice(current.start,current.end)}\nreturn ${source.slice(declaration.init.start,declaration.init.end)};`)(
-    moon,preparation,journal,'control','namespace','authority',assertProjectRuntime,runs,originals,
+    moon,preparation,journal,'control','namespace','authority',runtimeField,assertProjectRuntime,runs,originals,
     code=>Object.assign(new Error(code),{code}),value=>{assert.equal(value.$tag,1);return value._0;});
-  return {port,actual,handles,limits,runs,calls,refusal,
+  return {port,actual,handles,limits,runs,calls,refusal,managed,
     revoke(){live=false;},missing(){owned=false;},changeAuthorization(){authorization='changed';},
     failBind(value){bindFailure=value;}};
 }
@@ -81,6 +86,23 @@ test('Local Effect Host binds the winning original Journal and nominal Core Run 
   assert.throws(()=>f.port.assertCurrent({...original}),{code:'ForeignInstalledLocalFileEffectRun'});
 });
 
+test('Local Effect Host takes 101 rows and 17 definitions only from its exact current managed Plan',()=>{
+  const f=fixture({rows:101,members:17});
+  const original=f.port.bindRunOriginal({...f.actual,managedEffect:f.managed});
+  assert.deepEqual(f.port.limits(original),{...f.limits,maxRows:1717,maxEffects:17});
+  assert.throws(()=>f.port.bindRunOriginal({...f.actual,managedEffect:{...f.managed,prepared:{}}}),
+    {code:'ForeignInstalledLocalFileEffectRun'});
+  f.managed.closed=true;
+  assert.throws(()=>f.port.bindRunOriginal({...f.actual,managedEffect:f.managed}),
+    {code:'ForeignInstalledLocalFileEffectRun'});
+  const cold=fixture({rows:101,members:17});
+  const saved=cold.port.bindRunOriginal({recovered:{...cold.actual,requestIdentity:cold.actual.identity},
+    managedEffect:cold.managed});
+  assert.equal(cold.port.limits(saved).maxEffects,17);
+  cold.revoke();
+  assert.throws(()=>cold.port.limits(saved),error=>error===cold.refusal);
+});
+
 test('Local Effect Host refuses missing saved Run and changed authorization before nominal binding',()=>{
   for(const change of ['missing','changeAuthorization']) {
     const f=fixture();f[change]();
@@ -88,6 +110,24 @@ test('Local Effect Host refuses missing saved Run and changed authorization befo
     assert.equal(f.calls.includes('bind'),false);assert.equal(f.calls.includes('limits'),false);
     assert.equal(f.runs.size,0);
   }
+});
+
+test('Local Effect cold binding preserves its authenticated physical Request across Journal readmission',()=>{
+  const f=fixture({rows:101,members:17});
+  const readmitted=f.handles();
+  // The real restoreOriginal authenticated the original identity against this
+  // independently admitted Journal handle before returning both to recovery.
+  const recovered={...f.actual,requestIdentity:readmitted.identity};
+  const original=f.port.bindRunOriginal({recovered,managedEffect:f.managed});
+  assert.equal(f.port.limits(original).maxEffects,17);
+  assert.equal(f.runs.size,1);
+  assert.strictEqual(f.port.bindRunOriginal({recovered,managedEffect:f.managed}),original);
+  assert.throws(()=>f.port.bindRunOriginal({recovered:{...recovered,identity:readmitted.identity},
+    managedEffect:f.managed}),{code:'ForeignInstalledLocalFileEffectRun'});
+  assert.throws(()=>f.port.bindRunOriginal({recovered:{...recovered,prepared:readmitted.prepared},
+    managedEffect:f.managed}),/ForeignNominalPreparedRun/);
+  f.revoke();
+  assert.throws(()=>f.port.assertCurrent(original),error=>error===f.refusal);
 });
 
 test('Local Effect Host reconstructs validated saved handles but rejects a mismatched prepared original',()=>{

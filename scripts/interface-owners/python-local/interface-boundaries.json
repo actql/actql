@@ -179,20 +179,6 @@
           "async": false
         },
         {
-          "name": "admitInstalledBinary/parse/parse",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitInstalledBinary/parse/parse#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "launch",
           "parameters": [
             "args"
@@ -236,9 +222,7 @@
           "operations": [
             "admitInstalledBinary",
             "admitInstalledBinary/difference/difference",
-            "admitInstalledBinary/difference/difference#2",
-            "admitInstalledBinary/parse/parse",
-            "admitInstalledBinary/parse/parse#2"
+            "admitInstalledBinary/difference/difference#2"
           ],
           "exports": [
             "admitInstalledBinary"
@@ -955,37 +939,7 @@
           "async": false
         },
         {
-          "name": "admitLocalRuntimePlatform/parse/parse",
-          "parameters": [
-            "text"
-          ],
-          "async": false
-        },
-        {
-          "name": "boundedRead/boundedRead",
-          "parameters": [
-            "descriptor",
-            "size"
-          ],
-          "async": false
-        },
-        {
           "name": "digest/digest",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "exact/exact",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "filename/filename",
           "parameters": [
             "value"
           ],
@@ -1006,15 +960,6 @@
           "name": "localRuntimeHash/localRuntimeHash",
           "parameters": [
             "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInstalledLocalRuntimeManifest",
-          "parameters": [
-            "root",
-            "expected",
-            "metadata"
           ],
           "async": false
         },
@@ -1040,15 +985,6 @@
           "name": "validateLocalRuntimeManifest/licenses/licenses",
           "parameters": [
             "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "validateLocalRuntimeManifest/member/member",
-          "parameters": [
-            "item",
-            "prefix",
-            "maxBytes"
           ],
           "async": false
         },
@@ -1368,8 +1304,7 @@
           "operations": [
             "admitLocalRuntimePlatform",
             "admitLocalRuntimePlatform/difference/difference",
-            "admitLocalRuntimePlatform/difference/difference#2",
-            "admitLocalRuntimePlatform/parse/parse"
+            "admitLocalRuntimePlatform/difference/difference#2"
           ],
           "exports": [
             "admitLocalRuntimePlatform"
@@ -1511,9 +1446,7 @@
           }
         },
         {
-          "operations": [
-            "boundedRead/boundedRead"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -1793,9 +1726,7 @@
           }
         },
         {
-          "operations": [
-            "exact/exact"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -1934,9 +1865,7 @@
           }
         },
         {
-          "operations": [
-            "filename/filename"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -2076,8 +2005,7 @@
         },
         {
           "operations": [
-            "installedLocalRuntimeEnvironment",
-            "readInstalledLocalRuntimeManifest"
+            "installedLocalRuntimeEnvironment"
           ],
           "exports": [
             "installedLocalRuntimeEnvironment"
@@ -2508,7 +2436,6 @@
           "operations": [
             "validateLocalRuntimeManifest",
             "validateLocalRuntimeManifest/licenses/licenses",
-            "validateLocalRuntimeManifest/member/member",
             "validateLocalRuntimeManifest/validateLocalRuntimeManifest",
             "validateLocalRuntimeManifest/validateLocalRuntimeManifest/validateLocalRuntimeManifest"
           ],
@@ -78016,7 +77943,7 @@
     },
     {
       "module": "src/cmd/native_client/local_adoption.mbt",
-      "sha256": "dfe1f3bc99664b67f36eb01dd6fad29ec66468cc86053b4d0266e691b0f77c1a",
+      "sha256": "0d73078b315ac7dfd21475f7b07728f575eb0fa4593d1d75063d4808419ac81a",
       "exports": [],
       "operations": [
         {
@@ -78034,6 +77961,10 @@
         {
           "name": "local_host_issue",
           "declaration": "local_host_issue ( issue : @ local_host . NativeLocalAdoptionIssue ) - > String"
+        },
+        {
+          "name": "local_host_journal_record_limit",
+          "declaration": "local_host_journal_record_limit ( records : Int64 ) - > Int ?"
         },
         {
           "name": "local_host_settings",
@@ -78086,7 +78017,8 @@
             "local_settings_text",
             "local_submission_lookup",
             "local_submission_lookup_reply",
-            "local_submission_lookup_selected"
+            "local_submission_lookup_selected",
+            "local_host_journal_record_limit"
           ],
           "exports": [],
           "attributes": {
@@ -81577,24 +81509,7 @@
       "module": "scripts/check-python-local-core.mjs",
       "sha256": "812ab5856068af641d67294968c87e45bde2ac2290777e2d68e000b0bada2dd0",
       "exports": [],
-      "operations": [
-        {
-          "name": "run",
-          "parameters": [
-            "command",
-            "args",
-            "timeout"
-          ],
-          "async": false
-        },
-        {
-          "name": "run/hash/hash",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        }
-      ],
+      "operations": [],
       "imports": [
         "./local-checks-guard.mjs",
         "node:assert/strict",
@@ -81614,9 +81529,7 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "run",
-            "run/hash/hash"
+            "<module>"
           ],
           "exports": [],
           "attributes": {
@@ -82566,6 +82479,596 @@
         }
       ],
       "responsibilityFacet": "primary"
+    },
+    {
+      "module": "src/cmd/native_client/local_command_check.mbt",
+      "sha256": "22526df2f00444dba9ce6d40545d48995686e7efbca817c8506518e77e3ea18b",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]command_preparation_result",
+          "declaration": "[ T ] command_preparation_result ( result : Result [ T , LocalCommandPreparationIssue ] , stage ? : String ?"
+        },
+        {
+          "name": "command_adoption_capture_cause",
+          "declaration": "command_adoption_capture_cause ( issue : @ local_host . NativeLocalAdoptionCaptureIssue , ) - > String"
+        },
+        {
+          "name": "command_preparation_cleanup_kind",
+          "declaration": "command_preparation_cleanup_kind ( issue : LocalCommandPreparationIssue , ) - > String"
+        },
+        {
+          "name": "command_preparation_read_cleanup_kind",
+          "declaration": "command_preparation_read_cleanup_kind ( issue : @ initial_arena . InstalledArenaOriginalReadIssue , ) - > String"
+        },
+        {
+          "name": "command_project_original_text",
+          "declaration": "command_project_original_text ( root : String , name : String , ) - > Result [ String , @ files . NativeBoundedTextFailure ] raise ClientStop"
+        },
+        {
+          "name": "local_cancellation_recovery_failure",
+          "declaration": "local_cancellation_recovery_failure ( reference : String ? , message : String , ) - > String"
+        },
+        {
+          "name": "local_command_preparation_operation_selected",
+          "declaration": "local_command_preparation_operation_selected ( matches : @ argparse . Matches , operation : String , business_selected : Bool , ) - > Bool raise ClientStop"
+        },
+        {
+          "name": "local_command_recovery_failure",
+          "declaration": "local_command_recovery_failure ( message : String ) - > String"
+        },
+        {
+          "name": "local_finish_command_preparation",
+          "declaration": "local_finish_command_preparation ( ) - > Result [ Unit , LocalCommandPreparationIssue , ]"
+        },
+        {
+          "name": "local_project_text_payload_extent",
+          "declaration": "local_project_text_payload_extent ( bytes : Int64 ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::execute_adopted_command",
+          "declaration": "LocalCommandPreparationOriginal : : execute_adopted_command ( self : LocalCommandPreparationOriginal , operation : String , root : String , configuration : LocalCommandConfiguration , selected_files : Array [ String ] , selected_additional : Array [ ( String , Bytes ) ] , input_root : String , child : @ argparse . Matches , public_run ? : Bool"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::execute_operator_command",
+          "declaration": "LocalCommandPreparationOriginal : : execute_operator_command ( self : LocalCommandPreparationOriginal , matches : @ argparse . Matches , operation : String , child : @ argparse . Matches , ) - > String raise ClientStop"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::execute_product_command",
+          "declaration": "LocalCommandPreparationOriginal : : execute_product_command ( self : LocalCommandPreparationOriginal , matches : @ argparse . Matches , operation : String , ) - > String raise ClientStop"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::prepare_project_text_payload",
+          "declaration": "LocalCommandPreparationOriginal : : prepare_project_text_payload ( self : Self , bytes : Int64 , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::retain_cancellation_recovery",
+          "declaration": "LocalCommandPreparationOriginal : : retain_cancellation_recovery ( self : LocalCommandPreparationOriginal , capture : @ local_host . NativeLocalJournalCapture , reference : String , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Native initial command Read and product/adoption owners; constructor funding on the same original, no new authority or cleanup owner",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]command_preparation_result",
+            "command_adoption_capture_cause",
+            "command_preparation_cleanup_kind",
+            "command_preparation_read_cleanup_kind",
+            "command_project_original_text",
+            "local_cancellation_recovery_failure",
+            "local_command_preparation_operation_selected",
+            "local_command_recovery_failure",
+            "local_finish_command_preparation",
+            "local_project_text_payload_extent",
+            "LocalCommandPreparationOriginal::execute_adopted_command",
+            "LocalCommandPreparationOriginal::execute_operator_command",
+            "LocalCommandPreparationOriginal::execute_product_command",
+            "LocalCommandPreparationOriginal::prepare_project_text_payload",
+            "LocalCommandPreparationOriginal::retain_cancellation_recovery"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_check.mbt",
+                "anchor": "fn[T] command_preparation_result("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_check.mbt",
+                "anchor": "fn[T] command_preparation_result("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_check.mbt",
+                "anchor": "fn[T] command_preparation_result("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_check.mbt",
+                "anchor": "fn[T] command_preparation_result("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_check.mbt",
+                "anchor": "fn[T] command_preparation_result("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_check.mbt",
+                "anchor": "fn[T] command_preparation_result("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_check.mbt",
+                "anchor": "fn[T] command_preparation_result("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_check.mbt",
+                "anchor": "fn[T] command_preparation_result("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_check.mbt",
+                "anchor": "fn[T] command_preparation_result("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "scripts/native-local-cleanup-order.test.mjs",
+                "anchor": "test('Native Host settings runs original staged decoding"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_command_preparation.mbt",
+      "sha256": "6618a5470e8731070f1ba43e96e26aeddbfb8e14834bb40d374e21043b7f6f4f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]command_preparation_option",
+          "declaration": "[ T ] command_preparation_option ( value : T ? , ) - > T raise LocalCommandPreparationStop"
+        },
+        {
+          "name": "[T]command_preparation_value",
+          "declaration": "[ T ] command_preparation_value ( result : Result [ T , LocalCommandPreparationIssue ] , ) - > T raise LocalCommandPreparationStop"
+        },
+        {
+          "name": "command_preparation_read_return_issue",
+          "declaration": "command_preparation_read_return_issue ( outcome : Result [ String , String ] ? , return_issue : LocalCommandPreparationIssue , ) - > LocalCommandPreparationIssue"
+        },
+        {
+          "name": "local_command_initial_read_budget",
+          "declaration": "local_command_initial_read_budget ( profile : LocalCommandPreparationProfile , ) - > @ initial_arena . InstalledArenaOriginalReadBudget"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::acquire",
+          "declaration": "LocalCommandPreparationOriginal : : acquire ( self : LocalCommandPreparationOriginal , root : String , source : String , platform : String , manifest_digest : String , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::acquire_physical_read",
+          "declaration": "LocalCommandPreparationOriginal : : acquire_physical_read ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::acquire_runtime",
+          "declaration": "LocalCommandPreparationOriginal : : acquire_runtime ( self : LocalCommandPreparationOriginal , root : String , source : String , platform : String , manifest_digest : String , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::close_checked",
+          "declaration": "LocalCommandPreparationOriginal : : close_checked ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::enter",
+          "declaration": "LocalCommandPreparationOriginal : : enter ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::initial_read_budget",
+          "declaration": "LocalCommandPreparationOriginal : : initial_read_budget ( self : LocalCommandPreparationOriginal , ) - > @ initial_arena . InstalledArenaOriginalReadBudget"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::leave",
+          "declaration": "LocalCommandPreparationOriginal : : leave ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::library",
+          "declaration": "LocalCommandPreparationOriginal : : library ( self : LocalCommandPreparationOriginal , inner : Bool , ) - > Result [ @ local_crypto . Library , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::prepare_adopted_journal",
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adopted_journal ( self : LocalCommandPreparationOriginal , initialize_signing : Bool , options : LocalInitialSigningAdoptionOptions , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::prepare_adoption",
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , ) - > Result [ @ local_host . NativeLocalAdoptionSession , LocalCommandPreparationIssue , ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::read_command",
+          "declaration": "LocalCommandPreparationOriginal : : read_command ( self : LocalCommandPreparationOriginal , operation : ( @ local_host . NativeLocalHostConnection , @ local_host . NativeLocalJournalCapture , ) - > Result [ String , String ] , ) - > Result [ String , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::retain_primary",
+          "declaration": "LocalCommandPreparationOriginal : : retain_primary ( self : LocalCommandPreparationOriginal , issue : LocalCommandPreparationIssue , ) - > Unit"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::select_configuration_root",
+          "declaration": "LocalCommandPreparationOriginal : : select_configuration_root ( self : LocalCommandPreparationOriginal , path : String , ) - > Result [ @ local_filesystem . Root , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::select_product_parent",
+          "declaration": "LocalCommandPreparationOriginal : : select_product_parent ( self : LocalCommandPreparationOriginal , path : String , ) - > Result [ @ local_filesystem . Root , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::stage_product",
+          "declaration": "LocalCommandPreparationOriginal : : stage_product ( self : LocalCommandPreparationOriginal , parent : String , name : String , originals : Array [ ( String , Bytes ) ] ? , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::text_file",
+          "declaration": "LocalCommandPreparationOriginal : : text_file ( self : LocalCommandPreparationOriginal , root : String , name : String , maximum : Int64 , ordinary_name ? : Bool"
+        },
+        {
+          "name": "prepare_local_command_preparation_original",
+          "declaration": "prepare_local_command_preparation_original ( profile : LocalCommandPreparationProfile , business ? : LocalCommandBusinessProfile ?"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Native initial command Read and product/adoption owners; constructor funding on the same original, no new authority or cleanup owner",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]command_preparation_option",
+            "[T]command_preparation_value",
+            "command_preparation_read_return_issue",
+            "local_command_initial_read_budget",
+            "LocalCommandPreparationOriginal::acquire",
+            "LocalCommandPreparationOriginal::acquire_physical_read",
+            "LocalCommandPreparationOriginal::acquire_runtime",
+            "LocalCommandPreparationOriginal::close_checked",
+            "LocalCommandPreparationOriginal::enter",
+            "LocalCommandPreparationOriginal::initial_read_budget",
+            "LocalCommandPreparationOriginal::leave",
+            "LocalCommandPreparationOriginal::library",
+            "LocalCommandPreparationOriginal::prepare_adopted_journal",
+            "LocalCommandPreparationOriginal::prepare_adoption",
+            "LocalCommandPreparationOriginal::read_command",
+            "LocalCommandPreparationOriginal::retain_primary",
+            "LocalCommandPreparationOriginal::select_configuration_root",
+            "LocalCommandPreparationOriginal::select_product_parent",
+            "LocalCommandPreparationOriginal::stage_product",
+            "LocalCommandPreparationOriginal::text_file",
+            "prepare_local_command_preparation_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_preparation.mbt",
+                "anchor": "fn prepare_local_command_preparation_original("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_preparation.mbt",
+                "anchor": "fn prepare_local_command_preparation_original("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_preparation.mbt",
+                "anchor": "fn prepare_local_command_preparation_original("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_preparation.mbt",
+                "anchor": "fn prepare_local_command_preparation_original("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_preparation.mbt",
+                "anchor": "fn prepare_local_command_preparation_original("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_preparation.mbt",
+                "anchor": "fn prepare_local_command_preparation_original("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_preparation.mbt",
+                "anchor": "fn prepare_local_command_preparation_original("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_preparation.mbt",
+                "anchor": "fn prepare_local_command_preparation_original("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_preparation.mbt",
+                "anchor": "fn prepare_local_command_preparation_original("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "scripts/native-local-cleanup-order.test.mjs",
+                "anchor": "test('Native Host settings runs original staged decoding"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_host_settings_preparation.mbt",
+      "sha256": "2e5e691394b8fda52f93c901799cc3fad80a997f6108d821645ea3a47f9f8327",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_host_configuration_text_file",
+          "declaration": "local_host_configuration_text_file ( root : String , name : String , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_host_metadata_parser_quote",
+          "declaration": "local_host_metadata_parser_quote ( geometry : @ source . JsonSourceGeometry , ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "local_host_metadata_prepare",
+          "declaration": "local_host_metadata_prepare ( retained : Int64 , execution : Int64 , ) - > Unit raise ClientStop"
+        },
+        {
+          "name": "local_host_metadata_price",
+          "declaration": "local_host_metadata_price ( units : @ execution . PreparationRepresentationUnits , ) - > Int64 raise ClientStop"
+        },
+        {
+          "name": "local_host_metadata_units",
+          "declaration": "local_host_metadata_units ( headers : Int64 , references : Int64 , words : Int64 , text : Int64 , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "local_host_settings_array_prepare",
+          "declaration": "local_host_settings_array_prepare ( count : Int ) - > Unit raise ClientStop"
+        },
+        {
+          "name": "local_host_settings_cursor",
+          "declaration": "local_host_settings_cursor ( text : String ) - > @ decode . Cursor raise ClientStop"
+        },
+        {
+          "name": "local_host_settings_fields_prepare",
+          "declaration": "local_host_settings_fields_prepare ( ) - > Unit raise ClientStop"
+        },
+        {
+          "name": "local_host_settings_object",
+          "declaration": "local_host_settings_object ( cursor : @ decode . Cursor , keys : Array [ String ] , path_depth : Int , invalid : String , ) - > @ decode . ObjectView raise ClientStop"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::prepare_host_metadata",
+          "declaration": "LocalCommandPreparationOriginal : : prepare_host_metadata ( self : Self , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Native initial command Read and product/adoption owners; constructor funding on the same original, no new authority or cleanup owner",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_host_configuration_text_file",
+            "local_host_metadata_parser_quote",
+            "local_host_metadata_prepare",
+            "local_host_metadata_price",
+            "local_host_metadata_units",
+            "local_host_settings_array_prepare",
+            "local_host_settings_cursor",
+            "local_host_settings_fields_prepare",
+            "local_host_settings_object",
+            "LocalCommandPreparationOriginal::prepare_host_metadata"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_host_settings_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_host_metadata("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_host_settings_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_host_metadata("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_host_settings_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_host_metadata("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_host_settings_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_host_metadata("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_host_settings_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_host_metadata("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_host_settings_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_host_metadata("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_host_settings_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_host_metadata("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_host_settings_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_host_metadata("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "src/cmd/native_client/local_host_settings_preparation.mbt",
+                "anchor": "fn LocalCommandPreparationOriginal::prepare_host_metadata("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Selected Native Host configuration construction"
+              },
+              {
+                "path": "scripts/native-local-cleanup-order.test.mjs",
+                "anchor": "test('Native Host settings runs original staged decoding"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "syntaxProjectionBasis": "SHA256 of UTF-8 JSON.stringify over sorted declared {module,operations,exports,imports}; source inventory only."

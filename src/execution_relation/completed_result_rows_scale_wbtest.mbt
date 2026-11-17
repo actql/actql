@@ -7,7 +7,7 @@ test "unordered Result index construction consumes exactly one work unit per row
   let occurrence = result_export_occurrence(
     owner, "answer", "{\"answer\":{\"from\":\"selected\",\"fields\":[\"s\"]}}",
   )
-  for count in [0, 10001, 100000] {
+  for count in [0, 101, 10001, 100000] {
     let table : Table = {
       owner,
       id: "select_1",

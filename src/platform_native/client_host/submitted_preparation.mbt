@@ -15,6 +15,7 @@ pub(all) enum NativeClientSubmittedPreparationIssue {
   ReadOnlyEffect
   Request(@local.ClientRequestTerminalIssue)
   RequestPreparation(@local.ClientRequestPreparationIssue)
+  RequestNormalization(@local.ClientRequestNormalizationIssue)
   RequestBranchUnavailable
 }
 

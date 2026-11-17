@@ -1,6 +1,145 @@
 ///|
 // Real original Scope/Run/Model with an actual fixture provider and synthetic
 // allowances. These are not installed Node profiles, Store ACKs or public E2E.
+fn original_observation_setup_refusal(reason : String) -> Execution {
+  println("Original observation setup refused: " + reason)
+  abort(reason)
+}
+
+///|
+fn original_observation_test_started(
+  value : Result[Execution, Issue],
+) -> Execution {
+  match value {
+    Ok(active) => active
+    Err(OriginalCapacity(issue)) =>
+      original_observation_setup_refusal(
+        "OriginalCapacity(" + @debug.Repr(issue).to_string() + ")",
+      )
+    Err(Input(@input.RetainedInput(issue))) =>
+      original_observation_setup_refusal(
+        match issue {
+          BindingMismatch => "Input.RetainedInput.BindingMismatch"
+          InvalidDescriptor => "Input.RetainedInput.InvalidDescriptor"
+          CustodyUnavailable => "Input.RetainedInput.CustodyUnavailable"
+          Export(_) => "Input.RetainedInput.Export"
+          Evidence(_) => "Input.RetainedInput.Evidence"
+          Content(_) => "Input.RetainedInput.Content"
+          Readmission(issue) =>
+            "Input.RetainedInput.Readmission(" +
+            @debug.Repr(issue).to_string() +
+            ")"
+          Import(_) => "Input.RetainedInput.Import"
+        },
+      )
+    Err(Input(_)) => original_observation_setup_refusal("Input")
+    Err(Model(_)) => original_observation_setup_refusal("Model")
+    Err(Capacity(_)) => original_observation_setup_refusal("Capacity")
+    Err(IdentityExport(_)) =>
+      original_observation_setup_refusal("IdentityExport")
+    Err(CallScope(_)) => original_observation_setup_refusal("CallScope")
+    Err(InvalidAdvance) => original_observation_setup_refusal("InvalidAdvance")
+  }
+}
+
+///|
+fn original_observation_test_cold_setup(
+  exported : @input.ClientInferRetainedInputExport,
+  sequence : @relation.GeneratedSequence,
+) -> (Int64, Int64) {
+  let wire = @input.client_infer_retained_input_export_descriptor(exported)
+  let bytes = 3 * wire.length()
+  assert_true(bytes > 0 && bytes <= 24576) catch {
+    _ => abort("fixture descriptor grammar")
+  }
+  let nodes = 128
+  let fields = nodes - 1
+  let depth = 8
+  let parser = @source.json_shaped_construction_extent(
+    bytes,
+    nodes,
+    depth,
+    nodes,
+    nodes,
+    nodes,
+    nodes,
+    nodes,
+    normalize_keys=false,
+  ).unwrap()
+  let index = @source.json_index_borrowed_construction_extent(
+    nodes,
+    fields,
+    bytes.to_int64(),
+    keep_spans=false,
+    string_nodes=Some(nodes),
+  ).unwrap()
+  // Independent closed canonical DATA census: two coheld output trees,
+  // ancestor Maps, recursive admission controls and the pinned sort frame.
+  let n = nodes.to_int64()
+  let k = fields.to_int64()
+  let d = depth.to_int64() + 1L
+  let maps = Int64::min(n, d)
+  let members = Int64::min(k, maps * k)
+  let mut size = fields
+  let mut levels = 1L
+  while size > 1 {
+    size /= 2
+    levels += 1L
+  }
+  let tree_h = n + 3L * n + k
+  let tree_r = n + 10L * n + 4L * k
+  let tree_w = n + 2L * n
+  let descriptor = @relation.preparation_representation_cost({
+    record_headers: 2L * tree_h +
+    3L * maps +
+    4L * members +
+    (1L + 2L * d + n) +
+    (8L + 8L * levels) +
+    parser.record_headers +
+    index.record_headers,
+    reference_slots: 2L * tree_r +
+    18L * maps +
+    14L * members +
+    (10L * d + 8L * n + 2L * k) +
+    (5L + 13L * levels) +
+    parser.reference_slots +
+    index.reference_slots,
+    scalar_words: 2L * tree_w +
+    21L * maps +
+    14L * members +
+    (3L + 4L * d) +
+    (9L + 27L * levels) +
+    parser.scalar_words +
+    index.scalar_words,
+    owned_utf16_units: parser.owned_utf16_units + index.owned_utf16_units,
+    owned_wire_bytes: bytes.to_int64(),
+  }).unwrap()
+  let observed = @input.read_client_infer_retained_input_descriptor(wire).unwrap()
+  let rows = @input.client_infer_retained_input_export_rows(exported)
+  let facts = @relation.prepare_retained_readmission_facts(
+    @relation.generated_completion_preparation(sequence),
+    observed,
+    rows.length(),
+    { producer_inputs: None, schema_columns: None, name_bytes: Some(10000), },
+  ).unwrap()
+  let mut text = 0
+  for row in rows {
+    text += row.length()
+  }
+  let importing = @input.client_infer_retained_input_facts_capacity(
+    facts,
+    observed.bytes,
+    observed.nodes,
+    observed.depth,
+    text,
+  ).unwrap()
+  (
+    descriptor + @relation.retained_readmission_facts_control_bytes(),
+    @relation.execution_capacity_retained_bytes(importing),
+  )
+}
+
+///|
 fn original_observation_test_start(
   producer? : Ref[@resources.Reservation?]? = None,
   source? : String = infer_fixture_program,
@@ -12,6 +151,37 @@ fn original_observation_test_start(
   restored_input? : Bool = false,
   restored_custody? : () -> Bool = () => true,
 ) -> (Execution, @resources.Ledger, @publication_host.ClientModelReadConsumer) {
+  let (attempted, ledger, consumer) = original_observation_test_attempt(
+    producer~,
+    source~,
+    provider~,
+    run_id~,
+    spare_publication_slot~,
+    input_body~,
+    input_read_ceiling~,
+    restored_input~,
+    restored_custody~,
+  )
+  (original_observation_test_started(attempted), ledger, consumer)
+}
+
+///|
+fn original_observation_test_attempt(
+  producer? : Ref[@resources.Reservation?]? = None,
+  source? : String = infer_fixture_program,
+  provider? : @model.ModelProvider = original_funded_start_provider(Ref(0)),
+  run_id? : String = "run",
+  spare_publication_slot? : Bool = false,
+  input_body? : Bool = false,
+  input_read_ceiling? : Int64? = None,
+  restored_input? : Bool = false,
+  restored_custody? : () -> Bool = () => true,
+  short_restored_import? : Ref[(Int64, Int64)]? = None,
+) -> (
+  Result[Execution, Issue],
+  @resources.Ledger,
+  @publication_host.ClientModelReadConsumer,
+) {
   let prepared = fixture_prepared(source~)
   let plan = call_identity_plan(prepared)
   let limits = standard_limits()
@@ -30,11 +200,35 @@ fn original_observation_test_start(
   let definition = @publication_host.issue_client_compiled_run_definition(
     compiled, "original-observation", run_id, "2026-10-12T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
+  let restored = if restored_input {
+    let (occurrence, prefix) = original_composed_test_input(prepared)
+    let (saved, exported) = original_restored_composed_test_saved(
+      prepared, compiled, definition, occurrence, plan, restored_custody,
+    ) catch {
+      _ => abort("actual restored fixture must admit its original scope")
+    }
+    Some((occurrence, prefix, saved, exported))
+  } else {
+    None
+  }
+  let selected_retained = match short_restored_import {
+    None => input_read_ceiling.unwrap_or(limits.model.ledger.retained_bytes)
+    Some(observed) => {
+      let (_, prefix, _, exported) = restored.unwrap()
+      let (descriptor, importing) = original_observation_test_cold_setup(
+        exported, prefix,
+      )
+      let selected = original_input_body_zero_spare_setup() +
+        descriptor +
+        importing -
+        1L
+      observed.val = (selected, importing)
+      selected
+    }
+  }
   let ledger = @resources.create_ledger({
     ..limits.model.ledger,
-    retained_bytes: input_read_ceiling.unwrap_or(
-      limits.model.ledger.retained_bytes,
-    ),
+    retained_bytes: selected_retained,
     attempts: Int::min(limits.model.ledger.attempts, 4),
     transfer_bytes: Int64::min(limits.model.ledger.transfer_bytes, 133072L),
   }).unwrap()
@@ -61,16 +255,7 @@ fn original_observation_test_start(
   let consumer = @publication_host.claim_client_model_read_preparation(
     read, compiled, definition, plan, 7L, 5L,
   ).unwrap()
-  let active = if restored_input {
-    let (occurrence, prefix) = original_composed_test_input(prepared)
-    let (saved, exported) = original_restored_composed_test_saved(
-      prepared, compiled, definition, occurrence, plan, restored_custody,
-    ) catch {
-      _ =>
-        abort(
-          "actual restored observation fixture must admit its original scope",
-        )
-    }
+  let attempted = if restored is Some((occurrence, prefix, saved, exported)) {
     start_original_restored_composed(
       occurrence,
       plan,
@@ -90,7 +275,7 @@ fn original_observation_test_start(
       100L,
       5L,
       input_body_read=if input_body { Some(read) } else { None },
-    ).unwrap()
+    )
   } else if input_body {
     let (occurrence, prefix) = original_composed_test_input(prepared)
     start_original_composed(
@@ -108,7 +293,7 @@ fn original_observation_test_start(
       100L,
       5L,
       input_body_read=Some(read),
-    ).unwrap()
+    )
   } else {
     start_original_model_preparation(
       prepared,
@@ -125,7 +310,11 @@ fn original_observation_test_start(
       5L,
       100L,
       5L,
-    ).unwrap()
+    )
+  }
+  let active = match attempted {
+    Err(issue) => return (Err(issue), ledger, consumer)
+    Ok(value) => value
   }
   let configuration = evidence_account(@authorization.Allow)
   let permit = @publication_host.issue_client_infer_dispatch_admission(
@@ -137,7 +326,7 @@ fn original_observation_test_start(
     observe_current=() => Ok((configuration, "2026-10-12T00:00:00.000Z")),
   ).unwrap()
   bind_dispatch_admission(active, permit).unwrap()
-  (active, ledger, consumer)
+  (Ok(active), ledger, consumer)
 }
 
 ///|

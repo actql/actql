@@ -199,9 +199,15 @@ pub fn finish_client_keyed_lookup_publication_input(
   max_depth : Int,
   retain_body? : Bool = false,
   native_completion? : (String, Int64)? = None,
+  generic_completion? : (String, Int, Int, Int)? = None,
+  defer_catalog? : Bool = false,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
-  if native_completion is Some(_) && !retain_body {
+  if (native_completion is Some(_) || generic_completion is Some(_)) &&
+    !retain_body {
     return Err(Assembly("native_completion_requires_original_body"))
+  }
+  if native_completion is Some(_) && generic_completion is Some(_) {
+    return Err(Assembly("mixed_lookup_completion_purpose"))
   }
   if lookup.publication_identity is Some(_) {
     if lookup.planned_requests is Some(_) && lookup.completed is None {
@@ -238,6 +244,8 @@ pub fn finish_client_keyed_lookup_publication_input(
     return if retain_body {
       finish_keyed_lookup_identity_bodies(
         lookup,
+        defer_catalog~,
+        generic_completion~,
         native_completion=native_completion.map(value => {
           (value.0, value.1, max_bytes, max_nodes, max_depth)
         }),
@@ -283,6 +291,8 @@ pub fn finish_client_keyed_lookup_publication_input(
   if retain_body {
     finish_keyed_lookup_identity_bodies(
       lookup,
+      defer_catalog~,
+      generic_completion~,
       native_completion=native_completion.map(value => {
         (value.0, value.1, max_bytes, max_nodes, max_depth)
       }),
@@ -508,7 +518,7 @@ pub fn client_protocol_metadata_construction_bytes(
       copies.to_int64(),
     )
     is Some(bodies) &&
-    @execution.checked_preparation_add_product(0L, 128L, slots) is Some(fields) &&
+    @execution.checked_preparation_add_product(0L, slots, 128L) is Some(fields) &&
     @execution.checked_preparation_add_product(fields, extra_controls, 1L)
     is Some(controls) &&
     @execution.checked_preparation_add_product(bodies, controls, 1L)
@@ -578,24 +588,37 @@ fn grow_keyed_lookup_protocol_metadata(
 fn keyed_lookup_protocol_extent_cost(
   extent : @publication.PublicationRepresentationExtent,
 ) -> Int64? {
-  let tree = extent.canonical
+  keyed_lookup_canonical_extent_cost(
+    extent.canonical,
+    3L * extent.contract_records + extent.contract_strings,
+    7L * extent.contract_records,
+    5L * extent.contract_records,
+    extent.contract_text_utf16_units,
+  )
+}
+
+///|
+fn keyed_lookup_canonical_extent_cost(
+  tree : @canonical.CanonicalRepresentationExtent,
+  headers : Int64,
+  references : Int64,
+  words : Int64,
+  text : Int64,
+) -> Int64? {
   let containers = tree.arrays + tree.objects
   @execution.preparation_representation_cost({
-    record_headers: 3L * extent.contract_records +
-    extent.contract_strings +
+    record_headers: headers +
     tree.nodes +
     tree.strings +
     3L * containers +
     tree.object_backing_slots,
-    reference_slots: 7L * extent.contract_records +
+    reference_slots: references +
     tree.nodes +
     2L * containers +
     tree.array_backing_slots +
     3L * tree.object_backing_slots,
-    scalar_words: 5L * extent.contract_records +
-    2L * tree.nodes +
-    2L * containers,
-    owned_utf16_units: extent.contract_text_utf16_units + tree.text_utf16_units,
+    scalar_words: words + 2L * tree.nodes + 2L * containers,
+    owned_utf16_units: text + tree.text_utf16_units,
     owned_wire_bytes: 0L,
   })
 }
@@ -613,14 +636,19 @@ fn finish_keyed_lookup_protocol_metadata(
   contracts : Array[@publication.PublicationContract],
   evidence? : Array[@publication.RunEvidenceValue] = [],
   texts? : Array[String] = [],
+  dependency_bodies? : Array[@publication.CapturedEffectDependencyBody]? = None,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   if max_nodes < 1 || max_depth < 1 || lookup.closed || lookup.growing {
     return Err(Assembly("unavailable_protocol_workspace_return"))
   }
   // Bound the existing immutable extent walk BEFORE allocating its depth
   // stack. No wire is re-encoded/hashed/admitted and no permission is observed.
+  // Dependency bodies are visited sequentially. Only one body/extent/control
+  // tuple and its Some/Result/arithmetic carriers coexist; no extent array.
+  let dependency_frames = if dependency_bodies is Some(_) { 16L } else { 0L }
   let frames = 4L * (max_depth.to_int64() + 1L) +
-    4L * (contracts.length().to_int64() + evidence.length().to_int64() + 1L)
+    4L * (contracts.length().to_int64() + evidence.length().to_int64() + 1L) +
+    dependency_frames
   let scratch = @execution.preparation_representation_cost({
     record_headers: 12L + frames,
     reference_slots: 24L + 4L * frames,
@@ -684,6 +712,49 @@ fn finish_keyed_lookup_protocol_metadata(
       return Err(Assembly("capacity_overflow"))
     }
     retained = total
+  }
+  if dependency_bodies is Some(bodies) {
+    guard @shape.reference_array_retained_extent(
+        1L,
+        bodies.capacity().to_int64(),
+      )
+      is Some(array) &&
+      @execution.preparation_representation_cost({
+        // Retained array/current backing plus the owner's Some and field alias.
+        record_headers: array.record_headers + 1L,
+        reference_slots: array.reference_slots + 2L,
+        scalar_words: array.scalar_words + 1L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      })
+      is Some(storage) &&
+      @execution.checked_preparation_add_product(retained, storage, 1L)
+      is Some(total) else {
+      return Err(Assembly("capacity_overflow"))
+    }
+    retained = total
+    for body in bodies {
+      let (tree, controls, text) = match
+        @publication.captured_effect_dependency_body_representation_extent(
+          body, max_nodes, max_depth, 2147483647,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Identity(@publication.Contract(issue)))
+      }
+      guard keyed_lookup_canonical_extent_cost(
+          tree,
+          controls.record_headers,
+          controls.reference_slots,
+          controls.scalar_words,
+          text,
+        )
+        is Some(bytes) &&
+        @execution.checked_preparation_add_product(retained, bytes, 1L)
+        is Some(total) else {
+        return Err(Assembly("capacity_overflow"))
+      }
+      retained = total
+    }
   }
   guard @execution.checked_preparation_add_product(phase.0, retained, 1L)
     is Some(r) &&

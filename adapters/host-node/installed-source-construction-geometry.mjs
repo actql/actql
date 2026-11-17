@@ -47,16 +47,37 @@ export function sourceJsonWireGeometry(wire, payloadOnly = false) {
     retained: {nodes: retainedNodes, text: retainedText, wire: 0n}};
 }
 
+// Completed declaration DATA, after restore/export/JSON.parse have returned.
+// RowDeclaration retains String fields and view/field arrays, not the parser,
+// contract checker or canonical writer's temporary trees. Its complete public
+// export bounds those native records alongside the decoded Host export and
+// the original authored snapshot. Borrowed input strings are conservatively
+// retained again; no cross-owner sharing discount is taken.
+export function sourceDeclarationRetainedGeometry(inputWire, declaredWire) {
+  if (typeof inputWire !== 'string' || typeof declaredWire !== 'string') invalid();
+  const input = sourceJsonWireGeometry(inputWire), declared = sourceJsonWireGeometry(declaredWire);
+  // Two returned metadata forests (native declaration/view records and the
+  // decoded export), plus the actual authored snapshot's separate geometry.
+  // Fixed declaration/export/index controls keep capture's 64-node envelope.
+  return {nodes: 2n * declared.retained.nodes + input.retained.nodes + 64n,
+    // Input wire plus its authored String values; exported wire, native
+    // String payloads and decoded Host String payloads all remain live.
+    text: 2n * (2n * BigInt(inputWire.length) + 3n * BigInt(declaredWire.length)),
+    wire: 0n};
+}
+
 // Literal wrapper vocabulary added by rowSourceCheckEnvironment. Include
 // optional members even when absent; input base fields are counted separately.
 const environmentEnvelope = '{"schema_snapshots":[],"connector_capabilities":[],"source_views":[],"contract_registry":[],"connector_catalogs":[],"connector_manifest":{"version":"actql-connectors/0.1","connectors":[]},"mapping_contracts":[],"command_contracts":[],"evidence_bundle_cid":"sha256:' + '0'.repeat(64) + '"}';
 export function sourceEnvironmentConstructionGeometry(baseWire, declared, mappings = []) {
   const base = sourceJsonWireGeometry(baseWire);
-  let nodes = base.nodes, units = base.units, weighted = base.weighted;
+  let nodes = base.retained.nodes, units = base.units, weighted = base.weighted;
+  let treeText = base.retained.text;
   let depth = base.depth, members = 0n;
   const add = wire => {
     const measured = sourceJsonWireGeometry(wire);
-    nodes += measured.nodes; units += measured.units; weighted += measured.weighted;
+    nodes += measured.retained.nodes; units += measured.units; weighted += measured.weighted;
+    treeText += measured.retained.text;
     if (measured.depth > depth) depth = measured.depth;
   };
   // These exact original strings are the inputs of JSON.parse in the existing
@@ -90,10 +111,20 @@ export function sourceEnvironmentConstructionGeometry(baseWire, declared, mappin
   const workspace = {nodes: parsed + rootSpreads + byCid + entries + originalPairs + filtered +
     replacementPairs + replacementArray + keys + keySet + sort + children + frames,
     text: decodedText + canonicalText, wire: hashWire};
-  // Only the closed pure producer's frozen result escapes: one record and
-  // two String values. Workspace includes its conservative temporary overlap.
-  const retained = {nodes: 3n, text: 2n * (output + 71n), wire: 0n};
-  return {...workspace, retained, workspace};
+  // Retain the actual frozen body/census on this same Source owner. Its
+  // children are the already parsed constructor inputs, not another parse of
+  // the encoded output. Root spreads, list slots and fixed records stay here.
+  const retained = {nodes: parsed + rootSpreads + members + 64n,
+    text: 2n * (output + 71n + treeText), wire: 0n};
+  // The staged original writer first returns only parsed/frozen member trees
+  // and their shallow Environment envelope. Sorting/hash/encoding are later
+  // distinct synchronous constructors and keep their own actual quotations.
+  const parsedStage = {
+    retained: {nodes: parsed + rootSpreads + members + 128n, text: 2n * units, wire: 0n},
+    workspace: {nodes: 5n * parsed + rootSpreads + byCid + 16n,
+      text: 10n * units, wire: 0n},
+  };
+  return {...workspace, retained, workspace, parsed: parsedStage};
 }
 
 const viewFields = ['resource', 'resource_kind', 'schema_wire', 'schema_cid',

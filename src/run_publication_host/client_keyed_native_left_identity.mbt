@@ -73,7 +73,7 @@ fn prepare_client_keyed_native_left_identity_owned(
 ) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
   guard native_left_identity_preplanning(lookup) &&
     lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(original) is Some(component) &&
     client_keyed_left_available(lookup.left) &&
     client_composed_keyed_original_output(original) is Some(output) else {
     return Err(Assembly("foreign_or_started_native_left_identity"))
@@ -118,9 +118,11 @@ fn build_client_keyed_native_left_identity(
   // The scan's actual start/next quote separately funds its writers, rows,
   // retained preimages and schema. These are this call's controls only.
   let controls = @execution.preparation_representation_cost({
-    record_headers: 15L,
-    reference_slots: 25L,
-    scalar_words: 20L,
+    // Source-only Input export adds one borrowed ProducerRead Some and its
+    // column-map Some; names fit the existing actual-width scan quote.
+    record_headers: 17L,
+    reference_slots: 27L,
+    scalar_words: 22L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -129,6 +131,11 @@ fn build_client_keyed_native_left_identity(
   guard @execution.completed_relation_identity_scan_start_construction_capacity(
       output,
       retain_body=true,
+      producer_input=if original.origin is SourceEffectOrigin(_) {
+        Some(lookup.left.read)
+      } else {
+        None
+      },
     )
     is Some(start) else {
     return Err(Assembly("native_left_start_capacity"))
@@ -171,6 +178,11 @@ fn build_client_keyed_native_left_identity(
       workspace,
       incremental_metadata=true,
       retain_body=true,
+      producer_input=if original.origin is SourceEffectOrigin(_) {
+        Some(lookup.left.read)
+      } else {
+        None
+      },
     ) {
     Ok(value) => value
     Err(issue) => return Err(CompletedIdentity(issue))
@@ -288,7 +300,7 @@ pub fn prepare_client_keyed_captured_left_identity(
   max_work : Int,
 ) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
   guard lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) else {
+    client_composed_keyed_original_component(original) is Some(component) else {
     return Err(Assembly("foreign_captured_left_identity"))
   }
   let width = component.original.left_fields.length()

@@ -5,7 +5,7 @@ import {posix} from 'node:path';
 import {partJobs} from '../proofs/relation-pipeline/proof-parts.mjs';
 
 export const heavyJobs = Object.freeze([
-  'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native', 'native-http', 'session-evidence', 'session-controls',
+  'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native', 'native-http', 'session-evidence', 'session-controls',
   'client-packages', 'client-readme-packed', 'client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce',
   'client-distribution-callers', 'client-distribution-mutations',
   'client-distribution-packed',

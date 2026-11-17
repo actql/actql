@@ -1216,3 +1216,15 @@ pub fn client_program_request_model_direct_source_coordinates(
   }
   Ok(coordinates)
 }
+
+///|
+#export_name("clientProgramInstalledEffectFundedModelSelectionCount")
+pub fn client_program_installed_effect_funded_model_selection_count(
+  value : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_effect_funded_model_selection_count(
+    value, prepared, request,
+  )
+}

@@ -156,6 +156,7 @@ const supported = new Set([
   '--unpivot-multicolumn-only',
   '--unpivot-row-label-only',
   '--upper-only',
+  '--union-budget-only',
   '--vector-scalar-only',
   '--window-group-only',
   '--window-scalar-only',
@@ -173,6 +174,12 @@ export function validatePackedPublicQueryArguments(args, environment = process.e
       'PackedQueryCIPartMustRetainFullCorpus');
     assert(!Object.entries(environment).some(([name, value]) => /^ACTQL_TEST_.*_ONLY$/u.test(name) && value === '1'),
       'PackedQueryCIPartConflictsWithEnvironment');
+  }
+  if (args.includes('--union-budget-only')) {
+    assert(args.every(argument => ['--union-budget-only', '--keep-artifacts'].includes(argument)),
+      'UnionBudgetSelectionMustBeExclusive');
+    assert(!Object.entries(environment).some(([name, value]) => /^ACTQL_TEST_.*_ONLY$/u.test(name) && value === '1'),
+      'UnionBudgetSelectionConflictsWithEnvironment');
   }
   if (args.includes('--distinct-join-order-only') ||
       environment.ACTQL_TEST_DISTINCT_JOIN_ORDER_ONLY === '1') {

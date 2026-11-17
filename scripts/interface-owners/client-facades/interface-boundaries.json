@@ -1439,10 +1439,6 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
-              {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               }
@@ -1586,7 +1582,7 @@
     {
       "module": "packages/local-node/http-host.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "37d85cdfa48950caca839e4083f16c5510c429e0cce35aaeaa61325521a30a94",
+      "sha256": "24c25e16db063f5f0aecb1ec0f09ee43001a7631b804f33b5992f74f9f11a52f",
       "exports": [
         "HostCapacityPolicy",
         "HostLookupExecutionPolicy",
@@ -3279,31 +3275,11 @@
       ],
       "operations": [
         {
-          "name": "captureOptions",
-          "parameters": [
-            "original",
-            "captured"
-          ],
-          "async": false
-        },
-        {
           "name": "connect",
           "parameters": [
             "options",
             "stringOptions"
           ],
-          "async": true
-        },
-        {
-          "name": "connectHost",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "localProvider",
-          "parameters": [],
           "async": true
         },
         {
@@ -3338,10 +3314,7 @@
         {
           "operations": [
             "<module>",
-            "captureOptions",
             "connect",
-            "connectHost",
-            "localProvider",
             "open",
             "open/open"
           ],
@@ -3867,13 +3840,6 @@
       ],
       "operations": [
         {
-          "name": "checkAgentJson/checkAgentJson",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkAgentJson/checkAgentJson/checkAgentJson",
           "parameters": [
             "character"
@@ -3881,23 +3847,9 @@
           "async": false
         },
         {
-          "name": "checkDisplayString/checkDisplayString",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkDisplayString/checkDisplayString/checkDisplayString",
           "parameters": [
             "character"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkHtml/checkHtml",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -3913,14 +3865,6 @@
           "parameters": [
             "outcome",
             "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "explainCheckOutcome/reportExplanation/reportExplanation",
-          "parameters": [
-            "report",
-            "completeness"
           ],
           "async": false
         },
@@ -3996,16 +3940,6 @@
           "async": false
         },
         {
-          "name": "renderCheckOutcome/model/model",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "renderCheckOutcome/render/render",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "renderCheckOutcome/render/render/render",
           "parameters": [
             "entry"
@@ -4056,14 +3990,10 @@
         {
           "operations": [
             "<module>",
-            "checkAgentJson/checkAgentJson",
             "checkAgentJson/checkAgentJson/checkAgentJson",
-            "checkDisplayString/checkDisplayString",
             "checkDisplayString/checkDisplayString/checkDisplayString",
-            "checkHtml/checkHtml",
             "checkHtml/checkHtml/checkHtml",
             "explainCheckOutcome",
-            "explainCheckOutcome/reportExplanation/reportExplanation",
             "explainCheckReason",
             "getCheckPresentationInfo",
             "japanese/japanese",
@@ -4073,8 +4003,6 @@
             "renderCheckOutcome",
             "renderCheckOutcome/current/current",
             "renderCheckOutcome/line/line",
-            "renderCheckOutcome/model/model",
-            "renderCheckOutcome/render/render",
             "renderCheckOutcome/render/render/render",
             "renderCheckOutcome/rows/rows",
             "renderCheckOutcome/rows/rows#2",
@@ -4647,13 +4575,6 @@
       ],
       "operations": [
         {
-          "name": "base64/base64",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
           "name": "bytesCid",
           "parameters": [
             "bytes"
@@ -4721,19 +4642,6 @@
           "async": false
         },
         {
-          "name": "constructSignedAnswer",
-          "parameters": [
-            "summary",
-            "decision",
-            "signer",
-            "decidedAt",
-            "effect",
-            "acquiredRead",
-            "model"
-          ],
-          "async": true
-        },
-        {
           "name": "constructSignedAnswer/constructSignedAnswer",
           "parameters": [
             "claim"
@@ -4748,23 +4656,9 @@
           "async": false
         },
         {
-          "name": "hex/hex",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
           "name": "hex/hex/hex",
           "parameters": [
             "byte"
-          ],
-          "async": false
-        },
-        {
-          "name": "normalized",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -4810,20 +4704,6 @@
             "decidedAt"
           ],
           "async": true
-        },
-        {
-          "name": "supportedAnswerProfile",
-          "parameters": [
-            "summary"
-          ],
-          "async": false
-        },
-        {
-          "name": "wellFormed",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -4838,7 +4718,6 @@
         {
           "operations": [
             "<module>",
-            "base64/base64",
             "bytesCid",
             "canonicalJson",
             "canonicalJson/canonicalJson",
@@ -4848,19 +4727,14 @@
             "canonicalJson/entries/entries",
             "canonicalJson/entries/entries#2",
             "checkedSigner",
-            "constructSignedAnswer",
             "constructSignedAnswer/constructSignedAnswer",
             "contentCid/contentCid",
-            "hex/hex",
             "hex/hex/hex",
-            "normalized",
             "reviewBytesMatchCid",
             "signature",
             "signedAnswer",
             "signedAnswer/signedAnswer",
-            "signedAnswerFromAdmittedSummary",
-            "supportedAnswerProfile",
-            "wellFormed"
+            "signedAnswerFromAdmittedSummary"
           ],
           "exports": [
             "bytesCid",
@@ -4893,7 +4767,7 @@
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits)"
+                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -5075,18 +4949,6 @@
           "async": false
         },
         {
-          "name": "decode/decode",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "isLoopbackEndpointHostname/isLoopbackEndpointHostname",
           "parameters": [
             "hostname"
@@ -5126,8 +4988,6 @@
           "operations": [
             "<module>",
             "connectionStringCredential/connectionStringCredential",
-            "decode/decode",
-            "invalid/invalid",
             "isLoopbackEndpointHostname/isLoopbackEndpointHostname",
             "isLoopbackEndpointHostname/isLoopbackEndpointHostname/isLoopbackEndpointHostname",
             "parseConnectionString",
@@ -7682,13 +7542,6 @@
           "async": false
         },
         {
-          "name": "createCheckDocumentSession/currentRecord/currentRecord",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
           "name": "createCheckDocumentSession/init:applyFixes/init:applyFixes",
           "parameters": [
             "observation",
@@ -7696,13 +7549,6 @@
             "options"
           ],
           "async": true
-        },
-        {
-          "name": "createCheckDocumentSession/init:applyFixes/init:applyFixes/assertContext/assertContext",
-          "parameters": [
-            "outcome"
-          ],
-          "async": false
         },
         {
           "name": "createCheckDocumentSession/init:applyFixes/init:applyFixes/assertContext/assertContext/assertContext",
@@ -7715,18 +7561,6 @@
           "name": "createCheckDocumentSession/init:applyFixes/init:applyFixes/assertContext/assertContext/assertContext/assertContext",
           "parameters": [
             "candidate"
-          ],
-          "async": false
-        },
-        {
-          "name": "createCheckDocumentSession/init:applyFixes/init:applyFixes/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createCheckDocumentSession/init:applyFixes/init:applyFixes/boundary/boundary",
-          "parameters": [
-            "at"
           ],
           "async": false
         },
@@ -7789,14 +7623,6 @@
           "async": false
         },
         {
-          "name": "createCheckDocumentSession/validDocument/validDocument",
-          "parameters": [
-            "text",
-            "version"
-          ],
-          "async": false
-        },
-        {
           "name": "createCheckOperation",
           "parameters": [
             "connection",
@@ -7812,11 +7638,6 @@
             "options"
           ],
           "async": true
-        },
-        {
-          "name": "createCheckOperation/createCheckOperation/reject/reject",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "createCheckSupplementationSession",
@@ -7940,31 +7761,9 @@
           "async": false
         },
         {
-          "name": "rejectedCheck/rejectedCheck",
-          "parameters": [
-            "body",
-            "problem"
-          ],
-          "async": false
-        },
-        {
-          "name": "rejectedCheckHeader/rejectedCheckHeader",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "rejectedCheckHeader/rejectedCheckHeader/rejectedCheckHeader",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "rejectedCheckProblem/rejectedCheckProblem",
-          "parameters": [
-            "header"
           ],
           "async": false
         },
@@ -7985,13 +7784,6 @@
           "async": false
         },
         {
-          "name": "resolveCheckLocation/boundary/boundary",
-          "parameters": [
-            "at"
-          ],
-          "async": false
-        },
-        {
           "name": "resolveCheckTextRange",
           "parameters": [
             "outcome",
@@ -8007,21 +7799,6 @@
             "location",
             "encoding",
             "currentInput"
-          ],
-          "async": false
-        },
-        {
-          "name": "structuredNodeExists/structuredNodeExists",
-          "parameters": [
-            "value",
-            "pointer"
-          ],
-          "async": false
-        },
-        {
-          "name": "unordered/unordered",
-          "parameters": [
-            "values"
           ],
           "async": false
         },
@@ -8065,13 +7842,9 @@
             "<module>",
             "bindCheckObservation",
             "createCheckDocumentSession",
-            "createCheckDocumentSession/currentRecord/currentRecord",
             "createCheckDocumentSession/init:applyFixes/init:applyFixes",
-            "createCheckDocumentSession/init:applyFixes/init:applyFixes/assertContext/assertContext",
             "createCheckDocumentSession/init:applyFixes/init:applyFixes/assertContext/assertContext/assertContext",
             "createCheckDocumentSession/init:applyFixes/init:applyFixes/assertContext/assertContext/assertContext/assertContext",
-            "createCheckDocumentSession/init:applyFixes/init:applyFixes/assertCurrent/assertCurrent",
-            "createCheckDocumentSession/init:applyFixes/init:applyFixes/boundary/boundary",
             "createCheckDocumentSession/init:applyFixes/init:applyFixes/edits/edits",
             "createCheckDocumentSession/init:applyFixes/init:applyFixes/edits/edits#2",
             "createCheckDocumentSession/init:applyFixes/init:applyFixes/init:applyFixes",
@@ -8080,10 +7853,8 @@
             "createCheckDocumentSession/init:format/init:format",
             "createCheckDocumentSession/init:resolveTextRange/init:resolveTextRange",
             "createCheckDocumentSession/init:update/init:update",
-            "createCheckDocumentSession/validDocument/validDocument",
             "createCheckOperation",
             "createCheckOperation/createCheckOperation",
-            "createCheckOperation/createCheckOperation/reject/reject",
             "createCheckSupplementationSession",
             "createCheckSupplementationSession/init:check/init:check",
             "equalCheckRequirementFrontiers",
@@ -8100,17 +7871,11 @@
             "getCheckRequirementFrontier",
             "getCheckRequirementFrontier/frontier/frontier",
             "getCheckRequirementFrontier/getCheckRequirementFrontier",
-            "rejectedCheck/rejectedCheck",
-            "rejectedCheckHeader/rejectedCheckHeader",
             "rejectedCheckHeader/rejectedCheckHeader/rejectedCheckHeader",
-            "rejectedCheckProblem/rejectedCheckProblem",
             "rejectedCheckProblem/rejectedCheckProblem/rejectedCheckProblem",
             "resolveCheckLocation",
-            "resolveCheckLocation/boundary/boundary",
             "resolveCheckTextRange",
             "resolveCheckTextRangeEncoding",
-            "structuredNodeExists/structuredNodeExists",
-            "unordered/unordered",
             "unordered/unordered/unordered",
             "unordered/unordered/unordered#2",
             "unordered/unordered/unordered#3"
@@ -8235,21 +8000,6 @@
       ],
       "operations": [
         {
-          "name": "finiteWireNumber",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameConstant",
-          "parameters": [
-            "value",
-            "expected"
-          ],
-          "async": false
-        },
-        {
           "name": "sameConstant/sameConstant",
           "parameters": [
             "item",
@@ -8261,14 +8011,6 @@
           "name": "sameConstant/sameConstant#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "valid",
-          "parameters": [
-            "value",
-            "schema"
           ],
           "async": false
         },
@@ -8363,11 +8105,8 @@
         {
           "operations": [
             "<module>",
-            "finiteWireNumber",
-            "sameConstant",
             "sameConstant/sameConstant",
             "sameConstant/sameConstant#2",
-            "valid",
             "valid/valid",
             "valid/valid#2",
             "valid/valid#3",
@@ -8509,38 +8248,10 @@
           "async": false
         },
         {
-          "name": "createCheckpointOperations/answerById/answerById",
-          "parameters": [
-            "checkpointId",
-            "decision",
-            "signer",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "createCheckpointOperations/answerMatches/answerMatches",
-          "parameters": [
-            "answer",
-            "summary",
-            "decision",
-            "signer"
-          ],
-          "async": true
-        },
-        {
           "name": "createCheckpointOperations/answerMatches/answerMatches/answerMatches",
           "parameters": [
             "claim",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createCheckpointOperations/captureSigner/captureSigner",
-          "parameters": [
-            "signer",
-            "signal"
           ],
           "async": false
         },
@@ -8554,13 +8265,6 @@
         {
           "name": "createCheckpointOperations/createCheckpointOperations",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createCheckpointOperations/current/current",
-          "parameters": [
-            "signal"
-          ],
           "async": false
         },
         {
@@ -8618,22 +8322,6 @@
           "parameters": [
             "checkpointId",
             "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "createCheckpointOperations/resolveSigned/resolveSigned",
-          "parameters": [
-            "frozen",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "createCheckpointOperations/without/without",
-          "parameters": [
-            "value",
-            "name"
           ],
           "async": false
         },
@@ -8841,18 +8529,14 @@
         },
         {
           "operations": [
-            "createCheckpointOperations/answerById/answerById",
-            "createCheckpointOperations/captureSigner/captureSigner",
             "createCheckpointOperations/captureSigner/captureSigner/init:sign/init:sign",
-            "createCheckpointOperations/current/current",
             "createCheckpointOperations/operations/operations",
             "createCheckpointOperations/operations/operations/bytes/bytes",
             "createCheckpointOperations/operations/operations/operations",
             "createCheckpointOperations/operations/operations#2",
             "createCheckpointOperations/operations/operations#3",
             "createCheckpointOperations/operations/operations#4",
-            "createCheckpointOperations/operations/operations#5",
-            "createCheckpointOperations/resolveSigned/resolveSigned"
+            "createCheckpointOperations/operations/operations#5"
           ],
           "exports": [],
           "attributes": {
@@ -8960,9 +8644,7 @@
         },
         {
           "operations": [
-            "createCheckpointOperations/answerMatches/answerMatches",
             "createCheckpointOperations/answerMatches/answerMatches/answerMatches",
-            "createCheckpointOperations/without/without",
             "createCheckpointOperations/without/without/without"
           ],
           "exports": [],
@@ -10553,20 +10235,7 @@
           "async": false
         },
         {
-          "name": "captureSourcePreparation/resultVoid/resultVoid",
-          "parameters": [
-            "method",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "captureSourcePreparation/resultVoid/resultVoid/resultVoid",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "unavailable/unavailable",
           "parameters": [],
           "async": false
         }
@@ -10661,7 +10330,6 @@
           "operations": [
             "captureSourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
             "captureSourcePreparation/init:beforeResultRead/init:beforeResultRead",
-            "captureSourcePreparation/resultVoid/resultVoid",
             "captureSourcePreparation/resultVoid/resultVoid/resultVoid"
           ],
           "exports": [],
@@ -10749,8 +10417,7 @@
             "captureSourcePreparation/init:finishSourceProducer/init:finishSourceProducer",
             "captureSourcePreparation/init:intentCid/init:intentCid",
             "captureSourcePreparation/init:intentCid/init:intentCid/init:intentCid",
-            "captureSourcePreparation/methods/methods",
-            "unavailable/unavailable"
+            "captureSourcePreparation/methods/methods"
           ],
           "exports": [
             "captureSourcePreparation",
@@ -11311,15 +10978,6 @@
       ],
       "operations": [
         {
-          "name": "appendCleanupFailure/appendCleanupFailure",
-          "parameters": [
-            "error",
-            "cause",
-            "redact"
-          ],
-          "async": false
-        },
-        {
           "name": "captureQueryResultRead",
           "parameters": [
             "before",
@@ -11372,13 +11030,6 @@
           "async": true
         },
         {
-          "name": "createResultFactory/createResultFactory/allCaptured/allCaptured",
-          "parameters": [
-            "captured"
-          ],
-          "async": true
-        },
-        {
           "name": "createResultFactory/createResultFactory/batches/batches",
           "parameters": [
             "options"
@@ -11406,20 +11057,6 @@
           "async": false
         },
         {
-          "name": "createResultFactory/createResultFactory/batches/batches/iterate/iterate",
-          "parameters": [
-            "ownedReader"
-          ],
-          "async": true
-        },
-        {
-          "name": "createResultFactory/createResultFactory/captureOneRead/captureOneRead",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "createResultFactory/createResultFactory/init:read/init:read",
           "parameters": [
             "kind",
@@ -11428,47 +11065,8 @@
           "async": false
         },
         {
-          "name": "createResultFactory/createResultFactory/oneCaptured/oneCaptured",
-          "parameters": [
-            "captured"
-          ],
-          "async": true
-        },
-        {
-          "name": "createResultFactory/createResultFactory/readRows/readRows",
-          "parameters": [
-            "options",
-            "validate",
-            "collection",
-            "retainSizes"
-          ],
-          "async": false
-        },
-        {
-          "name": "createResultFactory/createResultFactory/readRows/readRows/acceptRow/acceptRow",
-          "parameters": [
-            "row",
-            "size"
-          ],
-          "async": true
-        },
-        {
-          "name": "createResultFactory/createResultFactory/readRows/readRows/iterate/iterate",
-          "parameters": [
-            "ownedReader"
-          ],
-          "async": true
-        },
-        {
           "name": "createResultFactory/createResultFactory/readRows/readRows/iterate/iterate/abort/abort",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createResultFactory/createResultFactory/readRows/readRows/iterate/iterate/acceptText/acceptText",
-          "parameters": [
-            "text"
-          ],
           "async": false
         },
         {
@@ -11596,13 +11194,6 @@
           "async": false
         },
         {
-          "name": "createResultFactory/createResultFactory/scalarCaptured/scalarCaptured",
-          "parameters": [
-            "captured"
-          ],
-          "async": true
-        },
-        {
           "name": "explainDeliveryAttempt",
           "parameters": [
             "result",
@@ -11615,84 +11206,6 @@
           "parameters": [
             "result",
             "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "readFailure/readFailure",
-          "parameters": [
-            "cause",
-            "context",
-            "rowsYielded",
-            "prior"
-          ],
-          "async": false
-        },
-        {
-          "name": "rejectDuplicateRowKeys",
-          "parameters": [
-            "text"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainDeliveryExplanation/retainDeliveryExplanation",
-          "parameters": [
-            "answer",
-            "next"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainDeliveryLookupFailure/retainDeliveryLookupFailure",
-          "parameters": [
-            "cause",
-            "next",
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainedValueBytes",
-          "parameters": [
-            "value",
-            "raw"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainedValueBytes/visit/visit",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainReadExplanation/retainReadExplanation",
-          "parameters": [
-            "result",
-            "context",
-            "rowsYielded",
-            "observation",
-            "cleanupUnknown"
-          ],
-          "async": false
-        },
-        {
-          "name": "tighter",
-          "parameters": [
-            "requested",
-            "maximum"
-          ],
-          "async": false
-        },
-        {
-          "name": "validationFailure/validationFailure",
-          "parameters": [
-            "kind",
-            "context",
-            "rowIndex",
-            "detail"
           ],
           "async": false
         }
@@ -11716,10 +11229,7 @@
           "operations": [
             "captureQueryResultRead",
             "collectCapturedResult",
-            "createResultFactory/createResultFactory/allCaptured/allCaptured",
-            "createResultFactory/createResultFactory/init:read/init:read",
-            "createResultFactory/createResultFactory/oneCaptured/oneCaptured",
-            "createResultFactory/createResultFactory/scalarCaptured/scalarCaptured"
+            "createResultFactory/createResultFactory/init:read/init:read"
           ],
           "exports": [
             "captureQueryResultRead",
@@ -11815,7 +11325,6 @@
         {
           "operations": [
             "<module>",
-            "appendCleanupFailure/appendCleanupFailure",
             "createResultFactory",
             "createResultFactory/createResultFactory",
             "createResultFactory/createResultFactory/all/all",
@@ -11824,13 +11333,7 @@
             "createResultFactory/createResultFactory/batches/batches/init:<computed>/init:<computed>",
             "createResultFactory/createResultFactory/batches/batches/init:<computed>/init:<computed>/owned/init:abort/init:abort",
             "createResultFactory/createResultFactory/batches/batches/init:<computed>/init:<computed>/owned/owned",
-            "createResultFactory/createResultFactory/batches/batches/iterate/iterate",
-            "createResultFactory/createResultFactory/captureOneRead/captureOneRead",
-            "createResultFactory/createResultFactory/readRows/readRows",
-            "createResultFactory/createResultFactory/readRows/readRows/acceptRow/acceptRow",
-            "createResultFactory/createResultFactory/readRows/readRows/iterate/iterate",
             "createResultFactory/createResultFactory/readRows/readRows/iterate/iterate/abort/abort",
-            "createResultFactory/createResultFactory/readRows/readRows/iterate/iterate/acceptText/acceptText",
             "createResultFactory/createResultFactory/readRows/readRows/iterate/iterate/iterate",
             "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>",
             "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>/init:<computed>",
@@ -11851,16 +11354,7 @@
             "createResultFactory/createResultFactory/result/result/schema/schema",
             "createResultFactory/createResultFactory/rows/rows",
             "explainDeliveryAttempt",
-            "explainReadFailure",
-            "readFailure/readFailure",
-            "retainDeliveryExplanation/retainDeliveryExplanation",
-            "retainDeliveryLookupFailure/retainDeliveryLookupFailure",
-            "retainReadExplanation/retainReadExplanation",
-            "retainedValueBytes",
-            "retainedValueBytes/visit/visit",
-            "tighter",
-            "validationFailure/validationFailure",
-            "rejectDuplicateRowKeys"
+            "explainReadFailure"
           ],
           "exports": [
             "createResultFactory",
@@ -12097,25 +11591,6 @@
           "async": true
         },
         {
-          "name": "createExecutionFactory/createExecutionFactory/readControl/readControl",
-          "parameters": [
-            "operation",
-            "body",
-            "signal",
-            "cancellationContext"
-          ],
-          "async": true
-        },
-        {
-          "name": "createExecutionFactory/createExecutionFactory/readRunObservation/readRunObservation",
-          "parameters": [
-            "operation",
-            "body",
-            "signal"
-          ],
-          "async": true
-        },
-        {
           "name": "createExecutionFactory/createExecutionFactory/result/result",
           "parameters": [],
           "async": false
@@ -12163,63 +11638,12 @@
           "async": false
         },
         {
-          "name": "rejectedRunObservation/rejectedRunObservation",
-          "parameters": [
-            "ref",
-            "operation",
-            "problem",
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "rejectedRunProblem/rejectedRunProblem",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainCancellationAttemptExplanation/retainCancellationAttemptExplanation",
-          "parameters": [
-            "result",
-            "context"
-          ],
-          "async": false
-        },
-        {
           "name": "retainCancellationExplanation/retainCancellationExplanation",
           "parameters": [
             "result",
             "context",
             "observation",
             "revision"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainEffectUncertainty/retainEffectUncertainty",
-          "parameters": [
-            "state",
-            "ref"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainOwnerObservations/retainOwnerObservations",
-          "parameters": [
-            "answer",
-            "input",
-            "lookupContext"
-          ],
-          "async": false
-        },
-        {
-          "name": "unavailableRunObservation/unavailableRunObservation",
-          "parameters": [
-            "failure",
-            "ref",
-            "operation"
           ],
           "async": false
         }
@@ -12254,21 +11678,13 @@
             "createExecutionFactory/createExecutionFactory/handle/handle#6",
             "createExecutionFactory/createExecutionFactory/handle/handle#7",
             "createExecutionFactory/createExecutionFactory/handle/handle#8",
-            "createExecutionFactory/createExecutionFactory/readControl/readControl",
-            "createExecutionFactory/createExecutionFactory/readRunObservation/readRunObservation",
             "createExecutionFactory/createExecutionFactory/result/result",
             "createExecutionFactory/createExecutionFactory/runRequest/runRequest",
             "explainCancellation",
             "explainEffectUncertainty",
             "explainOwnerObservations",
             "explainRunObservationFailure",
-            "rejectedRunObservation/rejectedRunObservation",
-            "rejectedRunProblem/rejectedRunProblem",
-            "retainCancellationAttemptExplanation/retainCancellationAttemptExplanation",
-            "retainCancellationExplanation/retainCancellationExplanation",
-            "retainEffectUncertainty/retainEffectUncertainty",
-            "retainOwnerObservations/retainOwnerObservations",
-            "unavailableRunObservation/unavailableRunObservation"
+            "retainCancellationExplanation/retainCancellationExplanation"
           ],
           "exports": [
             "copyRunObservationFailure",
@@ -12736,27 +12152,6 @@
           "async": false
         },
         {
-          "name": "createSubmissionOperations/submit/submit",
-          "parameters": [
-            "kind",
-            "input",
-            "options",
-            "sourceProducer"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSubmissionOperations/submitIntent/submitIntent",
-          "parameters": [
-            "kind",
-            "input",
-            "options",
-            "sourceProducer",
-            "requestName"
-          ],
-          "async": false
-        },
-        {
           "name": "createSubmissionOperations/submitIntent/submitIntent/captureSnapshot/captureSnapshot",
           "parameters": [
             "value",
@@ -12777,26 +12172,6 @@
           "async": true
         },
         {
-          "name": "createSubmissionOperations/submitSource/submitSource",
-          "parameters": [
-            "text",
-            "options",
-            "sourceProducer"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSubmissionOperations/withSourceProducer/withSourceProducer",
-          "parameters": [
-            "kind",
-            "originalInput",
-            "originalOptions",
-            "run",
-            "acquire"
-          ],
-          "async": false
-        },
-        {
           "name": "createSubmissionOperations/withSourceProducer/withSourceProducer/failed/failed",
           "parameters": [],
           "async": false
@@ -12804,15 +12179,6 @@
         {
           "name": "createSubmissionOperations/withSourceProducer/withSourceProducer/failed/failed#2",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish",
-          "parameters": [
-            "terminal",
-            "primary",
-            "originalResult"
-          ],
           "async": false
         },
         {
@@ -12895,22 +12261,6 @@
           "async": false
         },
         {
-          "name": "publishSnapshot/publishSnapshot",
-          "parameters": [
-            "destination",
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoveryData/recoveryData",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
           "name": "recoveryData/recoveryData/recoveryData",
           "parameters": [
             "key"
@@ -12921,67 +12271,6 @@
           "name": "recoveryData/recoveryData/recoveryData#2",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "requestRecoveryTarget/requestRecoveryTarget",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainRequestCancellationExplanation/retainRequestCancellationExplanation",
-          "parameters": [
-            "result",
-            "context",
-            "observation",
-            "problem"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainRequestLookupExplanation/retainRequestLookupExplanation",
-          "parameters": [
-            "answer",
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainRequestLookupFailure/retainRequestLookupFailure",
-          "parameters": [
-            "error",
-            "context",
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainSubmissionAttemptExplanation/retainSubmissionAttemptExplanation",
-          "parameters": [
-            "result",
-            "attempt",
-            "snapshot"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainSubmissionExplanation/retainSubmissionExplanation",
-          "parameters": [
-            "result",
-            "outcome",
-            "context"
-          ],
-          "async": false
-        },
-        {
-          "name": "retainSubmissionLookupFailure/retainSubmissionLookupFailure",
-          "parameters": [
-            "cause",
-            "context",
-            "observation"
           ],
           "async": false
         },
@@ -12998,13 +12287,6 @@
           "parameters": [
             "context",
             "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "uninterpretableRequestCancellation/uninterpretableRequestCancellation",
-          "parameters": [
-            "context"
           ],
           "async": false
         }
@@ -13031,8 +12313,7 @@
             "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission",
             "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission",
             "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission#2",
-            "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission",
-            "createSubmissionOperations/submitSource/submitSource"
+            "createSubmissionOperations/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission/captureQueryAdmission"
           ],
           "exports": [],
           "attributes": {
@@ -13142,13 +12423,9 @@
             "createSubmissionOperations/retainQueryResult/retainQueryResult",
             "createSubmissionOperations/startSource/startSource",
             "createSubmissionOperations/startSource/startSource/startSource",
-            "createSubmissionOperations/submit/submit",
-            "createSubmissionOperations/submitIntent/submitIntent",
             "createSubmissionOperations/submitIntent/submitIntent/captureSnapshot/captureSnapshot",
             "createSubmissionOperations/submitIntent/submitIntent/captureSnapshot/captureSnapshot/captureSnapshot",
             "createSubmissionOperations/submitIntent/submitIntent/pending/pending",
-            "createSubmissionOperations/withSourceProducer/withSourceProducer",
-            "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish",
             "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish/retry/retry",
             "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending",
             "createSubmissionOperations/withSourceProducer/withSourceProducer/pending/pending#2",
@@ -13159,19 +12436,10 @@
             "getSubmissionCheckObservation",
             "getSubmissionInput",
             "getSubmissionOutcome",
-            "recoveryData/recoveryData",
             "recoveryData/recoveryData/recoveryData",
             "recoveryData/recoveryData/recoveryData#2",
-            "requestRecoveryTarget/requestRecoveryTarget",
-            "retainRequestCancellationExplanation/retainRequestCancellationExplanation",
-            "retainRequestLookupExplanation/retainRequestLookupExplanation",
-            "retainRequestLookupFailure/retainRequestLookupFailure",
-            "retainSubmissionAttemptExplanation/retainSubmissionAttemptExplanation",
-            "retainSubmissionExplanation/retainSubmissionExplanation",
-            "retainSubmissionLookupFailure/retainSubmissionLookupFailure",
             "submissionNotSent/submissionNotSent",
-            "submissionUnknown/submissionUnknown",
-            "uninterpretableRequestCancellation/uninterpretableRequestCancellation"
+            "submissionUnknown/submissionUnknown"
           ],
           "exports": [
             "RequestHeld",
@@ -13449,8 +12717,7 @@
           "operations": [
             "createSubmissionOperations/withSourceProducer/withSourceProducer/failed/failed",
             "createSubmissionOperations/withSourceProducer/withSourceProducer/failed/failed#2",
-            "matchesPublishedSubmissionSnapshot",
-            "publishSnapshot/publishSnapshot"
+            "matchesPublishedSubmissionSnapshot"
           ],
           "exports": [
             "matchesPublishedSubmissionSnapshot"
@@ -13777,13 +13044,6 @@
           "async": false
         },
         {
-          "name": "isSubmission/isSubmission",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
           "name": "loadLoopbackTransport/loadLoopbackTransport",
           "parameters": [],
           "async": false
@@ -13815,8 +13075,7 @@
             "createTransport/responseValue/responseValue",
             "createTransport/sourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
             "createTransport/sourcePreparation/init:beforeResultRead/init:beforeResultRead",
-            "loadLoopbackTransport/loadLoopbackTransport",
-            "isSubmission/isSubmission"
+            "loadLoopbackTransport/loadLoopbackTransport"
           ],
           "exports": [
             "createTransport",
@@ -14453,23 +13712,9 @@
           "async": false
         },
         {
-          "name": "html/html",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "html/html/html",
           "parameters": [
             "character"
-          ],
-          "async": false
-        },
-        {
-          "name": "safeJson/safeJson",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -14495,9 +13740,7 @@
             "<module>",
             "formatOperationExplanation",
             "formatOperationExplanation/formatOperationExplanation",
-            "html/html",
             "html/html/html",
-            "safeJson/safeJson",
             "safeJson/safeJson/safeJson"
           ],
           "exports": [
@@ -14623,25 +13866,9 @@
       ],
       "operations": [
         {
-          "name": "advice/advice",
-          "parameters": [
-            "facts",
-            "messages"
-          ],
-          "async": false
-        },
-        {
           "name": "getOperationPresentationInfo",
           "parameters": [
             "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "heldRequestExplanation/heldRequestExplanation",
-          "parameters": [
-            "answer",
-            "context"
           ],
           "async": false
         },
@@ -14806,13 +14033,6 @@
             "input"
           ],
           "async": false
-        },
-        {
-          "name": "submissionTarget/submissionTarget",
-          "parameters": [
-            "context"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -14828,9 +14048,7 @@
         {
           "operations": [
             "<module>",
-            "advice/advice",
             "getOperationPresentationInfo",
-            "heldRequestExplanation/heldRequestExplanation",
             "localizeOperation",
             "projectCancellationAttemptExplanation/projectCancellationAttemptExplanation",
             "projectCancellationExplanation/projectCancellationExplanation",
@@ -14849,8 +14067,7 @@
             "projectSubmissionLookupFailure/projectSubmissionLookupFailure",
             "projectSubmissionNotSent/projectSubmissionNotSent",
             "projectUnavailableRunObservation/projectUnavailableRunObservation",
-            "submissionLookupExplanation/submissionLookupExplanation",
-            "submissionTarget/submissionTarget"
+            "submissionLookupExplanation/submissionLookupExplanation"
           ],
           "exports": [
             "getOperationPresentationInfo",
@@ -15195,32 +14412,9 @@
       ],
       "operations": [
         {
-          "name": "collectAfterQuery",
-          "parameters": [
-            "query",
-            "retainResult",
-            "capture",
-            "read"
-          ],
-          "async": false
-        },
-        {
           "name": "collectAfterQuery/collected/collected",
           "parameters": [
             "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "executionError",
-          "parameters": [
-            "ClientError",
-            "retainFailure",
-            "code",
-            "execution",
-            "requestId",
-            "state",
-            "cause"
           ],
           "async": false
         },
@@ -15252,15 +14446,6 @@
           "name": "sourceQuery/capture/capture/capture",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceQuery/collectSelected/collectSelected",
-          "parameters": [
-            "kind",
-            "schemaOrOptions",
-            "options"
           ],
           "async": false
         },
@@ -15394,7 +14579,6 @@
         },
         {
           "operations": [
-            "sourceQuery/collectSelected/collectSelected",
             "sourceQuery/collectSelected/collectSelected/collectSelected",
             "sourceQuery/collectSelected/collectSelected/collectSelected#2"
           ],
@@ -15481,9 +14665,7 @@
         {
           "operations": [
             "<module>",
-            "collectAfterQuery",
             "collectAfterQuery/collected/collected",
-            "executionError",
             "sourceQuery",
             "sourceQuery/query/query",
             "sourceQuery/capture/capture/capture",

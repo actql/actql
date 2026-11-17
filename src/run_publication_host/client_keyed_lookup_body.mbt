@@ -56,6 +56,8 @@ fn keyed_lookup_body_grow(
 fn finish_keyed_lookup_identity_bodies(
   lookup : ClientKeyedLookupInput,
   native_completion? : (String, Int64, Int, Int, Int)? = None,
+  generic_completion? : (String, Int, Int, Int)? = None,
+  defer_catalog? : Bool = false,
 ) -> Result[@execution.SuppliedRelationRead, ClientKeyedRequestIssue] {
   if lookup.identity_receipt is Some(_) {
     if lookup.identity_output is None || lookup.identity_bodies is None {
@@ -63,6 +65,13 @@ fn finish_keyed_lookup_identity_bodies(
     }
     if native_completion is Some(_) && lookup.native_completion is None {
       return Err(Assembly("late_native_completion_purpose"))
+    }
+    if generic_completion is Some(_) &&
+      !(lookup.left.composed is Some(original) &&
+      original.origin is SourceEffectOrigin(parent) &&
+      parent.generic is Some(state) &&
+      state.completed is Some(_)) {
+      return Err(Assembly("late_generic_completion_purpose"))
     }
     return finish_client_keyed_lookup_input(lookup)
   }
@@ -75,7 +84,12 @@ fn finish_keyed_lookup_identity_bodies(
     return Err(Assembly("unavailable_body_purpose"))
   }
   lookup.identifying = true
-  let result = build_keyed_lookup_identity_bodies(lookup, native_completion~)
+  let result = build_keyed_lookup_identity_bodies(
+    lookup,
+    native_completion~,
+    generic_completion~,
+    defer_catalog~,
+  )
   lookup.identifying = false
   match result {
     Err(issue) => {
@@ -90,6 +104,8 @@ fn finish_keyed_lookup_identity_bodies(
 fn build_keyed_lookup_identity_bodies(
   lookup : ClientKeyedLookupInput,
   native_completion? : (String, Int64, Int, Int, Int)? = None,
+  generic_completion? : (String, Int, Int, Int)? = None,
+  defer_catalog? : Bool = false,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard lookup.completed is Some(rows) && lookup.left.composed is Some(original) else {
     return Err(Assembly("body_original_sequence"))
@@ -100,7 +116,7 @@ fn build_keyed_lookup_identity_bodies(
       // then retained output/scan/receipt/body tuple/Some aliases (six records).
       record_headers: 12L,
       reference_slots: 16L,
-      scalar_words: 11L,
+      scalar_words: 12L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -255,7 +271,22 @@ fn build_keyed_lookup_identity_bodies(
   if native_completion is Some((at, now_ms, max_bytes, max_nodes, max_depth)) {
     match
       prepare_native_keyed_lookup_completion(
-        lookup, at, now_ms, max_bytes, max_nodes, max_depth,
+        lookup,
+        at,
+        now_ms,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        defer_catalog~,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  if generic_completion is Some((at, max_bytes, max_nodes, max_depth)) {
+    match
+      prepare_client_effect_keyed_generic_completion(
+        lookup, at, max_bytes, max_nodes, max_depth,
       ) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
@@ -284,6 +315,15 @@ fn build_keyed_lookup_identity_bodies(
 
 ///|
 fn clear_keyed_lookup_identity_bodies(lookup : ClientKeyedLookupInput) -> Unit {
+  if lookup.left.composed is Some(original) &&
+    original.origin is SourceEffectOrigin(parent) &&
+    parent.generic is Some(state) &&
+    physical_equal(state.lookup, lookup) {
+    state.bodies = None
+    state.completed = None
+    state.observed_at = None
+    parent.generic = None
+  }
   for (_, _, history) in lookup.known {
     if history is Some(history) && history._retained_native_page is Some(page) {
       if page.scan is Some(scan) {

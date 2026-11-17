@@ -36,8 +36,9 @@ fn local_journal_body(
 fn NativeLocalAdoptionSession::prepare_journal_file(
   self : NativeLocalAdoptionSession,
   crypto : @crypto.Library,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[(@filesystem.NativeFileOwnership, Bytes), NativeLocalAdoptionIssue] {
-  match self.stage_configuration() {
+  match self.stage_configuration(construction~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }

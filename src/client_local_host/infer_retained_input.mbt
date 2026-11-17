@@ -3,6 +3,7 @@
 /// the completed occurrence but do not prove durable Store custody.
 pub struct ClientInferRetainedInputExport {
   input : @execution.CompletedOutput
+  facts : @execution.RetainedReadmissionFacts
   evidence : @execution.RetainedCompletionEvidence
   binding : String
   descriptor_wire : String
@@ -120,13 +121,31 @@ pub fn export_client_infer_retained_input(
   input : @execution.CompletedOutput,
   binding : String,
 ) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue] {
+  export_client_infer_retained_input_owned(input, binding, 100)
+}
+
+///|
+fn export_client_infer_retained_input_owned(
+  input : @execution.CompletedOutput,
+  binding : String,
+  max_rows : Int,
+  facts? : @execution.RetainedReadmissionFacts? = None,
+) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue] {
   if binding.is_empty() || binding.length() > 262144 {
     return Err(BindingMismatch)
+  }
+  let facts = match facts {
+    Some(value) => value
+    None =>
+      match @execution.retained_input_facts(input) {
+        Ok(value) => value
+        Err(_) => return Err(BindingMismatch)
+      }
   }
   let stream = match
     @execution.prepare_completed_output_export(
       input,
-      100,
+      max_rows,
       source_capture_values(),
       source_capture_wire(),
       1000000,
@@ -172,17 +191,19 @@ pub fn export_client_infer_retained_input(
     }
   }
   let evidence = match
-    @execution.retain_completion_evidence(retained, 100, 100) {
+    @execution.retain_completion_evidence_with_facts(retained, facts) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  guard infer_retained_descriptor_wire(
-      @execution.retained_completion_descriptor(evidence),
-    )
-    is Some(descriptor_wire) else {
+  let descriptor = match
+    @execution.retained_completion_descriptor_with_facts(evidence, facts) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  guard infer_retained_descriptor_wire(descriptor) is Some(descriptor_wire) else {
     return Err(InvalidDescriptor)
   }
-  Ok({ input, evidence, binding, descriptor_wire, rows, })
+  Ok({ input, facts, evidence, binding, descriptor_wire, rows, })
 }
 
 ///|
@@ -193,6 +214,13 @@ pub fn client_infer_retained_input_export_matches(
   physical_equal(value.input, input) &&
   @execution.completed_output_available(input) &&
   @execution.retained_completion_matches_output(value.evidence, input)
+}
+
+///|
+pub fn client_infer_retained_input_export_facts(
+  value : ClientInferRetainedInputExport,
+) -> @execution.RetainedReadmissionFacts {
+  value.facts
 }
 
 ///|
@@ -317,6 +345,7 @@ fn restore_client_infer_retained_input(
   supplied_rows : Array[String],
   custody_available : () -> Bool,
   reference_issuer? : @admitted.ReferenceIssuer,
+  original_read? : ClientInferOriginalInputRead? = None,
 ) -> Result[ClientInferRetainedInput, ClientInferRetainedInputIssue] {
   let owner = @execution.generated_sequence_owner(sequence)
   guard @lower.node_at(@lower.bound_preparation(owner), infer_step)
@@ -334,6 +363,7 @@ fn restore_client_infer_retained_input(
     supplied_rows,
     custody_available,
     reference_issuer?,
+    original_read~,
   )
 }
 
@@ -352,7 +382,32 @@ fn restore_client_retained_completion(
   reference_issuer? : @admitted.ReferenceIssuer,
   value_work_limit? : Int? = None,
   report_work? : (Int64) -> Unit = fn(_) { () },
+  original_read? : ClientInferOriginalInputRead? = None,
 ) -> Result[ClientInferRetainedInput, ClientInferRetainedInputIssue] {
+  if original_read is Some(original) {
+    // The fixed descriptor codec is paid before its first JSON/tree decoder.
+    // Its existing128-node/8-depth grammar remains bounded on malformed data.
+    let bytes = 3L * descriptor_wire.length().to_int64()
+    guard bytes > 0L &&
+      bytes <= 24576L &&
+      program_artifact_parse_layout((bytes.to_int(), 128, 8)) is Some(metadata) &&
+      @execution.compose_preparation_representation([
+        metadata.value,
+        metadata.temporary,
+      ])
+      is Some(metadata) &&
+      @execution.preparation_representation_cost(metadata) is Some(bytes) &&
+      @execution.checked_preparation_add_product(
+        bytes,
+        @execution.retained_readmission_facts_control_bytes(),
+        1L,
+      )
+      is Some(bytes) &&
+      @execution.execution_capacity(bytes, bytes) is Some(next) &&
+      grow_original_infer_retained_input(original, next) else {
+      return Err(CustodyUnavailable)
+    }
+  }
   let descriptor = match
     read_client_infer_retained_input_descriptor(descriptor_wire) {
     Ok(value) => value
@@ -361,13 +416,23 @@ fn restore_client_retained_completion(
   if expected_binding.is_empty() ||
     expected_binding.length() > 262144 ||
     expected_binding != saved_binding ||
-    supplied_rows.length() > 100 ||
+    (original_read is None && supplied_rows.length() > 100) ||
     descriptor.rows != supplied_rows.length() ||
     descriptor.output_step != output_step {
     return Err(BindingMismatch)
   }
   if !custody_available() {
     return Err(CustodyUnavailable)
+  }
+  let facts = match
+    @execution.prepare_retained_readmission_facts(
+      preparation,
+      descriptor,
+      supplied_rows.length(),
+      { producer_inputs: None, schema_columns: None, name_bytes: Some(10000), },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Readmission(issue))
   }
   let values = source_capture_values()
   let values = match value_work_limit {
@@ -379,12 +444,56 @@ fn restore_client_retained_completion(
       { ..values, max_work: Int::min(values.max_work, limit), }
     }
   }
+  let max_rows = match original_read {
+    None => 100
+    Some(original) => {
+      let mut text = 0L
+      for row in supplied_rows {
+        text += row.length().to_int64()
+      }
+      guard text <= 2147483647L &&
+        client_infer_retained_input_facts_capacity(
+          facts,
+          descriptor.bytes,
+          descriptor.nodes,
+          descriptor.depth,
+          text.to_int(),
+        )
+        is Some(next) &&
+        grow_original_infer_retained_input(original, next) &&
+        custody_available() else {
+        return Err(CustodyUnavailable)
+      }
+      @execution.retained_readmission_rows(facts)
+    }
+  }
+  let decode = if original_read is Some(_) {
+    // Invalid descriptor/row pairs cannot construct beyond the same admitted
+    // geometry before their existing content-identity refusal.
+    {
+      ..source_capture_decode(),
+      max_bytes: Int::min(
+        source_capture_decode().max_bytes,
+        Int::max(1, descriptor.bytes),
+      ),
+      max_nodes: Int::min(
+        source_capture_decode().max_nodes,
+        Int::max(1, descriptor.nodes),
+      ),
+      max_text_bytes: Int::min(
+        source_capture_decode().max_text_bytes,
+        Int::max(1, descriptor.bytes),
+      ),
+    }
+  } else {
+    source_capture_decode()
+  }
   let rows = supplied_rows.copy()
   let reader = match
     @execution.prepare_retained_content_read(
       preparation,
       descriptor,
-      100,
+      max_rows,
       values,
       source_capture_wire(),
       1000000,
@@ -400,7 +509,7 @@ fn restore_client_retained_completion(
     let appended = @execution.append_retained_content_read(
       reader,
       row,
-      source_capture_decode(),
+      decode,
       reference_issuer?,
     )
     report_work(@execution.retained_content_read_cumulative_work(reader))
@@ -427,8 +536,7 @@ fn restore_client_retained_completion(
     @execution.prepare_trusted_retained_readmission(
       preparation,
       descriptor,
-      100,
-      10000,
+      facts,
       fn(proof : @execution.AdmittedOutputStreamReceipt) {
         if available() &&
           physical_equal(proof, receipt) &&
@@ -450,7 +558,7 @@ fn restore_client_retained_completion(
   let importing = match
     @execution.prepare_completed_output_import(
       restored,
-      100,
+      max_rows,
       values,
       source_capture_wire(),
       1000000,
@@ -466,7 +574,7 @@ fn restore_client_retained_completion(
     let appended = @execution.append_completed_output_import_wire(
       importing,
       row,
-      source_capture_decode(),
+      decode,
       reference_issuer?,
     )
     report_work(
@@ -565,6 +673,7 @@ pub fn start_client_restored_composed_infer_input(
   execution : @execution.SequenceExecutionLimits,
   mapping : @execution.InferPreparationLimits,
   reference_issuer? : @admitted.ReferenceIssuer,
+  original_read? : ClientInferOriginalInputRead? = None,
 ) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
   let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
     occurrence,
@@ -595,6 +704,7 @@ pub fn start_client_restored_composed_infer_input(
     custody_available,
     mapping,
     reference_issuer?,
+    original_read~,
   )
 }
 
@@ -609,6 +719,7 @@ fn start_client_restored_infer_input_sequence(
   custody_available : () -> Bool,
   limits : @execution.InferPreparationLimits,
   reference_issuer? : @admitted.ReferenceIssuer,
+  original_read? : ClientInferOriginalInputRead? = None,
 ) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
   let owner = @execution.generated_sequence_owner(sequence)
   guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
@@ -635,6 +746,7 @@ fn start_client_restored_infer_input_sequence(
       rows,
       custody_available,
       reference_issuer?,
+      original_read~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(RetainedInput(issue))

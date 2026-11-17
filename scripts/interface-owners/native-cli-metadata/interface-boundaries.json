@@ -20,24 +20,9 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
           "name": "absolute/absolute/absolute",
           "parameters": [
             "v"
-          ],
-          "async": false
-        },
-        {
-          "name": "exact/exact",
-          "parameters": [
-            "value",
-            "names"
           ],
           "async": false
         },
@@ -63,13 +48,6 @@
           "parameters": [
             "a",
             "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "parts/parts",
-          "parameters": [
-            "path"
           ],
           "async": false
         },
@@ -132,13 +110,6 @@
             "launcherRoot",
             "platformRoot",
             "platform"
-          ],
-          "async": false
-        },
-        {
-          "name": "selectors/selectors",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -274,9 +245,7 @@
           }
         },
         {
-          "operations": [
-            "exact/exact"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -392,9 +361,7 @@
           }
         },
         {
-          "operations": [
-            "parts/parts"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -510,9 +477,7 @@
           }
         },
         {
-          "operations": [
-            "selectors/selectors"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -1001,7 +966,6 @@
         },
         {
           "operations": [
-            "absolute/absolute",
             "absolute/absolute/absolute"
           ],
           "exports": [],

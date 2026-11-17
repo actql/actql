@@ -1,6 +1,7 @@
 import {fileGenerationWordPattern} from './run-publication-contracts.mjs';
 import {nativeFileLookupTransportSchema} from './native-file-lookup-contract.mjs';
-import {verifyNativeFileReadProfile, verifyDeclaredFileReadProfile} from './native-file-read-profile-contract.mjs';
+import {verifyNativeFileReadProfile, verifyDeclaredFileReadProfile,
+  verifyInstalledRowSourceReadProfile} from './native-file-read-profile-contract.mjs';
 import {execFileSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
@@ -14,6 +15,7 @@ import {checkInstallationPublicationStorageSchema} from './installation-publicat
 
 verifyNativeFileReadProfile();
 verifyDeclaredFileReadProfile();
+verifyInstalledRowSourceReadProfile();
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const source = join(root, 'spec/contracts/actql-protocol-schemas.json');
@@ -723,6 +725,9 @@ for (const [name, schema] of [
 ]) {
   registerArtifactSchema(name, {schema, identity: 'self_cid', registry: 'lookup'});
 }
+registerArtifactSchema('installed_row_source_read', {
+  schema: 'installed_row_source_read', identity: 'transport_cid', registry: 'profiles',
+});
 const sharedNodes = shareProtocolRuleConstructors(nodes);
 
 const nodeChunks = [];

@@ -8,6 +8,58 @@ fn ordinary_bounded_input_root() -> String raise {
 }
 
 ///|
+// Actual managed-name filesystem/Reader/UTF8 component. The Boolean port is
+// not an initial Host Read, Resource reservation or installed CLI acceptance.
+test "observed managed metadata retains original bytes and refuses before its payload Reader" {
+  let path = ordinary_bounded_input_root()
+  let root = @filesystem.open_root(path).unwrap()
+  let text = "x".repeat(70000)
+  let writer = root.create_writer("managed-observed-stage", 70000L).unwrap()
+  writer.append(@utf8.encode(text)).unwrap()
+  let generation = writer.seal("managed-observed-input").unwrap()
+  let observed = Ref(0L)
+  let refused = read_bounded_text_file_selected(
+    path,
+    "managed-observed-input",
+    2147483518L,
+    false,
+    Some(128),
+    false,
+    false,
+    prepare_payload=Some(bytes => {
+      observed.val = bytes
+      false
+    }),
+  ).unwrap_err()
+  assert_eq(observed.val, 70000L)
+  assert_true(refused.issue() is PreparationUnavailable)
+  assert_true(refused.reader is None && refused.rejected_reader is None)
+  refused.retry_cleanup().unwrap()
+  assert_eq(
+    root.inspect_generation("managed-observed-input").unwrap(),
+    Some(generation),
+  )
+  let calls = Ref(0)
+  let result = read_bounded_text_file_selected(
+    path,
+    "managed-observed-input",
+    2147483518L,
+    false,
+    Some(128),
+    false,
+    false,
+    prepare_payload=Some(bytes => {
+      calls.val += 1
+      bytes == 70000L
+    }),
+  ).unwrap()
+  assert_eq(result, text)
+  assert_eq(calls.val, 1)
+  writer.cancel().unwrap()
+  root.close().unwrap()
+}
+
+///|
 // Real Native filesystem and diagnostic Root, not an entered Read supplier or
 // ordinary CLI command qualification. Expected UTF-8 comes from this literal.
 test "ordinary bounded text keeps Unicode whitespace and long basename exact" {

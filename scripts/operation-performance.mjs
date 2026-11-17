@@ -13,7 +13,7 @@ export const operationTargets = Object.freeze({
 for (const target of Object.values(operationTargets)) Object.freeze(target);
 // Separate Native profile: adding it must not impose Native samples on every
 // portable Host performance campaign.
-export const nativeApprovalTarget = Object.freeze({samples: 30, p95Ms: 4000, maxMs: 5000});
+export const nativeApprovalTarget = Object.freeze({samples: 30, p95Ms: 2000, maxMs: 3000});
 export const historySizes = Object.freeze([1, 10, 100, 1000]);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 const digest = value => typeof value === 'string' && /^[a-f0-9]{64}$/u.test(value);

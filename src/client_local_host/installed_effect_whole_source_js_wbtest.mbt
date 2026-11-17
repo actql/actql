@@ -132,6 +132,30 @@ test "Effect whole inputs keep distinct Source slots and execute their original 
     .unwrap()
     .unwrap()
   let dag = @strategy.captured_effect_run_dag(captured)
+  let first_read = @query.captured_source_original_input_read(sources[0]).unwrap()
+  let fresh_read = @query.captured_source_original_input_read(sources[0]).unwrap()
+  assert_false(physical_equal(first_read, fresh_read))
+  assert_true(
+    @execution.supplied_relation_read_same_binding(first_read, fresh_read),
+  )
+  assert_true(
+    @strategy.captured_source_input_original_matches(dag, 0, 0, sources[0]),
+  )
+  assert_true(
+    @strategy.captured_source_input_original_matches(dag, 0, 1, sources[1]),
+  )
+  assert_false(
+    @strategy.captured_source_input_original_matches(dag, 0, 0, sources[1]),
+  )
+  assert_false(
+    @strategy.captured_source_input_original_matches(dag, 0, 1, sources[0]),
+  )
+  assert_false(
+    @strategy.captured_source_input_original_matches(dag, 1, 0, sources[0]),
+  )
+  assert_false(
+    @strategy.captured_source_input_original_matches(dag, 0, 2, sources[0]),
+  )
   assert_false(@strategy.captured_task_completed(dag, 0))
   assert_eq(@strategy.next_captured_task(dag), Some(0))
   for capture in rows {
@@ -291,6 +315,9 @@ test "Effect whole inputs keep distinct Source slots and execute their original 
     @strategy.source_input_dag_retains_completed_read_at(dag, source_read, 0),
   )
   assert_false(stop_on_output_check.val)
+  assert_false(
+    @strategy.captured_source_input_original_matches(dag, 0, 0, sources[0]),
+  )
   output_live.val = false
   for original in operations {
     (original.close)()
@@ -958,4 +985,236 @@ test "managed Effect public Result keeps its captured pin after a refused bridge
 #cfg(target="js")
 test "whole Source Effect provenance keeps original supplied inputs outside completed Source slots" {
   retained_effect_whole_source_export_control(verify_provenance=true)
+}
+
+///|
+// Actual Effect Plan and original RowRun; physical Source and Compute-provider
+// ports remain explicit. Ordinary Table A/B/C is a separate qualification.
+#cfg(target="js")
+fn effect_whole_selected_capture_bytes_fixture(
+  selected_bytes : Int,
+  max_pages? : Int = 3,
+  explicit_small? : Bool = false,
+  initial_only? : Bool = false,
+) -> Unit raise {
+  let declaration = @row_source_host.generate_row_declaration(
+    "operation-source",
+    "fixture",
+    "fixture/0.1",
+    [
+      {
+        resource: "r",
+        resource_kind: "record",
+        fields: [
+          { name: "id", value_type: "number", nullable: false, },
+          { name: "document", value_type: "string", nullable: false, },
+        ],
+      },
+    ],
+    {
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_views: 1,
+      max_fields: 2,
+    },
+  ).unwrap()
+  let plan = effect_operation_source_plan_fixture(
+    whole_inputs=true,
+    source_declaration=Some(declaration),
+    host_artifact_bytes=Some(1000),
+    whole_policy=if explicit_small {
+      Some(installed_row_input_policy(16, selected_bytes, 400000, 32, 16))
+    } else {
+      None
+    },
+    whole_policy_for=if explicit_small {
+      None
+    } else {
+      Some(_ => {
+        installed_source_row_input_policy(
+          max_pages, 16, selected_bytes, 400000, 32, 16,
+        ).unwrap()
+      })
+    },
+    runtime_admission=true,
+  )
+  let selected = prepared_installed_effect_managed_requirements(plan)
+  if initial_only {
+    selected[4] += 10L
+    selected[5] += 10L
+  } else {
+    // The initial quote funds controls, not future received page DATA. This
+    // positive policy fixture selects a finite parent with page-growth room;
+    // the separate initial-only case retains the genuine memory refusal.
+    // No production policy or page/capture limit changes with this selection.
+    assert_true(selected[4] + 10L <= 536870912L)
+    assert_true(selected[5] + 10L <= 536870912L)
+    selected[4] = 536870912L
+    selected[5] = 536870912L
+  }
+  let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
+    plan, selected,
+  )
+  assert_eq(@resources.ledger_limits(ledger).retained_bytes, selected[4])
+  assert_eq(@resources.ledger_limits(ledger).execution_bytes, selected[5])
+  let output_policy = installed_source_listing_policy(plan.graph)
+  assert_eq(
+    @capacity.ceiling_value(
+      @capacity.ceiling(output_policy, "max_artifact_bytes").unwrap(),
+    ),
+    1000L,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  let (read, original, acquisition, selected) = begin_installed_effect_managed_whole_source_read(
+    owner,
+    plan.prepared,
+    plan.request,
+    declaration,
+    0,
+  ).unwrap()
+  assert_true(physical_equal(original, selected.original))
+  let policy = @row_source_host.row_input_acquisition_limits(acquisition)
+  assert_eq(
+    policy.retention.max_text_bytes,
+    if explicit_small {
+      500000
+    } else {
+      max_pages * selected_bytes
+    },
+  )
+  assert_eq(policy.page.max_bytes, selected_bytes)
+  let initial = @row_source_host.row_input_acquisition_capacity(
+    acquisition,
+    None,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(initial) <
+    policy.retention.max_text_bytes.to_int64(),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(initial) <
+    policy.retention.max_text_bytes.to_int64(),
+  )
+  let run = start_installed_whole_source_read_rows(
+    read,
+    acquisition,
+    "same-original-Effect-Whole-policy",
+    _ => true,
+    selected_bytes.to_int64(),
+    selected_bytes.to_int64(),
+  ).unwrap()
+  @row_source_host.begin_row_run_with_page_limits(run, policy.page, 16).unwrap()
+  let rows = Array::makei(16, index => {
+    "{\"id\":" +
+    index.to_string() +
+    ",\"document\":\"" +
+    "x".repeat(49152 + index) +
+    "\"}"
+  })
+  let body = @utf8.encode("[" + rows.join(",") + "]")
+  assert_eq(16 * 49152 + 16 * 15 / 2, 786552)
+  assert_eq(body.length() < policy.page.max_bytes, selected_bytes > 786552)
+  let mut refused = false
+  match @row_source_host.charge_row_run_page(run, body) {
+    Err(Physical(TransferLimit)) if selected_bytes < body.length() =>
+      refused = true
+    Err(_) => fail("unexpected Whole Effect charge refusal")
+    Ok(charged) =>
+      match @row_source_host.accept_charged_row_run_page(run, charged, body) {
+        Ok(count) => assert_eq(count, 16)
+        Err(Source(Capture(CaptureLimit))) if explicit_small => refused = true
+        Err(Physical(RetentionLimit)) if initial_only => refused = true
+        Err(_) => fail("unexpected Whole Effect page refusal")
+      }
+  }
+  let mut ready = false
+  if !refused {
+    @row_source_host.finish_row_run(run).unwrap()
+    @row_source_host.begin_row_capture(run).unwrap()
+    for _ in 0..<10000 {
+      match @row_source_host.advance_row_capture(run, 256) {
+        Ok((done, _)) =>
+          if done {
+            ready = true
+            break
+          }
+        Err(Source(Capture(CaptureLimit))) => {
+          refused = true
+          break
+        }
+        Err(_) => fail("unexpected Whole Effect capture refusal")
+      }
+    }
+  }
+  if explicit_small || selected_bytes < 786552 || initial_only {
+    assert_true(refused)
+    assert_false(ready)
+    assert_true(@row_source_host.capture_row_run(run) is Err(_))
+  } else {
+    assert_true(ready)
+    assert_false(refused)
+    let captured = @row_source_host.row_capture_source(
+      @row_source_host.capture_row_run(run).unwrap(),
+    ).unwrap()
+    assert_eq(@query.captured_source_row_count(captured), Some(16))
+    let original_read = @query.captured_source_original_input_read(captured).unwrap()
+    for index in 0..<16 {
+      let decoded = @json.parse(
+        @execution.supplied_relation_read_row_wire(
+          original_read,
+          index,
+          policy.wire,
+        ).unwrap(),
+      )
+      guard decoded is Object(row) else {
+        fail("original Whole Effect row wire")
+      }
+      assert_eq(row["document"], Json::string("x".repeat(49152 + index)))
+      assert_eq(row["id"], Json::number(index.to_double()))
+    }
+  }
+  let mut retired = false
+  for _ in 0..<10000 {
+    match retire_installed_source_read(read) {
+      Ok(_) => {
+        retired = true
+        break
+      }
+      Err(CleanupPending) => ()
+      Err(_) => fail("Whole Effect Source cleanup")
+    }
+  }
+  assert_true(retired)
+  retire_installed_managed_run(owner).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.live_reservations, 0)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+}
+
+///|
+#cfg(target="js")
+test "Effect Whole Source captures 786552 text bytes from its exact selected Host policy" {
+  effect_whole_selected_capture_bytes_fixture(4194304)
+}
+
+///|
+#cfg(target="js")
+test "Effect Whole Source preserves selected and explicit small byte refusal and cleanup" {
+  effect_whole_selected_capture_bytes_fixture(500000, max_pages=1)
+  effect_whole_selected_capture_bytes_fixture(4194304, explicit_small=true)
+}
+
+///|
+#cfg(target="js")
+test "Effect Whole Source refuses actual page growth beyond its original parent memory" {
+  effect_whole_selected_capture_bytes_fixture(4194304, initial_only=true)
 }

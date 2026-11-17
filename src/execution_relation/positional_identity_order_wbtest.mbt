@@ -51,7 +51,7 @@ test "canonical positional identity compares numeric component order without adm
     }
     assert_true(found)
     assert_eq(workspace.live, 2)
-    assert_true(state.comparison.tree is None)
+    assert_true(state.comparison.tree is NoRowComparison)
   }
   assert_true(
     stable_order_indices(
@@ -77,18 +77,20 @@ test "canonical positional comparison abandons its exact cursor and rejects malf
     positional_at=_ => 12,
   )
   for _ in 0..<100 {
-    if state.comparison.tree is Some(_) {
+    if state.comparison.tree is TreeRowComparison(_) {
       break
     }
     assert_true(advance_stable_order(state) is Ok(None))
   }
-  let tree = state.comparison.tree.unwrap()
+  guard state.comparison.tree is TreeRowComparison(tree) else {
+    fail("expected recursive comparison")
+  }
   let work = control.remaining
   close_stable_order(state)
   close_stable_order(state)
   assert_true(tree.closed)
   assert_true(tree.frames.is_empty())
-  assert_true(state.comparison.tree is None)
+  assert_true(state.comparison.tree is NoRowComparison)
   assert_eq(workspace.live, 3)
   assert_eq(control.remaining, work)
   for

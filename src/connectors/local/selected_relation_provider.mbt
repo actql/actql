@@ -29,12 +29,128 @@ fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
 }
 
 ///|
-// These evaluator leaves return an existing input/prior value or capture an
-// immutable admitted literal, including checked property selection rooted in
-// an input/prior slot. They build no text/container forest. Keep the
-// complete fragment/traversal workspace and fund persistent output on the
-// original bounded row budget before CommitOutputRow transfers it.
+// A literal seed and these existing bounded row children never construct a
+// legacy sequence table. Nullable scalar bindings use the same charged presence
+// path; their complete child workspace remains prepaid. This is only a scratch
+// lifetime proof, not borrowed-output DATA or permission to defer final retention.
+fn selected_literal_binding_chain(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  let count = @execution.generated_sequence_step_count(sequence)
+  guard count > 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.ValuesStep(_)) else {
+    return false
+  }
+  let prepared = @lower.bound_preparation(
+    @execution.generated_sequence_owner(sequence),
+  )
+  guard @execution.generated_sequence_step_index_at(sequence, 0).bind(step => {
+      @lower.node_at(prepared, step)
+    })
+    is Some(seed) &&
+    @lower.node_input_count(seed) == 0 &&
+    @lower.node_values_literal_text_bytes(seed) is Some(_) else {
+    return false
+  }
+  for index in 0..<count {
+    guard @execution.generated_sequence_step_index_at(sequence, index).bind(step => {
+        @lower.preparation_schema_at(prepared, @pipeline.Step(step))
+      })
+      is Some(output) else {
+      return false
+    }
+    for field in 0..<@schema.field_count(output) {
+      match @schema.field_at(output, field).unwrap().contract.shape {
+        @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+        _ => return false
+      }
+    }
+    if index == 0 {
+      continue
+    }
+    guard @execution.generated_sequence_step_at(sequence, index)
+      is Some(@lower.RowStep(kernel)) &&
+      selected_binding_rows_supported(kernel) else {
+      return false
+    }
+    let input = @lower.kernel_input_schema(kernel)
+    for field in 0..<@schema.field_count(input) {
+      match @schema.field_at(input, field).unwrap().contract.shape {
+        @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+        _ => return false
+      }
+    }
+  }
+  true
+}
+
+///|
+// A literal seed, bounded UNPIVOT, and the existing bounded row children build
+// no legacy sequence table. UNPIVOT rechecks original cells and immutable
+// prepared labels, then funds the complete row before transfer. This proves
+// only serial scratch lifetime: every child's complete workspace and the full
+// retained output remain prepaid, including newly evaluated Text bindings.
+fn selected_literal_unpivot_chain(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  let count = @execution.generated_sequence_step_count(sequence)
+  guard count > 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.ValuesStep(_)) else {
+    return false
+  }
+  let prepared = @lower.bound_preparation(
+    @execution.generated_sequence_owner(sequence),
+  )
+  guard @execution.generated_sequence_step_index_at(sequence, 0).bind(step => {
+      @lower.node_at(prepared, step)
+    })
+    is Some(seed) &&
+    @lower.node_input_count(seed) == 0 &&
+    @lower.node_values_literal_text_bytes(seed) is Some(_) else {
+    return false
+  }
+  let mut unpivot = false
+  for index in 1..<count {
+    guard @execution.generated_sequence_step_at(sequence, index)
+      is Some(@lower.RowStep(kernel)) else {
+      return false
+    }
+    if @lower.kernel_unpivot_outputs(kernel) is Some(_) {
+      unpivot = true
+    } else if !selected_binding_rows_supported(kernel) {
+      return false
+    }
+    for
+      schema in [
+        @lower.kernel_input_schema(kernel),
+        @lower.kernel_output_schema(kernel),
+      ] {
+      if !@schema.all_fields_required(schema) {
+        return false
+      }
+      for field in 0..<@schema.field_count(schema) {
+        match @schema.field_at(schema, field).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+          _ => return false
+        }
+      }
+    }
+  }
+  unpivot
+}
+
+///|
+// These evaluator leaves borrow an input/prior value or admitted literal,
+// including checked property selection rooted in an input/prior slot. Inline
+// Number/Boolean results likewise build no persistent text/container forest.
+// Keep the complete fragment/traversal workspace and fund persistent output on
+// the original bounded row budget before CommitOutputRow transfers it.
 fn selected_binding_outputs_borrowed(kernel : @lower.PreparedKernel) -> Bool {
+  if @execution.bounded_binding_alias_node_count(kernel) is Some(_) {
+    return true
+  }
   guard (
       @lower.kernel_body(kernel) is @lower.SnapshotMap(_) ||
       @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
@@ -47,6 +163,14 @@ fn selected_binding_outputs_borrowed(kernel : @lower.PreparedKernel) -> Bool {
   for index in 0..<@lower.bindings_count(bindings) {
     guard @lower.binding_at(bindings, index) is Some((_, expression)) else {
       return false
+    }
+    // An inline Number/Boolean result builds no persistent value forest.
+    // Keep the COMPLETE original Fragment scratch for every intermediate,
+    // including dormant Text/container children. Only accepted output DATA
+    // is deferred to this same bounded row's before-commit growth owner.
+    match @lower.expression_contract(expression).shape {
+      @contract.Number | @contract.Boolean => continue
+      _ => ()
     }
     let mut leaf = expression
     let mut property = false
@@ -373,9 +497,13 @@ fn drain_relation_chain_inputs(
 ///|
 /// These bounded Relation kernels transfer an accepted completion independently
 /// of their execution scratch. Their existing cleanup preserves that output.
-/// Family providers retain their original conservative lifecycle and capacity.
+/// A family joins only with its exact bounded-recipe receipt; other families
+/// retain their original conservative lifecycle and capacity.
 fn relation_chain_reclaimed_prefix(
   sequence : @execution.GeneratedSequence,
+  limits : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  family : Array[ManagedProvider],
 ) -> Int {
   for index in 0..<@execution.generated_sequence_step_count(sequence) {
     match @execution.generated_sequence_step_at(sequence, index) {
@@ -397,13 +525,27 @@ fn relation_chain_reclaimed_prefix(
           !(@lower.kernel_body(kernel) is @lower.Groups(_)) &&
           !(@lower.kernel_body(kernel) is @lower.CountGroups(_)) &&
           !(@lower.kernel_body(kernel) is @lower.AnalyticRows(_)) &&
-          !(@execution.generated_sequence_step_count(sequence) == 1 &&
-          @lower.kernel_pivot(kernel) is Some(_)) &&
+          // PIVOT uses the same accepted bounded-group output buffer. Its
+          // cleanup releases private scratch without revoking that output.
+          !(@lower.kernel_pivot(kernel) is Some(_)) &&
           !(@lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _)) &&
           !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {
           return index
         }
-      _ => return index
+      _ => {
+        guard @execution.generated_sequence_step_index_at(sequence, index)
+          is Some(step) &&
+          @execution.select_generated_sequence_step(sequence, step)
+          is Some(selected) &&
+          bounded_relation_step_provider(selected, limits, measurement, family~)
+          is Some(provider) &&
+          managed_provider_bounded_relation_capacity(
+            provider, selected, limits, measurement,
+          )
+          is Some(_) else {
+          return index
+        }
+      }
     }
   }
   @execution.generated_sequence_step_count(sequence)
@@ -437,25 +579,47 @@ fn bounded_relation_chain_capacity(
   if count < 2 {
     return Some(base)
   }
-  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)
+  let reclaimed_prefix = relation_chain_reclaimed_prefix(
+    sequence, limits, measurement, family,
+  )
+  let trusted_string_chain = reclaimed_prefix == count &&
+    @execution.bounded_literal_string_group_chain(sequence)
   let mut retained_children = 0L
   let mut scratch = 0L
   let mut prefix_peak = 0L
+  let mut coheld_prefix_peak = 0L
+  let mut bounded_prefix = false
   for index in 0..<count {
     guard @execution.generated_sequence_step_index_at(sequence, index)
       is Some(step) &&
       @execution.select_generated_sequence_step(sequence, step)
       is Some(selected) &&
       bounded_relation_step_provider(selected, limits, measurement, family~)
-      is Some(provider) &&
-      managed_provider_capacity(provider, selected) is Some(child) else {
+      is Some(provider) else {
       return None
     }
-    if retained_children > 9223372036854775807L - child.retained_bytes {
-      return None
+    let bounded = managed_provider_bounded_relation_capacity(
+      provider, selected, limits, measurement,
+    )
+    let child = match bounded {
+      Some(value) => value
+      None =>
+        match managed_provider_capacity(provider, selected) {
+          Some(value) => value
+          None => return None
+        }
     }
-    retained_children += child.retained_bytes
     if index < reclaimed_prefix {
+      guard @execution.checked_preparation_add_product(
+          retained_children,
+          child.execution_bytes,
+          1L,
+        )
+        is Some(peak) else {
+        return None
+      }
+      coheld_prefix_peak = Int64::max(coheld_prefix_peak, peak)
+      bounded_prefix = bounded_prefix || bounded is Some(_)
       prefix_peak = Int64::max(prefix_peak, child.execution_bytes)
     } else {
       if scratch > 9223372036854775807L - child.execution_bytes {
@@ -463,20 +627,45 @@ fn bounded_relation_chain_capacity(
       }
       scratch += child.execution_bytes
     }
+    if retained_children > 9223372036854775807L - child.retained_bytes {
+      return None
+    }
+    retained_children += child.retained_bytes
   }
-  // Every audited prefix child confirms cleanup before the next child starts.
-  // Family/unaudited children retain their original conservative overlap from
-  // the first such child onward; accepted outputs remain retained throughout.
-  scratch = Int64::max(prefix_peak, scratch)
-  if retained_children > 9223372036854775807L - scratch {
-    return None
+  // An actual bounded family receipt or this exact built-in StringAgg chain
+  // joins the existing ACK-qualified
+  // serial prefix. Each current child coholds earlier accepted outputs and
+  // its COMPLETE E; future outputs do not exist yet. Unknown suffixes keep
+  // all their old output holding and complete execution overlap.
+  let live_children = if bounded_prefix || trusted_string_chain {
+    guard @execution.checked_preparation_add_product(
+        retained_children, scratch, 1L,
+      )
+      is Some(suffix) else {
+      return None
+    }
+    Int64::max(coheld_prefix_peak, suffix)
+  } else {
+    // Existing unprofiled families and generic chains retain their original
+    // conservative composition, independent of the new optional recipe.
+    scratch = Int64::max(prefix_peak, scratch)
+    guard @execution.checked_preparation_add_product(
+        retained_children, scratch, 1L,
+      )
+      is Some(live) else {
+      return None
+    }
+    live
   }
-  let live_children = retained_children + scratch
   let handles = count.to_int64() * 256L
   // One input-selection cursor and one common read cursor may coexist.
   // Their mapping arrays are the same receiving views retained by the child;
   // reserve two additional fixed metadata-handle envelopes before execution.
-  let preparation = if count > 1 { 512L } else { 0L }
+  let preparation = if count > 1 {
+    512L + local_provider_selection_recipe_field_bytes
+  } else {
+    0L
+  }
   if handles > 9223372036854775807L - preparation ||
     live_children > 9223372036854775807L - handles - preparation {
     return None
@@ -607,7 +796,9 @@ fn bounded_relation_chain_execution_state(
   let terminal = Ref(false)
   let reclaimed = Ref(false)
   let cleanup_index = Ref(-1)
-  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)
+  let reclaimed_prefix = relation_chain_reclaimed_prefix(
+    sequence, execution, measurement, family,
+  )
   let start_next = fn(
     next_inputs : Array[ManagedProviderInput],
   ) -> Result[Unit, @connector.FixedComputeIssue] {
@@ -654,6 +845,49 @@ fn bounded_relation_chain_execution_state(
           return Ok(managed_provider_stopped_poll(0L, 0L))
         }
         if state.pending {
+          // Only an exact stopped child with a finite private-memory cursor
+          // may continue cleanup internally. External/unknown custody keeps
+          // its explicit pause; this never fabricates a cleanup acknowledgement.
+          let finite = if state.reclaiming {
+            state.current
+            .map(managed_provider_cleanup_continuation)
+            .unwrap_or(-1L)
+          } else {
+            -1L
+          }
+          if finite >= 0L {
+            if used.val >= execution.max_work.to_int64() {
+              terminal.val = true
+              return Ok(
+                managed_provider_failed(
+                  @connector.Execution(@execution.InputLimit),
+                  0L,
+                  0L,
+                ),
+              )
+            }
+            used.val += 1L
+            let child = state.current.unwrap()
+            match reclaim_relation_chain_child(state) {
+              Err(issue) => {
+                terminal.val = true
+                return Ok(managed_provider_failed(issue, 0L, 1L))
+              }
+              Ok(false) =>
+                if managed_provider_cleanup_continuation(child) <= finite {
+                  terminal.val = true
+                  return Ok(
+                    managed_provider_failed(
+                      @connector.Execution(@execution.InputLimit),
+                      0L,
+                      1L,
+                    ),
+                  )
+                }
+              Ok(true) => ()
+            }
+            return Ok(managed_provider_continue(0L, 1L))
+          }
           match reclaim_relation_chain_child(state) {
             Ok(true) => ()
             Ok(false) => return Ok(managed_provider_waiting(0L, 0L))
@@ -1134,15 +1368,17 @@ fn selected_relation_provider(
 }
 
 ///|
-// Mirror the selected INNER JOIN constructor boundary, not a whole-schema
-// permission: carried DATA is borrowed, comparisons use only immediate keys.
+// Mirror the selected INNER and flat numeric-key LEFT JOIN constructors.
+// The latter borrows checked cells or null-padding; recursive/presence and
+// other outer recipes keep their full construction envelope.
 fn selected_join_borrows_carried_values(
   kernel : @lower.PreparedJoinKernel,
 ) -> Bool {
   let owner = @lower.bound_preparation(@lower.join_kernel_owner(kernel))
   let step = @lower.join_kernel_step(kernel)
   let profile = @lower.join_kernel_profile(kernel)
-  guard @lower.inner_join_kind(profile) == @join.Inner &&
+  let flat_left = @lower.inner_join_kind(profile) == @join.Left
+  guard (@lower.inner_join_kind(profile) == @join.Inner || flat_left) &&
     @lower.inner_join_key_count(profile) > 0 &&
     @lower.node_at(owner, step) is Some(node) &&
     @lower.node_input_count(node) == 2 &&
@@ -1152,6 +1388,15 @@ fn selected_join_borrows_carried_values(
     Some(true) else {
     return false
   }
+  if flat_left {
+    let output = @lower.preparation_schema_at(owner, @pipeline.Step(step)).unwrap()
+    for field in 0..<@schema.field_count(output) {
+      match @schema.field_at(output, field).unwrap().contract.shape {
+        @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+        _ => return false
+      }
+    }
+  }
   for port in 0..<2 {
     guard @lower.node_input_target(node, port).bind(target => {
         @lower.preparation_schema_at(owner, target)
@@ -1159,6 +1404,14 @@ fn selected_join_borrows_carried_values(
       is Some(schema) &&
       @schema.all_fields_required(schema) else {
       return false
+    }
+    if flat_left {
+      for field in 0..<@schema.field_count(schema) {
+        match @schema.field_at(schema, field).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+          _ => return false
+        }
+      }
     }
     for index in 0..<@lower.inner_join_key_count(profile) {
       guard @lower.inner_join_key_at(profile, index) is Some((left, right)) &&
@@ -1168,6 +1421,7 @@ fn selected_join_borrows_carried_values(
       }
       match contract.shape {
         @contract.Number | @contract.Boolean => ()
+        @contract.Text(_) => if flat_left || contract.nullable { return false }
         _ => return false
       }
     }

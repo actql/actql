@@ -18,6 +18,29 @@ struct LocalDispatchPreparation {
 }
 
 ///|
+/// Exact visits of the ready-input graph scan. Each selected edge reuses its
+/// original checked position for input binding, avoiding a new graph walk per
+/// input. This pure extent grants no read and constructs no producer array.
+pub fn local_dispatch_preparation_input_scan_work(
+  original : LocalDispatchPreparation,
+  task : Int,
+) -> Int? {
+  let slot = task - @strategy.graph_captured_prefix(original.graph)
+  guard original.input_counts.get(slot) is Some(inputs) && inputs >= 0 else {
+    return None
+  }
+  if inputs == 0 {
+    return Some(0)
+  }
+  let visits = @strategy.graph_data_count(original.graph).to_int64()
+  if visits < 0L || visits > 2147483647L {
+    None
+  } else {
+    Some(visits.to_int())
+  }
+}
+
+///|
 /// Select the actual installed physical steps/prefixes before opening a Run.
 /// The caller retains its existing preparation funding and admission duties.
 /// Capacity accessors quote the same module later used by the bound driver.
@@ -114,7 +137,18 @@ pub fn prepare_local_dispatch_plan(
     }
   }
   let capacities = Array::makei(physical_sequences.length(), index => {
-    @local.local_module_capacity(implementation, index)
+    // The same selected default constructor funds variable output before
+    // commit on this Task. Retain its actual startup quote for the offer,
+    // rather than requiring the unrelated full future DATA maximum first.
+    match
+      @local.local_module_metered_output_start_capacity(
+        implementation,
+        index,
+        physical_sequences[index],
+      ) {
+      Some(original) => Some(original)
+      None => @local.local_module_capacity(implementation, index)
+    }
   })
   let original : LocalDispatchPreparation = {
     graph,
@@ -203,7 +237,33 @@ fn local_dispatch_preparation_policies(
   let task_capacity : Array[@strategy.PhysicalEnvelope?] = Array::makei(
     original.capacities.length(),
     slot => {
-      guard original.capacities[slot] is Some(base) &&
+      let startup = @local.local_module_materializing_start_capacity(
+        original.implementation,
+        slot,
+      )
+      let import_bytes = if startup is Some(_) {
+        match inputs {
+          None => Some(0L)
+          Some((limits, _)) =>
+            @local.local_materializing_import_start_capacity(limits)
+        }
+      } else {
+        import_bytes
+      }
+      let export_bytes = if startup is Some(_) {
+        match output {
+          None => Some(0L)
+          Some((limits, _)) =>
+            @local.local_materializing_export_start_capacity(limits)
+        }
+      } else {
+        export_bytes
+      }
+      let base = match startup {
+        Some((value, _)) => Some(value)
+        None => original.capacities[slot]
+      }
+      guard base is Some(base) &&
         import_bytes is Some(imported) &&
         export_bytes is Some(exported) else {
         return None
@@ -220,7 +280,7 @@ fn local_dispatch_preparation_policies(
         exported,
         inputs.map(value => value.0.wire.max_bytes.to_int64()).unwrap_or(0L),
         ports,
-        inputs is Some(_) || output is Some(_),
+        startup is Some(_) || inputs is Some(_) || output is Some(_),
       )
     },
   )
@@ -394,7 +454,6 @@ fn local_retained_input_metadata(
   metadata : LocalManagedMetadataLimits?,
 ) -> LocalManagedMetadataLimits? {
   if @local.local_import_retention_capacity(limits) is None ||
-    limits.row.max_bytes > 16777216 ||
     limits.max_batch_bytes > 16777216 ||
     limits.row.max_depth < 1 ||
     limits.row.max_depth > 64 ||

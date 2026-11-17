@@ -62,7 +62,10 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
   // This fixture intentionally opens without an owned Store. The supported
   // local execution-owner table is conditional on that original ownership and
   // must not be manufactured just to make an unowned schema equal the asset.
-  const selectedSql = support.sql.filter(sql => !sql.startsWith('CREATE TABLE client_local_execution_owners ('));
+  const selectedSql = support.sql.filter(sql => !sql.startsWith('CREATE TABLE client_local_execution_owners (') &&
+    !((sql.startsWith('CREATE TABLE client_submitted_intent_usage (') ||
+      sql.startsWith('CREATE TABLE client_submission_restart_usage (')) &&
+      sql.includes('retained_bytes <= 67108864')));
   assert.deepEqual(actual, [...selectedSql].sort());
   const before = snapshot(directory);
   const restored = openClientRequestJournal(directory, selected);

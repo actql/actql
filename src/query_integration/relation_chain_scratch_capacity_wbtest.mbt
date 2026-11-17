@@ -46,13 +46,22 @@ test "ordinary keyed count chain reserves only one cleaned child scratch envelop
     retained += child.retained_bytes
     scratch = Int64::max(scratch, child.execution_bytes)
   }
-  assert_true(retained + scratch > base.execution_bytes)
   assert_eq(capacity.retained_bytes, base.retained_bytes)
   // Two fixed preparation handles coexist with child and output custody:
   // input selection and the common read cursor, 256 bytes each.
   assert_eq(
     capacity.execution_bytes,
-    retained + scratch + count.to_int64() * 256L + 512L,
+    // The generic sequence's execution quote is not an ordering oracle for
+    // this audited chain. Its persistent output floor and the independently
+    // coheld child outputs/scratch/handles are simultaneous obligations.
+    Int64::max(
+      base.retained_bytes,
+      retained +
+      scratch +
+      count.to_int64() * 256L +
+      512L +
+      capacity_evidence_selection_bytes(),
+    ),
   )
   @strategy.stop_captured_dag(run)
   @mock.close_mock_query_issuer(issuer)

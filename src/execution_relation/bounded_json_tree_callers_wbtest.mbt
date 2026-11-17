@@ -295,7 +295,7 @@ test "bounded JSON DISTINCT retains payloads SQL NULL and JSON null" {
       if comparing && quantum == 1 {
         assert_true(before - execution.state.control.remaining <= 2)
       }
-      if execution.state.comparison.tree is Some(_) {
+      if execution.state.comparison.tree is TreeRowComparison(_) {
         saw_tree = true
       }
       match poll {
@@ -386,7 +386,7 @@ test "bounded JSON DISTINCT stops inside payload Text and cleans up once" {
       advance_bounded_binding_rows(execution, 1).unwrap()
       is BoundedBindingRowsContinue(..),
     )
-    if execution.state.comparison.tree is Some(tree) &&
+    if execution.state.comparison.tree is TreeRowComparison(tree) &&
       tree.frames.last() is Some(TextUnits(_, _, text, _)) &&
       text.phase == 3 &&
       text.offset > 0 {
@@ -415,7 +415,7 @@ test "bounded JSON DISTINCT stops inside payload Text and cleans up once" {
   assert_true(cleanup_bounded_binding_rows(execution).unwrap())
   assert_false(cleanup_bounded_binding_rows(execution).unwrap())
   assert_true(tree.closed && tree.frames.is_empty())
-  assert_true(execution.state.comparison.tree is None)
+  assert_true(execution.state.comparison.tree is NoRowComparison)
   assert_eq(
     (execution.state.control.remaining, execution.state.workspace.live),
     (work, 0),
@@ -466,7 +466,7 @@ test "bounded JSON DISTINCT comparator keeps exact work and cursor limits" {
       assert_eq(workspace.peak, 4)
     } else {
       assert_true(result is Err(Limit))
-      assert_true(execution.state.comparison.tree is Some(_))
+      assert_true(execution.state.comparison.tree is TreeRowComparison(_))
     }
     let remaining = control.remaining
     assert_true(@bounded.request_cancel(engine))
@@ -516,7 +516,7 @@ test "bounded JSON DISTINCT reserves exact whole-row comparison workspace" {
     }
     assert_true(terminal)
     assert_true(cleanup_bounded_binding_rows(execution).unwrap())
-    assert_true(execution.state.comparison.tree is None)
+    assert_true(execution.state.comparison.tree is NoRowComparison)
     assert_eq(execution.state.workspace.live, 0)
     assert_true(producer_read_available(input))
   }

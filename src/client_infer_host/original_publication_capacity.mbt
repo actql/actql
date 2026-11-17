@@ -77,3 +77,53 @@ pub fn release_original_infer_publication_capacity(
     Model(issue)
   })
 }
+
+///|
+/// Closed alias/list construction for the actual retained call inventory.
+/// This is quote DATA over the SAME Model/Scope, never another reservation.
+/// The caller grows its one original publication borrow before constructing
+/// native wrappers, then rechecks this same nominal/current relationship.
+pub fn original_infer_capture_inventory_capacity(
+  active : Execution,
+  capacity : @model.OriginalModelPublicationCapacity,
+) -> Result[(Int, Int64, Int64), Issue] {
+  guard original_infer_publication_owner_current(active) &&
+    active.model is Some(model) &&
+    active.call_scope is Some(scope) &&
+    @model.original_model_publication_capacity_matches_parent(
+      capacity, model, scope,
+    ) &&
+    @model.original_model_publication_capacity_covers(capacity, 0L, 0L) &&
+    active.rows is Some(rows) else {
+    return Err(Model(@model.OutputIdentity))
+  }
+  let count = @relation.prepared_infer_rows_count(rows)
+  let slots = count.to_int64()
+  // Per call: evaluation wrapper and its frozen/reference alternatives,
+  // model-evidence alias, copied alias, Core slot pair and binding aliases.
+  // Original request/outcome Strings and trees remain with their Model owner;
+  // no new parse/normalization is performed merely to obtain this inventory.
+  guard @relation.preparation_array_representation(8L, 6L * slots + 16L, true)
+    is Some(arrays) &&
+    @relation.preparation_representation_cost({
+      record_headers: arrays.record_headers + 4L * slots + 16L,
+      reference_slots: arrays.reference_slots + 12L * slots + 32L,
+      scalar_words: arrays.scalar_words + 4L * slots + 16L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    @relation.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 4L * slots + 16L,
+      scalar_words: 16L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(workspace) &&
+    @relation.checked_preparation_add_product(retained, workspace, 1L)
+    is Some(execution) else {
+    return Err(Model(@model.InvalidLimits))
+  }
+  Ok((count, retained, execution))
+}

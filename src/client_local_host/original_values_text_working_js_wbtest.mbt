@@ -89,14 +89,19 @@ test "original few long Values retain their complete text working demand" {
   assert_eq(plan.execution.rows.output_values.max_text_bytes, text)
   assert_true(plan.measurement.max_bytes >= wire)
   assert_true(plan.imports.wire.max_bytes >= wire)
-  assert_true(plan.imports.row.max_bytes >= Int::min(wire, 16777216))
-  assert_true(plan.imports.row.max_bytes <= 16777216)
+  // The complete logical row uses its selected finite wire/measurement
+  // bounds; the independent physical batch window still stays below16MiB.
+  let actual_row_wire_bytes = 524288 + "{\"id\":0,\"text\":\"\"}".length()
+  assert_true(plan.imports.row.max_bytes >= actual_row_wire_bytes)
+  assert_true(plan.imports.row.max_bytes <= plan.imports.wire.max_bytes)
   assert_true(plan.imports.row.max_text_bytes >= text)
   assert_true(plan.imports.max_batch_bytes >= Int::min(wire, 16777216))
   assert_true(plan.exports.wire.max_bytes >= wire)
   assert_true(plan.exports.max_batch_bytes >= Int::min(wire, 16777216))
   assert_true(plan.exports.max_batch_bytes <= 16777216)
-  assert_eq(plan.max_value_bytes, Int::max(10000, Int::min(wire, 16777216)))
+  assert_true(plan.max_value_bytes >= actual_row_wire_bytes)
+  assert_true(plan.max_value_bytes <= plan.imports.row.max_bytes)
+  assert_true(plan.max_value_bytes <= plan.measurement.max_bytes)
   assert_true(
     client_local_original_values_text_bound(
       plan.sequences,
@@ -215,6 +220,15 @@ test "original few long Values retain their complete text working demand" {
                 "OriginalValuesExecution:ManagedCompletion"
               IdentityExport(_) => "OriginalValuesExecution:IdentityExport"
               CarrierSnapshot(_) => "OriginalValuesExecution:CarrierSnapshot"
+              ExecutionCapacityRefusal(cause, needed, available, policy) =>
+                "OriginalValuesExecution:ExecutionCapacityRefusal:" +
+                @debug.to_string(cause) +
+                ":needed=" +
+                needed.to_string() +
+                ":available=" +
+                available.to_string() +
+                ":policy=" +
+                policy.to_string()
             }
           Estimate(_) => "OriginalValuesExecution:Estimate"
           FinalizationLimit => "OriginalValuesExecution:FinalizationLimit"
@@ -255,8 +269,18 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
   let (environment, publication) = request_query_publication_fixture()
   let document = if parameter {
     "{\"version\":\"actql/0.1\",\"id\":\"bound-text\",\"params\":{\"p\":{\"type\":\"string\"}},\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"as\":\"v\",\"values\":{\"schema\":{\"text\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"text\":{\"$param\":\"p\"}}]}}],\"results\":{\"rows\":{\"from\":\"v\",\"fields\":[\"text\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
+  } else if mode == 11 {
+    original_many_small_text_working_program()
   } else if mode == 2 {
     original_cross_text_working_program()
+  } else if mode == 9 || mode == 10 || mode == 11 {
+    let columns : Array[String] = []
+    for index in 0..<(if mode == 10 { 263 } else { 17 }) {
+      columns.push("t AS f" + index.to_string())
+    }
+    "WITH x AS (SELECT REPEAT('x',64000) AS t) SELECT " +
+    columns.join(",") +
+    " FROM x"
   } else if mode >= 4 {
     "SELECT REPEAT('x', 150000) AS text"
   } else if mode == 3 {
@@ -279,7 +303,7 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
   ).unwrap()
   // Original captured Source plus supplied map: fewer than512 structural
   // values; long Text units do not become nodes in this component's snapshot.
-  let nodes = if mode == 2 { 4096L } else { 512L }
+  let nodes = if mode == 2 || mode == 11 { 4096L } else { 512L }
   reserve_request_snapshot(
     parent,
     input,
@@ -296,7 +320,7 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     input,
     request_document_test_source(
       document,
-      if parameter || mode == 2 {
+      if parameter || mode == 2 || mode == 11 {
         "json"
       } else {
         "sql"
@@ -322,7 +346,7 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  prepare_request_program_module_body(
+  let module_result = prepare_request_program_module_body(
     parent,
     input,
     contracts,
@@ -330,22 +354,102 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
     retained_output=false,
     provider_factory=_ => [],
-  ).unwrap()
+    source_free_max_work=if mode == 9 || mode == 10 {
+      Some(30000000)
+    } else {
+      None
+    },
+  )
+  match module_result {
+    Ok(_) => ()
+    Err(Installed(issue)) => {
+      let detail = match issue {
+        InsufficientCapacity => "InsufficientCapacity"
+        MetadataCapacityUnavailable => "MetadataCapacityUnavailable"
+        Preparation(_) => "Preparation"
+        Resource(_) => "Resource"
+        Ledger(_) => "Ledger"
+        Sequence(SequenceLimit) => "SequenceLimit"
+        Sequence(KernelFailure(step, KernelBudgetExceeded)) =>
+          "KernelBudgetExceeded:" + step.to_string()
+        Sequence(KernelFailure(step, ExpressionFailure(_))) =>
+          "KernelExpression:" + step.to_string()
+        Sequence(KernelFailure(step, _)) => "KernelOther:" + step.to_string()
+        Sequence(_) => "SequenceOther"
+        Unsupported => "Unsupported"
+        ForeignOriginal => "ForeignOriginal"
+        AlreadyBound => "AlreadyBound"
+        Retired => "Retired"
+        CleanupPending => "CleanupPending"
+        SourceAcquisition(_) => "SourceAcquisition"
+        SourceRoute(_) => "SourceRoute"
+        ModelRead(_) => "ModelRead"
+        ModelLayout(_) => "ModelLayout"
+        SerializationPrefix(_) => "SerializationPrefix"
+      }
+      fail("BoundTextModule.Installed:" + detail)
+    }
+    Err(issue) => {
+      let original : Error = issue
+      fail("BoundTextModule:" + @debug.render(Repr(original), max_depth=24))
+    }
+  }
   let configuration = parent.program_source_free.unwrap().configuration.unwrap()
-  if mode == 2 {
-    assert_true(configuration.capacity_plan.values.max_text_bytes >= 4095 * 512)
-    assert_true(configuration.capacity_plan.imports.row.max_bytes <= 16777216)
-    assert_true(configuration.capacity_plan.imports.max_batch_bytes <= 16777216)
-  } else {
-    assert_eq(configuration.capacity_plan.values.max_text_bytes, 500000)
+  if mode == 9 || mode == 10 || mode == 0 {
+    let available = @resources.ledger_limits(parent.ledger)
+    for task in 0..<@strategy.graph_task_count(configuration.graph) {
+      let planned = @local_driver.local_dispatch_preparation_task_capacity(
+        configuration.dispatch,
+        task,
+      ).unwrap()
+      assert_true(
+        planned.retained_bytes <= available.retained_bytes,
+        msg="same finite task=" +
+          task.to_string() +
+          " retained=" +
+          planned.retained_bytes.to_string() +
+          " ceiling=" +
+          available.retained_bytes.to_string() +
+          " execution=" +
+          planned.execution_bytes.to_string() +
+          " row=" +
+          configuration.capacity_plan.imports.row.max_bytes.to_string() +
+          " wire=" +
+          configuration.capacity_plan.imports.wire.max_bytes.to_string() +
+          " text=" +
+          configuration.capacity_plan.imports.values.max_text_bytes.to_string() +
+          " value=" +
+          configuration.capacity_plan.max_value_bytes.to_string(),
+      )
+      assert_true(
+        planned.execution_bytes <= available.execution_bytes,
+        msg="same finite task execution: " +
+          planned.execution_bytes.to_string() +
+          " > " +
+          available.execution_bytes.to_string(),
+      )
+    }
+  }
+  if mode == 2 || mode == 11 {
+    let expected_text = if mode == 11 { 64000 * 263 } else { 4095 * 512 }
+    assert_true(
+      configuration.capacity_plan.values.max_text_bytes >= expected_text,
+    )
     assert_true(
       configuration.capacity_plan.imports.row.max_bytes <=
-      local_materialization_policy.relation_wire_bytes,
+      configuration.capacity_plan.imports.wire.max_bytes,
+    )
+    assert_true(configuration.capacity_plan.imports.max_batch_bytes <= 16777216)
+  } else {
+    assert_eq(
+      configuration.capacity_plan.values.max_text_bytes,
+      configuration.capacity_plan.values.max_work,
     )
     assert_true(
-      configuration.capacity_plan.imports.max_batch_bytes <=
-      local_materialization_policy.relation_wire_bytes,
+      configuration.capacity_plan.imports.row.max_bytes <=
+      configuration.capacity_plan.imports.wire.max_bytes,
     )
+    assert_true(configuration.capacity_plan.imports.max_batch_bytes <= 16777216)
     if !parameter {
       assert_eq(
         configuration.capacity_plan.execution.rows.operation_entries,
@@ -430,7 +534,16 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     true
   }
   let output = match
-    execute_source_free_local_tasks_guarded(setup, 64, 100000, current) {
+    execute_source_free_local_tasks_guarded(
+      setup,
+      if mode == 10 || mode == 11 {
+        4096
+      } else {
+        64
+      },
+      100000,
+      current,
+    ) {
     Ok(value) => value
     Err(failure) => {
       let issue = local_values_execution_failure_issue(failure)
@@ -455,9 +568,20 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
           last_task_reserved.val,
           msg="the actual final task must be registered before growth refusal",
         )
-        guard issue is Driver(Execution(Physical(@resources.ExecutionLimit))) else {
-          fail("expected original physical ExecutionLimit")
+        guard issue
+          is Driver(
+            ExecutionCapacityRefusal(
+              @resources.ExecutionLimit,
+              needed,
+              available,
+              policy
+            )
+          ) else {
+          fail("expected original typed ExecutionLimit reservation refusal")
         }
+        assert_true(
+          needed > available && available >= 0L && policy >= available,
+        )
         assert_true(cleaned)
         primary_failed.val = false
         return ()
@@ -481,6 +605,23 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
           Driver(Configuration(Execution(InputSet))) => "BoundTextInputSet"
           Driver(Configuration(InvalidLimits)) => "BoundTextInvalidLimits"
           Driver(IdentityExport(_)) => "BoundTextExport"
+          Driver(ManagedValues(Admission(cause))) =>
+            "BoundTextManagedAdmission:" + @debug.to_string(cause)
+          Driver(ManagedValues(Guard(MeasurementWork))) =>
+            "BoundTextManagedMeasurementWork"
+          Driver(ManagedValues(Guard(Measurement(_, row, column, _)))) =>
+            "BoundTextManagedMeasurement:" +
+            row.to_string() +
+            ":" +
+            column.to_string()
+          Driver(ManagedValues(Closed)) => "BoundTextManagedClosed"
+          Driver(ManagedValues(MeasurementIndexLimit)) =>
+            "BoundTextManagedMeasurementIndex"
+          Driver(ManagedValues(ReferenceUnavailable(row, column))) =>
+            "BoundTextManagedReference:" +
+            row.to_string() +
+            ":" +
+            column.to_string()
           Driver(ManagedValues(_)) => "BoundTextManagedValues"
           Driver(ManagedCompletion(_)) => "BoundTextCompletion"
           Driver(Configuration(InputUnavailable)) => "BoundTextInputUnavailable"
@@ -489,8 +630,8 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
           Driver(Configuration(Guard(@execution.ValueBytes(_, _, _)))) =>
             "BoundTextGuardValueBytes"
           Driver(Configuration(Guard(_))) => "BoundTextGuard"
-          Driver(Configuration(Execution(Rows(_, @execution.RowLimit)))) =>
-            "BoundTextRowLimit"
+          Driver(Configuration(Execution(Rows(step, @execution.RowLimit)))) =>
+            "BoundTextRowLimit:" + step.to_string()
           Driver(
             Configuration(Execution(Rows(_, @execution.LogicalRows(cause))))
           ) => "BoundTextLogical:" + @debug.to_string(cause)
@@ -525,12 +666,41 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
     mode != 5 && mode != 6,
     msg="refused/current-lost execution cannot publish an output",
   )
+  let live_usage = @resources.ledger_usage(parent.ledger)
+  let same_limits = @resources.ledger_limits(parent.ledger)
+  assert_true(
+    live_usage.reserved_execution_bytes <= same_limits.execution_bytes,
+  )
+  assert_true(
+    live_usage.reserved_retention_bytes + live_usage.held_bytes <=
+    same_limits.retained_bytes,
+  )
   let rows = output.rows().unwrap()
-  assert_eq(rows.length(), if mode == 2 { 512 } else { 1 })
-  let seen = Array::make(512, false)
+  assert_eq(
+    rows.length(),
+    if mode == 2 {
+      512
+    } else if mode == 11 {
+      263
+    } else {
+      1
+    },
+  )
+  let seen = Array::make(if mode == 11 { 263 } else { 512 }, false)
   for row in rows {
     guard @json.parse(row) is Object(fields) else {
       fail("complete original row required")
+    }
+    if mode == 9 || mode == 10 {
+      let count = if mode == 10 { 263 } else { 17 }
+      assert_eq(fields.length(), count)
+      for index in 0..<count {
+        assert_eq(
+          fields.get("f" + index.to_string()),
+          Some(Json::string("x".repeat(64000))),
+        )
+      }
+      continue
     }
     guard fields.get("text") is Some(String(actual)) else {
       fail("original Text cell required")
@@ -539,6 +709,8 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
       actual,
       if mode == 2 {
         "expand:".repeat(585)
+      } else if mode == 11 {
+        "x".repeat(64000)
       } else {
         "x".repeat(
           if mode >= 4 {
@@ -551,18 +723,18 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
         )
       },
     )
-    if mode == 2 {
+    if mode == 2 || mode == 11 {
       guard fields.get("copy") is Some(Number(value, ..)) else {
         fail("original copy key required")
       }
       let copy = value.to_int()
-      assert_true(copy >= 0 && copy < 512)
+      assert_true(copy >= 0 && copy < seen.length())
       assert_eq(value, copy.to_double())
       assert_false(seen[copy])
       seen[copy] = true
     }
   }
-  if mode == 2 {
+  if mode == 2 || mode == 11 {
     assert_true(seen.all(value => value))
   }
   if mode == 8 {
@@ -701,4 +873,149 @@ test "Parameter input limits use original observed geometry and retain explicit 
 ///|
 test "ordinary measured Text fits actual finite task headroom without per-character nodes" {
   original_bound_text_working_case(8)
+}
+
+///|
+// Authored public SQL on the existing same Request/module/Run/managed caller.
+// No installed binary, public Store/Journal/Saved or physical Native ACK.
+test "original managed repeated Text retains all seventeen projected fields" {
+  original_bound_text_working_case(9)
+}
+
+///|
+// Same existing managed Request/module/provider/Run, not a packed or public
+// Store/Saved campaign. All cells remain64k; the complete row exceeds16MiB.
+test "original managed wide Text row crosses old sixteen MiB without enlarging chunks" {
+  original_bound_text_working_case(10)
+}
+
+///|
+extern "js" fn original_many_small_text_working_program() -> String =
+  #|() => JSON.stringify({version:'actql/0.1',id:'many-small-rows-over-sixteen-mib',stages:[{id:'main',inputs:{},steps:[{as:'left_rows',values:{schema:{text:{type:'string',nullable:false}},rows:[{text:{literal:'x'.repeat(64000)}}]}},{as:'right_rows',values:{schema:{copy:{type:'number',nullable:false}},rows:Array.from({length:263},(_,copy)=>({copy}))}},{as:'output',from:'left_rows',cross_join:{with:'right_rows',select:{text:'left.text',copy:'right.copy'}}}],results:{rows:{from:'output',fields:['text','copy']}}}],results:{answer0:{from:{stage:'main',result:'rows'}}}})
+
+///|
+test "original many small Text rows cross sixteen MiB total on the same finite owner" {
+  original_bound_text_working_case(11)
+}
+
+///|
+// Original authored machine Program, read as DATA. No test reconstructs its
+// implementation, supplies a provider, or repairs its typed graph.
+extern "js" fn original_graph_parallel_text(
+  loader : PublicationTestLoader,
+) -> String =
+  #|(loader)=>loader('node:fs').readFileSync(new URL('../../../../../scripts/fixtures/graph-parallel.program.json',import.meta.url),'utf8')
+
+///|
+fn original_graph_parallel_requirements(
+  document : String,
+) -> ClientLocalRequirements raise {
+  let assets = @publication_host.client_local_product_assets()
+  guard @json.parse(assets.environment) is Object(fields) &&
+    fields.get("host_policy_profile") is Some(Object(profile)) &&
+    profile.get("capacity") is Some(Object(capacity)) else {
+    fail("original product Environment evidence")
+  }
+  // Same existing no-Model Local Graph defaults as the ordinary Host. These
+  // checker obligations do not replace or raise the 512MiB Resource policy.
+  for
+    name in [
+      "max_graph_construction_edges", "max_graph_construction_input_rows", "max_graph_construction_nodes",
+    ] {
+    if capacity.get(name) is None {
+      capacity[name] = Json::number(1000.0)
+    }
+  }
+  fields.remove("evidence_bundle_cid")
+  let body = @identity.from_json(Json::object(fields), 10000, 100, 100000)
+  let cid = @identity.cid_value(body, 100000, 10000, 100)
+  fields["evidence_bundle_cid"] = cid.to_json()
+  let wire = @identity.stringify_value(
+    @identity.from_json(Json::object(fields), 10000, 100, 100000),
+    100000,
+    10000,
+    100,
+  )
+  let environment = @publication_host.admit_client_check_environment(
+    wire,
+    cid,
+    { text_time: true, veca: true, },
+    { rela: true, sga: true, tea: true, calendar: false, text_rank: false, },
+    graph=true,
+  ).unwrap()
+  let prepared = match
+    @publication_host.prepare_effect_free_client_program(
+      document,
+      Json,
+      environment,
+      None,
+      @publication_host.client_standard_program_preparation_limits(),
+    ) {
+    Ok(value) => value
+    Err(Check(diagnostic)) => {
+      let issue : Error = @checked.diagnostic_cause(diagnostic)
+      fail("OriginalGraphCheck:" + @debug.render(Repr(issue), max_depth=12))
+    }
+    Err(_) => fail("OriginalGraphPreparation")
+  }
+  let installed = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  prepare_source_free_runtime_requirements(
+    prepared,
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+}
+
+///|
+test "original Graph parallel inputs derive finite Relation Text from literal originals" {
+  let document = original_graph_parallel_text(
+    publication_test_loader(publication_test_url()),
+  )
+  let requirements = original_graph_parallel_requirements(document)
+  let plan = requirements.capacity_plan
+  let bound = client_local_original_values_text_bound(
+    plan.sequences,
+    plan.value_node_demand.unwrap(),
+  ).unwrap()
+  assert_eq(plan.values.max_text_bytes, bound.0)
+  assert_eq(plan.execution.rows.input_values.max_text_bytes, bound.0)
+  assert_eq(plan.execution.rows.output_values.max_text_bytes, bound.0)
+  assert_true(bound.0 > 0 && bound.0 < plan.values.max_work)
+  assert_true(plan.imports.row.max_bytes <= plan.imports.wire.max_bytes)
+  assert_eq(requirements.maximum_limits().retained_bytes, 536870912L)
+  assert_eq(requirements.maximum_limits().execution_bytes, 536870912L)
+  assert_true(
+    client_local_original_values_text_bound(
+      plan.sequences,
+      plan.value_node_demand.unwrap(),
+      max_work=0,
+    )
+    is None,
+  )
+}
+
+///|
+test "Graph Relation Text proof keeps unknown predicate descendants on their original policy" {
+  let document = original_graph_parallel_text(
+    publication_test_loader(publication_test_url()),
+  )
+  let original = original_graph_parallel_requirements(document).capacity_plan
+  let unknown = original_graph_parallel_requirements(
+      document.replace(old="key > 0", new="key > 0 AND true"),
+    ).capacity_plan
+  assert_true(
+    client_local_original_values_text_bound(
+      unknown.sequences,
+      unknown.value_node_demand.unwrap(),
+    )
+    is None,
+  )
+  assert_true(unknown.values.max_text_bytes > original.values.max_text_bytes)
 }

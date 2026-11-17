@@ -17,7 +17,8 @@ function fixture(target = 'js', mode = 'normal') {
   const sources = { ...current.sources, ...overlays };
   const exact = Object.fromEntries(Object.keys(sources).sort().map(p => [p, sources[p]]));
   const observation = { executionCapacity: 100, before: 100, after: 100, workBefore: 6, workAfter: 6 };
-  if (mode === 'success') Object.assign(observation, { heldAtCompletion: 40, unusedRetentionAtCompletion: 0 });
+  if (mode === 'success') Object.assign(observation, { before: 16484, after: 16484,
+    beforeFinalization: 100, afterFinalization: 16484, heldAtCompletion: 40, unusedRetentionAtCompletion: 0 });
   const cleanupStep = mode === 'success' ? 2 : 1;
   const child = `ACTQL_CUSTODY_CLEANUP:${cleanupStep}:before\nACTQL_CUSTODY_CLEANUP:${cleanupStep}:after\n`;
   // The eligible chain has already reclaimed intermediate DISTINCT scratch
@@ -26,7 +27,12 @@ function fixture(target = 'js', mode = 'normal') {
   const stage = mode === 'success' ? 'ACTQL_CUSTODY_STAGE:after-completion-before-cleanup\n' :
     'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup\n';
   const log = 'ACTQL_CUSTODY_CHAIN:started\n' + earlier +
-    (mode === 'success' ? 'ACTQL_CUSTODY_STAGE:before-success-settlement\nACTQL_CUSTODY_RETRY:false\n' : '') +
+    (mode === 'success' ? 'ACTQL_CUSTODY_FINALIZATION:before\n' +
+      'ACTQL_CUSTODY_WORKSPACE:{"slotPeak":1,"initialSlots":0,"logicalPeak":0,"initialLive":0,"textPeak":0,"retained":0,"extra":256,"funded":0,"ceiling":32768,"metered":1,"preferred":16384}\n' +
+      'ACTQL_CUSTODY_DRIVER_GROWTH:{"base":100,"workingBefore":0,"working":16384,"metadata":0,"transport":0,"imported":0,"scratch":16484}\n' +
+      'ACTQL_CUSTODY_TASK_GROWTH:{"task":0,"before":100,"after":16484,"extra":16384,"scratchAfter":16484}\n' +
+      'ACTQL_CUSTODY_FINALIZATION:after\n' +
+      'ACTQL_CUSTODY_STAGE:before-success-settlement\nACTQL_CUSTODY_RETRY:false\n' : '') +
     stage + (mode === 'normal' ? child :
     (mode === 'pending' ? 'ACTQL_CUSTODY_RETRY:false\n' : '') + 'ACTQL_CUSTODY_RETRY:error\n' + child) +
     `ACTQL_CUSTODY:${JSON.stringify(observation)}\nTotal tests: 1, passed: 1, failed: 0.\n`;
@@ -185,4 +191,45 @@ for (const [name, change] of [
   const f = fixture('js', 'success'), log = change(f.read('test.log').toString());
   f.entries.set('test.log', Buffer.from(log)); f.report.logDigest = hash(log);
   assert.throws(() => auditCustody(f.report, 'js', 'success', f.current, f.read));
+});
+
+
+for (const [name, mutate] of [
+  ['missing same-Task resize', log => log.replace(/^ACTQL_CUSTODY_TASK_GROWTH:.*\n/m, '')],
+  ['another Task resize', log => log.replace('"task":0', '"task":1')],
+  ['incorrect workspace price', log => log.replace('"extra":256', '"extra":255')],
+  ['incorrect common page quote', log => log.replace('"preferred":16384', '"preferred":16383')],
+  ['detached driver request', log => log.replace('"working":16384', '"working":16385')],
+  ['detached reservation before growth', log => log.replace('"before":100,"after":16484', '"before":99,"after":16483')],
+  ['resize outside finalization', log => {
+    const row = log.match(/^ACTQL_CUSTODY_TASK_GROWTH:.*\n/m)[0];
+    return row + log.replace(row, '');
+  }],
+  ['duplicated constructor resize', log => log.replace(/^(ACTQL_CUSTODY_TASK_GROWTH:.*\n)/m, '$1$1')],
+  ['missing workspace constructor', log => log.replace(/^ACTQL_CUSTODY_WORKSPACE:.*\n/m, '')],
+  ['missing driver constructor', log => log.replace(/^ACTQL_CUSTODY_DRIVER_GROWTH:.*\n/m, '')],
+  ['different workspace debt', log => log.replace('"metadata":0', '"metadata":1')],
+  ['missing constructor boundary', log => log.replace('ACTQL_CUSTODY_FINALIZATION:before\n', '')],
+]) test(`successful custody rejects ${name} with a recomputed log digest`, () => {
+  const f = fixture('js', 'success'), log = mutate(f.read('test.log').toString());
+  f.entries.set('test.log', Buffer.from(log)); f.report.logDigest = hash(log);
+  assert.throws(() => auditCustody(f.report, 'js', 'success', f.current, f.read));
+});
+for (const [name, patch] of [
+  ['unexplained growth before constructor', { beforeFinalization: 101 }],
+  ['unexplained final reservation', { before: 16485, after: 16485, afterFinalization: 16485 }],
+]) test(`successful custody rejects ${name} with consistent observation and digest`, () => {
+  const f = fixture('js', 'success'), original = JSON.stringify(f.report.observation);
+  Object.assign(f.report.observation, patch);
+  const log = f.read('test.log').toString().replace(original, JSON.stringify(f.report.observation));
+  f.entries.set('test.log', Buffer.from(log)); f.report.logDigest = hash(log);
+  assert.throws(() => auditCustody(f.report, 'js', 'success', f.current, f.read));
+});
+test('successful custody rejects a false page quote even when all growth totals agree', () => {
+  const f = fixture('js', 'success'), original = JSON.stringify(f.report.observation);
+  Object.assign(f.report.observation, { before: 8292, after: 8292, afterFinalization: 8292 });
+  const log = f.read('test.log').toString().replace(original, JSON.stringify(f.report.observation))
+    .replaceAll('16384', '8192').replaceAll('16484', '8292');
+  f.entries.set('test.log', Buffer.from(log)); f.report.logDigest = hash(log);
+  assert.throws(() => auditCustody(f.report, 'js', 'success', f.current, f.read), /common page quote/);
 });

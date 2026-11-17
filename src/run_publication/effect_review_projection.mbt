@@ -106,6 +106,7 @@ pub fn project_effect_review_projection(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preview_limits? : (Int, Int, Int)? = None,
 ) -> Result[RunEvidenceValue, EffectReviewProjectionIssue] {
   if max_wire_bytes < 1 || max_nodes < 2 || max_depth < 1 {
     return Err(InvalidLimits)
@@ -131,14 +132,22 @@ pub fn project_effect_review_projection(
   if !approval_claims.contains("effect_scope_approved") {
     return Err(InvalidPolicy)
   }
+  // The private Preview and its public review have independent codec policies.
+  // Keeping the output small must not reinterpret an already admitted input.
+  let (preview_bytes, preview_nodes, preview_depth) = preview_limits.unwrap_or(
+    (max_wire_bytes, max_nodes, max_depth),
+  )
+  if preview_bytes < 1 || preview_nodes < 2 || preview_depth < 1 {
+    return Err(InvalidLimits)
+  }
   let checked = match
     admit_effect_preview_identity(
       preview_wire,
       original.run_identity_cid,
       original.authoring_context_cid,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      preview_bytes,
+      preview_nodes,
+      preview_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Preview(issue))
@@ -148,7 +157,7 @@ pub fn project_effect_review_projection(
   }
   let preview = match
     parse_effect_preview_shape(
-      preview_wire, max_wire_bytes, max_nodes, max_depth,
+      preview_wire, preview_bytes, preview_nodes, preview_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Preview(PreviewShape(issue)))
@@ -269,11 +278,19 @@ pub fn admit_effect_review_projection(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preview_limits? : (Int, Int, Int)? = None,
 ) -> Result[RunEvidenceValue, EffectReviewProjectionIssue] {
   let expected = match
     project_effect_review_projection(
-      original, preview_wire, authority_scope_cid, approval_claims, redaction_policy_cid,
-      max_wire_bytes, max_nodes, max_depth,
+      original,
+      preview_wire,
+      authority_scope_cid,
+      approval_claims,
+      redaction_policy_cid,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      preview_limits~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -289,4 +306,171 @@ pub fn admit_effect_review_projection(
     return Err(ForeignPreview)
   }
   Ok(admitted)
+}
+
+///|
+/// Size the SAME immutable Preview wire before its review constructor. The
+/// caller first funds the existing fixed preflight controls, then reserves
+/// this returned peak beside all retained Run/Preview owners. Geometry does
+/// not admit the wire or confer authority; projection still checks its shape,
+/// complete identities and exact original semantic CID.
+pub fn effect_review_projection_construction_inventory(
+  preview_wire : String,
+  preview_bytes : Int,
+  preview_nodes : Int,
+  preview_depth : Int,
+  review_bytes : Int,
+  review_nodes : Int,
+  review_depth : Int,
+) -> (
+  EffectPreviewIdentityConstructionInventory,
+  EffectPreviewIdentityConstructionInventory,
+)? {
+  if preview_bytes < 1 ||
+    preview_nodes < 2 ||
+    preview_depth < 1 ||
+    review_bytes < 1 ||
+    review_nodes < 2 ||
+    review_depth < 1 {
+    return None
+  }
+  guard capture_plan_construction_extent(
+      preview_wire,
+      preview_bytes,
+      preview_nodes,
+      preview_depth,
+      _ => true,
+    )
+    is Some((bytes, nodes, depth)) else {
+    return None
+  }
+  let nodes = Int::min(nodes, preview_nodes)
+  let depth = Int::min(depth, preview_depth)
+  // Projection emits each selected input subtree once, plus row/member
+  // wrappers, effect IDs, policy and fixed envelope fields. Four nodes per
+  // input node plus64 bounds those additions even for a one-node refused
+  // prefix. Writer limits independently stop larger output before allocation.
+  let output_nodes = Int64::min(
+    review_nodes.to_int64(),
+    Int64::min(review_bytes.to_int64(), 4L * nodes.to_int64() + 64L),
+  ).to_int()
+  let output_depth = Int64::min(review_depth.to_int64(), depth.to_int64() + 4L).to_int()
+  guard effect_preview_identity_construction_inventory(bytes, nodes, depth)
+    is Some(input) &&
+    protocol_wire_codec_construction_inventory(bytes, nodes, depth)
+    is Some(shape) &&
+    protocol_wire_codec_construction_inventory(
+      review_bytes, output_nodes, output_depth,
+    )
+    is Some(output) else {
+    return None
+  }
+  // One Preview identity admission and the second shape parse coexist.
+  // Only the first constructs member/row identity inventories. The review
+  // body writer, its generic sealing parser/forest,
+  // complete self-CID wrapper and final encoder coexist with that input;
+  // two output inventories cover these returned and refused prefixes. No
+  // parser frame, writer buffer or returned review is treated as released here.
+  review_construction_inventory_parts(
+    input, shape, output, review_bytes, output_nodes, output_depth,
+  )
+}
+
+///|
+fn review_construction_inventory_parts(
+  input : EffectPreviewIdentityConstructionInventory,
+  shape : EffectPreviewIdentityConstructionInventory,
+  output : EffectPreviewIdentityConstructionInventory,
+  review_bytes : Int,
+  output_nodes : Int,
+  output_depth : Int,
+  geometry? : @encode.EncodingConstructionGeometry? = None,
+) -> (
+  EffectPreviewIdentityConstructionInventory,
+  EffectPreviewIdentityConstructionInventory,
+)? {
+  let n = output_nodes.to_int64()
+  let d = output_depth.to_int64()
+  // Two Common RunEvidence values (issued and Checkpoint-admitted), the
+  // Checkpoint's detached JSON body, both complete wire Strings, Host token
+  // views/arrays and the response bytes may coexist through evidence.hold.
+  // Keep these returned DATA on the SAME Run control until retirement.
+  let canonical = match geometry {
+    None =>
+      @shape.collection_construction_extent({
+        records: 2L * (3L * n + 3L * d + 1L) + 24L,
+        record_references: 2L * (4L * n + 6L * d) + 64L,
+        record_words: 2L * (2L * n + 4L * d + 3L) + 24L,
+        reference_arrays: 4L * n + 8L,
+        reference_items: 6L * n + 24L,
+        scalar_arrays: 0L,
+        scalar_items: 0L,
+        maps: 2L * n,
+        map_entries: 2L * n,
+      })
+    Some(value) =>
+      @json.source_conversion_construction_extent(
+        output_nodes,
+        value.fields,
+        value.objects,
+        value.arrays,
+        output_depth,
+        0,
+      ).map(value => {
+        record_headers: 2L * value.retained.record_headers + 24L,
+        reference_slots: 2L * value.retained.reference_slots + 64L,
+        scalar_words: 2L * value.retained.scalar_words + 24L,
+      })
+  }
+  guard canonical is Some(canonical) &&
+    @source.json_tree_retained_construction_extent(
+      output_nodes,
+      geometry.map(value => value.fields).unwrap_or(output_nodes - 1),
+      geometry.map(value => value.objects).unwrap_or(output_nodes),
+      geometry.map(value => value.arrays).unwrap_or(0),
+      review_bytes.to_int64(),
+      keep_spans=false,
+    )
+    is Some(host) else {
+    return None
+  }
+  let returned : EffectPreviewIdentityConstructionInventory = {
+    // originalReview performs its strict admission AFTER the first synchronous
+    // projection returns. Keep that later parser/hash/writer envelope here;
+    // completion cannot return it before the Checkpoint caller has adopted it.
+    record_headers: canonical.record_headers +
+    host.record_headers +
+    output.record_headers,
+    reference_slots: canonical.reference_slots +
+    host.reference_slots +
+    output.reference_slots,
+    scalar_words: canonical.scalar_words +
+    host.scalar_words +
+    output.scalar_words,
+    // Two canonical forests, the Host forest and two independently encoded
+    // complete wires. Original Preview/policy strings remain on prior owners.
+    owned_utf16_units: 5L * review_bytes.to_int64() + output.owned_utf16_units,
+    owned_wire_bytes: 4L * review_bytes.to_int64() + output.owned_wire_bytes,
+  }
+  let temporary : EffectPreviewIdentityConstructionInventory = {
+    record_headers: input.record_headers +
+    shape.record_headers +
+    2L * output.record_headers +
+    8L,
+    reference_slots: input.reference_slots +
+    shape.reference_slots +
+    2L * output.reference_slots +
+    24L,
+    scalar_words: input.scalar_words +
+    shape.scalar_words +
+    2L * output.scalar_words +
+    16L,
+    owned_utf16_units: input.owned_utf16_units +
+    shape.owned_utf16_units +
+    2L * output.owned_utf16_units,
+    owned_wire_bytes: input.owned_wire_bytes +
+    shape.owned_wire_bytes +
+    2L * output.owned_wire_bytes,
+  }
+  Some((returned, temporary))
 }

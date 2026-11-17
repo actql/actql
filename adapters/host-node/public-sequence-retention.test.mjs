@@ -7,6 +7,7 @@ import test from 'node:test';
 import {inspect} from 'node:util';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {createRetainedRowStoreProbe} from './fixtures/retained-row-store.mjs';
 
 test('public retained sequence orders long identities and compound Text keys',
   {timeout: 60_000}, async t => {
@@ -20,7 +21,7 @@ test('public retained sequence orders long identities and compound Text keys',
     const keys = generateKeyPairSync('ed25519');
     let advances = 0;
     let completions = 0;
-    let outputRepresentations;
+    const store = createRetainedRowStoreProbe(directory);
     const authorization = {
       accountConfiguration: canonicalJson({
         version: 'actql-execution-account-config/0.1', account_id: 'public-sequence',
@@ -36,14 +37,15 @@ test('public retained sequence orders long identities and compound Text keys',
         publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({
         type: 'pkcs8', format: 'pem'})},
-      faultInjection(step) {
+      async faultInjection(step, detail) {
         if (step === 'local_compute_advanced') advances++;
+        await store.faultInjection(step, detail);
       },
       observe(step, detail) {
         if (step === 'computed') {
           completions++;
-          outputRepresentations = detail.outputRepresentations;
         }
+        store.observe(step, detail);
       },
     };
     // Cross the Text cursor boundary within the installed construction policy.
@@ -87,6 +89,7 @@ test('public retained sequence orders long identities and compound Text keys',
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
     for (const empty of [false, true]) {
+      const beforeWrites = store.checkpoint();
       const submitted = structuredClone(program);
       if (empty) submitted.stages[0].steps[0].values.rows = [];
       submitted.id = empty ? 'public-sequence-empty' : 'public-sequence';
@@ -108,16 +111,19 @@ test('public retained sequence orders long identities and compound Text keys',
       for (const name of ['published', 'consumed_a', 'consumed_b']) {
         assert.deepEqual(await execution.result(name).all(), expected, name);
       }
-      assert.ok(outputRepresentations?.some(value =>
-        value.representation === 'retained-file'));
+      store.assertCompleted(expected, {since: beforeWrites, minimum: 3});
       assert.ok(advances > 0);
       assert.equal(completions, empty ? 2 : 1);
       const savedAdvances = advances;
+      const savedWrites = store.checkpoint();
       const repeated = await client.startSource(source, options);
       assert.deepEqual(repeated.ref, execution.ref);
       assert.deepEqual(await repeated.result('published').all(), expected);
       assert.equal(advances, savedAdvances);
+      store.assertUnchanged(savedWrites);
       assert.equal(completions, empty ? 2 : 1);
       assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
     }
+    await client.close();
+    await store.assertReclaimed();
   });

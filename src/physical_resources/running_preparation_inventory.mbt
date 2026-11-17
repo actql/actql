@@ -7,7 +7,10 @@ fn[I, P] running_preparation_inventory_matches(
   value : LedgerOriginalInventory,
 ) -> Bool {
   owner.phase == Run &&
-  owner.active_phase_work is None &&
+  (
+    owner.active_phase_work is None ||
+    preparation_run_publication_work_returned(owner)
+  ) &&
   (owner.input is Some(original) && physical_equal(original, input)) &&
   (owner.body is Some(original) && physical_equal(original, body)) &&
   physical_equal(identity.ledger, owner.ledger) &&

@@ -1,7 +1,8 @@
 // Consumer diagnostics only. No event or retained count grants execution,
 // currentness, access or cleanup authority; missing delivery stays incomplete.
-import {createHostObservationConnection} from '@actql/local-node/observation';
+import {createRequire} from 'node:module';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 
 export function workflowObservationComplete(status) {
   // Suppressed repeats of the same charged Owner fact are not lost delivery.
@@ -31,12 +32,16 @@ export function assertRecordWorkflowWork(work, {phase, variant} = {}) {
   assert.equal(work.totals.effectReplacementReturns, work.effectReplacementReturns);
 }
 
-export function workflowWorkObservation({trackOriginal = false} = {}) {
+export function workflowWorkObservation({trackOriginal = false, createObservation} = {}) {
+  // DATA-only oracles also run before runtime staging. Only an actual observer
+  // resolves the same installed observation namespace used by the public Host.
+  const makeConnection = createObservation ??
+    createRequire(import.meta.url)('@actql/local-node/observation').createHostObservationConnection;
   const empty = () => ({sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0});
   const counts = empty(), unbound = empty(), runs = new Map();
   let limited = false, primaryFailure, effectPreflightFailure;
   const cid = value => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/u.test(value);
-  const connection = createHostObservationConnection({
+  const connection = makeConnection({
     include: ['source', 'infer', 'effect'],
     correlation: {include: trackOriginal ? ['run', 'task'] : ['task']},
     // This collector consumes starts, returned writes and typed failure DATA.
@@ -119,4 +124,56 @@ export function workflowWorkObservation({trackOriginal = false} = {}) {
         scope: 'Same installed Host and original Run definition; other fresh verification Runs reported in totals',
         unbound: {...unbound}, complete: total.complete && bound && !limited && Object.values(unbound).every(value => value === 0)};
     }};
+}
+
+export async function readWholeResults(execution, updates) {
+  const sourceRows = await execution.result('answer').all();
+  assert.deepEqual([...sourceRows].sort((left, right) => left.id.localeCompare(right.id)), [
+    {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null},
+    {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review'},
+  ]);
+  const reviewed = await execution.result('main').all();
+  const ordered = rows => [...rows].sort((left, right) => left.id.localeCompare(right.id));
+  assert.deepEqual(ordered(reviewed), ordered(updates.map(({confirmation, ...row}) => row)));
+  return {answer: sourceRows, main: reviewed};
+}
+
+export function checkJoinedSourceRows(rows) {
+  const expected = [
+    {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null,
+      version: 'sha256:3fdf0d901072bf1f3660dc0dfdbf5f6161cec18c459fdac7fed8b4c47d0fdd4e'},
+    {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review',
+      version: 'sha256:ee260c4ffcd3129c8950438225a62d46fa6078f63464ba4aed6f0d034f7ebdb2'},
+  ];
+  const fileIds = ['file-acme-notes', 'file-globex-notes'];
+  const ordered = [...rows].sort((left, right) => left.id.localeCompare(right.id));
+  assert.equal(ordered.length, expected.length);
+  const identities = new Set();
+  for (const [index, row] of ordered.entries()) {
+    assert.deepEqual(Object.keys(row).sort(), ['id', 'name', 'StageName', 'NextStep', 'resource', 'version'].sort());
+    const {resource, ...values} = row;
+    assert.deepEqual(values, expected[index]);
+    assert.deepEqual(Object.keys(resource).sort(), ['$actql_ref', 'version', 'provider_namespace',
+      'resource_kind', 'provider_identity_cid', 'authority_scope_cid', 'boundary_cid', 'identity_cid'].sort());
+    assert.equal(resource.$actql_ref, 'resource');
+    assert.equal(resource.version, 'actql-resource-ref/0.1');
+    assert.equal(resource.provider_namespace, 'drive');
+    assert.equal(resource.resource_kind, 'file');
+    for (const field of ['provider_identity_cid', 'authority_scope_cid', 'boundary_cid', 'identity_cid']) {
+      assert.match(resource[field], /^sha256:[0-9a-f]{64}$/u);
+    }
+    assert.equal(resource.provider_identity_cid, resource.boundary_cid);
+    const identityWire = JSON.stringify({collection: 'files', identity: fileIds[index], scope: resource.boundary_cid});
+    assert.equal(resource.identity_cid, 'sha256:' + createHash('sha256').update(identityWire).digest('hex'));
+    identities.add(resource.identity_cid);
+  }
+  assert.equal(identities.size, 2);
+}
+export async function readJoinedWholeResults(execution, updates) {
+  const answer = await execution.result('answer').all();
+  checkJoinedSourceRows(answer);
+  const main = await execution.result('main').all();
+  const ordered = rows => [...rows].sort((left, right) => left.id.localeCompare(right.id));
+  assert.deepEqual(ordered(main), ordered(updates.map(({confirmation, ...row}) => row)));
+  return {answer, main};
 }

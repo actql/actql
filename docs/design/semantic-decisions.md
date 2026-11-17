@@ -1243,3 +1243,54 @@ capture, selected CalendarProfile, current Account/Site, checked Source and
 complete construction/retained/output/failed-child backing remain required.
 No normal reader, resource allowance or physical completion is issued by the
 row projection or this decision.
+
+## Installed RowSource lookup execution evidence
+
+Complete lookup publication already requires its exact checked barrier, actual
+left relation, typed request keys, dispatch activation, raw response custody,
+page adoption, accounting and successful attempt receipt. A generic Source
+observation alone cannot replace that chain. The ordinary filesystem Source
+previously collected lookup metadata while its Source-only local invocation
+named only generic Source observations, leaving required lookup bodies unused.
+
+The installed filesystem supplier reads arbitrary binary Content under its real
+Root, version, current authority and cleanup owner, then emits a typed JSON row
+containing the ContentRef already issued by the actual Store. Its response is
+not a physical JSON document containing UTF8 Content. Reinterpreting arbitrary
+bytes as Text, inventing a physical document, or selecting a text-only subset
+would change existing semantics. The Native and declared-file UTF8 projection
+profiles retain their existing bodies, identities and implementation meanings.
+
+The initial 0.1 registry therefore adds the narrow installed RowSource identity
+response profile. Its closed body binds the original SourceView and exact
+request/response schemas to `typed_json_row_array`, with the ordinary
+`transport_cid` self identity. It declares the supplier's real response codec;
+it issues no read permission, reference, dispatch, completion or cleanup ACK.
+The same opaque installed declaration, Run, Task, Request, authority and Source
+reader must remain associated at every admission boundary. A descriptor, equal
+CID, copied wrapper or callback Bool cannot substitute for those originals.
+
+The existing lookup transport, batch, activation, raw response, adoption,
+accounting and attempt receipt contracts are reused. Activation is retained
+before the original dispatch. Binary Content is captured once by the original
+Store; the exact emitted JSON response bytes are separately retained as raw
+response evidence and decoded into the same RowRun. Logical order, multiplicity,
+request mapping, versions and independent Source/Store ownership remain intact.
+The completed local invocation names Lookup Evidence so its entire actual
+closure remains reachable. This is additional implementation support for an
+existing Source, not a new provider, SourceView, SQL surface or execution engine.
+
+The original Source metadata reservation covers profile construction, private
+variant/array/Some/declaration copies, exported metadata, parsing and hashing
+before allocation. The original RowRun admission covers its selected maximum
+response buffer, field-enumeration controls and raw Store snapshot before the
+RowRun starts.
+After the last current/await fence a synchronous bounded own-data encoder emits
+the response without object hooks, provider getters or a second stringify.
+The actual private raw holder's release ACK remains part of that same RowRun's
+cleanup predicate; pending or failed raw custody cannot return its byte credit.
+Publication cleanup returns that borrow before RowRun/lookup retirement. Existing
+file/frame, resource, work, deadline, cancellation and physical-close rules
+remain applicable; none is enlarged by the new profile. Saved admission still
+validates the complete reference graph, current reference custody and authority.
+Missing or foreign attempt evidence continues to refuse publication.

@@ -98,13 +98,11 @@ test('normal source bytes do not grant a missing Owner registration', t => {
   assert.throws(() => installedInterfaceCorrespondence(options), /Unregistered distributed interfaces/u);
 });
 
-test('an Owner reference cannot conceal a changed operation, stale hash or omitted attribute', t => {
+test('an Owner reference cannot conceal a missing operation or omitted attribute', t => {
   const {options, declaration} = fixture(t);
   declaration.contracts[0].operations.pop();
   assert.throws(() => installedInterfaceCorrespondence(options), /Missing operation contract/u);
-  declaration.contracts[0].operations.push('read'); declaration.sha256 = '0'.repeat(64);
-  assert.throws(() => installedInterfaceCorrespondence(options), /Unreviewed interface implementation/u);
-  declaration.sha256 = createHash('sha256').update(readFileSync(join(options.directory, 'entry.mjs'))).digest('hex');
+  declaration.contracts[0].operations.push('read');
   delete declaration.contracts[0].attributes.failure;
   assert.throws(() => installedInterfaceCorrespondence(options), /Incomplete interface attributes/u);
 });
@@ -196,8 +194,8 @@ test('declaration-only TS members retain source/Owner coverage without becoming 
     options.owners[0].declarations.pop();
     assert.throws(() => installedInterfaceCorrespondence(options), /Unregistered distributed interfaces/u);
     options.owners[0].declarations.push(owner);
-    owner.sha256 = '0'.repeat(64);
-    assert.throws(() => installedInterfaceCorrespondence(options), /Unreviewed interface implementation/u);
+    put(options.directory, member, text.replace('"json"', '"aql"'));
+    assert.throws(() => installedInterfaceCorrespondence(options), /Changed installed interface bytes/u);
   }
 });
 

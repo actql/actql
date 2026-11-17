@@ -242,3 +242,50 @@ test "representation rebinding rejects equal independent completion and preserve
     rebind_producer_representation(original, copy) is Err(ProducerUnavailable),
   )
 }
+
+///|
+test "retained import verifies canonical identity without buffering discarded row text" {
+  let owner = capture_fixture()
+  let (source, _) = retained_fixture(owner, Ref(true))
+  let conversion = prepare_completed_output_import(
+    source,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    1,
+  ).unwrap()
+  for row in 0..<2 {
+    append_completed_output_import(conversion, output_fixture_row(owner, row)).unwrap()
+  }
+  let output = finish_completed_output_import(conversion).unwrap()
+  assert_true(completed_output_same_occurrence(source, output))
+  assert_eq(
+    row_wire_cid(identify_completed_rows(output, row_wire_limits()).unwrap()),
+    row_wire_cid(identify_completed_rows(source, row_wire_limits()).unwrap()),
+  )
+  assert_false(conversion.stream.retain_text)
+  for batch in [-1, 0] {
+    assert_true(
+      prepare_completed_output_import(
+        source,
+        2,
+        stream_value_limits(),
+        row_wire_limits(),
+        batch,
+      )
+      is Err(_),
+    )
+  }
+  let too_small = prepare_completed_output_import(
+    source,
+    2,
+    stream_value_limits(),
+    { ..row_wire_limits(), max_bytes: 2, },
+    1,
+  ).unwrap()
+  assert_true(
+    append_completed_output_import(too_small, output_fixture_row(owner, 0))
+    is Err(Encoding(_)),
+  )
+  assert_true(finish_completed_output_import(too_small) is Err(Closed))
+}

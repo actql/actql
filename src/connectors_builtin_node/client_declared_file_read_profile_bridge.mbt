@@ -141,3 +141,54 @@ pub fn client_program_row_source_file_read_profile_matches(
     ),
   )
 }
+
+///|
+/// Metadata only, under the SAME installed Source initialization reservation.
+#export_name("clientProgramRowSourceReadProfileConstructionCapacity")
+pub fn client_program_row_source_read_profile_construction_capacity(
+  declaration : @client_row_source_host.RowDeclaration,
+) -> @execution.ExecutionCapacity? {
+  guard @client_row_source_host.installed_row_read_profile_construction_inventory(
+      declaration,
+    )
+    is Some(retained) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained,
+    workspace: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
+/// The installing original supplies the exact declaration used by its reader.
+#export_name("clientProgramRowSourceBindReadProfile")
+pub fn client_program_row_source_bind_read_profile(
+  declaration : @client_row_source_host.RowDeclaration,
+  source_ref : String,
+) -> Result[
+  @client_row_source_host.RowDeclaration,
+  @client_row_source_host.RowMappingIssue,
+] {
+  @client_row_source_host.bind_installed_row_read_profile(
+    declaration, source_ref,
+  )
+}
+
+///|
+#export_name("clientProgramKeyedSourceResponseEncoding")
+pub fn client_program_keyed_source_response_encoding(
+  request : @publication_host.ClientKeyedRequest,
+) -> String? {
+  @publication_host.client_keyed_source_response_encoding(request)
+}

@@ -191,6 +191,8 @@ fn saved_output_materials_stage(
 ) -> String {
   match issue {
     Input(MaterialsMalformed) => "input-malformed"
+    Input(MaterialsConstructionRefused(_)) => "input-construction"
+    Input(MaterialsEncoding(_, _)) => "input-encoding"
     Input(MaterialsEnvironment) => "input-environment"
     Input(MaterialsParameters) => "input-parameters"
     Input(MaterialsProgram(_)) => "input-program"

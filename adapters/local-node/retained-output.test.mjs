@@ -104,6 +104,9 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
     strategyModule_local_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'local-test',
     strategyModule_local_NextCarrierPath: () => false,
+    // This fixture exercises the materializing writer and its physical ACKs,
+    // without installing the separate managed snapshot entry.
+    strategyModule_local_ManagedStartRetained: undefined,
     strategyHostNextTask: () => 2,
     strategyHostTask: value => value,
     strategyHostManagedProducers: () => [],
@@ -285,7 +288,7 @@ test('physical Local output recovery releases Site holdings and permits full cap
   }
 });
 
-test('retained Store configuration excludes the in-memory managed offer', async () => {
+test('retained Store without its snapshot entry excludes managed offers', async () => {
   const f = fixture();
   assert.equal(await f.entry.prepareNext(new Map()), undefined);
   assert.equal(f.allocated(), false);

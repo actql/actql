@@ -19,20 +19,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareCalendarListPages",
           "parameters": [
             "moon",
@@ -103,8 +89,6 @@
           "operations": [
             "<module>",
             "CalendarListReadFailure/constructor:constructor/constructor:constructor",
-            "fail/fail",
-            "positive/positive",
             "prepareCalendarListPages",
             "prepareCalendarListPages/init:decodePage/init:decodePage",
             "prepareCalendarListPages/init:fetchPage/init:fetchPage",
@@ -2107,14 +2091,6 @@
           "async": false
         },
         {
-          "name": "execute",
-          "parameters": [
-            "original",
-            "received"
-          ],
-          "async": true
-        },
-        {
           "name": "execute/response/response",
           "parameters": [
             "options"
@@ -2125,45 +2101,6 @@
           "name": "execute/verify/verify",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReader",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepare",
-          "parameters": [
-            "moon",
-            "query",
-            "names",
-            "initialAuthorization",
-            "credential",
-            "authorizationFor",
-            "current",
-            "chargeResponse",
-            "consumePage",
-            "limits",
-            "signal",
-            "callResource"
-          ],
-          "async": false
         },
         {
           "name": "prepare/prepare",
@@ -2222,9 +2159,6 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
-            "positive/positive",
-            "prepare",
             "prepare/prepare",
             "prepare/prepare#2",
             "prepare/prepare#3",
@@ -2335,7 +2269,6 @@
         },
         {
           "operations": [
-            "execute",
             "execute/response/response",
             "execute/verify/verify",
             "readCalendarFreeBusy"
@@ -2448,8 +2381,7 @@
             "createCalendarFreeBusyReader/handle/init:observe/init:observe",
             "createCalendarFreeBusyReader/handle/init:read/init:read",
             "createCalendarFreeBusyReader/handle/init:read/init:read/result/result",
-            "createCalendarFreeBusyReader/handle/init:requestStop/init:requestStop",
-            "originalReader"
+            "createCalendarFreeBusyReader/handle/init:requestStop/init:requestStop"
           ],
           "exports": [
             "createCalendarFreeBusyReader"
@@ -2673,28 +2605,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "calendarReaderLimits",
-          "parameters": [
-            "original",
-            "policy"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureProvider",
-          "parameters": [
-            "provider"
-          ],
-          "async": false
-        },
-        {
           "name": "captureProvider/captureProvider",
           "parameters": [
             "name"
@@ -2723,32 +2633,9 @@
           "async": false
         },
         {
-          "name": "checkSite",
-          "parameters": [
-            "site"
-          ],
-          "async": false
-        },
-        {
           "name": "checkSite/checkSite",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "closedData",
-          "parameters": [
-            "value",
-            "keys",
-            "code"
           ],
           "async": false
         },
@@ -2763,13 +2650,6 @@
           "name": "closedData/closedData#2",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -2837,38 +2717,8 @@
           "async": false
         },
         {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInputs",
-          "parameters": [
-            "profile",
-            "configurationReader",
-            "readJson"
-          ],
-          "async": true
-        },
-        {
           "name": "readInputs/reads/reads",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sha/sha",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
           "async": false
         }
       ],
@@ -2893,19 +2743,13 @@
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
-            "captureProvider",
             "captureProvider/captureProvider",
             "captureProvider/captureProvider/captureProvider",
             "checkInstalledCalendarSourceProfile",
             "checkInstalledCalendarSourceProfile/checkInstalledCalendarSourceProfile",
-            "checkSite",
             "checkSite/checkSite",
-            "cid/cid",
-            "closedData",
             "closedData/closedData",
             "closedData/closedData#2",
-            "fail/fail",
             "installedCalendarSourceIdentityParts",
             "loadInstalledCalendarSource",
             "loadInstalledCalendarSource/admitsApprovalTarget/admitsApprovalTarget",
@@ -2913,11 +2757,7 @@
             "loadInstalledCalendarSource/init:preparePageReader/init:preparePageReader",
             "loadInstalledCalendarSource/services/services",
             "loadInstalledCalendarSource/target/target",
-            "positive/positive",
-            "readInputs",
-            "readInputs/reads/reads",
-            "sha/sha",
-            "text/text"
+            "readInputs/reads/reads"
           ],
           "exports": [
             "INSTALLED_CALENDAR_SITE_VERSION",
@@ -2998,9 +2838,7 @@
           }
         },
         {
-          "operations": [
-            "calendarReaderLimits"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -3677,27 +3515,6 @@
           "async": false
         },
         {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareCalendarEventsPages",
           "parameters": [
             "moon",
@@ -3705,13 +3522,6 @@
             "names",
             "limits",
             "applySynchronousProjection"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareCalendarEventsPages/frame/frame",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -3799,13 +3609,6 @@
           "async": false
         },
         {
-          "name": "segment/segment",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "segment/segment/segment",
           "parameters": [
             "unit"
@@ -3827,11 +3630,7 @@
           "operations": [
             "<module>",
             "CalendarEventsReadFailure/constructor:constructor/constructor:constructor",
-            "count/count",
-            "fail/fail",
-            "positive/positive",
             "prepareCalendarEventsPages",
-            "prepareCalendarEventsPages/frame/frame",
             "prepareCalendarEventsPages/init:decodePage/init:decodePage",
             "prepareCalendarEventsPages/init:fetchPage/init:fetchPage",
             "prepareCalendarEventsPages/init:onError/init:onError",
@@ -3841,7 +3640,6 @@
             "prepareCalendarEventsPages/prepareCalendarEventsPages#4",
             "prepareCalendarEventsPages/provider/provider",
             "prepareCalendarEventsPages/provider/provider/provider",
-            "segment/segment",
             "segment/segment/segment"
           ],
           "exports": [
@@ -4438,27 +4236,6 @@
           "async": false
         },
         {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareCalendarFreeBusyRequestPages",
           "parameters": [
             "moon",
@@ -4466,13 +4243,6 @@
             "names",
             "limits",
             "applySynchronousProjection"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareCalendarFreeBusyRequestPages/frame/frame",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -4547,11 +4317,7 @@
           "operations": [
             "<module>",
             "CalendarFreeBusyPagesFailure/constructor:constructor/constructor:constructor",
-            "count/count",
-            "fail/fail",
-            "positive/positive",
             "prepareCalendarFreeBusyRequestPages",
-            "prepareCalendarFreeBusyRequestPages/frame/frame",
             "prepareCalendarFreeBusyRequestPages/init:decodePage/init:decodePage",
             "prepareCalendarFreeBusyRequestPages/init:fetchPage/init:fetchPage",
             "prepareCalendarFreeBusyRequestPages/init:onError/init:onError",

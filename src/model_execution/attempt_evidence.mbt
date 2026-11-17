@@ -195,6 +195,11 @@ pub fn model_execution_attempt_evidence(
   if check_model_original_resources_mutable(execution.state) is Err(issue) {
     return Err(issue)
   }
+  if execution.state.original_startup is Some(_) &&
+    execution.state.requests.length() > 128 &&
+    !original_model_attempt_proof_capacity_current(execution.state) {
+    return Err(Ledger(@resources.RetentionLimit))
+  }
   try {
     let attempt_cid = @publication.run_evidence_value_identity(trace.attempt)
     let slot_cid = @publication.run_evidence_value_identity(trace.call)

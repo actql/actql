@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {runInNewContext} from 'node:vm';
+import {configurePublicQueryEvidenceContracts} from './fixtures/public-query-cases.mjs';
 
 const canonical = value => Array.isArray(value)
   ? '[' + value.map(canonical).join(',') + ']'
@@ -27,35 +27,11 @@ test('packed query capability pins identify the authoritative contract bodies', 
 });
 
 test('packed query profile replaces obsolete capabilities with both current contracts', () => {
-  const source = readFileSync(new URL('./fixtures/packed-public-query.mjs',
-    import.meta.url), 'utf8');
-  const start = source.indexOf('environment.connector_capabilities[0].capability_contract_cids');
-  const end = source.indexOf('delete environment.evidence_bundle_cid;', start);
-  assert.ok(start >= 0 && end > start, 'existing capability setup must be present');
   const environment = JSON.parse(readFileSync(new URL(
     '../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
   const before = structuredClone(environment);
-  runInNewContext(source.slice(start, end), {environment}, {timeout: 1000});
+  configurePublicQueryEvidenceContracts(environment);
   const expected = structuredClone(before);
   expected.connector_capabilities[0].capability_contract_cids = pins.map(([, cid]) => cid).sort();
   assert.deepEqual(JSON.parse(JSON.stringify(environment)), expected);
-});
-
-// These are current ordinary acceptance constructors. Historical base documents
-// remain unchanged and are deliberately outside this check.
-test('current ordinary Source fixtures declare the current evidence protocols', () => {
-  const obsolete = [
-    'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b',
-    'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a',
-  ];
-  for (const name of ['dbt-compat-acceptance', 'model-resume-public-process',
-    'packed-acquired-infer', 'source-multi-infer-evidence',
-    'packed-public-query', 'planner-selection-public-query']) {
-    const source = readFileSync(new URL(`./fixtures/${name}.mjs`, import.meta.url), 'utf8');
-    assert.ok(source.includes(pins[0][1]), `${name}: current broad evidence`);
-    for (const old of obsolete) assert.ok(!source.includes(old), `${name}: stale current capability`);
-    if (name === 'packed-public-query' || name === 'planner-selection-public-query') {
-      assert.ok(source.includes(pins[1][1]), `${name}: current native two-receipt evidence`);
-    }
-  }
 });

@@ -60,7 +60,11 @@ first `all()` or reader iteration:
 
 ```python
 with Client.connect(endpoint, token) as client:
-    query = client.sql("SELECT @n AS n", {"n": 1})
+    query = client.sql(
+        "SELECT @n AS n",
+        {"n": 1},
+        parameter_declarations={"n": {"type": "number", "nullable": False}},
+    )
     rows = query.all(max_rows=10)
     with client.aql("FROM crm.accounts |> LIMIT 10").rows() as reader:
         for row in reader:
@@ -68,6 +72,8 @@ with Client.connect(endpoint, token) as client:
 # Async: query = client.sql(...); rows = await query.all()
 # async with query.rows(schema=Account) as reader: ...
 ```
+
+Pass text-query Parameter types through `parameter_declarations`.
 
 The same original submission carries `readOnly: true`. The Common admission
 Owner checks the complete checked Effect inventory of that same preparation

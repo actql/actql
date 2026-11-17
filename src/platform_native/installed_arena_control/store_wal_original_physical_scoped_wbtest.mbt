@@ -203,9 +203,9 @@ fn store_wal_payload_work(
   let same_bytes = reader.next(32).unwrap().bytes == b"same-original"
   reader.finish().unwrap()
   store.reclaim_payload(info.material_generation_cid).unwrap()
-  // This exact selected original uses the legacy three-argument constructor.
-  // It retains normal Read/SQL routing without opting into an unfunded chunk
-  // accumulator. Each requested64-byte delivery still yields one original row.
+  // This original intentionally has only the legacy routing callback. It
+  // cannot acknowledge the separate row/framer/serializer construction peak.
+  // Refusal must preserve the existing payload and normal Read/SQL route.
   let delivery_request = @payload.prepare_publication_payload_request(
     authority,
     "sha256:" + "9".repeat(64),
@@ -221,8 +221,7 @@ fn store_wal_payload_work(
   let delivery_writer = store.begin_payload(delivery_request).unwrap()
   delivery_writer.append(b"[{\"n\":0},{\"n\":1}]").unwrap()
   let delivery_info = delivery_writer.seal().unwrap()
-  let delivery = store
-    .open_payload_delivery(
+  let unfunded_delivery = store.open_payload_delivery(
       delivery_info.material_generation_cid,
       "jsonl",
       "{\"n\":{\"nullable\":false,\"type\":\"integer\"}}",
@@ -233,19 +232,15 @@ fn store_wal_payload_work(
       4,
       128L,
     )
+    is Err(@store.Database(@sqlite.Physical(_)))
+  let delivery_reader = store
+    .open_payload_reader(delivery_info.material_generation_cid)
     .unwrap()
-  let first_row = delivery.next(64).unwrap()
-  let second_row = delivery.next(64).unwrap()
-  let end = delivery.next(64).unwrap()
-  let summary = delivery.finish().unwrap()
-  let legacy_delivery = first_row.bytes == b"{\"n\":0}\n" &&
-    !first_row.eof &&
-    second_row.bytes == b"{\"n\":1}\n" &&
-    !second_row.eof &&
-    end.bytes.length() == 0 &&
-    end.eof &&
-    summary.rows == 2L &&
-    summary.bytes == 16L
+  let unchanged_payload = delivery_reader.next(64).unwrap().bytes ==
+    b"[{\"n\":0},{\"n\":1}]"
+  delivery_reader.finish().unwrap()
+  let original_still_current = original.primary_code() == 0 &&
+    receiver.host.require_domain_read_current(receiver.domain) is Ok(_)
   store.reclaim_payload(delivery_info.material_generation_cid).unwrap()
   let usage = store.capacity_usage().unwrap()
   // Routing metadata cannot acknowledge the still-open original Database.
@@ -278,7 +273,9 @@ fn store_wal_payload_work(
   busy_writer &&
   busy_reader &&
   same_bytes &&
-  legacy_delivery &&
+  unfunded_delivery &&
+  unchanged_payload &&
+  original_still_current &&
   original_busy &&
   usage.reserved_bytes == 0L &&
   first_close_pending &&
@@ -336,6 +333,7 @@ fn store_wal_original_work(
 fn store_wal_physical_case(
   normal_probe : Bool,
   open_probe? : Int = 0,
+  publication_probe? : Int = 0,
 ) -> Unit raise {
   let root = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap()
   let component = @env.get_env_var("ACTQL_TEST_SQLITE_COMPONENT").unwrap()
@@ -368,8 +366,16 @@ fn store_wal_physical_case(
     host
     .prepare_domain(backing, descriptor, 128L * page, {
       planning_work: 8,
-      attempts: 4,
-      holdings: 2,
+      attempts: if publication_probe > 0 {
+        2
+      } else {
+        4
+      },
+      holdings: if publication_probe > 0 {
+        1
+      } else {
+        2
+      },
       transfer_bytes: 4096L,
       retained_bytes: 0L,
       execution_bytes: 128L * page,
@@ -381,6 +387,32 @@ fn store_wal_physical_case(
   host
   .transfer_domain(domain)
   .retained_execution_value("Store WAL domain transfer")
+  // Publication metadata uses the actual separate A Read. An original Read
+  // cannot be minted in the already consumed SQLite domain. The selected
+  // probe delegates only2 SQLite attempts/1holding, preserving the original
+  // root8attempts/4holdings and256-page backing. Other cases are unchanged.
+  let publication_domain = if publication_probe > 0 {
+    let acquired = host
+      .prepare_domain(backing, descriptor, 32L * page, {
+        planning_work: 4,
+        attempts: 2,
+        holdings: 2,
+        transfer_bytes: 4096L,
+        retained_bytes: 8L * page,
+        execution_bytes: 24L * page,
+      })
+      .retained_execution_value("publication original Read domain")
+    let original = match acquired {
+      PreparedDomain(value) => value
+      PendingDomain(_, _) => fail("publication Read domain pending")
+    }
+    host
+    .transfer_domain(original)
+    .retained_execution_value("publication Read domain transfer")
+    Some(original)
+  } else {
+    None
+  }
   host
   .leave_backing_borrow_scope(backing)
   .retained_execution_value("Store WAL backing leave")
@@ -388,6 +420,11 @@ fn store_wal_physical_case(
   .return_backing_borrow(backing)
   .retained_execution_value("Store WAL backing return")
   host.prepare_domain_read(domain).retained_execution_value("Store WAL Read")
+  if publication_domain is Some(original) {
+    host
+    .prepare_domain_read(original)
+    .retained_execution_value("publication Read context")
+  }
   let sqlite = match
     host
     .prepare_sqlite_library(domain, component, 32L * page, 128)
@@ -395,7 +432,14 @@ fn store_wal_physical_case(
     ReadySqlite(value) => value
     PendingSqlite(_, _) => fail("original Store WAL Library pending")
   }
-  let result = if open_probe == 0 {
+  let result = if publication_probe > 0 {
+    publication_read_original_work(
+      host,
+      sqlite,
+      publication_domain.unwrap(),
+      publication_probe - 1,
+    )
+  } else if open_probe == 0 {
     store_wal_original_work(host, sqlite, root + "/store", normal_probe)
   } else if open_probe == 6 {
     journal_existing_original_work(host, sqlite, root + "/store")
@@ -415,6 +459,11 @@ fn store_wal_physical_case(
       fail(
         "Store WAL Library domain cleanup pending; Database children=\{children}",
       )
+  }
+  if publication_domain is Some(original) {
+    host
+    .close_domain_after_owner_ack(original)
+    .retained_execution_value("publication Read domain ACK")
   }
   host
   .close_domain_after_owner_ack(domain)

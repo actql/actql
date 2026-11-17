@@ -282,14 +282,16 @@ test('Command Preview omits contract approval DATA while Mapping carriage stays 
   const control = {effectSourceArtifactPreviewBinding: () => [null, cid('1')],
     issueSourceFreeLocalEffectIdentity: () => ({identity: cid('2')}),
     checkSourceFreeLocalEffectPreviewIdentities() {}};
+  const limits = {preview: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32},
+    maxRows: 10, maxRowsPerMember: 10, planWork: 100, maxFields: 10,
+    key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8}};
   const build = new Function('limits', 'moon', 'checked', 'runtimeField', 'approvalOf',
     'permissionsOf', 'pendingCid', 'fail', `return (${f.source.slice(node.start, node.end)});`)(
-    {preview: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32}, maxRows: 10, planWork: 100,
-      maxFields: 10, key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8}}, moon, value => value,
+    limits, moon, value => value,
     (value, index) => value[index], f.approvalOf, () => ['scope'], cid('0'), () => assert.fail('Unexpected builder refusal'));
   const members = [{kind: 'command', effectId: 'command', stageIndex: 0, command: {approval: 'required'}},
     {kind: 'update', effectId: 'mapping', stageIndex: 0, mapping: {approval: 'required'}}];
-  const result = build({control, prepared: {}, inputs: {}, context: {}, requestScope: {}, members,
+  const result = build({control, prepared: {}, inputs: {}, context: {}, requestScope: {}, limits, members,
     rowsOf: [[], []], capabilities: [{identity: cid('3')}, {identity: cid('4')}], footprints: [{}, {}],
     payloads: members.map(() => ({summary: {artifact: {}}, localResultArtifact: {identity: cid('5')}}))});
   const effects = JSON.parse(result.wire).effects;

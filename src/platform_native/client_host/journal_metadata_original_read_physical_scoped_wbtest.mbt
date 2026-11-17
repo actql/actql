@@ -30,7 +30,9 @@ impl Show for JournalMetadataFixtureDomainFailure with fn output(self, logger) {
 }
 
 ///|
-fn journal_metadata_original_read_fixture() -> JournalMetadataOriginalReadFixture raise {
+fn journal_metadata_original_read_fixture(
+  retained_limit? : Int64 = 4194304L,
+) -> JournalMetadataOriginalReadFixture raise {
   let mib = 1048576L
   let host = @arena.prepare_installed_arena_host(
     "0123456789012345678901234567890123456789",
@@ -57,7 +59,7 @@ fn journal_metadata_original_read_fixture() -> JournalMetadataOriginalReadFixtur
       attempts: 512,
       holdings: 256,
       transfer_bytes: 16L * mib,
-      retained_bytes: 4L * mib,
+      retained_bytes: retained_limit,
       execution_bytes: 64L * mib,
     })
     .unwrap() {
@@ -115,6 +117,7 @@ fn journal_metadata_original_read_fixture() -> JournalMetadataOriginalReadFixtur
     pair,
     read,
     metadata_retained: 0L,
+    account_construction_issue: None,
     active_phase: None,
     interrupted: false,
     store_operation: None,
@@ -127,7 +130,10 @@ fn journal_metadata_original_read_fixture() -> JournalMetadataOriginalReadFixtur
       .borrow_local_host_sqlite(pair)
       .map_err(issue => OriginalResources(issue))
       .unwrap()
-    let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
+    // This fixture installs a fresh one-shot journal schema. The scoped runner
+    // issues this private physical namespace per case, even when the legacy
+    // SQLite input namespace is shared by adjacent cases.
+    let path = @env.get_env_var("ACTQL_TEST_INSTALLED_PROCESS_ROOT").unwrap() +
       "/journal-metadata-original-read.sqlite3"
     match library.open_database_with_custody(path, 2097152L) {
       Ok(value) => database.val = Some(value)

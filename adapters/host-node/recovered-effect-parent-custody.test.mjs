@@ -6,15 +6,17 @@ import test from 'node:test';
 import {parse} from 'acorn';
 
 const source=readFileSync(new URL('./installed-row-effect.mjs',import.meta.url),'utf8');
-const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[];
+const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[],runLimitSelectors=[],recoveredEntriesSelectors=[];
 function visit(value){
   if(value===null||typeof value!=='object')return;
   if(value.type==='FunctionDeclaration'&&value.id.name==='prepareRecovered')found.push(value);
+  if(value.type==='VariableDeclarator'&&value.id.name==='runLimits')runLimitSelectors.push(value.init);
+  if(value.type==='VariableDeclarator'&&value.id.name==='prepareRecoveredEntries')recoveredEntriesSelectors.push(value.init);
   for(const child of Object.values(value)){
     if(Array.isArray(child))child.forEach(visit);else visit(child);
   }
 }
-visit(ast);assert.equal(found.length,1);
+visit(ast);assert.equal(found.length,1);assert.equal(runLimitSelectors.length,1);assert.equal(recoveredEntriesSelectors.length,1);
 
 function fixture(selected=true){
   const moon={},events=[],preview={},scope={},identity={},stop=new Error('ReachedOriginalCapabilityBoundary');
@@ -27,9 +29,11 @@ function fixture(selected=true){
     assert(retained,'parent retained before factory');events.push('construct child');return child;}}:{}};
   const members=[{memberIndex:0}],body={invocation_cid:'invocation',run_identity_cid:'run',
     authoring_context:{authoring_context_cid:'author'},effects:[{capability_evidence_cid:'capability',changes:[]}]};
-  const effect={recoveredPreviewKeys:()=>({}),admitPreviewIdentity:()=>({})};
-  const ledger={close(){events.push('close ledger');},recoverClaimFacts:()=>({})};
-  const bindings={moon,owners:[owner],singular:undefined,limits:{maxRows:10,maxWork:100,
+  const keys=[[]];let keyConstructions=0;
+  const effect={recoveredPreviewKeys:()=>{keyConstructions++;return keys;},admitPreviewIdentity:()=>({})};
+  const ledger={close(){events.push('close ledger');},recoverClaimFacts(_options,originalKeys){
+    assert.strictEqual(originalKeys,keys);events.push('borrow original keys');return{};}};
+  const bindings={moon,owners:[owner],singular:undefined,limits:{maxMembers:1,maxRows:10,maxWork:100,
     key:{maxBytes:100,maxNodes:10,maxDepth:5},
     preview:{maxWireBytes:1000,maxNodes:100,maxDepth:10}},localContractLimits:{},ROUTING_VERSION:'original',
     fail:code=>{throw Object.assign(new Error(code),{code});},text:value=>typeof value==='string'&&value.length>0,
@@ -39,7 +43,11 @@ function fixture(selected=true){
     resourceFields:()=>({}),orderedSourceIndexes:()=>[],
     physicalRoute(){assert.fail('No route is created before the exact terminal marker');},
     admitCapability(){events.push('capability');return{identity:'capability'};}};
-  const fn=Function(...Object.keys(bindings),`return (${source.slice(found[0].start,found[0].end)});`)(
+  const fn=Function(...Object.keys(bindings),`
+    const readManagedShape=moon.clientProgramInstalledEffectManagedPlanShape;
+    const prepareRecoveredEntries=(${source.slice(recoveredEntriesSelectors[0].start,recoveredEntriesSelectors[0].end)});
+    const runLimits=(${source.slice(runLimitSelectors[0].start,runLimitSelectors[0].end)});
+    return (${source.slice(found[0].start,found[0].end)});`)(
     ...Object.values(bindings));
   const facts={moon,control:{effectComputationPreviewWire:value=>{
     assert.strictEqual(value,preview);return JSON.stringify(body);},effectComputationPreviewLedgerIdentity:()=>({}),
@@ -48,8 +56,17 @@ function fixture(selected=true){
     continuation:{version:'original',program_id:'program',stage_id:'stage',
       members:[{dispatch_request_cid:'dispatch'}]},
     retainRecoveryOwner(value){assert.equal(retained,undefined);retained=value;events.push('retain parent');}};
-  return{fn,facts,events,stop,parent:()=>retained,ack(){ack=true;},prepare(value){prepare=value;}};
+  return{fn,facts,events,stop,parent:()=>retained,keyConstructions:()=>keyConstructions,
+    ack(){ack=true;},prepare(value){prepare=value;}};
 }
+
+test('cold claim recovery borrows its single original key cohort before capability admission',()=>{
+  const f=fixture(false);
+  assert.throws(()=>f.fn(f.facts),error=>error===f.stop);
+  assert.equal(f.keyConstructions(),1);
+  assert.equal(f.events.filter(value=>value==='borrow original keys').length,1);
+  assert(f.events.indexOf('borrow original keys')<f.events.indexOf('capability'));
+});
 
 test('selected recovered Content stays in the original parent across await and pending cleanup',async()=>{
   const f=fixture();let enter,release;

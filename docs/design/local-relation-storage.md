@@ -32,6 +32,36 @@ its original holding and all consumed work and transfer. The scratch refresh
 returns no output-close or physical-release acknowledgement; a pending provider,
 reader or nonprogressing continuation keeps its original reservation.
 
+## Funded row publication and exact sealed reload
+
+Physical batching admits the same measured full row before its first payload,
+then reuses that row plan while draining bounded fragments. A row may span the
+existing physical frames; concatenation, canonical hash and occurrence order
+remain unchanged. Aggregate byte, node and depth checks still apply. A frame
+that cannot hold one actual fragment refuses instead of yielding indefinitely.
+Old and new chunks coexist under the original publication reservation, and
+cancellation or current refusal preserves that original row and cleanup custody.
+
+Reload constructs its framer only after the original sealed-content grant has
+succeeded. The buffer bound is the smaller of that exact sealed byte geometry
+and every explicit original byte/row limit. It cannot inflate a small policy or
+construct a buffer after refusal. This changes neither Store capacity nor work
+policy, the physical frame guard, Source custody or Compute execution. No Source
+or Model replay supplies the publication.
+
+After every append and the same Store seal have acknowledged the exact body,
+the existing source-release transition consumes the original export receipt.
+Its drained builder, taken output and completed export copies no longer coexist
+with receiving construction. The same Task reservation keeps that backing and
+reuses only this completed export delta for reload. Earlier transport and import
+prefixes remain coheld; the larger of the retired delta and new receiving demand
+stays charged. Saved DATA, a pending append, failed seal, cancellation or a refused
+current fence cannot select this transition. No physical release, new grant or
+future-frame allocation is inferred. These are logical backing quantities under
+the existing tariffs, rather than process heap measurements. Named batching and
+reload regressions are Source references; runtime and normal artifact acceptance
+are separate.
+
 The storage decision is conservative: lower construction counts alone are not a
 sufficient reason to replace rows. The bounded workloads use shared row-index
 algorithms already, and admission, row-major expression execution and conversion

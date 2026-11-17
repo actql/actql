@@ -157,3 +157,120 @@ pub fn client_program_check_environment_from_wire(
     { rela, sga, tea, calendar, text_rank, },
   )
 }
+
+///|
+/// Final installed profile selection on the SAME funded canonical wire. Keep
+/// the public compatibility entry's selected graph/SGA/numeric checks; this
+/// empty-ModelTask cut cannot substitute an independently read document.
+#export_name("clientProgramCheckEnvironmentFromWireWithGraphProfile")
+pub fn client_program_check_environment_from_wire_with_graph_profile(
+  original : @check_environment.WireEnvironment,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+  numeric_profile_cid : String,
+  graph_law_cid : String,
+) -> @program_check.CheckEnvironment? {
+  if !selected_graph_supported() ||
+    graph_law_cid != @graph_contract.law_cid() ||
+    (sga && !selected_sga_supported()) ||
+    @check_environment.member_count(
+      original,
+      @check_environment.ModelTaskContracts,
+    ) !=
+    0 {
+    return None
+  }
+  @publication_host.admit_client_check_environment_from_wire_with_numeric_profile_cid(
+    original,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    numeric_profile_cid,
+    graph=true,
+  )
+}
+
+///|
+/// Populated Model metadata has its own full construction inventory. An empty
+/// proof cannot price it, and this recipe cannot substitute an empty original.
+#export_name("clientProgramCheckEnvironmentModelFromWireConstructionCapacity")
+pub fn client_program_check_environment_model_from_wire_construction_capacity(
+  original : @check_environment.WireEnvironment,
+) -> @execution.ExecutionCapacity? {
+  if @check_environment.member_count(
+      original,
+      @check_environment.ModelTaskContracts,
+    ) ==
+    0 {
+    return None
+  }
+  guard @check_environment.model_tasks_admission_construction_extent(original)
+    is Some(peak) else {
+    return None
+  }
+  client_check_environment_capacity(
+    client_check_environment_add_extent(
+      client_check_environment_add_extent(peak, {
+        record_headers: 2L,
+        reference_slots: 1L,
+        scalar_words: 2L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }),
+      @publication_host.client_check_environment_wrapper_construction_extent(
+        false,
+      ),
+    ),
+    client_check_environment_add_extent(
+      client_check_environment_add_extent(peak, {
+        record_headers: 2L,
+        reference_slots: 1L,
+        scalar_words: 2L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }),
+      @publication_host.client_check_environment_wrapper_construction_extent(
+        true,
+      ),
+    ),
+  )
+}
+
+///|
+/// The SAME complete Core checker with identical profile/pin checks. Only the
+/// populated original belongs to this constructor domain.
+#export_name("clientProgramCheckEnvironmentModelFromWireWithGraphProfile")
+pub fn client_program_check_environment_model_from_wire_with_graph_profile(
+  original : @check_environment.WireEnvironment,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+  numeric_profile_cid : String,
+  graph_law_cid : String,
+) -> @program_check.CheckEnvironment? {
+  if !selected_graph_supported() ||
+    graph_law_cid != @graph_contract.law_cid() ||
+    (sga && !selected_sga_supported()) ||
+    @check_environment.member_count(
+      original,
+      @check_environment.ModelTaskContracts,
+    ) ==
+    0 {
+    return None
+  }
+  @publication_host.admit_client_check_environment_from_wire_with_numeric_profile_cid(
+    original,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    numeric_profile_cid,
+    graph=true,
+  )
+}

@@ -229,6 +229,7 @@ fn admit_client_effect_dependency_capture_body(
   max_depth : Int,
   before_body : ((Int, Int, Int) -> Bool)?,
   original : () -> Bool,
+  wire_extent? : (Int, Int)? = None,
 ) -> Result[
   (@publication.CapturedEffectDependencyBody, Int),
   ClientEffectDependencyCaptureIssue,
@@ -248,14 +249,29 @@ fn admit_client_effect_dependency_capture_body(
   if bytes > remaining {
     return Err(Dependency(ByteLimit))
   }
+  // Only an internal same-original encoder receipt supplies this measured
+  // bound. Raw/external wires retain the full conservative parser quote.
+  // Exact byte equality is checked here; complete canonical body/CID
+  // admission remains below and cannot be replaced by these DATA dimensions.
+  let (nodes, depth) = match wire_extent {
+    Some((original_bytes, nodes)) => {
+      if original_bytes != bytes || nodes < 1 || nodes > max_nodes {
+        return Err(Dependency(InvalidBody))
+      }
+      // The original receipt records nodes, not depth (its third legacy
+      // usage field is row/field count). Preserve the parser's depth ceiling.
+      (nodes, Int::min(max_depth, nodes))
+    }
+    None =>
+      (
+        Int::min(max_nodes, Int::max(1, bytes)),
+        Int::min(max_depth, Int::min(max_nodes, Int::max(1, bytes))),
+      )
+  }
   if before_body is Some(prepare) {
     // Every JSON node consumes at least one original input byte. These are
     // backing dimensions only; the semantic parser keeps its original limits.
-    if !prepare(
-        bytes,
-        Int::min(max_nodes, Int::max(1, bytes)),
-        Int::min(max_depth, Int::min(max_nodes, Int::max(1, bytes))),
-      ) {
+    if !prepare(bytes, nodes, depth) {
       return Err(ConstructionRefused)
     }
     if !original() {

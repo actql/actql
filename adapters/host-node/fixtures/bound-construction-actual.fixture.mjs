@@ -8,13 +8,12 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {checked} from '../../host-common/runtime-result.mjs';
-import {runtimeField} from '../../host-common/compiler-binding.generated.mjs';
 import {loadInstalledEffect, publishInstalledEffectProfile} from '../installed-effect.mjs';
 import {withFixtureConnector} from '../../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid, sourceReadAccountConfiguration} from '../local-account-config.mjs';
 import {loadInstalledTableEffect} from '../../connectors/local/host/installed-local-table.mjs';
 import {fixtureCertificates, openHttpsExchangeFixture} from '../../site-node/https-exchange-fixture.mjs';
-import {createInstalledHostServices, retireInstalledSourceInitialization}
+import {createInstalledHostServices, retireInstalledSourceInitialization, closeInstalledAccountConstruction}
   from '../installed-host-services.mjs';
 import {loadInstalledSource, publishInstalledSourceProfile, installedSourcePublicationFacts} from '../installed-source.mjs';
 import {installedConnectors} from '../../connectors-builtin/installations.generated.mjs';
@@ -73,49 +72,12 @@ function tableEffectValue(root, approval = 'required') {
       permissions: ['scope:store'], footprint: {version: 'fixture-only'}}], limits: {}};
 }
 
-export async function boundConstructionActualFixture(t, {capacityEvents, nativeCompletions, profileInspections} = {}) {
-  // Observe only actual typed quotes on the unchanged original parent. The
-  // wrapper forwards every call/result/error; it grants no capacity or current.
-  const observe = name => function (...args) {
-    if (currentFault?.reserve && name === 'clientProgramReserveInstalledSourceConstruction') {
-      currentFault.ready = true;
-    }
-    const quote = args[2];
-    const pair = originalMoon.clientProgramSerializationCapacityBytes(quote);
-    let returned = false, accepted = false;
-    try {
-      const value = Reflect.apply(originalMoon[name], originalMoon, args);
-      returned = true;
-      try {checked(value); accepted = true;} catch { /* Keep the original Result unchanged. */ }
-      return value;
-    } finally {capacityEvents.push({operation: name, retained: runtimeField(pair, 0), peak: runtimeField(pair, 1), returned, accepted});}
-  };
-  const moon = capacityEvents === undefined && nativeCompletions === undefined && profileInspections === undefined ? originalMoon
-    : Object.freeze({...originalMoon,
-      ...(profileInspections === undefined ? {} : {
-        clientProgramInstalledSourceInspectionConstructionCapacity(original) {
-          const result = originalMoon.clientProgramInstalledSourceInspectionConstructionCapacity(original);
-          profileInspections.push({original, inspection: checked(result)}); return result;
-        }}),
-      ...(capacityEvents === undefined ? {} : {
-        clientProgramReserveInstalledSourceConstruction: observe('clientProgramReserveInstalledSourceConstruction'),
-        clientProgramReconcileInstalledSourceConstruction: observe('clientProgramReconcileInstalledSourceConstruction')}),
-      ...(nativeCompletions === undefined ? {} : {
-        clientProgramComposeInstalledSourceConstructionCapacity(base, providers) {
-          // Observe the original supplied DATA even when its later physical
-          // reserve refuses. This does not inspect or repair the Ledger.
-          for (const value of nativeCompletions) value.lastProviderQuantity = providers.find(
-            quantity => quantity === value.quantity || quantity === value.retained);
-          return originalMoon.clientProgramComposeInstalledSourceConstructionCapacity(base, providers);
-        },
-        clientProgramInstalledSourceRetainedConstructionCapacity(quantity) {
-          const result = originalMoon.clientProgramInstalledSourceRetainedConstructionCapacity(quantity);
-          // DATA projection observation is separate from actual reserve and
-          // reconcile Results. Do not count it as a completed admission.
-          nativeCompletions.push({quantity, retained: checked(result), eventIndex: capacityEvents?.length});
-          return result;
-        }})});
+export async function boundConstructionActualFixture(t) {
+  // Keep the actual module namespace shared with the Account gate. A copied
+  // method facade cannot stand in for this original runtime.
+  const moon = originalMoon;
   const root = await mkdtemp(join(tmpdir(), 'actql-bound-construction-actual-'));
+  const baseEnvironmentWire = environment;
   const state = {}, sources = [], failures = [];
   let active = true, childrenPending = false, services, closed = false, secretReads = 0;
   let currentFault;
@@ -132,12 +94,7 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
       currentFault.calls++;
       throw currentFault.failure;
     }
-    if (currentFault?.nativeQuantity !== undefined && currentFault.calls === 0 &&
-        nativeCompletions?.some(value => value.quantity === currentFault.nativeQuantity)) {
-      currentFault.calls++;
-      throw currentFault.failure;
-    }
-    if (currentFault !== undefined && currentFault.nativeQuantity === undefined && currentFault.calls === 0 &&
+    if (currentFault !== undefined && currentFault.calls === 0 &&
         (currentFault.journal ? currentFault.siteReturned !== undefined : existsSync(currentFault.path))) {
       // The actual bound Site has returned to its original custody owner.
       // /proc descriptors remain an additional Linux assertion, not readiness.
@@ -156,7 +113,10 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
       }
     }
     for (const source of sources) await source.close();
-    if (services !== undefined) assert.equal(retireInstalledSourceInitialization(services), true);
+    if (services !== undefined) {
+      assert.equal(await closeInstalledAccountConstruction(services), true);
+      assert.equal(retireInstalledSourceInitialization(services), true);
+    }
     childrenPending = false;
     closeHostInitializationPreparation(state);
     active = false; closed = true;
@@ -170,7 +130,7 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
   const parentInput = Object.freeze({root, purpose: 'installed connector component verification'});
   const parent = openHostInitializationPreparation(state, moon, parentInput, current, () => childrenPending);
   services = createInstalledHostServices({root, principalId: 'operator', moon,
-    initialPreparation: parent, assertCurrent: current});
+    initialPreparation: parent, assertCurrent: current, accountCurrent: current});
   childrenPending = true;
   const certificates = await fixtureCertificates(root);
   const privateKey = generateKeyPairSync('ed25519').privateKey.export({type: 'pkcs8', format: 'pem'});
@@ -372,7 +332,7 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
     assert.equal(entry.registration, provider);
     return {path, value, registration: provider, journalPath: join(site.journalRoot, 'credential-journal.sqlite3')};
   }
-  async function tableSourceProfile({invalidAccount = false, invalidSelector = false} = {}) {
+  async function tableSourceProfile({invalidAccount = false, invalidSelector = false, targetCount = 1} = {}) {
     const schemaWire = (await readFile(new URL('../../connectors/local/iceberg/fixtures/presence-schema.json', import.meta.url), 'utf8')).trimEnd();
     const value = {...common(root), version: 'actql-installed-local-table-source/0.1',
       targets: [{resource: 'rows', schemaWire, selector: {catalog_identity_cid: cid('3'),
@@ -380,6 +340,10 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
         table_uuid: '00000000-0000-0000-0000-000000000001',
         schema_cid: 'sha256:8f5aaf81ac549e3e1b2724b949725bffe152abbae67451b31276b17f11c74e9a'}}],
       limits: {maxPages: 3, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16}};
+    if (targetCount !== 1) {
+      assert.ok(Number.isSafeInteger(targetCount) && targetCount > 0);
+      value.targets = Array.from({length: targetCount}, (_, index) => ({...value.targets[0], resource: `rows_${index}`}));
+    }
     if (invalidAccount) value.accountConfigurationWire = '{}';
     if (invalidSelector) value.targets[0].selector.catalog_identity_cid = cid('4');
     const path = join(root, `table-source-${++serial}.json`);
@@ -431,7 +395,7 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
       }
       const loader = selection.role === 'effect' ? loadInstalledEffect : loadInstalledSource;
       const source = await loader(selection.path, {root, principalId: 'operator',
-        moon, runtimeUrl, baseEnvironmentWire: environment, installationServices: services, connectorTable,
+        moon, runtimeUrl, baseEnvironmentWire, installationServices: services, connectorTable,
         resolveSecret() {secretReads++; assert.fail('Initialization must not resolve a provider token');}});
       sources.push(source);
       if (selection.role !== 'effect') {
@@ -458,23 +422,17 @@ export async function boundConstructionActualFixture(t, {capacityEvents, nativeC
     }
   }
   return {profile, salesforceProfile, gcsProfile, githubProfile, metadataSourceProfile, tableSourceProfile, tableEffectProfile, load, close, sources, services, moon, root, openJournalDescriptors,
-    failCurrentOnNextReserve() {
-      assert.equal(currentFault, undefined); assert.notEqual(capacityEvents, undefined);
-      currentFault = {reserve: true, ready: false, calls: 0,
-        failure: new Error('same original current failed at JSON completion')};
+    baseEnvironmentWire,
+    failCurrentBeforeNextConstruction() {
+      assert.equal(currentFault, undefined);
+      currentFault = {ready: true, calls: 0, failure: new Error('OriginalSourceParentCurrentLost')};
       return currentFault;
     },
+    sourceInputOriginal: parentInput,
     failCurrentAfterTableConstruction() {
       assert.equal(currentFault, undefined);
       currentFault = {path: join(root, 'state', 'effects', 'ledger'), calls: 0,
         failure: new Error('OriginalPostTableConstructionCurrentFailure')};
-      return currentFault;
-    },
-    failCurrentAfterNativeRetention(quantity) {
-      assert.equal(currentFault, undefined);
-      assert.ok(nativeCompletions);
-      currentFault = {nativeQuantity: quantity, calls: 0,
-        failure: new Error('OriginalCurrentAfterNativeRetentionFailure')};
       return currentFault;
     },
     failCurrentAfterJournal(selection) {

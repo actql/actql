@@ -4,7 +4,9 @@ import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {hash} from '../../inventory.mjs';
-import {providerConstructionBound} from './provider-construction.mjs';
+import {providerConstructionBound, currentFactoryDeclaration,
+  currentProviderRecordDeclaration} from './provider-construction.mjs';
+import {checkParentCensus} from './bounds.mjs';
 import {checkConstructionSourceReview} from './provider-construction-source-review.mjs';
 import {currentConstructionReview, historicalConstructionSource}
   from './provider-construction-current-review.mjs';
@@ -23,7 +25,7 @@ test('current constructor admission binds current sources and keeps the conditio
   const bound = providerConstructionBound(read);
   assert.equal(bound.providerCount, 11);
   assert.equal(bound.callbackCount, 44);
-  assert.equal(bound.bytes, 2432);
+  assert.equal(bound.bytes, 2520);
   assert.equal(bound.completeConstructorByteCorrespondence, false);
   assert.equal(bound.completeParentUpper, false);
   assert.equal(bound.completePipelineUpper, false);
@@ -54,29 +56,91 @@ for (const [name, path, before, after] of [
   ['additional constructor parameter', selectedPath,
     '  family? : Array[ManagedProvider] = [],\n) -> ManagedProvider {',
     '  family? : Array[ManagedProvider] = [],\n  extra : Int,\n) -> ManagedProvider {'],
+  ['changed candidate factory attribute', selectedPath,
+    'fn selected_relation_provider(', '#inline\nfn selected_relation_provider('],
   ['prefix substituted by full count', selectedPath,
     '            let reclaims_scratch = state.position <= reclaimed_prefix',
     '            let reclaims_scratch = state.position <= count'],
   ['missing cleanup ACK', selectedPath, '        if reclaimed.val {', '        if true {'],
-  ['Calendar accepted as a row kernel', generatedPath,
-    '      | @lower.CalendarStep(_)\n', ''],
-  ['unaccounted Calendar owner', generatedPath,
-    '  calendar_output_ceilings : Array[(Int, Int64)]\n',
-    '  calendar_output_ceilings : Array[(Int, Int64)]\n  extra_owner : Array[Int]\n'],
   ['changed constructor callback field', managedPath,
     '  accepts : ', '  extra_capture : Int\n  accepts : '],
-  ['unknown whole-source change', generatedPath, 'struct GeneratedSequence {',
-    'struct GeneratedSequence {\n  unknown : Int'],
+  ['changed provider record representation', managedPath,
+    'struct ManagedProvider {', '#valtype\nstruct ManagedProvider {'],
+  ['changed constructor wrapper capture', managedPath,
+    '    start_numeric: None,', '    start_numeric: Some(unreviewed),'],
+  ['changed constructor wrapper attribute', managedPath,
+    'pub fn managed_provider_with_numeric(', '#inline\npub fn managed_provider_with_numeric('],
 ]) {
   test(`current construction refuses ${name}`, () => {
     const original = read(path).toString();
     assert(original.includes(before), `Missing independent negative target ${name}`);
     const changed = original.replace(before, after);
     assert.notEqual(changed, original);
-    assert.throws(() => providerConstructionBound(file => file === path ? changed : read(file)),
-      /Unreviewed current constructor source/);
+    const runtimeOnly=['prefix substituted by full count','missing cleanup ACK'].includes(name);
+    const inspect=runtimeOnly?checkParentCensus:providerConstructionBound;
+    assert.throws(() => inspect(file => file === path ? changed : read(file)),
+      runtimeOnly?/Unreviewed .* source captures|Changed row cleanup stop\/ACK boundary/:
+        /Unreviewed current constructor source|Unreviewed provider candidate inventory|Changed current ManagedProvider declaration|Changed current candidate construction wrapper/);
   });
 }
+
+test('constructor declarations retain representation attributes across comments and documentation markers', () => {
+  const managed = read(managedPath).toString();
+  const record = currentProviderRecordDeclaration(managed, 'ManagedProvider');
+  for (const prefix of ['#valtype\n', '#valtype\n/* layout attribute */\n///|\n']) {
+    const changed = managed.replace('struct ManagedProvider {', prefix + 'struct ManagedProvider {');
+    assert.notEqual(currentProviderRecordDeclaration(changed, 'ManagedProvider'), record);
+    assert.throws(() => providerConstructionBound(path => path === managedPath ? changed : read(path)),
+      /Changed current ManagedProvider declaration/);
+  }
+  const name = 'managed_provider_with_numeric';
+  const wrapper = currentFactoryDeclaration(managed, name);
+  for (const prefix of ['#inline\n', '#coverage.skip\n///|\n', '#cfg(\n  target="native"\n)\n///|\n']) {
+    const changed = managed.replace(`pub fn ${name}(`, prefix + `pub fn ${name}(`);
+    assert.notEqual(currentFactoryDeclaration(changed, name), wrapper);
+    assert.throws(() => providerConstructionBound(path => path === managedPath ? changed : read(path)),
+      /Changed current candidate construction wrapper/);
+  }
+});
+
+test('unrelated runtime helpers retain complete source provenance without changing the finite constructor claim', () => {
+  for (const [path, change] of [
+    [managedPath, source => source + '\n///|\nfn unrelated_runtime_helper() -> Int {\n  0\n}\n'],
+    [generatedPath, source => source + '\n///|\nfn unrelated_runtime_helper() -> Int {\n  0\n}\n'],
+    [managedPath, source => source.replace('    reported_work: Ok(0L),', '    reported_work: Ok(0L + 0L),')],
+  ]) {
+    const original = read(path).toString();
+    const changed = change(original);
+    assert.notEqual(changed, original);
+    const bound = providerConstructionBound(file => file === path ? changed : read(file));
+    assert.equal(bound.bytes, 2520);
+    assert.equal(bound.completeConstructorByteCorrespondence, false);
+    assert.equal(bound.completeParentUpper, false);
+    assert.equal(bound.completePipelineUpper, false);
+    const key = path === managedPath ? 'managedDigest' : 'generatedDigest';
+    assert.equal(bound.sourceReview[key], hash(changed));
+    assert.notEqual(bound.sourceReview[key], hash(original));
+  }
+});
+
+test('borrowed generated inputs and deferred execution are outside the candidate object bound', () => {
+  const original = read(generatedPath).toString();
+  const changed = original.replace('struct GeneratedSequence {',
+    'struct GeneratedSequence {\n  unrelated_borrowed_field : Int');
+  assert.notEqual(changed, original);
+  const bound = providerConstructionBound(path => path === generatedPath ? changed : read(path));
+  assert.equal(bound.bytes, 2520);
+  assert.equal(bound.sourceReview.generatedDigest, hash(changed));
+  assert.equal(bound.completeConstructorByteCorrespondence, false);
+  assert.equal(bound.completeParentUpper, false);
+  assert.equal(bound.completePipelineUpper, false);
+  const source = read(selectedPath).toString();
+  const brokenCleanup = source.replace('        if reclaimed.val {', '        if true {');
+  assert.notEqual(brokenCleanup, source);
+  assert.equal(providerConstructionBound(path => path === selectedPath ? brokenCleanup : read(path)).bytes, 2520);
+  assert.throws(() => checkParentCensus(path => path === selectedPath ? brokenCleanup : read(path)),
+    /Unreviewed .* source captures|Changed row cleanup stop\/ACK boundary/);
+});
 
 test('current construction refuses changed current recipe bytes', () => {
   assert.throws(() => providerConstructionBound(file => file === directory + 'provider-construction-current.json' ?
@@ -89,7 +153,7 @@ test('current construction requires no historical recipe, review or Git source',
     assert(file.startsWith('src/') || file === current, `Unexpected historical input ${file}`);
     return read(file);
   });
-  assert.equal(bound.bytes, 2432);
+  assert.equal(bound.bytes, 2520);
   assert.equal(bound.sourceReview.historicalSourceReview, undefined);
   assert.equal(bound.sourceReview.retainedSourceReview, undefined);
 });
@@ -110,4 +174,32 @@ test('literal reversal refuses duplicate current occurrences even with a substit
   const source = beforeAdoptedConstructionSource(adoptedConstructionFixtureRead(entry.path).toString(), entry.path) + entry.hunks[0].after;
   assert.throws(() => historicalConstructionSource(source, {...entry, currentSha256: hash(source)}),
     /Changed reviewed constructor delta/);
+});
+
+// Capacity and execution callback bodies do not run during candidate creation.
+// Their actual current bytes remain in the compiled source/artifact boundary.
+test('deferred callback implementation changes retain current construction provenance', () => {
+  const path = 'src/connectors/local/cross_join_provider.mbt';
+  const source = read(path).toString();
+  const changed = source.replace('bounded_cross_join_issue(issue, step)', 'bounded_cross_join_issue(issue, step + 0)');
+  assert.notEqual(changed, source);
+  const bound = providerConstructionBound(file => file === path ? changed : read(file));
+  assert.equal(bound.bytes, 2520);
+  assert.equal(bound.completeConstructorByteCorrespondence, false);
+});
+
+test('constructor census refuses eager allocations and replacement callback owners', () => {
+  const source = read(managedPath).toString();
+  const changed = source.replace('    accepts,\n    capacity,\n    bounded_relation_capacity,',
+    '    accepts: sequence => true,\n    capacity,\n    bounded_relation_capacity,');
+  assert.notEqual(changed, source);
+  assert.throws(() => providerConstructionBound(file => file === managedPath ? changed : read(file)),
+    /construction wrapper accepts/);
+  const path = 'src/connectors/local/cross_join_provider.mbt';
+  const factory = read(path).toString();
+  const allocated = factory.replace(') -> ManagedProvider {\n  managed_provider(',
+    ') -> ManagedProvider {\n  let extra = Array::make(100, None)\n  managed_provider(');
+  assert.notEqual(allocated, factory);
+  assert.throws(() => providerConstructionBound(file => file === path ? allocated : read(file)),
+    /constructor source allocations/);
 });

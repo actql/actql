@@ -47,14 +47,7 @@ test "CLI explicitly selects Reviewer only within existing finite installation o
     old="\"eighth.json\"]",
     new="\"eighth.json\",\"ninth.json\"]",
   )
-  assert_true(
-    try {
-      local_host_settings(ninth) |> ignore
-      false
-    } catch {
-      ClientStop(message) => message == "InvalidLocalInstallationSelection"
-    },
-  )
+  assert_eq(local_host_settings(ninth).installation_files.length(), 9)
 }
 
 ///|

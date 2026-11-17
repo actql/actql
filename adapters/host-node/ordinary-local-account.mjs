@@ -9,6 +9,7 @@ import {readHostRootAccountAdoption, adoptHostRootAccount} from './host-root-for
 import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
 import {canonicalJson, contentCid, bytesCid} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {isAccountConstruction, readAccountOriginal} from './account-construction.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 
 const maximum = 1_000_000;
@@ -16,8 +17,20 @@ const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {c
 const exact = (value, fields) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...fields].sort().join('\0');
 
-export async function prepareOrdinaryLocalAccount({root, principal, preparedOriginal,
-  rootCreation, operatorAuthorization}) {
+export async function prepareOrdinaryLocalAccount({accountConstruction, ...options}) {
+  if (accountConstruction === undefined) return prepareOrdinaryLocalAccountOriginal(options);
+  if (!isAccountConstruction(accountConstruction)) fail('ForeignAccountConstruction');
+  const frame = accountConstruction.begin();
+  try {
+    const result = await prepareOrdinaryLocalAccountOriginal(options, frame, accountConstruction);
+    if (result !== undefined) frame.hold();
+    frame.finish(result !== undefined);
+    return result;
+  } catch (cause) {frame.failure(cause); frame.finish(false); throw cause;}
+}
+
+async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOriginal,
+  rootCreation, operatorAuthorization}, frame, construction) {
   if (operatorAuthorization !== undefined && (operatorAuthorization === null ||
       typeof operatorAuthorization !== 'object' || Array.isArray(operatorAuthorization))) {
     fail('InvalidLocalAccountAuthorization');
@@ -41,7 +54,8 @@ export async function prepareOrdinaryLocalAccount({root, principal, preparedOrig
     if (!state.isFile() || state.isSymbolicLink() || (state.mode & 0o077) !== 0) {
       fail('LocalAccountInitializationExposed');
     }
-    const wire = await readBoundedConfigurationUtf8(path, {maxBytes: maximum});
+    const wire = frame === undefined ? await readBoundedConfigurationUtf8(path, {maxBytes: maximum})
+      : await readAccountOriginal(path, frame);
     current();
     return wire;
   }
@@ -49,7 +63,11 @@ export async function prepareOrdinaryLocalAccount({root, principal, preparedOrig
     original => open(original, 'r'), original => original.sync());
   async function createOriginal(path, wire, parent) {
     current();
-    if (Buffer.byteLength(wire, 'utf8') > maximum) fail('LocalAccountInitializationLimit');
+    if (frame === undefined && Buffer.byteLength(wire, 'utf8') > maximum) fail('LocalAccountInitializationLimit');
+    if (frame !== undefined) {
+      const bytes = BigInt(Buffer.byteLength(wire, 'utf8'));
+      frame.prepare(0n, 128n + 3n * bytes);
+    }
     try {
       await withOriginalFile(path, original => open(original, 'wx', 0o600), async handle => {
         current(); await handle.writeFile(wire, 'utf8'); await handle.sync(); current();
@@ -61,6 +79,7 @@ export async function prepareOrdinaryLocalAccount({root, principal, preparedOrig
     await syncDirectory(parent); current();
   }
   const parse = wire => {
+    frame?.nativeJson(wire);
     try { return JSON.parse(wire); } catch (cause) { fail('LocalAccountInitializationInvalid', cause); }
   };
   const adopted = await readHostRootAccountAdoption(root, preparedOriginal);
@@ -72,6 +91,7 @@ export async function prepareOrdinaryLocalAccount({root, principal, preparedOrig
     // reason to overwrite operator material, even on this fresh Host root.
     try { await lstat(directory); fail('LocalAccountInitializationConflict'); }
     catch (cause) { if (cause?.code !== 'ENOENT') throw cause; }
+    frame?.record(BigInt(principal.length) + 256n, 16n, 3n);
     intentWire = canonicalJson({version: 'actql-local-account-initialization/0.1',
       record_id: randomUUID(), account_id: 'local-' + randomUUID(), principal});
     await createOriginal(intentPath, intentWire, root);
@@ -81,6 +101,7 @@ export async function prepareOrdinaryLocalAccount({root, principal, preparedOrig
       intent.version !== 'actql-local-account-initialization/0.1' || intent.principal !== principal ||
       ![intent.record_id, intent.account_id].every(value => typeof value === 'string' &&
         value.length > 0 && value.length <= 128)) fail('LocalAccountInitializationInvalid');
+  frame?.prepare(0n, 256n + 3n * BigInt(Buffer.byteLength(intentWire, 'utf8')));
   const initializationCid = bytesCid(Buffer.from(intentWire, 'utf8'));
   if (adopted !== undefined && (adopted.initialization_cid !== initializationCid ||
       adopted.account_id !== intent.account_id || adopted.record_id !== intent.record_id)) {
@@ -96,11 +117,16 @@ export async function prepareOrdinaryLocalAccount({root, principal, preparedOrig
     // not infer ownership from status: current() checks the nominal exclusion.
     const originalStore = store, originalStatus = store.status;
     flight = Promise.resolve().then(async () => {
+      const initialFrame = frame;
+      const adoptionFrame = construction?.begin();
+      if (adoptionFrame !== undefined) frame = adoptionFrame;
+      try {
       current();
       if (typeof originalStatus !== 'function' ||
           Reflect.apply(originalStatus, originalStore, []).closed !== false) {
         fail('LocalAccountInitializationChanged');
       }
+      frame?.record(1024n, 48n, 4n);
       const profile = moon.clientProgramLocalStandardAccountProfile();
       const identity = {profile_id: runtimeField(profile, 0), profile_version: runtimeField(profile, 1),
         profile_cid: runtimeField(profile, 2)};
@@ -109,15 +135,31 @@ export async function prepareOrdinaryLocalAccount({root, principal, preparedOrig
           contentCid(parse(runtimeField(profile, 3))) !== identity.profile_cid) {
         fail('LocalAccountProfileUnavailable');
       }
-      const configuration = checked(moon.clientProgramLocalStandardAccountConfiguration(
+      if (frame !== undefined) {
+        let units = BigInt(intent.account_id.length + principal.length + subjects.controlConnection.length);
+        for (const connection of subjects.configuredConnections) units += BigInt(connection.length);
+        for (const task of subjects.modelTasks) units += BigInt(task[0].length + task[1].length);
+        if (subjects.requestTarget !== undefined) units += BigInt(subjects.requestTarget[0].length + subjects.requestTarget[1].length);
+        if (subjects.signingKeyResource !== undefined) units += BigInt(subjects.signingKeyResource.length);
+        frame.record(units + 512n, 48n + 8n * BigInt(subjects.configuredConnections.length + subjects.modelTasks.length), 6n);
+      }
+      const materialize = frame === undefined ? moon.clientProgramLocalStandardAccountConfiguration
+        : moon.clientProgramLocalStandardAccountConfigurationPrepared;
+      const generated = Reflect.apply(materialize, moon, [
+
         intent.account_id, principal, subjects.controlConnection, subjects.configuredConnections,
         subjects.modelTasks.map(runtimeTupleFromFields),
         subjects.requestTarget === undefined ? undefined : runtimeTupleFromFields(subjects.requestTarget),
-        subjects.signingKeyResource));
+        subjects.signingKeyResource, ...(frame === undefined ? [] : [frame.core])]);
+      frame?.assert();
+      if (generated === undefined) fail('LocalAccountConstructionUnavailable');
+      const configuration = checked(generated);
       if (typeof configuration !== 'string') fail('InvalidHostRuntimeResult');
       const subjectCid = contentCid(subjects);
+      frame?.record(BigInt(configuration.length) + 1024n, 48n, 6n);
+      const configurationCid = contentCid(parse(configuration));
       const materialWire = canonicalJson({profile: identity, subjectCid, configuration,
-        initializationCid, configurationCid: contentCid(parse(configuration))});
+        initializationCid, configurationCid});
       let material = await readOptional(materialPath);
       if (adopted === undefined) {
         if (material === undefined) {
@@ -139,13 +181,14 @@ export async function prepareOrdinaryLocalAccount({root, principal, preparedOrig
       if (currentWire === undefined) fail('LocalAccountAdoptedStateMissing');
       // Current operator restrictions are authoritative. Verify the actual
       // Account/identity without restoring or merging the generated grants.
-      const account = moon.executionAuthorizationAdmit(currentWire);
+      const account = frame === undefined ? moon.executionAuthorizationAdmit(currentWire) : frame.admit(moon, currentWire);
+      frame?.nativeJson(currentWire);
       const state = JSON.parse(moon.executionAuthorizationAccountJson(account));
       if (state.state !== 'admitted' || state.account_id !== intent.account_id) {
         fail('LocalAccountConfigurationRejected');
       }
       const record = {record_id: intent.record_id, account_id: intent.account_id,
-        configuration_cid: contentCid(parse(configuration)), initialization_cid: initializationCid,
+        configuration_cid: configurationCid, initialization_cid: initializationCid,
         subject_cid: subjectCid, profile: identity};
       await adoptHostRootAccount(root, preparedOriginal, record);
       current();
@@ -154,6 +197,13 @@ export async function prepareOrdinaryLocalAccount({root, principal, preparedOrig
       }
       return Object.freeze({...operatorAuthorization, accountConfig: configPath,
         siteKey: subjects.controlConnection});
+      } catch (cause) {adoptionFrame?.failure(cause); throw cause;}
+      finally {
+        // Bootstrap values live with this same durable preparation until Host
+        // close; a rejected/partial child is never refunded by Promise failure.
+        adoptionFrame?.hold(); adoptionFrame?.finish(true);
+        frame = initialFrame;
+      }
     });
     return flight;
   }});

@@ -53,8 +53,8 @@ fn prepare_client_keyed_plan_barrier_input(
   let acquisition = fragments.acquisition
   guard check_client_keyed_native_acquisition_profile(acquisition, profile)
     is Ok(_) &&
-    client_keyed_plan_acquisition_matches(acquisition, fragments.occurrence) &&
-    physical_equal(acquisition.owner, fragments.occurrence.preparation) &&
+    client_keyed_plan_program_matches(acquisition, fragments.program) &&
+    physical_equal(acquisition.owner, fragments.preparation) &&
     @environment.lookup_execution_policy(
       @acquisition.lookup_bounds_policy(acquisition.binding.bounds),
     )
@@ -77,7 +77,7 @@ fn prepare_client_keyed_plan_barrier_input(
     return Err(UnsupportedProgram)
   }
   let policies = @checked.prepare_keyed_acquisition_source_policies(
-    @strategy.graph_program(fragments.occurrence.owner.graph),
+    @strategy.graph_program(fragments.program.graph),
     acquisition.binding,
     max_work,
     max_wire_bytes,
@@ -162,7 +162,7 @@ fn prepare_client_keyed_plan_barrier_input(
     left_fields,
     right_fields,
     barrier_id: "task_" +
-    fragments.occurrence.task.to_string() +
+    fragments.task.to_string() +
     "_lookup_" +
     fragments.join_step.to_string(),
   })

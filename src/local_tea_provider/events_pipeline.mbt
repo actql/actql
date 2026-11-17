@@ -936,6 +936,7 @@ pub fn provider(
   limits : @storage.Limits,
   storage_bytes : Int64,
   capacity : @execution.ExecutionCapacity,
+  bounded_constructor? : Bool = false,
 ) -> @local.ManagedProvider {
   @local.managed_provider_with_inputs(
     accepts,
@@ -1096,5 +1097,92 @@ pub fn provider(
         ),
       )
     },
+    bounded_relation_capacity=if bounded_constructor {
+      Some((sequence, execution, measurement) => {
+        guard @execution.generated_bounded_events_projection_capacity(
+            sequence, execution, measurement,
+          )
+          is Some(base) &&
+          events_projection_record_workspace(limits, storage_bytes)
+          is Some(records) &&
+          @execution.checked_preparation_add_product(
+            base.execution_bytes,
+            records,
+            1L,
+          )
+          is Some(total) else {
+          return None
+        }
+        @execution.execution_capacity(
+          base.retained_bytes,
+          Int64::max(base.retained_bytes, total),
+        )
+      })
+    } else {
+      None
+    },
   )
+}
+
+///|
+// Record fields/indexes and checked flat values are independent of the two
+// storage byte quotas. Keep both generations and both append workspaces,
+// plus the two identity streams and their drained bounded fragments. Each
+// completed stage clears its append/field cursor before the next stage starts;
+// the retained session does not add a third active append workspace.
+fn events_projection_record_workspace(
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+) -> Int64? {
+  guard storage_bytes >= 0L &&
+    limits.max_input_records >= 0 &&
+    limits.max_records >= 0 &&
+    limits.max_fields_per_record >= 0 &&
+    limits.max_value_nodes >= 0 &&
+    limits.max_total_value_bytes >= 0 &&
+    limits.max_retained_value_bytes >= 0 &&
+    limits.max_workspace_slots >= 0 &&
+    @execution.checked_preparation_add_product(
+      0L,
+      limits.max_records.to_int64(),
+      limits.max_fields_per_record.to_int64(),
+    )
+    is Some(cells) else {
+    return None
+  }
+  @execution.execution_capacity_inventory_bytes([
+    { unit: QuotedBytes, count: storage_bytes, copies: 2, },
+    {
+      unit: CursorRootSlots,
+      count: limits.max_input_records.to_int64(),
+      copies: 2,
+    },
+    { unit: CursorRootSlots, count: cells, copies: 2, },
+    // The storage byte counter measures identity DATA, not the fixed digest
+    // String used by the private collision index (two 71-unit generations).
+    {
+      unit: CanonicalWireBytes,
+      count: limits.max_records.to_int64(),
+      copies: 142,
+    },
+    {
+      unit: ValueNodeSlots,
+      count: Int64::max(cells, limits.max_value_nodes.to_int64()),
+      copies: 2,
+    },
+    {
+      unit: DecodedTextBytes,
+      count: Int::max(
+        limits.max_total_value_bytes,
+        limits.max_retained_value_bytes,
+      ).to_int64(),
+      copies: 2,
+    },
+    {
+      unit: CursorRootSlots,
+      count: limits.max_workspace_slots.to_int64(),
+      copies: 2,
+    },
+    { unit: CanonicalWireBytes, count: 512L, copies: 4, },
+  ])
 }

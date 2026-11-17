@@ -47,10 +47,17 @@ const managedSiteCapacity = value => Array.isArray(value)
 
 const stopBoundedExecution = (operations, checked) => {
   if (typeof operations.request_cancel !== 'function') return;
-  if (operations.execution_stopped?.() === true) return;
+  // This is a best-effort logical stop. An observation failure must not
+  // replace the original execution error; the ordinary managed-failure owner
+  // still separately confirms physical cleanup and retains pending custody.
+  const stopped = () => {
+    try { return operations.execution_stopped?.() === true; }
+    catch { return false; }
+  };
+  if (stopped()) return;
   try { operations.request_cancel(); } catch {}
   if (typeof operations.advance === 'function' &&
-      operations.execution_stopped?.() !== true) {
+      !stopped()) {
     try { checked(operations.advance(1)); } catch {}
   }
 };
@@ -165,8 +172,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       }
     },
     async prepareNext(outputs) {
-      // Row-only output uses the configured Store. A typed Carrier path keeps
-      // its exact managed generations, including formal Relation views.
+      // An installed row Store selects retained-file Relations. A typed
+      // Carrier path still keeps its exact managed generations and snapshots;
+      // a temporary snapshot must not replace the selected row-file lifetime.
       const carrierPath = createLease != null &&
         moon.strategyModule_local_NextCarrierPath?.(setup) === true;
       const task = moon.strategyHostNextTask(setup);
@@ -250,7 +258,8 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         ),
       );
       if (managedConfiguration == null) return undefined;
-      if (inputs.some(input => input.capturedRelation === true) &&
+      if (((createLease != null && !carrierPath) ||
+           inputs.some(input => input.capturedRelation === true)) &&
           (typeof moon.strategyModule_local_ManagedUsesProvider !==
             'function' ||
            moon.strategyModule_local_ManagedUsesProvider(
@@ -301,7 +310,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         throw new Error('UnsupportedManagedRowRepresentation');
       }
       const operations = checked(
-        moon.strategyModule_local_ManagedStart(prepared.configuration),
+        (createLease != null &&
+          typeof moon.strategyModule_local_ManagedStartRetained === 'function'
+          ? moon.strategyModule_local_ManagedStartRetained
+          : moon.strategyModule_local_ManagedStart)(prepared.configuration),
       );
       const failureProgress = beginManagedFailureProgress(
         moon,
@@ -403,10 +415,22 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             }
             if (carrierMaterial == null && createSnapshotLease != null &&
                 typeof operations.prepare_relation_snapshot === 'function') {
+              // These snapshot Results retain the SAME LocalDispatchIssue
+              // error family. The existing projector reads only Err; success
+              // payloads remain checked by their original snapshot consumer.
+              // Reload replaces the revoked output on this SAME Task. Later
+              // consumers/publication borrow that restored generation, not the
+              // original memory or an unused temporary file.
               snapshot = prepareLocalRelationSnapshot(
-                operations, createSnapshotLease, checked, signal, moon,
+                operations, createSnapshotLease,
+                result => checkedLocalManagedAdvance(moon, result, checked, prepared.task),
+                signal, moon,
               );
               relationSnapshotDiagnostic = await snapshot.roundtrip();
+            }
+            if (carrierMaterial == null && createLease != null &&
+                relationSnapshotDiagnostic == null) {
+              throw new Error('LocalRelationSnapshotRequired');
             }
             const payload = nextMaterial++;
             const boundedFinalization =

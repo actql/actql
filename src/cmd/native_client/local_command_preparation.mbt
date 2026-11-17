@@ -129,6 +129,8 @@ priv struct LocalCommandPreparationOriginal {
   mut journal_read_open : Bool
   mut reply_outcome : Result[String, String]?
   mut read_failure : @files.NativeBoundedTextFailure?
+  // Actual escaping metadata prefix, not completed constructor scratch.
+  mut metadata_retained : Int64
   mut phase_open : Bool
   mut standalone_cleanup_open : Bool
   mut primary : LocalCommandPreparationIssue?
@@ -296,6 +298,7 @@ fn prepare_local_command_preparation_original(
     journal_read_open: false,
     reply_outcome: None,
     read_failure: None,
+    metadata_retained: 0L,
     phase_open: false,
     standalone_cleanup_open: false,
     primary: None,
@@ -1353,9 +1356,16 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
         )
       None => None
     }
-    if capture.open(product=self.product, operator_host~).issue() is Some(issue) {
+    if capture
+      .open(
+        product=self.product,
+        operator_host~,
+        construction=Some(value => self.prepare_account_construction(value)),
+      )
+      .issue()
+      is Some(issue) {
       self.retain_primary(CommandCapture(issue))
-      return Err(CommandCapture(issue))
+      return Err(self.primary.unwrap_or(CommandCapture(issue)))
     }
     match capture.original_session() {
       Some(session) => Ok(session)
@@ -1423,6 +1433,7 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
           options.ttl_ms,
           options.max_records,
           options.max_snapshot_bytes,
+          metadata_retained=self.metadata_retained,
         )
         .map_err(issue => CommandCapture(issue)),
       )
@@ -1436,6 +1447,7 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
           options.ttl_ms,
           options.max_records,
           options.max_snapshot_bytes,
+          metadata_retained=self.metadata_retained,
         )
         .map_err(issue => CommandCapture(issue)),
       )

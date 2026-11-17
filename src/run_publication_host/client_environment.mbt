@@ -41,12 +41,19 @@ pub fn admit_client_check_environment_wire(
   body : String,
   evidence_bundle_cid : String,
 ) -> @environment.WireEnvironment? {
+  // A JSON node or top-level evidence member needs at least one input byte.
+  // These intrinsic finite decoder ceilings do not price bytes as nodes or
+  // grant capacity. The installed Source entrance reserves its measured
+  // same-wire construction geometry before calling this pure reader. Explicit
+  // callers of environment.read keep their independently selected limits.
+  let bytes = @utf8.encode(body)
+  let input_extent = bytes.length()
   match
-    @environment.read(@utf8.encode(body), evidence_bundle_cid, {
-      max_bytes: 65536,
-      max_nodes: 4096,
+    @environment.read(bytes, evidence_bundle_cid, {
+      max_bytes: input_extent,
+      max_nodes: input_extent,
       max_depth: 64,
-      max_members: 256,
+      max_members: input_extent,
     }) {
     Ok(value) => Some(value)
     Err(_) => None
@@ -63,17 +70,10 @@ pub fn admit_client_check_environment_from_wire(
   numeric_profile? : @numeric.Profile? = None,
   graph? : Bool = false,
 ) -> @checked.CheckEnvironment? {
-  let model_tasks = match
-    @environment.check_model_tasks(wire, {
-      bodies: {
-        max_bytes: 65536,
-        max_nodes: 4096,
-        max_depth: 64,
-        max_members: 256,
-      },
-      contracts: { max_nodes: 4096, max_depth: 64, max_text_bytes: 65536, },
-      max_work: 65536,
-    }) {
+  guard @environment.original_model_tasks_admission_limits(wire) is Some(limits) else {
+    return None
+  }
+  let model_tasks = match @environment.check_model_tasks(wire, limits) {
     Ok(value) => value
     Err(_) => return None
   }
@@ -86,5 +86,28 @@ pub fn admit_client_check_environment_from_wire(
       graph~,
       model_tasks=Some(model_tasks),
     ),
+  )
+}
+
+///|
+/// The same already admitted wire with the existing selected numeric profile.
+/// This neither parses/reissues its original nor selects an executable Owner.
+pub fn admit_client_check_environment_from_wire_with_numeric_profile_cid(
+  wire : @environment.WireEnvironment,
+  expressions : @context.ExpressionProfiles,
+  operations : @context.PureOperationProfiles,
+  numeric_profile_cid : String,
+  graph? : Bool = false,
+) -> @checked.CheckEnvironment? {
+  let numeric = @numeric.builtin_profile()
+  if numeric_profile_cid != @numeric.cid(numeric) {
+    return None
+  }
+  admit_client_check_environment_from_wire(
+    wire,
+    expressions,
+    operations,
+    numeric_profile=Some(numeric),
+    graph~,
   )
 }

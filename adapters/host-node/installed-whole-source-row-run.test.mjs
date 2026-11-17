@@ -39,6 +39,11 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
     clientProgramWholeSourceBorrowResponses(actual, selected) {
       assert.equal(actual, run); assert.equal(selected, acquisition); calls.push('borrow'); return ok(borrow);
     },
+    clientProgramWholeSourceIsListing(selected) {assert.strictEqual(selected, acquisition); return false;},
+    clientProgramRowSourceRetireResponseWorkspace(actual) {
+      assert.strictEqual(actual, borrow); assert.equal(observeStop(), true);
+      calls.push('retire-workspace'); return ok();
+    },
     clientProgramRowSourceBindResponseCleanup(actual, observe) {
       assert.equal(actual, borrow); observeStop = observe; return ok();
     },
@@ -79,7 +84,7 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
   };
   const reader = {
     async read() {assert.equal(this, reader); calls.push('read');},
-    requestStop() {assert.equal(this, reader); calls.push('stop');},
+    requestStop() {assert.equal(this, reader); calls.push('stop'); stopped = true;},
     retry() {assert.equal(this, reader); calls.push('retry');},
     observe() {assert.equal(this, reader); return {cleanupConfirmed: stopped};},
   };
@@ -93,6 +98,8 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
     providerCaptureCapacity: capacity, occurrence: {stage: 0, input: 0, task: 0}},
   prepared: {checkedSource: {}}, currentRead});
   assert.equal(result.logicalInput, logical);
+  assert.deepEqual(calls.filter(value => ['stop', 'retire-workspace'].includes(value)),
+    ['stop', 'retire-workspace']);
   assert.equal(result.inputKind, 'whole-input');
   assert.strictEqual(result.wholeCapacity, capacity);
   assert.equal(Object.hasOwn(result, 'requirement'), false);
@@ -104,6 +111,7 @@ test('whole input consumes the same Run/reader/evidence originals without Query 
   result.capture.retainTask(dag, 0);
   await result.prepareSourceEvidenceOriginal({authorityScopeCid: 'scope', effectiveDataPolicyCid: 'policy'});
   assert.equal(result.capture.takeSourceEvidenceOriginal(), evidence);
+  stopped = false;
   assert.throws(() => session.close(), error => error.cause === 'physical-stop-pending');
   assert.equal(retired, false);
   stopped = true;

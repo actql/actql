@@ -828,11 +828,19 @@ exact Result Artifact and consumer local Invocation correspondence. Correct
 individual hashes alone do not establish that correspondence or current Run
 and namespace authority. A Run-wide CID is not added to local semantic preimages.
 
-The closure is bounded by 4,096 entries, 16 MiB of canonical envelope and
-evidence bytes, 65,536 references and 64 dependency edges in a path. Existing
-stricter admission limits still apply. Relation payloads remain subject to
-their existing Store capacity and schema checks and are held by existing owners.
-An entry's CID does not replace a recoverable body or retained payload.
+<!-- requirement-block: captured-effect-dependencies.original-envelope captured-effect-dependencies.funded-construction -->
+The complete closure MUST fit the original Capture or authenticated Read's
+finite admission envelope. Entries, canonical envelope and body bytes, nodes,
+construction overlap and work MUST be covered before construction. The content
+schema adds no independent 4,096-entry or 16 MiB ceiling. Explicit narrower codec
+profiles remain valid; the existing 65,536-reference and 64-edge path guards
+still apply. Relation payloads retain their existing Store capacity, schema
+checks and owners. An entry's CID does not replace its recoverable body or
+retained payload.
+
+This admission broadening changes the machine schema CID, not the fields or
+canonical bytes of an already accepted Captured Run. Existing accepted bodies
+remain valid without rewriting their identities or granting new authority.
 
 <!-- requirement-block: captured-effect-dependencies.durable-before-wait captured-effect-dependencies.no-repair -->
 Required bodies, payloads, holdings and the Preview/capture correspondence MUST
@@ -904,7 +912,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:8dced4c09cfcf30f3275ba05289b41becaee8019848f511bc3ca5dbd0bf5b3a4
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:aa479d8c10e61bd10667a81df180bdf17a58c474b09ab3fa298fef6b96afe4b5
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:4e50bf4d62354e45aca753d9f436e1002721c78604bcf2a7bfcf6365f8200dc5
 ```
 

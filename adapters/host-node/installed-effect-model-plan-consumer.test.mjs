@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun,
-  finishInstalledEffectModelScope, installedEffectModelPreparation} from './installed-effect-managed-run.mjs';
+  finishInstalledEffectModelScope, installedEffectModelPreparation, fundedEffectModelGroupCount} from './installed-effect-managed-run.mjs';
 
 // Actual JS owner; the nominal Common/Root/Model/Scope ports are explicit.
 // This does not issue an actual admission, Model permission or cleanup ACK.
@@ -204,6 +205,66 @@ test('partial Model adoption retains its same Request Scope and never reissues o
     {code: 'InstalledEffectModelScopeCleanupPending'});
   f.settle(); finishInstalledEffectModelScope(run, true, checked);
   assert.deepEqual(f.calls, ['demand', 'plan', 'adopt-request-model', 'finish-scope', 'finish-scope']);
+});
+
+// Use the actual Scope owner and shutdown consumer. The explicit manager
+// finalizer below does not establish native Resource admission or a physical ACK.
+function modelScopeShutdown(f) {
+  const run = f.runs.get(f.prepared);
+  let managerCloses = 0;
+  const host = {dispatchOwner: {drain() {}}, retireTerminalEffects() {},
+    journal: {close() {}}, store: {close() {}},
+    installedEffect: {close() {finishInstalledEffectModelScope(run, true, checked);}},
+    retireModelRuntime() {
+      assert.equal(run.modelScopeFinished, true);
+      managerCloses++;
+    }};
+  return {shutdown: installedHostShutdown(host), run, managerCloses: () => managerCloses};
+}
+
+test('Model Scope pending cleanup keeps its original parent before Host manager retirement', async () => {
+  const f = fixture();
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const {shutdown, run, managerCloses} = modelScopeShutdown(f);
+  const original = {scope: run.modelScope, parent: run.value, manager: run.manager};
+  await assert.rejects(shutdown.close(), error => {
+    assert.equal(error.code, 'InstalledHostCleanupPending');
+    assert.equal(error.cleanupErrors.length, 1);
+    assert.equal(error.cleanupErrors[0].owner, 'effect');
+    assert.equal(error.cleanupErrors[0].error.code, 'InstalledEffectModelScopeCleanupPending');
+    return true;
+  });
+  assert.equal(run.modelScope, original.scope); assert.equal(run.value, original.parent);
+  assert.equal(run.manager, original.manager); assert.equal(managerCloses(), 0);
+  assert.equal(run.modelScopeFinished, undefined);
+  f.settle(); await shutdown.close();
+  assert.equal(run.modelScopeFinished, true); assert.equal(managerCloses(), 1);
+  await shutdown.close(); assert.equal(managerCloses(), 1);
+});
+
+test('partial Model adoption keeps its same failure and Scope through Host cleanup retry', async () => {
+  for (const failure of [undefined, new Error('OriginalModelAdoptionFailure')]) {
+    const f = fixture();
+    // A thrown undefined remains an original failure, not a missing result.
+    f.options.manager.adoptEffectModelPreparation = function(p, input, request, plan, run) {
+      assert.equal(this, f.options.manager); assert.equal(p, f.prepared);
+      assert.equal(input, f.options.requestInput); assert.equal(request, f.options.request);
+      assert.equal(plan, f.plan); assert.equal(run, f.runs.get(p));
+      run.original = {}; run.modelScope = f.scope;
+      throw failure;
+    };
+    assert.throws(() => prepareInstalledEffectManagedPlanRun(f.options), error => error === failure);
+    const {shutdown, run, managerCloses} = modelScopeShutdown(f);
+    assert.equal(run.value, undefined); assert.equal(run.modelScope, f.scope);
+    assert(Object.hasOwn(run, 'failure')); assert.equal(run.failure, failure);
+    assert.throws(() => prepareInstalledEffectManagedPlanRun(f.options), error => error === failure);
+    await assert.rejects(shutdown.close(), {code: 'InstalledHostCleanupPending'});
+    assert.equal(run.modelScope, f.scope); assert.equal(managerCloses(), 0);
+    f.settle(); await shutdown.close();
+    assert.equal(run.modelScopeFinished, true); assert.equal(managerCloses(), 1);
+    assert.equal(run.failure, failure);
+    await shutdown.close(); assert.equal(managerCloses(), 1);
+  }
 });
 
 test('Model Scope cleanup joins reentry and refuses an original replaced by its callback', () => {
@@ -543,9 +604,9 @@ test('Effect Model cold read retains exact failed issuance and refuses lost orig
   assert.equal(other.reads(), 0);
 });
 
-function pluralEffectModelFixture({physical = false} = {}) {
+function pluralEffectModelFixture({physical = false, count = 2} = {}) {
   const f = fixture(), definition = {}, compiled = f.model.compiled, finishedScopes = new Set();
-  const models = Object.freeze([0, 1].map(() => Object.freeze({kind: physical ? 'installed-model' : 'local-mock', compiled,
+  const models = Object.freeze(Array.from({length: count}, () => Object.freeze({kind: physical ? 'installed-model' : 'local-mock', compiled,
     definition: f.model.definition, occurrence: {}, graph: {}})));
   const selections = Object.freeze(models.map(model => Object.freeze({localMock: !physical,
     occurrence: model.occurrence, graph: model.graph, ...(physical ? {originalReadInstallation: {}, selectedBounds: {},
@@ -555,7 +616,7 @@ function pluralEffectModelFixture({physical = false} = {}) {
         const result = f.options.publicationControl.finishCheckedClientInferOriginalReadScope(compiled, definition, selectedGraph, scope, true);
         if (result) finishedScopes.add(scope); return result;
       }} : {})})));
-  const graph = Object.freeze(models.map(model => model.graph)), scopes = [{}, {}], demands = [{}, {}], providers = [{}, {}];
+  const graph = Object.freeze(models.map(model => model.graph)), scopes = models.map(() => ({})), demands = models.map(() => ({})), providers = models.map(() => ({}));
   f.options.model = Object.freeze({compiled, definition: f.model.definition, graph, components: models});
   f.options.modelSelection = Object.freeze({graph, components: selections});
   f.options.facts = Object.freeze({...f.options.facts, runDefinition: definition});
@@ -693,4 +754,37 @@ test('plural physical Effect finishes each trusted Scope view exactly once while
   const count = calls.filter(call => call[0] === 'finish').length;
   finishInstalledEffectModelScope(run, true, checked);
   assert.equal(calls.filter(call => call[0] === 'finish').length, count);
+});
+
+
+test('129 selected Model definitions require same current admitted Run rather than count or a getter', () => {
+  const {f,revoke}=pluralEffectModelFixture({count:129});
+  let reads=0;
+  f.runtime.clientProgramInstalledEffectFundedModelSelectionCount=(value,prepared,request)=>{
+    same([value,prepared,request],[f.parent,f.prepared,f.options.request]); reads++; return ok(129);
+  };
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run=readInstalledEffectManagedPlanRun(f.options);
+  const original=installedEffectModelPreparation(run,()=>({}),f.options.assertCurrent);
+  assert.equal(original.components.length,129);
+  assert.equal(fundedEffectModelGroupCount(original),129);
+  assert.equal(fundedEffectModelGroupCount({...original}),undefined);
+  assert.equal(fundedEffectModelGroupCount({fundedGroupCount:()=>129}),undefined);
+  assert.equal(reads,1);
+  revoke();
+  assert.throws(()=>fundedEffectModelGroupCount(original),/OriginalCurrentLost/);
+  assert.equal(reads,1,'mutable current refusal precedes native owner projection');
+});
+
+test('129 group cannot outlive its original numerical scope or hide Core capacity refusal', () => {
+  const one=pluralEffectModelFixture({count:129}), f=one.f, failure=new Error('OriginalCapacityRefused');
+  f.runtime.clientProgramInstalledEffectFundedModelSelectionCount=()=>{throw failure;};
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run=readInstalledEffectManagedPlanRun(f.options), original=installedEffectModelPreparation(run,()=>({}),f.options.assertCurrent);
+  assert.throws(()=>fundedEffectModelGroupCount(original),error=>error===failure);
+  run.modelScopeFinished=true;
+  assert.equal(fundedEffectModelGroupCount(original),undefined);
+  const legacy=pluralEffectModelFixture({count:129}); prepareInstalledEffectManagedPlanRun(legacy.f.options);
+  const legacyRun=readInstalledEffectManagedPlanRun(legacy.f.options);
+  assert.equal(fundedEffectModelGroupCount(installedEffectModelPreparation(legacyRun,()=>({}),legacy.f.options.assertCurrent)),undefined);
 });

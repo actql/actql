@@ -6,33 +6,38 @@ import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {assertNativeQueryExecution, nativeQueryCoverage,
   readNativeQuerySources, selectNativeQueryTests} from './native-query-coverage.mjs';
+import {declaredQueryCases, nativeQuerySourceFixture, ownedQueryCases} from
+  './fixtures/native-query-source-fixture.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const repositorySources = readNativeQuerySources(root);
-// Unit fixtures include the reviewed ownership surface. Unreviewed new source
-// readers are covered by the repository check below and must permit fallback.
-const sources = {
-  ...Object.fromEntries(Object.entries(repositorySources).filter(([path]) =>
-    Object.hasOwn(nativeQueryCoverage.files, path))),
-  'src/query_integration/moon.pkg': 'supported_targets = "+js+wasm+native"\n' +
-    'import { "actql/actql/provider", "actql/actql/platform_native/remote_journal" }',
-  'src/native_values_integration/moon.pkg': 'supported_targets = "+js+wasm+native"',
-  'src/provider/moon.pkg': '',
-  'src/platform_native/remote_journal/moon.pkg': 'options("native-stub": ["inspection_stub.c"])',
-  'src/platform_native/remote_journal/inspection_stub.c': 'getenv("TMPDIR")',
+const sources = nativeQuerySourceFixture();
+// FFI-specific controls retain the actual checked-in C bodies/includes, while
+// their Query declarations remain the same bounded selector fixture above.
+const ffiSources = {...repositorySources, ...sources,
+  'src/query_integration/moon.pkg': repositorySources['src/query_integration/moon.pkg'],
+  'src/native_values_integration/moon.pkg': repositorySources['src/native_values_integration/moon.pkg'],
 };
 const environment = owner => Object.fromEntries(
   nativeQueryCoverage.requiredEnvironment[owner].map(name => [name, '1']));
 const select = (owner = 'http-client', input = sources, env = environment(owner),
   manifest = nativeQueryCoverage) => selectNativeQueryTests(owner, input, env, manifest);
 const query = 'src/query_integration/';
+const jsOnlyNames = ['strategy_cleanup_current_js_wbtest.mbt', 'row_stream_current_js_wbtest.mbt'];
+const caseTargetExclusions = input => Object.entries(input)
+  .filter(([path]) => path.startsWith(query) || path.startsWith('src/native_values_integration/'))
+  .reduce((sum, [, source]) => sum + [...source.matchAll(
+    /^#cfg\(\s*target\s*=\s*"(?:js|wasm|wasm-gc)"\s*\)\s*\r?\ntest "/gmu)].length, 0);
+const currentNativeCases = () => declaredQueryCases(repositorySources) -
+  declaredQueryCases(Object.fromEntries(jsOnlyNames.map(name =>
+    [query + name, repositorySources[query + name]]))) - caseTargetExclusions(repositorySources);
 const summary = count => ({status: 0, signal: null,
   stdout: `Total tests: ${count}, passed: ${count}, failed: 0.\n`, stderr: ''});
 
 test('HTTP owns every current HTTP, SQLite, DuckDB and remote-transfer file', () => {
   const selection = select();
   assert.equal(selection.mode, 'subset');
-  assert.equal(selection.expected, 33);
+  assert.equal(selection.expected, ownedQueryCases('http-client'));
   assert.deepEqual(selection.paths.map(path => path.slice(query.length)), [
     'duckdb_native_compute_wbtest.mbt', 'duckdb_native_runtime_wbtest.mbt',
     'native_publication_output_wbtest.mbt', 'native_remote_transfer_input_wbtest.mbt',
@@ -44,7 +49,7 @@ test('HTTP owns every current HTTP, SQLite, DuckDB and remote-transfer file', ()
 test('remote owns signed standard runtime and Values cases', () => {
   const selection = select('remote-runtime');
   assert.equal(selection.mode, 'subset');
-  assert.equal(selection.expected, 12);
+  assert.equal(selection.expected, ownedQueryCases('remote-runtime'));
   assert.deepEqual(selection.paths, ['src/native_values_integration/values_fixture_wbtest.mbt',
     query + 'client_source_free_root_wbtest.mbt',
     query + 'native_publication_output_wbtest.mbt']);
@@ -62,22 +67,33 @@ test('an unowned reader in the relocated package retains both complete suites', 
       'test "new" { @env.get_env_var("ACTQL_TEST_NEW") }'});
   assert.equal(selection.mode, 'full-fallback');
   assert.deepEqual(selection.paths, ['src/query_integration', 'src/native_values_integration']);
-  assert.equal(selection.expected, 36);
+  assert.equal(selection.expected, declaredQueryCases(sources) + 1);
 });
 
 test('all current required cases exist, and core remains unfiltered', () => {
-  assert.equal(Object.values(nativeQueryCoverage.files)
-    .reduce((sum, entry) => sum + entry.tests.length, 0), 35);
+  for (const [path, entry] of Object.entries(nativeQueryCoverage.files)) {
+    const names = [...repositorySources[path].matchAll(/^test "([^"]+)"/gmu)].map(match => match[1]);
+    assert(entry.tests.every(name => names.includes(name)), path);
+  }
   const core = readFileSync(new URL('./test-native-core.mjs', import.meta.url), 'utf8');
   assert.match(core, /\['test', '--target', 'native',/u);
   assert.doesNotMatch(core, /native-query-coverage/u);
 });
 
-test('the current repository selects each owned Native query subset', () => {
+test('the current repository retains every required Native query case, including safe full fallback', () => {
   for (const owner of ['http-client', 'remote-runtime']) {
     const selection = select(owner, repositorySources);
-    assert.equal(selection.mode, 'subset', selection.reasons.join('\n'));
-    assert.equal(selection.expected, owner === 'http-client' ? 33 : 12);
+    assert(['subset', 'full-fallback'].includes(selection.mode));
+    for (const [path, entry] of Object.entries(nativeQueryCoverage.files)) {
+      if (entry.owners.includes(owner)) assert(selection.paths.some(selected =>
+        selected === path || path.startsWith(selected + '/')), path);
+    }
+    assert(selection.expected >= ownedQueryCases(owner));
+    assert.equal(selection.expected, selection.mode === 'subset'
+      ? ownedQueryCases(owner) : currentNativeCases());
+    assertNativeQueryExecution(selection, summary(selection.expected));
+    assert.throws(() => assertNativeQueryExecution(selection, summary(selection.expected - 1)),
+      /coverage mismatch/u);
   }
 });
 
@@ -133,7 +149,7 @@ test('new direct environment consumer falls back to full current suite', () => {
     [query + 'new_wbtest.mbt']: 'test "new" { @env.get_env_var("NEW") }'});
   assert.equal(selection.mode, 'full-fallback');
   assert.deepEqual(selection.paths, ['src/query_integration', 'src/native_values_integration']);
-  assert.equal(selection.expected, 36);
+  assert.equal(selection.expected, declaredQueryCases(sources) + 1);
 });
 
 test('new query package C environment reads and reader function values reject subset', () => {
@@ -200,7 +216,7 @@ test('unknown imported production reader preserves full harness coverage', () =>
     'char *(*reader)(const char *) = secure_getenv; reader("NEW");']) {
     const selection = select('http-client', {...sources, 'src/provider/helper.mbt': source});
     assert.equal(selection.mode, 'full-fallback');
-    assert.equal(selection.expected, 35);
+    assert.equal(selection.expected, declaredQueryCases(sources));
   }
 });
 
@@ -237,7 +253,7 @@ test('new reads beside the reviewed WAL fixture and new fixture callers fall bac
     [path]: repositorySources[path],
   };
   // Its literal includes are already part of the actual source inventory.
-  const withFixture = {...repositorySources, ...input};
+  const withFixture = {...ffiSources, ...input};
   assert.equal(select('http-client', withFixture).mode, 'subset');
   assert.equal(select('http-client', {...withFixture,
     [path]: withFixture[path] + '\ngetenv("NEW");'}).mode, 'full-fallback');
@@ -269,7 +285,7 @@ test('reviewed diagnostics do not allow duplicate or unknown environment reads',
       'extern char **environ;',
       'char *(*reader)(const char *) = getenv; reader("ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS");',
     ]) {
-      const selection = select(owner, {...repositorySources,
+      const selection = select(owner, {...ffiSources,
         [path]: repositorySources[path] + '\n' + extra});
       assert.equal(selection.mode, 'full-fallback', extra);
       assert.ok(selection.reasons.includes(`production environment reader: ${path}`));
@@ -283,7 +299,7 @@ test('diagnostic exemptions require the exact getenv reader', () => {
   for (const name of ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS']) {
     const source = repositorySources[path].replace(`getenv("${name}")`, `secure_getenv("${name}")`);
     assert.notEqual(source, repositorySources[path]);
-    const selection = select('http-client', {...repositorySources, [path]: source});
+    const selection = select('http-client', {...ffiSources, [path]: source});
     assert.equal(selection.mode, 'full-fallback', name);
     assert.ok(selection.reasons.includes(`production environment reader: ${path}`));
   }
@@ -293,7 +309,7 @@ test('diagnostic exemptions cannot transfer to another FFI source', () => {
   const path = 'src/platform_native/filesystem/native_timings.inc';
   const foreign = 'src/platform_native/filesystem/other_diagnostic.inc';
   for (const name of ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS']) {
-    const selection = select('http-client', {...repositorySources,
+    const selection = select('http-client', {...ffiSources,
       [path]: repositorySources[path] + '\n#include "other_diagnostic.inc"\n',
       [foreign]: `const char *value = getenv("${name}");`});
     assert.equal(selection.mode, 'full-fallback', name);
@@ -318,13 +334,28 @@ test('changed known environment or extra test rejects the subset', () => {
   }
 });
 
+test('an unrelated ordinary case preserves full coverage without changing the bounded fixture', () => {
+  const path = query + 'physical_adaptive_dispatch_wbtest.mbt';
+  const input = {...sources, [path]: sources[path] + '\ntest "ordinary funding regression" {}'};
+  for (const owner of ['http-client', 'remote-runtime']) {
+    const selection = select(owner, input);
+    assert.equal(selection.mode, 'full-fallback');
+    assert.equal(selection.expected, declaredQueryCases(input));
+    assert(selection.reasons.includes(`changed native query cases or environment: ${path}`));
+    assert.throws(() => assertNativeQueryExecution(selection, summary(selection.expected - 1)),
+      /coverage mismatch/u);
+    assert.equal(select(owner, nativeQuerySourceFixture()).mode, 'subset');
+  }
+});
+
 test('exact successful execution summaries are required', () => {
   const selection = select();
-  assert.equal(assertNativeQueryExecution(selection, summary(33)).passed, 33);
-  for (const result of [summary(0), summary(32), summary(34),
-    {...summary(33), status: 1}, {...summary(33), signal: 'SIGTERM'},
-    {...summary(33), stdout: ''}, {...summary(33), stdout: 'Total tests: invalid\n'},
-    {...summary(33), stdout: 'Total tests: 33, passed: 32, failed: 1.\n'}]) {
+  const count = ownedQueryCases('http-client');
+  assert.equal(assertNativeQueryExecution(selection, summary(count)).passed, count);
+  for (const result of [summary(0), summary(count - 1), summary(count + 1),
+    {...summary(count), status: 1}, {...summary(count), signal: 'SIGTERM'},
+    {...summary(count), stdout: ''}, {...summary(count), stdout: 'Total tests: invalid\n'},
+    {...summary(count), stdout: `Total tests: ${count}, passed: ${count - 1}, failed: 1.\n`}]) {
     assert.throws(() => assertNativeQueryExecution(selection, result));
   }
 });
@@ -341,10 +372,11 @@ test('fallback counts Native declarations while retaining compiler-excluded JS c
   const selection = select('http-client', input);
   assert.equal(selection.mode, 'full-fallback');
   assert.deepEqual(selection.paths, ['src/query_integration', 'src/native_values_integration']);
-  assert.equal(selection.expected, 36);
-  assert.doesNotThrow(() => assertNativeQueryExecution(selection, summary(36)));
-  assert.throws(() => assertNativeQueryExecution(selection, summary(35)), /coverage mismatch/u);
-  assert.throws(() => assertNativeQueryExecution(selection, summary(38)), /coverage mismatch/u);
+  const count = declaredQueryCases(sources) + 1;
+  assert.equal(selection.expected, count);
+  assert.doesNotThrow(() => assertNativeQueryExecution(selection, summary(count)));
+  assert.throws(() => assertNativeQueryExecution(selection, summary(count - 1)), /coverage mismatch/u);
+  assert.throws(() => assertNativeQueryExecution(selection, summary(count + 2)), /coverage mismatch/u);
 });
 
 test('required Native ownership cannot be hidden through package or file targets', () => {
@@ -352,6 +384,39 @@ test('required Native ownership cannot be hidden through package or file targets
     'options(targets: {"duckdb_native_compute_wbtest.mbt": ["js"]})']) {
     assert.throws(() => select('http-client', {...sources,
       [query + 'moon.pkg']: metadata}), /Required native query target is excluded/u);
+  }
+});
+
+test('Native fallback counts compiler-selected test attributes without omitting unknown readers', () => {
+  const path = query + 'targeted_wbtest.mbt';
+  for (const backend of ['js', 'wasm', 'wasm-gc', 'native']) {
+    const source = `#cfg(target="${backend}")\ntest "new reader" { @env.get_env_var("ACTQL_TEST_NEW") }`;
+    const selected = select('http-client', {...sources, [path]: source});
+    assert.equal(selected.mode, 'full-fallback');
+    assert.equal(selected.expected, declaredQueryCases(sources) + (backend === 'native' ? 1 : 0));
+    assert.deepEqual(selected.paths, ['src/query_integration', 'src/native_values_integration']);
+    assertNativeQueryExecution(selected, summary(selected.expected));
+    assert.throws(() => assertNativeQueryExecution(selected, summary(selected.expected - 1)), /coverage mismatch/u);
+  }
+  // A helper's attribute and literal/comment lookalikes cannot hide its test.
+  for (const prefix of ['#cfg(target="js")\nfn helper() {}\n',
+    '// #cfg(target="js")\n', 'let description = "#cfg(target=\\"js\\")"\n']) {
+    const selected = select('http-client', {...sources,
+      [path]: prefix + 'test "new reader" { @env.get_env_var("ACTQL_TEST_NEW") }'});
+    assert.equal(selected.expected, declaredQueryCases(sources) + 1);
+  }
+});
+
+test('required Native cases cannot be cfg-excluded and unknown attributes fail closed', () => {
+  const path = query + 'duckdb_native_runtime_wbtest.mbt';
+  assert.throws(() => select('http-client', {...sources,
+    [path]: sources[path].replace('test "', '#cfg(target="js")\ntest "')}),
+  /Required native query case target is excluded/u);
+  for (const attribute of ['#cfg(not(target="native"))', '#cfg(target="unknown")',
+    '#cfg(target="js")\n#cfg(target="native")', '#cfg(target="js")\n#unknown()']) {
+    assert.throws(() => select('http-client', {...sources,
+      [query + 'targeted_wbtest.mbt']: attribute + '\ntest "new reader" { @env.get_env_var("ACTQL_TEST_NEW") }'}),
+    /Unsupported or ambiguous Native query test target attribute/u);
   }
 });
 
@@ -370,16 +435,16 @@ test('unfamiliar and ambiguous target metadata never lower the required count', 
 });
 
 test('the actual fallback retains Native Values and excludes exactly both declared JS-only files', () => {
-  // Independently authored file/count inventory, not the selector's output.
-  const jsOnly = {'strategy_cleanup_current_js_wbtest.mbt': 2, 'row_stream_current_js_wbtest.mbt': 2};
+  // Independently identified backend-specific files, with their actual cases.
+  // Normal case additions and formatter whitespace are not coverage contracts.
+  const jsOnly = Object.fromEntries(jsOnlyNames.map(file =>
+    [file, [...repositorySources[query + file].matchAll(/^test "/gmu)].length]));
   const pkg = repositorySources[query + 'moon.pkg'];
-  const clause = `  targets: {
-    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
-    "row_stream_current_js_wbtest.mbt": [ "js" ],
-  },`;
-  assert.equal(pkg.split(clause).length, 2);
-  for (const [file, expected] of Object.entries(jsOnly)) {
-    assert.equal([...repositorySources[query + file].matchAll(/^test "/gmu)].length, expected, file);
+  const target = file => new RegExp('"' + file.replaceAll('.', '\\.') +
+    '"\\s*:\\s*\\[\\s*"js"\\s*\\]', 'u');
+  for (const [file, count] of Object.entries(jsOnly)) {
+    assert(count > 0, file);
+    assert.match(pkg, target(file));
   }
   const declarations = Object.entries(repositorySources)
     .filter(([path]) => path.startsWith(query) || path.startsWith('src/native_values_integration/'))
@@ -387,11 +452,12 @@ test('the actual fallback retains Native Values and excludes exactly both declar
   const forced = {...repositorySources, [query + 'force_full_stub.c']: 'getenv("ACTQL_TEST_FORCE_FULL");'};
   const selection = select('http-client', forced);
   assert.equal(selection.mode, 'full-fallback');
-  assert.equal(selection.expected, declarations - Object.values(jsOnly).reduce((sum, count) => sum + count, 0));
+  assert.equal(selection.expected, declarations - Object.values(jsOnly).reduce((sum, count) => sum + count, 0) -
+    caseTargetExclusions(repositorySources));
   assert.ok(selection.paths.includes('src/native_values_integration'));
-  // Re-admitting either file adds its two cases; it cannot hide another file.
+  // Re-admitting either file adds all its cases; it cannot hide another file.
   for (const [file, expected] of Object.entries(jsOnly)) {
-    const changed = pkg.replace(`"${file}": [ "js" ]`, `"${file}": [ "js", "native" ]`);
+    const changed = pkg.replace(target(file), `"${file}": [ "js", "native" ]`);
     assert.notEqual(changed, pkg);
     assert.equal(select('http-client', {...forced, [query + 'moon.pkg']: changed}).expected,
       selection.expected + expected);

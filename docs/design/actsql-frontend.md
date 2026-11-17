@@ -117,3 +117,42 @@ Explicit DECIMAL_DIVIDE preserves two original children,
 the same literal target roles and a closed rounding mode. The existing Common
 binary evaluator owns demand, exact division, domain refusal and root release;
 the frontend never evaluates the ratio or reinterprets numeric source tokens.
+
+## Bounded Query parser
+
+`query_syntax` retains the existing SQL/Pipe syntax and original lexical,
+expression and Query limits. Its parser produces an ordered syntax tree and
+usage counters; it does not check a Catalog, execute expressions, select a
+backend or grant resources. Source byte offsets, authored names and binding
+order accompany the original tree into the existing lowerer. The language
+specification remains the owner of supported syntax and name meaning.
+
+All parser state and work belong to one synchronous invocation. There is no
+external callback, publication, reusable authority or cleanup owner inside the
+parser. A syntax or exhausted-limit failure returns the existing typed
+diagnostic; no partial tree becomes an admitted Program. Managed callers hold
+the same Request constructor backing before entry and retain their current and
+cancellation boundaries outside it. Explicit parser limits remain independently
+selectable. Changes to a parser operation retain these boundaries and its
+affected syntax/ordering/refusal tests.
+
+## CTE inventory and name work
+
+The managed Request parser uses its selected syntax-node envelope for the
+ordinary CTE inventory. Every authored binding and generated relational
+continuation consumes a syntax node before append, including nested bindings
+whose original node usage is transferred to their parent. The existing
+input-proportional Query constructor quote remains on that same Request before
+parsing. This neither allocates the maximum inventory nor grants execution.
+Standalone callers can still select a tighter `QueryLimits.max_cte_count`.
+
+CTE duplicate detection, original producer lookup and positional continuation
+lookup spend the existing parser work before processing each name pair. Two
+UTF-16 passes per operand cover the existing ASCII fold and a full equality
+comparison; they do not introduce another case or Unicode rule. The original
+pair visit remains charged as well. Exhausted work stops before constructing
+folded Strings. The existing document/token/identifier/syntax overlap quote
+already covers these transient original-name buffers; they are not a second
+retained name index. Explicit work, lexical, syntax-node and recursion limits
+remain separate and finite, as do nonrecursive binding order and duplicate-name
+refusal. A resource refusal does not make a conflicting name valid.

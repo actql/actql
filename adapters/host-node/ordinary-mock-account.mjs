@@ -26,7 +26,15 @@ export function initializeOrdinaryMockAccount(options) {
 async function initialize({moon, root, principal, subject, sources, modelTasks, requestTarget,
   updateTarget, explicitSelection, assertExclusiveCurrent, operatorAuthorization}) {
   assertExclusiveCurrent();
-  if (operatorAuthorization !== undefined) return undefined;
+  // The existing diagnostic callback is not an Account, policy or signer
+  // selection. Capture only that one own DATA function before any setup await;
+  // every other explicit authorization object retains the original opt-out.
+  const diagnosticObserver = operatorAuthorization !== null && typeof operatorAuthorization === 'object' &&
+    [Object.prototype, null].includes(Object.getPrototypeOf(operatorAuthorization)) &&
+    Reflect.ownKeys(operatorAuthorization).length === 1
+    ? Object.getOwnPropertyDescriptor(operatorAuthorization, 'observe')?.value : undefined;
+  if (operatorAuthorization !== undefined && typeof diagnosticObserver !== 'function') return undefined;
+  const diagnostic = diagnosticObserver === undefined ? {} : {observe: diagnosticObserver};
   const policyOriginal = moon.clientLocalSigningBootstrapOriginal;
   const bootstrapIssue = moon.clientLocalSigningBootstrapIssue;
   const publicKeyOriginal = moon.clientLocalSigningPublicKeyOriginal;
@@ -278,7 +286,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
         privateKey: reviewerKey});
     },
     // The original control connection is independent of signing capability.
-    authorization: Object.freeze(publicKey === undefined ? {accountConfig: configPath, siteKey: 'local-mock'} : {accountConfig: configPath, siteKey: 'local-mock',
+    authorization: Object.freeze(publicKey === undefined ? {...diagnostic, accountConfig: configPath, siteKey: 'local-mock'} : {...diagnostic, accountConfig: configPath, siteKey: 'local-mock',
       reviewers: Object.freeze([Object.freeze({keyId: 'local-mock-reviewer', reviewerId: 'local-mock',
         principalId: principal, publicKey})]), reviewReaders: Object.freeze([principal]),
       // Existing Checkpoint construction admits PKCS8 input itself. Preserve

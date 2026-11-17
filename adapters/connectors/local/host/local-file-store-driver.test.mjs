@@ -14,7 +14,7 @@ import {createLocalFileStoreDriver,LOCAL_STORE_LIMITS} from './installed-project
 
 const cid=digit=>'sha256:'+digit.repeat(64);
 const wire=value=>canonicalJson(value,{dataKeys:true});
-function fixture(){
+function fixture(runBounds={},countLimits=LOCAL_STORE_LIMITS,installation={}){
   const run=Object.freeze({}),binding=Object.freeze({});
   const resource=Object.freeze({$actql_ref:'resource',version:'actql-resource-ref/0.1',
     provider_namespace:'local',resource_kind:'file_collection',provider_identity_cid:cid('a'),
@@ -24,18 +24,21 @@ function fixture(){
   const command={command_id:'command:local.local.files.store.v1',contract_cid:cid('f')};
   const member={kind:'command',resource:'files',command:{commandRef:command.command_id,
     commandCid:command.contract_cid}};
-  const limits={...LOCAL_STORE_LIMITS,maxFileBytes:1024};
+  const limits={maxRequestBytes:LOCAL_STORE_LIMITS.maxRequestBytes,
+    maxResponseBytes:LOCAL_STORE_LIMITS.maxResponseBytes,maxFileBytes:1024,...countLimits};
+  const retainedLimits={...LOCAL_STORE_LIMITS,maxFileBytes:1024,...runBounds};
   let live=true,nativeCalls=0;
   const nativeFilesystem=Object.freeze(Object.fromEntries(['openFileRoot','openFileDirectory',
     'openRootFileWriter','fileRootCurrent','fileRootWrite','fileRootPublish','fileRootClose']
     .map(name=>[name,()=>{nativeCalls++;assert.fail('No native use before approved send');}])));
   const borrowed=Object.freeze({binding,current:()=>live,wire:()=>wire(content)});
   const contentOwner=Object.freeze({consumeContent(){assert.fail('No byte read before approved send');}});
-  const {driver,site}=createLocalFileStoreDriver({entry:{connection:'local',rootPath:'/original/root',
-    limits:{maxPathBytes:1024}},target:{resourceWire:wire(resource)},command,bindingCid:cid('1'),
+  const {driver,site}=createLocalFileStoreDriver({entry:{connection:'local',rootPath:installation.rootPath??'/original/root',
+    limits:{maxPathBytes:1024}},target:{resourceWire:wire(resource)},command,bindingCid:installation.bindingCid??cid('1'),
     principalId:'reader',authorization:{configurationCid:cid('2')},assertCurrent(){},
     resources:{assertCurrent(original){assert.strictEqual(original,run);},limits(original){
-      assert.strictEqual(original,run);return limits;}},limits,nativeFilesystem});
+      assert.strictEqual(original,run);return retainedLimits;}},limits,nativeFilesystem,
+    ...(installation.maxRecoveryBytes===undefined?{}:{maxRecoveryBytes:installation.maxRecoveryBytes})});
   const selected=driver.describe({member,runOriginal:run,runInvocationCid:cid('3'),dispatchRequestCid:cid('4')});
   const prepare=(changes={})=>driver.prepareRequestChild({member,runOriginal:run,value,
     selector:resource,current:selected,content:name=>{assert.equal(name,'content');return borrowed;},
@@ -58,6 +61,124 @@ test('Local STORE retains original Content borrower and exact input before appro
   assert.equal(await child.release(),true);assert.equal(child.status().pending,false);
   assert.throws(()=>f.driver.requestFacts(prepared.request),{code:'ForeignLocalStoreRequest'});
   await f.site.close();assert.equal(f.nativeCalls(),0);
+});
+
+test('Local STORE proves distinct portable targets from every retained request and preserves recovery footprint',async()=>{
+  const f=fixture(),children=[],entries=[];
+  try{
+    for(let index=0;index<17;index++){
+      const child=f.prepare({value:{...f.value,path:`nested/Member-${String(index).padStart(2,'0')}.jsonl`}});
+      children.push(child);entries.push(child.prepare());
+    }
+    const footprint=f.driver.footprint({member:f.member,entries});
+    assert.equal(footprint.kind,'exact_targets');
+    assert.equal(footprint.provider_namespace,'local');
+    const expected=Array.from({length:17},(_,index)=>'sha256:'+createHash('sha256')
+      .update(`{"basename":"member-${String(index).padStart(2,'0')}.jsonl"}`).digest('hex'));
+    assert.deepEqual(footprint.provider_object_identity_cids,expected);
+    const saved=f.driver.recoveryEntry({entries});
+    const restored=f.driver.recoverRequests({runOriginal:f.run,members:[f.member],
+      body:{effects:[{changes:entries.map(()=>({}))}]},
+      durable:{connectorRecovery:[{memberIndex:0,...saved}]},runInvocationCid:cid('3'),dispatches:[cid('4')]});
+    assert.deepEqual(f.driver.footprint({member:f.member,entries:restored.requests[0].map(request=>({request}))}),footprint);
+    assert.equal(f.nativeCalls(),0);
+  }finally{for(const child of children)await child.release();await f.site.close();}
+});
+
+test('Local STORE conflict domains cannot manufacture independence with root or installation aliases',async()=>{
+  const f=fixture(),other=fixture({},LOCAL_STORE_LIMITS,{rootPath:'/aliased/root',bindingCid:cid('9')});
+  const children=[];
+  try{
+    const capture=(owner,path)=>{
+      const child=owner.prepare({value:{...owner.value,path}});children.push(child);
+      return owner.driver.footprint({member:owner.member,entries:[child.prepare()]});
+    };
+    const upper=capture(f,'dir/OUT.jsonl'),lower=capture(other,'other/out.jsonl');
+    assert.equal(upper.provider_boundary_cid,lower.provider_boundary_cid);
+    assert.equal(upper.resource_identity_scheme_cid,lower.resource_identity_scheme_cid);
+    assert.deepEqual(upper.provider_object_identity_cids,lower.provider_object_identity_cids);
+    for(const name of ['é.jsonl','e\u0301.jsonl','out.','OUT~1.JSON','out:alias','.actql-store-stage']){
+      const opaque=capture(other,name);
+      assert.equal(opaque.kind,'opaque');
+      assert.equal(opaque.provider_boundary_cid,upper.provider_boundary_cid);
+      assert.deepEqual(opaque.provider_object_identity_cids,[]);
+    }
+    const duplicate=[];
+    for(const path of ['one/out.jsonl','two/OUT.jsonl']){
+      const child=f.prepare({value:{...f.value,path}});children.push(child);duplicate.push(child.prepare());
+    }
+    assert.equal(f.driver.footprint({member:f.member,entries:duplicate}).kind,'opaque');
+    assert.throws(()=>other.driver.footprint({member:other.member,entries:duplicate}),{code:'ForeignLocalStoreRequest'});
+    await children[0].release();
+    assert.throws(()=>f.driver.footprint({member:f.member,entries:[{request:{}}]}),{code:'ForeignLocalStoreRequest'});
+    assert.equal(f.nativeCalls()+other.nativeCalls(),0);
+  }finally{for(const child of children)await child.release();await f.site.close();await other.site.close();}
+});
+
+test('Local STORE retained inventory reconstructs 101 rows across 17 definitions before any send',async()=>{
+  const f=fixture({maxRows:1717,maxEffects:17},{}),children=[],entries=[];
+  try{
+    for(let index=0;index<101;index++){
+      const child=f.prepare({value:{...f.value,path:`out-${index}.jsonl`}});
+      children.push(child);entries.push(child.prepare());
+    }
+    const saved=f.driver.recoveryEntry({entries});
+    const members=Array.from({length:17},(_,memberIndex)=>({...f.member,memberIndex}));
+    const restored=f.driver.recoverRequests({runOriginal:f.run,members,
+      body:{effects:members.map(()=>({changes:Array.from({length:101},()=>({}))}))},
+      durable:{connectorRecovery:members.map(({memberIndex})=>({memberIndex,...saved}))},
+      runInvocationCid:cid('3'),dispatches:members.map(()=>cid('4'))});
+    assert.equal(restored.requests.length,17);
+    for(const requests of restored.requests){
+      assert.equal(requests.length,101);
+      assert.equal(f.driver.requestFacts(requests[100]).value.path,'out-100.jsonl');
+    }
+    const narrow=fixture();
+    assert.throws(()=>narrow.driver.recoverRequests({runOriginal:narrow.run,members,
+      body:{effects:members.map(()=>({changes:[{}]}))},durable:{connectorRecovery:[]}}),
+      {code:'InvalidLocalStoreRecovery'});
+    await narrow.site.close();
+    assert.equal(f.nativeCalls(),0);
+  }finally{for(const child of children)await child.release();await f.site.close();}
+});
+
+test('Local STORE explicit driver count limits narrow larger retained Run inventory before recovery or send',async()=>{
+  const f=fixture({maxRows:1717,maxEffects:17},{maxRows:2,maxEffects:2}),children=[],entries=[];
+  try{
+    for(let index=0;index<3;index++){
+      const child=f.prepare({value:{...f.value,path:`policy-${index}.jsonl`}});
+      children.push(child);entries.push(child.prepare());
+    }
+    const saved2=f.driver.recoveryEntry({entries:entries.slice(0,2)}),
+      saved3=f.driver.recoveryEntry({entries});
+    const member={...f.member,memberIndex:0};
+    const recover=(count,saved,rows)=>{
+      const members=Array.from({length:count},(_,memberIndex)=>({...member,memberIndex}));
+      return f.driver.recoverRequests({runOriginal:f.run,members,
+        body:{effects:members.map(()=>({changes:Array.from({length:rows},()=>({}))}))},
+        durable:{connectorRecovery:members.map(({memberIndex})=>({memberIndex,...saved}))},
+        runInvocationCid:cid('3'),dispatches:members.map(()=>cid('4'))});
+    };
+    const restored=recover(2,saved2,2);
+    assert.equal(restored.requests.length,2);
+    assert.equal(restored.requests[0].length,2);
+    assert.throws(()=>recover(1,saved3,3),{code:'InvalidLocalStoreRecovery'});
+    assert.throws(()=>recover(3,saved2,2),{code:'InvalidLocalStoreRecovery'});
+    // Count admission still supplies no Account grant. The accepted two-row
+    // prefix reaches the unchanged authorization gate, before any native use.
+    for(const request of restored.requests[0])await assert.rejects(
+      f.driver.send({member,request,current:restored.currents[0],runOriginal:f.run}),
+      {code:'ForeignLocalStoreUse'});
+    const recovered={prepared:{},allowed:{},runDefinition:{}};
+    let contentConstructed=0;
+    assert.throws(()=>f.driver.prepareRecoveredContentChild({recovered,members:[member],
+      entries:[entries],memberIndexes:[0],runOriginal:f.run,principalId:'reader',
+      control:{adoptCheckedClientEffectSerializationRun:()=>({})},
+      contentRun:{prepareRecoveredCommandContent(){contentConstructed++;assert.fail('No third row');}}}),
+    {code:'LocalStoreRecoveryLimit'});
+    assert.equal(contentConstructed,0);
+    assert.equal(f.nativeCalls(),0);
+  }finally{for(const child of children)await child.release();await f.site.close();}
 });
 
 test('Local STORE rejects changed, missing and foreign originals before native acquisition',async()=>{
@@ -171,59 +292,62 @@ test('Local STORE projects a Command outcome admitted by actual Common without a
 });
 
 
-test('Local STORE recovery bounds each original row before whole-frame concatenation and encodes it once', () => {
-  const source=readFileSync(new URL('./installed-project-file-effects.mjs',import.meta.url),'utf8');
-  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[];
-  const visit=node=>{if(!node||typeof node!=='object')return;
-    if(node.type==='Property'&&node.method&&node.key.name==='recoveryEntry')found.push(node.value);
-    for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')visit(value);}};
-  visit(tree);assert.equal(found.length,1);
-  const fn=Function('wire','cid','createHash','own','bindingCid','limits','fail',
-    'return (function '+source.slice(found[0].start,found[0].end)+');');
-  const records=[{path:'é\n"',content:{identity_cid:cid('1')}},
-    {path:'😀',content:{identity_cid:cid('2')}}];
-  const entries=records.map(record=>({request:record}));
-  let encodes=0,whole=0,reads=0;
-  const actualWire=value=>{if(value?.requests?.length)whole++;if(records.includes(value))encodes++;return wire(value);};
-  const bind=cid('3'),expected=wire({binding:bind,requests:records});
-  const emit=fn(actualWire,value=>'sha256:'+createHash('sha256').update(wire(value)).digest('hex'),createHash,
-    request=>{reads++;return {record:request};},bind,{maxRequestBytes:100000},code=>{throw Object.assign(new Error(code),{code});});
-  const actual=emit({entries});
-  assert.equal(actual.wire,expected);
-  assert.equal(actual.observationCid,'sha256:'+createHash('sha256').update(expected).digest('hex'));
-  assert.equal(reads,2);assert.equal(encodes,2);assert.equal(whole,0);
+test('Local STORE aggregate recovery keeps101 admitted records beyond one request ceiling',async()=>{
+  const f=fixture({maxRows:101,maxEffects:1},{},{maxRecoveryBytes:1024*1024}),children=[],entries=[];
+  try{
+    for(let index=0;index<101;index++){
+      const child=f.prepare({value:{...f.value,path:'p'.repeat(800)+`-${index}.jsonl`}});
+      children.push(child);entries.push(child.prepare());
+    }
+    const saved=f.driver.recoveryEntry({entries});
+    assert(Buffer.byteLength(saved.wire)>LOCAL_STORE_LIMITS.maxRequestBytes);
+    assert(Buffer.byteLength(saved.wire)<=1024*1024);
+    const decoded=JSON.parse(saved.wire);
+    assert(decoded.requests.every(record=>Buffer.byteLength(wire(record))<=LOCAL_STORE_LIMITS.maxRequestBytes));
+    const restored=f.driver.recoverRequests({runOriginal:f.run,members:[f.member],
+      body:{effects:[{changes:entries.map(()=>({}))}]},
+      durable:{connectorRecovery:[{memberIndex:0,...saved}]},runInvocationCid:cid('3'),dispatches:[cid('4')]});
+    assert.deepEqual(restored.requests[0].map(request=>f.driver.requestFacts(request).value.path),
+      decoded.requests.map(record=>record.value.path));
+    const oversized=saved.wire.padEnd(1024*1024+1,' '),parse=JSON.parse;
+    assert.equal(Buffer.byteLength(oversized),1024*1024+1);
+    JSON.parse=()=>assert.fail('Over-limit cold recovery entered JSON.parse');
+    try{
+      assert.throws(()=>f.driver.recoverRequests({runOriginal:f.run,members:[f.member],
+        body:{effects:[{changes:entries.map(()=>({}))}]},
+        durable:{connectorRecovery:[{memberIndex:0,...saved,wire:oversized}]},
+        runInvocationCid:cid('3'),dispatches:[cid('4')]}),{code:'InvalidLocalStoreRecovery'});
+    }finally{JSON.parse=parse;}
+    const narrow=fixture({maxRows:101,maxEffects:1},{},{maxRecoveryBytes:4096});
+    try{
+      assert.throws(()=>narrow.driver.recoverRequests({runOriginal:narrow.run,members:[narrow.member],
+        body:{effects:[{changes:entries.map(()=>({}))}]},
+        durable:{connectorRecovery:[{memberIndex:0,...saved}]},runInvocationCid:cid('3'),dispatches:[cid('4')]}),
+        {code:'InvalidLocalStoreRecovery'});
+    }finally{await narrow.site.close();}
+    assert.equal(f.nativeCalls(),0);
+  }finally{for(const child of children)assert.equal(await child.release(),true);await f.site.close();}
 });
 
-
-test('Local STORE recovery preserves original admission order and rejects before encoding an over-limit tail', () => {
-  const source=readFileSync(new URL('./installed-project-file-effects.mjs',import.meta.url),'utf8');
-  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'}),found=[];
-  const visit=node=>{if(!node||typeof node!=='object')return;
-    if(node.type==='Property'&&node.method&&node.key.name==='recoveryEntry')found.push(node.value);
-    for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')visit(value);}};
-  visit(tree);assert.equal(found.length,1);
-  const fn=Function('wire','cid','createHash','own','bindingCid','limits','fail',
-    'return (function '+source.slice(found[0].start,found[0].end)+');');
-  const bind=cid('3'),records=[{path:'é\n',content:{identity_cid:cid('1')}},
-    {path:'😀',content:{identity_cid:cid('2')}},{path:'tail',content:{identity_cid:cid('4')}}];
-  const entries=records.map(record=>({request:record}));let reads=0,encoded=[];
-  const encode=value=>{if(records.includes(value))encoded.push(records.indexOf(value));return wire(value);};
-  const fail=code=>{throw Object.assign(new Error(code),{code});};
-  const exact=Buffer.byteLength(wire({binding:bind,requests:records.slice(0,2)}));
-  const emit=fn(encode,value=>cid('5'),createHash,request=>{reads++;return {record:request};},bind,
-    {maxRequestBytes:exact-1},fail);
-  assert.throws(()=>emit({entries}),{code:'LocalStoreRecoveryLimit'});
-  assert.equal(reads,3,'every original is admitted before any encoding refusal');
-  assert.deepEqual(encoded,[0,1],'never concatenate the frame or encode its tail after refusal');
-  reads=0;encoded=[];
-  const foreign=fn(encode,value=>cid('5'),createHash,request=>{
-    reads++;if(request===records[2])throw undefined;return {record:request};
-  },bind,{maxRequestBytes:1},fail);
-  let caught=false;try{foreign({entries});}catch(error){caught=true;assert.strictEqual(error,undefined);}
-  assert.equal(caught,true);assert.equal(reads,3);assert.deepEqual(encoded,[]);
-  const accepted=fn(encode,value=>cid('5'),createHash,request=>({record:request}),bind,
-    {maxRequestBytes:exact},fail)({entries:entries.slice(0,2)});
-  assert.equal(Buffer.byteLength(accepted.wire),exact);
+test('Local STORE aggregate refusal keeps its admitted prefix and preserves per-request narrowing',async()=>{
+  const f=fixture({maxRows:101,maxEffects:1},{},{maxRecoveryBytes:4096}),children=[],entries=[];
+  try{
+    for(let index=0;index<4;index++){
+      const child=f.prepare({value:{...f.value,path:'p'.repeat(800)+`-${index}.jsonl`}});
+      children.push(child);entries.push(child.prepare());
+    }
+    const one=f.driver.recoveryEntry({entries:entries.slice(0,1)});
+    assert.equal(JSON.parse(one.wire).requests.length,1);
+    assert.throws(()=>f.driver.recoveryEntry({entries}),{code:'LocalStoreRecoveryLimit'});
+    for(const [index,entry]of entries.entries())assert.equal(f.driver.requestFacts(entry.request).value.path,
+      'p'.repeat(800)+`-${index}.jsonl`);
+    assert.throws(()=>f.driver.recoveryEntry({entries:[entries[0],{request:{}}]}),{code:'ForeignLocalStoreRequest'});
+    const small=fixture({}, {maxRequestBytes:180}, {maxRecoveryBytes:1024*1024});
+    const refused=small.prepare();
+    try{assert.throws(()=>refused.prepare(),{code:'InvalidLocalStoreRequest'});}
+    finally{assert.equal(await refused.release(),true);await small.site.close();}
+    assert.equal(f.nativeCalls(),0);
+  }finally{for(const child of children)assert.equal(await child.release(),true);await f.site.close();}
 });
 
 test('Local STORE approved send preserves an original undefined failure after confirmed writer close', async () => {

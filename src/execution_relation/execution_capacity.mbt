@@ -88,17 +88,98 @@ fn bounded_immediate_binding_schema(schema : @schema.Schema) -> Bool {
 }
 
 ///|
-// The bounded direct COUNT/COUNT_IF reader borrows required immediate cells,
-// including nullable scalars. Its sorter/group/aggregate cursors are charged
-// to operation_entries; it does not construct a separate input value forest.
+// The bounded direct COUNT/COUNT_IF reader borrows required scalar cells,
+// including nullable Number/Bool and immutable Text. Its sorter/group/aggregate
+// cursors are charged to operation_entries; it constructs no input value forest.
 // Resolving a direct field and testing NULL/Bool use the same bounded cursor.
-// Keep recursive/text/presence and expression aggregates on the full recipe.
+// Keep recursive/presence and expression aggregates on the full recipe.
 fn bounded_count_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
   guard @lower.kernel_count_group(kernel) is Some(group) &&
     @lower.count_group_aggregate_count(group) > 0 &&
-    bounded_immediate_binding_schema(@lower.kernel_input_schema(kernel)) &&
-    bounded_immediate_binding_schema(@lower.kernel_output_schema(kernel)) else {
+    bounded_number_group_scalar_schema(@lower.kernel_input_schema(kernel)) &&
+    bounded_number_group_scalar_schema(@lower.kernel_output_schema(kernel)) else {
     return false
+  }
+  true
+}
+
+///|
+fn bounded_number_group_scalar_schema(schema : @schema.Schema) -> Bool {
+  if !@schema.all_fields_required(schema) {
+    return false
+  }
+  for field in 0..<@schema.field_count(schema) {
+    match @schema.field_at(schema, field).unwrap().contract.shape {
+      @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
+/// Direct Number SUM/AVG and row COUNT borrow the original scalar input cells.
+/// Key cells are returned from the representative input row; aggregate Number
+/// cells and pending row arrays are funded by the complete group workspace.
+/// Constructed/dynamic/recursive/presence-bearing families keep the full path.
+pub fn bounded_number_group_borrows_input(
+  kernel : @lower.PreparedKernel,
+) -> Bool {
+  // The specialized direct COUNT kernel uses the same borrowed scalar
+  // constructor; retain its checked argument and NULL semantics unchanged.
+  if @lower.kernel_count_group(kernel) is Some(_) {
+    return bounded_count_group_borrows_input(kernel)
+  }
+  guard @lower.kernel_group(kernel) is Some(group) &&
+    !@lower.group_is_window(group) &&
+    @lower.group_aggregate_count(group) > 0 else {
+    return false
+  }
+  let input = @lower.kernel_input_schema(kernel)
+  if !bounded_number_group_scalar_schema(input) ||
+    !bounded_number_group_scalar_schema(@lower.kernel_output_schema(kernel)) {
+    return false
+  }
+  for index in 0..<@lower.group_aggregate_count(group) {
+    let aggregate = @lower.group_aggregate_at(group, index).unwrap()
+    guard @lower.group_aggregate_filter(aggregate) is None &&
+      @lower.group_aggregate_distinct(aggregate) != Some(true) &&
+      @lower.group_aggregate_order_count(aggregate) == 0 &&
+      @lower.group_aggregate_result(aggregate).shape is @contract.Number else {
+      return false
+    }
+    match
+      (
+        @lower.group_aggregate_function(aggregate),
+        @lower.group_aggregate_argument(aggregate),
+      ) {
+      (@relation.Sum | @relation.Avg, @lower.AggregateField(field)) => {
+        guard @schema.lookup(input, field) is Some(contract) &&
+          contract.shape is @contract.Number else {
+          return false
+        }
+      }
+      // COUNT(*) counts row occurrences without reading an argument or
+      // constructing a value forest. COUNT(field) has a distinct NULL rule
+      // and keeps its original recipe; no argument is erased by this proof.
+      (@relation.Count, @lower.AggregateRows) => ()
+      (@relation.Count, @lower.AggregateExpression(expression)) => {
+        // A typed NULL, including its checked scalar CAST, constructs no
+        // input forest. The actual expression still runs with its original
+        // Fragment context, NULL rule and logical/physical guards.
+        match @lower.expression_contract(expression).shape {
+          @contract.Number | @contract.Boolean => ()
+          _ => return false
+        }
+        match @lower.expression_body(expression) {
+          @lower.TypedNull => ()
+          @lower.Cast(child) if @lower.expression_body(child)
+            is @lower.TypedNull => ()
+          _ => return false
+        }
+      }
+      _ => return false
+    }
   }
   true
 }
@@ -107,11 +188,15 @@ fn bounded_count_group_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
 // The bounded INNER JOIN compares only its checked immediate key columns.
 // Other required columns are carried as original immutable cells: neither
 // binary input scan nor projected output constructs their value forest.
-fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
+// Text keys use the existing charged UTF-16 comparison cursor. Flat LEFT JOIN
+// with Number/Bool keys carries the same cells or the admitted null singleton;
+// it constructs no input forest. Full recursive/presence/other outer recipes stay.
+fn bounded_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool {
   let owner = @lower.bound_preparation(@lower.join_kernel_owner(kernel))
   let step = @lower.join_kernel_step(kernel)
   let profile = @lower.join_kernel_profile(kernel)
-  guard @lower.inner_join_kind(profile) == @join.Inner &&
+  let flat_left = @lower.inner_join_kind(profile) == @join.Left
+  guard (@lower.inner_join_kind(profile) == @join.Inner || flat_left) &&
     @lower.inner_join_key_count(profile) > 0 &&
     @lower.node_at(owner, step) is Some(node) &&
     @lower.node_input_count(node) == 2 &&
@@ -121,6 +206,15 @@ fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool 
     Some(true) else {
     return false
   }
+  if flat_left {
+    let output = @lower.preparation_schema_at(owner, @pipeline.Step(step)).unwrap()
+    for field in 0..<@schema.field_count(output) {
+      match @schema.field_at(output, field).unwrap().contract.shape {
+        @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+        _ => return false
+      }
+    }
+  }
   for port in 0..<2 {
     guard @lower.node_input_target(node, port).bind(target => {
         @lower.preparation_schema_at(owner, target)
@@ -128,6 +222,14 @@ fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool 
       is Some(schema) &&
       @schema.all_fields_required(schema) else {
       return false
+    }
+    if flat_left {
+      for field in 0..<@schema.field_count(schema) {
+        match @schema.field_at(schema, field).unwrap().contract.shape {
+          @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+          _ => return false
+        }
+      }
     }
     for index in 0..<@lower.inner_join_key_count(profile) {
       guard @lower.inner_join_key_at(profile, index) is Some((left, right)) &&
@@ -137,11 +239,23 @@ fn bounded_inner_join_borrows_input(kernel : @lower.PreparedJoinKernel) -> Bool 
       }
       match contract.shape {
         @contract.Number | @contract.Boolean => ()
+        @contract.Text(_) => if flat_left || contract.nullable { return false }
         _ => return false
       }
     }
   }
   true
+}
+
+///|
+// The bounded DISTINCT reader charges/rechecks the same original scalar cells,
+// including explicit NULL and borrowed Text. Sorting retains row indices and
+// workspace-funded comparison cursors; it builds no input forest or canonical
+// measurement body. Optional presence and recursive shapes keep the full recipe.
+fn bounded_distinct_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
+  @lower.kernel_body(kernel) is @lower.DistinctRows &&
+  bounded_number_group_scalar_schema(@lower.kernel_input_schema(kernel)) &&
+  bounded_number_group_scalar_schema(@lower.kernel_output_schema(kernel))
 }
 
 ///|
@@ -161,11 +275,28 @@ pub fn generated_bounded_sequence_capacity(
 ) -> ExecutionCapacity? {
   guard generated_sequence_step_index_at(generated, 0) is Some(step) &&
     generated_sequence_step_index_at(generated, 1) is None &&
-    (
-      generated.selected_steps is Some([_]) ||
-      generated_sequence_step_at(generated, 0) is Some(@lower.ValuesStep(_))
-    ) &&
     generated_sequence_step_at(generated, 0) is Some(operation) else {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
+  let borrowed_distinct = match operation {
+    @lower.RowStep(kernel) => bounded_distinct_borrows_input(kernel)
+    _ => false
+  }
+  // The same one-step Relation provider invokes the bounded row constructor
+  // for an original whole DISTINCT as for its selected-step view. No legacy
+  // table is constructed. Keep its complete original retained holding below.
+  let whole_distinct = borrowed_distinct &&
+    @lower.sequence_count(generated.sequence) == 1 &&
+    generated.selected_steps is None &&
+    generated.selected_prefix_end is None
+  let whole_set = operation is @lower.SetStep(_) &&
+    @lower.sequence_count(generated.sequence) == 1 &&
+    generated.selected_steps is None &&
+    generated.selected_prefix_end is None
+  if !(generated.selected_steps is Some([_]) ||
+    operation is @lower.ValuesStep(_) ||
+    whole_distinct ||
+    whole_set) {
     return generated_sequence_capacity(generated, limits, measurement)
   }
   match operation {
@@ -174,6 +305,7 @@ pub fn generated_bounded_sequence_capacity(
     | @lower.SetStep(_)
     | @lower.JoinStep(_)
     | @lower.CrossJoinStep(_)
+    | @lower.WindowStep(_)
     | @lower.RowStep(_) => ()
     _ => return generated_sequence_capacity(generated, limits, measurement)
   }
@@ -187,6 +319,57 @@ pub fn generated_bounded_sequence_capacity(
     )
     is Some(schema) else {
     return generated_sequence_capacity(generated, limits, measurement)
+  }
+  // One schema visit retains both original immediate-cell and borrowed Text
+  // constructor facts. Bounded Values measures/rechecks original frozen cells
+  // with workspace-funded cursors; it builds no input forest or canonical
+  // measurement body. Recursive/reference shapes keep their original quote.
+  let mut primitive_values = operation is @lower.ValuesStep(_)
+  let mut borrowed_values = primitive_values &&
+    @schema.all_fields_required(schema)
+  if primitive_values {
+    for index in 0..<@schema.field_count(schema) {
+      guard @schema.field_at(schema, index) is Some(field) else { return None }
+      let contract = @schema.field_contract(field)
+      primitive_values = primitive_values &&
+        (match contract.shape {
+          @contract.Number | @contract.Boolean => true
+          _ => false
+        })
+      borrowed_values = borrowed_values &&
+        json_leaf_representation_contract(contract)
+    }
+  }
+  // Flat literal cells already belong to this exact immutable preparation.
+  // The bounded Values reader measures/rechecks those same cells, so its
+  // possible DATA is bounded by the original rows and cached literal charge,
+  // not every unused node/Text slot in the enclosing runtime policy. Keep
+  // both policies as caps. Explicit NULL is one original scalar node and no
+  // Text backing; nullable contracts do not create a copied value forest.
+  // Parameters and recursive/optional-presence shapes retain
+  // their original general recipe. This changes only physical quotation.
+  let mut literal_nodes = -1L
+  let mut literal_text = -1L
+  if borrowed_values {
+    match
+      (
+        @lower.node_values_row_count(node),
+        @lower.node_values_literal_text_bytes(node),
+      ) {
+      (Some(count), Some(text)) if count >= 0 && text >= 0 => {
+        guard checked_preparation_add_product(
+            0L,
+            count.to_int64(),
+            @schema.field_count(schema).to_int64() + 1L,
+          )
+          is Some(nodes) else {
+          return None
+        }
+        literal_nodes = nodes
+        literal_text = text.to_int64()
+      }
+      _ => ()
+    }
   }
   let borrowed_group = match operation {
     @lower.RowStep(kernel) => bounded_count_group_borrows_input(kernel)
@@ -223,7 +406,7 @@ pub fn generated_bounded_sequence_capacity(
   // the immutable text axis. It keeps aggregate/order scratch and the full
   // retained output; it constructs no copied input or measurement forest.
   let borrowed_pivot = match operation {
-    @lower.RowStep(kernel) if @lower.kernel_pivot(kernel) is Some(_) => {
+    @lower.RowStep(kernel) if @lower.kernel_pivot(kernel) is Some(pivot) => {
       let input = @lower.kernel_input_schema(kernel)
       let mut borrowed = @schema.all_fields_required(input) &&
         @schema.all_fields_required(schema)
@@ -236,6 +419,20 @@ pub fn generated_bounded_sequence_capacity(
       for field in 0..<@schema.field_count(schema) {
         match @schema.field_at(schema, field).unwrap().contract.shape {
           @contract.Number | @contract.Boolean => ()
+          // Match the checked index identity: canonical schema order is
+          // independent of PIVOT index order. Text aggregates stay excluded.
+          @contract.Text(_) => {
+            let name = @schema.field_at(schema, field).unwrap().name
+            let mut index_key = false
+            for index in 0..<@lower.pivot_index_count(pivot) {
+              if @lower.pivot_index_at(pivot, index) == Some(name) {
+                index_key = true
+              }
+            }
+            if !index_key {
+              borrowed = false
+            }
+          }
           _ => borrowed = false
         }
       }
@@ -253,7 +450,8 @@ pub fn generated_bounded_sequence_capacity(
           | @lower.StableSort(_)
           | @lower.Limit(_, _, _)
           | @lower.AssertAll(_)
-          | @lower.AssertUnique(_) => true
+          | @lower.AssertUnique(_)
+          | @lower.Watermark(_, _, _, _) => true
           _ => false
         })
       (
@@ -271,6 +469,7 @@ pub fn generated_bounded_sequence_capacity(
       .bind(target => @lower.preparation_schema_at(prepared, target))
       .map(input => {
         bounded_immediate_binding_schema(input) ||
+        borrowed_distinct ||
         // Binding snapshots and these forwarding constructors borrow the
         // original immutable cells. Recursive recheck returns the same value,
         // not an input tree copy. Preserve the complete independent output
@@ -280,6 +479,21 @@ pub fn generated_bounded_sequence_capacity(
             @lower.kernel_bindings(kernel) is Some(_) ||
             @lower.kernel_body(kernel) is @lower.StableSort(_) ||
             @lower.kernel_body(kernel) is @lower.Select(_) ||
+            // FILTER forwards the same admitted cells after its unchanged
+            // predicate, stepped input/output rechecks and occurrence charge.
+            // Its complete independent Fragment workspace remains below.
+            @lower.kernel_body(kernel) is @lower.Filter(_) ||
+            // LIMIT measures every original cell and forwards checked cells;
+            // its range/order metadata constructs no copied input forest.
+            @lower.kernel_body(kernel) is @lower.Limit(_, _, _) ||
+            // ASSERT UNIQUE compares original cells through its bounded
+            // key/index workspace and forwards the same admitted values.
+            // It builds no second input forest or measurement wire.
+            @lower.kernel_body(kernel) is @lower.AssertUnique(_) ||
+            // WATERMARK scans and forwards the same original cells. Numeric
+            // time/late fields and the static decision Text use its existing
+            // workspace and complete retained-output allowance.
+            @lower.kernel_body(kernel) is @lower.Watermark(_, _, _, _) ||
             // UNNEST scans original arrays and rechecks the same immutable
             // carried/element values. Its maps, row arrays, complete input
             // charge and recheck/measurement cursors remain funded below.
@@ -319,8 +533,97 @@ pub fn generated_bounded_sequence_capacity(
     return generated_sequence_capacity(generated, limits, measurement)
   }
   let borrowed_join = match operation {
-    @lower.JoinStep(kernel) => bounded_inner_join_borrows_input(kernel)
+    @lower.JoinStep(kernel) => bounded_join_borrows_input(kernel)
     _ => false
+  }
+  // Bounded window reductions read the original required cells. Their maps,
+  // aggregate state and pending row containers use the existing workspace;
+  // dynamic arguments/filters use the SAME supported Fragment context and its
+  // complete independent live-value/frame inventory below. Neither path copies
+  // an input forest or encodes a measurement body. Keep all retained output
+  // DATA and the original expression/work limits.
+  let borrowed_window_group = match operation {
+    @lower.RowStep(kernel) =>
+      @lower.kernel_group(kernel)
+      .map(group => {
+        @lower.group_is_window(group) &&
+        bounded_group_step_supported(generated, kernel) &&
+        @schema.all_fields_required(@lower.kernel_input_schema(kernel)) &&
+        @schema.all_fields_required(schema)
+      })
+      .unwrap_or(false)
+    _ => false
+  }
+  let borrowed_analytic = match operation {
+    @lower.RowStep(kernel) =>
+      bounded_analytic_borrows_input(kernel) &&
+      bounded_group_step_supported(generated, kernel)
+    _ => false
+  }
+  let borrowed_number_group = match operation {
+    @lower.RowStep(kernel) =>
+      bounded_number_group_borrows_input(kernel) &&
+      (
+      // Direct COUNT uses the separate bounded global-count constructor.
+      // Its original stepped measure borrows cells with RowWorkspace; the
+      // generic Groups capability predicate does not describe that kernel.
+        @lower.kernel_count_group(kernel) is Some(_) ||
+        bounded_group_step_supported(generated, kernel)
+      )
+    _ => false
+  }
+  let borrowed_string_group = match operation {
+    @lower.RowStep(kernel) =>
+      bounded_string_group_borrows_input(kernel) &&
+      bounded_group_step_supported(generated, kernel)
+    _ => false
+  }
+  if operation is @lower.RowStep(kernel) &&
+    (
+      @lower.kernel_group(kernel) is Some(_) ||
+      @lower.kernel_pivot(kernel) is Some(_) ||
+      @lower.kernel_analytic(kernel) is Some(_)
+    ) &&
+    !borrowed_window_group &&
+    !borrowed_analytic &&
+    !borrowed_number_group &&
+    !borrowed_string_group &&
+    !borrowed_pivot {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
+  // The bounded window constructor charges original input cells with its
+  // workspace-funded stepped cursor. Carried output cells are the same
+  // immutable values; only the two numeric boundaries and row containers are
+  // constructed. Keep their complete retained output and operation workspace,
+  // but do not quote an input forest or a canonical measurement body which
+  // this constructor never builds. Presence-bearing inputs keep the generic
+  // recipe because this direct cell reader requires every checked field.
+  let borrowed_window = operation is @lower.WindowStep(_) &&
+    @lower.node_input_count(node) == 1 &&
+    @schema.all_fields_required(schema) &&
+    @lower.node_input_target(node, 0)
+    .bind(target => @lower.preparation_schema_at(prepared, target))
+    .map(@schema.all_fields_required)
+    .unwrap_or(false)
+  if operation is @lower.WindowStep(_) && !borrowed_window {
+    return generated_sequence_capacity(generated, limits, measurement)
+  }
+  // Bounded EXCEPT/INTERSECT scans both original reads, sorts row indices and
+  // forwards checked cells. Its input scan/rechecks own workspace cursors, not
+  // copied input forests or a physical-measurement canonical body.
+  let mut borrowed_set = operation is @lower.SetStep(_) &&
+    @lower.node_input_count(node) == 2 &&
+    bounded_number_group_scalar_schema(schema)
+  if borrowed_set {
+    for index in 0..<2 {
+      if @lower.node_input_target(node, index)
+        .bind(target => @lower.preparation_schema_at(prepared, target))
+        .map(bounded_number_group_scalar_schema)
+        .unwrap_or(false) ==
+        false {
+        borrowed_set = false
+      }
+    }
   }
   let binary = operation is @lower.SetStep(_) || operation is @lower.JoinStep(_)
   let mut borrowed_binary = binary &&
@@ -340,7 +643,7 @@ pub fn generated_bounded_sequence_capacity(
   // Unsupported binary shapes keep the full existing envelope. Immediate
   // Set/Join inputs and the checked INNER JOIN's carried DATA are borrowed;
   // every logical occurrence still uses the bounded charged input scan.
-  if binary && !borrowed_binary && !borrowed_join {
+  if binary && !borrowed_binary && !borrowed_join && !borrowed_set {
     return generated_sequence_capacity(generated, limits, measurement)
   }
   let roots = @schema.field_count(schema).to_int64() +
@@ -352,19 +655,54 @@ pub fn generated_bounded_sequence_capacity(
     roots,
     roots,
     true,
-    borrowed_input_values=operation is @lower.AppendStep(_) ||
+    borrowed_input_values=borrowed_values ||
+      operation is @lower.AppendStep(_) ||
       borrowed_row ||
       borrowed_binary ||
+      borrowed_set ||
       borrowed_cross ||
-      borrowed_join,
+      borrowed_join ||
+      borrowed_window ||
+      borrowed_window_group ||
+      borrowed_analytic ||
+      borrowed_number_group ||
+      borrowed_string_group,
     // Append uses the same workspace-funded binary input scan as CROSS JOIN;
     // its constructor receives no physical measurement forest or wire buffer.
-    bounded_measurement=(borrowed_row && !borrowed_group) ||
+    literal_output_nodes=literal_nodes,
+    literal_output_text=literal_text,
+    bounded_measurement=borrowed_values ||
+      (borrowed_row && !borrowed_group) ||
       operation is @lower.AppendStep(_) ||
+      borrowed_set ||
       borrowed_cross ||
-      borrowed_join,
+      borrowed_join ||
+      borrowed_window ||
+      borrowed_window_group ||
+      borrowed_analytic ||
+      borrowed_number_group ||
+      borrowed_string_group,
   )
   guard ordinary is Some(ordinary) else { return None }
+  let ordinary = if borrowed_analytic {
+    guard operation is @lower.RowStep(kernel) &&
+      bounded_analytic_staged_text_capacity(kernel, limits) is Some(staged) &&
+      generated_sequence_capacity(generated, limits, measurement) is Some(full) &&
+      full.retained_bytes >= ordinary.retained_bytes &&
+      checked_preparation_add_product(ordinary.execution_bytes, staged, 1L)
+      is Some(execution) &&
+      checked_preparation_add_product(
+        execution,
+        full.retained_bytes - ordinary.retained_bytes,
+        1L,
+      )
+      is Some(execution) else {
+      return generated_sequence_capacity(generated, limits, measurement)
+    }
+    { retained_bytes: full.retained_bytes, execution_bytes: execution, }
+  } else {
+    ordinary
+  }
   // The Values provider does not pass FixedInputGuardMeasureLimits to its
   // constructor. Its original admitted Number/Boolean cells are borrowed;
   // bounded_values_step uses the scalar measure/recheck branch, without a
@@ -380,21 +718,25 @@ pub fn generated_bounded_sequence_capacity(
     !generated.contexts.any(context => {
       capacity_uses_fragment_step(generated, @lower.kernel_step(context.kernel))
     }) {
-    let mut primitive = true
-    for index in 0..<@schema.field_count(schema) {
-      guard @schema.field_at(schema, index) is Some(field) else { return None }
-      match @schema.field_contract(field).shape {
-        @contract.Number | @contract.Boolean => ()
-        _ => primitive = false
+    if primitive_values && @schema.field_count(schema) > 0 {
+      // The SAME cached required primitive literals use no stepped value
+      // traversal. BeginRow holds two slots and BuildCell at most F checked
+      // references. During CommitRow only a long field name adds one scalar
+      // measurement frame: F+3 <= 2F+2 for F>=1. The configured semantic cap
+      // still governs every reserve; unused capacity is not constructor DATA.
+      // Parameters/optional presence retain the full original workspace quote.
+      let workspace = if borrowed_values &&
+        literal_nodes >= 0L &&
+        literal_text >= 0L {
+        Int64::min(
+          limits.rows.operation_entries.to_int64(),
+          2L * @schema.field_count(schema).to_int64() + 2L,
+        )
+      } else {
+        limits.rows.operation_entries.to_int64()
       }
-    }
-    if primitive && @schema.field_count(schema) > 0 {
       guard execution_capacity_inventory_bytes([
-          {
-            unit: CursorRootSlots,
-            count: limits.rows.operation_entries.to_int64(),
-            copies: 1,
-          },
+          { unit: CursorRootSlots, count: workspace, copies: 1, },
           { unit: CursorRootSlots, count: roots, copies: 1, },
           {
             unit: CursorRootSlots,
@@ -441,6 +783,22 @@ pub fn generated_bounded_sequence_capacity(
       )
     }
   }
+  if whole_distinct || whole_set {
+    guard generated_sequence_capacity(generated, limits, measurement)
+      is Some(original) &&
+      original.retained_bytes >= ordinary.retained_bytes &&
+      checked_preparation_add_product(
+        ordinary.execution_bytes,
+        original.retained_bytes - ordinary.retained_bytes,
+        1L,
+      )
+      is Some(execution) else {
+      return None
+    }
+    // Only ended/absent constructor scratch changes. Preserve full provider R
+    // alongside the complete bounded workspace; output retention is not deferred.
+    return execution_capacity(original.retained_bytes, execution)
+  }
   Some(ordinary)
 }
 
@@ -454,6 +812,8 @@ fn generated_sequence_capacity_with_roots(
   bounded_single : Bool,
   borrowed_input_values? : Bool = false,
   bounded_measurement? : Bool = false,
+  literal_output_nodes? : Int64 = -1L,
+  literal_output_text? : Int64 = -1L,
 ) -> ExecutionCapacity? {
   let rows = limits.rows
   if rows.retained_entries < 0 ||
@@ -468,12 +828,26 @@ fn generated_sequence_capacity_with_roots(
       { unit: CursorRootSlots, count: retained_roots, copies: 1, },
       {
         unit: ValueNodeSlots,
-        count: rows.output_values.max_nodes.to_int64(),
+        count: if literal_output_nodes < 0L {
+          rows.output_values.max_nodes.to_int64()
+        } else {
+          Int64::min(
+            rows.output_values.max_nodes.to_int64(),
+            literal_output_nodes,
+          )
+        },
         copies: 1,
       },
       {
         unit: DecodedTextBytes,
-        count: rows.output_values.max_text_bytes.to_int64(),
+        count: if literal_output_text < 0L {
+          rows.output_values.max_text_bytes.to_int64()
+        } else {
+          Int64::min(
+            rows.output_values.max_text_bytes.to_int64(),
+            literal_output_text,
+          )
+        },
         copies: 1,
       },
     ])
@@ -501,7 +875,14 @@ fn generated_sequence_capacity_with_roots(
       },
       {
         unit: ValueNodeSlots,
-        count: rows.output_values.max_nodes.to_int64(),
+        count: if literal_output_nodes < 0L {
+          rows.output_values.max_nodes.to_int64()
+        } else {
+          Int64::min(
+            rows.output_values.max_nodes.to_int64(),
+            literal_output_nodes,
+          )
+        },
         copies: 1,
       },
       {
@@ -533,7 +914,14 @@ fn generated_sequence_capacity_with_roots(
       },
       {
         unit: DecodedTextBytes,
-        count: rows.output_values.max_text_bytes.to_int64(),
+        count: if literal_output_text < 0L {
+          rows.output_values.max_text_bytes.to_int64()
+        } else {
+          Int64::min(
+            rows.output_values.max_text_bytes.to_int64(),
+            literal_output_text,
+          )
+        },
         copies: 1,
       },
       {
@@ -644,4 +1032,15 @@ fn generated_sequence_capacity_with_roots(
   // Preserve the original separate dimensions of this sequence quote. The
   // enclosing domain declares which retained components coexist at execution.
   Some({ retained_bytes: retained, execution_bytes: execution, })
+}
+
+///|
+/// Existing flat JSON scalar representation, not value admission, operation
+/// support, authority or a complete resource proof. Shared by the wire bound
+/// and the bounded Values constructor which borrows these immutable cells.
+pub fn json_leaf_representation_contract(contract : @contract.Contract) -> Bool {
+  match contract.shape {
+    @contract.Number | @contract.Boolean | @contract.Text(_) => true
+    _ => false
+  }
 }

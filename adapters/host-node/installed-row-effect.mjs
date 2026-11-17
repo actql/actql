@@ -1,3 +1,5 @@
+import {installedEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
+import {prepareInstalledEffectResultProgress} from './effect-result-work.mjs';
 import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned-operation.mjs';
 // The standard Host's provider-neutral installed Effect for connectors whose
 // writes change one provider object per row through a checked execution
@@ -92,7 +94,7 @@ import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {installedEffectSavedControlEntryLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCaptureChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -117,7 +119,7 @@ import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
   retainPinnedEffectDependencyPayloads} from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {retireEffectCommandKeyWorkspace} from './effect-command-key.mjs';
-import {openEffectLedger} from './effect-ledger.mjs';
+import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
   './effect-physical-dispatch.mjs';
@@ -125,6 +127,7 @@ import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {issueUpdateTargetInstallation, issueUpdateTargetInstallationData, assertUpdateTargetSelectionCurrent,
+  assertUpdateTargetSelectionCurrentData,
   assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction,
   closeInstalledSourceConstruction} from './installed-host-services.mjs';
@@ -294,6 +297,15 @@ const updateObservation = (owner, installation = ownerBinding(owner)) => ({insta
     ...(owner.storeMappings.includes(mapping) ? {store: true} : {})}))});
 const updateObservations = owners => owners.map(owner => updateObservation(owner));
 
+const updateInstallationProjection = owner =>
+  typeof owner.moon.clientProgramIssueEffectTargetInstallationData !== 'function'
+    ? undefined : issueUpdateTargetInstallationData(owner.moon, [
+      owner.bindingCid, owner.connection, owner.connectorRegistration,
+      owner.connectorRevision, owner.continuationBinding, owner.profile.continuation,
+      owner.profile.continuationBinding, owner.profile.dispatch, owner.profile.recovery,
+      owner.profile.source, owner.profile.targetCheck, owner.profile.unit, owner.runtimeBundleCid,
+    ]);
+
 // One synchronous physical projection. Issue each genuine singular owner's
 // DATA once, preserve ambiguity refusal before Mapping reads, then borrow the
 // selected issuance for its current purpose/Mapping observation. Nothing is
@@ -307,13 +319,7 @@ export function installedRowEffectUpdateObservation(adapters, ownerCid) {
     // The private physical Owner supplies scalar slots, never untrusted DATA.
     // Its profile is the closed frozen installation-table snapshot. Missing
     // typed ports keep the existing complete raw path for older components.
-    const projection = typeof owner.moon.clientProgramIssueEffectTargetInstallationData !== 'function'
-      ? undefined : issueUpdateTargetInstallationData(owner.moon, [
-        owner.bindingCid, owner.connection, owner.connectorRegistration,
-        owner.connectorRevision, owner.continuationBinding, owner.profile.continuation,
-        owner.profile.continuationBinding, owner.profile.dispatch, owner.profile.recovery,
-        owner.profile.source, owner.profile.targetCheck, owner.profile.unit, owner.runtimeBundleCid,
-      ]);
+    const projection = updateInstallationProjection(owner);
     const installation = projection?.installation ?? ownerBinding(owner);
     if (installation.cid === ownerCid) matches.push({owner, installation, data: projection?.data});
   }
@@ -322,9 +328,78 @@ export function installedRowEffectUpdateObservation(adapters, ownerCid) {
   const observation = updateObservation(owner, installation);
   return data === undefined ? observation : {...observation, installationData: data};
 }
+
+// These are the caller's three fresh, synchronous current-observation Maps.
+// Borrow their observation slots for private owner references until every
+// physical CID is resolved. No Mapping is read before ambiguity refusal, and
+// neither typed DATA nor an owner index survives this one current call.
+export function collectInstalledRowEffectUpdateObservations(adapters, selections,
+  originals, observations, installationData) {
+  if (!Array.isArray(adapters)) return false;
+  if (selections.length === 0) return true;
+  for (const adapter of adapters) {
+    const owner = rowInstallations.get(adapter);
+    if (owner === undefined || Array.isArray(owner)) continue;
+    const projection = updateInstallationProjection(owner);
+    const installation = projection?.installation ?? ownerBinding(owner);
+    let selected = false;
+    for (const selection of selections) {
+      if (selection.installation_owner_cid === installation.cid) selected = true;
+    }
+    if (!selected) continue;
+    if (originals.has(installation.cid)) return false;
+    originals.set(installation.cid, installation);
+    observations.set(installation.cid, owner);
+    if (projection?.data !== undefined) installationData.set(installation.cid, projection.data);
+  }
+  for (const selection of selections) {
+    if (!originals.has(selection.installation_owner_cid)) return false;
+  }
+  // Actual installations are frozen, but a legacy caller can supply a mutable
+  // adapter vector. Refuse replacement/duplication during a physical bridge
+  // before turning its earlier owner observation into current Mapping facts.
+  for (const owner of observations.values()) {
+    let occurrences = 0;
+    for (const adapter of adapters) {
+      if (rowInstallations.get(adapter) === owner) occurrences++;
+    }
+    if (occurrences !== 1) return false;
+  }
+  for (const [ownerCid, owner] of observations) {
+    const observation = updateObservation(owner, originals.get(ownerCid));
+    if (installationData.has(ownerCid)) {
+      const {installation, ...currentFacts} = observation;
+      observations.set(ownerCid, currentFacts);
+    } else observations.set(ownerCid, observation);
+  }
+  return true;
+}
 const validateOwnerSelections = (owners, selections, prepared) => {
   if (selections === undefined) return undefined;
-  try { assertUpdateTargetSelectionCurrent(selections, updateObservations(owners), prepared); }
+  try {
+    // These call-local DATA slots replace the full embedded installation
+    // strings and their decoder/cursor scratch in the same current phase.
+    // Their coexisting representation fits that removed work; no retained
+    // cache, larger limit or new resource grant is introduced here.
+    const observations = [], installations = [];
+    for (const owner of owners) {
+      // Fresh physical DATA, not a retained validation or authorization grant.
+      // Common still checks the same preparation, purpose and Mapping at each
+      // use, including the virtual bounds of the complete installation wire.
+      const projection = updateInstallationProjection(owner);
+      observations.push(updateObservation(owner, projection?.installation));
+      if (projection !== undefined) installations.push(projection.data);
+    }
+    if (installations.length === 0) {
+      assertUpdateTargetSelectionCurrent(selections, observations, prepared);
+    } else {
+      if (installations.length !== observations.length) selectionChanged();
+      // These are new private observation records. Reuse them without another
+      // wrapper while removing the wire that the same opaque DATA represents.
+      for (const observation of observations) delete observation.installation;
+      assertUpdateTargetSelectionCurrentData(selections, observations, installations, prepared);
+    }
+  }
   catch (cause) { selectionChanged(cause); }
   return selections;
 };
@@ -1103,6 +1178,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   const resources = captureEffectResources(effectResources);
   const limits = installedRowEffectConstructionLimits(suppliedLimits);
   const configuredMaxRows = Object.hasOwn(suppliedLimits ?? {}, 'maxRows') ? limits.maxRows : undefined;
+  const configuredMaxMembers = Object.hasOwn(suppliedLimits ?? {}, 'maxMembers') ? limits.maxMembers : undefined;
   if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
   const standard = write === undefined ? undefined : deriveInstalledRowWrite(write, connectorRegistration);
   const owned = checkDriver(standard === undefined ? driver : standard.driver);
@@ -1216,7 +1292,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
     assertInstalledSourceConstruction(sourceInitialization, declaration, declared, environment, undefined, mappings, commands);
   }
   const adapter = createRowEffectStage([Object.freeze({moon, limits, owned, profile,
-    configuredMaxRows,
+    configuredMaxRows, configuredMaxMembers,
     installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
     runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
@@ -1244,6 +1320,9 @@ export function composeInstalledRowEffectOwners(effects, descriptors, environmen
       (owner.owned.recoverRequests !== undefined &&
         owner.owned.recoverMemberRequests === undefined))) fail('InstalledEffectSetOwnerMismatch');
   const first = owners[0];
+  // This standalone composition has no original Request construction borrow.
+  // Preserve its installed envelope; a later managed Plan cannot retroactively
+  // fund the Set, route and owner vectors constructed here.
   if (descriptors.length > first.limits.maxMembers || owners.some(owner => owner.moon !== first.moon ||
       owner.ledgerRoot !== first.ledgerRoot ||
       canonicalJson(owner.limits) !== canonicalJson(first.limits))) {
@@ -1318,13 +1397,16 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const total = Math.min(2147483647, rows * members);
     const maxRows = owners.reduce((bound, owner) => owner.configuredMaxRows === undefined
       ? bound : Math.min(bound, owner.configuredMaxRows), total);
-    return Object.freeze({...limits, maxRows, maxRowsPerMember: Math.min(rows, maxRows)});
+    const maxMembers = owners.reduce((bound, owner) => owner.configuredMaxMembers === undefined
+      ? bound : Math.min(bound, owner.configuredMaxMembers), members);
+    return Object.freeze({...limits, maxMembers, maxRows, maxRowsPerMember: Math.min(rows, maxRows)});
   };
   const recipes = owners.flatMap(owner => owner.managedPlanRecipes === undefined
     ? [owner.managedPlanRecipe] : Object.values(owner.managedPlanRecipes));
   const controlEntryBytes = installedEffectSavedControlEntryLimit(recipes);
+  const controlResponseBytes = installedEffectSavedControlResponseLimit(recipes);
   const controlRecipes = new Map(recipes.map(recipe => [recipe,
-    installedEffectRecipeForControlEntryLimit(recipe, controlEntryBytes)]));
+    installedEffectRecipeForControlEntryLimit(recipe, controlEntryBytes, controlResponseBytes)]));
   const singular = routes === undefined ? owners[0] : undefined;
   const assertPrepared = ({moon: runMoon, compilation}) => {
     if (singular !== undefined) return;
@@ -1351,6 +1433,15 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const recipe = owner.managedPlanRecipes === undefined
       ? owner.managedPlanRecipe : owner.managedPlanRecipes[member.kind];
     return controlRecipes.get(recipe);
+  };
+  const projectOwnedResponse = (member, facts, construction) => {
+    const {owned} = ownerOf(member);
+    const method = owned.project;
+    if (construction === undefined) return Reflect.apply(method, owned, [facts]);
+    const selected = recipeOf(member)?.projectConstruction;
+    return selected !== undefined && selected.receiver === owned && selected.method === method
+      ? construction(owned, method, [facts], selected.capacity)
+      : construction(owned, method, [facts]);
   };
   const retainMember = (owner, member) => {
     const retained = Object.freeze(member);
@@ -1447,17 +1538,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     return route.owner;
   };
   const effect = runtimeCore(moon).effectApplicationControl;
-  const openLedger = (identity, controlConstruction) => {
-    const options = {moon, root: ledgerRoot,
-      authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
-      callerRequestId: moon.clientRequestCallerId(identity),
-      maxEntryBytes: controlEntryBytes,
-      ...(controlConstruction === undefined ? {} : {controlConstruction})};
-    return controlConstruction === undefined ? openEffectLedger(options)
-      : controlConstruction.ledgerOpen === undefined
-        ? controlConstruction(undefined, openEffectLedger, [options])
-        : controlConstruction.ledgerOpen(ledgerRoot, undefined, openEffectLedger, [options]);
-  };
+  const openLedger = (identity, controlConstruction) => openInstalledEffectLedger(
+    moon, ledgerRoot, identity, controlEntryBytes, controlResponseBytes, controlConstruction);
   const scopes = members => Object.freeze(members.map(member =>
     Object.freeze({connection: ownerOf(member).connection, resource: member.resource})));
   const permissionsOf = member => {
@@ -1502,9 +1584,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     permissionsOf(member);
     return member;
   };
-  const membersOf = (prepared, unit) => {
+  const membersOf = (prepared, unit, maxMembers = limits.maxMembers) => {
     const effectIds = unit.effectIds;
-    if (effectIds.length > limits.maxMembers ||
+    if (effectIds.length > maxMembers ||
         new Set(effectIds).size !== effectIds.length) {
       fail('InstalledRowEffectUnitUnsupported');
     }
@@ -1519,7 +1601,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const prepareManagedPlan = (facts, inputs) => {
     assertPrepared({moon, prepared: facts?.prepared, compilation: facts?.compilation});
     const unit = installedRowEffectUnit(moon, facts.compilation);
-    const members = membersOf(facts.prepared, unit);
+    // The original Request Effect construction borrow funds wrappers for the
+    // checked inventory before this entry. Explicit installer policy still
+    // narrows it; the member count grants no row work or physical sends.
+    const maxMembers = owners.reduce((bound, owner) => owner.configuredMaxMembers === undefined
+      ? bound : Math.min(bound, owner.configuredMaxMembers), unit.effectIds.length);
+    const members = membersOf(facts.prepared, unit, maxMembers);
     return prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members,
       recipeFor: recipeOf});
   };
@@ -2150,8 +2237,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           const grantFacts = {operation: owned.writeOperation(member),
             decision: commits.get(scopeKey(member)), resource: member.resource,
             runInvocationCid, dispatchRequestCid: dispatches[memberIndex], subjectCid};
+          const grantConstructor = managedPlanRecipe?.grantConstruction;
           const grant = controlConstruction === undefined ? site.issueEffectGrant(grantFacts)
-            : (controlConstruction.grant ?? controlConstruction)(site, site.issueEffectGrant, [grantFacts]);
+            : grantConstructor !== undefined && grantConstructor.receiver === site &&
+                grantConstructor.method === site.issueEffectGrant
+              ? controlConstruction(site, grantConstructor.method, [grantFacts], grantConstructor.capacity)
+              : (controlConstruction.grant ?? controlConstruction)(site, site.issueEffectGrant, [grantFacts]);
           const captured = await captureClaimedEffectResponse({ledger,
             claim: ownedClaim, requestCid: entry.requestCid,
             execute: () => {
@@ -2210,8 +2301,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           const projectionFacts = {member, memberIndex, rowIndex,
             preview: applyPreview, request: entry.request, current: now[memberIndex],
             observation: captured.physical.observation, headers: captured.physical.headers};
-          let projected = controlConstruction === undefined ? owned.project(projectionFacts)
-            : controlConstruction(owned, owned.project, [projectionFacts]);
+          let projected = projectOwnedResponse(member, projectionFacts, controlConstruction);
           if (ownerOf(member).responseConfirmation !== undefined && projected?.kind === 'provider-response' &&
               projected.providerEvidence !== undefined) {
             projected = await confirmResponse({memberIndex, rowIndex, projected,
@@ -2307,7 +2397,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // The Preview of the Effect Unit: the common draft with each member's rows
   // (create rows already in canonical order) stated as their exact values,
   // and each update row's observed target, version and before value.
-  function authorPreview({control, prepared, inputs, context, requestScope, limits,
+  function authorPreview({control, prepared, inputs, context, requestScope, limits, managedEffect,
     members, rowsOf, capabilities, footprints, payloads}) {
     const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
     const requestAuthority = moon.clientProgramEffectRequestAuthority(
@@ -2416,10 +2506,17 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const canonical = checked(moon.clientProgramCanonicalEffectPreviewDraft(
       draftWire, maxWireBytes, maxNodes, maxDepth));
     const authoringCid = draft.authoring_context.authoring_context_cid;
-    const authored = checked(moon.clientProgramAuthorEffectPreview(
-      canonical, draft.run_identity_cid, authoringCid, requestScope,
-      maxWireBytes, maxNodes, maxDepth, members.length, rowCount,
-      limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth));
+    const authored = managedEffect === undefined
+      ? checked(moon.clientProgramAuthorEffectPreview(
+        canonical, draft.run_identity_cid, authoringCid, requestScope,
+        maxWireBytes, maxNodes, maxDepth, members.length, rowCount,
+        limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth))
+      : checked(managedEffect.controlConstruction(moon, moon.clientProgramAuthorInstalledEffectPreview, [
+        managedEffect.value, prepared, managedEffect.request, managedEffect.operationPlan,
+        managedEffect.definitionOriginal.allowed, context.runDefinition, context.runInvocation,
+        canonical, draft.run_identity_cid, authoringCid, requestScope,
+        maxWireBytes, maxNodes, maxDepth, members.length, rowCount,
+        limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth]));
     control.checkSourceFreeLocalEffectPreviewIdentities(prepared, inputs,
       runtimeField(authored, 0), draft.run_identity_cid, authoringCid, identities,
       {maxWireBytes, maxNodes, maxDepth});
@@ -2451,7 +2548,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const key = keys[memberIndex][rowIndex];
       const locator = effect.logicalItemLocator(requestScope,
         unit.programId, unit.stageId, member.effect_id,
-        canonicalValueJson(change.target_row_identity), limits.locator.maxBytes,
+        effect.dispatchKeyCorrelationWire(key), limits.locator.maxBytes,
         limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth);
       const canonicalRequestCid = entries[memberIndex][rowIndex].requestCid;
       ownerOf(members[memberIndex]).owned.assertRequestFinalized?.(
@@ -2471,18 +2568,32 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     targetReads, contentOwner, managedEffect, updateTargetSelections, own, ownInputs, ownChildren, assertCurrent}) {
     assertCurrent?.();
     const limits = runLimits(managedEffect);
-    const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
-      limits.maxPinnedResults));
+    const controlConstruction = managedEffect?.controlConstruction;
+    if (managedEffect !== undefined && typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    const dependencyOriginal = managedEffect === undefined ? undefined
+      : installedEffectDependencyOriginal(controlConstruction,moon);
+    if(dependencyOriginal!==undefined&&(dependencyOriginal.parent!==managedEffect.value||
+        dependencyOriginal.prepared!==prepared||dependencyOriginal.request!==identity||
+        dependencyOriginal.plan!==managedEffect.operationPlan))fail('ForeignInstalledEffectManagedRun');
+    if (dependencyOriginal !== undefined && plan.sourceFreeInvocationOriginal !== undefined) {
+      control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,
+        prepared, identity, dependencyOriginal.plan, checkedHost, plan.admission,
+        plan.runDefinition, plan.sourceFreeInvocationOriginal);
+      dependencyOriginal.current();
+    }
+    const inputs = dependencyOriginal === undefined
+      ? checked(moon.clientProgramPinEffectSources(checkedHost, limits.maxPinnedResults))
+      : checked(moon.clientProgramInstalledEffectDependencySourcesPin(dependencyOriginal.parent,
+        prepared,identity,dependencyOriginal.plan,checkedHost,limits.maxPinnedResults));
+    dependencyOriginal?.current();
     const commandWorkspaces = [];
     const commandKeys = [];
     const contentBorrowers = [];
     const contentArtifacts = [];
     const requestChildren = [];
-    const memberCaptures = new Array(members.length);
+    const memberCaptures = [];
     const proposals = [], currents = [], rowsOf = [], observations = [];
     let sourceSet;
-    const controlConstruction = managedEffect?.controlConstruction;
-    if (managedEffect !== undefined && typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
     let entries, route, captureOpen = true;
     const retireRequestAliases = () => {
       if (captureOpen || (route !== undefined && !route.retire())) return false;
@@ -2545,6 +2656,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       if (typeof controlConstruction.retainInputs !== 'function') fail('InstalledEffectOperationRuntimeUnavailable');
       controlConstruction.retainInputs(inputs);
     }
+    memberCaptures.length = members.length;
     // Reserve each original member's capture body before export can append
     // proposal rows, parse their values or issue canonical CREATE inventory.
     // These SAME arrays and children survive through ordinary route retirement.
@@ -2561,10 +2673,18 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       let original;
       const retained = retainInstalledRowCaptureChild({children: requestChildren,
         create: () => {
-          original = prepareInstalledEffectRequestChild({run: managedEffect,
+          const observed = selected.inputExtent !== undefined;
+          if (observed && recipe.requestConstruction?.inputExtent === undefined) fail('InstalledEffectCaptureConstructionUnavailable');
+          original = (observed ? prepareInstalledEffectCaptureChild : prepareInstalledEffectRequestChild)({run: managedEffect,
             memberIndex: member.memberIndex, perRow: false, rowIndex: 0,
             operationIndex: selected.operationIndex, operation,
-            construct: () => recoveryEntry === undefined ? undefined :
+            ...(observed ? {inputExtent: () => controlConstruction(undefined, selected.inputExtent,
+              [proposals[member.memberIndex]])} : {}),
+            construct: observed ? () => {
+              const construct = rowsOf[member.memberIndex];
+              if (typeof construct !== 'function') fail('InstalledEffectCaptureConstructionUnavailable');
+              return construct();
+            } : () => recoveryEntry === undefined ? undefined :
               Reflect.apply(recoveryEntry, owned, [{member, current: currents[member.memberIndex],
                 entries: entries[member.memberIndex]}]), requestsRetired: retireRequestAliases});
           return original;
@@ -2613,6 +2733,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       fail('InstalledEffectPublishedTargetUnavailable');
     }
     sourceSet = await preparePinnedEffectSourceSet({moon,
+      dependencyConstruction: controlConstruction,
       ...(commandWorkspaces.length ? {commandWorkspaces: Object.freeze([...commandWorkspaces])} : {}),
       ...(publishedTargets === undefined ? {} : {publishedTargets}),
       onCommandKey(memberIndex, key) { commandKeys[memberIndex] = key; },
@@ -2679,84 +2800,101 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         artifact: sourceSet.members[index].payload.localResultArtifact,
         limits, assertCurrent});
       if (contentOf !== undefined) contentBorrowers.push(contentOf);
-      const selectedCreate = member.kind === 'create'
-        ? prepareInstalledCreateRows(moon, proposals[index], limits.preview) : undefined;
-      const rows = selectedCreate?.rows ?? proposals[index].map(proposal => {
-        const changes = JSON.parse(proposal.changesWire);
-        return {value: changes.value, selector: targeted(member.kind)
-          ? JSON.parse(proposal.selectorWire) : undefined};
-      });
-      const createRows = selectedCreate?.createRows;
-      let entries;
-      const recipe = recipeOf(member);
-      const constructor = recipe?.requestConstruction;
-      if (constructor !== undefined && (managedEffect?.runtime !== moon ||
-          managedEffect.prepared !== prepared || managedEffect.request !== identity)) {
-        fail('ForeignInstalledEffectManagedRun');
-      }
-      if (owned.prepareRequestChild !== undefined || constructor !== undefined) {
-        const preparedEntries = [];
-        for (const [rowIndex, row] of rows.entries()) {
-          // Export already bounds the total proposal rows. Member/control
-          // children share the same retainer but do not consume a row slot.
-          if (rowIndex >= limits.maxRowsPerMember) fail('InstalledRowEffectRowLimit');
-          const context = {member, value: row.value, selector: row.selector,
-            ...(member.kind === 'create' ? {createRowIdentity: createRows[rowIndex].identity,
-              proposalWire: row.proposalWire} : {}),
-            current: description, content: commandContentRow(contentOf, rowIndex), signal,
-            ...(contentOwner === undefined ? {} : {contentOwner}),
-            ...resourceFields(member),
-            ...(guarded(member.kind) ? {rowIndex, assertCurrent,
-              authorizationForRow: () => reads[index].authorizationForRow(rowIndex)} :
-              {authorizationForRow: reads[index]?.authorizationForRow})};
-          const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
-            create: () => constructor === undefined ? owned.prepareRequestChild(context) :
-              (owned.prepareRequestChild === undefined ? prepareInstalledEffectRequestChild :
-                prepareInstalledEffectOwnedRequestChild)({run: managedEffect, memberIndex: member.memberIndex,
-                rowIndex, operationIndex: constructor.operationIndex,
-                operation: recipe.rowOperations[constructor.operationIndex].operation,
-                ...(owned.prepareRequestChild === undefined
-                  ? {construct: () => owned.prepareRequest(context)}
-                  : {constructChild: () => owned.prepareRequestChild(context)}),
-                requestsRetired: retireRequestAliases}),
-            assertCurrent, signal});
-          // The Native constructor has returned, but requestFacts can still
-          // parse its returned JSON. Use the SAME existing control frame for
-          // that synchronous projection, before publishing the row entry.
-          preparedEntries.push(controlConstruction === undefined
-            ? requestEntry(member, row, preparedRequest)
-            : constructor === undefined || controlConstruction.requestProjection === undefined
-              ? controlConstruction(undefined, requestEntry, [member, row, preparedRequest])
-              : controlConstruction.requestProjection(member.memberIndex, constructor.operationIndex, rowIndex,
-                undefined, requestEntry, [member, row, preparedRequest]));
+      let memberEntries;
+      const constructRows = async () => {
+        const selectedCreate = member.kind === 'create'
+          ? prepareInstalledCreateRows(moon, proposals[index], limits.preview) : undefined;
+        const rows = selectedCreate?.rows ?? proposals[index].map(proposal => {
+          const changes = JSON.parse(proposal.changesWire);
+          return {value: changes.value, selector: targeted(member.kind)
+            ? JSON.parse(proposal.selectorWire) : undefined};
+        });
+        const createRows = selectedCreate?.createRows;
+        let entries;
+        const recipe = recipeOf(member);
+        const constructor = recipe?.requestConstruction;
+        if (constructor !== undefined && (managedEffect?.runtime !== moon ||
+            managedEffect.prepared !== prepared || managedEffect.request !== identity)) {
+          fail('ForeignInstalledEffectManagedRun');
         }
-        entries = Object.freeze(preparedEntries);
-      } else entries = requestsOf(member, rows, description, contentOf, createRows);
-      if (member.kind === 'create') {
-        // Reuse the SAME Common inventory for Preview and requests.
-        for (const [row, entry] of entries.entries()) {
-          createRows[row].entry = entry;
-          Object.freeze(createRows[row]);
+        if (owned.prepareRequestChild !== undefined || constructor !== undefined) {
+          const preparedEntries = [];
+          for (const [rowIndex, row] of rows.entries()) {
+            // Export already bounds the total proposal rows. Member/control
+            // children share the same retainer but do not consume a row slot.
+            if (rowIndex >= limits.maxRowsPerMember) fail('InstalledRowEffectRowLimit');
+            const context = {member, value: row.value, selector: row.selector,
+              ...(member.kind === 'create' ? {createRowIdentity: createRows[rowIndex].identity,
+                proposalWire: row.proposalWire} : {}),
+              current: description, content: commandContentRow(contentOf, rowIndex), signal,
+              ...(contentOwner === undefined ? {} : {contentOwner}),
+              ...resourceFields(member),
+              ...(guarded(member.kind) ? {rowIndex, assertCurrent,
+                authorizationForRow: () => reads[index].authorizationForRow(rowIndex)} :
+                {authorizationForRow: reads[index]?.authorizationForRow})};
+            const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
+              create: () => constructor === undefined ? owned.prepareRequestChild(context) :
+                (owned.prepareRequestChild === undefined ? prepareInstalledEffectRequestChild :
+                  prepareInstalledEffectOwnedRequestChild)({run: managedEffect, memberIndex: member.memberIndex,
+                  rowIndex, operationIndex: constructor.operationIndex,
+                  operation: recipe.rowOperations[constructor.operationIndex].operation,
+                  ...(constructor.inputExtent === undefined ? {} : {inputExtent: () =>
+                    controlConstruction(undefined, constructor.inputExtent, [proposals[index][rowIndex]])}),
+                  ...(owned.prepareRequestChild === undefined
+                    ? {construct: () => owned.prepareRequest(context)}
+                    : {constructChild: () => owned.prepareRequestChild(context)}),
+                  requestsRetired: retireRequestAliases}),
+              assertCurrent, signal});
+            // The Native constructor has returned, but requestFacts can still
+            // parse its returned JSON. Use the SAME existing control frame for
+            // that synchronous projection, before publishing the row entry.
+            preparedEntries.push(controlConstruction === undefined
+              ? requestEntry(member, row, preparedRequest)
+              : constructor === undefined || controlConstruction.requestProjection === undefined
+                ? controlConstruction(undefined, requestEntry, [member, row, preparedRequest])
+                : controlConstruction.requestProjection(member.memberIndex, constructor.operationIndex, rowIndex,
+                  undefined, requestEntry, [member, row, preparedRequest]));
+          }
+          entries = Object.freeze(preparedEntries);
+        } else entries = requestsOf(member, rows, description, contentOf, createRows);
+        memberEntries = entries;
+        if (member.kind === 'create') {
+          // Reuse the SAME Common inventory for Preview and requests.
+          for (const [row, entry] of entries.entries()) {
+            createRows[row].entry = entry;
+            Object.freeze(createRows[row]);
+          }
+          rowsOf[index] = Object.freeze(createRows);
+          observations[index] = undefined;
+          return;
         }
-        rowsOf.push(Object.freeze(createRows));
-        observations.push(undefined);
-        continue;
-      }
-      if (member.kind === 'command') {
-        await owned.recheckRequests({member, entries, current: description, controlConstruction, ...resourceFields(member)});
+        if (member.kind === 'command') {
+          await owned.recheckRequests({member, entries, current: description, controlConstruction, ...resourceFields(member)});
+          assertCurrent?.();
+          rowsOf[index] = Object.freeze(entries.map(entry => Object.freeze({entry})));
+          observations[index] = undefined;
+          return;
+        }
+        const observed = await observeRows({member, entries,
+          current: description, read: reads[index], signal, assertCurrent, physicalOperations, operationPhase: 'capture',
+          runInvocationCid, dispatchRequestCid: dispatches[index]});
         assertCurrent?.();
-        rowsOf.push(Object.freeze(entries.map(entry => Object.freeze({entry}))));
-        observations.push(undefined);
-        continue;
-      }
-      const observed = await observeRows({member, entries,
-        current: description, read: reads[index], signal, assertCurrent, physicalOperations, operationPhase: 'capture',
-        runInvocationCid, dispatchRequestCid: dispatches[index]});
-      assertCurrent?.();
-      observations.push(observed);
-      rowsOf.push(Object.freeze(entries.map((entry, row) => Object.freeze({
-        entry, state: observed[row].state, versionCid: observed[row].versionCid,
-        before: observed[row].before}))));
+        observations[index] = observed;
+        rowsOf[index] = Object.freeze(entries.map((entry, row) => Object.freeze({
+          entry, state: observed[row].state, versionCid: observed[row].versionCid,
+          before: observed[row].before})));
+      };
+      const observedCapture = recipeOf(member)?.captureConstruction?.inputExtent !== undefined;
+      if (observedCapture) {
+        // The proposal Strings are borrowed from the completed original Read.
+        // Its same constructor now funds every native map/parse/request below
+        // BEFORE entry and joins the actual asynchronous task before completion.
+        rowsOf[index] = async () => {
+          await constructRows();
+          return owned.recoveryEntry?.({member, current: description, entries: memberEntries});
+        };
+        observations[index] = await memberCaptures[index].prepare();
+      } else await constructRows();
     }
     entries = Object.freeze(rowsOf.map(rows =>
       Object.freeze(rows.map(row => row.entry))));
@@ -2775,7 +2913,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         store, storedResults, control, runDefinition: plan.runDefinition});
     }
     const payloads = sourceSet.members.map(member => member.payload);
-    const preview = authorPreview({control, prepared, inputs, limits,
+    const preview = authorPreview({control, prepared, inputs, limits, managedEffect,
       context: {runDefinition: previewContext.runDefinition,
         runInvocation: previewContext.runInvocation,
         compiledPlan: previewContext.compiledPlan,
@@ -2876,7 +3014,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     for (const [index, member] of members.entries()) {
       const {owned} = ownerOf(member);
       const retained = memberCaptures[index];
-      const entry = retained === undefined
+      const observedCapture = recipeOf(member)?.captureConstruction?.inputExtent !== undefined;
+      const entry = observedCapture ? observations[index] : retained === undefined
         ? owned.recoveryEntry?.({member, current: currents[index], entries: entries[index]})
         : await retained.prepare();
       if (owned.recoveryEntry !== undefined) connectorRecovery.push({memberIndex: index,
@@ -2968,7 +3107,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         plan.contractLimits.maxWireBytes, plan.contractLimits.maxNodes,
         plan.contractLimits.maxDepth))};
     const unit = facts.unit ?? installedRowEffectUnit(moon, compilation);
-    const members = membersOf(prepared, unit);
+    const members = membersOf(prepared, unit, runLimits(facts.managedEffect).maxMembers);
     bindRunResources(facts, members);
     const updateTargetSelections = facts.updateTargetSelections;
     const assertCurrent = selectionFence(facts, members, unit.stageIndex, updateTargetSelections);
@@ -2977,10 +3116,13 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       memberDispatch(runInvocationCid, member));
     const requestScope = moon.clientProgramEffectRequestScope(prepared,
       identity);
+    const resultProgress = facts.managedEffect === undefined ? undefined
+      : prepareInstalledEffectResultProgress(facts.managedEffect, checkedHost);
     const storedResults = await storeCompletedRunResultSet({execution,
       store, control, runDefinition: plan.runDefinition,
       invocation: plan.invocation, results: plan.results,
-      outputLimits: plan.outputLimits, contractLimits: plan.contractLimits});
+      outputLimits: plan.outputLimits, contractLimits: plan.contractLimits,
+      signal, resultProgress});
     let sourceSet;
     let releaseInputs;
     let requestChildren, finishCapture;
@@ -3004,8 +3146,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
 
   // The members of a recovered capture, from its exact saved Preview and
   // continuation. The installation must still hold each Mapping.
-  const recoveredMembers = (body, provider, selected) => {
-    if (body.effects.length !== provider.members.length) {
+  const recoveredMembers = (body, provider, selected, maxMembers) => {
+    if (body.effects.length > maxMembers || body.effects.length !== provider.members.length) {
       fail('InstalledEffectContinuationMismatch');
     }
     return Object.freeze(body.effects.map((member, index) => {
@@ -3187,10 +3329,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             memberIndex: member.memberIndex, perRow: false, rowIndex: 0,
             operationIndex: selected.operationIndex, operation,
             ...(selected.inputExtent === undefined ? {} : {inputExtent: () =>
-              selected.inputExtent(facts.previewWire, facts.durable.connectorRecovery, member.memberIndex)}),
+              controlConstruction(undefined, selected.inputExtent,
+                [facts.previewWire, facts.durable.connectorRecovery, member.memberIndex])}),
             construct: grow => {
               if (selected.inputExtent !== undefined) growers.set(member.memberIndex, metadata =>
-                grow(selected.inputExtent(facts.previewWire, facts.durable.connectorRecovery, member.memberIndex, metadata)));
+                grow(controlConstruction(undefined, selected.inputExtent,
+                  [facts.previewWire, facts.durable.connectorRecovery, member.memberIndex, metadata])));
               try {
                 return index + 1 === members.length
                   ? recoveredEntries({...facts, reserveRecoveryInput}) : calls[index + 1]();
@@ -3289,10 +3433,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const previewWire = control.effectComputationPreviewWire(preview);
     const body = managedEffect === undefined ? JSON.parse(previewWire)
       : managedEffect.controlConstruction.parsePreview(previewWire, true);
-    const members = recoveredMembers(body, provider, selected);
+    const limits = runLimits(managedEffect);
+    const members = recoveredMembers(body, provider, selected, limits.maxMembers);
     bindRunResources(facts, members);
     const assertCurrent = selectionFence(facts, members, provider.stage_index, updateTargetSelections);
-    const limits = runLimits(managedEffect);
     const runInvocationCid = body.invocation_cid;
     const dispatches = members.map(member =>
       memberDispatch(runInvocationCid, member));
@@ -3300,38 +3444,6 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       dispatch !== provider.members[index].dispatch_request_cid)) {
       fail('InstalledEffectContinuationMismatch');
     }
-    const admitted = control.effectComputationPreviewLedgerIdentity(preview);
-    const keys = effect.recoveredPreviewKeys(admitted, requestScope,
-      members.length, limits.maxRows, limits.maxWork, limits.key.maxBytes,
-      limits.key.maxNodes, limits.key.maxDepth);
-    let recoveredRows = 0;
-    for (const member of body.effects) {
-      if (!Array.isArray(member.changes)) fail('InstalledEffectContinuationMismatch');
-      recoveredRows += member.changes.length;
-      if (member.changes.length > limits.maxRowsPerMember || recoveredRows > limits.maxRows) {
-        fail('InstalledRowEffectRowLimit');
-      }
-    }
-    const applyPreview = effect.admitPreviewIdentity(previewWire,
-      body.run_identity_cid, body.authoring_context.authoring_context_cid,
-      requestScope, keys, limits.preview.maxWireBytes,
-      limits.preview.maxNodes, limits.preview.maxDepth);
-    const submitted = recovered.originalSubmittedIntent;
-    submitted?.assertCurrent();
-    const requestedStop = submitted === undefined ||
-      !moon.clientSubmittedIntentRequestsCommitStop(submitted.intent)
-      ? undefined : control.restoreRequestedEffectStop(
-      submitted, requestIdentity, recovered.materials, durable.invocation, preview,
-      moon.clientProgramEffectPreviewInputLimits(
-        limits.preview.maxWireBytes, limits.preview.maxNodes,
-        limits.preview.maxDepth, limits.maxWork, limits.maxFields,
-        limits.preview.maxWireBytes, limits.preview.maxNodes,
-        limits.preview.maxDepth, members.length, limits.maxRows,
-        limits.maxWork, limits.maxWork));
-    const assertRequestedStopCurrent = () => {
-      submitted?.assertCurrent();
-      assertCurrent?.();
-    };
     const controlConstruction = managedEffect?.controlConstruction;
     if (managedEffect !== undefined && typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
     const managedPrepared = managedEffect?.prepared, managedRequest = managedEffect?.request;
@@ -3353,6 +3465,48 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         managedEffect.definitionOriginal.allowed, managedEffect.definitionOriginal.definition,
         durable.invocation, preview);
     }
+    const admitted = control.effectComputationPreviewLedgerIdentity(preview);
+    const keys = managedEffect === undefined
+      ? effect.recoveredPreviewKeys(admitted, requestScope,
+        members.length, limits.maxRows, limits.maxWork, limits.key.maxBytes,
+        limits.key.maxNodes, limits.key.maxDepth)
+      : control.recoverInstalledEffectPreviewKeys(managedEffect.value, managedEffect.prepared,
+        managedEffect.request, managedEffect.operationPlan, managedEffect.definitionOriginal.allowed,
+        managedEffect.definitionOriginal.definition, durable.invocation, preview, requestScope,
+        members.length, limits.maxRows, limits.maxWork, limits.key.maxBytes,
+        limits.key.maxNodes, limits.key.maxDepth, controlConstruction);
+    let recoveredRows = 0, recoveredMemberRows = 0;
+    for (const member of body.effects) {
+      if (!Array.isArray(member.changes)) fail('InstalledEffectContinuationMismatch');
+      recoveredRows += member.changes.length;
+      recoveredMemberRows = Math.max(recoveredMemberRows, member.changes.length);
+      if (member.changes.length > limits.maxRowsPerMember || recoveredRows > limits.maxRows) {
+        fail('InstalledRowEffectRowLimit');
+      }
+    }
+    // Run limits remain rejection ceilings. Ledger recovery consumes this
+    // verified whole cohort; each native member constructor consumes only the
+    // widest actual member. Neither receiver inherits the Run's policy size.
+    const applyPreview = effect.admitPreviewIdentity(previewWire,
+      body.run_identity_cid, body.authoring_context.authoring_context_cid,
+      requestScope, keys, limits.preview.maxWireBytes,
+      limits.preview.maxNodes, limits.preview.maxDepth);
+    const submitted = recovered.originalSubmittedIntent;
+    submitted?.assertCurrent();
+    const requestedStop = submitted === undefined ||
+      !moon.clientSubmittedIntentRequestsCommitStop(submitted.intent)
+      ? undefined : control.restoreRequestedEffectStop(
+      submitted, requestIdentity, recovered.materials, durable.invocation, preview,
+      moon.clientProgramEffectPreviewInputLimits(
+        limits.preview.maxWireBytes, limits.preview.maxNodes,
+        limits.preview.maxDepth, limits.maxWork, limits.maxFields,
+        limits.preview.maxWireBytes, limits.preview.maxNodes,
+        limits.preview.maxDepth, members.length, limits.maxRows,
+        limits.maxWork, limits.maxWork));
+    const assertRequestedStopCurrent = () => {
+      submitted?.assertCurrent();
+      assertCurrent?.();
+    };
     const ledger = openLedger(requestIdentity, controlConstruction);
     // The handle is released exactly once: it is marked released only after
     // its close succeeds, so a failed close stays this owner's pending
@@ -3420,10 +3574,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     try {
       const recorded = ledger.recoverClaimFacts({preview: admitted,
         scope: requestScope, programId: provider.program_id,
-        nodeId: provider.stage_id, maxRows: limits.maxRows,
-        maxWork: limits.maxWork});
+        nodeId: provider.stage_id, maxRows: recoveredRows,
+        maxWork: limits.maxWork}, keys);
       assertCurrent?.();
-      ({entries, currents} = prepareRecoveredEntries({members, body, durable, maxRows: limits.maxRowsPerMember,
+      ({entries, currents} = prepareRecoveredEntries({members, body, durable, maxRows: recoveredMemberRows,
         recorded, previewWire, runInvocationCid, dispatches,
         requestTags: keys.map((rows, index) => ownerOf(members[index]).owned.finalizeRequest === undefined
           ? undefined : rows.map(key => effect.dispatchKeyCid(key))), controlConstruction,
@@ -3481,7 +3635,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                   authorizeEvidenceRead: async () => true,
                   projectStored: stored => {
                     assertRecoveredCurrent();
-                    const {owned, responseConfirmation} = ownerOf(members[memberIndex]);
+                    const {responseConfirmation} = ownerOf(members[memberIndex]);
                     // Presence alone is not a terminal fact. Reuse the
                     // existing complete receipt/current/history admission and
                     // original CAS continuation, never another provider read
@@ -3496,8 +3650,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                       preview: ledgerPreview, request: entry.request, current: currents[memberIndex],
                       observation: Object.freeze({useCid: stored.credentialUseCid,
                         statusCode: stored.statusCode, body: stored.responseBytes}), headers: undefined};
-                    return controlConstruction === undefined ? owned.project(projectionFacts)
-                      : controlConstruction(owned, owned.project, [projectionFacts]);
+                    return projectOwnedResponse(members[memberIndex], projectionFacts, controlConstruction);
                   }});
                 assertRecoveredCurrent();
                 if (retainedOutcome) continue;
@@ -3518,7 +3671,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           ...(requestedStop === undefined ? {} : {requestedStop, assertRequestedStopCurrent}),
           apply: {moon, store, publicationControl: control, computation,
             preview, ledger, requestScope, programId: provider.program_id,
-            nodeId: provider.stage_id, maxRows: limits.maxRows,
+            nodeId: provider.stage_id, maxRows: recoveredRows,
             maxFrontierWork: limits.maxFrontierWork,
             maxRecoveryWork: limits.maxWork,
             keyLimits: {...limits.key, maxWork: limits.maxWork},
@@ -3555,7 +3708,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         const child = owner.owned.prepareRecoveredContentChild({
           recovered, members, entries, memberIndexes, control, store, signal,
           contentRun: facts.contentRun, principalId: facts.principalId,
-          assertCurrent, limits, ...resourceFields(members[memberIndexes[0]])});
+          assertCurrent, limits, ...resourceFields(members[memberIndexes[0]]),
+          managedContext: managedEffect});
         if (typeof child?.prepare !== 'function' || typeof child.release !== 'function' ||
             typeof child.status !== 'function') {
           fail('InvalidInstalledEffectRecoveryChild');

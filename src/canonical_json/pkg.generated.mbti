@@ -3,6 +3,7 @@ package "actql/actql/canonical_json"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
@@ -75,6 +76,8 @@ pub fn object_without_field(CanonicalValue, String) -> CanonicalValue?
 
 pub fn representation_extent(CanonicalValue, Int, Int, Int) -> Result[CanonicalRepresentationExtent, CanonicalFailure]
 
+pub fn source_conversion_construction_extent(Int, Int, Int, Int, Int, Int) -> SourceConversionConstructionExtent?
+
 pub fn start_cursor_admission(@decode_core.Cursor, Int, Int, Int, Int, data_keys? : Bool) -> CursorAdmission?
 
 pub fn start_emit(CanonicalValue, @encode_core.Writer) -> CanonicalEmit
@@ -128,6 +131,13 @@ pub enum CursorAdmissionPoll {
 }
 
 type FrozenArray[T]
+
+pub(all) struct SourceConversionConstructionExtent {
+  retained : @decode_shape.CollectionConstructionExtent
+  scratch : @decode_shape.CollectionConstructionExtent
+  retained_utf16_units : Int64
+  scratch_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

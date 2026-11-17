@@ -2700,13 +2700,11 @@ fn Store::commit_publication_in_scope(
     None =>
       match capture {
         Some(original) =>
-          @local.check_program_commit_validation(
+          self.check_original_commit_in_read(
             original, run_definition, invocation, definitions, artifacts, derivations,
             orderings, retentions, bindings, manifest, receipt, captured_run, request,
             attempt, index,
-          ).map_err(issue => {
-            NativePublicationStoreIssue::PublicationPreparation(issue)
-          })
+          )
         None =>
           publication_commit(
             @publication.validate_effect_free_publication_commit_with_result_evidence(
@@ -3215,6 +3213,33 @@ pub fn Store::open_payload_delivery(
 }
 
 ///|
+fn Store::prepare_result_read_workspace_in_scope(
+  self : Store,
+  row : Int,
+  frame : Int,
+  schema_units : Int,
+  nodes : Int,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match self.operation_original {
+    Some(original) =>
+      match
+        original.prepare_delivery_workspace(row, frame, schema_units, nodes) {
+        Err(issue) => Err(Database(issue))
+        // The original current callback can synchronously retire this Store.
+        // Check local state after return without repeating that callback/IO.
+        Ok(_) => require_store_open(self)
+      }
+    // Existing standalone component Stores have no installed Read owner.
+    // They cannot certify the normal caller's backing or be selected on refusal.
+    None => Ok(())
+  }
+}
+
+///|
 fn Store::open_payload_delivery_in_scope(
   self : Store,
   material_generation_cid : String,
@@ -3234,7 +3259,6 @@ fn Store::open_payload_delivery_in_scope(
   if input_chunk_bytes < 1 ||
     input_chunk_bytes > 16777216 ||
     max_row_bytes < 1 ||
-    max_row_bytes > 16777216 ||
     max_delivery_bytes < 0L {
     return Err(InvalidConfiguration)
   }
@@ -3247,6 +3271,26 @@ fn Store::open_payload_delivery_in_scope(
     info.row_count < 0L ||
     info.row_count > 2147483647L {
     return Err(InvalidConfiguration)
+  }
+  let mut schema_units = schema_wire.length().to_int64()
+  for field in fields {
+    schema_units += field.length().to_int64()
+  }
+  if schema_units > 2147483647L {
+    return Err(InvalidConfiguration)
+  }
+  // Verified immutable payload bounds the eager backing and every decoded
+  // row. Admit the complete coheld serializer/row/output peak BEFORE either
+  // constructor. No payload byte read, grant or new Read is manufactured.
+  match
+    self.prepare_result_read_workspace_in_scope(
+      Int::max(1, Int::min(max_row_bytes, info.generation.size.to_int())),
+      input_chunk_bytes,
+      schema_units.to_int(),
+      max_nodes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   let serializer = match
     @publication.prepare_result_delivery_serializer(
@@ -3300,7 +3344,14 @@ fn Store::open_payload_delivery_in_scope(
     emitted_rows: 0L,
     delivery_digest: None,
     chunk_construction: None,
-    funded_chunk_bytes: 0,
+    // The installed constructor already backed this complete window beside
+    // its row/schema peak. Reuse it; next() must not quote/check it again.
+    // Standalone compatibility controls still acquire their explicit window.
+    funded_chunk_bytes: if self.operation_original is Some(_) {
+      input_chunk_bytes
+    } else {
+      0
+    },
     closed: false,
   })
 }

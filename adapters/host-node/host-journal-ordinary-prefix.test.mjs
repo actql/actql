@@ -24,7 +24,7 @@ const closure = localModuleGraphInputs(repository, entries);
 const nativeRoot = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
 
 async function fixture(label, {replaceBeforeJournalCapture, managedCompute = false,
-  resultPublication = false, localMockModel = false} = {}) {
+  resultPublication = false, localMockModel = false, ordinaryPublic = false} = {}) {
   const scratch = await createOwnedScratch({parent: tmpdir(),
     prefix: 'actql-journal-ordinary-service-', label});
   const root = join(scratch.path, 'node_modules/@actql/local-node');
@@ -63,6 +63,14 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
     files: ['index.mjs', 'initial-control-public-dispatch.cjs', 'adapters', 'packages']})));
   sources.set('index.mjs', Buffer.from('import delivery from "./initial-control-public-dispatch.cjs";'+
     'export function connect(raw){return delivery.selectedInitialControlHostPreparation("connect",raw);}'));
+  if (ordinaryPublic) {
+    // The current public wrapper uses ordinary embedded entry, not the old
+    // captured-prefix dispatch. Keep the actual wrapper and its export graph.
+    sources.set('index.mjs', readFileSync(join(repository, 'packages/local-node/index.mjs')));
+    for (const path of localModuleGraphInputs(repository, ['adapters/host-node/installed-connectors.mjs'])) {
+      sources.set(path, readFileSync(join(repository, path)));
+    }
+  }
   sources.set('initial-control-public-dispatch.cjs',
     readFileSync(join(repository, 'packages/local-node/initial-control-public-dispatch.cjs')));
   // Controlled Host candidate/subject only. All prefix, private adapter,
@@ -152,7 +160,7 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
         assertCurrent(){assertInitialControlHostPreparation(value);}});
     }
     export async function connectInitialControlHostPreparation(kind,raw) {
-      originals=Object.freeze({host:{},installation:{${!resultPublication ? '' : 'projectRuntime:resultRuntime'}},generation:{},
+      originals=Object.freeze({host:{},installation:{${ordinaryPublic ? 'root,' : ''}${!resultPublication ? '' : 'projectRuntime:resultRuntime'}},generation:{},
         supplier:connectInitialControlHostPreparation,moduleLifetime:import.meta});
       const scope=await beginInitialControlInstallation(originals,raw);
       return Object.freeze({scope,root,originals,prepareJournal(){return prepareHostJournalInstallation(originals);}
@@ -165,6 +173,13 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
         ${!localMockModel ? '' : ',bindModelCandidate(candidate){modelCandidate=candidate;}'}
       });
     }
+    ${!ordinaryPublic ? '' : `
+    export function connectEmbeddedLocal(raw) {
+      return connectInitialControlHostPreparation('connect',raw);
+    }
+    export function publishInstalledSource() { throw new Error('UnusedControlledSourcePublication'); }
+    export function publishInstalledEffect() { throw new Error('UnusedControlledEffectPublication'); }
+    `}
   `));
   if (replaceBeforeJournalCapture !== undefined) {
     assert.ok(['prepare', 'iterate'].includes(replaceBeforeJournalCapture));
@@ -287,7 +302,7 @@ test('ordinary Journal service cleanup retains original native close after curre
 });
 
 test('ordinary Journal cold reopening uses fresh startup custody for the same saved test state', async () => {
-  const f = await fixture('ordinary Journal actual service fresh-process cold reopen');
+  const f = await fixture('ordinary Journal actual service fresh-process cold reopen', {ordinaryPublic: true});
   const openAndClose = expected => `
     import assert from 'node:assert/strict'; import {join} from 'node:path';
     import {connect} from '@actql/local-node';
@@ -301,6 +316,47 @@ test('ordinary Journal cold reopening uses fresh startup custody for the same sa
   `;
   // Both children operate only on this newly created test's own state. No
   // historical Run/DB/key is restored, repaired or replayed between processes.
+  f.run(openAndClose('new'));
+  f.run(openAndClose('current'));
+  f.scratch.passed();
+});
+
+test('ordinary Journal adapter retains the same nominal intent across separate-process cold reopening', async () => {
+  const f = await fixture('ordinary Journal actual service fresh-process cold reopen');
+  const openAndClose = expected => `
+    import assert from 'node:assert/strict'; import {join} from 'node:path';
+    import {prepareHostJournalInstallation} from ${JSON.stringify(join(f.root, 'adapters/host-node/node-host-journal-installation.mjs'))};
+    import {beginInitialControlInstallation} from ${JSON.stringify(join(f.root, 'adapters/host-node/node-initial-control-installation.mjs'))};
+    import {readFileSync,writeFileSync} from 'node:fs';
+    const moon=await import(${JSON.stringify(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href)});
+    const root=${JSON.stringify(join(f.scratch.path,'host'))};
+    const originals=Object.freeze({host:{},installation:{root},generation:{},
+      supplier:prepareHostJournalInstallation,moduleLifetime:import.meta});
+    const scope=await beginInitialControlInstallation(originals,{});
+    const duty=await prepareHostJournalInstallation(originals);
+    assert.equal(await duty.admitRootFormat(root),${JSON.stringify(expected)});
+    const journal=await duty.openRequestJournal(join(root,'requests'),{});
+    journal.observationStorage();
+    const fields={authorityScopeCid:'sha256:'+'a'.repeat(64),currentAuthorization:true};
+    const originalPath=join(root,'..','same-journal-intent.json');
+    if(${JSON.stringify(expected)}==='new'){
+      const ref={epoch:journal.issueSubmissionEpoch(fields,moon),nonce:'same-original-intent'};
+      const intent=moon.clientSubmittedIntent(JSON.stringify({kind:'aql',input:{format:'aql-text',text:'SELECT 1 AS value'},parameters:null}),1048576,65536,64);
+      const retained=journal.recordSubmittedIntent(ref,intent,fields,moon);
+      assert.equal(retained.inserted,true);
+      writeFileSync(originalPath,JSON.stringify({ref,intentCid:retained.intentCid,revision:retained.revision}));
+    }else{
+      const original=JSON.parse(readFileSync(originalPath,'utf8'));
+      const retained=journal.lookupSubmittedIntent(original.ref,fields,moon);
+      assert.equal(retained.intentCid,original.intentCid);assert.equal(retained.revision,original.revision);
+    }
+    assert.equal((await duty.close()).pending,false);
+    assert.equal((await scope.close()).pending,false);
+  `;
+  // Exercise the actual ordinary private adapter, Host/Journal owner and
+  // initial-control scope. The controlled Host originals are explicit fixture
+  // inputs; the historical captured public-prefix loader is not this route.
+  // Both children use only this test's new state, never a historical Run/DB/key.
   f.run(openAndClose('new'));
   f.run(openAndClose('current'));
   f.scratch.passed();

@@ -8,6 +8,10 @@ export type InstalledRemoteHostOptions = HostInstallation & Readonly<{
   /** Enforce an actual numeric loopback HTTP listener and peer before auth.
    * The application still creates, explicitly binds and closes its server. */
   loopbackHttp?: boolean;
+  /** Explicit encoded HTTP body limit (default 65536). Larger selections still
+   * require the same Request's current Resource admission before allocation.
+   * This is not a query/Run limit or an execution permission. */
+  maxRequestBytes?: number;
   authenticate: (authorization: string | undefined) => string | undefined | Promise<string | undefined>;
   beforeDispatch?: (...args: any[]) => any;
   effectInstallation?: Readonly<Record<string, unknown>>;

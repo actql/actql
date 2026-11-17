@@ -92,9 +92,9 @@ test "physical batch growth preserves full first-row bound when the drain hint s
     )
     is Err(Admission(CaptureLimit)),
   )
-  // This physical row actually fits 20 bytes, but its conservative key hint
-  // does not. The hint's earlier partial value cannot fund the row/frame.
-  assert_eq(requested.val, 20)
+  // The SAME full measured row plus the pending array prefix is funded,
+  // independently of its smaller physical frame. No clipping to 20 bytes.
+  assert_eq(requested.val, 29)
 }
 
 ///|

@@ -120,11 +120,11 @@ test('ordinary Local adopts the complete Source and Model inventory beyond forme
     principalId: 'person', namespaceId: 'local', authorityScopeCid: scope})(facts), false);
 });
 
-test('ordinary Local aggregate Account refusal preserves intent without publishing a partial configuration', async t => {
+test('ordinary Local invalid Account subject preserves intent without publishing a partial configuration', async t => {
   const f = await fixture(t);
   const selected = {controlConnection: 'local-host', modelTasks: [],
-    configuredConnections: Array.from({length: 1022}, (_, index) => `source-${index}`)};
-  await assert.rejects(f.start(undefined, selected));
+    configuredConnections: ['']};
+  await assert.rejects(f.start(undefined, selected), {code: 'MoonBitHostFailure'});
   assert.ok((await readFile(f.intent)).length > 0);
   await assert.rejects(stat(f.config), {code: 'ENOENT'});
   await assert.rejects(stat(join(f.root, 'account', 'bootstrap.json')), {code: 'ENOENT'});

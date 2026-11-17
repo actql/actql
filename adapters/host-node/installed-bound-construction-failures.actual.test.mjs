@@ -198,8 +198,9 @@ test('real journal cleanup refusal keeps its original carrier and parent pending
     assert.deepEqual(f.openJournalDescriptors(path), []);
     assert.deepEqual(f.openJournalDescriptors(selected.journalPath), []);
   }
-  assert.equal(f.retire(), true);
+  assert.equal(f.retire(), false, 'the original Account construction still owns its parent');
   await f.close();
+  assert.equal(f.retire(), true);
 });
 
 for (const variant of ['close-collision', 'accessor', 'then', 'symbol']) {
@@ -258,8 +259,9 @@ test('an unregistered projection cannot replace the actual registered adapter', 
   assert.notEqual(original, projection);
   assert.equal(f.sources.length, 0);
   if (process.platform === 'linux') assert.deepEqual(f.openJournalDescriptors(selected.journalPath), []);
-  assert.equal(f.retire(), true);
+  assert.equal(f.retire(), false, 'the original Account construction still owns its parent');
   await f.close();
+  assert.equal(f.retire(), true);
 });
 
 async function keyPairMaterialFaultInstaller({openCredentialJournal} = {}) {
@@ -294,8 +296,9 @@ test('pre-Site credential-key rejection closes the exact real lazy key-pair mate
   assert.equal(material.probes(), 0);
   await assert.rejects(material.original().resolveSecret({}), {code: 'SnowflakeKeyPairMaterialClosed'});
   assert.equal(material.probes(), 0, 'closed observation never resolves a secret');
-  assert.equal(f.retire(), true);
+  assert.equal(f.retire(), false, 'the original Account construction still owns its parent');
   await f.close();
+  assert.equal(f.retire(), true);
 });
 
 test('real Site journal close refusal retains lazy key material until its own physical cleanup completes', async t => {
@@ -344,8 +347,9 @@ test('real Site journal close refusal retains lazy key material until its own ph
   await assert.rejects(material.original().resolveSecret({}), {code: 'SnowflakeKeyPairMaterialClosed'});
   assert.equal(material.probes(), 1);
   if (process.platform === 'linux') assert.deepEqual(f.openJournalDescriptors(selected.journalPath), []);
-  assert.equal(f.retire(), true);
+  assert.equal(f.retire(), false, 'the original Account construction still owns its parent');
   await f.close();
+  assert.equal(f.retire(), true);
 });
 
 function faultySalesforceEffect(load) {
@@ -580,122 +584,40 @@ test('an admitted pure Environment throw retains its failure through sibling rec
   assert.equal(f.retire(), true);
 });
 
-test('pure Environment failure debt survives sibling reconciliation and changes actual admission', async t => {
-  const {readFile} = await import('node:fs/promises');
+test('failed native workspace stays on its original parent while completed workspace returns', async t => {
   const {checked} = await import('../host-common/runtime-result.mjs');
-  const {runtimeField} = await import('../host-common/compiler-binding.generated.mjs');
-  const {sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry} =
-    await import('./installed-source-construction-geometry.mjs');
-  const {rowSourceCheckEnvironment} = await import('./installed-row-source.mjs');
-  const {loadInstalledBigQuerySource} = await import('../connectors/bigquery/host/installed-bigquery-source.mjs');
-  const base = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
-  let derivedDelta, probeQuantity, probeBytes;
-  const probePrefixes = [];
-  const contains = (error, expected) => {
-    const pending = [error], seen = new Set();
-    while (pending.length) {
-      const value = pending.shift();
-      if (value === expected) return true;
-      if (!value || typeof value !== 'object' || seen.has(value)) continue;
-      seen.add(value); pending.push(value.cause, value.primaryFailure);
-    }
-    return false;
-  };
-  async function probe(failed) {
-    const capacityEvents = [];
-    const f = await boundConstructionActualFixture(t, {capacityEvents});
-    const nativeQuote = (n, text, wire) => checked(f.moon.clientProgramInstalledSourceConstructionCapacity(n, text, wire, 0n, 0n, 0n));
-    const bytes = value => runtimeField(f.moon.clientProgramSerializationCapacityBytes(
-      checked(f.moon.clientProgramComposeInstalledSourceConstructionCapacity(nativeQuote(0n, 0n, 0n), [value]))), 1);
-    const phaseDone = new Error('PurePhaseSucceededBeforeDeliberateInstallerFailure');
-    let declared, projects = 0;
-    const selected = await f.profile();
-    const connectorTable = faultyBigQuery(async (profile, options) => {
-      const real = options.construction;
-      const construction = Object.freeze({...real,
-        prepareNativeDeclaration(input) {
-          const result = real.prepareNativeDeclaration(input);
-          declared = result.declared;
-          return result;
-        },
-        createRowSource() {
-          real.prepareReadTargetWithMappings(Object.freeze({
-            capacity() {return nativeQuote(64n, 64n, 4096n);},
-            project() {projects++; return Object.freeze({mappingWires: Object.freeze([failed ? '{ ' : '{}'])});},
-          }));
-          throw phaseDone;
-        },
-      });
-      return loadInstalledBigQuerySource(profile, {...options, construction});
-    });
-    let phaseFailure;
-    await assert.rejects(f.load(selected, {connectorTable}), error => {
-      phaseFailure = error;
-      return failed ? !contains(error, phaseDone) : contains(error, phaseDone);
-    });
-    assert.equal(projects, 1);
-    if (failed) {
-      const chain = [phaseFailure]; let parsed = false;
-      while (chain.length) {const e = chain.shift(); if (!e) continue;
-        if (e instanceof SyntaxError) parsed = true; chain.push(e.cause, e.primaryFailure);}
-      assert.equal(parsed, true);
-    }
-    const full = sourceEnvironmentConstructionGeometry(base, declared, ['{ ']);
-    const retained = sourceEnvironmentRetainedGeometry(rowSourceCheckEnvironment(base, declared, ['{}']));
-    const delta = bytes(nativeQuote(full.workspace.nodes + full.retained.nodes,
-      full.workspace.text + full.retained.text, full.workspace.wire + full.retained.wire)) -
-      bytes(nativeQuote(retained.nodes, retained.text, retained.wire));
-    if (derivedDelta === undefined) derivedDelta = delta;
-    else assert.equal(delta, derivedDelta, 'matched actual declaration recipes');
-    assert.ok(delta > 0n);
-    // Reconcile after failure on the same original parent with a real sibling.
-    await f.load(await f.profile());
-    const probeDone = new Error('ActualProbeAdmitted');
+  const {installedSourceConfigurationReader} = await import('./installed-host-services.mjs');
+  for (const failed of [false, true]) {
+    const f = await boundConstructionActualFixture(t);
+    const reader = installedSourceConfigurationReader(f.services);
+    const limits = f.moon.clientLocalPreparationResourceLimits(f.moon.clientLocalResourcePolicyOriginal());
+    const quantity = checked(f.moon.clientProgramInstalledSourceConstructionCapacity(
+      1n, 0n, 0n, 0n, 0n, limits[5] / 2n));
+    const primary = new Error('OriginalNativeProjectionFailed');
     let entered = 0;
-    const probeTable = faultyBigQuery(async (_profile, {construction}) => {
-      construction.prepareNativeDeclaration(Object.freeze({
-        capacity() {
-          // Use the actual completed prefix immediately before this original
-          // reserve. The old empirical 408-MiB offset is invalid when an
-          // earlier sibling legitimately retires its own closed workspace.
-          const prefix = capacityEvents.at(-1);
-          assert.equal(prefix.operation, 'clientProgramReconcileInstalledSourceConstruction');
-          assert.equal(prefix.accepted, true);
-          assert.equal(prefix.retained, prefix.peak);
-          probePrefixes.push(prefix.peak);
-          probeBytes ??= 536870912n - prefix.peak - derivedDelta / 2n;
-          assert.ok(probeBytes > 0n);
-          probeQuantity ??= nativeQuote(0n, 0n, probeBytes);
-          return probeQuantity;
-        },
-        project() {entered++; throw probeDone;},
-      }));
-    });
-    let observed;
-    await assert.rejects(f.load(await f.profile(), {connectorTable: probeTable}), error => {
-      observed = error; return contains(error, probeDone) || causedBy(error, 'MoonBitHostFailure');
-    });
-    assert.equal(entered, contains(observed, probeDone) ? 1 : 0);
-    await f.close();
-    assert.equal(f.retire(), true, 'pure failures do not fabricate pending physical work');
-    return entered === 1;
+    const first = () => reader.prepareNativeInput(Object.freeze({capacity: () => quantity,
+      project() {entered++; if (failed) throw primary; return Object.freeze({});}}));
+    if (failed) assert.throws(first, error => error === primary);
+    else assert.deepEqual(first(), {});
+    const next = () => reader.prepareNativeInput(Object.freeze({capacity: () => quantity,
+      project() {entered++; return Object.freeze({});}}));
+    if (failed) assert.throws(next, error => error.code === 'MoonBitHostFailure' && error.cause !== undefined);
+    else assert.deepEqual(next(), {});
+    assert.equal(entered, failed ? 1 : 2, 'only admitted constructors may enter');
+    await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
   }
-  assert.equal(await probe(false), true);
-  assert.equal(await probe(true), false);
-  assert.equal(probePrefixes[1] - probePrefixes[0], derivedDelta,
-    'only the complete independently derived pure failure debt differs');
-  t.diagnostic(JSON.stringify({pureEnvironmentDebtBytes: String(derivedDelta),
-    sameNativeProbeBytes: String(probeBytes)}));
 });
 
 test('refused pure Environment workspace does not become ungranted debt on sibling reconciliation', async t => {
   const {checked} = await import('../host-common/runtime-result.mjs');
   const {loadInstalledBigQuerySource} = await import('../connectors/bigquery/host/installed-bigquery-source.mjs');
   const f = await boundConstructionActualFixture(t);
+  const limits = f.moon.clientLocalPreparationResourceLimits(f.moon.clientLocalResourcePolicyOriginal());
+  assert.equal(limits[4], 536870912n); assert.equal(limits[5], 536870912n);
   const selected = await f.profile();
   // Explicit bounded external fixture DATA, not an allocation performed by
   // an unfunded product callback. Its native backing is acquired below.
-  const wire = '{' + ' '.repeat(4 * 1024 * 1024 - 1);
+  const wire = '[' + '0,'.repeat(599999) + '!';
   let projects = 0, failure;
   const connectorTable = faultyBigQuery(async (profile, options) => {
     const real = options.construction;
@@ -720,7 +642,11 @@ test('refused pure Environment workspace does not become ungranted debt on sibli
     const value = pending.shift();
     if (!value || typeof value !== 'object' || seen.has(value)) continue;
     seen.add(value);
-    if (value.code === 'MoonBitHostFailure' && /prepareSourceEnvironment/.test(value.stack)) reserve = true;
+    // Existing typed PreparationCapacityIssue.Resource(LedgerIssue.RetentionLimit),
+    // rather than a parser, foreign-owner or lost-current refusal.
+    if (value.code === 'MoonBitHostFailure' &&
+        value.installedSourcePhase === 'ReserveInstalledSourceConstruction' &&
+        value.installedSourceIssueTag === 7 && value.installedSourceResourceIssue === 5) reserve = true;
     if (value instanceof SyntaxError) syntax = true;
     pending.push(value.cause, value.primaryFailure);
   }

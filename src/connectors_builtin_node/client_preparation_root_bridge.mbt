@@ -33,6 +33,38 @@ pub fn client_program_begin_installed_effect_capture_recovery(
 }
 
 ///|
+#export_name("clientProgramBeginInstalledEffectCaptureValidation")
+pub fn client_program_begin_installed_effect_capture_validation(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_capture_validation(original)
+}
+
+///|
+#export_name("clientProgramInstalledEffectCapturePublicationInputLimit")
+pub fn client_program_installed_effect_capture_publication_input_limit(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_effect_capture_publication_input_limit(original)
+}
+
+///|
+#export_name("clientProgramBeginInstalledEffectCapturePublication")
+pub fn client_program_begin_installed_effect_capture_publication(
+  original : @client_local_host.ClientInstalledEffectCaptureRecovery,
+  issue : Bool,
+  contracts : Array[@publication.PublicationContract],
+  receipt_wires : Array[String],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_capture_publication(
+    original, issue, contracts, receipt_wires, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramReserveInstalledEffectCaptureRecovery")
 pub fn client_program_reserve_installed_effect_capture_recovery(
   original : @client_local_host.ClientInstalledEffectCaptureRecovery,
@@ -521,6 +553,35 @@ pub fn client_program_reserve_request_snapshot(
   values : Int64,
 ) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
   @client_local_host.reserve_request_snapshot(parent, input, units, values)
+}
+
+///|
+#export_name("clientProgramReserveRequestHttpInput")
+pub fn client_program_reserve_request_http_input(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  wire : Int,
+  chunks : Int,
+  quantum : Int,
+  wire_limit : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_http_input(
+    parent, input, wire, chunks, quantum, wire_limit,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestHttpJson")
+pub fn client_program_prepare_request_http_json(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  wire : String,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.prepare_request_http_json(parent, input, wire)
 }
 
 ///|
@@ -1247,6 +1308,15 @@ pub fn client_program_request_program_module_issue_code(
       Some("source_free_metadata_capacity_unavailable")
     Err(Preparation(Installed(Sequence(ValuesFailure(_, ValuesLimit))))) =>
       Some("values_profile_unsupported")
+    // The original error owner projects only its exact sequence-budget cause.
+    // No caller reconstructs this read-only error or treats a current/foreign
+    // or general construction failure as a known input refusal.
+    Err(Preparation(issue)) =>
+      if @client_local_host.request_program_plan_issue_is_sequence_limit(issue) {
+        Some("check_compile_limit")
+      } else {
+        None
+      }
     _ => None
   }
 }

@@ -4,6 +4,8 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {runtimeField, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {fundedEffectModelGroupCount} from './installed-effect-managed-run.mjs';
+import {fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding} from './infer-operation.mjs';
 import {withOriginalInferModelObservation} from './infer-effect-observation.mjs';
 import {preparePrivatePublicationHolding as originalPrivateHolding} from '../host-common/private-publication-holding.mjs';
 
@@ -93,6 +95,7 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
       _1: shape.request.index === 0 ? 200n : 80n}};
   };
   const ports = {runtimeField, checked, localContractLimits: limits,
+    fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding, fundedEffectModelGroupCount,
     prepareAcquiredEffectSourceUnits: () => sourceUnits,
     async projectInferEvidence(facts) {
       events.push('evidence-' + facts.operation.index);

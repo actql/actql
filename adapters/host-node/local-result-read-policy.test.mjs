@@ -5,7 +5,6 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {createResultFactory} from '../../packages/sdk/internal/result-read.mjs';
 import {localResourceResultReadLimits} from './installed-host-policy.mjs';
-import recipe from './host-result-service-recipe.cjs';
 
 // Execute the installed Host's actual policy and authority callbacks without
 // importing a compiled Host. The reader below is an explicit delivery double;
@@ -32,7 +31,7 @@ function original(name, bindings) {
     ...Object.values(bindings));
 }
 
-async function fixture(lengths, {deny = false, revokeAt, cleanupFails = false, requestMemory} = {}) {
+async function fixture(lengths, {deny = false, revokeAt, cleanupFails = false, requestMemory, transfer = 100000000000n} = {}) {
   const policy = Object.freeze({});
   const moon = {
     clientLocalResourcePolicyOriginal: () => policy,
@@ -40,7 +39,7 @@ async function fixture(lengths, {deny = false, revokeAt, cleanupFails = false, r
       assert.equal(value, policy);
       assert.equal(selectedRetained, requestMemory === undefined ? undefined : BigInt(requestMemory.retainedBytes));
       assert.equal(selectedExecution, requestMemory === undefined ? undefined : BigInt(requestMemory.executionBytes));
-      return [100000n, 100000n, 100000n, 100000000000n, selectedRetained ?? 536870912n, selectedExecution ?? 536870912n];
+      return [100000n, 100000n, 100000n, transfer, selectedRetained ?? 536870912n, selectedExecution ?? 536870912n];
     },
     clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, policy); return 2097152;},
   };
@@ -122,21 +121,17 @@ test('installed read grant covers the negotiated stream beyond the publication d
   assert.equal(f.counts().bytes, 10400000);
   assert.equal(f.grant().maxBytes, f.limits.maxReadWireBytes);
   assert.equal(f.grant().maxUses, 1);
-  assert.equal(f.limits.maxReadWireBytes, 10 * 1024 * 1024);
-  assert.equal(f.limits.maxRowWireBytes, 1024 * 1024);
-  const control = {}, recipeLimits = recipe.declareHostResultServiceRecipe(control,
-    {sharedControl: control}, {}, {}).result;
-  assert.equal(recipeLimits.maxReadWireBytes, f.limits.maxReadWireBytes);
-  assert.equal(recipeLimits.maxRowWireBytes, f.limits.maxRowWireBytes);
+  assert.equal(f.limits.maxReadWireBytes, 2147483646);
+  assert.equal(f.limits.maxRowWireBytes, 2147483646);
   retired(f);
 });
 
 test('selected read ceiling and client tightening still refuse with the same reader cleanup', async () => {
-  const exact = await fixture([...Array(201).fill(52000), 33760]);
+  const exact = await fixture([...Array(201).fill(52000), 33760], {transfer: 10485760n});
   assert.equal(await drain(exact.result.rows()), 202);
   assert.equal(exact.counts().bytes, exact.limits.maxReadWireBytes);
   retired(exact);
-  const beyond = await fixture([...Array(201).fill(52000), 33761]);
+  const beyond = await fixture([...Array(201).fill(52000), 33761], {transfer: 10485760n});
   await assert.rejects(drain(beyond.result.rows()), {code: 'ResultReadLimit'});
   retired(beyond);
   const tighter = await fixture(Array(200).fill(52000));
@@ -164,7 +159,7 @@ test('streaming does not relax explicit collection or per-row bounds', async () 
   assert.equal(collection.limits.maxRetainedValueBytes, 536870912);
   retired(collection);
   const row = await fixture([1024 * 1024 + 1]);
-  await assert.rejects(drain(row.result.rows()), {code: 'ResultRowWireLimit'});
+  await assert.rejects(drain(row.result.rows({maxRowWireBytes: 1024 * 1024})), {code: 'ResultRowWireLimit'});
   retired(row);
 });
 

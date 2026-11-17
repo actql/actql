@@ -49,7 +49,7 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
           inspect() { assert.fail('Preparation failure cannot inspect'); },
           reconcileOperation() { assert.fail('Preparation failure cannot reconcile'); },
         };
-        const factory = await createInstalledTableEffect({moon, environmentWire: '{}',
+        const options = {moon, environmentWire: '{}',
           connectorId: 'table', connectorRegistration: 'table', connectorRevision: 'table/0.1',
           connection: 'table', runtimeBundleCid: cid('8'), bindingCid: cid('9'), catalogCid: cid('3'),
           targets: ['first', 'second'].map((effectId, index) => ({effectId,
@@ -60,18 +60,41 @@ for (const kind of ['frozen', 'nested', 'primitive']) {
           authorization: {authorize() { assert.fail('Preparation cannot authorize a provider read'); }},
           ledgerRoot: join(f.directory, 'installed-table-failure-ledger'),
           limits: {maxMembers: 2, maxInputBytes: 100000,
-            material: f.tableLimits, reservation: {bytes: 1048576, files: 16}}});
+            material: f.tableLimits, reservation: {bytes: 1048576, files: 16}}};
+        const factory = await createInstalledTableEffect(options);
         const identity = moon.clientProgramEffectRequestIdentity(f.prepared, cid('e'), 'table-bind', cid('b'));
         const plan = tableFixturePublicationPlan(f), program = JSON.parse(f.fixture.document);
+        const facts = {moon, control, store: f.physicalStore,
+          execution: f.execution, checkedHost: f.checkedHost, prepared: f.prepared,
+          identity, publicationPlan: plan,
+          unit: {programId: program.id, stageId: program.stages[0].id,
+            stageIndex: 0, effectIds: ['first', 'second']},
+          previewContext: {runDefinition: f.definition, runInvocation: f.invocation,
+            compiledPlan: f.evidence[3]}};
+        if (kind === 'frozen') {
+          await assert.rejects(factory.prepareCaptured({...facts, managedEffect: {}}),
+            {code: 'InstalledEffectControlRuntimeUnavailable'});
+          await assert.rejects(factory.prepareCaptured({...facts,
+            managedEffect: {controlConstruction() { assert.fail('Unregistered constructor cannot run'); }}}),
+          /ForeignInstalledEffectDependencyOriginal/);
+          assert.equal(preparations, 0, 'Original rejection precedes any physical input preparation');
+          assert.equal(cleanupCalls, 0);
+          const limited = await createInstalledTableEffect({...options,
+            ledgerRoot: join(f.directory, 'installed-table-small-work-ledger'),
+            limits: {...options.limits, maxWork: 1}});
+          await assert.rejects(limited.prepareCaptured(facts), error => {
+            const primary = error.primaryFailure ?? error;
+            assert(primary instanceof RangeError);
+            assert.equal(primary.message, 'EffectSourceGroupingLimit');
+            assert.notEqual(error.cleanupPending, true);
+            return true;
+          });
+          assert.equal(preparations, 0, 'A true small work policy refuses before physical input preparation');
+          assert.equal(cleanupCalls, 0);
+        }
         let failure;
         try {
-          try { await factory.prepareCaptured({moon, control, store: f.physicalStore,
-            execution: f.execution, checkedHost: f.checkedHost, prepared: f.prepared,
-            identity, publicationPlan: plan,
-            unit: {programId: program.id, stageId: program.stages[0].id,
-              stageIndex: 0, effectIds: ['first', 'second']},
-            previewContext: {runDefinition: f.definition, runInvocation: f.invocation,
-              compiledPlan: f.evidence[3]}}); } catch (error) { failure = error; }
+          try { await factory.prepareCaptured(facts); } catch (error) { failure = error; }
           assert.equal(failure?.cause, original);
           assert.equal(failure.primaryFailure, original);
           assert.equal(failure.cleanupPending, true);
@@ -218,10 +241,48 @@ for (const sparseTableInput of [false, true]) for (const empty of [false,true]) 
           assert.equal(durable.execution, null);
           assert.equal(durable.connectorRecovery.length, 2);
           assert.equal(durable.computation.capturedRun.identity, stage.computation.capturedRun.identity);
+          if (!empty) {
+            // A selected per-Artifact codec is not the extent of its complete
+            // captured context. Exercise both Result and private Table inputs
+            // with an actual finite Artifact bound, retaining the legacy small
+            // Artifact refusal and exact member/Source correspondence.
+            const previewBody = JSON.parse(control.effectComputationPreviewWire(durable.preview));
+            const context = JSON.parse(durable.computation.capturedRun.wire).effect_context;
+            const semanticArtifact = context.effect_source_local_inventory[
+              previewBody.effects[0].effect_id].artifact;
+            const artifactBytes = Buffer.byteLength(JSON.stringify(semanticArtifact));
+            assert(artifactBytes > 1);
+            assert(artifactBytes < Buffer.byteLength(durable.computation.capturedRun.wire));
+            const saved = JSON.parse(durable.connectorRecovery.find(value => value.memberIndex === 0).wire);
+            const source = durable.effectSources.find(value => value.memberIndex === 0).source;
+            const otherSource = durable.effectSources.find(value => value.memberIndex === 1).source;
+            const selected = {...plan.contractLimits, maxWireBytes: artifactBytes};
+            const bind = (limits, suppliedSource = source) => control.bindRecoveredTablePreview(
+              durable.preview, 0, durable.invocation, suppliedSource,
+              durable.computation.capturedRun, moon.clientRequestLogicalScope(identity),
+              saved.mapping_wire, f.physicalStore.storeAuthorityCid, limits, f.tableLimits);
+            assert.equal(bind(selected).operationWire, saved.operation_wire);
+            assert.throws(() => bind({...selected, maxWireBytes: artifactBytes - 1}),
+              error => error.code === 'MoonBitHostFailure' && error.cause?.$tag === 9);
+            assert.throws(() => bind(selected, otherSource),
+              error => error.code === 'MoonBitHostFailure' && error.cause?.$tag === 5);
+          }
+          let inverseCalls = 0;
+          // This is a Resource-port forwarding control, not numerical funding
+          // evidence. The real codec runs inside it; installed Read/Ledger and
+          // ordinary A/B/C qualify the actual payer separately.
+          const recoveryResources = {constructCaptured(captured, receiver, method, argument) {
+            assert.equal(captured, durable.computation.capturedRun);
+            assert.equal(receiver, control);
+            assert.equal(argument.method, control.bindRecoveredTablePreview);
+            inverseCalls++;
+            return Reflect.apply(method, receiver, [argument]);
+          }};
           recoveredStage = await factory.prepareRecovered({moon, control, store: f.physicalStore,
             recovered: {requestIdentity: identity, requestScope: moon.clientRequestLogicalScope(identity),
-              computation: durable}, continuation: {provider},
+              computation: durable, recoveryResources}, continuation: {provider},
             retainRecoveryOwner(owner) { recoveryOwner = owner; }});
+          assert.equal(inverseCalls, 2, 'Each recovered member uses its retained captured Read');
           assert.equal(recoveredStage.cleanupOwner, recoveryOwner);
           assert.equal(recoveredStage.publication.execution, null);
           assert.equal(recoveredStage.apply.computation, durable.computation);
@@ -232,10 +293,18 @@ for (const sparseTableInput of [false, true]) for (const empty of [false,true]) 
           stage.apply.members.map(member => member.claims[0].canonicalRequestCid));
           assert.deepEqual(writes, []);
           assert.deepEqual(inspections, []);
-          const changed = await createInstalledTableEffect({...options, runtimeBundleCid: cid('f')});
-          await assert.rejects(changed.prepareRecovered({moon, control, store: f.physicalStore,
+          const changedBinding = await createInstalledTableEffect({...options, bindingCid: cid('f')});
+          await assert.rejects(changedBinding.prepareRecovered({moon, control, store: f.physicalStore,
             recovered: {requestIdentity: identity, requestScope: moon.clientRequestLogicalScope(identity),
               computation: durable}, continuation: {provider}}), {code: 'InstalledTableInstallationChanged'});
+          // A runtime change also changes the capability identity. Refuse at
+          // that actual mapping boundary, before any provider read or write.
+          const changedRuntime = await createInstalledTableEffect({...options, runtimeBundleCid: cid('f')});
+          await assert.rejects(changedRuntime.prepareRecovered({moon, control, store: f.physicalStore,
+            recovered: {requestIdentity: identity, requestScope: moon.clientRequestLogicalScope(identity),
+              computation: durable}, continuation: {provider}}), {code: 'InstalledTableMappingNotInstalled'});
+          assert.deepEqual(writes, []);
+          assert.deepEqual(inspections, []);
           await recoveredStage.dispose();
           await recoveredStage.dispose();
           assert.equal(recoveryOwner.cleanupPending(), false);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {localStrategyContribution} from './strategy-bundle.mjs';
-import {installLocalRetainedStore} from './retained-store.mjs';
+import {installLocalRetainedStore, installLocalSnapshotStore} from './retained-store.mjs';
 import {registerRetainedInput} from '../store-local/representations.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
@@ -987,6 +987,7 @@ test('configured row Store selects typed Carrier paths',
       strategyHostRegistrationSelectionKey: () => 'local-carrier',
       strategyHostNextTask: () => 1,
       strategyModule_local_NextCarrierPath: () => carrierPath,
+      strategyModule_local_ManagedStartRetained: undefined,
       strategyHostManagedProducers: () => [],
       strategyHostManagedInputCount: () => 0,
       strategyHostReleasableManagedProducers: () => [],
@@ -1134,4 +1135,38 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
   assert.equal(outputClosed, false);
   await result.close();
   assert.equal(outputClosed, true);
+});
+
+
+test('configured row Store keeps Relation file output while snapshot-only storage offers managed output', async () => {
+  const configuration = {};
+  const store = installLocalRetainedStore(() => assert.fail('planning cannot acquire a Store'));
+  const moon = {
+    ...portableRuntime,
+    strategyModule_local_Registration: () => ({}),
+    strategyHostRegistrationSelectionKey: () => 'local-retained-relation',
+    strategyHostNextTask: () => 0,
+    strategyModule_local_NextCarrierPath: () => false,
+    strategyHostManagedProducers: () => [],
+    strategyHostManagedInputCount: () => 0,
+    strategyHostReleasableManagedProducers: () => [],
+    strategyModule_local_ManagedCarrierDispatch: () => ok(configuration),
+    strategyModule_local_ManagedUsesProvider: () => true,
+    strategyModule_local_ManagedDuration: () => 0n,
+    strategyModule_local_ManagedCapacity: () => [32n, 16n],
+    strategyModule_local_ManagedStartRetained: () => assert.fail('planning cannot start'),
+  };
+  assert.equal(await localStrategyContribution(moon, {}, checked, store)
+    .prepareNext(new Map()), undefined);
+  for (const port of ['strategyModule_local_ManagedStartRetained',
+    'strategyPrepareDurableResultRowFrames', 'strategyFeedDurableResultRowFrames',
+    'strategyFinishDurableResultRowFrames', 'strategyCancelDurableResultRowFrames']) {
+    assert.equal(await localStrategyContribution({...moon, [port]: undefined}, {}, checked, store)
+      .prepareNext(new Map()), undefined);
+  }
+  const snapshot = installLocalSnapshotStore(() => assert.fail('planning cannot acquire a Store'));
+  const prepared = await localStrategyContribution(moon, {}, checked, snapshot)
+    .prepareNext(new Map());
+  assert.equal(prepared.task, 0);
+  assert.strictEqual(prepared.configuration, configuration);
 });

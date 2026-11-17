@@ -80,6 +80,9 @@ pub(all) enum LocalDispatchIssue {
   IdentityExport(@execution.CompletedExportIssue)
   CarrierSnapshot(@carrier_runtime.SnapshotIssue)
   ControlWorkLimit(Int)
+  // Exact failed reservation DATA; the original quota cause stays distinct
+  // from current/foreign/cleanup and generic physical failures.
+  ExecutionCapacityRefusal(@resources.LedgerIssue, Int64, Int64, Int64)
 }
 
 ///|
@@ -131,70 +134,113 @@ fn local_effective_import_limits(
 }
 
 ///|
-// Refine only an already-ready captured input of this exact Run. Future tasks
-// retain the frozen conservative quote. The existing DAG owns each admitted
-// read and its current/cleanup fence; observation does not grant execution.
+// The file-output materializing provider keeps its full import/export backing.
+// Only an original default provider with before-commit growth can select its
+// smaller startup. Injected/unsupported constructors retain the full quote.
 fn local_dispatch_ready_input_capacity(
   installed : LocalDispatchModule,
   task : Int,
+  max_work : Int,
 ) -> Result[@strategy.PhysicalEnvelope, LocalDispatchIssue] {
+  let startup = @local.local_module_materializing_start_capacity(
+    installed.implementation,
+    local_task_slot(installed, task),
+  )
+  let base = match
+    @local.local_module_materializing_start_capacity(
+      installed.implementation,
+      local_task_slot(installed, task),
+    ) {
+    Some((value, _)) => Some(value)
+    None =>
+      @local.local_module_capacity(
+        installed.implementation,
+        local_task_slot(installed, task),
+      )
+  }
   guard local_dispatch_preparation_task_capacity(installed.preparation, task)
-    is Some(planned) else {
-    return Err(Configuration(InvalidLimits))
-  }
-  if installed.import_policy is None ||
-    @strategy.next_captured_task(installed.run) != Some(task) {
-    return Ok(planned)
-  }
-  guard installed.import_policy is Some((imports, _)) &&
-    installed.import_metadata is Some(metadata) &&
+    is Some(_) &&
+    base is Some(base) &&
     installed.preparation.input_counts.get(local_task_slot(installed, task))
     is Some(total) else {
     return Err(Configuration(InvalidLimits))
   }
-  let first = @strategy.captured_compute_first_task(installed.run)
-  let mut missing = total
-  for
-    index, producer in @strategy.captured_next_managed_producers(installed.run) {
-    if producer >= 0 && producer < first {
-      let read = match
-        @strategy.captured_task_input(
-          installed.run,
-          task,
-          @local.local_module_execution_limits(installed.implementation).rows.metadata_entries,
-          metadata.name_bytes,
-          input_index=index,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(Execution(issue))
-      }
-      if @execution.producer_read_has_cell_access(read) {
-        if missing <= 0 {
-          return Err(Configuration(InvalidLimits))
+  let mut missing = if installed.import_policy is Some(_) { total } else { 0 }
+  if installed.import_policy is Some(_) &&
+    total > 0 &&
+    @strategy.next_captured_task(installed.run) == Some(task) {
+    guard installed.import_metadata is Some(metadata) &&
+      local_dispatch_preparation_input_scan_work(installed.preparation, task)
+      is Some(visits) &&
+      visits <= max_work else {
+      return Err(Configuration(InvalidLimits))
+    }
+    match
+      @resources.charge_planning(
+        @strategy.captured_dag_ledger(installed.run),
+        visits,
+      ) {
+      Err(issue) => return Err(Execution(Physical(issue)))
+      Ok(_) => ()
+    }
+    let first = @strategy.captured_compute_first_task(installed.run)
+    let graph = installed.preparation.graph
+    for data_index in 0..<@strategy.graph_data_count(graph) {
+      let edge = @strategy.graph_data_at(graph, data_index).unwrap()
+      if edge.consumer == task && edge.producer >= 0 && edge.producer < first {
+        let read = match
+          @strategy.captured_task_input(
+            installed.run,
+            task,
+            @local.local_module_execution_limits(installed.implementation).rows.metadata_entries,
+            metadata.name_bytes,
+            input_index=edge.input,
+            data_index~,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(Execution(issue))
         }
-        missing -= 1
+        if @execution.producer_read_has_cell_access(read) {
+          if missing <= 0 {
+            return Err(Configuration(InvalidLimits))
+          }
+          missing -= 1
+        }
       }
     }
   }
-  if missing == total {
-    return Ok(planned)
+  let imported = match installed.import_policy {
+    None => Some(0L)
+    Some((limits, _)) =>
+      if startup is Some(_) {
+        @local.local_materializing_import_start_capacity(limits)
+      } else {
+        @local.local_import_retention_capacity(limits)
+      }
   }
-  guard installed.preparation.capacities.get(local_task_slot(installed, task))
-    is Some(Some(base)) &&
-    @local.local_import_retention_capacity(imports) is Some(imported) &&
-    (match installed.output_policy {
-      None => Some(0L)
-      Some((limits, _)) => @local.local_export_retention_capacity(limits)
-    })
-    is Some(exported) &&
+  let exported = match installed.output_policy {
+    None => Some(0L)
+    Some((limits, _)) =>
+      if startup is Some(_) {
+        @local.local_materializing_export_start_capacity(limits)
+      } else {
+        @local.local_export_retention_capacity(limits)
+      }
+  }
+  guard imported is Some(imported) &&
+    exported is Some(exported) &&
     local_dispatch_copy_capacity(
       base,
-      metadata.retained_bytes,
+      installed.import_metadata.map(value => value.retained_bytes).unwrap_or(0L),
       imported,
       exported,
-      imports.wire.max_bytes.to_int64(),
+      installed.import_policy
+      .map(value => value.0.wire.max_bytes.to_int64())
+      .unwrap_or(0L),
       missing,
-      true,
+      startup is Some(_) ||
+      installed.import_policy is Some(_) ||
+      installed.output_policy is Some(_),
     )
     is Some(capacity) else {
     return Err(Configuration(InvalidLimits))
@@ -214,11 +260,8 @@ pub fn estimate_local_dispatch_offer(
   if !local_dispatch_offer_supported(installed, task) {
     return Err(Configuration(ComputeUnsupported))
   }
-  if installed.import_policy is Some(_) &&
-    @strategy.graph_data_count(installed.preparation.graph) > max_work {
-    return Err(Configuration(InvalidLimits))
-  }
-  let capacity = match local_dispatch_ready_input_capacity(installed, task) {
+  let capacity = match
+    local_dispatch_ready_input_capacity(installed, task, max_work) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

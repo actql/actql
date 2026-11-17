@@ -2654,6 +2654,48 @@ pub fn strategy_prepare_durable_result_row_frames(
 }
 
 ///|
+#export_name("strategyPrepareGrowingDurableResultRowFrames")
+pub fn strategy_prepare_growing_durable_result_row_frames(
+  max_bytes : Int,
+  max_rows : Int,
+  max_row_bytes : Int,
+  max_depth : Int,
+  max_frame_bytes : Int,
+) -> @publication.DurableResultRowFrames raise NodeHostFailure {
+  match
+    @publication.prepare_growing_durable_result_row_frames(
+      max_bytes, max_rows, max_row_bytes, max_depth, max_frame_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyDurableResultRowFrameGrowth")
+pub fn strategy_durable_result_row_frame_growth(
+  frames : @publication.DurableResultRowFrames,
+  bytes : Int,
+) -> Int raise NodeHostFailure {
+  match @publication.durable_result_row_frame_growth(frames, bytes) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyGrowDurableResultRowFrameBuffer")
+pub fn strategy_grow_durable_result_row_frame_buffer(
+  frames : @publication.DurableResultRowFrames,
+  bytes : Int,
+) -> Unit raise NodeHostFailure {
+  match @publication.grow_durable_result_row_frame_buffer(frames, bytes) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyFeedDurableResultRowFrames")
 pub fn strategy_feed_durable_result_row_frames(
   frames : @publication.DurableResultRowFrames,
@@ -9089,6 +9131,14 @@ pub fn strategy_effect_dispatch_key(
 }
 
 ///|
+#export_name("strategyEffectDispatchKeyCorrelationWire")
+pub fn strategy_effect_dispatch_key_correlation_wire(
+  key : @effect.EffectDispatchKey,
+) -> String {
+  @effect.effect_dispatch_key_correlation_wire(key)
+}
+
+///|
 #export_name("strategyEffectDispatchKeyCid")
 pub fn strategy_effect_dispatch_key_cid(
   key : @effect.EffectDispatchKey,
@@ -9909,6 +9959,99 @@ pub fn strategy_issue_effect_member_receipt_from_row_partition(
     @effect.issue_effect_member_receipt_from_row_partition(
       preview, member_index, scopes, locators, keys, bases, heads, active_owners,
       terminal_receipts, max_rows, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+// Funded member codecs retain the original row-admission limits above. Only
+// the aggregate receipt uses its independently quoted closed grammar limits.
+
+///|
+#export_name("strategyCheckEffectMemberReceiptRowPartitionEvidenceFunded")
+pub fn strategy_check_effect_member_receipt_row_partition_evidence_funded(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  scopes : Array[@effect.LogicalRequestScope],
+  locators : Array[@effect.LogicalItemLocator],
+  keys : Array[@effect.EffectDispatchKey],
+  bases : Array[@effect.EffectLedgerBasis],
+  heads : Array[@effect.EffectLedgerEntry?],
+  active_owners : Array[Bool],
+  terminal_receipt_wires : Array[String?],
+  member_receipt_wire : String,
+  max_rows : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  member_wire_bytes : Int,
+  member_nodes : Int,
+  member_depth : Int,
+) -> Bool raise NodeHostFailure {
+  let terminal_receipts : Array[@publication.PublicationContract?] = []
+  for wire in terminal_receipt_wires {
+    match wire {
+      None => terminal_receipts.push(None)
+      Some(value) =>
+        match
+          @publication.admit_publication_contract(
+            "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(receipt) => terminal_receipts.push(Some(receipt))
+          Err(_) => raise InvalidCommand
+        }
+    }
+  }
+  match
+    @effect.check_effect_member_receipt_row_partition_evidence(
+      preview, member_index, scopes, locators, keys, bases, heads, active_owners,
+      terminal_receipts, member_receipt_wire, max_rows, member_wire_bytes, member_nodes,
+      member_depth,
+    ) {
+    Ok(_) => true
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyIssueEffectMemberReceiptFromRowPartitionFunded")
+pub fn strategy_issue_effect_member_receipt_from_row_partition_funded(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  scopes : Array[@effect.LogicalRequestScope],
+  locators : Array[@effect.LogicalItemLocator],
+  keys : Array[@effect.EffectDispatchKey],
+  bases : Array[@effect.EffectLedgerBasis],
+  heads : Array[@effect.EffectLedgerEntry?],
+  active_owners : Array[Bool],
+  terminal_receipt_wires : Array[String?],
+  max_rows : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  member_wire_bytes : Int,
+  member_nodes : Int,
+  member_depth : Int,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  let terminal_receipts : Array[@publication.PublicationContract?] = []
+  for wire in terminal_receipt_wires {
+    match wire {
+      None => terminal_receipts.push(None)
+      Some(value) =>
+        match
+          @publication.admit_publication_contract(
+            "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(receipt) => terminal_receipts.push(Some(receipt))
+          Err(_) => raise InvalidCommand
+        }
+    }
+  }
+  match
+    @effect.issue_effect_member_receipt_from_row_partition(
+      preview, member_index, scopes, locators, keys, bases, heads, active_owners,
+      terminal_receipts, max_rows, member_wire_bytes, member_nodes, member_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -12860,6 +13003,48 @@ pub fn async_strategy_prepare_durable_result_row_frames(
     @publication.prepare_durable_result_row_frames(
       max_bytes, max_rows, max_row_bytes, max_depth, max_frame_bytes,
     ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyPrepareGrowingDurableResultRowFrames")
+pub fn async_strategy_prepare_growing_durable_result_row_frames(
+  max_bytes : Int,
+  max_rows : Int,
+  max_row_bytes : Int,
+  max_depth : Int,
+  max_frame_bytes : Int,
+) -> @publication.DurableResultRowFrames raise AsyncHostFailure {
+  match
+    @publication.prepare_growing_durable_result_row_frames(
+      max_bytes, max_rows, max_row_bytes, max_depth, max_frame_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyDurableResultRowFrameGrowth")
+pub fn async_strategy_durable_result_row_frame_growth(
+  frames : @publication.DurableResultRowFrames,
+  bytes : Int,
+) -> Int raise AsyncHostFailure {
+  match @publication.durable_result_row_frame_growth(frames, bytes) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyGrowDurableResultRowFrameBuffer")
+pub fn async_strategy_grow_durable_result_row_frame_buffer(
+  frames : @publication.DurableResultRowFrames,
+  bytes : Int,
+) -> Unit raise AsyncHostFailure {
+  match @publication.grow_durable_result_row_frame_buffer(frames, bytes) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
@@ -19304,6 +19489,14 @@ pub fn async_strategy_effect_dispatch_key(
 }
 
 ///|
+#export_name("asyncStrategyEffectDispatchKeyCorrelationWire")
+pub fn async_strategy_effect_dispatch_key_correlation_wire(
+  key : @effect.EffectDispatchKey,
+) -> String {
+  @effect.effect_dispatch_key_correlation_wire(key)
+}
+
+///|
 #export_name("asyncStrategyEffectDispatchKeyCid")
 pub fn async_strategy_effect_dispatch_key_cid(
   key : @effect.EffectDispatchKey,
@@ -20126,6 +20319,99 @@ pub fn async_strategy_issue_effect_member_receipt_from_row_partition(
     @effect.issue_effect_member_receipt_from_row_partition(
       preview, member_index, scopes, locators, keys, bases, heads, active_owners,
       terminal_receipts, max_rows, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+// Funded member codecs retain the original row-admission limits above. Only
+// the aggregate receipt uses its independently quoted closed grammar limits.
+
+///|
+#export_name("asyncStrategyCheckEffectMemberReceiptRowPartitionEvidenceFunded")
+pub fn async_strategy_check_effect_member_receipt_row_partition_evidence_funded(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  scopes : Array[@effect.LogicalRequestScope],
+  locators : Array[@effect.LogicalItemLocator],
+  keys : Array[@effect.EffectDispatchKey],
+  bases : Array[@effect.EffectLedgerBasis],
+  heads : Array[@effect.EffectLedgerEntry?],
+  active_owners : Array[Bool],
+  terminal_receipt_wires : Array[String?],
+  member_receipt_wire : String,
+  max_rows : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  member_wire_bytes : Int,
+  member_nodes : Int,
+  member_depth : Int,
+) -> Bool raise AsyncHostFailure {
+  let terminal_receipts : Array[@publication.PublicationContract?] = []
+  for wire in terminal_receipt_wires {
+    match wire {
+      None => terminal_receipts.push(None)
+      Some(value) =>
+        match
+          @publication.admit_publication_contract(
+            "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(receipt) => terminal_receipts.push(Some(receipt))
+          Err(_) => raise InvalidCommand
+        }
+    }
+  }
+  match
+    @effect.check_effect_member_receipt_row_partition_evidence(
+      preview, member_index, scopes, locators, keys, bases, heads, active_owners,
+      terminal_receipts, member_receipt_wire, max_rows, member_wire_bytes, member_nodes,
+      member_depth,
+    ) {
+    Ok(_) => true
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyIssueEffectMemberReceiptFromRowPartitionFunded")
+pub fn async_strategy_issue_effect_member_receipt_from_row_partition_funded(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  scopes : Array[@effect.LogicalRequestScope],
+  locators : Array[@effect.LogicalItemLocator],
+  keys : Array[@effect.EffectDispatchKey],
+  bases : Array[@effect.EffectLedgerBasis],
+  heads : Array[@effect.EffectLedgerEntry?],
+  active_owners : Array[Bool],
+  terminal_receipt_wires : Array[String?],
+  max_rows : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  member_wire_bytes : Int,
+  member_nodes : Int,
+  member_depth : Int,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  let terminal_receipts : Array[@publication.PublicationContract?] = []
+  for wire in terminal_receipt_wires {
+    match wire {
+      None => terminal_receipts.push(None)
+      Some(value) =>
+        match
+          @publication.admit_publication_contract(
+            "effect_row_outcome_receipt", value, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(receipt) => terminal_receipts.push(Some(receipt))
+          Err(_) => raise InvalidCommand
+        }
+    }
+  }
+  match
+    @effect.issue_effect_member_receipt_from_row_partition(
+      preview, member_index, scopes, locators, keys, bases, heads, active_owners,
+      terminal_receipts, max_rows, member_wire_bytes, member_nodes, member_depth,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand

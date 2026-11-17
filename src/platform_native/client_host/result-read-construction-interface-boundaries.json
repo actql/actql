@@ -1,0 +1,2244 @@
+{
+  "qualification": "Original Native Result-read construction source only; not full-module normal/backend acceptance",
+  "declarations": [
+    {
+      "module": "src/cmd/native_client/local_command_installed_profile.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Native command profile and original Local finite policy owner",
+      "referenceQualification": "Finite changed Result-read caller/construction source responsibilities and interface snapshot only. Preexisting module operations are indexed, not requalified as normal execution; matching installed Native/FD/Saved and whole backend acceptance remain separate.",
+      "sha256": "37c497d785fa9aeea4a6d3347a4b34acf7fde1ce4d3130279e2228fad42f20a5",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_command_backing_layout",
+          "declaration": "local_command_backing_layout ( domains : Int64 ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "local_command_installed_profile",
+          "declaration": "local_command_installed_profile ( source : String , manifest : String , ) - > LocalCommandPreparationProfile raise ClientStop"
+        },
+        {
+          "name": "local_command_preparation_selected",
+          "declaration": "local_command_preparation_selected ( matches : @ argparse . Matches , ) - > Bool raise ClientStop"
+        },
+        {
+          "name": "local_command_profile_selection",
+          "declaration": "local_command_profile_selection ( static_profile : LocalCommandPreparationProfile , matches : @ argparse . Matches , ) - > ( LocalCommandPreparationProfile , LocalCommandBusinessProfile ? ) raise ClientStop"
+        },
+        {
+          "name": "prepare_native_command_invocation",
+          "declaration": "prepare_native_command_invocation ( matches : @ argparse . Matches , ) - > Unit raise ClientStop"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_command_backing_layout",
+            "local_command_installed_profile",
+            "local_command_preparation_selected",
+            "local_command_profile_selection",
+            "prepare_native_command_invocation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/cmd/native_client/local_command_installed_profile.mbt",
+                "anchor": "fn local_command_installed_profile("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/cmd/native_client/local_command_installed_profile.mbt",
+                "anchor": "client_local_preparation_initial_limits("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.inc",
+                "anchor": "value->calling"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/cmd/native_client/local_command_installed_profile.mbt",
+                "anchor": "fn local_command_installed_profile("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "pub fn NativeLocalStoreOperation::retry_scope_cleanup("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "pub fn result_read_frame_cost("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.h",
+                "anchor": "actql_native_sqlite_prepare_store_operation_with_delivery_preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/cmd/native_client/local_command_installed_profile_wbtest.mbt",
+                "anchor": "static profile uses its selected layout or refuses before backing"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_read_stream.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Result command and same captured Read/Store/Account owner",
+      "referenceQualification": "Finite changed Result-read caller/construction source responsibilities and interface snapshot only. Preexisting module operations are indexed, not requalified as normal execution; matching installed Native/FD/Saved and whole backend acceptance remain separate.",
+      "sha256": "91df2664e2fab9fdf00dcbc8097921c4f3661676bb3dc447b194a9a8d9ae1389",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_admitted_result_stream",
+          "declaration": "local_admitted_result_stream ( host ~ : @ local_host . NativeLocalHostConnection , settings ~ : LocalHostSettings , selected ~ : LocalOriginalRunSelection , binding ~ : @ local_host . NativeLocalReadPolicyBinding , request ~ : @ local_result . NativeResultAccessRequest , scope ~ : String , purpose ~ : String , result_name ~ : String , format ~ : String , attempt_id ~ : String , max_output ~ : Int , current ~ : ( ) - > Bool , store ~ : @ local_store . Store , retained ? : LocalCommandBusinessOriginal ?"
+        },
+        {
+          "name": "local_read_binding_for_original",
+          "declaration": "local_read_binding_for_original ( host ~ : @ local_host . NativeLocalHostConnection , settings ~ : LocalHostSettings , crypto ~ : @ local_crypto . Library , file ~ : String , selected ~ : LocalOriginalRunSelection , ) - > @ local_host . NativeLocalReadPolicyBinding raise ClientStop"
+        },
+        {
+          "name": "local_read_issue",
+          "declaration": "local_read_issue ( issue : @ local_host . NativeLocalReadBindingIssue ) - > String"
+        },
+        {
+          "name": "local_result_row_frame_limit",
+          "declaration": "local_result_row_frame_limit ( max_output : Int ) - > Int"
+        },
+        {
+          "name": "local_result_store_close",
+          "declaration": "local_result_store_close ( store : @ local_store . Store , attempt_id : String , ) - > Unit raise ClientStop"
+        },
+        {
+          "name": "local_result_stream",
+          "declaration": "local_result_stream ( host : @ local_host . NativeLocalHostConnection , settings : LocalHostSettings , crypto : @ local_crypto . Library , sqlite : @ local_sqlite . Library , input_root : String , child : @ argparse . Matches , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_same_read_request",
+          "declaration": "local_same_read_request ( left : @ local_result . NativeResultAccessRequest , right : @ local_result . NativeResultAccessRequest , ) - > Bool"
+        },
+        {
+          "name": "local_selected_result_stream",
+          "declaration": "local_selected_result_stream ( host ~ : @ local_host . NativeLocalHostConnection , settings ~ : LocalHostSettings , crypto ~ : @ local_crypto . Library , sqlite ~ : @ local_sqlite . Library , file ~ : String , scope ~ : String , selected ~ : LocalOriginalRunSelection , purpose ~ : String , result_name ~ : String , format ~ : String , attempt_id ~ : String , max_output ~ : Int , current ~ : ( ) - > Bool , ) - > String raise ClientStop"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_admitted_result_stream",
+            "local_read_binding_for_original",
+            "local_read_issue",
+            "local_result_row_frame_limit",
+            "local_result_store_close",
+            "local_result_stream",
+            "local_same_read_request",
+            "local_selected_result_stream"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/cmd/native_client/local_read_stream.mbt",
+                "anchor": "fn local_result_stream("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/cmd/native_client/local_read_stream.mbt",
+                "anchor": "fn local_same_read_request("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.inc",
+                "anchor": "value->calling"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/cmd/native_client/local_read_stream.mbt",
+                "anchor": "fn local_result_stream("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "pub fn NativeLocalStoreOperation::retry_scope_cleanup("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "pub fn result_read_frame_cost("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.h",
+                "anchor": "actql_native_sqlite_prepare_store_operation_with_delivery_preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/cmd/native_client/local_result_row_frame_limit_wbtest.mbt",
+                "anchor": "selected Native Result output ceiling backs complete long rows without weakening a smaller ceiling"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/local_store_operation_original.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing nominal Native Store operation coordinator and original Read owner",
+      "referenceQualification": "Finite changed Result-read caller/construction source responsibilities and interface snapshot only. Preexisting module operations are indexed, not requalified as normal execution; matching installed Native/FD/Saved and whole backend acceptance remain separate.",
+      "sha256": "a9410e818a4ddebc4eca65f267a33e14591b00b164283ecc9b4a2f652b09048f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_local_result_delivery_preparation_capacity",
+          "declaration": "native_local_result_delivery_preparation_capacity ( row : Int , frame : Int , schema_units : Int , nodes : Int , ) - > ( Int64 , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "native_local_result_delivery_window_construction",
+          "declaration": "native_local_result_delivery_window_construction ( target : Int , ) - > ( Int64 , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "NativeLocalStoreOperation::activate",
+          "declaration": "NativeLocalStoreOperation : : activate ( self : NativeLocalStoreOperation , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperation::begin_captured_journal_read",
+          "declaration": "NativeLocalStoreOperation : : begin_captured_journal_read ( self : NativeLocalStoreOperation , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperation::close_captured_journal_database",
+          "declaration": "NativeLocalStoreOperation : : close_captured_journal_database ( self : NativeLocalStoreOperation , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperation::close_checked",
+          "declaration": "NativeLocalStoreOperation : : close_checked ( self : NativeLocalStoreOperation , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperation::finish_captured_journal_read",
+          "declaration": "NativeLocalStoreOperation : : finish_captured_journal_read ( self : NativeLocalStoreOperation , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperation::pending_scope",
+          "declaration": "NativeLocalStoreOperation : : pending_scope ( self : NativeLocalStoreOperation , ) - > Result [ Bool , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperation::retry_scope_cleanup",
+          "declaration": "NativeLocalStoreOperation : : retry_scope_cleanup ( self : NativeLocalStoreOperation , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperation::sqlite_original",
+          "declaration": "NativeLocalStoreOperation : : sqlite_original ( self : NativeLocalStoreOperation , ) - > Result [ @ sqlite . NativeStoreOperationOriginal , NativeLocalStoreOperationIssue , ]"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::acknowledge_return",
+          "declaration": "NativeLocalStoreOperationReceiver : : acknowledge_return ( self : NativeLocalStoreOperationReceiver , original : NativeLocalJournalOriginalResources , ) - > Unit"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::activate_original",
+          "declaration": "NativeLocalStoreOperationReceiver : : activate_original ( self : NativeLocalStoreOperationReceiver , library : @ sqlite . Library , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::begin_cleanup",
+          "declaration": "NativeLocalStoreOperationReceiver : : begin_cleanup ( self : NativeLocalStoreOperationReceiver , library : @ sqlite . Library , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::begin_original",
+          "declaration": "NativeLocalStoreOperationReceiver : : begin_original ( self : NativeLocalStoreOperationReceiver , library : @ sqlite . Library , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::enter_phase",
+          "declaration": "NativeLocalStoreOperationReceiver : : enter_phase ( self : NativeLocalStoreOperationReceiver , original : NativeLocalJournalOriginalResources , phase : @ arena . InstalledArenaLocalHostPhase , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::leave_phase",
+          "declaration": "NativeLocalStoreOperationReceiver : : leave_phase ( self : NativeLocalStoreOperationReceiver , original : NativeLocalJournalOriginalResources , ) - > Result [ Unit , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::originals",
+          "declaration": "NativeLocalStoreOperationReceiver : : originals ( self : NativeLocalStoreOperationReceiver , library : @ sqlite . Library , cleanup : Bool , ) - > Result [ ( NativeLocalHostConnection , NativeLocalJournalOriginalResources ) , NativeLocalStoreOperationIssue , ]"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::prepare_delivery_window",
+          "declaration": "NativeLocalStoreOperationReceiver : : prepare_delivery_window ( self : NativeLocalStoreOperationReceiver , library : @ sqlite . Library , target : Int , ) - > Int"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::prepare_delivery_workspace",
+          "declaration": "NativeLocalStoreOperationReceiver : : prepare_delivery_workspace ( self : NativeLocalStoreOperationReceiver , library : @ sqlite . Library , row : Int , frame : Int , schema_units : Int , nodes : Int , ) - > Int"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::prepare_publication_construction",
+          "declaration": "NativeLocalStoreOperationReceiver : : prepare_publication_construction ( self : NativeLocalStoreOperationReceiver , library : @ sqlite . Library , retained : Int64 , execution : Int64 , contiguous : Int64 , retained_output : Int , ) - > Int"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::refuse",
+          "declaration": "NativeLocalStoreOperationReceiver : : refuse ( self : NativeLocalStoreOperationReceiver , issue : NativeLocalStoreOperationIssue , ) - > Int"
+        },
+        {
+          "name": "NativeLocalStoreOperationReceiver::route",
+          "declaration": "NativeLocalStoreOperationReceiver : : route ( self : NativeLocalStoreOperationReceiver , library : @ sqlite . Library , tag : Int , ) - > Int"
+        },
+        {
+          "name": "prepare_native_local_run_observation_store_operation",
+          "declaration": "prepare_native_local_run_observation_store_operation ( capture : NativeLocalJournalCapture , runtime : NativeLocalPackagedRuntime , library : @ sqlite . Library , ) - > Result [ NativeLocalStoreOperation , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "prepare_native_local_store_operation",
+          "declaration": "prepare_native_local_store_operation ( capture : NativeLocalJournalCapture , execution : @ arena . InstalledArenaRetainedExecution , runtime : NativeLocalPackagedRuntime , library : @ sqlite . Library , ) - > Result [ NativeLocalStoreOperation , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "prepare_native_local_store_operation_for_domain",
+          "declaration": "prepare_native_local_store_operation_for_domain ( capture : NativeLocalJournalCapture , domain : LocalStoreOperationDomain , runtime : NativeLocalPackagedRuntime , library : @ sqlite . Library , ) - > Result [ NativeLocalStoreOperation , NativeLocalStoreOperationIssue ]"
+        },
+        {
+          "name": "prepare_store_operation_ffi",
+          "declaration": "prepare_store_operation_ffi ( library : @ sqlite . Library , receiver : NativeLocalStoreOperationReceiver , route : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int ) - > Int , ] , construction : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int ) - > Int , ] , preparation : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int , Int , Int , Int ) - > Int , ] , publication : FuncRef [ ( NativeLocalStoreOperationReceiver , @ sqlite . Library , Int64 , Int64 , Int64 , Int , ) - > Int , ] , ) - > @ sqlite . NativeStoreOperationOriginal"
+        },
+        {
+          "name": "store_operation_control_clear_ffi",
+          "declaration": "store_operation_control_clear_ffi ( ) - > Int"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_local_result_delivery_preparation_capacity",
+            "native_local_result_delivery_window_construction",
+            "NativeLocalStoreOperation::activate",
+            "NativeLocalStoreOperation::begin_captured_journal_read",
+            "NativeLocalStoreOperation::close_captured_journal_database",
+            "NativeLocalStoreOperation::close_checked",
+            "NativeLocalStoreOperation::finish_captured_journal_read",
+            "NativeLocalStoreOperation::pending_scope",
+            "NativeLocalStoreOperation::retry_scope_cleanup",
+            "NativeLocalStoreOperation::sqlite_original",
+            "NativeLocalStoreOperationReceiver::acknowledge_return",
+            "NativeLocalStoreOperationReceiver::activate_original",
+            "NativeLocalStoreOperationReceiver::begin_cleanup",
+            "NativeLocalStoreOperationReceiver::begin_original",
+            "NativeLocalStoreOperationReceiver::enter_phase",
+            "NativeLocalStoreOperationReceiver::leave_phase",
+            "NativeLocalStoreOperationReceiver::originals",
+            "NativeLocalStoreOperationReceiver::prepare_delivery_window",
+            "NativeLocalStoreOperationReceiver::prepare_delivery_workspace",
+            "NativeLocalStoreOperationReceiver::refuse",
+            "NativeLocalStoreOperationReceiver::route",
+            "prepare_native_local_run_observation_store_operation",
+            "prepare_native_local_store_operation",
+            "prepare_native_local_store_operation_for_domain",
+            "prepare_store_operation_ffi",
+            "store_operation_control_clear_ffi",
+            "NativeLocalStoreOperationReceiver::prepare_publication_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "pub fn prepare_native_local_store_operation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "fn NativeLocalStoreOperationReceiver::originals("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.inc",
+                "anchor": "value->calling"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "pub fn prepare_native_local_store_operation("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "pub fn NativeLocalStoreOperation::retry_scope_cleanup("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "pub fn result_read_frame_cost("
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.h",
+                "anchor": "actql_native_sqlite_prepare_store_operation_with_delivery_preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/installed_arena_control/original_read_working_window_scoped_wbtest.mbt",
+                "anchor": "Native Result READ grows the same finite owner before a row above sixteen MiB"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor funds only its same actual Read and preserves its maximum\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor keeps its failed finite Read prefix and actual cleanup duty\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor reentry cannot be hidden by a successful callback result\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/publication_store/store_native.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native publication Store, original operation and durable delivery owner",
+      "referenceQualification": "Finite changed Result-read caller/construction source responsibilities and interface snapshot only. Preexisting module operations are indexed, not requalified as normal execution; matching installed Native/FD/Saved and whole backend acceptance remain separate.",
+      "sha256": "26dd85bf0dd178159c6d8bde1df94b34813fea318a17c2c6e5c0250bf246ddb1",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]allocation_prepare",
+          "declaration": "[ T ] allocation_prepare ( store : Store , step : String , operation : ( ) - > Result [ T , NativePublicationStoreIssue ] , ) - > Result [ T , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "[T]database",
+          "declaration": "[ T ] database ( result : Result [ T , @ sqlite . NativeSqliteIssue ] , ) - > Result [ T , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "[T]delivery_issuance",
+          "declaration": "[ T ] delivery_issuance ( result : Result [ T , @ publication . DeliveryIssuanceIssue ] , ) - > Result [ T , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "[T]filesystem",
+          "declaration": "[ T ] filesystem ( result : Result [ T , @ filesystem . NativeFilesystemIssue ] , ) - > Result [ T , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "[T]protocol",
+          "declaration": "[ T ] protocol ( result : Result [ T , @ payload . PublicationPayloadIssue ] , ) - > Result [ T , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "[T]sink_progress",
+          "declaration": "[ T ] sink_progress ( result : Result [ T , @ publication . DeliverySinkProgressIssue ] , ) - > Result [ T , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "[T]Store::complete_original_return",
+          "declaration": "[ T ] Store : : complete_original_return ( self : Store , original : @ sqlite . NativeStoreOperationOriginal , result : Result [ T , NativePublicationStoreIssue ] , prior_primary ? : NativePublicationStoreIssue ?"
+        },
+        {
+          "name": "[T]Store::with_original_read",
+          "declaration": "[ T ] Store : : with_original_read ( self : Store , cleanup_work : Bool , final_close : Bool , call : ( ) - > Result [ T , NativePublicationStoreIssue ] , ) - > Result [ T , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "admit_store_format",
+          "declaration": "admit_store_format ( root_path : String , establish : Bool , existing_only ? : Bool"
+        },
+        {
+          "name": "allocation_acquired_ffi",
+          "declaration": "allocation_acquired_ffi ( root : @ filesystem . Root ) - > Int"
+        },
+        {
+          "name": "allocation_body",
+          "declaration": "allocation_body ( allocation : RecordedAllocation ) - > Bytes"
+        },
+        {
+          "name": "allocation_device_ffi",
+          "declaration": "allocation_device_ffi ( root : @ filesystem . Root ) - > UInt64"
+        },
+        {
+          "name": "allocation_inode_ffi",
+          "declaration": "allocation_inode_ffi ( root : @ filesystem . Root ) - > UInt64"
+        },
+        {
+          "name": "allocation_matches",
+          "declaration": "allocation_matches ( generation : @ filesystem . NativeFileGeneration , ownership : @ payload . PublicationPayloadOwnership , ) - > Bool"
+        },
+        {
+          "name": "allocation_name",
+          "declaration": "allocation_name ( request : @ payload . PublicationPayloadRequest , ordinal : Int64 , ) - > String"
+        },
+        {
+          "name": "allocation_owner_unknown",
+          "declaration": "allocation_owner_unknown ( store : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "append_initial_delivery_record",
+          "declaration": "append_initial_delivery_record ( store : Store , attempt : @ publication . PublicationContract , record : @ publication . PublicationContract , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "append_next_delivery_record",
+          "declaration": "append_next_delivery_record ( store : Store , attempt : @ publication . PublicationContract , expected_revision : Int64 , record : @ publication . PublicationContract , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "claim_delivery_attempt",
+          "declaration": "claim_delivery_attempt ( store : Store , attempt_id : String , attempt : @ publication . PublicationContract , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "claim_result_read_grant_use",
+          "declaration": "claim_result_read_grant_use ( store : Store , grant : @ publication . PublicationContract , attempt : @ publication . PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "cleanup_after_begin_failure",
+          "declaration": "cleanup_after_begin_failure ( store : Store , record : @ payload . PublicationPayloadRecord , ) - > Bool"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::close",
+          "declaration": "ConfirmedPayloadDelivery : : close ( self : ConfirmedPayloadDelivery , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::close_in_scope",
+          "declaration": "ConfirmedPayloadDelivery : : close_in_scope ( self : ConfirmedPayloadDelivery , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::confirm_chunk",
+          "declaration": "ConfirmedPayloadDelivery : : confirm_chunk ( self : ConfirmedPayloadDelivery , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::confirm_chunk_in_scope",
+          "declaration": "ConfirmedPayloadDelivery : : confirm_chunk_in_scope ( self : ConfirmedPayloadDelivery , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::confirm_sink_finished",
+          "declaration": "ConfirmedPayloadDelivery : : confirm_sink_finished ( self : ConfirmedPayloadDelivery , ) - > Result [ NativePublicationDeliverySummary , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::confirm_sink_finished_in_scope",
+          "declaration": "ConfirmedPayloadDelivery : : confirm_sink_finished_in_scope ( self : ConfirmedPayloadDelivery , ) - > Result [ NativePublicationDeliverySummary , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::fail",
+          "declaration": "ConfirmedPayloadDelivery : : fail ( self : ConfirmedPayloadDelivery , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::fail_chunk",
+          "declaration": "ConfirmedPayloadDelivery : : fail_chunk ( self : ConfirmedPayloadDelivery , confirmed_prefix_bytes : Int , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::fail_chunk_in_scope",
+          "declaration": "ConfirmedPayloadDelivery : : fail_chunk_in_scope ( self : ConfirmedPayloadDelivery , confirmed_prefix_bytes : Int , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::fail_in_scope",
+          "declaration": "ConfirmedPayloadDelivery : : fail_in_scope ( self : ConfirmedPayloadDelivery , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::next",
+          "declaration": "ConfirmedPayloadDelivery : : next ( self : ConfirmedPayloadDelivery , max_bytes : Int , ) - > Result [ NativePublicationDeliveryChunk , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ConfirmedPayloadDelivery::next_in_scope",
+          "declaration": "ConfirmedPayloadDelivery : : next_in_scope ( self : ConfirmedPayloadDelivery , max_bytes : Int , ) - > Result [ NativePublicationDeliveryChunk , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "delivery",
+          "declaration": "delivery ( result : Result [ String , @ publication . DeliverySerializationIssue ] , ) - > Result [ String , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "delivery_attempt_key",
+          "declaration": "delivery_attempt_key ( attempt_id : String ) - > String"
+        },
+        {
+          "name": "delivery_constructor_ffi",
+          "declaration": "delivery_constructor_ffi ( original : @ sqlite . NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "discovered_generations",
+          "declaration": "discovered_generations ( store : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ ( @ filesystem . NativeFileGeneration ? , @ filesystem . NativeFileGeneration ? , OwnedAllocation ? , ) , NativePublicationStoreIssue , ]"
+        },
+        {
+          "name": "filesystem_generation",
+          "declaration": "filesystem_generation ( generation : @ payload . PublicationPayloadGeneration , ) - > @ filesystem . NativeFileGeneration"
+        },
+        {
+          "name": "fill_delivery_pending",
+          "declaration": "fill_delivery_pending ( stream : PayloadDelivery , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "insert_owned_cleanup_record",
+          "declaration": "insert_owned_cleanup_record ( store : Store , table : String , key : String , body : Bytes , ) - > Result [ Int64 , @ sqlite . NativeSqliteIssue ]"
+        },
+        {
+          "name": "load_publication_contract",
+          "declaration": "load_publication_contract ( store : Store , name : String , identity : String , ) - > Result [ @ publication . PublicationContract , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "load_record",
+          "declaration": "load_record ( store : Store , key : String , ) - > Result [ @ payload . PublicationPayloadRecord , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "NativePublicationStoreOpenFailure::issue",
+          "declaration": "NativePublicationStoreOpenFailure : : issue ( self : NativePublicationStoreOpenFailure , ) - > NativePublicationStoreIssue"
+        },
+        {
+          "name": "NativePublicationStoreOpenFailure::retry_cleanup",
+          "declaration": "NativePublicationStoreOpenFailure : : retry_cleanup ( self : NativePublicationStoreOpenFailure , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "NativePublicationStoreOpenFailure::retry_cleanup_in_scope",
+          "declaration": "NativePublicationStoreOpenFailure : : retry_cleanup_in_scope ( self : NativePublicationStoreOpenFailure , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "next_allocation_ordinal",
+          "declaration": "next_allocation_ordinal ( store : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "observe",
+          "declaration": "observe ( store : Store , step : String ) - > Unit"
+        },
+        {
+          "name": "open_existing_local_store_with_custody",
+          "declaration": "open_existing_local_store_with_custody ( library : @ sqlite . Library , root_path : String , authority_cid : String , capacity_bytes : Int64 , max_objects : Int64 , max_record_bytes : Int64 , diagnostic_ceiling ? : Int ?"
+        },
+        {
+          "name": "open_existing_store",
+          "declaration": "open_existing_store ( library : @ sqlite . Library , root_path : String , authority_cid : String , capacity_bytes : Int64 , max_objects : Int64 , max_record_bytes : Int64 , ) - > Result [ Store , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "open_existing_store_with_custody",
+          "declaration": "open_existing_store_with_custody ( library : @ sqlite . Library , root_path : String , authority_cid : String , capacity_bytes : Int64 , max_objects : Int64 , max_record_bytes : Int64 , diagnostic_ceiling ? : Int ?"
+        },
+        {
+          "name": "open_local_store_with_custody",
+          "declaration": "open_local_store_with_custody ( library : @ sqlite . Library , root_path : String , authority_cid : String , capacity_bytes : Int64 , max_objects : Int64 , max_record_bytes : Int64 , diagnostic_ceiling ? : Int ?"
+        },
+        {
+          "name": "open_original_local_store_with_custody",
+          "declaration": "open_original_local_store_with_custody ( library : @ sqlite . Library , original : @ sqlite . NativeStoreOperationOriginal , root_path : String , authority_cid : String , capacity_bytes : Int64 , max_objects : Int64 , max_record_bytes : Int64 , existing ? : Bool"
+        },
+        {
+          "name": "open_store",
+          "declaration": "open_store ( library : @ sqlite . Library , root_path : String , authority_cid : String , capacity_bytes : Int64 , max_objects : Int64 , max_record_bytes : Int64 , ) - > Result [ Store , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "open_store_owned",
+          "declaration": "open_store_owned ( library : @ sqlite . Library , root_path : String , authority_cid : String , capacity_bytes : Int64 , max_objects : Int64 , max_record_bytes : Int64 , existing_only : Bool , ) - > Result [ Store , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "open_store_owned_with_custody",
+          "declaration": "open_store_owned_with_custody ( library : @ sqlite . Library , root_path : String , authority_cid : String , capacity_bytes : Int64 , max_objects : Int64 , max_record_bytes : Int64 , existing_only : Bool , diagnostic_ceiling ? : Int ?"
+        },
+        {
+          "name": "open_store_with_custody",
+          "declaration": "open_store_with_custody ( library : @ sqlite . Library , root_path : String , authority_cid : String , capacity_bytes : Int64 , max_objects : Int64 , max_record_bytes : Int64 , diagnostic_ceiling ? : Int ?"
+        },
+        {
+          "name": "owned_allocation",
+          "declaration": "owned_allocation ( store : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ OwnedAllocation ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "payload_generation",
+          "declaration": "payload_generation ( generation : @ filesystem . NativeFileGeneration , ) - > @ payload . PublicationPayloadGeneration"
+        },
+        {
+          "name": "payload_info",
+          "declaration": "payload_info ( record : @ payload . PublicationPayloadRecord , ) - > Result [ NativePublicationPayloadInfo , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "payload_ownership",
+          "declaration": "payload_ownership ( ownership : @ filesystem . NativeFileOwnership , ) - > @ payload . PublicationPayloadOwnership"
+        },
+        {
+          "name": "PayloadCleanupOwner::pending",
+          "declaration": "PayloadCleanupOwner : : pending ( self : PayloadCleanupOwner ) - > Bool"
+        },
+        {
+          "name": "PayloadCleanupOwner::retry",
+          "declaration": "PayloadCleanupOwner : : retry ( self : PayloadCleanupOwner , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadCleanupOwner::retry_in_scope",
+          "declaration": "PayloadCleanupOwner : : retry_in_scope ( self : PayloadCleanupOwner , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadDelivery::close",
+          "declaration": "PayloadDelivery : : close ( self : PayloadDelivery , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadDelivery::close_in_scope",
+          "declaration": "PayloadDelivery : : close_in_scope ( self : PayloadDelivery , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadDelivery::finish",
+          "declaration": "PayloadDelivery : : finish ( self : PayloadDelivery , ) - > Result [ NativePublicationDeliverySummary , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadDelivery::finish_in_scope",
+          "declaration": "PayloadDelivery : : finish_in_scope ( self : PayloadDelivery , ) - > Result [ NativePublicationDeliverySummary , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadDelivery::next",
+          "declaration": "PayloadDelivery : : next ( self : PayloadDelivery , max_bytes : Int , ) - > Result [ NativePublicationDeliveryChunk , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadDelivery::next_in_scope",
+          "declaration": "PayloadDelivery : : next_in_scope ( self : PayloadDelivery , max_bytes : Int , ) - > Result [ NativePublicationDeliveryChunk , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadDelivery::next_row_in_scope",
+          "declaration": "PayloadDelivery : : next_row_in_scope ( self : PayloadDelivery , max_bytes : Int , ) - > Result [ NativePublicationDeliveryChunk , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadReader::close",
+          "declaration": "PayloadReader : : close ( self : PayloadReader , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadReader::close_in_scope",
+          "declaration": "PayloadReader : : close_in_scope ( self : PayloadReader , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadReader::finish",
+          "declaration": "PayloadReader : : finish ( self : PayloadReader , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadReader::finish_in_scope",
+          "declaration": "PayloadReader : : finish_in_scope ( self : PayloadReader , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadReader::next",
+          "declaration": "PayloadReader : : next ( self : PayloadReader , max_bytes : Int , ) - > Result [ @ filesystem . NativeFileChunk , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadReader::next_in_scope",
+          "declaration": "PayloadReader : : next_in_scope ( self : PayloadReader , max_bytes : Int , ) - > Result [ @ filesystem . NativeFileChunk , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadReader::release_pin",
+          "declaration": "PayloadReader : : release_pin ( self : PayloadReader ) - > Unit"
+        },
+        {
+          "name": "PayloadWriter::append",
+          "declaration": "PayloadWriter : : append ( self : PayloadWriter , chunk : Bytes , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadWriter::append_in_scope",
+          "declaration": "PayloadWriter : : append_in_scope ( self : PayloadWriter , chunk : Bytes , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadWriter::cancel",
+          "declaration": "PayloadWriter : : cancel ( self : PayloadWriter , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadWriter::cancel_in_scope",
+          "declaration": "PayloadWriter : : cancel_in_scope ( self : PayloadWriter , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadWriter::seal",
+          "declaration": "PayloadWriter : : seal ( self : PayloadWriter , ) - > Result [ NativePublicationPayloadInfo , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "PayloadWriter::seal_in_scope",
+          "declaration": "PayloadWriter : : seal_in_scope ( self : PayloadWriter , ) - > Result [ NativePublicationPayloadInfo , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "persist_transition",
+          "declaration": "persist_transition ( store : Store , transition : @ payload . PublicationPayloadTransition , ) - > Result [ @ payload . PublicationPayloadRecord , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "publication_commit",
+          "declaration": "publication_commit ( result : Result [ Unit , @ publication . PublicationCommitIssue ] , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "publication_commit_key",
+          "declaration": "publication_commit_key ( result : Result [ String , @ publication . PublicationCommitIssuanceIssue ] , ) - > Result [ String , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "put_publication_contract",
+          "declaration": "put_publication_contract ( store : Store , contract : @ publication . PublicationContract , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "put_result_schema",
+          "declaration": "put_result_schema ( store : Store , result_schema_cid : String , result_schema_wire : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "queue_delivery_output",
+          "declaration": "queue_delivery_output ( stream : PayloadDelivery , output : String , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "read_result_delivery_attempt",
+          "declaration": "read_result_delivery_attempt ( store : Store , attempt_id : String , ) - > Result [ @ publication . PublicationContract ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "read_result_delivery_records",
+          "declaration": "read_result_delivery_records ( store : Store , attempt : @ publication . PublicationContract , ) - > Result [ ( @ publication . PublicationContract ? , @ publication . PublicationContract ? ) , NativePublicationStoreIssue , ]"
+        },
+        {
+          "name": "reclaim_owned_allocation",
+          "declaration": "reclaim_owned_allocation ( store : Store , record : @ payload . PublicationPayloadRecord , allocation : OwnedAllocation , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "reclaim_record",
+          "declaration": "reclaim_record ( store : Store , record : @ payload . PublicationPayloadRecord , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "reclaim_record_internal",
+          "declaration": "reclaim_record_internal ( store : Store , record : @ payload . PublicationPayloadRecord , known_unallocated : Bool , pending_owner : Bool , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "reclaim_unallocated_record",
+          "declaration": "reclaim_unallocated_record ( store : Store , record : @ payload . PublicationPayloadRecord , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "reclaimable_generation",
+          "declaration": "reclaimable_generation ( record : @ payload . PublicationPayloadRecord , actual : @ filesystem . NativeFileGeneration , committed_name : Bool , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "record_allocation",
+          "declaration": "record_allocation ( store : Store , key : String , allocation : RecordedAllocation , cleanup_owned ? : Bool"
+        },
+        {
+          "name": "record_key",
+          "declaration": "record_key ( request : @ payload . PublicationPayloadRequest ) - > String"
+        },
+        {
+          "name": "recorded_allocation",
+          "declaration": "recorded_allocation ( store : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ RecordedAllocation ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "require_committed_publication",
+          "declaration": "require_committed_publication ( store : Store , index : @ publication . PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "require_store_open",
+          "declaration": "require_store_open ( store : Store , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ResultDelivery::attempt_cid",
+          "declaration": "ResultDelivery : : attempt_cid ( self : ResultDelivery ) - > String"
+        },
+        {
+          "name": "ResultDelivery::close",
+          "declaration": "ResultDelivery : : close ( self : ResultDelivery , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ResultDelivery::close_in_scope",
+          "declaration": "ResultDelivery : : close_in_scope ( self : ResultDelivery , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ResultDelivery::confirm_chunk",
+          "declaration": "ResultDelivery : : confirm_chunk ( self : ResultDelivery , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ResultDelivery::confirm_chunk_in_scope",
+          "declaration": "ResultDelivery : : confirm_chunk_in_scope ( self : ResultDelivery , ) - > Result [ Int64 , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ResultDelivery::confirm_sink_finished",
+          "declaration": "ResultDelivery : : confirm_sink_finished ( self : ResultDelivery , observed_at : String , ) - > Result [ NativeResultDeliverySuccess , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ResultDelivery::confirm_sink_finished_in_scope",
+          "declaration": "ResultDelivery : : confirm_sink_finished_in_scope ( self : ResultDelivery , observed_at : String , ) - > Result [ NativeResultDeliverySuccess , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ResultDelivery::next",
+          "declaration": "ResultDelivery : : next ( self : ResultDelivery , max_bytes : Int , observed_at : String , ) - > Result [ NativePublicationDeliveryChunk , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ResultDelivery::next_in_scope",
+          "declaration": "ResultDelivery : : next_in_scope ( self : ResultDelivery , max_bytes : Int , observed_at : String , ) - > Result [ NativePublicationDeliveryChunk , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ResultDelivery::terminate",
+          "declaration": "ResultDelivery : : terminate ( self : ResultDelivery , confirmed_prefix_bytes : Int ? , cancellation_observed : Bool , exposure : String , possible_unconfirmed_max_bytes : Int ? , failure_cid : String ? , observed_at : String , ) - > Result [ NativeResultDeliveryFailure , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "ResultDelivery::terminate_in_scope",
+          "declaration": "ResultDelivery : : terminate_in_scope ( self : ResultDelivery , confirmed_prefix_bytes : Int ? , cancellation_observed : Bool , exposure : String , possible_unconfirmed_max_bytes : Int ? , failure_cid : String ? , observed_at : String , ) - > Result [ NativeResultDeliveryFailure , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "retain_pending_writer",
+          "declaration": "retain_pending_writer ( store : Store , record : @ payload . PublicationPayloadRecord , physical : @ filesystem . Writer , stopped : Bool , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "retry_pending_writer",
+          "declaration": "retry_pending_writer ( store : Store , key : String , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "store_format_ffi",
+          "declaration": "store_format_ffi ( path : Bytes , length : Int , establish : Int , ) - > Int"
+        },
+        {
+          "name": "store_open_failure",
+          "declaration": "store_open_failure ( original_issue : NativePublicationStoreIssue , operation_original ? : @ sqlite . NativeStoreOperationOriginal ?"
+        },
+        {
+          "name": "Store::acquire_payload_cleanup",
+          "declaration": "Store : : acquire_payload_cleanup ( self : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ PayloadCleanupOwner , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::acquire_payload_cleanup_in_scope",
+          "declaration": "Store : : acquire_payload_cleanup_in_scope ( self : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ PayloadCleanupOwner , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::begin_payload",
+          "declaration": "Store : : begin_payload ( self : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ PayloadWriter , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::begin_payload_in_scope",
+          "declaration": "Store : : begin_payload_in_scope ( self : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ PayloadWriter , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::begin_result_delivery",
+          "declaration": "Store : : begin_result_delivery ( self : Store , index : @ publication . PublicationContract , manifest : @ publication . PublicationContract , grant : @ publication . PublicationContract , retention : @ publication . PublicationContract , binding : @ publication . PublicationContract , material_generation_cid : String , result_name : String , format : String , attempt_id : String , requested_at : String , schema_wire : String , fields : Array [ String ] , input_chunk_bytes : Int , max_row_bytes : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , max_delivery_bytes : Int64 , ) - > Result [ ResultDelivery , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::begin_result_delivery_in_scope",
+          "declaration": "Store : : begin_result_delivery_in_scope ( self : Store , index : @ publication . PublicationContract , manifest : @ publication . PublicationContract , grant : @ publication . PublicationContract , retention : @ publication . PublicationContract , binding : @ publication . PublicationContract , material_generation_cid : String , result_name : String , format : String , attempt_id : String , requested_at : String , schema_wire : String , fields : Array [ String ] , input_chunk_bytes : Int , max_row_bytes : Int , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , max_delivery_bytes : Int64 , ) - > Result [ ResultDelivery , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::capacity_usage",
+          "declaration": "Store : : capacity_usage ( self : Store , ) - > Result [ @ sqlite . NativeCapacityUsage , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::capacity_usage_in_scope",
+          "declaration": "Store : : capacity_usage_in_scope ( self : Store , ) - > Result [ @ sqlite . NativeCapacityUsage , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::close",
+          "declaration": "Store : : close ( self : Store ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::close_in_scope",
+          "declaration": "Store : : close_in_scope ( self : Store , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::commit_publication",
+          "declaration": "Store : : commit_publication ( self : Store , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , derivations : Array [ @ publication . PublicationContract ] , orderings : Array [ @ publication . PublicationContract ] , retentions : Array [ @ publication . PublicationContract ] , bindings : Array [ @ publication . PublicationContract ] , binding_schema_wires : Array [ String ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , index : @ publication . PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , capture ? : @ local . ClientProgramCapture ?"
+        },
+        {
+          "name": "Store::commit_publication_in_scope",
+          "declaration": "Store : : commit_publication_in_scope ( self : Store , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , derivations : Array [ @ publication . PublicationContract ] , orderings : Array [ @ publication . PublicationContract ] , retentions : Array [ @ publication . PublicationContract ] , bindings : Array [ @ publication . PublicationContract ] , binding_schema_wires : Array [ String ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , index : @ publication . PublicationContract , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , capture ? : @ local . ClientProgramCapture ?"
+        },
+        {
+          "name": "Store::custody_location",
+          "declaration": "Store : : custody_location ( self : Store , ) - > Result [ ( String , UInt64 , UInt64 ) , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::inspect_committed_publication",
+          "declaration": "Store : : inspect_committed_publication ( self : Store , namespace_id : String , authority_scope_cid : String , run_definition_cid : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . PublicationContract ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::inspect_committed_publication_in_scope",
+          "declaration": "Store : : inspect_committed_publication_in_scope ( self : Store , namespace_id : String , authority_scope_cid : String , run_definition_cid : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . PublicationContract ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::inspect_payload",
+          "declaration": "Store : : inspect_payload ( self : Store , material_generation_cid : String , ) - > Result [ NativePublicationPayloadInfo , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::inspect_payload_in_scope",
+          "declaration": "Store : : inspect_payload_in_scope ( self : Store , material_generation_cid : String , ) - > Result [ NativePublicationPayloadInfo , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::inspect_result_delivery",
+          "declaration": "Store : : inspect_result_delivery ( self : Store , attempt_id : String , ) - > Result [ NativeResultDeliveryStatus , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::inspect_result_delivery_in_scope",
+          "declaration": "Store : : inspect_result_delivery_in_scope ( self : Store , attempt_id : String , ) - > Result [ NativeResultDeliveryStatus , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::lookup_result_delivery",
+          "declaration": "Store : : lookup_result_delivery ( self : Store , scope : @ publication . DeliveryAttemptLookupScope , ) - > Result [ NativeResultDeliveryLookup ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::lookup_result_delivery_in_scope",
+          "declaration": "Store : : lookup_result_delivery_in_scope ( self : Store , scope : @ publication . DeliveryAttemptLookupScope , ) - > Result [ NativeResultDeliveryLookup ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::matches_original_operation",
+          "declaration": "Store : : matches_original_operation ( self : Store , original : @ sqlite . NativeStoreOperationOriginal , ) - > Bool"
+        },
+        {
+          "name": "Store::observe_allocation",
+          "declaration": "Store : : observe_allocation ( self : Store , observer : ( String ) - > Unit , ) - > Unit"
+        },
+        {
+          "name": "Store::observe_trusted_clock",
+          "declaration": "Store : : observe_trusted_clock ( self : Store , clock_contract_cid : String , observed_at : String , ) - > Result [ String , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::observe_trusted_clock_in_scope",
+          "declaration": "Store : : observe_trusted_clock_in_scope ( self : Store , clock_contract_cid : String , observed_at : String , ) - > Result [ String , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::open_confirmed_payload_delivery",
+          "declaration": "Store : : open_confirmed_payload_delivery ( self : Store , material_generation_cid : String , format : String , schema_wire : String , fields : Array [ String ] , input_chunk_bytes : Int , max_row_bytes : Int , max_nodes : Int , max_depth : Int , max_delivery_bytes : Int64 , ) - > Result [ ConfirmedPayloadDelivery , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::open_confirmed_payload_delivery_in_scope",
+          "declaration": "Store : : open_confirmed_payload_delivery_in_scope ( self : Store , material_generation_cid : String , format : String , schema_wire : String , fields : Array [ String ] , input_chunk_bytes : Int , max_row_bytes : Int , max_nodes : Int , max_depth : Int , max_delivery_bytes : Int64 , ) - > Result [ ConfirmedPayloadDelivery , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::open_payload_delivery",
+          "declaration": "Store : : open_payload_delivery ( self : Store , material_generation_cid : String , format : String , schema_wire : String , fields : Array [ String ] , input_chunk_bytes : Int , max_row_bytes : Int , max_nodes : Int , max_depth : Int , max_delivery_bytes : Int64 , ) - > Result [ PayloadDelivery , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::open_payload_delivery_in_scope",
+          "declaration": "Store : : open_payload_delivery_in_scope ( self : Store , material_generation_cid : String , format : String , schema_wire : String , fields : Array [ String ] , input_chunk_bytes : Int , max_row_bytes : Int , max_nodes : Int , max_depth : Int , max_delivery_bytes : Int64 , ) - > Result [ PayloadDelivery , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::open_payload_reader",
+          "declaration": "Store : : open_payload_reader ( self : Store , material_generation_cid : String , ) - > Result [ PayloadReader , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::open_payload_reader_in_scope",
+          "declaration": "Store : : open_payload_reader_in_scope ( self : Store , material_generation_cid : String , ) - > Result [ PayloadReader , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::prepare_result_read_workspace_in_scope",
+          "declaration": "Store : : prepare_result_read_workspace_in_scope ( self : Store , row : Int , frame : Int , schema_units : Int , nodes : Int , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::read_publication_contract",
+          "declaration": "Store : : read_publication_contract ( self : Store , name : String , identity : String , ) - > Result [ @ publication . PublicationContract , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::read_publication_contract_in_scope",
+          "declaration": "Store : : read_publication_contract_in_scope ( self : Store , name : String , identity : String , ) - > Result [ @ publication . PublicationContract , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::read_result_schema",
+          "declaration": "Store : : read_result_schema ( self : Store , result_schema_cid : String , ) - > Result [ String , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::read_result_schema_in_scope",
+          "declaration": "Store : : read_result_schema_in_scope ( self : Store , result_schema_cid : String , ) - > Result [ String , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::reclaim_payload",
+          "declaration": "Store : : reclaim_payload ( self : Store , material_generation_cid : String , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::reclaim_payload_in_scope",
+          "declaration": "Store : : reclaim_payload_in_scope ( self : Store , material_generation_cid : String , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::reconcile_original_return",
+          "declaration": "Store : : reconcile_original_return ( self : Store , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::reconcile_payload",
+          "declaration": "Store : : reconcile_payload ( self : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ NativePublicationPayloadInfo ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::reconcile_payload_in_scope",
+          "declaration": "Store : : reconcile_payload_in_scope ( self : Store , request : @ payload . PublicationPayloadRequest , ) - > Result [ NativePublicationPayloadInfo ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::recover",
+          "declaration": "Store : : recover ( self : Store , ) - > Result [ NativePublicationRecovery , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::recover_in_scope",
+          "declaration": "Store : : recover_in_scope ( self : Store , ) - > Result [ NativePublicationRecovery , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::resolve_committed_result",
+          "declaration": "Store : : resolve_committed_result ( self : Store , namespace_id : String , authority_scope_cid : String , run_definition_cid : String , result_name : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ NativeCommittedResult ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::resolve_committed_result_in_scope",
+          "declaration": "Store : : resolve_committed_result_in_scope ( self : Store , namespace_id : String , authority_scope_cid : String , run_definition_cid : String , result_name : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ NativeCommittedResult ? , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::retained_data_current",
+          "declaration": "Store : : retained_data_current ( self : Store , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::retry_pending_result_delivery_cleanup",
+          "declaration": "Store : : retry_pending_result_delivery_cleanup ( self : Store , ) - > Result [ Bool , NativePublicationStoreIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]allocation_prepare",
+            "[T]database",
+            "[T]delivery_issuance",
+            "[T]filesystem",
+            "[T]protocol",
+            "[T]sink_progress",
+            "[T]Store::complete_original_return",
+            "[T]Store::with_original_read",
+            "admit_store_format",
+            "allocation_acquired_ffi",
+            "allocation_body",
+            "allocation_device_ffi",
+            "allocation_inode_ffi",
+            "allocation_matches",
+            "allocation_name",
+            "allocation_owner_unknown",
+            "append_initial_delivery_record",
+            "append_next_delivery_record",
+            "claim_delivery_attempt",
+            "claim_result_read_grant_use",
+            "cleanup_after_begin_failure",
+            "ConfirmedPayloadDelivery::close",
+            "ConfirmedPayloadDelivery::close_in_scope",
+            "ConfirmedPayloadDelivery::confirm_chunk",
+            "ConfirmedPayloadDelivery::confirm_chunk_in_scope",
+            "ConfirmedPayloadDelivery::confirm_sink_finished",
+            "ConfirmedPayloadDelivery::confirm_sink_finished_in_scope",
+            "ConfirmedPayloadDelivery::fail",
+            "ConfirmedPayloadDelivery::fail_chunk",
+            "ConfirmedPayloadDelivery::fail_chunk_in_scope",
+            "ConfirmedPayloadDelivery::fail_in_scope",
+            "ConfirmedPayloadDelivery::next",
+            "ConfirmedPayloadDelivery::next_in_scope",
+            "delivery",
+            "delivery_attempt_key",
+            "delivery_constructor_ffi",
+            "discovered_generations",
+            "filesystem_generation",
+            "fill_delivery_pending",
+            "insert_owned_cleanup_record",
+            "load_publication_contract",
+            "load_record",
+            "NativePublicationStoreOpenFailure::issue",
+            "NativePublicationStoreOpenFailure::retry_cleanup",
+            "NativePublicationStoreOpenFailure::retry_cleanup_in_scope",
+            "next_allocation_ordinal",
+            "observe",
+            "open_existing_local_store_with_custody",
+            "open_existing_store",
+            "open_existing_store_with_custody",
+            "open_local_store_with_custody",
+            "open_original_local_store_with_custody",
+            "open_store",
+            "open_store_owned",
+            "open_store_owned_with_custody",
+            "open_store_with_custody",
+            "owned_allocation",
+            "payload_generation",
+            "payload_info",
+            "payload_ownership",
+            "PayloadCleanupOwner::pending",
+            "PayloadCleanupOwner::retry",
+            "PayloadCleanupOwner::retry_in_scope",
+            "PayloadDelivery::close",
+            "PayloadDelivery::close_in_scope",
+            "PayloadDelivery::finish",
+            "PayloadDelivery::finish_in_scope",
+            "PayloadDelivery::next",
+            "PayloadDelivery::next_in_scope",
+            "PayloadDelivery::next_row_in_scope",
+            "PayloadReader::close",
+            "PayloadReader::close_in_scope",
+            "PayloadReader::finish",
+            "PayloadReader::finish_in_scope",
+            "PayloadReader::next",
+            "PayloadReader::next_in_scope",
+            "PayloadReader::release_pin",
+            "PayloadWriter::append",
+            "PayloadWriter::append_in_scope",
+            "PayloadWriter::cancel",
+            "PayloadWriter::cancel_in_scope",
+            "PayloadWriter::seal",
+            "PayloadWriter::seal_in_scope",
+            "persist_transition",
+            "publication_commit",
+            "publication_commit_key",
+            "put_publication_contract",
+            "put_result_schema",
+            "queue_delivery_output",
+            "read_result_delivery_attempt",
+            "read_result_delivery_records",
+            "reclaim_owned_allocation",
+            "reclaim_record",
+            "reclaim_record_internal",
+            "reclaim_unallocated_record",
+            "reclaimable_generation",
+            "record_allocation",
+            "record_key",
+            "recorded_allocation",
+            "require_committed_publication",
+            "require_store_open",
+            "ResultDelivery::attempt_cid",
+            "ResultDelivery::close",
+            "ResultDelivery::close_in_scope",
+            "ResultDelivery::confirm_chunk",
+            "ResultDelivery::confirm_chunk_in_scope",
+            "ResultDelivery::confirm_sink_finished",
+            "ResultDelivery::confirm_sink_finished_in_scope",
+            "ResultDelivery::next",
+            "ResultDelivery::next_in_scope",
+            "ResultDelivery::terminate",
+            "ResultDelivery::terminate_in_scope",
+            "retain_pending_writer",
+            "retry_pending_writer",
+            "store_format_ffi",
+            "store_open_failure",
+            "Store::acquire_payload_cleanup",
+            "Store::acquire_payload_cleanup_in_scope",
+            "Store::begin_payload",
+            "Store::begin_payload_in_scope",
+            "Store::begin_result_delivery",
+            "Store::begin_result_delivery_in_scope",
+            "Store::capacity_usage",
+            "Store::capacity_usage_in_scope",
+            "Store::close",
+            "Store::close_in_scope",
+            "Store::commit_publication",
+            "Store::commit_publication_in_scope",
+            "Store::custody_location",
+            "Store::inspect_committed_publication",
+            "Store::inspect_committed_publication_in_scope",
+            "Store::inspect_payload",
+            "Store::inspect_payload_in_scope",
+            "Store::inspect_result_delivery",
+            "Store::inspect_result_delivery_in_scope",
+            "Store::lookup_result_delivery",
+            "Store::lookup_result_delivery_in_scope",
+            "Store::matches_original_operation",
+            "Store::observe_allocation",
+            "Store::observe_trusted_clock",
+            "Store::observe_trusted_clock_in_scope",
+            "Store::open_confirmed_payload_delivery",
+            "Store::open_confirmed_payload_delivery_in_scope",
+            "Store::open_payload_delivery",
+            "Store::open_payload_delivery_in_scope",
+            "Store::open_payload_reader",
+            "Store::open_payload_reader_in_scope",
+            "Store::prepare_result_read_workspace_in_scope",
+            "Store::read_publication_contract",
+            "Store::read_publication_contract_in_scope",
+            "Store::read_result_schema",
+            "Store::read_result_schema_in_scope",
+            "Store::reclaim_payload",
+            "Store::reclaim_payload_in_scope",
+            "Store::reconcile_original_return",
+            "Store::reconcile_payload",
+            "Store::reconcile_payload_in_scope",
+            "Store::recover",
+            "Store::recover_in_scope",
+            "Store::resolve_committed_result",
+            "Store::resolve_committed_result_in_scope",
+            "Store::retained_data_current",
+            "Store::retry_pending_result_delivery_cleanup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/publication_store/store_native.mbt",
+                "anchor": "fn Store::open_payload_delivery_in_scope("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/publication_store/store_native.mbt",
+                "anchor": "fn[T] Store::with_original_read("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.inc",
+                "anchor": "value->calling"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/platform_native/publication_store/store_native.mbt",
+                "anchor": "fn Store::open_payload_delivery_in_scope("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "pub fn NativeLocalStoreOperation::retry_scope_cleanup("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "pub fn result_read_frame_cost("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.h",
+                "anchor": "actql_native_sqlite_prepare_store_operation_with_delivery_preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/publication_store/delivery_chunk_native_wbtest.mbt",
+                "anchor": "native delivery refuses construction before advancing and leaves unmanaged chunks unchanged"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/result_access/access.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Result grant/session/delivery authority and original Store owner",
+      "referenceQualification": "Finite changed Result-read caller/construction source responsibilities and interface snapshot only. Preexisting module operations are indexed, not requalified as normal execution; matching installed Native/FD/Saved and whole backend acceptance remain separate.",
+      "sha256": "550875afe61adaed87dab3efbf3a348e32fd81d36cf0f852447d4b2d1156dd30",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]publication_result",
+          "declaration": "[ T ] publication_result ( result : Result [ T , @ publication . DeliveryIssuanceIssue ] , ) - > Result [ T , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "[T]store_result",
+          "declaration": "[ T ] store_result ( result : Result [ T , @ store . NativePublicationStoreIssue ] , ) - > Result [ T , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "install_native_result_access_authority",
+          "declaration": "install_native_result_access_authority ( authorize_request : ( NativeResultAccessRequest ) - > Bool , admit_read : ( NativeResultReadFacts ) - > NativeResultReadAdmission ? , authorize_delivery : ( NativeResultDeliveryAuthorization ) - > Bool , authorize_lookup ? : ( ( @ publication . DeliveryAttemptLookupScope ) - > Bool ) ?"
+        },
+        {
+          "name": "install_native_result_access_service",
+          "declaration": "install_native_result_access_service ( store : @ store . Store , authority : NativeResultAccessAuthority , now : ( ) - > String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , max_row_bytes : Int , input_chunk_bytes : Int , ) - > Result [ NativeResultAccessService , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "NativeResultAccessService::custody_location",
+          "declaration": "NativeResultAccessService : : custody_location ( self : NativeResultAccessService , ) - > Result [ ( String , UInt64 , UInt64 ) , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "NativeResultAccessSession::attempt_cid",
+          "declaration": "NativeResultAccessSession : : attempt_cid ( self : NativeResultAccessSession , ) - > String"
+        },
+        {
+          "name": "NativeResultAccessSession::authorize_current_stage",
+          "declaration": "NativeResultAccessSession : : authorize_current_stage ( self : NativeResultAccessSession , stage : String , ) - > Result [ String , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "NativeResultAccessSession::authorize_stage",
+          "declaration": "NativeResultAccessSession : : authorize_stage ( self : NativeResultAccessSession , stage : String , ) - > Result [ String , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "NativeResultAccessSession::close",
+          "declaration": "NativeResultAccessSession : : close ( self : NativeResultAccessSession , ) - > Result [ Unit , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "NativeResultAccessSession::confirm_chunk",
+          "declaration": "NativeResultAccessSession : : confirm_chunk ( self : NativeResultAccessSession , ) - > Result [ Int64 , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "NativeResultAccessSession::confirm_sink_finished",
+          "declaration": "NativeResultAccessSession : : confirm_sink_finished ( self : NativeResultAccessSession , ) - > Result [ @ store . NativeResultDeliverySuccess , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "NativeResultAccessSession::matches_original",
+          "declaration": "NativeResultAccessSession : : matches_original ( self : NativeResultAccessSession , store : @ store . Store , request : NativeResultAccessRequest , ) - > Bool"
+        },
+        {
+          "name": "NativeResultAccessSession::next",
+          "declaration": "NativeResultAccessSession : : next ( self : NativeResultAccessSession , max_bytes : Int , ) - > Result [ @ store . NativePublicationDeliveryChunk , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "NativeResultAccessSession::terminate",
+          "declaration": "NativeResultAccessSession : : terminate ( self : NativeResultAccessSession , confirmed_prefix_bytes : Int ? , cancellation_observed : Bool , exposure : String , possible_unconfirmed_max_bytes : Int ? , failure_cid : String ? , ) - > Result [ @ store . NativeResultDeliveryFailure , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "observed_at",
+          "declaration": "observed_at ( service : NativeResultAccessService , ) - > Result [ String , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "open_native_result_access",
+          "declaration": "open_native_result_access ( service : NativeResultAccessService , request : NativeResultAccessRequest , ) - > Result [ NativeResultAccessSession , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "progress_result",
+          "declaration": "progress_result ( result : Result [ Unit , @ publication . ResultAccessProgressIssue ] , ) - > Result [ Unit , NativeResultAccessIssue ]"
+        },
+        {
+          "name": "valid_cid",
+          "declaration": "valid_cid ( value : String ) - > Bool"
+        },
+        {
+          "name": "valid_request",
+          "declaration": "valid_request ( request : NativeResultAccessRequest ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]publication_result",
+            "[T]store_result",
+            "install_native_result_access_authority",
+            "install_native_result_access_service",
+            "NativeResultAccessService::custody_location",
+            "NativeResultAccessSession::attempt_cid",
+            "NativeResultAccessSession::authorize_current_stage",
+            "NativeResultAccessSession::authorize_stage",
+            "NativeResultAccessSession::close",
+            "NativeResultAccessSession::confirm_chunk",
+            "NativeResultAccessSession::confirm_sink_finished",
+            "NativeResultAccessSession::matches_original",
+            "NativeResultAccessSession::next",
+            "NativeResultAccessSession::terminate",
+            "observed_at",
+            "open_native_result_access",
+            "progress_result",
+            "valid_cid",
+            "valid_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/result_access/access.mbt",
+                "anchor": "pub fn install_native_result_access_service("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/result_access/access.mbt",
+                "anchor": "pub fn NativeResultAccessSession::attempt_cid("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.inc",
+                "anchor": "value->calling"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/platform_native/result_access/access.mbt",
+                "anchor": "pub fn install_native_result_access_service("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "pub fn NativeLocalStoreOperation::retry_scope_cleanup("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "pub fn result_read_frame_cost("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.h",
+                "anchor": "actql_native_sqlite_prepare_store_operation_with_delivery_preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/result_access/access_wbtest.mbt",
+                "anchor": "native Result access validates the complete request before effects"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/sqlite/store_operation_native.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing fixed Native SQLite operation bridge; no public constructor or replacement owner",
+      "referenceQualification": "Finite changed Result-read caller/construction source responsibilities and interface snapshot only. Preexisting module operations are indexed, not requalified as normal execution; matching installed Native/FD/Saved and whole backend acceptance remain separate.",
+      "sha256": "43a991fc27d8372e1b5f9ffe715041cc35032980a07e5df44453496d60dfdddb",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]Database::with_original_store_sql",
+          "declaration": "[ T ] Database : : with_original_store_sql ( self : Database , cleanup_allowed : Bool , call : ( ) - > Result [ T , NativeSqliteIssue ] , ) - > Result [ T , NativeSqliteIssue ]"
+        },
+        {
+          "name": "bind_database_store_operation_ffi",
+          "declaration": "bind_database_store_operation_ffi ( database : Database , original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "capture_original_database_open",
+          "declaration": "capture_original_database_open ( original : NativeStoreOperationOriginal , database : Database , ) - > Result [ Database , NativeSqliteOpenFailure ]"
+        },
+        {
+          "name": "database_enter_store_sql_ffi",
+          "declaration": "database_enter_store_sql_ffi ( database : Database , cleanup_allowed : Int , ) - > Int"
+        },
+        {
+          "name": "database_fence_original_store_ffi",
+          "declaration": "database_fence_original_store_ffi ( database : Database ) - > Unit"
+        },
+        {
+          "name": "database_has_store_operation_ffi",
+          "declaration": "database_has_store_operation_ffi ( database : Database ) - > Bool"
+        },
+        {
+          "name": "database_leave_store_sql_ffi",
+          "declaration": "database_leave_store_sql_ffi ( database : Database ) - > Int"
+        },
+        {
+          "name": "database_matches_store_operation_ffi",
+          "declaration": "database_matches_store_operation_ffi ( database : Database , original : NativeStoreOperationOriginal , ) - > Bool"
+        },
+        {
+          "name": "Database::bind_original_store_operation",
+          "declaration": "Database : : bind_original_store_operation ( self : Database , original : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "Database::insert_original_store_cleanup",
+          "declaration": "Database : : insert_original_store_cleanup ( self : Database , original : NativeStoreOperationOriginal , scope : String , key : String , body : Bytes , ) - > Result [ Int64 , NativeSqliteIssue ]"
+        },
+        {
+          "name": "Database::matches_original_store_operation",
+          "declaration": "Database : : matches_original_store_operation ( self : Database , original : NativeStoreOperationOriginal , ) - > Bool"
+        },
+        {
+          "name": "Library::open_original_local_store_database_with_custody",
+          "declaration": "Library : : open_original_local_store_database_with_custody ( self : Library , original : NativeStoreOperationOriginal , path : String , max_body_bytes : Int64 , existing ? : Bool"
+        },
+        {
+          "name": "Library::open_original_remote_database_with_custody",
+          "declaration": "Library : : open_original_remote_database_with_custody ( self : Library , original : NativeStoreOperationOriginal , path : String , max_body_bytes : Int64 , existing ? : Bool"
+        },
+        {
+          "name": "NativeSqliteOpenFailure::borrow_original_database_cleanup",
+          "declaration": "NativeSqliteOpenFailure : : borrow_original_database_cleanup ( self : NativeSqliteOpenFailure , original : NativeStoreOperationOriginal , ) - > Result [ Database ? , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::activate",
+          "declaration": "NativeStoreOperationOriginal : : activate ( self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::cleanup_code",
+          "declaration": "NativeStoreOperationOriginal : : cleanup_code ( self : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::close_checked",
+          "declaration": "NativeStoreOperationOriginal : : close_checked ( self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::enter_cleanup",
+          "declaration": "NativeStoreOperationOriginal : : enter_cleanup ( self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::enter_cleanup_work",
+          "declaration": "NativeStoreOperationOriginal : : enter_cleanup_work ( self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::enter_store",
+          "declaration": "NativeStoreOperationOriginal : : enter_store ( self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::has_publication_constructor",
+          "declaration": "NativeStoreOperationOriginal : : has_publication_constructor ( self : NativeStoreOperationOriginal , ) - > Result [ Bool , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::leave_store",
+          "declaration": "NativeStoreOperationOriginal : : leave_store ( self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::pending_scope",
+          "declaration": "NativeStoreOperationOriginal : : pending_scope ( self : NativeStoreOperationOriginal , ) - > Result [ Bool , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_delivery_window",
+          "declaration": "NativeStoreOperationOriginal : : prepare_delivery_window ( self : NativeStoreOperationOriginal , target : Int , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_delivery_workspace",
+          "declaration": "NativeStoreOperationOriginal : : prepare_delivery_workspace ( self : NativeStoreOperationOriginal , row : Int , frame : Int , schema_units : Int , nodes : Int , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_publication_construction",
+          "declaration": "NativeStoreOperationOriginal : : prepare_publication_construction ( self : NativeStoreOperationOriginal , retained : Int64 , execution : Int64 , contiguous : Int64 , retained_output : Bool , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_publication_scaffold",
+          "declaration": "NativeStoreOperationOriginal : : prepare_publication_scaffold ( self : NativeStoreOperationOriginal , index ? : Bool"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::primary_code",
+          "declaration": "NativeStoreOperationOriginal : : primary_code ( self : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "open_original_remote_database_ffi",
+          "declaration": "open_original_remote_database_ffi ( library : Library , original : NativeStoreOperationOriginal , path : Bytes , length : Int , max_body_bytes : Int64 , existing : Int , ) - > Database"
+        },
+        {
+          "name": "open_original_store_database_ffi",
+          "declaration": "open_original_store_database_ffi ( library : Library , original : NativeStoreOperationOriginal , path : Bytes , length : Int , max_body_bytes : Int64 , existing : Int , ) - > Database"
+        },
+        {
+          "name": "original_database_acquired_ffi",
+          "declaration": "original_database_acquired_ffi ( database : Database ) - > Bool"
+        },
+        {
+          "name": "original_has_no_database_ffi",
+          "declaration": "original_has_no_database_ffi ( original : NativeStoreOperationOriginal , ) - > Bool"
+        },
+        {
+          "name": "publication_construction_block_bound",
+          "declaration": "publication_construction_block_bound ( slots : Int , nodes : Int , bytes : Int , ) - > Int64"
+        },
+        {
+          "name": "store_operation_activate_ffi",
+          "declaration": "store_operation_activate_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_cleanup_ffi",
+          "declaration": "store_operation_cleanup_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_close_ffi",
+          "declaration": "store_operation_close_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_delivery_window_ffi",
+          "declaration": "store_operation_delivery_window_ffi ( original : NativeStoreOperationOriginal , target : Int , ) - > Int"
+        },
+        {
+          "name": "store_operation_delivery_workspace_ffi",
+          "declaration": "store_operation_delivery_workspace_ffi ( original : NativeStoreOperationOriginal , row : Int , frame : Int , schema_units : Int , nodes : Int , ) - > Int"
+        },
+        {
+          "name": "store_operation_enter_ffi",
+          "declaration": "store_operation_enter_ffi ( original : NativeStoreOperationOriginal , cleanup : Int , ) - > Int"
+        },
+        {
+          "name": "store_operation_enter_recovery_ffi",
+          "declaration": "store_operation_enter_recovery_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_finish_open_ffi",
+          "declaration": "store_operation_finish_open_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_leave_ffi",
+          "declaration": "store_operation_leave_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_pending_scope_ffi",
+          "declaration": "store_operation_pending_scope_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_primary_ffi",
+          "declaration": "store_operation_primary_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_publication_construction_ffi",
+          "declaration": "store_operation_publication_construction_ffi ( original : NativeStoreOperationOriginal , retained : Int64 , execution : Int64 , contiguous : Int64 , retained_output : Int , ) - > Int"
+        },
+        {
+          "name": "store_operation_publication_constructor_ffi",
+          "declaration": "store_operation_publication_constructor_ffi ( original : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "store_operation_publication_scaffold_ffi",
+          "declaration": "store_operation_publication_scaffold_ffi ( original : NativeStoreOperationOriginal , index : Int , ) - > Int"
+        },
+        {
+          "name": "store_operation_result",
+          "declaration": "store_operation_result ( code : Int ) - > Result [ Unit , NativeSqliteIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]Database::with_original_store_sql",
+            "bind_database_store_operation_ffi",
+            "capture_original_database_open",
+            "database_enter_store_sql_ffi",
+            "database_fence_original_store_ffi",
+            "database_has_store_operation_ffi",
+            "database_leave_store_sql_ffi",
+            "database_matches_store_operation_ffi",
+            "Database::bind_original_store_operation",
+            "Database::insert_original_store_cleanup",
+            "Database::matches_original_store_operation",
+            "Library::open_original_local_store_database_with_custody",
+            "Library::open_original_remote_database_with_custody",
+            "NativeSqliteOpenFailure::borrow_original_database_cleanup",
+            "NativeStoreOperationOriginal::activate",
+            "NativeStoreOperationOriginal::cleanup_code",
+            "NativeStoreOperationOriginal::close_checked",
+            "NativeStoreOperationOriginal::enter_cleanup",
+            "NativeStoreOperationOriginal::enter_cleanup_work",
+            "NativeStoreOperationOriginal::enter_store",
+            "NativeStoreOperationOriginal::leave_store",
+            "NativeStoreOperationOriginal::pending_scope",
+            "NativeStoreOperationOriginal::prepare_delivery_window",
+            "NativeStoreOperationOriginal::prepare_delivery_workspace",
+            "NativeStoreOperationOriginal::primary_code",
+            "open_original_remote_database_ffi",
+            "open_original_store_database_ffi",
+            "original_database_acquired_ffi",
+            "original_has_no_database_ffi",
+            "store_operation_activate_ffi",
+            "store_operation_cleanup_ffi",
+            "store_operation_close_ffi",
+            "store_operation_delivery_window_ffi",
+            "store_operation_delivery_workspace_ffi",
+            "store_operation_enter_ffi",
+            "store_operation_enter_recovery_ffi",
+            "store_operation_finish_open_ffi",
+            "store_operation_leave_ffi",
+            "store_operation_pending_scope_ffi",
+            "store_operation_primary_ffi",
+            "store_operation_result",
+            "NativeStoreOperationOriginal::has_publication_constructor",
+            "NativeStoreOperationOriginal::prepare_publication_construction",
+            "NativeStoreOperationOriginal::prepare_publication_scaffold",
+            "publication_construction_block_bound",
+            "store_operation_publication_construction_ffi",
+            "store_operation_publication_constructor_ffi",
+            "store_operation_publication_scaffold_ffi"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_native.mbt",
+                "anchor": "pub fn NativeStoreOperationOriginal::prepare_delivery_workspace("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_native.mbt",
+                "anchor": "pub fn NativeStoreOperationOriginal::activate("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.inc",
+                "anchor": "value->calling"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_native.mbt",
+                "anchor": "pub fn NativeStoreOperationOriginal::prepare_delivery_workspace("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "pub fn NativeLocalStoreOperation::retry_scope_cleanup("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "pub fn result_read_frame_cost("
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.h",
+                "anchor": "actql_native_sqlite_prepare_store_operation_with_delivery_preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_native_wbtest.mbt",
+                "anchor": "Store operation original refuses a legacy Library before invoking its receiver"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor funds only its same actual Read and preserves its maximum\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor keeps its failed finite Read prefix and actual cleanup duty\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor reentry cannot be hidden by a successful callback result\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/sqlite/store_operation_unsupported.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing unsupported-target refusal of the same nominal Native bridge",
+      "referenceQualification": "Finite changed Result-read caller/construction source responsibilities and interface snapshot only. Preexisting module operations are indexed, not requalified as normal execution; matching installed Native/FD/Saved and whole backend acceptance remain separate.",
+      "sha256": "6ea511a2cbba419040f013694114961f0d4b77fa4f0a4f21f6fc3a9285f37dd1",
+      "exports": [],
+      "operations": [
+        {
+          "name": "Database::bind_original_store_operation",
+          "declaration": "Database : : bind_original_store_operation ( _self : Database , _original : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "Database::insert_original_store_cleanup",
+          "declaration": "Database : : insert_original_store_cleanup ( _self : Database , _original : NativeStoreOperationOriginal , _scope : String , _key : String , _body : Bytes , ) - > Result [ Int64 , NativeSqliteIssue ]"
+        },
+        {
+          "name": "Database::matches_original_store_operation",
+          "declaration": "Database : : matches_original_store_operation ( _self : Database , _original : NativeStoreOperationOriginal , ) - > Bool"
+        },
+        {
+          "name": "Library::open_original_local_store_database_with_custody",
+          "declaration": "Library : : open_original_local_store_database_with_custody ( _self : Library , _original : NativeStoreOperationOriginal , _path : String , _max_body_bytes : Int64 , existing ? : Bool"
+        },
+        {
+          "name": "Library::open_original_remote_database_with_custody",
+          "declaration": "Library : : open_original_remote_database_with_custody ( _self : Library , _original : NativeStoreOperationOriginal , _path : String , _max_body_bytes : Int64 , existing ? : Bool"
+        },
+        {
+          "name": "NativeSqliteOpenFailure::borrow_original_database_cleanup",
+          "declaration": "NativeSqliteOpenFailure : : borrow_original_database_cleanup ( _self : NativeSqliteOpenFailure , _original : NativeStoreOperationOriginal , ) - > Result [ Database ? , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::activate",
+          "declaration": "NativeStoreOperationOriginal : : activate ( _self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::cleanup_code",
+          "declaration": "NativeStoreOperationOriginal : : cleanup_code ( _self : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::close_checked",
+          "declaration": "NativeStoreOperationOriginal : : close_checked ( _self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::enter_cleanup",
+          "declaration": "NativeStoreOperationOriginal : : enter_cleanup ( _self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::enter_cleanup_work",
+          "declaration": "NativeStoreOperationOriginal : : enter_cleanup_work ( _self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::enter_store",
+          "declaration": "NativeStoreOperationOriginal : : enter_store ( _self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::has_publication_constructor",
+          "declaration": "NativeStoreOperationOriginal : : has_publication_constructor ( _self : NativeStoreOperationOriginal , ) - > Result [ Bool , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::leave_store",
+          "declaration": "NativeStoreOperationOriginal : : leave_store ( _self : NativeStoreOperationOriginal , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::pending_scope",
+          "declaration": "NativeStoreOperationOriginal : : pending_scope ( _self : NativeStoreOperationOriginal , ) - > Result [ Bool , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_delivery_window",
+          "declaration": "NativeStoreOperationOriginal : : prepare_delivery_window ( _self : NativeStoreOperationOriginal , _target : Int , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_delivery_workspace",
+          "declaration": "NativeStoreOperationOriginal : : prepare_delivery_workspace ( _self : NativeStoreOperationOriginal , _row : Int , _frame : Int , _schema_units : Int , _nodes : Int , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_publication_construction",
+          "declaration": "NativeStoreOperationOriginal : : prepare_publication_construction ( _self : NativeStoreOperationOriginal , _retained : Int64 , _execution : Int64 , _contiguous : Int64 , _retained_output : Bool , ) - > Result [ Unit , NativeSqliteIssue ]"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::prepare_publication_scaffold",
+          "declaration": "NativeStoreOperationOriginal : : prepare_publication_scaffold ( _self : NativeStoreOperationOriginal , index ? : Bool"
+        },
+        {
+          "name": "NativeStoreOperationOriginal::primary_code",
+          "declaration": "NativeStoreOperationOriginal : : primary_code ( _self : NativeStoreOperationOriginal , ) - > Int"
+        },
+        {
+          "name": "publication_construction_block_bound",
+          "declaration": "publication_construction_block_bound ( _slots : Int , _nodes : Int , _bytes : Int , ) - > Int64"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "Database::bind_original_store_operation",
+            "Database::insert_original_store_cleanup",
+            "Database::matches_original_store_operation",
+            "Library::open_original_local_store_database_with_custody",
+            "Library::open_original_remote_database_with_custody",
+            "NativeSqliteOpenFailure::borrow_original_database_cleanup",
+            "NativeStoreOperationOriginal::activate",
+            "NativeStoreOperationOriginal::cleanup_code",
+            "NativeStoreOperationOriginal::close_checked",
+            "NativeStoreOperationOriginal::enter_cleanup",
+            "NativeStoreOperationOriginal::enter_cleanup_work",
+            "NativeStoreOperationOriginal::enter_store",
+            "NativeStoreOperationOriginal::leave_store",
+            "NativeStoreOperationOriginal::pending_scope",
+            "NativeStoreOperationOriginal::prepare_delivery_window",
+            "NativeStoreOperationOriginal::prepare_delivery_workspace",
+            "NativeStoreOperationOriginal::primary_code",
+            "NativeStoreOperationOriginal::has_publication_constructor",
+            "NativeStoreOperationOriginal::prepare_publication_construction",
+            "NativeStoreOperationOriginal::prepare_publication_scaffold",
+            "publication_construction_block_bound"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_unsupported.mbt",
+                "anchor": "pub fn NativeStoreOperationOriginal::prepare_delivery_workspace("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_unsupported.mbt",
+                "anchor": "type NativeStoreOperationOriginal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native streamed Result read construction"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.inc",
+                "anchor": "value->calling"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_unsupported.mbt",
+                "anchor": "pub fn NativeStoreOperationOriginal::prepare_delivery_workspace("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "pub fn NativeLocalStoreOperation::retry_scope_cleanup("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_result_read.mbt",
+                "anchor": "pub fn result_read_frame_cost("
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_original.h",
+                "anchor": "actql_native_sqlite_prepare_store_operation_with_delivery_preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/sqlite/store_operation_native_wbtest.mbt",
+                "anchor": "Store operation original refuses a legacy Library before invoking its receiver"
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor funds only its same actual Read and preserves its maximum\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor keeps its failed finite Read prefix and actual cleanup duty\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor reentry cannot be hidden by a successful callback result\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/publication_store/publication_construction_native.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Journal Read and Store operation owners; no new allocation authority or cleanup owner",
+      "referenceQualification": "Actual constructor quantities and original Read/current/failure/cleanup responsibility references. Component tests are not full Native CLI or artifact acceptance.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "publication_index_inventory_cost",
+          "declaration": "publication_index_inventory_cost ( value : @ publication . EffectPreviewIdentityConstructionInventory , ) - > Int64 ?"
+        },
+        {
+          "name": "publication_index_measurement_cost",
+          "declaration": "publication_index_measurement_cost ( bindings : Int ) - > Int64 ?"
+        },
+        {
+          "name": "Store::check_original_commit_in_read",
+          "declaration": "Store : : check_original_commit_in_read ( self : Store , capture : @ local . ClientProgramCapture , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , definitions : Array [ @ publication . PublicationContract ] , artifacts : Array [ @ publication . PublicationContract ] , derivations : Array [ @ publication . PublicationContract ] , orderings : Array [ @ publication . PublicationContract ] , retentions : Array [ @ publication . PublicationContract ] , bindings : Array [ @ publication . PublicationContract ] , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , index : @ publication . PublicationContract , ) - > Result [ Unit , NativePublicationStoreIssue ]"
+        },
+        {
+          "name": "Store::issue_public_index_entry_in_original_read",
+          "declaration": "Store : : issue_public_index_entry_in_original_read ( self : Store , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , bindings : Array [ @ publication . PublicationContract ] , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , committed_at : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Result [ @ publication . PublicationContract , @ publication . PublicationCommitIssuanceIssue , ] , NativePublicationStoreIssue , ]"
+        },
+        {
+          "name": "Store::issue_public_index_entry_in_scope",
+          "declaration": "Store : : issue_public_index_entry_in_scope ( self : Store , original : @ sqlite . NativeStoreOperationOriginal , run_definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , manifest : @ publication . PublicationContract , receipt : @ publication . PublicationContract , captured_run : @ publication . PublicationContract , bindings : Array [ @ publication . PublicationContract ] , request : @ publication . PublicationContract , attempt : @ publication . PublicationContract , committed_at : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Result [ @ publication . PublicationContract , @ publication . PublicationCommitIssuanceIssue , ] , NativePublicationStoreIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "publication_index_inventory_cost",
+            "publication_index_measurement_cost",
+            "Store::check_original_commit_in_read",
+            "Store::issue_public_index_entry_in_original_read",
+            "Store::issue_public_index_entry_in_scope"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              },
+              {
+                "path": "src/platform_native/client_host/local_store_operation_original.mbt",
+                "anchor": "fn NativeLocalStoreOperationReceiver::prepare_publication_construction("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_validation.mbt",
+                "anchor": "pub fn check_program_commit_validation_in_read("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              },
+              {
+                "path": "src/platform_native/publication_store/publication_construction_native.mbt",
+                "anchor": "fn Store::check_original_commit_in_read("
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/original_read_consumer_native.mbt",
+                "anchor": "pub fn InstalledArenaHost::prepare_domain_original_read_construction("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "## Native publication metadata in the original Read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor funds only its same actual Read and preserves its maximum\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor keeps its failed finite Read prefix and actual cleanup duty\""
+              },
+              {
+                "path": "src/platform_native/installed_arena_control/publication_read_construction_physical_scoped_wbtest.mbt",
+                "anchor": "test \"publication constructor reentry cannot be hidden by a successful callback result\""
+              },
+              {
+                "path": "src/run_publication/public_index_construction_test.mbt",
+                "anchor": "test \"public index geometry measures the actual sealed issuer including its identity\""
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

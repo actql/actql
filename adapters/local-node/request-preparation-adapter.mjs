@@ -180,6 +180,16 @@ export function beginRequestInput(state, receipt, connection, assertCurrent, chi
   return true;
 }
 
+// HTTP owns only its copied input. The supplied stream's producer/backing and
+// connection permission are independent of this existing preparation parent.
+export function beginHttpRequestInput(state, receipt, assertCurrent, childrenPending) {
+  const moon = state.context.runtime;
+  if (typeof moon.clientProgramReserveRequestHttpInput !== 'function' ||
+      typeof moon.clientProgramPrepareRequestHttpJson !== 'function') invalid();
+  openRequestPreparation(state, receipt, assertCurrent, childrenPending);
+  return true;
+}
+
 export function cleanupRequestInput(state, retireInitialPreparation) {
   if(state.opening || state.adopting || state.snapshotting || state.preparing) invalid();
   const moon=state.context.runtime;
@@ -206,6 +216,7 @@ export function cleanupRequestInput(state, retireInitialPreparation) {
       state.contentPreparation = undefined;
       state.contentPlan = state.contentCompilation = state.contentGraph = undefined;
     }
+    state.effectMaterials=undefined;
     state.prepared=state.parametersCursor=undefined;
     // A failed family selection handoff can retain its original inventory
     // borrower as well. Core consumes each holder before attempting owner

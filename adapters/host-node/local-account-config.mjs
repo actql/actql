@@ -11,17 +11,19 @@ import {readFile, stat} from 'node:fs/promises';
 import {openSync, readSync, closeSync, fstatSync} from 'node:fs';
 import {isAbsolute, resolve} from 'node:path';
 import {createNodeAuthorizationGate} from './authorization.mjs';
+import {isAccountConstruction, readAccountOriginal, readAccountCurrent} from './account-construction.mjs';
 
 export const ACCOUNT_CONFIG_INVALID = 'ACTQL_E_ACCOUNT_CONFIG_INVALID';
 const MAX_CONFIGURATION_BYTES = 1_000_000;
 
 // Physical observation only. Core admits/evaluates the returned original
 // bytes. The extra byte detects growth without an unbounded read or allocation.
-function observeAccountConfigurationWire(authorization) {
+function observeAccountConfigurationWire(authorization, frame) {
   try {
     let wire = authorization?.accountConfiguration;
     if (authorization?.accountConfig !== undefined) {
       if (wire !== undefined) return undefined;
+      if (frame !== undefined) return readAccountCurrent(authorization.accountConfig, frame);
       const fd = openSync(authorization.accountConfig, 'r');
       try {
         // Size selects only a bounded workspace, never configuration identity
@@ -42,7 +44,7 @@ function observeAccountConfigurationWire(authorization) {
         wire = new TextDecoder('utf-8', {fatal: true}).decode(buffer.subarray(0, used));
       } finally { closeSync(fd); }
     }
-    return typeof wire === 'string' && Buffer.byteLength(wire) <= MAX_CONFIGURATION_BYTES
+    return typeof wire === 'string' && (frame !== undefined || Buffer.byteLength(wire) <= MAX_CONFIGURATION_BYTES)
       ? wire : undefined;
   } catch { return undefined; }
 }
@@ -50,15 +52,24 @@ function observeAccountConfigurationWire(authorization) {
 // Shared by the installed Model owner and Local account gate. This reads no
 // new identity or permit and preserves the existing Model Missing fallback.
 const installedAccountObservations = new WeakMap();
-export function observeInstalledAccount(moon, authorization) {
+export function observeInstalledAccount(moon, authorization, construction) {
+  construction ??= authorization?.accountConstruction;
+  if (construction !== undefined) {
+    if (!isAccountConstruction(construction)) throw new TypeError('ForeignAccountConstruction');
+    return construction.observe(frame => observeInstalledAccountOriginal(moon, authorization, frame, construction));
+  }
+  return observeInstalledAccountOriginal(moon, authorization);
+}
+
+function observeInstalledAccountOriginal(moon, authorization, frame, construction) {
   try {
-    const wire = observeAccountConfigurationWire(authorization);
+    const wire = observeAccountConfigurationWire(authorization, frame);
     if (wire === undefined) return moon.executionAuthorizationMissing();
     // Keep only one admitted immutable value per actual runtime/installation.
     // The original file is still read at EVERY protected boundary. Changed,
     // missing and rejected bytes cannot reuse the retained Account judgment.
     if (authorization === null || typeof authorization !== 'object') {
-      return moon.executionAuthorizationAdmit(wire);
+      return frame === undefined ? moon.executionAuthorizationAdmit(wire) : frame.admit(moon, wire);
     }
     let observations = installedAccountObservations.get(moon);
     if (observations === undefined) {
@@ -67,8 +78,12 @@ export function observeInstalledAccount(moon, authorization) {
     }
     const retained = observations.get(authorization);
     if (retained?.wire === wire) return retained.account;
-    const account = moon.executionAuthorizationAdmit(wire);
+    const account = frame === undefined ? moon.executionAuthorizationAdmit(wire) : frame.admit(moon, wire);
     observations.set(authorization, {wire, account});
+    if (frame !== undefined) {
+      frame.hold();
+      construction.onRetire(() => {observations.delete(authorization);});
+    }
     return account;
   } catch { return moon.executionAuthorizationMissing(); }
 }
@@ -126,7 +141,8 @@ export function bytesCid(bytes) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }
 
-function configurationOf(text) {
+function configurationOf(text, frame) {
+  frame?.nativeJson(text);
   let document;
   try { document = JSON.parse(text); }
   catch (error) { fail(ACCOUNT_CONFIG_INVALID, error); }
@@ -143,12 +159,17 @@ function configurationOf(text) {
 
 // Read one configuration file. Its identity is the CID of the complete
 // canonical document; admission (canonical order, overlap) stays in Core.
-export async function readAccountConfiguration(path) {
+export async function readAccountConfiguration(path, frame) {
   if (typeof path !== 'string' || path.length === 0) {
     fail(ACCOUNT_CONFIG_INVALID, 'AccountConfigurationPathRequired');
   }
   const absolute = isAbsolute(path) ? path : resolve(path);
   let text;
+  if (frame !== undefined) {
+    try {text = await readAccountOriginal(absolute, frame);}
+    catch (cause) {fail(ACCOUNT_CONFIG_INVALID, cause);}
+    return Object.freeze({path: absolute, ...configurationOf(text, frame)});
+  }
   try {
     if ((await stat(absolute)).size > MAX_CONFIGURATION_BYTES) {
       fail(ACCOUNT_CONFIG_INVALID, 'AccountConfigurationTooLarge');
@@ -180,10 +201,23 @@ export function localAuthorizationContext(principal, accountId) {
 // (`accountConfiguration`), or the Missing gate when neither was selected. A
 // selected but unreadable or rejected configuration is an installation
 // failure; it never degrades to Missing or to allow.
-export async function createLocalAuthorizationGate({
+export async function createLocalAuthorizationGate({accountConstruction, ...options} = {}) {
+  if (accountConstruction === undefined) return createLocalAuthorizationGateOriginal(options);
+  if (!isAccountConstruction(accountConstruction)) fail(ACCOUNT_CONFIG_INVALID, 'ForeignAccountConstruction');
+  const frame = accountConstruction.begin();
+  try {
+    const gate = await createLocalAuthorizationGateOriginal(options, frame, accountConstruction);
+    frame.retainGate(gate);
+    frame.finish(true);
+    return Object.freeze({...gate, close: frame.closeGate, cleanup: frame.closeGate,
+      cleanupPending: frame.gateCleanupPending});
+  } catch (cause) {frame.failure(cause); frame.finish(false); throw cause;}
+}
+
+async function createLocalAuthorizationGateOriginal({
   accountConfig, accountConfiguration, principal = 'local-operator', context,
   ...options
-} = {}) {
+} = {}, frame, construction) {
   const none = value => value === undefined || value === null;
   if (!none(accountConfig) && !none(accountConfiguration)) {
     fail(ACCOUNT_CONFIG_INVALID, 'ConflictingAccountConfiguration');
@@ -197,19 +231,31 @@ export async function createLocalAuthorizationGate({
     fail(ACCOUNT_CONFIG_INVALID, 'AccountConfigurationText');
   }
   const configuration = none(accountConfig)
-    ? configurationOf(accountConfiguration)
-    : await readAccountConfiguration(accountConfig);
+    ? configurationOf(accountConfiguration, frame)
+    : await readAccountConfiguration(accountConfig, frame);
   const installedContext = context ?? localAuthorizationContext(principal,
     configuration.accountId);
+  let observation;
+  const withAccountObservation = operation => {
+    if (observation !== undefined) fail(ACCOUNT_CONFIG_INVALID, 'AccountObservationReentry');
+    return construction.observe(current => {
+      observation = current;
+      try {return operation();} finally {observation = undefined;}
+    });
+  };
   try {
     const gate = await createNodeAuthorizationGate({
       ...options,
+      ...(frame === undefined ? {} : {
+        admitConfiguration: (moon, wire) => (observation ?? frame).admit(moon, wire),
+        withAccountObservation,
+      }),
       configuration: configuration.text,
       configurationCid: configuration.configurationCid,
       // Retain the installation's resolved path, not a later cwd or caller
       // property. A wire-backed gate owns its immutable admitted configuration.
       readConfiguration: configuration.path === undefined ? undefined
-        : () => observeAccountConfigurationWire({accountConfig: configuration.path}),
+        : () => observeAccountConfigurationWire({accountConfig: configuration.path}, observation),
       context: installedContext,
     });
     // The installed row Source and its Checkpoint projection need the same

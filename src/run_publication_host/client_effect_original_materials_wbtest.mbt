@@ -4,12 +4,14 @@ fn original_effect_materials_fixture(
   parameterized? : Bool = false,
   alternate? : Bool = false,
   normalized? : Bool = false,
+  selected_environment? : @checked.CheckEnvironment? = None,
 ) -> (
   PreparedClientEffectComputation,
   ClientEffectAllowedRun,
   @publication.PublicationContract,
 ) {
-  let (base, environment, limits) = client_composed_effect_base_fixture()
+  let (base, fixture_environment, limits) = client_composed_effect_base_fixture()
+  let environment = selected_environment.unwrap_or(fixture_environment)
   let base = if alternate {
     base.replace(old="\"value\":1", new="\"value\":2")
   } else {

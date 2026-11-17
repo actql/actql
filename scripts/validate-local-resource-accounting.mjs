@@ -2,6 +2,14 @@ import path from 'node:path';
 import {sourceAccess} from './local-resource-accounting-sources.mjs';
 import {localResourceApiIssues} from './local-resource-api-guard.mjs';
 import {registeredResourceEnvironmentCase, registeredDirectTraversalHostCase} from './local-resource-environment-fixtures.mjs';
+import {hasExecutableTestCase} from './executable-test-cases.mjs';
+
+export function executableBoundaryFixturePresent(item, source) {
+  return item.case_id === undefined
+    ? source.includes(`test "${item.fixture}"`)
+    : item.case_id === item.role &&
+      hasExecutableTestCase(source, item.case_id);
+}
 
 // No filesystem, environment, output, or process state is consulted here.
 // Every invocation owns its errors and derived sets. Sources are an immutable
@@ -578,8 +586,8 @@ export function validateResourceAccounting({
         continue;
       }
       const file = path.join(root, item.path);
-      if (!fs.existsSync(file) ||
-        !fs.readFileSync(file, 'utf8').includes(`test "${item.fixture}"`)) {
+      const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+      if (!executableBoundaryFixturePresent(item, text)) {
         fail(`${label}: missing operation boundary fixture ${item.fixture}`);
       }
     }
@@ -603,14 +611,15 @@ export function validateResourceAccounting({
       // Admission of a selected earlier producer is distinct from executing the
       // checked branch. Never let a constructor-only fixture stand in for the
       // real ordered-output/cancellation test or the retained negative controls.
-      const valuesAnchors = new Map([
-        ['retained_source_free_chain_rejection', 'Values publication rejects wrong children and shadowing providers'],
-        ['retained_source_free_product_branch_admission', 'product retained factory admits the exact earlier Values producer of a checked branch'],
-        ['retained_source_free_branch_execution_and_cancellation', 'source-free Values chains preserve ordered results and cancellation custody'],
-      ]);
-      for (const [role, fixture] of valuesAnchors) {
+      const valuesAnchors = [
+        'retained_source_free_chain_rejection',
+        'retained_source_free_product_configuration',
+        'retained_source_free_product_branch_admission',
+        'retained_source_free_branch_execution_and_cancellation',
+      ];
+      for (const role of valuesAnchors) {
         const entry = route.boundary_tests?.find(item => item.role === role);
-        if (entry && (entry.fixture !== fixture || entry.suite !== 'moon:query_integration' ||
+        if (entry && (entry.case_id !== role || entry.suite !== 'moon:query_integration' ||
             entry.path !== 'src/query_integration/local_retained_values_chain_wbtest.mbt')) {
           fail(`${label}: ${role} must bind its distinct checked Values boundary`);
         }

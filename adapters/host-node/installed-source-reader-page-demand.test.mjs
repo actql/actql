@@ -83,9 +83,9 @@ test('same managed service reader demand supplies original whole page bounds wit
     const start=source.indexOf('  function managedWholeSourceCapacity('),end=source.indexOf('  const captureCapacity = owner =>',start);
     const prepared={},selection={},declaration={},contracts={},capacity={};
     const moon={clientProgramPrepareWholeSourceCapacity(...args){
-      assert.deepEqual(args,[prepared,selection,declaration,contracts,f.capacity,4,256,64,6,2]);return ok(capacity);}};
+      assert.deepEqual(args,[prepared,selection,declaration,contracts,f.capacity,4,256,64,6,2,3]);return ok(capacity);}};
     const ports={moon,checked,fail,declaration,originalReader:selected.originalReader,
-      providerSiteCurrent(){return true;},site:{},limits:{maxCaptureRows:4,maxPageBytes:256,maxPageRows:2},
+      providerSiteCurrent(){return true;},site:{},limits:{maxPages:3,maxCaptureRows:4,maxPageBytes:256,maxPageRows:2},
       pageLimits:selected.pageLimits,managedPageLimits:selected.managedPageLimits,maxTransferBytes:768n};
     const select=Function(...Object.keys(ports),source.slice(start,end)+'\nreturn managedWholeSourceCapacity;')(...Object.values(ports));
     assert.equal(select({preparedProgram:prepared,sourceSelection:selection,installedContracts:contracts}).capacity,capacity);
@@ -229,6 +229,9 @@ function tableManagedReaderFixture({rows=[{name:'e\u0301\r\n',zero:0,nullable:nu
   },clientProgramInstalledTableSourceSerializationCapacity(previous,bytes){
     assert.equal(this,moon);assert.equal(previous,capacity);const next=Object.freeze({previous,bytes,kind:'serialization'});
     serializeQuotes.push(next);events.push('quote-serialization');return ok(next);
+  },clientProgramInstalledTableSourceCompletedCapacity(original,nodes,fields,objects,arrays,units){
+    assert.equal(original,initial);assert(nodes>0);assert(fields>=0);assert(objects>0);assert(arrays>=0);assert(units>0);
+    events.push('quote-completed');return ok(Object.freeze({previous:capacity,kind:'completed'}));
   },clientProgramRowSourceChargeResponseBody(actual,body){
     assert.equal(this,moon);assert.equal(actual,run);assert.equal(nativeTicket,undefined);assert.equal(body,raw.at(-1));
     chargedBytes+=body.length;nativeTicket=Object.freeze({body});tickets.push(nativeTicket);events.push('charge-raw');return ok(nativeTicket);
@@ -236,6 +239,7 @@ function tableManagedReaderFixture({rows=[{name:'e\u0301\r\n',zero:0,nullable:nu
   const reserve=(next,phase)=>{
     assert.equal(next.previous,capacity);
     if(phase===undefined)assert.notEqual(nativeTicket,undefined,'final unconsumed response uses charged growth');
+    else if(phase==='completed-body')assert.equal(next.kind,'completed');
     else{assert.equal(phase,'announced-body');assert.equal(nativeTicket,undefined,'previous observation retired before constructor grow');}
     reserveCalls.push({next,phase});events.push('reserve');if(growthFailure!==undefined&&reserveCalls.length===1)throw growthFailure;
     capacity=next;
@@ -243,13 +247,16 @@ function tableManagedReaderFixture({rows=[{name:'e\u0301\r\n',zero:0,nullable:nu
   const receive=(physical,value)=>{
     const body=Buffer.from(JSON.stringify(value));raw.push(body);
     physical.beforeBodyAllocation(body.length);events.push('allocate');physical.bodyReceived(body);events.push('received');
+    const framed=Buffer.alloc(4+body.length);framed.writeUInt32BE(body.length);body.copy(framed,4);
+    createProcessFrameReader({maxBytes:4194304,maxNodes:100000,maxDepth:32},()=>{},
+      undefined,undefined,physical.bodySnapshot).feed(framed);
   };
-  const bridge={async resolveGeneration(actual,signal,beforeBodyAllocation,bodyReceived){
+  const bridge={async resolveGeneration(actual,signal,beforeBodyAllocation,bodyReceived,bodySnapshot){
     assert.equal(actual,selector);resolving++;events.push('metadata');signal.throwIfAborted();
-    const p={beforeBodyAllocation,bodyReceived};receive(p,{kind:'ready'});receive(p,{ok:true,result:frozen});return {ok:true,result:frozen};
-  },async read(actualReceipt,actualMapping,signal,beforeBodyAllocation,bodyReceived){
+    const p={beforeBodyAllocation,bodyReceived,bodySnapshot};receive(p,{kind:'ready'});receive(p,{ok:true,result:frozen});return {ok:true,result:frozen};
+  },async read(actualReceipt,actualMapping,signal,beforeBodyAllocation,bodyReceived,bodySnapshot){
     assert.equal(actualReceipt,receipt);assert.equal(actualMapping,frozen.mapping);readCalls++;events.push('read');signal.throwIfAborted();
-    const p={beforeBodyAllocation,bodyReceived};receive(p,{kind:'ready'});receive(p,{ok:true,result:rows});
+    const p={beforeBodyAllocation,bodyReceived,bodySnapshot};receive(p,{kind:'ready'});receive(p,{ok:true,result:rows});
     if(returnedFailure!==undefined)throw returnedFailure;
     return {ok:true,result:rows};
   }};
@@ -361,6 +368,7 @@ function tableBoundConstructionFixture({refuseInitial=false}={}) {
   const moon={clientProgramInstalledTableSourceReaderCapacity(columns,original){assert.equal(this,moon);assert.equal(columns,3);assert.equal(original,profileCapacity);events.push('reader-quote');return refuseInitial?undefined:capacity;},
     clientProgramInstalledTableSourceBodyCapacity(){assert.fail('no body quote during installation');},
     clientProgramInstalledTableSourceSerializationCapacity(){assert.fail('no output quote during installation');},
+    clientProgramInstalledTableSourceCompletedCapacity(){assert.fail('no completed quote during installation');},
     clientProgramRowSourceChargeResponseBody(){assert.fail('no received-byte charge during installation');}};
   const original={moon,root:'/UNOPENED',principalId:'original',current(){},selected:new Map([[installation,'original-runtime']])};
   sourceContexts.set(context,{original,material,scope});installations.set(services,original);
@@ -381,12 +389,13 @@ function tableBoundConstructionFixture({refuseInitial=false}={}) {
     runtimeUnboxedReferenceOption:value=>value,
     captureConfigurationReaders:value=>value,installedSourceConfigurationReader:()=>({}),
     reserveInstalledTableConstruction(a,b,c){assert.equal(a,original);assert.equal(b,material);assert.equal(c,profile);events.push('profile-reserve');return profileCapacity;},
+    installedTableReaderConstruction(a,b,c,_construction,selectedBridge){assert.equal(a,original);assert.equal(b,material);assert.equal(c,profile);assert.equal(selectedBridge,bridge);events.push('reader-profile-quote');return profileCapacity;},
     requireSynchronousSourceConstruction:(_m,value)=>value,
-    async installRowSourceAuthorization(){events.push('account');return account;},
+    async installRowSourceAuthorization(options){assert.equal(options.gateOptions.accountConstruction,undefined);events.push('account');return account;},
     installedTableReadSite({authorization,ownAuthorization}){assert.equal(authorization,account);assert.equal(ownAuthorization,true);return {connection:'table-original',issueReadGrant(){assert.fail('no grant during construction');}};},
     reserveSource(a,b){assert.equal(a,original);assert.equal(b,material);assert.equal(material.providers.at(-1),capacity);events.push('reserve-reader');},
     createInstalledTableSource:factory};
-  const bind=Function(...Object.keys(hostPorts),body(host,'bindInstalledSourceConstruction')+'\nreturn bindInstalledSourceConstruction;')(...Object.values(hostPorts));
+  const bind=Function(...Object.keys(hostPorts),body(host,'installedAccountConstruction')+'\n'+body(host,'bindInstalledSourceConstruction')+'\nreturn bindInstalledSourceConstruction;')(...Object.values(hostPorts));
   const bound=bind(services,context,profile);
   const options={connection:'table-original',targets,limits:{maxPages:3,maxPageBytes:65536,maxPageRows:16,maxCaptureRows:16},accountConfiguration:'original-account',
     createBridge(){events.push('bridge');return bridge;}};
@@ -396,7 +405,7 @@ function tableBoundConstructionFixture({refuseInitial=false}={}) {
 test('normal Table bound construction reserves and registers its SAME managed reader before original row Source',async()=>{
   const f=tableBoundConstructionFixture();const source=await f.create();
   assert.equal(source,f.source());assert.equal(f.scope.reader,source.reader);assert.equal(f.owned().reader,source.reader);
-  assert.deepEqual(f.events,['profile-reserve','bridge','declare','account','reader-quote','reserve-reader','row-source']);
+  assert.deepEqual(f.events,['profile-reserve','bridge','reader-profile-quote','declare','account','reader-quote','reserve-reader','row-source']);
   assert.equal(f.owned().adapter,source);assert.equal(source.reader.retire(),true);
 });
 
@@ -439,6 +448,7 @@ function tableOriginalPreparationFixture({rowRunFailure, readPages, beforeCharge
     clientProgramInstalledTableSourceBodyCapacity(previous,bytes) {
       assert.equal(this,moon);assert(bytes>0);return ok(Object.freeze({previous}));
     },
+    clientProgramInstalledTableSourceCompletedCapacity(){assert.fail('no completed reply in this preparation fixture');},
     clientProgramInstalledTableSourceSerializationCapacity(previous,bytes) {
       assert.equal(this,moon);assert(bytes>0);return ok(Object.freeze({previous}));
     },

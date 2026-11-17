@@ -1,0 +1,21 @@
+{
+  "source": "6b1733e430d8b7b126c9ec4a3189fcc697cdb6ce",
+  "qualification": "Finite current JS package-configuration review only. This exact authored descriptor adds one literal Native-only source selector; it changes no imports, aliases, supported targets, previous predicates, native stubs, linker options, build hooks or external resolvers. Every immediate source byte, mode, membership and transitive literal import remains an input. This review does not execute Native code, establish runtime acceptance, or authorize artifact reuse.",
+  "path": "src/platform_native/publication_store/moon.pkg",
+  "sha256": "e58d91de882c517bf24b92c07e74e53086b49efd192b0ddc818dfbfa5142fff5",
+  "bytes": 2791,
+  "previousRevision": "5c1a8935e03bfaf9bb95d04e0f6d6d5bb03d82df",
+  "previousSha256": "cd70efa7cfa79c9a765b602ed3550ba518ab66ad6bd3ec7766f00e9e4301818b",
+  "previousBytes": 2734,
+  "rule": "literal-native-options-with-bound-source-membership",
+  "addedSelectors": [
+    {
+      "file": "publication_construction_native.mbt",
+      "targets": [
+        "native"
+      ]
+    }
+  ],
+  "meaning": "The publication constructor uses the existing Native Store operation and SQLite Read custody ports. Its literal Native-only selector excludes that implementation from portable compilation while leaving the existing portable Store implementation and all preceding target choices unchanged. The JS verification input closure still binds the new Native source and every other Store member, including its C stub.",
+  "refusalPolicy": "Only the exact current descriptor digest at the same JS verification target and reviewed toolchain qualifies. Earlier descriptors remain historical. Changed selectors, imports, aliases, options, hooks, paths, targets or toolchain remain refused or separately rekeyed; no wildcard package-language admission is added."
+}

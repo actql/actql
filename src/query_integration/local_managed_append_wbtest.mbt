@@ -256,11 +256,20 @@ test "ordinary append filter chain retains both outputs with one scratch envelop
     capacity.execution_bytes,
     Int64::max(
       base.retained_bytes,
-      retained_children + peak_scratch + 512L + 512L,
+      retained_children +
+      peak_scratch +
+      512L +
+      512L +
+      capacity_evidence_selection_bytes(),
     ),
   )
   assert_true(
-    capacity.execution_bytes < retained_children + summed_scratch + 512L + 512L,
+    capacity.execution_bytes <
+    retained_children +
+    summed_scratch +
+    512L +
+    512L +
+    capacity_evidence_selection_bytes(),
   )
   @strategy.stop_captured_dag(run)
   @mock.close_mock_query_issuer(issuer)

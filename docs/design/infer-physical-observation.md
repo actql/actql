@@ -80,6 +80,56 @@ and independent saved Result access retain their existing contracts; a fresh
 Scope or successful public status is not a physical-stop or recovery receipt.
 
 
+## Original Model inventory construction
+
+Installed Model definition counts describe the checked graph's selected
+component inventory. They do not grant calls, rows, attempts or provider work.
+The original Request construction reservation covers the selected component,
+Scope and preparation wrappers before the Host receives them. The adopted
+Model and Effect Plan retains the corresponding quantity on that same Run.
+A supplied count or caller-created getter cannot stand in for this original
+admission. Legacy entrances keep their independently bounded inventory.
+
+A completed original operation grows its existing publication borrower before
+constructing capture wrappers, exported call arrays or evaluation bundles.
+The module-issued inventory receipt binds the exact operation, funding owner,
+count and current numerical scope; it carries no new Ledger or authority.
+The cached bundle and Model-evidence projection remain DATA on that original
+custody and retire with its publication aliases. A larger complete group must
+account for every original member in order; an unproved member cannot borrow
+a sibling's receipt to bypass the legacy aggregate bound.
+
+Evidence-copy construction uses the same original operation and publication
+borrower. Its request geometry, output and already-live material remain
+co-held through the copy. A reserve callback, equal wire or arbitrary receipt
+is not proof of that funding. Currentness is rechecked before construction and
+after the grow, and failed or pending cleanup retains the same original debt.
+Stopped-attempt proofs are funded on the original Model state before their
+construction; stopping cannot obtain a late publication grant or a new send.
+These witnesses remain separate from Store acknowledgement, Result acceptance
+and actual physical cleanup.
+
+## Original retained Model input and cold masks
+
+A retained Model input is handed off through the same physical completed input,
+Read consumer, compiled Program, Definition and Plan. The materialization witness
+is opaque, one-shot and bound to that original input. Its required geometry is
+derived internally before construction; a caller-created amount or Ref cannot
+supply credit. The receiving constructor span includes the Resource owner's
+actual retained prefix and the simultaneous old/new material. Foreign completion,
+small original capacity and an unquoted binding remain refusals.
+
+Cold reconstruction borrows that same retained input and completed journal. It
+funds the exact boolean mask before reading the lazy slot view or constructing
+its map, checks the selected count, and restricts the same original operation.
+Cancellation and first close retain the original Read and pending physical duties.
+Reconstruction does not reopen Source, replay Model, issue a replacement send or
+acknowledge a physical child. Legacy and explicit smaller inventory choices,
+including the installed Task's standard item policy, remain binding. Explicit
+Core limits can exercise a larger retained inventory without changing that policy.
+The named materialization and cold-mask tests are Source contract references;
+normal installed and saved acceptance require their own execution evidence.
+
 ## Effect Model startup on the original Request
 
 An Effect's Model child retains the same selected provider, Graph, rows and

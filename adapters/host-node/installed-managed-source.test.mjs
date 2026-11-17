@@ -9,6 +9,7 @@ import {contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
+import {captureSourceAliasConstruction} from './source-alias-construction.mjs';
 
 test('managed Source Plan selection captures the original declaration method and receiver', () => {
   const selection = Object.freeze({declaration: {}, provider: {}, transferBytes: 1n, executionBytes: 2n});
@@ -46,7 +47,8 @@ async function publishLoadedSources(profile) {
         node.right.callee?.name === 'sourceAliasPublication') publication = node;
   });
   assert(loading && publication);
-  return new Function('loadInstalledSources', 'preparation', 'moon', 'sourceAliasPublication', `
+  return new Function('loadInstalledSources', 'preparation', 'moon', 'sourceAliasPublication',
+    'captureSourceAliasConstruction', 'installedSourceConfigurationReader', 'readInstalledSourceEnvironment', `
     return (async () => {
       let sourceProfile, sourcePublication, sourcePublicationSources;
       const selectedSourcePaths=['/original/source.json'];
@@ -61,7 +63,10 @@ async function publishLoadedSources(profile) {
     })();
   `)(async () => profile, {bindManagedSources: (_moon, selected) =>
     bindInstalledManagedSources(selected, () => assert.fail('Metadata does not admit a Run'))}, {},
-  (_moon, _environment, _aliases, _writes, options) => options.installedSources);
+  (_moon, _environment, _aliases, _writes, options) => options.installedSources,
+  captureSourceAliasConstruction,
+  services => {assert.equal(services, undefined);return undefined;},
+  () => assert.fail('Metadata-only publication cannot read an Environment'));
 }
 for (const plural of [false, true]) {
   test(`Host namespace publication retains loader originals through ${plural ? 'plural' : 'single'} managed binding`, async () => {
@@ -573,16 +578,18 @@ test('dispatch retains an unreturned original Source preparation after physical 
   const syntax = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
   const functions = [];
   visit(syntax, node => {
-    if (node.type === 'FunctionDeclaration' && node.id.name === 'retire') functions.push(node);
+    if (node.type === 'FunctionDeclaration' && ['retirementReady', 'retire'].includes(node.id.name)) functions.push(node);
   });
-  assert.equal(functions.length, 1);
+  assert.deepEqual(functions.map(node => node.id.name).sort(), ['retire', 'retirementReady']);
+  // Keep the actual readiness predicate in the same scope as its caller.
+  const declarations = functions.map(node => text.slice(node.start, node.end)).join('\n');
   let returns = 0;
   const entry = {settled: true, physicalStarted: false,
     sourcePreparations: [{original: 'same unreturned preparation'}],
     retirePreparation() {returns++;}};
   const entries = new Map([['original', entry]]);
   const retire = new Function('entries', 'keyOf',
-    text.slice(functions[0].start, functions[0].end) + ';return retire;')(entries, () => 'original');
+    declarations + ';return retire;')(entries, () => 'original');
   retire(entry);
   assert.equal(returns, 0);
   assert.equal(entries.get('original'), entry);
@@ -692,12 +699,14 @@ test('common row Source publication retains its readonly metadata and retirement
   const {types} = await import('node:util');
   const source = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
   const begin = source.indexOf('  let selectedSurface;'), end = source.indexOf('  let publicationFields', begin);
-  const select = new Function('publicationSurface', 'nodeTypes', 'fail', source.slice(begin, end) + ';return selectedSurface;');
+  const select = new Function('publicationSurface', 'nodeTypes', 'fail', 'environment', source.slice(begin, end) + ';return selectedSurface;');
   const required = ['realizationKey','supportsRetainedRelationOutput','connectorRegistration','connectorRevision',
     'environmentWire','connectorBindings','readAuthorization','sourceAccess','sourceReadAccesses',
     'admitsSource','ledgerCapacity','prepare','open','close'];
   const original = Object.freeze(required);
   assert.deepEqual(select(original, types, code => {throw new Error(code);}), [...required, 'retirePreparedSource', 'prepareRetained']);
+  assert.deepEqual(select(original, types, code => {throw new Error(code);}, Object.freeze({})),
+    [...required, 'retirePreparedSource', 'prepareRetained', 'environmentOriginal']);
   assert.deepEqual(original, required, 'Do not mutate the original provider DATA selection');
 });
 
@@ -730,4 +739,49 @@ test('DuckDB readonly and held-read preparations share their checked target and 
   const original = await prepareCapturedDuckDBSource(options);
   assert.deepEqual(retained, original, 'The same immutable descriptor rules apply to both purposes');
   assert.equal(authorizations, 1, 'Only ordinary held-read preparation observes authorization');
+});
+
+
+test('normal Whole Effect selection borrows the exact prepared policy and keeps legacy and typed refusal', () => {
+  const text = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+  const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  let method;
+  visit(tree, node => {if (node.type === 'Property' && node.method &&
+    node.key.name === 'managedEffectPlanSelection') {assert.equal(method, undefined); method = node;}});
+  assert(method);
+  const prepared = {}, limits = {maxPages: 3, maxCaptureRows: 16, maxPageBytes: 4194304, maxPageRows: 16};
+  const declaration = {}, normal = {}, legacy = {}, cause = {};
+  const calls = [], checked = result => {
+    if (result.$tag === 1) return result._0;
+    throw Object.assign(new Error('MoonBitHostFailure', {cause: result._0}), {code: 'MoonBitHostFailure'});
+  };
+  const moon = {
+    clientProgramInstalledRowInputPolicy(...args) {calls.push(['legacy', ...args]);return legacy;},
+    clientProgramInstalledEffectRowInputPolicy(...args) {
+      calls.push(['normal', ...args]);
+      return this.refuse ? {$tag: 0, _0: cause} : {$tag: 1, _0: normal};
+    },
+  };
+  const select = new Function('moon', 'checked', 'prepareAcquisition', 'listingPolicy', 'prepareRead',
+    'originalReader', 'prepareSourceRead', 'providerSiteCurrent', 'site', 'managedPageLimits',
+    'pageLimits', 'limits', 'declaration', 'maxTransferBytes', 'fail',
+    `return ({${text.slice(method.start, method.end)}}).managedEffectPlanSelection;`)(
+    moon, checked, undefined, undefined, undefined, undefined, () => {}, undefined, {},
+    {maxNodes: 400000, maxDepth: 32}, undefined, limits, declaration, 4194304n,
+    code => {throw Object.assign(new Error(code), {code});});
+  const selected = select(Object.freeze({preparedEffect: prepared}));
+  assert.strictEqual(selected.inputLimits, normal);
+  assert.strictEqual(selected.declaration, declaration);
+  assert.equal(selected.executionBytes, 4194304n);
+  assert.strictEqual(select().inputLimits, legacy);
+  assert.deepEqual(calls, [
+    ['normal', 3, 16, 4194304, 400000, 32, 16], ['legacy', 16, 4194304, 400000, 32, 16],
+  ]);
+  moon.refuse = true;
+  assert.throws(() => select(Object.freeze({preparedEffect: prepared})), error => error.cause === cause);
+  let getters = 0;
+  const forged = Object.freeze({get preparedEffect() {getters++;return prepared;}});
+  assert.throws(() => select(forged), {code: 'InstalledSourcePlanConstructorUnavailable'});
+  assert.equal(getters, 0);
+  assert.throws(() => select({preparedEffect: prepared}), {code: 'InstalledSourcePlanConstructorUnavailable'});
 });

@@ -628,6 +628,12 @@ erase file responsibility. The standard strategy entry does not infer a retained
 representation from connector identity: representation-aware candidate/copy
 selection is a separate admission responsibility.
 
+A logical row may span multiple bounded physical chunks. The original READ
+workspace reserves row backing, decoded text and frame overlap from the same
+capacity before constructing its framer. Its verified total payload bounds the
+initialized backing; the explicit row, chunk, depth and signed-Int limits remain
+independent. A larger row does not enlarge a chunk or reserve another capacity.
+
 `CompletedOutputImport` is an explicit representation conversion. It admits
 values provisionally and checks the complete ordered identity against the exact
 source result before exposing a Local-readable copy. Matching content alone
@@ -636,10 +642,28 @@ logical use restrictions, but does not inherit the original copy's physical
 failure condition. Conversion reservations and the resulting holding remain
 the physical Host's responsibility.
 
+Its identity verifier uses the existing hash-only canonical encoder: canonical
+text is never returned by this consumer and must not be buffered and discarded.
+Value admission, ordered identity, byte/node/depth/work limits and source
+currentness still apply. The positive physical batch setting remains validated;
+actual input framing owns that window, while a row may cross multiple chunks.
+Exporters that actually return canonical text retain their bounded buffer.
+
 The inverse conversion serializes an existing completed cell representation
 through the same canonical encoder. It reads the sealed row/column storage one
 row at a time, with cumulative value/encoding limits and a bounded output batch;
 it neither accepts replacement rows nor reruns the producing computation.
+
+Physical batch export drains its same bounded writer within a logical row
+when that row exceeds one frame. This applies both to callers with prepaid
+export backing and to the existing same-Task numerical growth callback. The
+callback, when supplied, must still fund the complete measured row before
+payload emission; its absence does not grant capacity. Fragmenting adds no
+writer, measurement, reservation or owner and never enlarges a frame. Aggregate
+wire/node/depth/work limits, original currentness and the final exact receipt
+remain mandatory. Provisional chunks are neither complete rows nor storage
+acknowledgements. The ordinary complete-row reader keeps its separate mode and
+refuses a row which cannot fit its selected row buffer.
 End-of-rows is not a complete receipt: the final delimiter and hash must finish
 before the Store can seal its bytes. Storage binding requires the exact export
 content receipt, not matching CID text from another export or completion.
@@ -1044,3 +1068,101 @@ attributes and refuses holes, accessors, extra own fields and out-of-range
 scalars. This presentation neither admits a report nor changes the original
 Run, Ledger, cancellation or retirement lifetime. Snapshot allocation and
 observation storage remain subject to their existing owners and limits.
+
+
+## Native streamed Result read construction
+
+Native streamed JSON, JSONL and CSV delivery uses the original Store operation
+and its original Host Read. After immutable payload metadata has been verified,
+the Store bounds eager row backing by the smaller of the selected row limit and
+the verified payload size. Before creating either the serializer or the row
+framer, it passes that bound, the selected input window, the actual schema and
+field spelling units, and the selected node limit through the same coordinator.
+A logical row may span multiple physical chunks. Input and output chunks retain
+their independent sixteen MiB bound; depth, output authorization, integer
+overflow, row count and current checks remain independent obligations.
+
+The original Request and Native Read share the frame, schema and row
+parse/serialization representation costs. Native adds its existing output
+window cost and obtains contiguous-block geometry from the selected runtime's
+managed-value layout. The block bound covers the pinned UTF-16 StringBuilder's
+geometric growth, CSV quote expansion, schema output, reference backing and the
+output Buffer. Representation costs are demand, never a capacity grant. The
+same original Read construction entry acquires the complete simultaneous peak
+before allocation. The output window is then reused by delivery rather than
+requoting and calling the same resource observer at the next internal step.
+
+The coordinator retains the cumulative constructor obligation before fallible
+acquisition. A failed constructor or current check does not refund consumed
+work, create a replacement Read or permit an unmanaged fallback. Existing
+partial Store custody, failed-flight cleanup, exact original Library/receiver,
+thread/process identity and physical acknowledgement duties remain. A local
+closed-state check after a resource callback catches synchronous Store
+retirement without repeating that external callback.
+
+The command's small initial Read working extents remain unchanged. Its maximum
+Read declaration derives from the existing ordinary finite Local preparation
+policy, independently of that startup basis; it does not introduce a second
+backend-specific all-input ceiling or eagerly acquire the policy maximum.
+Actual growth still requires checked demand and physical backing from the same
+owner. Buffered material/table collection has its own whole-result retention
+and rendering admission; streamed row funding does not change that separate
+receiver or imply that its complete-result limit has been removed.
+
+### Result READ framing and wire geometry
+
+The installed Result READ keeps one original Request capacity. Physical frame
+growth reserves the existing old/new buffer, immutable text and wire overlap
+before constructing the buffer. It does not price one JSON node per raw byte.
+Once the complete immutable row is available, the existing Source preflight
+observes its quoted-aware raw node upper bound, without constructing a grammar
+tree or using the expected schema as a capacity oracle. Only then does the SAME
+capacity back the original forest representation before the original delivery
+serializer parses and validates that row. Logical node/depth limits, schema,
+currentness, payload hash, delivery grants and sink confirmation stay separate.
+Equal-size rows still receive their own raw observation; no validation result
+or permission is cached. The legacy independent row quote remains unchanged.
+
+The original READ budget adds two optional reference slots (16 logical bytes).
+Before constructing its one Source scan and one phase-work continuation, the
+same parent backs both existing constructor inventories plus the two retained
+Some carriers (2H/2R/2W) and operation/result roots (2H/6R/6W). The combined
+35H/64R/85W demand is 1752 logical bytes under the shared representation tariff.
+The existing JS prepared-state slot also denotes an active scan; it does not
+add a separately allocated reader or cleanup owner. Source work is bounded by
+the selected Int64 payload bytes plus row count, using checked addition. An
+aggregate payload is not restricted to the separate Int row/frame extent. Each poll spends at most 4096 units
+and returns that SAME work receipt; the Host yields and rechecks currentness
+before continuing. Returning never refills work or acknowledges cleanup. The
+physical-frame phase may shrink its already flushed output window; the complete
+row phase retains any staged output window while backing its actual nodes.
+The cursor is cancelled before parse, including refusal retirement, and the
+original physical child duties still precede Request retirement.
+
+
+## Native publication metadata in the original Read
+
+A retained computation is not an allocation context for publication metadata.
+The Native Store's immutable operation coordinator selects its existing current
+Journal Read before constructing the public index or checking commit metadata.
+The business capture remains the original semantic evidence and is freshly
+checked; its parked publication reservation is not grown by this Read check.
+
+The index measurement and issuer share one closed fact selection and emitter.
+Its constructor packet includes the complete strict Source/Canonical codec,
+manual writer, sorted binding occurrences and the returned index tree/wire.
+The returned index remains additive on that same Read while later validators
+borrow it. The finite quote evaluator and Native callback/error carriers are
+funded before evaluating variable geometry; they do not price parser forests
+at a policy maximum. The two additional outer coordinator fields stay within
+the original bounded root-control allocations and add no allocation request.
+
+The Core synchronous Read check reports copied slots/arrays before its checked
+snapshot and metadata nodes from that same owned plan. Native translates these
+facts into actual ABI largest-block bounds and monotonically funds the same
+Read before constructor allocation. Every fence rechecks the actual Read after
+business-original callbacks. No validator escapes, no authorization result is
+cached, and semantic plans are cancelled before the Read returns. A funding or
+currentness refusal preserves the original prefix and precise Native primary;
+cleanup still requires the original physical and scope acknowledgements.
+Legacy coordinators without this immutable duty retain their original check.

@@ -35,7 +35,6 @@ pub fn check_admitted_effect_preview_footprint_conflicts(
     count < 1 ||
     count > max_members ||
     max_targets < 0 ||
-    max_targets > 100000 ||
     max_work < 1 ||
     max_work > 100000000 {
     return Err(InvalidLimits)

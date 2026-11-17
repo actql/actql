@@ -281,3 +281,60 @@ pub fn prepared_client_effect_infer_occurrences(
 ) -> Array[ClientInferOccurrence]? {
   prepared_client_composed_infer_occurrences(client_effect_program_view(owner))
 }
+
+///|
+// Count the SAME checked task/step selection without allocating its occurrence
+// vector. Used only to quote actual Host wrappers before exposing that vector;
+// this performs no parser, normalizer, admission, Task policy or authorization.
+pub fn prepared_client_composed_infer_count(
+  owner : PreparedClientProgram,
+) -> Int? {
+  let graph = owner.graph
+  let mut selected = 0
+  for task in 0..<@strategy.graph_task_count(graph) {
+    guard @strategy.graph_task_owner(graph, task) is Some(preparation) &&
+      @strategy.graph_task_unit_index(graph, task) is Some(_) else {
+      return None
+    }
+    let count = @pipeline.step_count(
+      @lower.pipeline(@lower.bound_preparation(preparation)),
+    )
+    if count == 0 {
+      // A checked input-only task has a real receiving Carrier, not a
+      // fabricated output operation. Keep the same owner/target validation.
+      guard client_task_output_target(graph, task) is Some(@pipeline.Input(_)) else {
+        return None
+      }
+      continue
+    }
+    guard client_task_output_step(graph, task, count) is Some(last) else {
+      return None
+    }
+    let first = @strategy.graph_task_selected_step(graph, task).unwrap_or(0)
+    let mut selected_in_task = false
+    for step in first..<(last + 1) {
+      guard @lower.node_at(@lower.bound_preparation(preparation), step)
+        is Some(node) else {
+        return None
+      }
+      if @lower.payload(node) is @lower.Infer(_) {
+        // The original checked graph already owns its task/work inventory.
+        // Keep Unit/selected-task custody restrictions, not another count cap.
+        if selected_in_task ||
+          @strategy.graph_task_selected_step(graph, task) is Some(_) {
+          return None
+        }
+        selected += 1
+        selected_in_task = true
+      }
+    }
+  }
+  Some(selected)
+}
+
+///|
+pub fn prepared_client_effect_infer_count(
+  owner : PreparedClientEffectComputation,
+) -> Int? {
+  prepared_client_composed_infer_count(client_effect_program_view(owner))
+}

@@ -113,14 +113,37 @@ test "retained source-free Values chain admits the exact bounded producer" {
     None,
   ).unwrap()
   assert_eq(@local_driver.local_dispatch_rejection(installed, 0), None)
-  assert_true(
-    @local_driver.estimate_local_dispatch_offer(
-      installed,
-      0,
-      [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
-      100,
-    )
-    is Ok(_),
+  let full = @local_connector.local_module_capacity(implementation, 0).unwrap()
+  let startup = @local_connector.local_module_metered_output_start_capacity(
+    implementation, 0, generated,
+  ).unwrap()
+  assert_true(startup.retained_bytes < full.retained_bytes)
+  let offer = @local_driver.estimate_local_dispatch_offer(
+    installed,
+    0,
+    [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
+    100,
+  ).unwrap()
+  let planned = @local_driver.local_dispatch_preparation_task_capacity(
+    @local_driver.local_dispatch_original_preparation(installed).unwrap(),
+    0,
+  ).unwrap()
+  @strategy.configure_strategy_search(run, {
+    max_offers: 1,
+    max_strategies: 1,
+    max_work: 1000,
+    max_revisions: 1,
+  }).unwrap()
+  @strategy.revise_strategy(run, [offer], registry, None).unwrap() |> ignore
+  let assessed = @strategy.strategy_report_at(run, 0).unwrap()
+  // This exact owned default provider carries before-commit growth into both
+  // preparation and the installed offer. Full output custody remains in its
+  // original recipe; unknown/injected constructors keep their fallback path.
+  assert_eq(assessed.retained_bytes, planned.retained_bytes)
+  assert_eq(assessed.execution_bytes, planned.execution_bytes)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).attempts,
+    0,
   )
   @strategy.stop_captured_dag(run)
 }
@@ -276,7 +299,8 @@ fn retained_values_client_preparation(
 }
 
 ///|
-test "product source-free retained factory installs exact bounded chain offers" {
+test "product source-free retained factory executes its exact bounded chain" {
+  // resource-case-id: retained_source_free_product_configuration
   let prepared = retained_values_client_preparation(false)
   let setup = @client_local_host.open_source_free_local_retained_host(
     prepared,
@@ -295,7 +319,8 @@ test "product source-free retained factory installs exact bounded chain offers" 
   )
   assert_eq(@strategy.captured_compute_first_task(run), 0)
   assert_eq(@strategy.graph_task_count(@strategy.captured_dag_graph(run)), 1)
-  assert_true(@strategy.captured_dag_strategy(run) is Some(_))
+  // Source-free configuration binds the original module without future offers.
+  assert_true(@strategy.captured_dag_strategy(run) is None)
   assert_eq(
     @local_driver.local_dispatch_rejection(
       @builtin.configured_local_module(@builtin.configured_host_modules(setup)).unwrap(),
@@ -304,16 +329,28 @@ test "product source-free retained factory installs exact bounded chain offers" 
     None,
   )
   assert_false(@strategy.captured_task_completed(run, 0))
-  @strategy.stop_captured_dag(run)
-  @strategy.refresh_captured_retention(run)
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  assert_eq(usage.attempts, 0)
+  let ledger = @strategy.captured_dag_ledger(run)
+  let execution = @client_local_host.execute_source_free_values_guarded(
+    setup,
+    16,
+    10000,
+    () => true,
+  ).unwrap()
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), ledger))
+  assert_true(@strategy.captured_task_completed(run, 0))
+  assert_eq(execution.rows().unwrap(), ["{\"id\":3}", "{\"id\":2}"])
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_true(execution.close())
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.attempts, 1)
   assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.reserved_execution_bytes, 0L)
 }
 
 ///|
 test "product retained factory admits the exact earlier Values producer of a checked branch" {
+  // resource-case-id: retained_source_free_product_branch_admission
   let prepared = retained_values_client_preparation(true)
   let setup = @client_local_host.open_source_free_local_retained_host(
     prepared,
@@ -339,16 +376,30 @@ test "product retained factory admits the exact earlier Values producer of a che
     None,
   )
   assert_false(@strategy.captured_task_completed(run, 0))
-  @strategy.stop_captured_dag(run)
-  @strategy.refresh_captured_retention(run)
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  assert_eq(usage.attempts, 0)
+  let ledger = @strategy.captured_dag_ledger(run)
+  let execution = @client_local_host.execute_source_free_values_guarded(
+    setup,
+    16,
+    10000,
+    () => true,
+  ).unwrap()
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), ledger))
+  assert_true(@strategy.captured_task_completed(run, 0))
+  assert_eq(execution.rows().unwrap(), [
+    "{\"id\":3}", "{\"id\":1}", "{\"id\":2}",
+  ])
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  assert_true(execution.close())
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.attempts, 1)
   assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.reserved_execution_bytes, 0L)
 }
 
 ///|
 test "Values publication rejects wrong children and shadowing providers" {
+  // resource-case-id: retained_source_free_chain_rejection
   let limits = dispatch_test_limits()
   let registry = search_registry()
   let generated = task_test_generated(
@@ -404,6 +455,7 @@ test "Values publication rejects wrong children and shadowing providers" {
 
 ///|
 test "source-free Values chains preserve ordered results and cancellation custody" {
+  // resource-case-id: retained_source_free_branch_execution_and_cancellation
   for branched in [false, true] {
     let limits = dispatch_test_limits()
     let registry = search_registry()

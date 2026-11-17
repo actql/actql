@@ -313,6 +313,10 @@ pub fn expression_contract(Expression) -> @value_contract.Contract
 
 pub fn expression_location(Expression) -> @expression_syntax.Location
 
+pub fn expression_primitive_array_length(Expression) -> Int?
+
+pub fn expression_result_borrows_payload(Expression) -> Bool
+
 pub fn expression_source(Expression) -> @decode_core.Cursor
 
 pub fn expression_text_bound(Expression) -> ExpressionTextBound?
@@ -1994,6 +1998,8 @@ pub(all) struct SequencePreparationDemand {
   projection_name_bytes_bound : Int
   authored_expression_nodes : Int
   work_used : Int
+  full_sequence_steps : Int
+  authored_expression_text_bytes : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SequencePreparationDemandIssue {

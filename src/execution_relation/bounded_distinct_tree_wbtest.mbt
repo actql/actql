@@ -125,7 +125,7 @@ test "whole-row DISTINCT retains a nested comparison until confirmed stop and cl
         execution.state.phase is MarkDistinct
       }
       if phase &&
-        execution.state.comparison.tree is Some(tree) &&
+        execution.state.comparison.tree is TreeRowComparison(tree) &&
         tree.frames.last() is Some(TextUnits(_, _, text, _)) &&
         text.phase == text_phase &&
         (text_phase != 3 || text.offset > 0) {
@@ -153,7 +153,7 @@ test "whole-row DISTINCT retains a nested comparison until confirmed stop and cl
     assert_false(cleanup_bounded_binding_rows(execution).unwrap())
     assert_true(tree.closed)
     assert_true(tree.frames.is_empty())
-    assert_true(execution.state.comparison.tree is None)
+    assert_true(execution.state.comparison.tree is NoRowComparison)
     assert_eq(execution.state.workspace.live, 0)
     assert_eq(execution.state.control.remaining, work)
     assert_true(producer_read_available(input))
@@ -191,7 +191,7 @@ test "whole-row DISTINCT accounts nested comparison workspace and frame limits" 
     }
     assert_true(terminal)
     assert_true(cleanup_bounded_binding_rows(execution).unwrap())
-    assert_true(execution.state.comparison.tree is None)
+    assert_true(execution.state.comparison.tree is NoRowComparison)
     assert_eq(execution.state.workspace.live, 0)
     assert_true(producer_read_available(input))
   }
@@ -231,7 +231,7 @@ test "whole-row DISTINCT complete comparator accepts exact work and rejects one 
       assert_eq(workspace.peak, 4)
     } else {
       assert_true(result is Err(Limit))
-      assert_true(execution.state.comparison.tree is Some(_))
+      assert_true(execution.state.comparison.tree is TreeRowComparison(_))
     }
     assert_true(@bounded.request_cancel(engine))
     assert_true(
@@ -256,7 +256,7 @@ test "public nested DISTINCT fixture reaches a scanning barrier after nine Host 
     assert_eq(work, quantum.to_int64() * 256L)
   }
   assert_true(execution.state.phase is SortRows)
-  guard execution.state.comparison.tree is Some(tree) &&
+  guard execution.state.comparison.tree is TreeRowComparison(tree) &&
     tree.frames.last() is Some(TextUnits(_, _, text, _)) else {
     fail("public nested DISTINCT barrier must retain its comparison")
   }

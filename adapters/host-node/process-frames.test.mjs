@@ -149,3 +149,21 @@ test('original IPC received-body refusal or reentry cannot decode or accept the 
   });
   assert.throws(()=>reentrant.feed(frame),{code:'FrameReaderClosed'});
 });
+
+
+test('accepted reply snapshot reports its actual original geometry before dispatch without another walk', () => {
+  const events = [], value = {rows: [{text: 'abc'}]};
+  const reader = createProcessFrameReader(limits, actual => {
+    events.push('accept'); assert.equal(JSON.stringify(actual), JSON.stringify(value));
+  }, undefined, undefined, geometry => {
+    events.push('snapshot');
+    assert.deepEqual(geometry, {nodes: 4, fields: 2, objects: 2, arrays: 1, utf16Units: 11});
+  });
+  reader.feed(encodeProcessFrame(value, limits)); reader.end();
+  assert.deepEqual(events, ['snapshot', 'accept']);
+  const primary = new Error('original snapshot current refusal');
+  const refused = createProcessFrameReader(limits, () => assert.fail('no escaped reply'),
+    undefined, undefined, () => {throw primary;});
+  assert.throws(() => refused.feed(encodeProcessFrame(value, limits)), error => error === primary);
+  assert.throws(() => refused.feed(encodeProcessFrame(null, limits)), {code: 'FrameReaderClosed'});
+});

@@ -60,3 +60,21 @@ pub fn client_program_installed_managed_publication_limits(
   }
   client_publication_limit_values(limits)
 }
+
+///|
+#export_name("clientProgramInstalledEffectPublicationLimits")
+pub fn client_program_installed_effect_publication_limits(
+  original : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  max_payload_bytes : Int,
+) -> Array[Int] {
+  guard @client_local_host.installed_effect_managed_publication_limits(
+      original, prepared, request, plan, max_payload_bytes,
+    )
+    is Some(limits) else {
+    return []
+  }
+  client_publication_limit_values(limits)
+}

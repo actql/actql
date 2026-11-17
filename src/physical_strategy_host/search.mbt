@@ -1108,7 +1108,11 @@ fn[T] strategy_managed_candidate_matches(
       @connector.managed_fixed_compute_candidate_registration(candidate),
     )
   }
-  if run.search is None {
+  // Installed fallback limits are not a placement decision. A managed
+  // candidate retains its exact nominal preparation checks until an actual
+  // search starts. Pending, infeasible and selected searches still fence it.
+  if run.search is None ||
+    (run.strategy is None && run.searched_generation is None) {
     return true
   }
   guard run.strategy is Some(revision) &&

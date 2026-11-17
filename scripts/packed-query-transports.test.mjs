@@ -1116,7 +1116,7 @@ test('packed cause observer classifies omitted code descriptors without getters 
   assert.doesNotMatch(JSON.stringify(reports), /PrivateCodeSecret|9234567|private-|message|stack/u);
 });
 
-test('packed cause observer covers fixed submit factories without deriving categories from runtime data', {timeout: 30_000}, async t => {
+test('packed cause observer preserves its fixed allowlist while omitting unlisted production codes', {timeout: 30_000}, async t => {
   const {parse} = await import('acorn');
   const modules = [
     'adapters/host-node/in-process-client.mjs', 'adapters/host-node/client-http.mjs',
@@ -1191,11 +1191,12 @@ test('packed cause observer covers fixed submit factories without deriving categ
   const http = await readFile(new URL('../adapters/host-node/client-http.mjs', import.meta.url), 'utf8');
   assert(http.includes("responseCode(error) === 500 ? 'ClientHostFailure'"));
   selected.add('ClientHostFailure');
-  for (const code of selected) assert(fixed.has(code), 'Missing fixed production factory code: ' + code);
-  // Execute all fixed categories in bounded batches. Foreign strings and
-  // accessors stay omitted; the live observer still uses only this literal set.
-  for (let offset = 0; offset < codes.length; offset += 7) {
-    const batch = codes.slice(offset, offset + 7), target = await diagnosticTarget(t), reports = [];
+  // The observer's privacy policy is a closed allowlist, not an inventory of
+  // every internal failure. New internal codes must remain safely omitted
+  // without forcing an expansion of what the diagnostic is allowed to expose.
+  const probes = [...new Set([...codes, ...selected])];
+  for (let offset = 0; offset < probes.length; offset += 7) {
+    const batch = probes.slice(offset, offset + 7), target = await diagnosticTarget(t), reports = [];
     const originals = batch.map(code => Object.assign(new Error('private-original-message'), {code, cause:undefined}));
     for (let index = 1; index < originals.length; index++) originals[index - 1].primaryFailure = originals[index];
     let reads = 0;
@@ -1206,7 +1207,10 @@ test('packed cause observer covers fixed submit factories without deriving categ
     finally {await observer.close();}
     assert.equal(reads, 0); assert.equal(reports[0].available, true);
     const rows = reports[0].originalCauseTypes.flat();
-    assert.deepEqual(rows.flatMap(row => row.code === undefined ? [] : [row.code]), batch);
+    assert.deepEqual(rows.flatMap(row => row.code === undefined ? [] : [row.code]),
+      batch.filter(code => fixed.has(code)));
+    assert.equal(rows.filter(row => row.codeOmitted === true && row.codeType === 'String').length,
+      batch.filter(code => !fixed.has(code)).length + 1);
     assert(rows.some(row => row.type === 'Accessor'));
     assert(rows.some(row => row.codeOmitted === true && row.codeType === 'String'));
     assert.doesNotMatch(JSON.stringify(reports), /private-|PrivateFactoryPayload|message|stack/u);

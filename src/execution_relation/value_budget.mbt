@@ -29,6 +29,9 @@ pub(all) enum CaptureIssue {
   ForeignCheckedValue(Int, Int)
   // Only a typed scalar length refusal whose strictly smaller bound is work.
   CaptureWorkLimit(Int)
+  // The bounded UTF8 probe proves only that demand exceeds this remaining
+  // allowance. It does not scan again to invent a complete required length.
+  CaptureWorkRefusal(Int, Int)
 } derive(Eq, Debug)
 
 ///|
@@ -49,6 +52,7 @@ priv struct ValueBudget {
   // Only a schema-proved reference-free managed receipt discards each payload
   // row. Semantic counters remain cumulative; this marks its physical scratch.
   mut row_scratch_start : (Int, Int)?
+  mut row_scratch_peak : Int64
 }
 
 ///|
@@ -68,6 +72,7 @@ fn value_budget(limits : ValueLimits) -> Result[ValueBudget, CaptureIssue] {
       retention: None,
       retention_funded: 0L,
       row_scratch_start: None,
+      row_scratch_peak: 0L,
     })
   }
 }
@@ -118,7 +123,7 @@ fn charge_text_issue(b : ValueBudget, text : String) -> CaptureIssue? {
       None
     }
     Err(@scalar.LimitExceeded) if work_remaining < text_remaining =>
-      Some(CaptureWorkLimit(b.limits.max_work))
+      Some(CaptureWorkRefusal(b.limits.max_work, work_remaining))
     Err(_) => Some(CaptureLimit)
   }
 }

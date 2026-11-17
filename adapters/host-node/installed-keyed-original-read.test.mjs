@@ -7,7 +7,7 @@ import {runtimeTupleFromFields} from '../host-common/compiler-binding.generated.
 // Explicit Core/physical ports exercise the actual installed adapter. They do
 // not supply a nominal Common admission or qualify an installed filesystem Run.
 const ok = value => ({$tag: 1, _0: value});
-async function fixture({failCurrent = false, failReader = false, transport, effect = false, failPlan = false, selectedRows} = {}) {
+async function fixture({failCurrent = false, failReader = false, transport, effect = false, generic = false, failGenericFinish = false, failPlan = false, selectedRows, capacityObserved, publicationBounds, identityResponse = false, mutateResponse, afterEncoded, failRaw = false} = {}) {
   const preparedProgram = effect ? undefined : {}, preparedEffect = effect ? {} : undefined;
   const keyedAcquisition = {}, request = {}, declaration = {}, ledger = {}, managedRun = {};
   const duplicate = {}, originalRequests = [request, duplicate], lookup = {};
@@ -18,6 +18,8 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
   const expectedExecution = Object.getOwnPropertyDescriptor(transport ?? {}, 'executionBytes')?.value ?? 1024n;
   const currentFailure = new Error('original-current'), readerFailure = new Error('original-reader');
   const activation = {}, activationRecord = {}, rawOriginal = {};
+  let responsePending = false, rawReleased = !failRaw, observedBody, decodedBody;
+  const responseRows = [{content: 'original'}];
   let pendingTicket, cleanupConfirmed, physicalAcknowledged = !failReader, finished = false;
   const physicalRecovery = Object.freeze({close() {calls.push('physical-stop');},
     cleanup() {calls.push('physical-cleanup'); return physicalAcknowledged;},
@@ -28,7 +30,9 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
     clientProgramEffectRequestScope: () => ({}),
     clientProgramKeyedAcquisitionMatchesEffectProgram: () => true,
     clientProgramKeyedAcquisitionMatchesProgram: () => true,
-    clientProgramKeyedRowPrepareCapacity: () => ok({}),
+    clientProgramKeyedRowPrepareCapacity: (...args) => {
+      capacityObserved?.(args.at(-1)); return ok({});
+    },
     clientProgramKeyedAcquisitionSourceEvidenceFacts: () => ok(facts),
     clientProgramKeyedAcquisitionInputCoordinates: () => ok([0, 0, 0, 1]),
     clientProgramKeyedAcquisitionCoordinates: () => [0, 0, 1],
@@ -52,6 +56,7 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
     clientProgramInstalledKeyedSourceReadRetire(value) {assert.strictEqual(value, original); calls.push('retire'); return ok(undefined);},
     clientProgramKeyedRowTarget: () => ok(['contents', 'content']),
     clientProgramKeyedRequestWire: () => ok('{}'),
+    clientProgramKeyedSourceResponseEncoding: () => identityResponse ? 'typed_json_row_array' : undefined,
     clientProgramKeyedRowBegin: () => ok(undefined),
     clientProgramKeyedRequestObserveAttempt: () => ok(undefined),
     clientProgramKeyedRequestRemainingMs: () => ok(10000n),
@@ -65,8 +70,9 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
       pendingTicket = undefined; calls.push('consume-original-bytes'); return ok(undefined);
     },
     clientProgramKeyedResponseObserve: () => ok(undefined),
-    clientProgramKeyedRowBeginChargedPage(value, ticket) {
+    clientProgramKeyedRowBeginChargedPage(value, ticket, bytes) {
       assert.strictEqual(value, run); assert.strictEqual(ticket, pendingTicket);
+      decodedBody = bytes; afterEncoded?.(bytes);
       pendingTicket = undefined; return ok(undefined);
     },
     clientProgramKeyedRowAdvancePage: () => ok([1, 1]),
@@ -91,7 +97,8 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
       assert.strictEqual(value, lookup); assert.strictEqual(original, originalRequests[planned++]);
       calls.push('plan-retain'); return ok(undefined);
     },
-    clientProgramKeyedLookupRequestPlanFinish(value) {
+    clientProgramKeyedLookupRequestPlanFinish(value, _bytes, nodes) {
+      publicationBounds?.(nodes);
       assert.strictEqual(value, lookup); assert.equal(planned, 2);
       calls.push('plan-finish'); if (failPlan) throw planFailure;
       planReady = true; return ok(undefined);
@@ -137,9 +144,12 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
     environmentWire: '{}', connectorId: 'local', connectorRegistration: 'local', connectorRevision: 'local/0.1',
     bindingCid: 'sha256:' + 'c'.repeat(64), readOperation: 'read',
     site: {connection: 'local', issueReadGrant() {
-      if (effect) assert.equal(planReady, true, 'All original requests precede the first grant');
+      if (effect && !generic) assert.equal(planReady, true, 'All Native original requests precede the first grant');
       calls.push('grant'); return {};}, close() {}},
-    authorization: {authorize: async () => ({action: 'dispatch'}), context: {contextCid: 'context'}},
+    authorization: {authorize: async () => {
+      if (responsePending) { responsePending = false; mutateResponse?.(responseRows); }
+      return {action: 'dispatch'};
+    }, context: {contextCid: 'context'}},
     physicalTarget: () => ({root: 'original'}),
     limits: {maxPages: 2, maxPageBytes: 1024, maxPageRows: 4, maxCaptureRows: 4},
     originalKeyedTransport: transport,
@@ -162,22 +172,32 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
       if (failReader) throw new AcquisitionOpenError(readerFailure, 'unknown', physicalRecovery);
       const rawBytes = new Uint8Array([2, 3]);
       const rawCharge = options.chargePage(rawBytes);
-      await options.retainRawResponse?.(rawBytes);
+      if (!identityResponse) await options.retainRawResponse?.(rawBytes);
       calls.push('decode-page');
       options.consumeObservation(rawCharge);
-      await options.consumePage([{content: 'original'}]);
+      responsePending = true;
+      try { await options.consumePage(responseRows); }
+      catch (cause) { if (identityResponse) throw new AcquisitionOpenError(cause, 'stopped'); throw cause; }
     }});
   const selected = await adapter.prepareKeyed({preparedProgram, preparedEffect, keyedAcquisition, requestIdentity: {}});
   const publication = {
+    ...(generic ? {protocol: 'generic-source'} : {}),
     initialize(value) {assert.strictEqual(value, lookup); calls.push('plan-start');},
     activate(value, selected) {
       assert.strictEqual(value, lookup); assert.strictEqual(selected, physicalRequest);
+      assert.equal(generic, false, 'Generic content_ref has no Native activation');
       calls.push('journal-activation'); return {activation, record:activationRecord};
     },
+    responseBackingReleased() { return rawReleased; },
     async retainRawResponse(value, selected, attempt, bytes) {
       assert.strictEqual(value, lookup); assert.strictEqual(selected, physicalRequest);
       assert.strictEqual(attempt.activation, activation); assert.strictEqual(attempt.record, activationRecord);
-      assert.deepEqual(bytes, new Uint8Array([2,3])); calls.push('raw-store'); return rawOriginal;
+      if (identityResponse) {
+        assert(bytes instanceof Uint8Array); observedBody = bytes;
+        assert.equal(bytes.buffer.byteLength, bytes.byteLength, 'exact response backing survives pending raw custody');
+        if (failRaw) throw new Error('original-raw-commit');
+      } else assert.deepEqual(bytes, new Uint8Array([2,3]));
+      calls.push('raw-store'); return rawOriginal;
     },
     adopt(value, selected, attempt, actualCapture, raw) {
       assert.strictEqual(value, lookup); assert.strictEqual(selected, physicalRequest);
@@ -186,15 +206,19 @@ async function fixture({failCurrent = false, failReader = false, transport, effe
     },
     finishInput(value) {
       assert.strictEqual(value, lookup); assert.equal(responseRetained, true);
-      calls.push('retain-original-right-body'); return {};
+      calls.push('retain-original-right-body');
+      if (failGenericFinish) throw planFailure;
+      return {};
     },
   };
-  return {calls, publication, currentFailure, readerFailure, planFailure, get finished() {return finished;},
+  return {calls, publication, get rawBody() {return observedBody;}, get decodedBody() {return decodedBody;},
+    backingStopped: () => cleanupConfirmed(), releaseRaw() { observedBody = undefined; rawReleased = true; },
+    currentFailure, readerFailure, planFailure, get finished() {return finished;},
     acknowledgePhysical() {physicalAcknowledged = true;},
-    capacity: () => adapter.keyedLedgerCapacity(keyedAcquisition),
+    capacity: options => adapter.keyedLedgerCapacity(keyedAcquisition, options),
     open: () => adapter.openKeyed({preparedProgram, keyedAcquisition, request, ledger, preparedKeyed: selected.prepared}),
-    openLookup: () => adapter.openKeyedLookup({preparedEffect, managedRun, publication, keyedAcquisition, left: {}, ledger,
-      preparedKeyed: selected.prepared})};
+    openLookup: (limits = {}) => adapter.openKeyedLookup({preparedEffect, managedRun, publication, keyedAcquisition, left: {}, ledger,
+      preparedKeyed: selected.prepared, ...limits})};
 }
 
 test('installed keyed native transport keeps its full captured workspace beside page limits', async () => {
@@ -292,4 +316,86 @@ test('canonical Effect lookup borrows the original row selected by Core rather t
   assert.equal(f.calls.filter(name => name === 'journal-activation').length, 2);
   assert.equal(f.calls.filter(name => name === 'reuse-original-response').length, 0);
   await acquired.close();
+});
+
+
+test('generic Effect keyed capture retains the actual right body without Native transport history', async () => {
+  const f = await fixture({effect: true, generic: true});
+  const lookup = await f.openLookup();
+  assert.equal(f.calls.filter(value => value === 'grant').length, 1);
+  assert.equal(f.calls.filter(value => value === 'reuse-original-response').length, 1);
+  assert.equal(f.calls.filter(value => value === 'retain-original-right-body').length, 1);
+  for (const name of ['plan-retain', 'plan-finish', 'journal-activation', 'raw-store', 'journal-page']) {
+    assert.equal(f.calls.includes(name), false, name);
+  }
+  assert.equal(lookup.cleanupPending(), true);
+  await lookup.close();
+  assert.equal(lookup.cleanupPending(), false);
+});
+
+test('generic Effect keyed completion failure keeps its original error and closes actual children', async () => {
+  const f = await fixture({effect: true, generic: true, failGenericFinish: true});
+  await assert.rejects(f.openLookup, error => error.cause === f.planFailure || error === f.planFailure);
+  assert.equal(f.calls.filter(value => value === 'grant').length, 1);
+  assert.equal(f.calls.filter(value => value === 'retain-original-right-body').length, 1);
+  assert(f.calls.includes('row-close'));
+  assert(f.calls.includes('lookup-cleanup'));
+  assert.equal(f.calls.includes('journal-activation'), false);
+});
+
+
+test('Source work selector preserves standalone and explicit tighter work and node limits', async () => {
+  const observed = [], nodes = [], f = await fixture({effect: true,
+    capacityObserved: value => observed.push(value), publicationBounds: value => nodes.push(value)});
+  for (const [options, work, nodes] of [
+    [undefined, 1000000, 1000000],
+    [{originalWork: 2718281}, 2718281, 1000000],
+    [{originalWork: 2718281, maxWork: 7}, 7, 7],
+    [{originalWork: 19, maxWork: 23}, 19, 23],
+  ]) {
+    const capacity = f.capacity(options);
+    assert.equal(capacity.maxWork, work); assert.equal(capacity.maxNodes, nodes);
+    assert.equal(observed.at(-1), work);
+  }
+  const count = observed.length;
+  for (const value of [0, -1, 1.5, 2147483648, NaN]) {
+    assert.throws(() => f.capacity({originalWork: value}), {code: 'InstalledKeyedLookupLimits'});
+    assert.throws(() => f.capacity({maxWork: value}), {code: 'InstalledKeyedLookupLimits'});
+  }
+  assert.equal(observed.length, count);
+  const lookup = await f.openLookup({maxWork: 2718281, maxNodes: 7});
+  assert.deepEqual(nodes, [7]);
+  await lookup.close();
+});
+
+
+test('installed identity response encodes after awaited mutation and passes the same exact raw bytes to decode', async () => {
+  const f = await fixture({effect: true, identityResponse: true,
+    mutateResponse(rows) {rows[0].content = 'mutated😀';}});
+  const acquired = await f.openLookup();
+  assert.deepEqual(JSON.parse(f.rawBody), [{content: 'mutated😀'}]);
+  assert.strictEqual(f.rawBody, f.decodedBody);
+  await acquired.close();
+});
+
+test('installed identity response refuses an accessor introduced by awaited current checking without invoking it', async () => {
+  let called = 0;
+  const f = await fixture({effect: true, identityResponse: true,
+    mutateResponse(rows) {Object.defineProperty(rows[0], 'content', {enumerable: true, get() {called++;return 'wrong';}});}});
+  await assert.rejects(f.openLookup());
+  assert.equal(called, 0); assert.equal(f.calls.includes('raw-store'), false);
+  assert.equal(f.calls.includes('journal-page'), false);
+});
+
+test('installed identity response retains original RowRun credit through failed raw commit until byte-holder release', async () => {
+  const f = await fixture({effect: true, identityResponse: true, failRaw: true});
+  let failed;
+  await assert.rejects(f.openLookup(), error => {failed = error;return true;});
+  assert.equal(f.backingStopped(), false);
+  assert.equal(f.calls.includes('row-close'), false);
+  assert.equal(f.calls.includes('journal-page'), false);
+  assert(failed.recovery);
+  f.releaseRaw();
+  assert.equal(await failed.recovery.cleanup(), true);
+  assert.equal(f.backingStopped(), true);
 });

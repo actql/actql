@@ -96,7 +96,8 @@ fn[I, P] make_preparation_capacity(
     retirement_claimed: false,
     inventory_growth_active: false,
     active_phase_work: None,
-    last_work_phase: -1,
+    // Optional HTTP raw preflight uses -1; all existing ordinals stay exact.
+    last_work_phase: preparation_work_unclaimed,
   }
 }
 
@@ -464,6 +465,7 @@ fn completed_preparation_retirement() -> Result[Bool, PreparationCapacityIssue] 
 // existing API; Run census growth cannot be confused with a publication call.
 priv enum PreparationBodyGrowth {
   Publication
+  PublicationProofWork(Int64, Ref[PreparationPhaseWorkContinuation64?])
   NativeWork
   EnterRunningInventory
   LeaveRunningInventory
@@ -541,6 +543,24 @@ fn[I, P] make_preparation_body_borrow(
     },
     reserve_phase_original: (body, retained, execution, inventory) => {
       match inventory {
+        PublicationProofWork(maximum, result) => {
+          if value.returned || result.val is Some(_) {
+            return Err(ForeignOriginal)
+          }
+          match
+            begin_run_publication_work_continuation64(
+              value.owner,
+              body,
+              value.owner.ledger,
+              maximum,
+            ) {
+            Err(_) => Err(ForeignOriginal)
+            Ok(receipt) => {
+              result.val = Some(receipt)
+              Ok(())
+            }
+          }
+        }
         Publication | NativeWork =>
           reserve_original_preparation_running_phase(
             value, body, retained, execution,
@@ -728,6 +748,72 @@ pub fn[I, P] reconcile_working_preparation_phase(
   )
   owner.phase = working_phase
   outcome.map_err(issue => PreparationCapacityIssue::Resource(issue))
+}
+
+///|
+/// SAME working owner's success-only scratch cut after its synchronous
+/// constructor returned. Unlike cleanup disposal, stopping/closing refuses
+/// this successful handoff. One original current callback precedes the
+/// callback-free admission/custody checks and mutation of this SAME token.
+pub fn[I, P] reconcile_current_working_preparation_phase(
+  owner : PreparationCapacity[I, P],
+  input : I,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, PreparationCapacityIssue] {
+  if !(owner.input is Some(original) && physical_equal(original, input)) {
+    return Err(ForeignOriginal)
+  }
+  if !preparation_capacity_phase_is_working(owner.phase) ||
+    owner.body is Some(_) ||
+    preparation_capacity_has_executing_work(owner) {
+    return Err(WorkActive)
+  }
+  let token = owner.reservation.reservation
+  if retained_bytes <= 0L ||
+    execution_bytes < 0L ||
+    retained_bytes > token.retention ||
+    execution_bytes > token.execution {
+    return Err(InvalidExtent)
+  }
+  let working_phase = owner.phase
+  owner.phase = Completing
+  let outcome : Result[Unit, PreparationCapacityIssue] = match
+    reservation_check(owner.ledger, token) {
+    Err(issue) => Err(Resource(issue))
+    Ok(_) => {
+      guard owner.phase == Completing &&
+        owner.input is Some(original) &&
+        physical_equal(original, input) &&
+        physical_equal(owner.reservation.reservation, token) &&
+        owner.body is None &&
+        !preparation_capacity_has_executing_work(owner) else {
+        if owner.phase == Completing {
+          owner.phase = working_phase
+        }
+        return Err(WorkActive)
+      }
+      match check_imported_child_admission_current(owner.ledger) {
+        Err(issue) => Err(Resource(issue))
+        Ok(_) =>
+          if owner.ledger.original_inventory is Some(inventory) &&
+            inventory.closing {
+            Err(Resource(ClosedReservation))
+          } else {
+            resize_capacity_reservation_current(
+              owner.ledger,
+              owner.reservation,
+              retained_bytes,
+              execution_bytes,
+            ).map_err(issue => Resource(issue))
+          }
+      }
+    }
+  }
+  if owner.phase == Completing {
+    owner.phase = working_phase
+  }
+  outcome
 }
 
 ///|

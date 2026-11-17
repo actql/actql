@@ -6,22 +6,17 @@ import {createHostObservationConnection, installHostObservation, projectEffectPr
 import {DatabaseSync} from 'node:sqlite';
 import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
+import {workflowWorkObservation, workflowObservationComplete} from './fixtures/work-observation.fixture.mjs';
 
 // Execute the fixture's actual capture branch with explicit SDK/filesystem
 // ports. This is no installed SDK, Model, business Run or close acceptance.
 const text = readFileSync(new URL('./fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
 const ast = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
-const workText = readFileSync(new URL('./fixtures/work-observation.fixture.mjs', import.meta.url), 'utf8');
-const workAst = parse(workText, {ecmaVersion: 'latest', sourceType: 'module'});
 const declaration = name => {
-  const isWork = ['workflowWorkObservation', 'workflowObservationComplete'].includes(name);
-  const source = isWork ? workText : text;
-  const body = isWork ? workAst.body : ast.body;
-  const node = body.map(node => node.type === 'ExportNamedDeclaration' ? node.declaration : node)
+  const node = ast.body.map(node => node.type === 'ExportNamedDeclaration' ? node.declaration : node)
     .find(node => node?.type === 'FunctionDeclaration' && node.id.name === name);
   assert.ok(node);
-  return (name === 'workflowWorkObservation' ? declaration('workflowObservationComplete') + ';' : '') +
-    source.slice(node.start, node.end);
+  return text.slice(node.start, node.end);
 };
 const observe = new Function(`${declaration('publicRunObservation')};return publicRunObservation;`)();
 const main = ast.body.find(node => node.type === 'TryStatement');
@@ -29,7 +24,7 @@ const branch = main.block.body.find(node => node.type === 'IfStatement');
 const captureBody = text.slice(branch.consequent.start, branch.consequent.end);
 
 test('workflow completeness allows suppressed Owner facts but refuses actual loss or unfinished cleanup', () => {
-  const complete = new Function(`${declaration('workflowObservationComplete')};return workflowObservationComplete;`)();
+  const complete = workflowObservationComplete;
   const status = () => ({closed: true, cleanupPending: false, repeated: 31, dropped: 0,
     budgetUnavailable: 0, queueOverflow: 0, deliveryFailed: 0, limited: 0,
     queued: 0, active: 0, activeSegments: 0, loss: {}});
@@ -65,8 +60,7 @@ test('authored README Source and Model call bounds reject duplicated and missing
 });
 
 test('work collector selects needed facts without requesting Run rows or repeated Owner facts', async () => {
-  const make = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const make = options => workflowWorkObservation({...options, createObservation: createHostObservationConnection});
   const work = make(), seen = new Set(), ref = {namespaceId: 'fixture',
     authorityScopeCid: `sha256:${'a'.repeat(64)}`, runDefinitionCid: `sha256:${'b'.repeat(64)}`};
   const observer = installHostObservation(work.connection, {journal: {observationStorage: () => ({consume(value) {
@@ -89,8 +83,7 @@ test('work collector selects needed facts without requesting Run rows or repeate
 });
 
 test('normal control capture establishes the original observer revision before acceptance without resetting custody', async () => {
-  const make = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const make = options => workflowWorkObservation({...options, createObservation: createHostObservationConnection});
   const initializer = ast.body.filter(node => node.type === 'VariableDeclaration')
     .flatMap(node => node.declarations).find(node => node.id.name === 'workObservation').init;
   const captureFor = new Function('workflowWorkObservation', 'workPurpose',
@@ -133,8 +126,7 @@ test('normal control capture establishes the original observer revision before a
 });
 
 test('workflow primary failure stays with its actual original Run instead of another verification Run', async () => {
-  const make = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const make = options => workflowWorkObservation({...options, createObservation: createHostObservationConnection});
   const ref = value => ({namespaceId: 'fixture', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
     runDefinitionCid: `sha256:${value.repeat(64)}`});
   const original = ref('1'), verification = ref('2'), work = make({trackOriginal: true});
@@ -156,8 +148,7 @@ test('workflow primary failure stays with its actual original Run instead of ano
 });
 
 test('workflow missing or lost primary delivery remains unavailable instead of becoming a fabricated cause', async () => {
-  const make = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`);
+  const make = createObservation => options => workflowWorkObservation({...options, createObservation});
   for (const lose of [false, true]) {
     const work = make(options => createHostObservationConnection({...options,
       ...(lose ? {limits: {queueRecords: 1}} : {})}))();
@@ -201,8 +192,7 @@ test('workflow operation timers keep actual intervals and original failures even
 });
 
 test('workflow actual observation counts Source Model and physical writes with loss-aware phase controls', async () => {
-  const make = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const make = options => workflowWorkObservation({...options, createObservation: createHostObservationConnection});
   const check = new Function('assert', `${declaration('checkWorkflowWork')};return checkWorkflowWork;`)(assert);
   for (const phase of ['capture', 'approve', 'recover']) for (const models of [1, 2]) {
     const work = make(), observer = installHostObservation(work.connection, {});
@@ -226,9 +216,8 @@ test('workflow actual observation counts Source Model and physical writes with l
       assert.throws(() => check({...actual, modelCallStarts: 1}, phase, 2, models));
     }
   }
-  const limited = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(
-    options => createHostObservationConnection({...options, limits: {queueRecords: 1}}))();
+  const limited = workflowWorkObservation({createObservation:
+    options => createHostObservationConnection({...options, limits: {queueRecords: 1}})});
   const observer = installHostObservation(limited.connection, {});
   for (let n = 0; n < 10; n++) observer.diagnostic('model_call_entered', {});
   await observer.close();
@@ -237,8 +226,7 @@ test('workflow actual observation counts Source Model and physical writes with l
 });
 
 test('original Run work separates fresh verification reads and refuses unbound or over-limit scope', async () => {
-  const make = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const make = options => workflowWorkObservation({...options, createObservation: createHostObservationConnection});
   const ref = value => ({namespaceId: 'fixture', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
     runDefinitionCid: `sha256:${value.repeat(64)}`});
   const original = ref('1'), verification = ref('2');
@@ -483,8 +471,7 @@ test('actual cold recovery consumes the same Saved Result before status and pres
 });
 
 test('work collector binds typed preflight failure only to the same original Run and never invents its cause', async () => {
-  const make = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`)(createHostObservationConnection);
+  const make = options => workflowWorkObservation({...options, createObservation: createHostObservationConnection});
   const work = make({trackOriginal: true});
   const projection = installHostObservation(work.connection, {
     journal: {observationStorage: () => ({consume: () => ({accepted: true})})}, runId: () => 'unit-original'});
@@ -506,8 +493,7 @@ test('work collector binds typed preflight failure only to the same original Run
 
 
 test('workflow observes pre-Model Source Unit export failure without reporting Model work or private payload', async () => {
-  const make = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`);
+  const make = createObservation => options => workflowWorkObservation({...options, createObservation});
   const work = make(createHostObservationConnection)();
   const observer = installHostObservation(work.connection);
   observer.diagnostic('dispatch_failed', {primaryDiagnostic: {
@@ -526,8 +512,7 @@ test('workflow observes pre-Model Source Unit export failure without reporting M
 
 
 test('workflow observes pre-Model Source Unit artifact failure without reporting Model work or private payload', async () => {
-  const make = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`);
+  const make = createObservation => options => workflowWorkObservation({...options, createObservation});
   const work = make(createHostObservationConnection)();
   const observer = installHostObservation(work.connection);
   observer.diagnostic('dispatch_failed', {primaryDiagnostic: {
@@ -545,8 +530,7 @@ test('workflow observes pre-Model Source Unit artifact failure without reporting
 });
 
 test('workflow observes actual Model component call-scope failure without reporting Model work or private payload', async () => {
-  const make = new Function('createHostObservationConnection',
-    `${declaration('workflowWorkObservation')};return workflowWorkObservation;`);
+  const make = createObservation => options => workflowWorkObservation({...options, createObservation});
   const work = make(createHostObservationConnection)();
   const observer = installHostObservation(work.connection);
   observer.diagnostic('dispatch_failed', {primaryDiagnostic: {

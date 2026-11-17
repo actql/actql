@@ -10,21 +10,41 @@ import {bytesCid, originalLocalContentStoragePolicy} from './local-account-confi
 import {preparePrivatePublicationHolding} from '../host-common/private-publication-holding.mjs';
 import {keyedInputRetentionSelection, localOutputLimits, localContractLimits} from './local-values-plan.mjs';
 
-export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedRun,
+export async function prepareAcquiredEffectKeyedPrefix(options) {
+  return prepareOriginalEffectKeyedInput(options);
+}
+
+// The selected Source plan is a real no-Model compiler original. Both callers
+// keep the same Row/Content/Journal/cleanup loop below; no second IO engine.
+export async function prepareAcquiredEffectKeyedCapture(options) {
+  if (options.sourcePreparation === undefined || options.infer !== undefined) {
+    throw new TypeError('InstalledEffectKeyedOriginalUnavailable');
+  }
+  return prepareOriginalEffectKeyedInput(options);
+}
+
+async function prepareOriginalEffectKeyedInput({moon, acquired, managedRun,
   infer, selected, originalPreparation, plan, captures, sources, sourceProfile, ledger,
-  contentRun, store, principalId, signal, now, current, retain, requestJournal, runRef, originalHost}) {
-  const acquisition = checked(moon.clientProgramEffectComposedModelKeyedAcquisition(
-    acquired.prepared, infer.graph));
+  contentRun, store, principalId, signal, now, current, retain, requestJournal, runRef, originalHost,
+  sourcePreparation}) {
+  plan ??= sourcePreparation;
+  const acquisition = sourcePreparation === undefined
+    ? checked(moon.clientProgramEffectComposedModelKeyedAcquisition(acquired.prepared, infer.graph))
+    : sourcePreparation.acquisition;
   if (acquisition === undefined) return undefined;
   const sourceCount = moon.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   if (!Number.isSafeInteger(sourceCount) || sourceCount < 1 || captures.length !== sourceCount ||
-      selected === undefined || originalPreparation?.scope === undefined ||
+      sourcePreparation === undefined && (selected === undefined || originalPreparation?.scope === undefined) ||
       plan?.compiled === undefined || typeof retain !== 'function') {
     throw new TypeError('InstalledComposedKeyedOriginalUnavailable');
   }
-  let prefix, execution, lookup, keyedContent, publication, failureRecovery, uncertain = false, closed = false;
+  let prefix, execution, lookup, sourceLookup, sourceOriginal, keyedContent, publication, failureRecovery,
+    uncertain = false, closed = false;
   const cleanup = async () => {
     if (closed) return true;
+    // Raw response backing is still funded by its SAME RowRun. Return that
+    // actual byte-holder borrow before retiring the RowRun/lookup credit.
+    if (publication !== undefined && await publication.cleanup() !== true) return false;
     if (uncertain) return false;
     if (failureRecovery !== undefined) {
       await failureRecovery.close();
@@ -36,7 +56,15 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
       if (await lookup.cleanup() === false || lookup.cleanupPending() !== false) return false;
       lookup = undefined;
     }
-    if (publication !== undefined && await publication.cleanup() !== true) return false;
+    if (sourceLookup !== undefined) {
+      // Before the adapter returns, this same custody still owns a partially
+      // constructed assembly. Its actual Row children/recovery settle above.
+      moon.clientProgramKeyedLookupStop(sourceLookup);
+      while (!checked(moon.clientProgramKeyedLookupCleanup(sourceLookup, 64))) {
+        await yieldEventLoop();
+      }
+      sourceLookup = undefined;
+    }
     if (keyedContent !== undefined) {
       if (await keyedContent.cleanup() === false || keyedContent.cleanupPending() !== false) return false;
       keyedContent = undefined;
@@ -54,9 +82,26 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
   const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(acquisition));
   const adapter = installedSourceFor(sourceProfile, facts[0]);
   const access = adapter.sourceAccess;
-  const capacity = adapter.keyedLedgerCapacity(acquisition);
+  // Resolve the same installed Plan's ValueBudget policy before the first
+  // capacity quote. Model/prefix and standalone adapters keep their own limits.
+  const originalWork = sourcePreparation === undefined ? undefined
+    : checked(moon.clientProgramInstalledEffectKeyedInputWorkLimit(
+      managedRun, acquired.prepared, acquired.requestIdentity));
+  current();
+  const capacity = adapter.keyedLedgerCapacity(acquisition,
+    originalWork === undefined ? undefined : {originalWork});
   let left;
-  if (originalHost !== undefined) {
+  if (sourcePreparation !== undefined) {
+    sourceOriginal = checked(moon.clientProgramInstalledEffectKeyedOriginal(
+      managedRun, acquired.prepared, acquired.requestIdentity));
+    current();
+    sourceLookup = acquired.control.startInstalledEffectKeyedCaptureInput(
+      managedRun, acquired.prepared, acquired.requestIdentity, plan.compiled,
+      plan.runDefinition, plan.graph, acquisition, captures,
+      {maxEntries: localContractLimits.maxNodes, maxNameBytes: localContractLimits.maxWireBytes,
+        maxBytes: capacity.maxBytes, maxWork: capacity.maxWork});
+    left = moon.clientProgramKeyedLookupLeft(sourceLookup);
+  } else if (originalHost !== undefined) {
     const original = acquired.control.prepareInstalledOriginalComposedKeyedHostInput(managedRun,
       plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures, originalHost);
     left = original.left; prefix = original.prefix;
@@ -98,16 +143,23 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
     const child = keyedContent;
     keyedContent = Object.freeze({...child, frame});
   }
-  publication = originalKeyedLookupPublication({moon, acquired, plan, infer,
-    captures, sources, requestJournal, runRef, capacity, signal, now, current, store,
-    fileReadDeclarations: sourceProfile.fileReadDeclarations});
+  const generic = sourceOriginal !== undefined &&
+    moon.clientProgramEffectKeyedPlanGraphIsGeneric(plan.graph) === true;
+  publication = generic
+    ? originalGenericKeyedLookupPublication({acquired, sourceOriginal, captures, sources, signal, now, current})
+    : originalKeyedLookupPublication({moon, acquired, plan, infer, sourceOriginal,
+      captures, sources, requestJournal, runRef, capacity, signal, now, current, store,
+      fileReadDeclarations: sourceProfile.fileReadDeclarations});
   try {
     lookup = await adapter.openKeyedLookup({preparedEffect: acquired.prepared,
       publication,
       managedRun, keyedAcquisition: acquisition, left, ledger, signal,
+      ...(sourceLookup === undefined ? {} : {sourceLookup}),
       preparedKeyed: prepared.prepared, sourceAccess: access,
-      originalCaptures: captures.map(value => value.capture),
-      keyedContent: keyedContent?.frame, maxWork: capacity.maxWork});
+      ...(sourcePreparation === undefined
+        ? {originalCaptures: captures.map(value => value.capture)}
+        : {originalCapture: captures[0].capture}),
+      keyedContent: keyedContent?.frame, maxWork: capacity.maxWork, maxNodes: capacity.maxNodes});
   } catch (cause) {
     const end = acquisitionEndHandoff().outcome(cause);
     if (end.outcome === 'unknown') {
@@ -123,14 +175,19 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
   const original = await lookup.borrowSerializationInput();
   current();
   const evidence = acquired.control.keyedLookupPublicationEvidence(observation.observation);
-  return Object.freeze({lookup: original, observation: observation.observation, evidence,
+  const result = {lookup: original, observation: observation.observation, evidence,
+    ...(sourceOriginal === undefined ? {} : {sourceOriginal}),
     ...(keyedContent === undefined ? {} : {capturedInput: Object.freeze({
-      recovery: keyedContent.frame.recoveryInventory(), binding: keyedContent.frame.sourceBinding})})});
+      recovery: keyedContent.frame.recoveryInventory(), binding: keyedContent.frame.sourceBinding})})};
+  // Borrow the operational frame already retained by this same cleanup owner.
+  // Recovery metadata cannot reconstruct its original Store/Reference custody.
+  if (keyedContent !== undefined) result.contentOwner = keyedContent.frame;
+  return Object.freeze(result);
 }
 
 // Same lookup/Source/Journal originals, not a second acquisition owner. The
 // installing Source calls initialize before planning and activate before send.
-function originalKeyedLookupPublication({moon, acquired, plan, infer, captures, sources,
+function originalKeyedLookupPublication({moon, acquired, plan, infer, sourceOriginal, captures, sources,
   requestJournal, runRef, capacity, signal, now, current, store, fileReadDeclarations}) {
   if (typeof requestJournal?.persistOriginalKeyedLookupActivation !== 'function' ||
       typeof requestJournal?.persistOriginalKeyedLookupPage !== 'function' ||
@@ -146,6 +203,32 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, captures, 
   }
   let lookup, retention, storage;
   const holdings = [];
+  let storeReadCleanup, storeReadFlight;
+  // Only THIS trusted Store confirmation can retain its actual failed reader.
+  // Cleanup retries that same close handle; it does not reopen/read as cleanup.
+  const confirmRaw = async binding => {
+    if (storeReadFlight !== undefined || storeReadCleanup !== undefined) throw new TypeError('LookupRawReaderCleanupPending');
+    try { return await store.confirmLookupRawEvidence(binding); }
+    catch (error) {
+      if (error?.cleanupHandle !== undefined) storeReadCleanup = error.cleanupHandle;
+      throw error;
+    }
+  };
+  const cleanupStoreReads = async () => {
+    if (storeReadFlight !== undefined) return storeReadFlight;
+    if (storeReadCleanup === undefined) return true;
+    const original = storeReadCleanup;
+    if (original.status().pending === false) {storeReadCleanup = undefined;return true;}
+    let flight;
+    flight = Promise.resolve().then(() => original.retry()).catch(() => {})
+      .then(() => {
+        if (original.status().pending !== false) return false;
+        if (storeReadCleanup === original) storeReadCleanup = undefined;
+        return true;
+      }).finally(() => {if (storeReadFlight === flight) storeReadFlight = undefined;});
+    storeReadFlight = flight;
+    return flight;
+  };
   const originalCurrent = () => {signal?.throwIfAborted(); current();};
   return Object.freeze({
     initialize(original) {
@@ -165,7 +248,15 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, captures, 
         BigInt(Math.floor(performance.now())), acquired.authorityScopeCid));
       originalCurrent();
     },
+    responseBackingReleased() {
+      if (storeReadCleanup !== undefined || storeReadFlight !== undefined) return false;
+      return holdings.every(holding => {
+        const state = holding.status();
+        return (state.committed || state.abandoned) && !state.operationPending && !state.preparedPending;
+      });
+    },
     async cleanup() {
+      if (!await cleanupStoreReads()) return false;
       for (const holding of holdings) {
         await holding.abort();
         const state = holding.status();
@@ -185,7 +276,11 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, captures, 
         BigInt(Math.floor(performance.now())), {maxBytes:capacity.maxBytes,
           maxNodes:256, maxDepth:32, maxTextUnits:capacity.maxBytes});
       originalCurrent();
-      const holding = preparePrivatePublicationHolding(store, captured.binding, bytes);
+      const holding = preparePrivatePublicationHolding({
+        confirmLookupRawEvidence: confirmRaw,
+        prepareLookupRawEvidence: (...args) => store.prepareLookupRawEvidence(...args),
+        commitPhysicalHolding: (...args) => store.commitPhysicalHolding(...args),
+      }, captured.binding, bytes);
       // Retain the original partial writer/commit owner BEFORE its first await.
       holdings.push(holding);
       await holding.commit();
@@ -201,7 +296,8 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, captures, 
       requestJournal.persistOriginalKeyedLookupPage(runRef, {page, keyedRequest:request,
         activationRecord:attempt.record, identity:acquired.requestIdentity,
         preparedEffect:acquired.prepared, compilation:acquired.compilation,
-        compiled:plan.compiled, runDefinition:plan.runDefinition, graph:infer.graph,
+        compiled:plan.compiled, runDefinition:plan.runDefinition, graph:infer?.graph,
+        ...(sourceOriginal === undefined ? {} : {sourceOriginal}),
         limits:localContractLimits}, moon, acquired.control);
       originalCurrent();
     },
@@ -210,7 +306,7 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, captures, 
       if (lookup !== original || holdings.some(owner => owner.status().committed !== true)) {
         throw new TypeError('OriginalKeyedRawHoldingUnavailable');
       }
-      const read = checked(moon.clientProgramKeyedLookupDeclaredFilePublicationInput(
+      const read = checked(moon.clientProgramKeyedLookupDeclaredFilePublicationInputDeferredCatalog(
         lookup, now(), BigInt(Math.floor(performance.now())),
         localContractLimits.maxWireBytes, localContractLimits.maxNodes, localContractLimits.maxDepth));
       originalCurrent();
@@ -226,10 +322,43 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, captures, 
       const record = requestJournal.persistOriginalKeyedLookupActivation(runRef, {
         activation, identity: acquired.requestIdentity, preparedEffect: acquired.prepared,
         compilation: acquired.compilation, compiled: plan.compiled,
-        runDefinition: plan.runDefinition, graph: infer.graph, limits: localContractLimits,
+        runDefinition: plan.runDefinition, graph: infer?.graph, limits: localContractLimits,
+        ...(sourceOriginal === undefined ? {} : {sourceOriginal}),
       }, moon, acquired.control);
       originalCurrent();
       return Object.freeze({activation, record});
     },
+  });
+}
+
+
+// The actual generic content_ref protocol uses the same funded lookup and
+// captured Source bodies. Content bytes/holding stay with the original Store;
+// no Native activation, raw-response archive or cleanup ACK is manufactured.
+function originalGenericKeyedLookupPublication({acquired, sourceOriginal, captures, sources, signal, now, current}) {
+  if (typeof acquired.control.prepareGenericEffectKeyedLookupSourceMetadata !== 'function' ||
+      typeof acquired.control.finishGenericEffectKeyedLookupPublicationInput !== 'function') {
+    throw new TypeError('OriginalGenericKeyedLookupPublicationUnavailable');
+  }
+  let lookup, retention;
+  const originalCurrent = () => {signal?.throwIfAborted(); current();};
+  return Object.freeze({protocol: 'generic-source',
+    initialize(original) {
+      originalCurrent();
+      if (lookup !== undefined) throw new TypeError('OriginalKeyedLookupAlreadyInitialized');
+      lookup = original;
+      retention = acquired.control.prepareGenericEffectKeyedLookupSourceMetadata(sourceOriginal, lookup,
+        captures, sources, keyedInputRetentionSelection(acquired), localContractLimits);
+      originalCurrent();
+    },
+    finishInput(original) {
+      originalCurrent();
+      if (lookup !== original || retention === undefined) throw new TypeError('ForeignOriginalGenericKeyedLookup');
+      const read = acquired.control.finishGenericEffectKeyedLookupPublicationInput(sourceOriginal, lookup,
+        now(), localContractLimits);
+      originalCurrent();
+      return read;
+    },
+    async cleanup() {return true;},
   });
 }

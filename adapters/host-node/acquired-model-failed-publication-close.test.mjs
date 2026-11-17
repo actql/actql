@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {fundedInferCaptureInventoryCount} from './infer-operation.mjs';
 
 // Execute the original private group and enclosing custody with explicit
 // Model/Core/Store ports. No Runtime, physical stop or public-close ACK is
@@ -35,6 +36,7 @@ function fixture({publicationSuccess=false,deferPublication=false}={}){
     clientProgramRefreshAcquiredEffectCleanup(){events.push('refresh');return true;},
   };
   const ports={checked,runtimeField:(value,index)=>value[`_${index}`],canonicalJson:JSON.stringify,
+    fundedInferCaptureInventoryCount,
     openNodeInferCaptureCustody({operation}){const index=operation.index;return {
       retainCompleted(){return true;},completedCallCount:()=>1,
       async persist(){persistCalls++;},modelEvidence:()=>[],

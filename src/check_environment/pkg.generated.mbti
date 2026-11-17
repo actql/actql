@@ -292,6 +292,8 @@ pub fn decision_state_input(DecisionContract) -> String
 
 pub fn default_read_mode(SourceViewModes) -> SourceReadMode
 
+pub fn emission_geometry(WireEnvironment) -> (Int, Int, Int)
+
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_host_policy(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -590,6 +592,8 @@ pub fn model_task_schema(ModelTaskContract) -> String
 
 pub fn model_task_schema_cids(ModelTaskContract) -> (String, String)
 
+pub fn model_tasks_admission_construction_extent(WireEnvironment) -> RegistryConstructionExtent?
+
 pub fn model_tasks_environment(ModelTasks) -> WireEnvironment
 
 pub fn model_tasks_usage(ModelTasks) -> (Int, Int, Int, Int, Int, Int)
@@ -607,6 +611,8 @@ pub fn normalized_public_mock_model_task_original_for(NormalizedPublicModelTask,
 pub fn normalized_public_model_task_materials(NormalizedPublicModelTask) -> (String, String, String, String)
 
 pub fn normalized_public_model_task_original_for(NormalizedPublicModelTask, PublicModelTaskDeclaration, ModelProviderDefaults, ResolvedModelProviderDefaults) -> Bool
+
+pub fn normalized_public_model_task_retained_extent(NormalizedPublicModelTask) -> RegistryConstructionExtent
 
 pub fn normalized_public_model_task_usage(NormalizedPublicModelTask) -> Int
 
@@ -641,6 +647,8 @@ pub fn observe_source_request_construction_geometry(CarrierSchemas) -> SourceReq
 pub fn observe_source_request_contracts(CarrierSchemas, SourceRequestLimits) -> (Result[SourceRequestContracts, SourceRequestIssue], Int, Int)
 
 pub fn observe_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -> (Result[SourceViewShapes, SourceViewShapeIssue], Int)
+
+pub fn original_model_tasks_admission_limits(WireEnvironment) -> ModelTaskLimits?
 
 pub fn preparation_data_geometry(WireEnvironment, SourceRequestContracts) -> EnvironmentPreparationData
 
@@ -700,7 +708,17 @@ pub fn public_model_task_declaration_model(PublicModelTaskDeclaration) -> (Strin
 
 pub fn public_model_task_declaration_original(PublicModelTaskDeclaration) -> @decode_core.Cursor
 
+pub fn public_model_task_declaration_retained_extent(PublicModelTaskDeclaration) -> RegistryConstructionExtent?
+
 pub fn public_model_task_declaration_usage(PublicModelTaskDeclaration) -> (Int, Int, Int)
+
+pub fn public_model_task_document_construction_extent(String, String, ModelTaskLimits) -> RegistryConstructionExtent?
+
+pub fn public_model_task_environment_construction_extent(Int, Int, Int, Int, Int, Array[NormalizedPublicModelTask]) -> RegistryConstructionExtent?
+
+pub fn public_model_task_environment_limits(Int, Int, Int, Int, Int, Array[NormalizedPublicModelTask]) -> ModelTaskLimits?
+
+pub fn public_model_task_normalization_construction_extent(PublicModelTaskDeclaration, ModelTaskLimits) -> RegistryConstructionExtent?
 
 pub fn published_command_binding_identifier_type(PublishedCommandBinding) -> @value_contract.Contract?
 

@@ -2,10 +2,28 @@
 // admission. A matching numeric quote, restored DATA or another original cannot
 // replace it. This owns no provider work, permission or physical cleanup ACK.
 import {types} from 'node:util';
+import {localContractLimits} from './local-values-plan.mjs';
 import {inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openNodeComposedInferProvider, retireNodeInferOriginalRead} from './infer-operation.mjs';
+
+const modelGroupPreparations = new WeakMap();
+const preparedEffectRuns = new WeakSet();
+
+// Only an installed original Run can expose this already funded inventory.
+// A component count or caller-created getter never substitutes for its Resource
+// admission. Escaped preparation views weakly borrow that same live Run.
+export function fundedEffectModelGroupCount(preparation) {
+  const original = modelGroupPreparations.get(preparation), run = original?.run.deref();
+  if (run === undefined || !preparedEffectRuns.has(run) || !run.preparationFunded ||
+      run.closed || run.modelScopeFinished || run.modelPreparation !== preparation) return undefined;
+  original.current();
+  const count = original.checked(Reflect.apply(original.read, run.runtime,
+    [run.value, run.prepared, run.request]));
+  original.current();
+  return Number.isSafeInteger(count) && count === run.modelMembers?.length ? count : undefined;
+}
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
@@ -28,8 +46,9 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
   if (liveRuns.size >= 4096) fail('InstalledComputeRunLimit');
   const run = {preparationKind: 'effect-plan', runtime, manager, prepared, request, requestInput, selection, model, modelSelection,
     definitionOriginal: undefined, operationPlan: undefined, sourceProfile, original: undefined, admission: undefined, value: undefined, modelScope: undefined,
-    closed: false, selecting: false, operationsBegun: false};
+    closed: false, selecting: false, operationsBegun: false, checkModelGroupCount: checked};
   runs.set(prepared, run);
+  preparedEffectRuns.add(run);
   liveRuns.add(run);
   try {
     // The sole installed issuer supplies a frozen own-DATA tuple. Do not move
@@ -45,6 +64,31 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     run.definitionOriginal = Object.freeze(Object.fromEntries(
       ['prepared', 'identity', 'compilation', 'allowed', 'definition', 'queryTimePreparation', 'modelCompiled']
         .map(name => [name, facts[name]])));
+    if (model === undefined && runtime.clientProgramEffectAcquisitionCount?.(prepared) > 0) {
+      const selectKeyed = runtime.clientProgramEffectSingleKeyedAcquisition;
+      if (typeof selectKeyed !== 'function') fail('InstalledEffectKeyedRuntimeUnavailable');
+      const acquisition = checked(Reflect.apply(selectKeyed, runtime, [prepared]));
+      if (acquisition !== undefined) {
+        if (typeof manager.prepareEffectKeyedPlan !== 'function' ||
+            typeof publicationControl?.adoptCheckedClientEffectKeyedRun !== 'function' ||
+            typeof publicationControl?.originalCheckedClientEffectPublication !== 'function' ||
+            fields.runDefinition?.value === undefined) fail('InstalledEffectKeyedRuntimeUnavailable');
+        const graph = manager.prepareEffectKeyedPlan(prepared, requestInput, acquisition,
+          sourceProfile?.fileReadDeclarations);
+        // The graph's original Request quote funds this existing view before
+        // construction. Keep the same INITIAL Definition as the captured Run;
+        // the Journal's separately admitted wrapper is full-byte DATA only.
+        const original = publicationControl.originalCheckedClientEffectPublication(
+          facts.allowed, facts.definition, localContractLimits);
+        const definition = original.runDefinition;
+        if (definition.identity !== fields.runDefinition.value.identity ||
+            definition.wire !== fields.runDefinition.value.wire) fail('ForeignInstalledEffectManagedRun');
+        const compiled = publicationControl.adoptCheckedClientEffectKeyedRun(
+          facts.allowed, definition, graph);
+        run.keyedPreparation = Object.freeze({graph, acquisition, compiled, requestIdentity: request,
+          compilation: facts.compilation, runDefinition: definition});
+      }
+    }
     if (model !== undefined) {
       const plural = Array.isArray(model.components);
       if (plural && (!Object.isFrozen(model) || types.isProxy(model) ||
@@ -119,7 +163,8 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       // manager Root for the selected Plan.
       const adopt = Object.getOwnPropertyDescriptor(manager, 'adoptEffectPreparation')?.value;
       if (typeof adopt !== 'function' || requestInput === undefined) fail('InstalledEffectRequestPreparationUnavailable');
-      const adopted = Reflect.apply(adopt, manager, [prepared, requestInput, request, operationPlan]);
+      const adopted = Reflect.apply(adopt, manager,
+        [prepared, requestInput, request, operationPlan, run.keyedPreparation]);
       run.original = adopted.original;
       run.value = adopted.value;
       run.preparationFunded = true;
@@ -316,6 +361,12 @@ export function installedEffectModelPreparation(run, publicationCapacity, assert
   run.modelPreparation = Object.freeze({components,
     retain() {current(); for (const component of components) component.retain();},
     retire() {current(); for (const component of components) if (component.retire() !== true) return false; return true;}});
+  const read = run.runtime.clientProgramInstalledEffectFundedModelSelectionCount;
+  if (preparedEffectRuns.has(run) && run.preparationFunded && typeof read === 'function') {
+    // checked is retained on the same installed record before its constructor.
+    modelGroupPreparations.set(run.modelPreparation, {run: new WeakRef(run), current,
+      checked: run.checkModelGroupCount, read});
+  }
   return run.modelPreparation;
 }
 

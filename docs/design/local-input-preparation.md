@@ -13,6 +13,44 @@ joining this ownership protocol. An inapplicable shape proof is not a language
 restriction or permission to invent a resource grant. The presence of this
 recipe does not establish complete funding coverage for every Local route.
 
+## Authenticated HTTP input on the same Request
+
+The installed Remote HTTP Host opens its existing Request producer after
+transport authentication and before the HTTP consumer's first `read(n)`.
+This admission is resource backing, not Workspace, connection, Account or Run
+permission. Those original checks still run after decoding and before snapshot
+or dispatch. The configured `maxRequestBytes` is an encoded-body attack policy
+(default 65,536), not a node count or preallocated body. A Host may explicitly
+select a larger finite wire policy; each constructor must still fit the same
+original Request resource limits.
+
+Before each bounded read, retained Buffer copy, chunk-reference growth,
+concatenation and UTF-8 decoding, the existing preparation manager grows that
+Request's original reservation. The bounded read probe may observe one byte
+beyond the selected wire limit and refuses it before making an owned copy.
+The HTTP consumer copies accepted chunks rather than retaining borrowed stream
+aliases. Socket and IncomingMessage producer allocations remain the external
+transport owner's responsibility: `highWaterMark` is not a physical allocation
+bound or a supplier for those allocations.
+
+After fatal UTF-8 decoding, the existing Source preflight measures the same
+String's actual node and quoted-text geometry without constructing a grammar
+tree or admitting a Program. Its original work/current/depth/overflow checks
+remain. The same Request then reserves the existing native snapshot tree
+representation before native `JSON.parse`. Wire length bounds the scanner; it
+is never priced as the number of constructed value nodes. No snapshot statistics
+are fabricated, and the preflight cursor and work are retired before the next
+phase. Malformed native decoding/JSON keeps the transport refusal; resource or
+current failures retain their own primary and original cleanup duty.
+
+Once connection authorization succeeds, the raw producer is bound to that same
+request kind and enters the existing snapshot, intent, checker and dispatch
+sequence. HTTP does not open another producer or Ledger. Method/receiver pairs
+are retained across awaits; an abort, refused resize or failed construction
+finishes only this original input. Pending children and failed retirement stay
+with the existing manager and Host shutdown, rather than being acknowledged by
+an HTTP response or by settling a pending-call registry entry.
+
 ## Inputs and outputs
 
 An original input reference and the installed Local resource policy enter the
@@ -586,6 +624,16 @@ requires that actual configuration. The existing managed Run records its
 issued DAG before binding, so failed binding or reentrant current loss cannot
 issue another graph. A changed output mode refuses before graph construction;
 it cannot trigger a late factory or choose a fallback configuration.
+
+The runtime requirements entry retains the original sequence-selection failure
+in a typed Result; the existing Option entry remains its compatibility view.
+Both use the same checked Program, installed contracts and one preparation
+path. The CLI projects only closed phase and proven dimension labels from that
+failure. A sequence step bound stays distinct from invalid selected limits,
+graph/import inventory failure and an unavailable capacity quote. An absent
+quote establishes no memory/work shortage or execution permission. Debug text,
+SQL, paths and error payloads are not public diagnostic material; reporting
+does not retry checking or replace the original cleanup owner.
 
 The raw sequence preparation still serves explicitly unmigrated Effect/Model
 projections. The Request module path supplies its actual selected module; an absent module choice is
@@ -2897,6 +2945,18 @@ raw/no-plan success or an unqualified fallback.
 
 ## Native submitted intent on the same Request
 
+The Node submission adapter first consumes its same retained intent or the
+original Journal's `prepareSubmittedIntent` port. A Journal refusal is never
+retried through the compatibility codec. Installations without that optional
+port keep their existing codec entrance, using the already retained canonical
+wire's UTF16 length `U`: at most `3*U` UTF8 bytes and `U` JSON nodes. This
+constant-time projection adds no snapshot or whole-input scan. It preserves the
+original recursion bound and the Core constructor's signed-Int headroom; these
+bounds do not reserve storage or issue an intent, Request or execution grant.
+Original CID matching, epoch/current, handler retirement and Journal policy
+remain independent and unchanged.
+
+
 The normal captured native Program caller explicitly selects the original
 Request's input envelope for its later Program Source/index admission. That
 default projection requires the same live Request/input association and ready
@@ -3080,17 +3140,111 @@ lowerer and canonical Program emitter use the selected compiler artifact
 envelope, since generated Program material is not the original SQL wire.
 The default captured Source caller obtains its raw-input byte/Text envelope
 from `request_default_program_preparation_limits` on the same observed snapshot.
-The explicit caller retains its supplied profile. Native document input keeps
-its existing document-derived profile. No path replaces those selections with
-the standard profile after parsing or rescans the captured input.
+The explicit caller retains its supplied profile. Ordinary native Program and
+encoded JSON/YAML/SQL/Pipe input use the same original snapshot selection.
+No path replaces those selections with the standard profile after parsing or
+rescans the captured input.
 
 After lowering, the same existing Request `computation_limits` slot retains
 the generated-Program envelope for the ordinary checker/compiler continuation.
 Reusing the generated Program must not apply the original raw SQL node bound
 to the expanded artifact. This transition changes only the input representation
 dimensions; generic explicit check/reuse APIs retain their supplied restrictions.
-Installed collection/join dimensions, depth, CTE policy and original target,
+Installed collection/join dimensions, depth, explicit parser policies and original target,
 Catalog, Parameter and Environment bindings remain independent.
+
+The ordinary initial selection derives its Source/tree nodes and structural
+Stage, step, Result and parameter bounds from the same captured snapshot's
+finite encoded-byte envelope. Each encoded entry occupies at least one byte;
+outer snapshot value count alone does not bound nodes inside an encoded JSON
+String. The original Source owner observes and reserves actual geometry before
+parsing. This structural ceiling does not allocate its maximum or grant Resource
+capacity. The common Source, compilation and structure limit records coexist
+with the original profile; the fixed Request control quote includes their
+3 headers, 6 references and 13 scalar words (200 bytes by the common tariff).
+Explicit selected-limit entrances keep their original separate path and can
+still reject the same input under a smaller Stage budget.
+
+After Query lowering, the retained Program's constant-time Stage count selects
+only the semantic structure bound. It does not multiply checking work at a
+Stage32 boundary. The same ordinary getter selects work before either encoded
+Source or native Program checking; the later lowering continuation preserves
+that original immutable selection. Repeated or reentrant preparation refuses
+before parsing/checking again. Depth, memory, artifact and other compiler
+restrictions remain separate. The existing four immutable limit records keep
+their original 4-header, 11-reference, 14-word fixed control quote.
+
+#### Default checking artifact work
+
+The checker owns the ordinary combined work ceiling, using the original work
+allowance W and its same aggregate artifact-byte/node quotas B and N:
+`W + 4B + 2N`. This replaces Stage grouping with the existing canonical work
+accounting; it is a selected ceiling, not an assertion that any of those maxima
+were consumed or that every valid input fits. Work remains one finite meter,
+not separate refillable per-kind or per-Stage budgets. The original standard
+profile itself remains unchanged; explicitly selected limits do not call this
+ordinary projection and retain their supplied work restriction.
+
+The logical pass correspondence comes from the original identity constructors.
+`identity_finish` charges one byte and one node pass, then depletes the same
+cumulative artifact quotas. `publication_metadata` charges three byte and two
+node passes for measurement, writing and UTF8 output, then depletes those same
+quotas; original witness/proof admission adds at most one further byte pass.
+The typed original Host/claim projection preserves those declared logical
+debits even when it can reuse an original wire holder. This describes the
+existing work model, not actual CPU instructions or a new cost per object.
+Preimage and complete-body charges occupy their own entries in the original
+cumulative artifact accounting; an internal helper cannot refill it.
+
+The common selector uses checked Int64 arithmetic and refuses a result beyond
+the original Int work ABI. It neither saturates to an unlimited maximum nor
+converts representation bytes, dispatch planning work or unused Resource extent
+into consumed Usage. The original synchronous observers still report their
+actual declared work deltas on the same phase receipt, including incomplete
+failure prefixes. All before-constructor Resource reservations, current,
+cancellation and failed-child retirement remain with their existing owners.
+The work projection adds no graph walk, parse, semantic check, compiler call,
+external callback, retained field or new Resource owner. It reuses the already
+funded immutable limit records and changes no artifact/depth/representation
+quota or explicit caller restriction.
+
+Sequence construction uses the same checked task owner and its retained
+pipeline node count for that task's full-step allowance, before selecting the
+execution step. Its canonical demand projection retains the original row,
+cell, name and expression bounds. It does not traverse or rebuild the graph,
+reinterpret the input, or turn a task ordinal into an execution grant. Direct
+calls with an explicit smaller sequence budget still refuse.
+
+The same existing demand fold also retains the maximum full-sequence step
+count across its original pipeline owners. The shared module/compiler getter
+uses that count too; it must not reset a prepared 160-step pipeline to a
+separate 100-step default during fragment measurement. Per-task selection
+reads the same original inventory. The per-pipeline observation and aggregate
+may coexist with their new scalar, so the original compilation reservation
+prices two scalar words through the common tariff before these constructors.
+This adds no scan, capacity grant or replacement owner.
+
+During that same binding inventory, the canonical demand also composes the
+original typed expressions' cached UTF8 accounting. That receipt includes
+admitted scalar-literal, contract and name text; it supplies known checked
+text to the lowering quota, not the configured maximum, runtime output size or
+a new storage allowance. It does not establish complete demand for untallied
+opaque JSON bodies or late parameter values; their original admission limits
+remain independently present.
+The shared and task selectors carry it into the existing expression text limit,
+so a checked long literal is not reset to an unrelated 10,000-byte default at
+Kernel construction. Explicit smaller sequence/expression text budgets retain
+their original refusal. Dynamic parameter and runtime expansion remain separate
+input/output obligations; static text demand does not grant them capacity.
+The new scalar on the per-pipeline demand and aggregate adds two more words;
+the same pre-compilation reservation therefore prices four words total for the
+full-step and text additions before either constructor. No Source/typing/tree
+scan, UTF8 Buffer, semantic check or additional capacity owner is created.
+
+The error owner alone
+recognizes exact nested sequence-budget failures for the existing analysis-limit
+projection; foreign, retired and general construction failures stay uncertain.
+
 
 These projections are immutable DATA in the existing Program owner, not a new
 Resource, authority or preparation controller. The same Request reserves the
@@ -3822,6 +3976,17 @@ peaks are funded by the existing snapshot representation recipe before the
 constructor runs. Empty results retain no decoded text; invalid/overflow bounds
 remain refusals. This changes no logical policy ceiling, semantic authority,
 Result occurrence, currentness fence, reservation owner or cleanup obligation.
+
+A retained Result field contract with finite `Text(bounds).max_utf8_bytes`
+also supplies the existing Result-schema leaf proof. The quote counts every
+projected occurrence and authored field-name byte, then combines the checked
+closed row bound with the shared JSON leaf wire formula. A larger allowed work
+budget does not replace that same bounded payload proof with its policy ceiling.
+Unbounded/invalid Text and checked overflow keep the existing unknown fallback;
+explicit smaller row/work budgets and the actual Store/coheld metadata preflight
+still refuse. This performs no literal rescan or general RowStep analysis and
+changes no Store cap, default work or cleanup/currentness duty. The bounded-Text
+regressions are authored Source evidence; their runtime acceptance is separate.
 
 ## Source readers receive the same checked Run
 
@@ -6209,9 +6374,10 @@ Unknown physical outcomes retain these same duties and consumed work.
 A retained structured Program and a Source envelope have different inventory
 subjects. Observing the envelope's single document String does not establish
 the JSON/YAML document's structural node count or the SQL/Pipe lowering's Program
-inventory. The Native Source continuation retains its original syntax policy;
-its existing same-Request document/Query constructor reserves the selected
-representation before parsing or lowering. The structured Program continuation
+inventory. The Native Source continuation selects the same observed default
+input and lexical-work bounds as Node/RelA, while preserving its original
+result convention. Its same-Request document/Query constructor reserves the
+selected representation before parsing or lowering. The structured Program continuation
 continues to use its observed native input inventory. No permission, additional
 check, fallback compiler or numerical resource grant follows from this choice.
 
@@ -6262,9 +6428,12 @@ The installed `check` and unsaved `explain` commands retain their immutable
 argument/file producer before the ordinary observed reader opens any payload.
 They initialize the existing Request facility once. Raw Parameters are admitted
 first, then the original JSON/YAML Program or SQL/Pipe Query is parsed and
-checked through that same Request. Raw file storage follows the observed input;
-node/depth and Parameter/declaration scalar policies remain their original
-contracts. No submitted intent, module, provider, Engine or Run is created.
+checked through that same Request. The static caller selects its structural
+bounds from the common default selector's already-funded raw intake envelope,
+projects lexical work once from the same document and consumes the common
+post-lowering selection before checking. Raw depth and Parameter/declaration
+scalar policies remain their original contracts. No submitted intent, module,
+provider, Engine or Run is created.
 
 `check` stops at the original static semantic outcome. Its existing report
 constructor consumes that exact outcome, original Program cursor/spans,
@@ -6410,6 +6579,48 @@ demand; it does not enlarge permission or credit finished/source storage before
 its original owner acknowledges release. Snapshot import still uses the exact
 finished receipt and grows the same Task reservation before construction.
 
+### Closed scalar snapshot import overlap
+
+A successfully completed dense Text/Number/Boolean snapshot import may share
+its decoded immutable Text with the receiving CheckedValues. The scalar
+admission retains the same decoded String; its parser Cursor and raw JSON
+record do not escape the decoder. The completed-import observation binds the
+exact importer and returned output, checks current availability and refuses
+partial, cancelled, copied, foreign, reentrant or nonscalar observations. This
+observation is quantity DATA, not a storage or cleanup acknowledgement.
+
+The original Task records at most the parser-text term already funded by its
+same finished snapshot receipt: eight times the smaller of the admitted row
+text bound and that receipt's measured value text. Reuse becomes available only
+after the original snapshot finish confirms framing/body release and old
+reference retirement. A reentrant stop cannot publish the overlap. Subsequent
+successful workspace growth moves only the consumed part of this term from
+the same Task's import extent to its working extent, once across all grows.
+The combined reservation never decreases or refunds capacity. Failed growth
+does not spend the remaining overlap. Receiving value Text, wire, framer row,
+batch, nodes, other live owners and all generic import costs remain covered;
+nested, reference and sparse schemas keep the complete existing path. Limits,
+identity, currentness, finalization and cleanup retain their original owners.
+
+After successful identity verification and row handoff, the importer reuses its
+existing source-reference slot for that exact returned output. Its closed
+append/finish and completed cancellation paths do not read the old source;
+cumulative work reads the original budgets. The copied completion preserves
+the same logical origin/current restrictions, independently of physical source
+availability as before. An importer borrows the source; it has no physical
+release method or acknowledgement. The original Source, producer read,
+snapshot or Native retained-file owner still holds its own cleanup duty.
+
+The Local driver prepays its added controls in startup scratch, before either
+new Ref cell is constructed. The shared representation tariff counts standing
+2H/7R/1W plus the largest nullable construction phase 5H/1R/7W: 240 logical
+bytes. This covers the two cells, six closure capture slots, initial None,
+overlapping original/getter/replacement Some values, bind/map closures, the
+arithmetic Some(tuple3) and post-current fences. Growth and fence phases fit
+that same fixed inventory. There is no assumption of backend nullable
+unboxing, spare parser pages or opaque allocator/GC release. The importer adds
+no standing field or Some record at other Host/Native entrances.
+
 ### Value-root entries and internal row decoding
 
 A constructed Array may retain many child values while using only one
@@ -6428,3 +6639,153 @@ inventories and separately selected explicit import profiles retain their
 original route. Cumulative value/work/identity checks, byte/depth bounds and
 SDK per-row retention controls remain independent. Quote and decoder consume
 the same selected profile under the original Task reservation.
+
+### Retained Source lexical work
+
+The default Node, RelA and Native Source entrances select lexical work from the
+same retained document: scanner advancement charges at most its UTF-16 unit
+count, and first quoted-name normalization charges at most that count again.
+The selected work bound is therefore twice the original String length, checked
+against the existing signed-Int representation. This uses the scanner's raw
+work unit, not dispatch planning work, time or capacity headroom. No second
+input scan or parser is needed. Explicit selected budgets remain unchanged.
+
+The existing Request retains that selection with the document and syntax quote.
+A refused grow cannot replace it. The fixed Request prefix backs the selection
+holder before callbacks; the syntax grow separately backs the coheld original
+and selected limit records before their constructors. The original phase work
+observer, current fence, once-only parser, lowering, checker and cleanup remain
+in place. Grammar, expression, nesting and other independent work limits are
+unchanged; a lexical bound does not establish their complete demand. Native
+keeps its original result convention through the same default Source entry.
+
+### Selected Native Host configuration construction
+
+The selected command's existing initial Read obtains Host configuration text
+through its observed file-size intake. Its original Reader/Root and any partial
+failure remain with that command until actual cleanup. Other runtime, Store and
+Journal text readers keep their own independently selected bounds and owners.
+
+Before Source preflight starts, the same Read funds its fixed control inventory.
+That preflight caches the original byte, token, container and ancestry geometry;
+its same parser is transferred once only after the complete parser/index
+constructor quote is admitted. Token and node occurrences come from that cached
+geometry, rather than converting text bytes into node prices. Subsequent closed
+object views, original child cursors, installation array growth and exact-key
+admission are funded before their constructors. Settings Strings continue to
+borrow their original Source/index backing. No returned shape or post-admission
+extent supplies an earlier construction reservation.
+
+The command retains one scalar count of its escaping metadata prefix. Each next
+constructor combines that same prefix with its own peak through the existing
+Read growth and physical backing port. Completed scratch contributes a maximum,
+not an accumulating sequence of temporary peaks. Refusal retains the original
+issue before presentation, fences further normal construction and leaves all
+physical retirement duties with the original command. No second Read, grant,
+current callback, reservation owner or cleanup acknowledgment is introduced.
+
+The explicit installed Read/domain/Host budgets, structural depth, integer and
+UTF8 checks, exact duplicate/name and selected-file identity checks remain.
+Installation names use the existing exact-key admission owner while preserving
+original order, without repeatedly scanning the already retained prefix. These
+logical constructor inventories neither certify a Native allocator layout nor
+replace the existing selected Native provider, same-domain backing or ordinary
+success, refusal and Saved consumer checks.
+
+### Raw Native document default selection
+
+The ordinary raw Native checker keeps its existing Request and producer. Its
+Reader has already observed and reserved `native_intake_wire_bytes` before
+constructing document/parameter Strings. The common default selector consumes
+that same retained byte envelope when no captured snapshot or submitted intent
+exists. Encoded bytes bound structural entries; they are never written into
+snapshot value/Text observations. The original raw entrance depth remains.
+The same already-backed fixed limit records are used, without a second reader,
+input scan, Request, parser or permission issuer.
+
+Captured and raw callers share the existing post-lowering default selection,
+including the unchanged, separately tracked Stage-group work policy. The retained
+Program supplies its constant-time Stage count. The fixed Request control quote
+also backs the coheld selected-limit return wrapper (one header/reference).
+Both callers use one lexical-work projection of the original document. Explicit
+profiles, current/reentry, overflow, semantic/algorithm work and cleanup remain
+independent; these projections do not grant Resource capacity or compile a body.
+
+### Original normalization on the same Request
+
+The Native submitted-request handoff runs its selected original constructor
+inside the caller's already-active business Request, before borrowing the Plan
+input. Its optional `before_program_borrow` callback does not replace the
+Program, compiler, parent or authorization. Absence preserves the existing
+handoff. The CLI retains the same normalization returned by this constructor;
+it does not enter a nested business Request or repeat normalization after the
+Plan borrow. Typed normalization failures leave the original cleanup duties on
+the same parent.
+
+An ordinary Native Source computation keeps its original checked and compiled
+Program on the Request's existing preparation capacity. Its normalization audit
+runs in that same backed execution scope before the execution Plan is built.
+The caller selects the work and artifact byte/node/depth policy already retained
+by this original compiler; these maxima are neither work consumed nor new
+Resource credit. The independently callable bounded normalization issuer keeps
+its existing 10000-work and 1024-byte/32-node/8-depth defaults. A caller does not
+recognize that default by comparing equal limit records.
+
+The Common auditor remains the sole traversal of the original Stage, producer,
+parameter and operation occurrences. The resulting inventory retains the same
+checked Program and requirement closure, including all backend, numeric and
+execution prerequisites. It grants no execution support, permission, Run,
+replacement identity or cleanup acknowledgement. An empty journal follows only
+from that completed audit; Source syntax, row count or a successful checker
+cannot substitute for it. The existing journal body, catalog, identity preimage
+and sealer remain unchanged. Previously issued original journals retain their
+exact bytes and nominal preparation binding.
+
+The Request reserves the next audit constructor cohort before entering it. Its
+conservative variable-data estimate comes from the same observed Program,
+Catalog and checked-input material; it is not an allocation of a codec maximum.
+Once the audit frame returns, an inventory of its actual retained array capacity,
+entry Strings and order views replaces its disposed scratch. A bounded measuring
+writer then sizes the same journal emitter from those retained originals. Sizing
+the registered CID field uses only its fixed spelling and length, never an issued
+identity or a replacement hash. The actual journal parser, canonical values,
+UTF8/text/hash writers and completed evidence are backed from that measured
+shape before the existing sealer executes. Writer/parser scratch is reconciled
+only after its original constructor returns; the audit and issued evidence remain
+with the same Prepared and Plan/Run lifetime.
+
+Normalization has one named preparation-work phase between lowering/graph
+construction and execution-Plan construction. Its public variant is appended to
+preserve earlier constructor tags. The private execution-order fence is not a
+wire encoding or public counter. A returned work continuation spans the original
+resize boundary; no second meter, allowance, dispatch tariff or Root is minted.
+The actual audit's charged work and known metadata/emitter dimensions are
+reported separately from configured maxima, VM instruction counts and physical
+cleanup. Failed constructors retain only their known charged prefix; an
+unobserved failure tail is not reported as complete Usage.
+
+The existing Request driver owns synchronization and cancellation. It fences
+current/growth callbacks before they can reenter, replace its original input or
+retire a live constructor. Foreign input, a substituted compiler original,
+capacity refusal or a stopped current owner cannot enter a new audit. Reusing
+successful immutable normalization DATA does not repeat its audit or hash, but
+the public Request continuation still checks the same working capacity's current
+original before returning cached success. Presenting its already retained error
+is not a live continuation. Pending work and material remain attached to the same
+Request until its original after-cleanup retirement; success alone is no ACK.
+
+The Request adds one retained controller reference, priced as eight bytes by the
+existing common tariff before Request construction. The controller and its fixed
+synchronous work/measurement frames use the existing exclusive driver-control
+group; variable audit and publication material reserve separately. Successful
+original Program, captured, Model and Content handoffs sever the controller alias
+with their existing compiled-body aliases. Failed handoffs retain their originals.
+The same parent's cleanup finishes pending work and then clears these aliases;
+no separate retirement callback or owner is introduced.
+
+Verification distinguishes unchanged standalone refusal/preimages, ordinary
+Request audit/publication, foreign/current/reentry/once fences, ordered phase
+continuation and final alias retirement. Compiler type/interface checks establish
+only the selected source boundaries. Actual Native execution, retained Saved
+reads, target ABI and physical cleanup require their own matching artifacts and
+original callers; pure component success does not establish them.

@@ -16,12 +16,46 @@ struct NativeRunStateCandidate {
 }
 
 ///|
+/// Original selected service limits only, never currentness or a Read grant.
+pub fn NativePreparedCapturedRunPublication::run_state_construction_limits(
+  self : NativePreparedCapturedRunPublication,
+) -> (Int, Int, Int) {
+  (self.service.max_wire_bytes, self.service.max_nodes, self.service.max_depth)
+}
+
+///|
 pub(all) enum NativeRunStateCandidateIssue {
   Unavailable
   InvalidLimits
   ValidationLimit
   Publication(NativeRunPublicationIssue)
   State(@publication.ObservedPublicationRunStateIssue)
+}
+
+///|
+priv enum NativeRunStateReadConsumerIssue[E] {
+  CandidateFailure(NativeRunStateCandidateIssue)
+  ConsumerFailure(E)
+}
+
+///|
+// Explicit view release always runs, but cannot replace the consumer's
+// primary. Its checker is also unconditionally cancelled by the surrounding
+// lexical visitor (or by standalone release). These are semantic aliases;
+// this function does not acknowledge Store, file or Read cleanup.
+fn[T, E] finish_run_state_read_consumer(
+  result : Result[T, E],
+  release : () -> Result[Unit, NativeRunStateCandidateIssue],
+) -> Result[T, NativeRunStateReadConsumerIssue[E]] {
+  let released = release()
+  match result {
+    Err(primary) => Err(ConsumerFailure(primary))
+    Ok(value) =>
+      match released {
+        Ok(_) => Ok(value)
+        Err(issue) => Err(CandidateFailure(issue))
+      }
+  }
 }
 
 ///|
@@ -74,10 +108,21 @@ pub fn NativeRunStateCandidate::release(
   if self.released {
     return Err(Unavailable)
   }
+  let result = self.release_views()
+  cancel_native_state_validation(self.validation, self.preparation)
+  result
+}
+
+///|
+fn NativeRunStateCandidate::release_views(
+  self : NativeRunStateCandidate,
+) -> Result[Unit, NativeRunStateCandidateIssue] {
+  if self.released {
+    return Err(Unavailable)
+  }
   self.released = true
   let child = self.validation.release_observed_commit(self.view)
   let view = self.validation.release_view(self.view)
-  cancel_native_state_validation(self.validation, self.preparation)
   match child {
     Ok(_) => ()
     Err(issue) => return Err(Publication(Commit(issue)))
@@ -235,8 +280,15 @@ fn advance_native_observed_state_validation(
   quantum : Int,
   max_rounds : Int,
   owner? : @local.ClientProgramValidation? = None,
+  read_fence? : (() -> Result[Unit, NativeRunStateCandidateIssue])? = None,
 ) -> Result[Unit, NativeRunStateCandidateIssue] {
   for _ in 0..<max_rounds {
+    if read_fence is Some(fence) {
+      match fence() {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+    }
     if !native_state_validation_loan_current(preparation, owner) {
       return Err(Unavailable)
     }
@@ -250,25 +302,16 @@ fn advance_native_observed_state_validation(
 }
 
 ///|
-/// Use only this opaque pending Owner's original completed evidence and the
-/// actual same Store chain. Unknown commit response is not resend permission.
-/// Existing Publisher callbacks guard candidate preparation only; they cannot
-/// finalize both Publisher and RunRead authorization. There is no caller Bool
-/// RunRead port or finalized wire result. The concrete typed Local Host owns
-/// terminal acceptance after all callbacks. Original workspace limits remain.
-pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
+fn NativePreparedCapturedRunPublication::run_state_observation_inputs(
   self : NativePreparedCapturedRunPublication,
-  observed_at : String,
-  max_workspace : Int,
-  quantum : Int,
-  max_rounds : Int,
-) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
-  if max_workspace < 1 || quantum < 1 || max_rounds < 1 {
-    return Err(InvalidLimits)
-  }
-  if self.cancelled {
-    return Err(Unavailable)
-  }
+) -> Result[
+  (
+    @publication.PublicationContract,
+    @publication.PublicationContract,
+    @publication.PublicationContract,
+  ),
+  NativeRunStateCandidateIssue,
+] {
   let service = self.service
   let evidence = self.evidence
   match
@@ -322,6 +365,36 @@ pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
   if @publication.publication_contract_identity(stored_request) !=
     @publication.publication_contract_identity(self.preparation.request) {
     return Err(Publication(CommitConflict))
+  }
+  Ok((stored_request, stored_attempt, index))
+}
+
+///|
+/// Use only this opaque pending Owner's original completed evidence and the
+/// actual same Store chain. Unknown commit response is not resend permission.
+/// Existing Publisher callbacks guard candidate preparation only; they cannot
+/// finalize both Publisher and RunRead authorization. There is no caller Bool
+/// RunRead port or finalized wire result. The concrete typed Local Host owns
+/// terminal acceptance after all callbacks. Original workspace limits remain.
+pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
+  self : NativePreparedCapturedRunPublication,
+  observed_at : String,
+  max_workspace : Int,
+  quantum : Int,
+  max_rounds : Int,
+) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
+  if max_workspace < 1 || quantum < 1 || max_rounds < 1 {
+    return Err(InvalidLimits)
+  }
+  if self.cancelled {
+    return Err(Unavailable)
+  }
+  let service = self.service
+  let evidence = self.evidence
+  let (stored_request, stored_attempt, index) = match
+    self.run_state_observation_inputs() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let owner = match self.capture {
     None => None
@@ -399,6 +472,136 @@ pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
       return Err(issue)
     }
   }
+  self.candidate_from_validated_metadata(
+    validation, owner, stored_request, stored_attempt, index, observed_at, quantum,
+    max_rounds,
+  )
+}
+
+///|
+/// The original standalone candidate remains B-funded. This lexical variant
+/// borrows a checker funded by the actual current caller Read, and retires its
+/// child/view before the Core visitor cancels the controller. Only caller DATA
+/// can escape; current Publisher/RunRead/Store acceptance stays at the Host.
+pub fn[T, E] NativePreparedCapturedRunPublication::with_run_state_candidate_in_read(
+  self : NativePreparedCapturedRunPublication,
+  observed_at : String,
+  max_workspace : Int,
+  quantum : Int,
+  max_rounds : Int,
+  fund_read : (@local.ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    @local.ClientProgramValidationIssue,
+  ],
+  consume : (NativeRunStateCandidate) -> Result[T, E],
+) -> Result[Result[T, E], NativeRunStateCandidateIssue] {
+  if max_workspace < 1 || quantum < 1 || max_rounds < 1 {
+    return Err(InvalidLimits)
+  }
+  if self.cancelled {
+    return Err(Unavailable)
+  }
+  guard self.capture is Some(capture) else {
+    let candidate = match
+      self.prepare_run_state_candidate(
+        observed_at, max_workspace, quantum, max_rounds,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    return match
+      finish_run_state_read_consumer(consume(candidate), () => {
+        candidate.release()
+      }) {
+      Ok(value) => Ok(Ok(value))
+      Err(ConsumerFailure(issue)) => Ok(Err(issue))
+      Err(CandidateFailure(issue)) => Err(issue)
+    }
+  }
+  let (request, attempt, index) = match self.run_state_observation_inputs() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let evidence = self.evidence
+  let fence : () -> Result[Unit, NativeRunStateCandidateIssue] = fn() {
+    fund_read({
+      retained_bytes: 0L,
+      execution_bytes: 0L,
+      copied_slots: 0,
+      copied_arrays: 0,
+      metadata_nodes: 0,
+      phase: @local.Fence,
+    }).map_err(issue => Publication(Preparation(issue)))
+  }
+  let checked = @local.with_program_commit_validation_view_in_read(
+    capture,
+    evidence.run_definition,
+    evidence.invocation,
+    evidence.definitions,
+    evidence.artifacts,
+    evidence.derivations,
+    evidence.orderings,
+    evidence.retentions,
+    evidence.bindings,
+    evidence.manifest,
+    evidence.receipt,
+    evidence.captured_run,
+    request,
+    attempt,
+    index,
+    max_workspace,
+    quantum,
+    max_rounds,
+    fund_read,
+    fn(owner, checker) {
+      let candidate = match
+        self.candidate_from_validated_metadata(
+          checker,
+          Some(owner),
+          request,
+          attempt,
+          index,
+          observed_at,
+          quantum,
+          max_rounds,
+          read_fence=Some(fence),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(CandidateFailure(issue))
+      }
+      finish_run_state_read_consumer(consume(candidate), () => {
+        candidate.release_views()
+      })
+    },
+  )
+  match checked {
+    Err(issue) => Err(Publication(Preparation(issue)))
+    Ok(None) => Err(ValidationLimit)
+    Ok(Some(Err(CandidateFailure(issue)))) => Err(issue)
+    Ok(Some(Err(ConsumerFailure(issue)))) => Ok(Err(issue))
+    Ok(Some(Ok(value))) => Ok(Ok(value))
+  }
+}
+
+///|
+fn NativePreparedCapturedRunPublication::candidate_from_validated_metadata(
+  self : NativePreparedCapturedRunPublication,
+  validation : @publication.PublicationCommitPreparation,
+  owner : @local.ClientProgramValidation?,
+  stored_request : @publication.PublicationContract,
+  stored_attempt : @publication.PublicationContract,
+  index : @publication.PublicationContract,
+  observed_at : String,
+  quantum : Int,
+  max_rounds : Int,
+  read_fence? : (() -> Result[Unit, NativeRunStateCandidateIssue])? = None,
+) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
+  if read_fence is Some(fence) {
+    match fence() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   let view = match validation.finish_view() {
     Ok(value) => value
     Err(issue) => {
@@ -424,6 +627,7 @@ pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
       quantum,
       max_rounds,
       owner~,
+      read_fence~,
     ) {
     Err(issue) => Err(issue)
     Ok(_) =>
@@ -435,6 +639,7 @@ pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
         index,
         observed_at,
         owner~,
+        read_fence~,
       )
   }
   // On success transfer only the same bounded Core loan to the candidate;
@@ -469,6 +674,7 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
   index : @publication.PublicationContract,
   observed_at : String,
   owner? : @local.ClientProgramValidation? = None,
+  read_fence? : (() -> Result[Unit, NativeRunStateCandidateIssue])? = None,
 ) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
   match validation.finish_observed_commit(view) {
     Ok(_) => ()
@@ -485,6 +691,12 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Publication(issue))
+  }
+  if read_fence is Some(fence) {
+    match fence() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
   if self.cancelled || !native_state_validation_loan_current(validation, owner) {
     return Err(Publication(AccessDenied))
@@ -519,6 +731,12 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
     @publication.publication_contract_identity(index) {
     return Err(Publication(CommitConflict))
   }
+  if read_fence is Some(fence) {
+    match fence() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   let count = match validation.view_count(view) {
     Ok(value) => value
     Err(issue) => return Err(Publication(Commit(issue)))
@@ -535,6 +753,12 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
       ) {
       Ok(_) => ()
       Err(issue) => return Err(Publication(Store(issue)))
+    }
+  }
+  if read_fence is Some(fence) {
+    match fence() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
     }
   }
   Ok({

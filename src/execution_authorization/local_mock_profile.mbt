@@ -276,7 +276,13 @@ pub fn local_mock_account_configuration(
     bootstrap: Some(local_mock_profile_identity()),
     entries,
   }
-  match admit_account_configuration(raw) {
+  let geometry : Ref[AccountCanonicalBounds?] = Ref(None)
+  match
+    admit_with_overlap_budget(
+      raw,
+      MAX_OVERLAP_WORK,
+      geometry_out=Some(geometry),
+    ) {
     Err(issue) => return Err(Configuration(issue))
     Ok(_) => ()
   }
@@ -293,14 +299,15 @@ pub fn local_mock_account_configuration(
       exclusions: [],
     }),
   )
-  guard canonical_value_of(document) is Some(value) else {
+  guard geometry.val is Some(bounds) &&
+    canonical_value_of(document, bounds=Some(bounds)) is Some(value) else {
     return Err(Configuration(CanonicalDocumentTooLarge))
   }
   Ok(
     @canonical_json.stringify_value(
       value,
-      MAX_CONFIG_INPUT_BYTES,
-      CANONICAL_MAX_NODES,
+      bounds.encoded_bytes,
+      bounds.nodes,
       CANONICAL_MAX_DEPTH,
     ),
   ) catch {

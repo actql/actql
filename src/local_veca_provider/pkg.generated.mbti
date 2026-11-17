@@ -8,7 +8,7 @@ import {
 }
 
 // Values
-pub fn provider(@managed_record_storage.Limits, Int64, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
+pub fn provider(@managed_record_storage.Limits, Int64, @execution_relation.ExecutionCapacity, bounded_constructor? : Bool) -> @local.ManagedProvider
 
 // Errors
 

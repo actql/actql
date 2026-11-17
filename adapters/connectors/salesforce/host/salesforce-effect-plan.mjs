@@ -181,13 +181,20 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
           limits.preview.maxWireBytes, limits.preview.maxNodes, limits.preview.maxDepth));
       };
       if (!Array.isArray(capacities) || capacities.length !== 8) fail();
+      const warmCaptureExtent = checked(captureExtentFor(operation, capacities.slice(0, 6),
+        limits.preview.maxWireBytes, limits.preview.maxNodes, limits.preview.maxDepth));
+      const warmRequestExtent = checked(extentFor(operation, capacities[2], 0n, false));
+      // Warm construction borrows already-admitted proposal rows from the
+      // same completed Read. Keep its complete native bounds: these callbacks
+      // select the original warm extents, not the cold Preview/Catalog parser.
+      const warmCaptureInputExtent = () => warmCaptureExtent;
+      const warmRequestInputExtent = () => warmRequestExtent;
       const memberOperations = [Object.freeze({operation,
-        extent: checked(stageFor(checked(captureExtentFor(operation, capacities.slice(0, 6),
-          limits.preview.maxWireBytes, limits.preview.maxNodes, limits.preview.maxDepth)),
+        extent: checked(stageFor(warmCaptureExtent,
           checked(captureExtentFor(operation, maximum.slice(0, 6),
             limits.preview.maxWireBytes, limits.preview.maxNodes, limits.preview.maxDepth))))})];
       const rowOperations = [Object.freeze({operation,
-        extent: checked(extentFor(operation, capacities[2], 0n, false))})];
+        extent: checked(stageFor(warmRequestExtent, warmRequestExtent))})];
       const credentialOperations = [];
       const physical = (phase, perRow, selectedOperation, capacity, requestBytes, responseBytes, maximumCapacity, originalResponseExtent) => {
         const selected = perRow ? rowOperations : memberOperations;
@@ -215,8 +222,8 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
       recipes[kind] = captureInstalledEffectPlanRecipe(Object.freeze({
         memberOperations: Object.freeze(memberOperations), rowOperations: Object.freeze(rowOperations),
         savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
-        controlsPerRow: capacities[4], captureConstruction: Object.freeze({operationIndex: 0, inputExtent}), recoveryConstruction,
-        requestConstruction: Object.freeze({operationIndex: 0}),
+        controlsPerRow: capacities[4], captureConstruction: Object.freeze({operationIndex: 0, inputExtent: warmCaptureInputExtent}), recoveryConstruction,
+        requestConstruction: Object.freeze({operationIndex: 0, inputExtent: warmRequestInputExtent}),
         credentialOperations: Object.freeze(credentialOperations),
       }), memberOperations.length + rowOperations.length);
     }

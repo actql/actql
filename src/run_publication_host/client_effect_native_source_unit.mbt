@@ -15,6 +15,7 @@ pub fn issue_client_keyed_native_effect_source_unit(
   guard !lookup.closed &&
     lookup.left.lookup_issue is None &&
     lookup.left.composed is Some(composed) &&
+    client_composed_keyed_original_model_plan(composed) is Some(model_plan) &&
     composed.keyed.program is KeyedEffect(original) &&
     physical_equal(original, owner) &&
     lookup.native_sources is Some(state) &&
@@ -24,7 +25,7 @@ pub fn issue_client_keyed_native_effect_source_unit(
       evidence.identity,
       captured,
     ) &&
-    select_client_direct_acquisition_occurrences(composed.plan.owner, 1000000)
+    select_client_direct_acquisition_occurrences(model_plan.owner, 1000000)
     is Ok(direct) &&
     client_direct_acquisition_occurrence_at(direct, index)
     is Some((unit, _, task)) else {
@@ -37,7 +38,7 @@ pub fn issue_client_keyed_native_effect_source_unit(
   guard task == unit &&
     // Only a distinct completed producer Unit can supply this entrance.
     // An inline Source/Model Unit needs its Model observation as well.
-    unit < composed.plan.occurrence.stage &&
+    unit < model_plan.occurrence.stage &&
     unit < @strategy.graph_captured_prefix(graph) &&
     @checked.unit_definition_cid(program, unit) is Some(definition) &&
     @checked.unit_used_values_cid(program, unit) is Some(values) &&

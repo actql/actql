@@ -79,7 +79,7 @@ fn composed_keyed_root_control_bytes(
   // Each external read: exact binding/identity, restricted completion/liveness,
   // ProducerRead, columns, tuple and copied port slots. One bounded read cursor
   // and return/Some frames coexist during construction (included in this peak).
-  let original : @execution.PreparationRepresentationUnits = {
+  let base : @execution.PreparationRepresentationUnits = {
     record_headers: 12L + 16L * roots + 13L * ports,
     reference_slots: 30L +
     33L * roots +
@@ -90,6 +90,15 @@ fn composed_keyed_root_control_bytes(
     scalar_words: 16L + 15L * roots + 23L * ports + columns,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
+  }
+  // One closed Model-origin variant for the retained keyed original, rather
+  // than a charge per Source/root. Source-only has its own checked binding.
+  guard @execution.compose_preparation_representation([
+      base,
+      @publication_host.client_composed_keyed_model_origin_construction_inventory(),
+    ])
+    is Some(original) else {
+    return None
   }
   if producer_sources == 0 && producer_tasks == 0 {
     return @execution.preparation_representation_cost(original)

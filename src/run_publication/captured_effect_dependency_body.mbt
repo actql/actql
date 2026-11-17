@@ -119,6 +119,64 @@ pub fn admit_publication_effect_dependency_body(
   if contract.wire != wire {
     return Err(InvalidBody)
   }
+  publication_dependency_body_from_original(
+    kind,
+    contract,
+    @utf8.encode(wire).length(),
+    None,
+  )
+}
+
+///|
+/// Retain the SAME admitted Publication body and its derived reference roles.
+/// No wire parsing, canonical serialization or CID hashing is repeated. This
+/// proves only original body integrity, never current authority or custody.
+pub fn capture_publication_effect_dependency_body(
+  kind : String,
+  contract : PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue] {
+  if ![
+      "result_artifact", "derivation_evidence", "ordering_evidence", "acquisition_relation",
+      "acquisition_scope", "result_retention_policy", "table_input_artifact", "table_input_derivation",
+      "table_input_ordering", "request_key_set",
+    ].contains(kind) {
+    return Err(WrongDependencyKind)
+  }
+  let expected = match kind {
+    "table_input_artifact" => "result_artifact"
+    "table_input_derivation" => "derivation_evidence"
+    "table_input_ordering" => "ordering_evidence"
+    _ => kind
+  }
+  if contract.name != expected {
+    return Err(WrongDependencyKind)
+  }
+  guard publication_contract_check_limits(
+      contract, max_bytes, max_nodes, max_depth,
+    )
+    is Ok(_) &&
+    contract.wire_usage is Some(usage) else {
+    return Err(InvalidBody)
+  }
+  publication_dependency_body_from_original(
+    kind,
+    contract,
+    usage.0,
+    Some(usage),
+  )
+}
+
+///|
+fn publication_dependency_body_from_original(
+  kind : String,
+  contract : PublicationContract,
+  bytes : Int,
+  usage : (Int, Int, Int)?,
+) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue] {
+  let wire = contract.wire
   let value = contract.value
   if kind == "request_key_set" {
     guard dependency_single_reference(
@@ -133,12 +191,12 @@ pub fn admit_publication_effect_dependency_body(
       node: {
         kind,
         identity: contract.identity,
-        canonical_bytes: @utf8.encode(wire).length(),
+        canonical_bytes: bytes,
         references: [source, schema],
       },
       wire,
       value,
-      wire_usage: None,
+      wire_usage: usage,
     })
   }
   let table = kind == "table_input_artifact" ||
@@ -292,12 +350,12 @@ pub fn admit_publication_effect_dependency_body(
     node: {
       kind,
       identity: contract.identity,
-      canonical_bytes: @utf8.encode(wire).length(),
+      canonical_bytes: bytes,
       references,
     },
     wire,
     value,
-    wire_usage: None,
+    wire_usage: usage,
   })
 }
 
@@ -383,6 +441,50 @@ pub fn admit_source_effect_dependency_body(
   if evidence.wire != wire {
     return Err(InvalidBody)
   }
+  source_dependency_body_from_original(
+    evidence,
+    @utf8.encode(wire).length(),
+    None,
+  )
+}
+
+///|
+/// Borrow the same admitted Source observation/logical value. Historical DATA
+/// and its strict reference roles remain separate from read/send permission.
+pub fn capture_source_effect_dependency_body(
+  evidence : RunEvidenceValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue] {
+  if evidence.name != "source_input_logical" &&
+    evidence.name != "source_evidence" {
+    return Err(WrongDependencyKind)
+  }
+  guard evidence.wire_usage is Some((bytes, nodes, depth)) &&
+    max_bytes > 0 &&
+    max_nodes > 0 &&
+    max_depth > 0 &&
+    bytes <= max_bytes &&
+    nodes <= max_nodes &&
+    depth <= max_depth else {
+    return Err(InvalidBody)
+  }
+  source_dependency_body_from_original(
+    evidence,
+    bytes,
+    Some((bytes, nodes, depth)),
+  )
+}
+
+///|
+fn source_dependency_body_from_original(
+  evidence : RunEvidenceValue,
+  bytes : Int,
+  usage : (Int, Int, Int)?,
+) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue] {
+  let kind = evidence.name
+  let wire = evidence.wire
   let fields = if kind == "source_input_logical" {
     [
       ("logical_relation_cid", "relation_value"),
@@ -412,12 +514,12 @@ pub fn admit_source_effect_dependency_body(
     node: {
       kind,
       identity: evidence.identity,
-      canonical_bytes: @utf8.encode(wire).length(),
+      canonical_bytes: bytes,
       references,
     },
     wire,
     value: evidence.value,
-    wire_usage: None,
+    wire_usage: usage,
   })
 }
 
@@ -657,15 +759,17 @@ pub fn admit_local_effect_dependency_body(
 ///|
 /// The selected checked roots and payload/static admissions are independent
 /// obligations. A validated graph alone does not authorize Run recovery.
-pub fn validate_captured_effect_dependency_bodies(
+fn validate_selected_captured_effect_dependency_bodies(
   bodies : Array[CapturedEffectDependencyBody],
   roots : Array[CapturedEffectDependencyBody],
   envelope_bytes : Int,
   limits : CapturedEffectDependencyLimits,
+  prepared? : Bool = false,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[Unit, CapturedEffectDependencyIssue] {
   // Bound the index before allocating it. Full byte/edge/depth validation
   // follows, but a caller limit never permits an unbounded temporary map.
-  if limits.max_entries < 0 || limits.max_entries > 4096 {
+  if limits.max_entries < 0 || (!prepared && limits.max_entries > 4096) {
     return Err(InvalidLimits)
   }
   if bodies.length() > limits.max_entries || roots.length() > limits.max_entries {
@@ -673,6 +777,10 @@ pub fn validate_captured_effect_dependency_bodies(
   }
   let kinds : Map[String, Array[String]] = Map([])
   for body in bodies {
+    if !dependency_validation_work(work, 1) ||
+      !dependency_validation_work(work, body.node.identity.length()) {
+      return Err(ReferenceLimit)
+    }
     match kinds.get(body.node.identity) {
       Some(found) =>
         if !found.contains(body.node.kind) {
@@ -683,11 +791,21 @@ pub fn validate_captured_effect_dependency_bodies(
   }
   let nodes : Array[CapturedEffectDependencyNode] = []
   for body in bodies {
+    if !dependency_validation_work(work, 1) ||
+      !dependency_validation_work(work, body.node.identity.length()) {
+      return Err(ReferenceLimit)
+    }
     let references : Array[CapturedEffectDependencyReference] = []
     for reference in body.node.references {
+      if !dependency_validation_work(work, 1) ||
+        !dependency_validation_work(work, reference.identity.length()) {
+        return Err(ReferenceLimit)
+      }
       let allowed = match reference.kind {
         "read_execution_profile" =>
-          ["native_file_content_read", "declared_file_content_read"]
+          [
+            "native_file_content_read", "declared_file_content_read", "installed_row_source_read",
+          ]
         "relation_producer" =>
           [
             "local_result_definition", "source_contract", "carrier_contract", "relation_schema",
@@ -726,8 +844,44 @@ pub fn validate_captured_effect_dependency_bodies(
       }),
       envelope_bytes,
       limits,
+      prepared~,
+      work~,
     ) {
     Err(issue) => Err(issue)
-    Ok(_) => validate_effect_dependency_import_bindings(bodies)
+    Ok(_) =>
+      validate_effect_dependency_import_bindings(bodies, prepared~, work~)
   }
+}
+
+///|
+// The normal public envelope remains fixed. Only the closed funded issuer/
+// reader inside this package selects the prepared semantic extent above.
+pub fn validate_captured_effect_dependency_bodies(
+  bodies : Array[CapturedEffectDependencyBody],
+  roots : Array[CapturedEffectDependencyBody],
+  envelope_bytes : Int,
+  limits : CapturedEffectDependencyLimits,
+) -> Result[Unit, CapturedEffectDependencyIssue] {
+  validate_selected_captured_effect_dependency_bodies(
+    bodies, roots, envelope_bytes, limits,
+  )
+}
+
+///|
+pub fn captured_effect_dependency_body_reference_count(
+  value : CapturedEffectDependencyBody,
+) -> Int {
+  value.node.references.length()
+}
+
+///|
+// Borrow one already admitted semantic edge without copying the reference
+// vector. The closed original caller prepays controls and visits.
+pub fn captured_effect_dependency_body_reference_at(
+  value : CapturedEffectDependencyBody,
+  index : Int,
+) -> (String, String)? {
+  value.node.references
+  .get(index)
+  .map(reference => (reference.kind, reference.identity))
 }

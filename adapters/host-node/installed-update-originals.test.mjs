@@ -450,3 +450,55 @@ test('marked recovery requires synchronous original custody and exact selection 
   }
   assert.equal(reads, 0);
 });
+
+test('ordinary full Effect materials use the same funded Request for issue and inverse', async t => {
+  const f = await fixture(t), seen = [];
+  f.moon.clientProgramIssuePreparedEffectRunMaterials = () => assert.fail('No unfunded original issuer');
+  f.moon.clientProgramAdmitEffectRunMaterialsWithCompilation = () => assert.fail('No unfunded inverse codec');
+  const originals = installUpdateTargetOriginals({...f, limits,
+    issueMaterials(facts) {
+      assert.strictEqual(facts.prepared, f.prepared); assert.strictEqual(facts.allowed, f.allowed);
+      assert.strictEqual(facts.definition, f.definition); assert.equal(facts.identity, 'request');
+      seen.push('issue'); return f.materialsWire;
+    },
+    admitMaterials(facts) {
+      assert.strictEqual(facts.prepared, f.prepared); assert.strictEqual(facts.compilation, f.compilation);
+      assert.equal(facts.wire, f.materialsWire); assert.equal(facts.runDefinitionCid, f.runDefinition.identity);
+      assert.equal(facts.identity, 'request');
+      seen.push('admit'); f.calls.push('bind-exact-run');
+      return {prepared: f.prepared, compilation: f.compilation, allowed: f.allowed, definition: f.definition};
+    }});
+  const original = originals.captureRun({...f, identity: 'request'});
+  assert.equal(original.materialsWire, f.materialsWire);
+  assert.deepEqual(seen, ['issue', 'admit'], 'the inverse enters its original Request before adoption');
+  const restored = originals.restoreRun(original, f.runDefinition, 'request', f.compilation, f.prepared);
+  assert.strictEqual(restored.prepared, f.prepared); assert.strictEqual(restored.compilation, f.compilation);
+  // This fixture counts managed port calls. The manager's independent tests
+  // require this second lookup to borrow its same typed result, with no codec.
+  assert.deepEqual(seen, ['issue', 'admit', 'admit']);
+  assert.throws(() => originals.restoreEffectMaterials(f.materialsWire, f.runDefinition, 'request', f.compilation),
+    {code: 'InstalledEffectOriginalSelectionChanged'});
+  assert.deepEqual(seen, ['issue', 'admit', 'admit']);
+});
+
+test('prepared original projection enters the existing funded issuer before retaining outer DATA', async t => {
+  const f = await fixture(t), seen = [];
+  const legacy = f.moon.clientProgramIssueEffectPreparedOriginal(f.compilation)._0;
+  f.moon.clientProgramIssueEffectPreparedOriginal = () => assert.fail('No unfunded prepared-original projection');
+  const originals = installUpdateTargetOriginals({...f, limits, issueMaterials(facts) {
+    assert.strictEqual(facts.prepared, f.prepared);
+    assert.strictEqual(facts.compilation, f.compilation);
+    assert.strictEqual(facts.allowed, undefined);
+    seen.push('funded'); return legacy;
+  }});
+  const original = originals.capturePrepared(f.prepared, f.compilation, (prepared, wire) => {
+    assert.strictEqual(prepared, f.prepared); assert.strictEqual(wire, legacy);
+    seen.push('retain');
+  });
+  assert.strictEqual(original.preparedWire, legacy);
+  assert.deepEqual(seen, ['funded', 'retain']);
+  const cause = new Error('OriginalPreparedProjectionRefused');
+  const refused = installUpdateTargetOriginals({...f, limits, issueMaterials() {throw cause;}});
+  assert.throws(() => refused.capturePrepared(f.prepared, f.compilation, () => assert.fail('No unconstructed DATA')),
+    error => error === cause);
+});

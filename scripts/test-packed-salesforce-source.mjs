@@ -598,7 +598,8 @@ import {resolve} from 'node:path';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {observeTwoSourceProvider} from './two-source-public-query.mjs';
-import {inferPreparationFailureData} from './packed-infer-preparation-diagnostic.mjs';
+import {createInferFailureObserver, waitForPackedCompositionCheckpoint, effectBoundaryFailureData,
+  effectCheckpointTerminalData} from './packed-infer-preparation-diagnostic.mjs';
 import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect} from '@actql/node';
@@ -649,21 +650,23 @@ const pendingScratch = process.argv[2] === 'rce-submit-pending';
 let scratchReleased = !pendingScratch;
 let temporaryReleaseConfirmed = false;
 const resumeFailures = [];
-let inferPreparationFailureObserved = false;
+const inferFailureObserver = createInferFailureObserver({emit:value=>console.error(JSON.stringify(value))});
+let firstEffectFailure;
 authorization.observe = (name, detail) => {
   // The packed command uploader retains stderr, not arbitrary scratch files.
   // Keep the same bounded Model DATA projection as the standalone consumer;
   // no Error, Run reference, input or current/acceptance decision is exported.
-  if (name === 'infer_preparation_rejected' && !inferPreparationFailureObserved) {
-    const data = inferPreparationFailureData(detail);
-    if (data !== undefined) {
-      inferPreparationFailureObserved = true;
-      console.error(JSON.stringify({event: name, ...data}));
-    }
-  }
+  inferFailureObserver(name,detail);
   if (name === 'effect_resume_failed' || name === 'source_resume_failed') {
     resumeFailures.push({name, code: detail.code, detail: detail.detail, cause: detail.cause});
     if (resumeFailures.length > 16) resumeFailures.shift();
+  }
+  if (name === 'effect_start_failed' || name === 'effect_settlement_failed' ||
+      name === 'effect_resume_failed' || name === 'source_resume_failed') {
+    if (firstEffectFailure === undefined) {
+      firstEffectFailure = effectBoundaryFailureData(name, detail);
+      console.error(JSON.stringify(firstEffectFailure));
+    }
   }
   if (name === 'effect_start_failed' || name === 'effect_settlement_failed') {
     appendFileSync('composition-custody.jsonl', JSON.stringify({name, ...detail,
@@ -821,7 +824,13 @@ try {
       format: 'json', submissionRef});
     await waitFor(async () => {
       const status = await execution.status();
-      if (status.status === 'failed') throw new Error('PackedEffectFailed: ' + JSON.stringify(status));
+      const terminal = effectCheckpointTerminalData(status);
+      if (terminal !== undefined) {
+        const report = {...terminal, firstEffectFailure};
+        const failure = new Error('PackedEffectFailed: ' + JSON.stringify(report));
+        try {console.error('packed Effect capture terminal ' + JSON.stringify(report));} catch {}
+        throw failure;
+      }
       return status.status === 'waiting_checkpoint';
     });
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
@@ -1164,21 +1173,8 @@ try {
       throw error;
     }
     if (pendingScratch) {
-      let pendingStatus;
-      try {
-        await waitFor(async () => {
-          pendingStatus = (await execution.status()).status;
-          return pendingStatus === 'waiting_checkpoint';
-        });
-      } catch (error) {
-        // Keep the original wait failure and its finite bound. Report only
-        // the same Run's last status, never its input or retained owner graph.
-        console.error('packed composition wait ' + JSON.stringify({
-          boundary: 'pending-composition-wait', status: pendingStatus,
-          expectedStatus: 'waiting_checkpoint',
-        }));
-        throw error;
-      }
+      await waitForPackedCompositionCheckpoint(execution,waitFor,
+        value=>console.error('packed composition wait '+JSON.stringify(value)));
     } else {
       const state = await execution.wait();
       const expectedStatus = optionalKind && !optionalEnabled ? 'succeeded' : 'waiting_checkpoint';

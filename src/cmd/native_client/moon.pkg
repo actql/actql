@@ -57,6 +57,7 @@ import {
   "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/decode_core" @decode,
+  "actql/actql/decode_shape" @shape,
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/value_contract" @contract,
   "actql/actql/value_admission" @admitted,

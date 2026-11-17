@@ -8,6 +8,7 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {stageLegacySubmissionUsageCounters} from './fixtures/journal-legacy-usage.fixture.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -389,6 +390,7 @@ test('additive cancellation custody preserves the prior journal marker and Run o
   // Construct the actually supported prior layout, before this additive
   // feature exists. No operation has been recorded or removed in this fixture.
   const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  stageLegacySubmissionUsageCounters(db);
   for(const table of ['client_request_row_usage','client_cancellation_row_usage']) {
     for(const suffix of ['insert','delete']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
     db.exec(`DROP TABLE ${table}`);

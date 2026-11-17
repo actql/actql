@@ -1204,14 +1204,26 @@ test "default native Request input uses its original observed snapshot instead o
   // Exact high-water DATA from the existing SDK snapshotClientRequest on the
   // authored intent envelope. It grants nothing: the SAME Request must back
   // its snapshot before a default compiler-profile projection is available.
-  reserve_request_snapshot(parent, input, 1703936L, 262144L).unwrap()
+  let observed_units = 1703936L
+  let observed_values = 262144L
+  reserve_request_snapshot(parent, input, observed_units, observed_values).unwrap()
   let before = @resources.ledger_usage(parent.ledger)
   let selected = request_default_program_preparation_limits(parent, input).unwrap()
   assert_true(
     selected.checking.input.source.max_input_bytes >= document.length(),
   )
   assert_true(selected.checking.input.source.max_nodes >= 200026)
-  assert_eq(selected.checking.input.max_stages, 32)
+  // Each original encoded Stage needs at least one byte in this SAME
+  // admitted envelope. This is an upper bound, not an allocated Stage array,
+  // a new policy or authority to exceed an explicitly selected limit.
+  let encoded_bound = 6L * (observed_units - observed_values) +
+    32L * observed_values
+  assert_eq(selected.checking.input.max_stages.to_int64(), encoded_bound)
+  assert_eq(
+    selected.checking.compilation.structure.stages,
+    selected.checking.input.max_stages,
+  )
+  assert_eq(request_preparation_work_calls(parent), (0L, 0L, 0L, 0L))
   assert_eq(@resources.ledger_usage(parent.ledger), before)
   assert_true(request_default_program_preparation_limits(parent, [1]) is Err(_))
   abort_request_preparation_after_cleanup(parent).unwrap()

@@ -3,6 +3,7 @@
 import {runtimeField, runtimeIsOkRequired} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
+import {inferCopyFundingOriginal, inferEvidenceCopyFunded} from './infer-operation.mjs';
 
 // Evidence contains opaque data keys, not configuration member names.
 const canonicalJson = value => sdkCanonicalJson(value, {dataKeys: true});
@@ -154,7 +155,9 @@ export async function projectInferEvidence({configuration, moon, control, prepar
     const bundle = partial ? undefined : captureOwner.evaluationBundle();
     const inventory = partial ? continuation?.evaluationInventory() : bundle;
     if (inventory === undefined || !Number.isSafeInteger(inventory.count) || inventory.count < 1 ||
-        inventory.count > 128 || !Array.isArray(inventory.calls) || inventory.calls.length !== inventory.count) {
+        inventory.count > 2147483647 ||
+        (inventory.count > 128 && (partial || !inferCopyFundingOriginal(copyFunding))) ||
+        !Array.isArray(inventory.calls) || inventory.calls.length !== inventory.count) {
       manifest = missing('RequiredEvidenceUnavailable');
     } else {
       if (configured.pending || bundle !== undefined && (bundle.wire.length > configured.maxBytes ||
@@ -170,8 +173,11 @@ export async function projectInferEvidence({configuration, moon, control, prepar
         configured.pending = true;
         try {
           if (partial || bundle === undefined) throw new Error('RequiredEvidenceUnavailable');
-          if (typedInputOnly) copyFunding(bundle, 'typed-input');
-          else copyFunding(bundle);
+          const kind = typedInputOnly ? 'typed-input' : undefined;
+          const receipt = copyFunding(bundle, kind);
+          if (inventory.count > 128 && !inferEvidenceCopyFunded(receipt, bundle, kind)) {
+            throw Object.assign(new Error('RequiredEvidenceUnavailable'), {code: 'RequiredEvidenceUnavailable'});
+          }
           copy = Object.freeze({});
         } catch (cause) {configured.pending = false; throw cause;}
       }

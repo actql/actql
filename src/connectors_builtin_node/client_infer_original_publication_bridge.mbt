@@ -70,3 +70,28 @@ pub fn client_program_start_complete_original_infer_observation_issuance(
     generations~,
   )
 }
+
+///|
+#export_name("clientProgramInferFundedStoppedAttemptCount")
+pub fn client_program_infer_funded_stopped_attempt_count(
+  active : @infer_host.Execution,
+) -> Int {
+  @infer_host.funded_stopped_attempt_count(active).unwrap_or(-1)
+}
+
+///|
+#export_name("clientProgramOriginalInferCaptureInventoryCapacity")
+pub fn client_program_original_infer_capture_inventory_capacity(
+  active : @infer_host.Execution,
+  capacity : @model.OriginalModelPublicationCapacity,
+) -> Result[(Int, Int64, Int64), @infer_host.Issue] {
+  @infer_host.original_infer_capture_inventory_capacity(active, capacity)
+}
+
+///|
+#export_name("clientProgramPrepareOriginalRestoredInferSendMask")
+pub fn client_program_prepare_original_restored_infer_send_mask(
+  active : @infer_host.Execution,
+) -> Result[Int, @infer_host.Issue] {
+  @infer_host.prepare_original_restored_send_mask(active)
+}

@@ -171,7 +171,6 @@ pub fn install_native_result_access_service(
     max_depth < 1 ||
     max_depth > 64 ||
     max_row_bytes < 1 ||
-    max_row_bytes > 16777216 ||
     input_chunk_bytes < 1 ||
     input_chunk_bytes > 16777216 {
     return Err(InvalidRequest)

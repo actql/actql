@@ -101,3 +101,94 @@ test "managed import parser extents follow each immutable row without refunding 
     start + first < @local.local_import_retention_capacity(limits).unwrap(),
   )
 }
+
+///|
+test "snapshot reload keeps coheld import and transport prefixes while reusing only completed export delta" {
+  // Thirty retired export bytes can cover a smaller new receiver, but the
+  // seven imported bytes and twenty earlier transport bytes still coexist.
+  assert_eq(
+    local_managed_snapshot_reload_extent(7L, 50L, 20L, 17L),
+    Some((20L, 37L)),
+  )
+  // A larger receiver extends exactly that same reserved peak, once.
+  assert_eq(
+    local_managed_snapshot_reload_extent(7L, 50L, 20L, 42L),
+    Some((20L, 42L)),
+  )
+  assert_eq(
+    local_managed_snapshot_reload_extent(7L, 20L, 20L, 42L),
+    Some((20L, 42L)),
+  )
+  // The normal large-row scalar geometry remains below the unchanged 1GiB
+  // execution policy only after its acknowledged nonoverlap transition.
+  let (transport, imported) = local_managed_snapshot_reload_extent(
+    0L, 404141616L, 0L, 672981712L,
+  ).unwrap()
+  assert_eq(transport, 0L)
+  assert_eq(184628624L + imported, 857610336L)
+  assert_true(184628624L + 404141616L + 672981712L > 1073741824L)
+}
+
+///|
+test "snapshot reload reclassification refuses foreign prefixes regression and overflow" {
+  for
+    args in [
+      (-1L, 50L, 20L, 17L),
+      (7L, 50L, -1L, 17L),
+      (7L, 50L, 51L, 17L),
+      (7L, 50L, 20L, 6L),
+      (9223372036854775807L, 1L, 0L, 9223372036854775807L),
+    ] {
+    assert_true(
+      local_managed_snapshot_reload_extent(args.0, args.1, args.2, args.3)
+      is None,
+    )
+  }
+}
+
+///|
+test "owned retained-file import keeps its per-port controls and entire saturated recipe" {
+  let limits = managed_import_funding_limits()
+  let start = @local.local_materializing_import_start_capacity(limits).unwrap()
+  let old_empty = local_managed_import_start_bytes(limits).unwrap()
+  assert_eq(start - old_empty, 336L)
+  let (_, _, _, copied) = local_managed_import_next_extent(
+    limits, 99L, 900L, 1900L, 1024L,
+  ).unwrap()
+  assert_eq(
+    start + copied,
+    @local.local_import_retention_capacity(limits).unwrap() + 336L,
+  )
+  // The same existing mutation latch rejects recursive append before a second
+  // parser can start; current loss remains a refusal with the paid prefix.
+  let active = Ref(false)
+  let parses = Ref(0)
+  let current = Ref(true)
+  let saw_active = Ref(false)
+  let refused_nested = Ref(false)
+  let result : Result[Unit, LocalDispatchIssue] = with_local_managed_import_mutation(
+    active,
+    fn() {
+      saw_active.val = active.val
+      let nested : Result[Unit, LocalDispatchIssue] = with_local_managed_import_mutation(
+        active,
+        fn() {
+          parses.val += 1
+          Ok(())
+        },
+      )
+      refused_nested.val = nested is Err(Configuration(InputUnavailable))
+      current.val = false
+      if !local_managed_input_writes_open(current.val, false, false) {
+        Err(Configuration(InputUnavailable))
+      } else {
+        parses.val += 1
+        Ok(())
+      }
+    },
+  )
+  assert_true(result is Err(Configuration(InputUnavailable)))
+  assert_true(saw_active.val && refused_nested.val)
+  assert_eq(parses.val, 0)
+  assert_false(active.val)
+}

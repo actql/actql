@@ -583,6 +583,15 @@ export async function deliverPublishedResult(options, resolvedPublication, works
                     admitted.window > window) fail('InvalidResultDeliveryWorkspace');
                 rowUnits = admitted.units; window = admitted.window;
               }
+              // Equal-length rows may have different node geometry. Fund the
+              // SAME complete raw row before the existing JSON/canonical parse.
+              // The complete-row phase retains the current staged window;
+              // only the flushed physical-frame phase may shrink that window.
+              const admitted = await workspace.row(row);
+              if (!Number.isSafeInteger(admitted?.units) || admitted.units < row.length ||
+                  !Number.isSafeInteger(admitted.window) || admitted.window < 1 ||
+                  admitted.window > window) fail('InvalidResultDeliveryWorkspace');
+              rowUnits = admitted.units; window = admitted.window;
               const text = control.nextResultDeliveryRow(serializer, row);
               const bytes = encoder.encode(text).byteLength;
               if (bytes > window) {
@@ -592,6 +601,14 @@ export async function deliverPublishedResult(options, resolvedPublication, works
                 if (bytes > window - stagedBytes) await flush();
                 staged += text; stagedBytes += bytes;
               }
+            }, async needed => {
+              await flush();
+              const admitted = workspace.row(needed);
+              if (!Number.isSafeInteger(admitted?.units) || admitted.units < needed ||
+                  !Number.isSafeInteger(admitted.window) || admitted.window < 1 ||
+                  admitted.window > window) fail('InvalidResultDeliveryWorkspace');
+              rowUnits = admitted.units; window = admitted.window;
+              return admitted.units;
             });
             await flush();
           } finally { staged = ''; stagedBytes = 0; }

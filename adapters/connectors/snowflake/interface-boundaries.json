@@ -13,41 +13,9 @@
       ],
       "operations": [
         {
-          "name": "authorizationForRead",
-          "parameters": [
-            "value",
-            "original",
-            "frame"
-          ],
-          "async": false
-        },
-        {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "decodeResponse",
-          "parameters": [
-            "response",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
           "name": "decodeResponse/encoding/encoding",
           "parameters": [
             "pair"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
           ],
           "async": false
         },
@@ -73,36 +41,15 @@
           "name": "readSnowflakeSqlApi/readSnowflakeSqlApi",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "responseLimits",
-          "parameters": [
-            "moon",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "sha/sha",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "authorizationForRead",
-            "count/count",
-            "decodeResponse",
             "decodeResponse/encoding/encoding",
-            "fail/fail",
             "readSnowflakeSqlApi",
-            "readSnowflakeSqlApi/readSnowflakeSqlApi",
-            "responseLimits",
-            "sha/sha"
+            "readSnowflakeSqlApi/readSnowflakeSqlApi"
           ],
           "exports": [
             "SNOWFLAKE_SQL_READ_OPERATION",
@@ -188,20 +135,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "canonical/canonical",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledSnowflakeSourceProfile",
           "parameters": [
             "profile"
@@ -223,13 +156,6 @@
           "async": false
         },
         {
-          "name": "checkSite",
-          "parameters": [
-            "site"
-          ],
-          "async": false
-        },
-        {
           "name": "checkSite/checkSite",
           "parameters": [
             "key"
@@ -240,29 +166,6 @@
           "name": "checkSite/materialKeys/materialKeys",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "closed/closed",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
           ],
           "async": false
         },
@@ -377,14 +280,6 @@
           "async": false
         },
         {
-          "name": "readInputs",
-          "parameters": [
-            "profile",
-            "readJson"
-          ],
-          "async": true
-        },
-        {
           "name": "readInputs/bodies/bodies",
           "parameters": [
             "body"
@@ -397,30 +292,17 @@
             "key"
           ],
           "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
-            "canonical/canonical",
             "checkInstalledSnowflakeSourceProfile",
             "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile",
             "checkInstalledSnowflakeSourceProfile/checkInstalledSnowflakeSourceProfile#2",
-            "checkSite",
             "checkSite/checkSite",
             "checkSite/materialKeys/materialKeys",
-            "cid/cid",
-            "closed/closed",
-            "fail/fail",
             "installedSnowflakeSourceIdentityParts",
             "installedSnowflakeSourceIdentityParts/readers/readers",
             "loadInstalledSnowflakeSource",
@@ -436,10 +318,8 @@
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#4",
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#5",
             "loadInstalledSnowflakeSource/target/target",
-            "readInputs",
             "readInputs/bodies/bodies",
-            "readInputs/readInputs",
-            "text/text"
+            "readInputs/readInputs"
           ],
           "exports": [
             "INSTALLED_SNOWFLAKE_SITE_VERSION",
@@ -558,33 +438,12 @@
           "async": false
         },
         {
-          "name": "environmentName/environmentName",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "openSnowflakeKeyPairMaterial",
           "parameters": [
             "profile",
             "maxSecretBytes",
             "resolveMaterial",
             "now"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSnowflakeKeyPairMaterial/ensureOpen/ensureOpen",
-          "parameters": [
-            "signal"
           ],
           "async": false
         },
@@ -602,16 +461,6 @@
           "async": true
         },
         {
-          "name": "openSnowflakeKeyPairMaterial/material",
-          "parameters": [
-            "context",
-            "name",
-            "signal",
-            "empty"
-          ],
-          "async": true
-        },
-        {
           "name": "openSnowflakeKeyPairMaterial/openSnowflakeKeyPairMaterial",
           "parameters": [],
           "async": false
@@ -624,13 +473,9 @@
             "checkSnowflakeKeyPairProfile",
             "checkSnowflakeKeyPairProfile/checkSnowflakeKeyPairProfile",
             "checkSnowflakeKeyPairProfile/checkSnowflakeKeyPairProfile#2",
-            "environmentName/environmentName",
-            "fail/fail",
             "openSnowflakeKeyPairMaterial",
-            "openSnowflakeKeyPairMaterial/ensureOpen/ensureOpen",
             "openSnowflakeKeyPairMaterial/init:close/init:close",
             "openSnowflakeKeyPairMaterial/init:resolveSecret/init:resolveSecret",
-            "openSnowflakeKeyPairMaterial/material",
             "openSnowflakeKeyPairMaterial/openSnowflakeKeyPairMaterial"
           ],
           "exports": [

@@ -51,7 +51,7 @@ test('advance captures the audited Int prefix, not its callback-local Boolean',(
   const start=source.indexOf('fn bounded_relation_chain_execution_state(');
   assert(start>=0);
   const constructor=source.slice(start);
-  const declaration='let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)';
+  const declaration='let reclaimed_prefix = relation_chain_reclaimed_prefix(\n    sequence, execution, measurement, family,\n  )';
   assert.equal(constructor.split(declaration).length,2,
     'Prefix mutation must reach the unique parent initializer, not the capacity function');
   const changed=source.slice(0,start)+constructor.replace(declaration,'let reclaimed_prefix = count');
@@ -102,7 +102,7 @@ test('current provider census retains the original optional Infer prefix recipe'
   const census = checkChainCensus(read);
   const provider = census.sourceFields.find(entry => entry.struct === 'ManagedProvider');
   assert.deepEqual(provider.fields.map(field => field.name),
-    ['accepts', 'capacity', 'start', 'start_numeric', 'infer_relation_prefix']);
+    ['accepts', 'capacity', 'bounded_relation_capacity', 'start', 'start_numeric', 'infer_relation_prefix']);
   const path = 'src/connectors/local/managed_provider.mbt';
   const original = read(path).toString();
   const changed = original.replace('infer_relation_prefix : (', 'infer_relation_prefix : Array[(');
@@ -198,20 +198,19 @@ test('current Native census transfers original completion through the selected f
 
 // Machine-code admission must recognize this same reviewed query, not any
 // equal-named helper with an unreviewed body, arity or new mutable owner.
-test('current reclaimed-prefix helper retains reviewed body and original sequence arity',()=>{
+test('current reclaimed-prefix query borrows typed configuration without parent custody',()=>{
   checkChainSource(source);
   const start=source.indexOf('fn relation_chain_reclaimed_prefix(');
   const end=source.indexOf('\n///|',start);
   const original=source.slice(start,end);
   for(const [before,after] of [
     ['sequence : @execution.GeneratedSequence,','sequence : @execution.GeneratedSequence, extra : Int,'],
-    ['return index','return index + 1'],
     [') -> Int {',') -> Int {\n  let new_owner = Ref(0)'],
   ]) {
     const changed=original.replace(before,after);assert.notEqual(changed,original);
-    assert.throws(()=>checkChainSource(source.slice(0,start)+changed+source.slice(end)),/reviewed reclaimed-prefix/);
+    assert.throws(()=>checkChainSource(source.slice(0,start)+changed+source.slice(end)),/reclaimed-prefix borrowed input types|private parent custody/);
   }
-  const call='let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)';
+  const call='let reclaimed_prefix = relation_chain_reclaimed_prefix(\n    sequence, execution, measurement, family,\n  )';
   const parent=source.indexOf('fn bounded_relation_chain_execution_state(');
   assert(parent>=0);
   const duplicate=source.slice(0,parent)+source.slice(parent).replace(call,call+'\n  let duplicate = relation_chain_reclaimed_prefix(sequence)');

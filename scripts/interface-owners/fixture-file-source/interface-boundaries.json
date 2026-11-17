@@ -9,14 +9,6 @@
       ],
       "operations": [
         {
-          "name": "callbacks/callbacks",
-          "parameters": [
-            "value",
-            "names"
-          ],
-          "async": false
-        },
-        {
           "name": "callbacks/callbacks/callbacks",
           "parameters": [
             "method"
@@ -42,14 +34,6 @@
             "issueResource",
             "resolveResource",
             "assertCurrent"
-          ],
-          "async": false
-        },
-        {
-          "name": "createFixtureFileSupplier/call/call",
-          "parameters": [
-            "name",
-            "args"
           ],
           "async": false
         },
@@ -82,14 +66,6 @@
           "async": false
         },
         {
-          "name": "createFixtureFileSupplier/current/current",
-          "parameters": [
-            "verifyRead",
-            "signal"
-          ],
-          "async": true
-        },
-        {
           "name": "createFixtureFileSupplier/init:readContent/init:readContent",
           "parameters": [
             "options"
@@ -118,66 +94,6 @@
           "async": true
         },
         {
-          "name": "createFixtureFileSupplier/pathFor/pathFor",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "createFixtureFileSupplier/read/read",
-          "parameters": [
-            "options",
-            "selected",
-            "retainRawResponse"
-          ],
-          "async": true
-        },
-        {
-          "name": "createFixtureFileSupplier/rowFor/rowFor",
-          "parameters": [
-            "document",
-            "identity"
-          ],
-          "async": false
-        },
-        {
-          "name": "createFixtureFileSupplier/rowText/rowText",
-          "parameters": [
-            "row",
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "createFixtureFileSupplier/versionFor/versionFor",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "integer/integer",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "rawResponseRetainer/rawResponseRetainer",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -199,28 +115,17 @@
         {
           "operations": [
             "<module>",
-            "callbacks/callbacks",
             "callbacks/callbacks/callbacks",
             "callbacks/callbacks/captured/captured",
             "createFixtureFileSupplier",
-            "createFixtureFileSupplier/call/call",
             "createFixtureFileSupplier/createFixtureFileSupplier",
             "createFixtureFileSupplier/createFixtureFileSupplier#2",
             "createFixtureFileSupplier/createFixtureFileSupplier#3",
             "createFixtureFileSupplier/createFixtureFileSupplier#4",
-            "createFixtureFileSupplier/current/current",
             "createFixtureFileSupplier/init:readContent/init:readContent",
             "createFixtureFileSupplier/init:readContent/init:readContent/init:readContent",
             "createFixtureFileSupplier/init:readContent/init:readContent/init:readContent#2",
             "createFixtureFileSupplier/init:readListing/init:readListing",
-            "createFixtureFileSupplier/pathFor/pathFor",
-            "createFixtureFileSupplier/read/read",
-            "createFixtureFileSupplier/rowFor/rowFor",
-            "createFixtureFileSupplier/rowText/rowText",
-            "createFixtureFileSupplier/versionFor/versionFor",
-            "fail/fail",
-            "integer/integer",
-            "rawResponseRetainer/rawResponseRetainer",
             "text/text"
           ],
           "exports": [

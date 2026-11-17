@@ -8,7 +8,7 @@ import {gateJobs} from '../../scripts/ci-targets.mjs';
 import {resolveMainBaseline, fullCheckpointJobs, validateMainBaseline, isMainEvidenceEvent} from '../../scripts/ci-main-base.mjs';
 import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {catalogPath, validateCatalog, compareCatalogs} from './actions.mjs';
-import {actionInputs, gitTree, compareInputs, hash} from './inputs.mjs';
+import {actionInputs, gitInputScope, compareInputs, hash} from './inputs.mjs';
 import {policyUnchanged} from './applications.mjs';
 import {readOriginReceipts} from './receipts.mjs';
 import {downloadArtifact, ArtifactUnavailable, unavailableTransport} from './transport.mjs';
@@ -65,7 +65,7 @@ async function readRuntime({archive, artifact, baseline, context, tree}) {
 // Git, the existing Actions client and transport; request JSON cannot override
 // authentication, history, source extraction or runtime validation.
 export async function comparisonPlan({root, context, runtime, actionRuntimes = {}, directory, token, request,
-  recordedRunId = null, treeAt = revision => gitTree(root, revision),
+  recordedRunId = null, treeAt = gitInputScope(root),
   git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024}),
   resolveBaseline = resolveMainBaseline, download = downloadArtifact, read = null,
   loadRuntime = readRuntime, onArchive = null, readGroup = readOriginReceipts}) {

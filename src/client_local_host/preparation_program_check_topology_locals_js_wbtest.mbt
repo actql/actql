@@ -1,4 +1,15 @@
 ///|
+// Same work state1H2R3W, live-phase Ref1H1W, five original state closures5H5R,
+// receipt1H6R and active Some1H1R1W, plus the retained zero-usage record1H3W.
+// The remaining-work closure and its receipt slot add1H2R to the old receipt;
+// they borrow the original state and issue no second work allowance.
+fn topology_locals_expected_returned_holdings() -> Int64 {
+  16L * (1L + 1L + 5L + 1L + 1L + 1L) +
+  8L * (2L + 5L + 6L + 1L) +
+  8L * (3L + 1L + 1L + 3L)
+}
+
+///|
 test "original reconciled-input constructor retains one returned work receipt on the same Request parent" {
   let (parent, owner, input) = context_entry_parent(2)
   prepare_program_check_source_context_input(owner).unwrap()
@@ -28,13 +39,17 @@ test "original reconciled-input constructor retains one returned work receipt on
   // The returned quotation frame341H146R738W covers this constructor too.
   // Original delta-binding controls add four scalar words to the prior frame.
   assert_eq(16L * 341L + 8L * 146L + 8L * 738L, 12528L)
-  // After return only live state8H11R4W +original Usage1H3W remains288.
-  assert_eq(owner.source_body_quote, Some((12528L, 288L)))
+  let held = topology_locals_expected_returned_holdings()
+  assert_eq(owner.source_body_quote, Some((12528L, held)))
   assert_eq(
     @resources.preparation_capacity_working_extents(parent.capacity, input),
     Ok((before.0 + 12528L, before.1 + 12528L)),
   )
   let work = owner.topology_work.unwrap()
+  assert_eq(
+    @resources.remaining_preparation_phase_work_continuation64(work),
+    Err(WrongPhase),
+  )
   assert_eq(
     @resources.spend_preparation_phase_work_continuation64(work, 1L),
     Err(WrongPhase),
@@ -63,7 +78,7 @@ test "original reconciled-input constructor retains one returned work receipt on
   assert_true(physical_equal(owner.topology_work.unwrap(), work))
   assert_eq(
     @resources.preparation_capacity_working_extents(parent.capacity, input),
-    Ok((before.0 + 288L, before.1 + 288L)),
+    Ok((before.0 + held, before.1 + held)),
   )
   let maximum = @stage_results.local_program_read_work_bound(read).unwrap()
   assert_eq(
@@ -202,7 +217,10 @@ test "reconciled-input one-short admission does not claim work or advance the or
     assert_eq(@stage_results.local_program_read_phase(read), LocalInputs)
     @resources.settle_capacity(parent.ledger, blocker).unwrap()
     assert_eq(advance_program_check_source_topology(owner).unwrap(), Imports)
-    assert_eq(owner.source_body_quote.unwrap(), (12528L, 288L))
+    assert_eq(
+      owner.source_body_quote.unwrap(),
+      (12528L, topology_locals_expected_returned_holdings()),
+    )
     clear_program_check_preparation(owner).unwrap()
     abort_request_preparation_after_cleanup(parent).unwrap()
   }

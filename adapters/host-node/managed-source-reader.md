@@ -646,3 +646,35 @@ Focused coverage is in `transfer_reservation_wbtest.mbt`,
 `row_response_transfer_wbtest.mbt` and the existing installed reader/RowRun Node
 fixtures. These establish cumulative accounting, current/refusal and callback
 ordering separately from ordinary package or physical transport acceptance.
+
+## Declared Source access inventory
+
+The normal installation identity and Host opening select profile paths under
+the same initial Source material before cloning the path array. Its existing
+native constructor recipe covers the actual retained slots and the temporary
+array and membership Set used by plural validation. Path text borrows the
+detached Host input; a path selected from the environment retains its text on
+this material. Unique absolute plural paths and mutually exclusive singular,
+plural and environment selection remain required. A refused reservation or
+original-current check cannot construct the selected array. This path selection
+does not establish the later registration, namespace or Checkpoint inventory.
+
+The installed RowSource builds its complete declared read-access array and
+membership Set under the original Source initialization material. It quotes the
+actual view count once before either constructor, using the existing shared
+node-slot recipe. The same retained quantity includes the synchronous binding
+check's temporary Set and returned reference array. Strings, connection and
+authorization remain borrowed originals; the metadata creates no permission,
+reader, per-entry reservation or additional budget. The constructor remains
+bound to the same declaration, prepared tuple, current parent and initialization
+attempt. A refusal precedes projection and retains the original failure debt.
+
+A member's access inventory has no independent 64-entry ceiling. Nonempty
+inventory, unique source references, exact connection/authorization and admitted
+Source membership remain required. Each selected read still crosses its own
+current authorization and original acquisition/capture limits; closing metadata
+does not acknowledge physical cleanup. The shared aggregate registration range
+is a separate loader/Checkpoint contract. Focused components in
+`installed-source-read-range.actual.test.mjs` exercise the sixty-fifth binding,
+its real RowRun capture and identity/current refusals. They do not establish
+ordinary SDK/Host or physical provider acceptance.

@@ -275,6 +275,21 @@ fn captured_local_effect_source_matches_preview(
     is Err(_) {
     return false
   }
+  captured_local_effect_source_preview_facts_match(
+    preview, member_index, physical, local_value,
+  )
+}
+
+///|
+// Only after the same immutable local/physical pair passed complete admission
+// in this synchronous source inventory. This compares Preview references;
+// callers needing admission use the original validating wrapper above.
+fn captured_local_effect_source_preview_facts_match(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  physical : PublicationContract,
+  local_value : @json.CanonicalValue,
+) -> Bool {
   guard effect_preview_member_result_artifact_cid(preview, member_index)
     is Some(expected) &&
     effect_source_artifact_relation_source(physical) ==
@@ -284,13 +299,12 @@ fn captured_local_effect_source_matches_preview(
   if expected == physical.identity {
     return true
   }
-  guard admitted_nested_local_contract(
-      local_value, "artifact", "result_artifact", max_wire_bytes, max_nodes, max_depth,
-    )
-    is Some(result) else {
+  // Complete admission of this exact immutable pair already established the
+  // nested artifact identity. Read its fact without a second parse/hash.
+  guard @json.object_field(local_value, "artifact") is Some(artifact) else {
     return false
   }
-  expected == result.identity
+  evidence_string(artifact, "result_artifact_cid") == Some(expected)
 }
 
 ///|
@@ -351,7 +365,7 @@ pub fn admit_captured_effect_source_from_capture(
 ) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
   guard captured.name == "captured_run" &&
     invocation.name == "run_invocation" &&
-    effect_preview_member_effect_id(preview, member_index) is Some(effect_id) &&
+    effect_preview_member_effect_id(preview, member_index) is Some(_) &&
     @json.object_field(captured.value, "effect_context") is Some(context) &&
     evidence_identity_valid(
       context, "effect_context_cid", max_wire_bytes, max_nodes, max_depth,
@@ -363,7 +377,32 @@ pub fn admit_captured_effect_source_from_capture(
       max_wire_bytes,
       max_nodes,
       max_depth,
-    ) &&
+    ) else {
+    return Err(CaptureIssuanceReferenceMismatch("effect_source_capture"))
+  }
+  captured_effect_source_from_checked_context(
+    preview, member_index, invocation, artifact, captured, context, store_authority_cid,
+    max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// Only the original whole-context validator or its exact prepared proof may
+// enter here. Keep every selected member/Artifact/binding check unchanged.
+fn captured_effect_source_from_checked_context(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  artifact : PublicationContract,
+  captured : PublicationContract,
+  context : @json.CanonicalValue,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
+  guard effect_preview_member_effect_id(preview, member_index)
+    is Some(effect_id) &&
     @json.object_field(context, "effect_source_artifacts") is Some(artifacts) &&
     @json.object_field(artifacts, effect_id) is Some(stored) &&
     evidence_contract_equal(
@@ -374,8 +413,57 @@ pub fn admit_captured_effect_source_from_capture(
     return Err(CaptureIssuanceReferenceMismatch("effect_source_capture"))
   }
   admit_captured_effect_source_binding(
-    preview, member_index, invocation, artifact, expected, store_authority_cid,
+    preview,
+    member_index,
+    invocation,
+    artifact,
+    expected,
+    store_authority_cid,
+    context_binding=captured.wire_usage.map(usage => {
+      let (bytes, nodes, depth) = usage
+      {
+        captured,
+        preview,
+        invocation,
+        artifact,
+        store_authority_cid,
+        member_index,
+        max_bytes: bytes,
+        max_nodes: nodes,
+        max_depth: depth,
+      }
+    }),
   )
+}
+
+///|
+// The complete immutable context was admitted when this SAME source was
+// issued. A smaller explicit policy still takes the original full validator.
+// No Store custody, permission or original-current decision is represented.
+fn captured_effect_source_context_matches(
+  source : CapturedEffectSourceArtifact,
+  captured : PublicationContract,
+  preview : EffectPreviewIdentity,
+  invocation : PublicationContract,
+  member_index : Int,
+  store_authority_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  guard source.context_binding is Some(binding) else { return false }
+  physical_equal(binding.captured, captured) &&
+  physical_equal(binding.preview, preview) &&
+  physical_equal(binding.invocation, invocation) &&
+  physical_equal(binding.artifact, source.artifact) &&
+  binding.member_index == member_index &&
+  binding.store_authority_cid == store_authority_cid &&
+  binding.max_bytes > 0 &&
+  binding.max_nodes > 0 &&
+  binding.max_depth > 0 &&
+  max_bytes >= binding.max_bytes &&
+  max_nodes >= binding.max_nodes &&
+  max_depth >= binding.max_depth
 }
 
 ///|
@@ -399,6 +487,31 @@ pub fn captured_effect_source_result_from_capture(
   captured_effect_source_relation_artifact_from_capture(
     preview, member_index, invocation, source, captured, store_authority_cid, max_wire_bytes,
     max_nodes, max_depth,
+  )
+}
+
+///|
+/// A funded inverse of one already admitted capture uses that original's
+/// measured complete extent. Command-row or Content-reference limits do not
+/// describe this whole context. The caller must re-enter the SAME Read's
+/// constructor before entry; this function grants no Resource or Store access.
+pub fn captured_effect_source_result_from_original_capture(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  source : CapturedEffectSourceArtifact,
+  captured : PublicationContract,
+  store_authority_cid : String,
+) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+  guard captured.wire_usage is Some((bytes, nodes, depth)) &&
+    bytes > 0 &&
+    nodes > 0 &&
+    depth > 0 else {
+    return Err(CaptureIssuanceReferenceMismatch("effect_source_capture"))
+  }
+  captured_effect_source_result_from_capture(
+    preview, member_index, invocation, source, captured, store_authority_cid, bytes,
+    nodes, depth,
   )
 }
 
@@ -438,20 +551,31 @@ fn captured_effect_source_relation_artifact_from_capture(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
-  guard admit_captured_effect_source_from_capture(
-      preview,
-      member_index,
-      invocation,
-      source.artifact,
-      captured,
-      store_authority_cid,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    )
-    is Ok(expected) &&
-    expected.effect_id == source.effect_id &&
-    expected.holding_cid == source.holding_cid &&
+  let matches = if captured_effect_source_context_matches(
+      source, captured, preview, invocation, member_index, store_authority_cid, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    true
+  } else {
+    match
+      admit_captured_effect_source_from_capture(
+        preview,
+        member_index,
+        invocation,
+        source.artifact,
+        captured,
+        store_authority_cid,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(expected) =>
+        expected.effect_id == source.effect_id &&
+        expected.holding_cid == source.holding_cid
+      Err(_) => false
+    }
+  }
+  guard matches &&
     @json.object_field(captured.value, "effect_context") is Some(context) &&
     @json.object_field(context, "effect_source_local_inventory")
     is Some(inventory) &&

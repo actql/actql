@@ -107,7 +107,7 @@ fn local_result_delivery_selection(
   let files : Array[LocalResultFileSelection] = []
   match child.values.get("deliver") {
     Some(values) => {
-      if values.is_empty() || values.length() > 16 {
+      if values.is_empty() {
         stop("InvalidLocalResultDelivery")
       }
       for name in ["output", "result", "format"] {

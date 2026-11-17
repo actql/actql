@@ -61,6 +61,7 @@ struct CapturedRunIssuancePreparation {
   mut live : Int
   mut peak : Int
   mut closed : Bool
+  mut source_work : Int64
 }
 
 ///|
@@ -83,6 +84,7 @@ fn start_captured_computation_preparation(
     live: 16,
     peak: 16,
     closed: false,
+    source_work: 0L,
   }
 }
 
@@ -195,6 +197,7 @@ fn CapturedRunIssuancePreparation::reserve(
 ///|
 fn CapturedRunIssuancePreparation::step(
   self : CapturedRunIssuancePreparation,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[Unit, CapturedRunIssuanceIssue] {
   let inputs = self.inputs.unwrap()
   match self.phase {
@@ -294,6 +297,9 @@ fn CapturedRunIssuancePreparation::step(
       }
     }
     Sources => {
+      if !captured_issuance_work(work, self.source_work) {
+        return Err(CaptureIssuanceEncoding)
+      }
       // Effect-specific admission keeps its original position and semantics.
       // It is not yet an asynchronous dependency-closure preparation.
       self.source_inventory = Some(
@@ -340,6 +346,7 @@ fn CapturedRunIssuancePreparation::step(
           sources,
           local_sources,
           self.model_inventory.unwrap(),
+          work~,
         ) {
         Ok(prepared) => prepared
         Err(issue) => return Err(issue)
@@ -515,6 +522,7 @@ fn CapturedRunIssuancePreparation::step(
                 manifest: inputs.manifest,
                 receipt: inputs.receipt,
                 captured_run: contract,
+                dependency_inventory: inputs.dependency_inventory,
                 preview: inputs.preview,
                 max_wire_bytes: inputs.max_wire_bytes,
                 max_nodes: inputs.max_nodes,
@@ -530,7 +538,17 @@ fn CapturedRunIssuancePreparation::step(
           }
         }
       }
-    Check(child) =>
+    Check(child) => {
+      // One synchronous canonical dependency/root preflight. Incremental
+      // hash/parse/row steps are charged separately by this same continuation.
+      if child.phase is Inventory {
+        if !captured_issuance_work(
+            work,
+            8L * child.inputs.unwrap().captured_run.wire.length().to_int64(),
+          ) {
+          return Err(CaptureIssuanceEncoding)
+        }
+      }
       match child.advance(1) {
         Err(issue) => return Err(CaptureIssuanceChain(issue))
         Ok((done, _)) => {
@@ -543,6 +561,7 @@ fn CapturedRunIssuancePreparation::step(
           }
         }
       }
+    }
     Done => ()
   }
   Ok(())
@@ -628,6 +647,7 @@ pub fn CapturedRunIssuancePreparation::finish_retained(
     manifest: inputs.manifest,
     receipt: inputs.receipt,
     captured_run: contract,
+    dependency_inventory: inputs.dependency_inventory,
     preview: None,
     max_wire_bytes: inputs.max_wire_bytes,
     max_nodes: inputs.max_nodes,
@@ -767,4 +787,65 @@ pub fn captured_run_preparation_fixture_inventory(
     preparation.snapshot_inventory is Some(_),
     preparation.model_inventory is Some(_),
   )
+}
+
+///|
+fn captured_issuance_work(work : ((Int) -> Bool)?, amount : Int64) -> Bool {
+  if amount < 0L {
+    return false
+  }
+  guard work is Some(spend) else { return true }
+  let mut remaining = amount
+  while remaining > 0L {
+    let chunk = Int64::min(remaining, 2147483647L).to_int()
+    if !spend(chunk) {
+      return false
+    }
+    remaining -= chunk.to_int64()
+  }
+  true
+}
+
+///|
+// Actual trusted continuation steps consume the original Work BEFORE each
+// step. The closed caller returns its view after this synchronous quantum;
+// no writer, callback or Work view is retained across an await.
+pub fn CapturedRunIssuancePreparation::advance_with_work(
+  self : CapturedRunIssuancePreparation,
+  quantum : Int,
+  work : (Int) -> Bool,
+) -> Result[(Bool, Int), CapturedRunIssuanceIssue] {
+  if self.closed || self.completed is Some(_) || quantum < 1 {
+    return Err(CaptureIssuanceEncoding)
+  }
+  let mut used = 0
+  while used < quantum && !(self.phase is Done) {
+    if self.next_step_requires_reference_callback() {
+      break
+    }
+    if !work(1) {
+      self.cancel()
+      return Err(CaptureIssuanceEncoding)
+    }
+    match self.step(work=Some(work)) {
+      Err(issue) => {
+        self.cancel()
+        return Err(issue)
+      }
+      Ok(_) => used += 1
+    }
+  }
+  Ok((self.phase is Done, used))
+}
+
+///|
+// The managed Host returns its Work view before these existing live Ref
+// callbacks and performs a fresh original-current observation afterward.
+pub fn CapturedRunIssuancePreparation::next_step_requires_reference_callback(
+  self : CapturedRunIssuancePreparation,
+) -> Bool {
+  match self.phase {
+    Context(child) => child.phase is ContentValue(_, _)
+    _ => false
+  }
 }

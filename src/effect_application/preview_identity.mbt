@@ -77,6 +77,123 @@ pub fn check_admitted_effect_preview_apply_keys(
 }
 
 ///|
+/// Select only from an already admitted semantic row. A singleton Command
+/// retains its established key/locator bytes. Multiple Command rows may share
+/// one physical target, so their verified complete row CIDs distinguish them.
+/// The target projection remains separate and unchanged for plan verification.
+pub fn prepare_effect_preview_row_dispatch_key(
+  preview : @publication.EffectPreviewIdentity,
+  scope : LogicalRequestScope,
+  member_index : Int,
+  row_index : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[EffectDispatchKey, EffectIdentityIssue] {
+  guard @publication.effect_preview_row_identity(
+      preview, member_index, row_index,
+    )
+    is Some(row) &&
+    @publication.effect_preview_member_kind(preview, member_index) is Some(kind) &&
+    @publication.effect_preview_row_count(preview, member_index) is Some(count) else {
+    return Err(InvalidRowKey)
+  }
+  prepare_effect_verified_row_dispatch_key(
+    scope,
+    @publication.effect_preview_semantic_identity(preview),
+    row,
+    @publication.effect_preview_row_correlation_wire(
+      preview, member_index, row_index,
+    ),
+    kind == "command" && count > 1,
+    max_key_bytes,
+    max_key_nodes,
+    max_key_depth,
+  )
+}
+
+///|
+// Both callers obtain the row identity/correlation from the same admitted
+// Preview. Recovery already has its verified ordered row, so it need not
+// rebuild a physical-row search or encode a second correlation String.
+fn prepare_effect_verified_row_dispatch_key(
+  scope : LogicalRequestScope,
+  preview_cid : String,
+  row : String,
+  original_correlation : String?,
+  multirow_command : Bool,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[EffectDispatchKey, EffectIdentityIssue] {
+  let correlation = if multirow_command {
+    // Reject before allocating the owned 73-unit canonical String. The
+    // existing key constructor retains its original selected codec checks.
+    if max_key_bytes < 73 {
+      return Err(InvalidRowKey)
+    }
+    "\"" + row + "\""
+  } else {
+    match original_correlation {
+      Some(value) => value
+      None => return Err(InvalidRowKey)
+    }
+  }
+  prepare_effect_dispatch_key(
+    scope, preview_cid, correlation, max_key_bytes, max_key_nodes, max_key_depth,
+  )
+}
+
+///|
+// Borrow the issued key's exact correlation during locator admission. This
+// avoids allocating another encoded row-CID String for every apply/recovery.
+fn effect_preview_dispatch_correlation_matches(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  wire : String,
+) -> Bool {
+  if @publication.effect_preview_member_kind(preview, member_index) ==
+    Some("command") &&
+    @publication.effect_preview_row_count(preview, member_index).unwrap_or(0) >
+    1 {
+    guard @publication.effect_preview_row_identity(
+        preview, member_index, row_index,
+      )
+      is Some(row) &&
+      wire.length() == row.length() + 2 &&
+      wire[0] == '"' &&
+      wire[wire.length() - 1] == '"' else {
+      return false
+    }
+    for index in 0..<row.length() {
+      if wire[index + 1] != row[index] {
+        return false
+      }
+    }
+    true
+  } else {
+    @publication.effect_preview_row_correlation_wire(
+      preview, member_index, row_index,
+    ) ==
+    Some(wire)
+  }
+}
+
+///|
+/// New text owned by each multirow Command key. The original key parser/hash
+/// keeps its existing bounded envelope; only this new retained correlation and
+/// concatenation overlap are additional. These constants are geometry DATA.
+pub fn effect_command_dispatch_correlation_retained_units() -> Int64 {
+  73L
+}
+
+///|
+pub fn effect_command_dispatch_correlation_workspace_units() -> Int64 {
+  72L
+}
+
+///|
 pub(all) enum EffectPreviewRecoveryKeysIssue {
   InvalidLimits
   CapacityExceeded
@@ -98,18 +215,13 @@ pub fn recover_effect_preview_apply_keys(
   max_key_nodes : Int,
   max_key_depth : Int,
 ) -> Result[Array[Array[EffectDispatchKey]], EffectPreviewRecoveryKeysIssue] {
-  if max_members < 1 ||
-    max_members > 1000 ||
-    max_rows < 1 ||
-    max_rows > 100000 ||
-    max_work < 1 {
+  if max_members < 1 || max_members > 1000 || max_rows < 1 || max_work < 1 {
     return Err(InvalidLimits)
   }
   let count = @publication.effect_preview_member_count(preview)
   if count < 1 || count > max_members || count > max_work {
     return Err(CapacityExceeded)
   }
-  let preview_cid = @publication.effect_preview_semantic_identity(preview)
   let keys : Array[Array[EffectDispatchKey]] = []
   let mut remaining_rows = max_rows
   let mut remaining_work = max_work - count
@@ -126,16 +238,10 @@ pub fn recover_effect_preview_apply_keys(
     remaining_work -= row_count
     let member_keys : Array[EffectDispatchKey] = []
     for row_index in 0..<row_count {
-      let correlation = match
-        @publication.effect_preview_row_correlation_wire(
-          preview, member_index, row_index,
-        ) {
-        Some(value) => value
-        None => return Err(MissingRow(member_index, row_index))
-      }
       let key = match
-        prepare_effect_dispatch_key(
-          scope, preview_cid, correlation, max_key_bytes, max_key_nodes, max_key_depth,
+        prepare_effect_preview_row_dispatch_key(
+          preview, scope, member_index, row_index, max_key_bytes, max_key_nodes,
+          max_key_depth,
         ) {
         Ok(value) => value
         Err(issue) => return Err(Dispatch(member_index, row_index, issue))
@@ -233,10 +339,12 @@ fn admit_effect_member_slice(
     let locator = locators[offset]
     if locator.logical_request_scope_cid != logical_request_scope_cid(scope) ||
       locator.effect_id != effect_id ||
-      @publication.effect_preview_row_correlation_wire(
-        preview, member_index, index,
-      ) !=
-      Some(locator.item_correlation_wire) ||
+      !effect_preview_dispatch_correlation_matches(
+        preview,
+        member_index,
+        index,
+        locator.item_correlation_wire,
+      ) ||
       keys[offset].row_or_item_key_wire != locator.item_correlation_wire {
       return Err(ForeignLocator(offset))
     }

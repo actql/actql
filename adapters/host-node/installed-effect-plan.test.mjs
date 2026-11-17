@@ -7,12 +7,44 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
   captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild,
-  prepareInstalledEffectControlConstruction}
+  prepareInstalledEffectControlConstruction, installedEffectSavedControlEntryLimit,
+  installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit}
   from './installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialResponseHeaderByteLimit}
   from '../site-node/https-credential-resource.mjs';
+
+test('shared control readers retain each plugin bound and restore full capacity for mixed receivers', () => {
+  const capacity = {}, fallbackCapacity = {}, extent = {};
+  const recipe = maxResponseBytes => captureInstalledEffectPlanRecipe(Object.freeze({
+    memberOperations: Object.freeze([]), rowOperations: Object.freeze([
+      Object.freeze({operation: 'external.plugin.operation', extent})]),
+    controlsPerRow: capacity,
+    savedControlCodec: Object.freeze({maxEntryBytes: 1510, fallbackCapacity,
+      ...(maxResponseBytes === undefined ? {} : {maxResponseBytes})}),
+  }), 1);
+  const compact = recipe(65536), second = recipe(8192), legacy = recipe();
+  const entries = installedEffectSavedControlEntryLimit([compact, second]);
+  const responses = installedEffectSavedControlResponseLimit([compact, second]);
+  assert.equal(entries, 1510);
+  assert.equal(responses, 65536);
+  assert.strictEqual(installedEffectRecipeForControlEntryLimit(compact, entries, responses), compact);
+  assert.strictEqual(installedEffectRecipeForControlEntryLimit(second, entries, responses).controlsPerRow,
+    fallbackCapacity);
+  assert.equal(installedEffectSavedControlResponseLimit([compact, legacy]),
+    effectLedgerImplementationBounds.maxResponseBytes);
+  assert.equal(installedEffectSavedControlResponseLimit([compact, undefined]),
+    effectLedgerImplementationBounds.maxResponseBytes);
+  assert.strictEqual(installedEffectRecipeForControlEntryLimit(compact, entries,
+    installedEffectSavedControlResponseLimit([compact, legacy])).controlsPerRow, fallbackCapacity);
+  assert.strictEqual(installedEffectRecipeForControlEntryLimit(compact,
+    effectLedgerImplementationBounds.maxEntryBytes, responses).controlsPerRow, fallbackCapacity);
+  for (const invalid of [0, -1, 1.5, NaN, null, 1000001]) {
+    assert.throws(() => recipe(invalid),
+      {code: 'InvalidInstalledEffectPlanRecipe'});
+  }
+});
 
 test('automatic standard recipe forwards original constructor capacities and keeps all physical phases distinct', () => {
   for (const beforeSend of [false,true]) {
@@ -1683,6 +1715,205 @@ test('nested constructor input refusal preserves the first failure and original 
 });
 
 
+test('owned Grant recipe captures immutable selector metadata and borrows its exact opaque originals', () => {
+  let calls = 0;
+  const receiver = {}, method = function() {calls++;}, capacity = Object.freeze({
+    get privateExtent() {assert.fail('Host must not inspect opaque Common capacity');},
+  });
+  const grantConstruction = Object.freeze({receiver, method, capacity});
+  const base = {memberOperations: Object.freeze([]), rowOperations: Object.freeze([
+    Object.freeze({operation: 'external.owned.write', extent: {}}),
+  ])};
+  const selected = captureInstalledEffectPlanRecipe(Object.freeze({...base, grantConstruction}), 1);
+  assert.notStrictEqual(selected.grantConstruction, grantConstruction);
+  assert.equal(Object.isFrozen(selected.grantConstruction), true);
+  assert.strictEqual(selected.grantConstruction.receiver, receiver);
+  assert.strictEqual(selected.grantConstruction.method, method);
+  assert.strictEqual(selected.grantConstruction.capacity, capacity);
+  assert.equal(calls, 0, 'capturing constructor metadata never issues permission');
+  assert.equal(Object.hasOwn(captureInstalledEffectPlanRecipe(Object.freeze(base), 1), 'grantConstruction'), false);
+});
+
+test('owned Grant recipe rejects malformed or executable selector metadata without invoking it', () => {
+  const receiver = {}, method = () => {}, capacity = {}, base = {
+    memberOperations: Object.freeze([]), rowOperations: Object.freeze([
+      Object.freeze({operation: 'external.owned.write', extent: {}}),
+    ]),
+  };
+  let calls = 0;
+  const trap = {getOwnPropertyDescriptor() {calls++; throw new Error('Proxy must not run');}};
+  const selectors = [null, {}, {receiver, method, capacity},
+    Object.freeze({receiver, method}), Object.freeze({receiver, method, capacity, extra: true}),
+    Object.freeze({receiver, method: undefined, capacity}),
+    Object.freeze({receiver, method: async () => {}, capacity}),
+    Object.freeze({receiver, method: new Proxy(method, trap), capacity}),
+    ...[null, undefined, 0, () => {}, new Proxy(receiver, trap)].map(value =>
+      Object.freeze({receiver: value, method, capacity})),
+    ...[null, undefined, 0, 'capacity', new Proxy(capacity, trap)].map(value =>
+      Object.freeze({receiver, method, capacity: value})),
+    Object.freeze({receiver, get method() {calls++; return method;}, capacity}),
+    Object.freeze({receiver, method, get capacity() {calls++; return capacity;}}),
+    new Proxy(Object.freeze({receiver, method, capacity}), trap),
+  ];
+  for (const grantConstruction of selectors) {
+    assert.throws(() => captureInstalledEffectPlanRecipe(Object.freeze({...base, grantConstruction}), 1),
+      {code: 'InvalidInstalledEffectPlanRecipe'});
+  }
+  const accessor = Object.freeze({...base, get grantConstruction() {calls++; return {receiver, method, capacity};}});
+  assert.throws(() => captureInstalledEffectPlanRecipe(accessor, 1), {code: 'InvalidInstalledEffectPlanRecipe'});
+  assert.equal(calls, 0);
+});
+
+test('owned Grant native frame passes the same opaque capacity before issuer entry and keeps legacy Grant funding', () => {
+  const receiver = {}, argument = {}, result = {}, capacity = {};
+  let f;
+  f = controlWorkFixture({clientProgramInstalledEffectOperationNativeConstructionBegin(...args) {
+    assert.strictEqual(this, f.runtime);
+    assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan, capacity]);
+    assert.equal(f.run.selecting, true); f.events.push('native grant'); return {$tag: 1};
+  }});
+  const issuer = function(value) {
+    assert.strictEqual(this, receiver); assert.strictEqual(value, argument);
+    assert.equal(f.work.retire(), false);
+    assert.throws(() => f.work(receiver, issuer, [argument], capacity),
+      {code: 'InstalledEffectControlConstructionPending'});
+    return result;
+  };
+  assert.strictEqual(f.work(receiver, issuer, [argument], capacity), result);
+  assert.deepEqual(f.events, ['native grant', 'complete']);
+  const legacy = controlWorkFixture();
+  assert.strictEqual(legacy.work.grant(receiver, () => result, []), result);
+  assert.deepEqual(legacy.events, ['begin', 'complete']);
+  assert.equal(f.run.selecting, false); assert.equal(f.work.retire(), true);
+});
+
+test('owned Grant native frame preserves quote entry callback current and asynchronous failure prefixes', async () => {
+  for (const mode of ['quote', 'entry', 'callback', 'foreign', 'async']) {
+    let f, settle;
+    const capacity = {}, foreignCapacity = {}, failure = new Error(mode),
+      promise = new Promise(resolve => {settle = resolve;});
+    f = controlWorkFixture({clientProgramInstalledEffectOperationNativeConstructionBegin(...args) {
+      f.events.push('native grant');
+      if (mode === 'entry') throw failure;
+      if (args[4] !== capacity) return {$tag: 0, _0: failure};
+      return {$tag: 1};
+    }});
+    let primary;
+    assert.throws(() => f.work(undefined, () => {
+      if (mode === 'entry' || mode === 'quote') assert.fail('unfunded issuer');
+      if (mode === 'callback') throw failure;
+      if (mode === 'foreign') {f.run.operationPlan = {}; return 1;}
+      return promise;
+    }, [], mode === 'quote' ? foreignCapacity : capacity), cause => {
+      primary = cause;
+      return mode === 'entry' || mode === 'callback' ? cause === failure
+        : mode === 'quote' ? cause.code === 'MoonBitHostFailure' && cause.cause === failure : !!cause.code;
+    });
+    assert.deepEqual(f.events, ['native grant']);
+    assert.throws(() => f.work(undefined, () => assert.fail('failed prefix retry'), [], capacity), cause => cause === primary);
+    if (mode === 'async') {assert.equal(f.work.retire(), false); settle(); await new Promise(setImmediate);}
+    else settle();
+    assert.equal(f.run.selecting, false);
+  }
+});
+
+test('owned Grant native frame refuses malformed capacity and missing runtime before issuer allocation', () => {
+  const f = controlWorkFixture({clientProgramInstalledEffectOperationNativeConstructionBegin() {
+    assert.fail('invalid capacity cannot enter Common');
+  }});
+  for (const capacity of [null, 0, 'capacity', new Proxy({}, {})]) {
+    assert.throws(() => f.work(undefined, () => assert.fail('invalid capacity cannot issue'), [], capacity),
+      {code: 'InvalidInstalledEffectControlConstruction'});
+  }
+  assert.deepEqual(f.events, []);
+  const legacy = controlWorkFixture();
+  assert.throws(() => legacy.work(undefined, () => assert.fail('missing native constructor cannot issue'), [], {}),
+    {code: 'InstalledEffectControlRuntimeUnavailable'});
+  assert.deepEqual(legacy.events, []);
+});
+
+test('Ledger row classes forward original policy geometry and keep the legacy full frame', () => {
+  let f; const receiver = {}, argument = {}, result = {};
+  f = controlWorkFixture({clientProgramInstalledEffectOperationLedgerRowBegin(...args) {
+    assert.strictEqual(this, f.runtime);
+    assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan,
+      'response', 1510, 64, 4, 65536]);
+    f.events.push('row'); return {$tag: 1};
+  }});
+  assert.strictEqual(f.work.ledgerRow(receiver, function(value) {
+    assert.strictEqual(this, receiver); assert.strictEqual(value, argument);
+    assert.equal(f.work.retire(), false);
+    assert.throws(() => f.work.ledgerRow(receiver, () => {}, [], 'entry', 1, 1, 1, 1),
+      {code: 'InstalledEffectControlConstructionPending'});
+    return result;
+  }, [argument], 'response', 1510, 64, 4, 65536), result);
+  assert.deepEqual(f.events, ['row', 'complete']);
+  assert.throws(() => f.work.ledgerRow(receiver, () => assert.fail('invalid class'), [], 'unknown', 1, 1, 1, 1),
+    {code: 'InvalidInstalledEffectControlConstruction'});
+  const legacy = controlWorkFixture();
+  assert.equal(legacy.work.ledgerRow, undefined);
+  assert.equal(legacy.work.receiptCodec, undefined);
+  assert.equal(legacy.work.ledgerHistory, undefined);
+  legacy.work(receiver, () => result, []);
+  assert.deepEqual(legacy.events, ['begin', 'complete']);
+});
+
+test('Receipt codecs retain their original row frame and preserve an entry refusal before body work', () => {
+  for (const refused of [false, true]) {
+    let f; const refusal = new Error('original Receipt capacity refusal'), result = {};
+    f = controlWorkFixture({
+      clientProgramInstalledEffectOperationLedgerRowBegin() {f.events.push('row'); return {$tag: 1};},
+      clientProgramInstalledEffectOperationReceiptCodecBegin(...args) {
+        assert.strictEqual(this, f.runtime);
+        assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan,
+          '{"state":"applied"}', 512, 16, false]);
+        f.events.push('receipt'); if (refused) throw refusal; return {$tag: 1};
+      },
+      clientProgramInstalledEffectOperationLedgerCodecComplete() {f.events.push('codec-complete'); return {$tag: 1};},
+    });
+    const operation = () => f.work.ledgerRow(undefined, () => f.work.receiptCodec(undefined,
+      () => {if (refused) assert.fail('unfunded Receipt work'); return result;}, [],
+      '{"state":"applied"}', 512, 16, false), [], 'receipt', 1510, 64, 4, 65536);
+    if (refused) {
+      assert.throws(operation, cause => cause === refusal);
+      assert.deepEqual(f.events, ['row', 'receipt']);
+      assert.throws(() => f.work(undefined, () => assert.fail('failed-prefix retry'), []), cause => cause === refusal);
+    } else {
+      assert.strictEqual(operation(), result);
+      assert.deepEqual(f.events, ['row', 'receipt', 'codec-complete', 'complete']);
+    }
+  }
+});
+
+test('History growth extends only a live original frame and cannot hide its first refusal', () => {
+  for (const refused of [false, true]) {
+    let f; const refusal = new Error('original history capacity refusal');
+    f = controlWorkFixture({
+      clientProgramInstalledEffectOperationLedgerRowBegin() {f.events.push('row'); return {$tag: 1};},
+      clientProgramInstalledEffectOperationLedgerHistoryGrow(...args) {
+        assert.strictEqual(this, f.runtime);
+        assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan, 3, 4100n]);
+        assert.throws(() => f.work.ledgerHistory(3, 4100), {code: 'InstalledEffectControlConstructionPending'});
+        f.events.push('history'); if (refused) throw refusal; return {$tag: 1};
+      },
+    });
+    assert.throws(() => f.work.ledgerHistory(3, 4100), {code: 'InstalledEffectControlConstructionPending'});
+    let materialized = false;
+    const operation = () => f.work.ledgerRow(undefined, () => {
+      assert.equal(f.work.ledgerHistory(3, 4100), undefined);
+      materialized = true;
+    }, [], 'receipt', 1510, 64, 4, 65536);
+    if (refused) {
+      assert.throws(operation, cause => cause === refusal); assert.equal(materialized, false);
+      assert.deepEqual(f.events, ['row', 'history']);
+      assert.throws(() => f.work(undefined, () => {}, []), cause => cause === refusal);
+    } else {
+      operation(); assert.equal(materialized, true);
+      assert.deepEqual(f.events, ['row', 'history', 'complete']);
+    }
+  }
+});
+
 test('original Grant frame selects the same Core issuer capacity and retains generic full funding', () => {
   let f; const receiver = {}, argument = {}, result = {};
   f = controlWorkFixture({
@@ -1883,97 +2114,86 @@ test('standard Ledger family keeps original entry callback current reentry and a
   }
 });
 
-test('standard Ledger family original wrapper selects only immutable frontier inventory and keeps Receipt and unknown generic', () => {
-  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
-  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
-  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerConstruction');
-  const bind=Function('nodeTypes',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerConstruction;')(nodeTypes);
-  const names=['frontierFromDurableHeads','frontierFromCapturedHeads','recoveredTargetGuards','prepareSetIntents','prepareCapturedSetIntents'];
-  const result={},preview={},members=Object.freeze([Object.freeze({claims:Object.freeze([{},{}])})]);
-  const policy=Object.freeze({maxEntries:100000,maxEntryBytes:1000000,maxNodes:64,maxDepth:4});
-  let family=0,generic=0,closed=0;
-  const original=Object.freeze(Object.fromEntries([...names,'recordAdmittedRowOutcome','unknown','close'].map(name=>[name,function(...args){assert.strictEqual(this,original);if(name==='close')closed++;else assert.strictEqual(args[0],preview);return result;}])));
-  const work=Object.assign((receiver,method,args)=>{generic++;return Reflect.apply(method,receiver,args);},{
-    ledgerFamily(receiver,method,args,counts,...limits){family++;assert.equal(receiver,original);assert.deepEqual(counts,[2]);assert(Object.isFrozen(counts));assert.deepEqual(limits,Object.values(policy));assert.strictEqual(args[1],members);return Reflect.apply(method,receiver,args);}
-  });
-  const selected=bind(original,work,policy);
-  for(const name of names)assert.strictEqual(selected[name](preview,members,99),result);
-  assert.equal(family,5);
-  for(const name of ['recordAdmittedRowOutcome','unknown'])assert.strictEqual(selected[name](preview,members),result);
-  selected.close();assert.equal(closed,1);assert.equal(generic,2);
-  let getters=0;const accessor=Object.freeze(Object.defineProperty({},'claims',{get(){getters++;return [];}}));
-  for(const other of [[...members],Object.freeze([accessor]),Object.freeze([{claims:[]}]),new Proxy(members,{get(){assert.fail('Proxy observed');}})]){
-    assert.strictEqual(selected.frontierFromCapturedHeads(preview,other,99),result);
-  }
-  assert.equal(getters,0);assert.equal(family,5);assert.equal(generic,6);
-  const legacy=bind(original,(receiver,method,args)=>{generic++;return Reflect.apply(method,receiver,args);},policy);
-  legacy.frontierFromCapturedHeads(preview,members,99);assert.equal(generic,7);
+test('installing capture task keeps its original backing until join and alias retirement', async () => {
+  const {prepareInstalledEffectCaptureChild} = await import('./installed-effect-plan.mjs');
+  let settle;
+  const task = new Promise(resolve => {settle = resolve;});
+  const original = Object.freeze({entry: 'same'}), extent = {}, events = [];
+  const f = constructorControlFixture(() => {events.push('construct'); return task;});
+  f.run.runtime.clientProgramInstalledEffectOperationInputBegin = (token, selected) => {
+    assert.strictEqual(token, f.originalToken); assert.strictEqual(selected, extent);
+    events.push('funded'); return {$tag: 1, _0: undefined};
+  };
+  const child = prepareInstalledEffectCaptureChild({...f, inputExtent: () => extent});
+  const pending = child.prepare();
+  assert.deepEqual(events, ['funded', 'construct']);
+  assert.equal(child.release(), false); assert.equal(f.settlements(), 0);
+  settle(original); assert.strictEqual(await pending, original);
+  assert.equal(child.release(), false, 'a fulfilled constructor does not retire its returned aliases');
+  f.retireAliases(); assert.equal(child.release(), true); assert.equal(f.settlements(), 1);
+});
+
+test('installing capture task preserves a failed original task until real alias retirement', async () => {
+  const {prepareInstalledEffectCaptureChild} = await import('./installed-effect-plan.mjs');
+  const original = new Error('actual failed member constructor');
+  const f = constructorControlFixture(() => Promise.reject(original));
+  const child = prepareInstalledEffectCaptureChild(f);
+  await assert.rejects(child.prepare(), error => error === original);
+  assert.equal(child.release(), false); assert.equal(f.settlements(), 0);
+  f.retireAliases(); assert.equal(child.release(), true); assert.equal(f.settlements(), 1);
 });
 
 
-test('standard Ledger family revoked metadata proxies keep original generic failure boundary', () => {
-  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
-  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
-  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerConstruction');
-  const bind=Function('nodeTypes',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerConstruction;')(nodeTypes);
-  for(const role of ['members','claims']){
-    const revoked=Proxy.revocable([],{});revoked.revoke();
-    const members=role==='members'?revoked.proxy:Object.freeze([Object.freeze({claims:revoked.proxy})]);
-    const primary=new Error('original generic callback');let generic=0;
-    const original=Object.freeze({frontierFromCapturedHeads(){assert.strictEqual(this,original);throw primary;}});
-    const work=Object.assign((receiver,method,args)=>{generic++;return Reflect.apply(method,receiver,args);},{ledgerFamily(){assert.fail('revoked geometry selected');}});
-    assert.throws(()=>bind(original,work,Object.freeze({})).frontierFromCapturedHeads({},members,99),cause=>cause===primary);
-    assert.equal(generic,1);
+test('original funded key constructors retain the same flight and captured methods without a second generic frame', () => {
+  for (const [name, count] of [['clientProgramAuthorInstalledEffectPreview',19], ['clientProgramInstalledEffectRecoveredPreviewKeys',15]]) {
+    let f; const value = {$tag:1,_0:{}};
+    const method = function (...args) {
+      assert.strictEqual(this, f.runtime);
+      assert.deepEqual(args.slice(0,4), [f.run.value,f.run.prepared,f.run.request,f.run.operationPlan]);
+      assert.equal(f.run.selecting, true);
+      assert.equal(f.work.retire(), false);
+      assert.throws(() => f.work(this, method, args), {code:'InstalledEffectControlConstructionPending'});
+      f.events.push('keys'); return value;
+    };
+    f = controlWorkFixture({[name]:method,
+      clientProgramInstalledEffectOperationControlConstructionBegin(){assert.fail('constructor funds itself on original Core');}});
+    const args = [f.run.value,f.run.prepared,f.run.request,f.run.operationPlan,...Array(count-4).fill(undefined)];
+    f.runtime[name] = () => assert.fail('replaced original');
+    assert.strictEqual(f.work(f.runtime, method, args), value);
+    assert.deepEqual(f.events, ['keys']); assert.equal(f.run.selecting,false);
   }
 });
 
-test('standard Ledger single head reuses original family before physical current and same nested admission', () => {
-  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
-  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
-  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerConstruction');
-  const bind=Function('nodeTypes',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerConstruction;')(nodeTypes);
-  for(const name of ['current','currentAdmitted'])for(const existing of [false,true]){
-    let f,reads=0,admitted=0;const locator={},row={},entry={},scope={};
-    f=controlWorkFixture({
-      clientProgramInstalledEffectOperationLedgerFamilyBegin(...args){assert.deepEqual(args.slice(4),[[1],100000,1000000,64,4]);f.events.push('family');return {$tag:1};},
-      clientProgramInstalledEffectOperationLedgerCodecBegin(){f.events.push('codec');return {$tag:1};},
-      clientProgramInstalledEffectOperationLedgerCodecComplete(){f.events.push('codec-complete');return {$tag:1};},
-    });
-    const original=Object.freeze({[name](actual){
-      assert.strictEqual(this,original);assert.strictEqual(actual,locator);reads++;
-      assert.deepEqual(f.events,['family']);if(!existing)return undefined;
-      return f.work.ledgerCodec(scope,function(){assert.strictEqual(this,scope);admitted++;return name==='current'?row:entry;},[],'{"n":1}',64,4);
-    }});
-    const selected=bind(original,f.work,effectLedgerImplementationBounds);
-    assert.strictEqual(selected[name](locator),existing?(name==='current'?row:entry):undefined);
-    assert.equal(reads,1);assert.equal(admitted,existing?1:0);
-    assert.deepEqual(f.events,existing?['family','codec','codec-complete','complete']:['family','complete']);
-    assert.equal(f.work.retire(),true);
+test('funded key constructors do not exempt foreign substituted extra or executable arguments', () => {
+  for (const mode of ['receiver','method','parent','prepared','request','plan','extra','getter','proxy','replaced']) {
+    const blocked = new Error('original generic frame refused'); let reads=0;
+    const original = () => assert.fail('unfunded key method');
+    const f = controlWorkFixture({clientProgramAuthorInstalledEffectPreview:original,
+      clientProgramInstalledEffectOperationControlConstructionBegin(){throw blocked;}});
+    let receiver=f.runtime,method=original;
+    let args=[f.run.value,f.run.prepared,f.run.request,f.run.operationPlan,...Array(15).fill(undefined)];
+    if(mode==='receiver')receiver={};
+    if(mode==='method')method=(...values)=>Reflect.apply(original,receiver,values);
+    for(const [index,label] of ['parent','prepared','request','plan'].entries())if(mode===label)args[index]={};
+    if(mode==='extra')args.push(undefined);
+    if(mode==='getter')Object.defineProperty(args,'0',{get(){reads++;throw new Error('getter');}});
+    if(mode==='proxy')args=new Proxy(args,{get(){reads++;throw new Error('trap');},getOwnPropertyDescriptor(){reads++;throw new Error('trap');}});
+    if(mode==='replaced')f.runtime.clientProgramAuthorInstalledEffectPreview=method=()=>assert.fail('replacement');
+    assert.throws(()=>f.work(receiver,method,args),error=>error===blocked);
+    assert.equal(reads,0);
   }
 });
 
-test('standard Ledger single head keeps original refusal cleanup and legacy generic without assuming absence', () => {
-  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
-  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
-  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerConstruction');
-  const bind=Function('nodeTypes',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerConstruction;')(nodeTypes);
-  for(const role of ['entry','physical','codec']){
-    let f,physical=0,closes=0;const primary=new Error('original failure');
-    f=controlWorkFixture({
-      clientProgramInstalledEffectOperationLedgerFamilyBegin(){f.events.push('family');if(role==='entry')throw primary;return {$tag:1};},
-      clientProgramInstalledEffectOperationLedgerCodecBegin(){f.events.push('codec');return {$tag:1};},
-      clientProgramInstalledEffectOperationLedgerCodecComplete(){assert.fail('failed codec completed');},
-    });
-    const original=Object.freeze({currentAdmitted(){assert.strictEqual(this,original);physical++;if(role==='physical')throw primary;return f.work.ledgerCodec({},()=>{throw primary;},[],'{"n":1}',64,4);},
-      history(){assert.fail('failed owner reused');},close(){assert.strictEqual(this,original);closes++;}});
-    const selected=bind(original,f.work,effectLedgerImplementationBounds);
-    assert.throws(()=>selected.currentAdmitted('original CID'),cause=>cause===primary);
-    assert.throws(()=>selected.history('original CID',1),cause=>cause===primary);
-    assert.equal(physical,role==='entry'?0:1);assert.equal(f.events.includes('complete'),false);
-    selected.close();assert.equal(closes,1);assert.equal(f.work.retire(),true);
+test('funded key current or owner replacement keeps the original refusal and cannot retry construction', () => {
+  for (const mode of ['current','replace','result']) {
+    const primary=new Error('original current');let f,reads=0,keys=0;
+    const method=()=>{keys++;if(mode==='replace')f.run.value={};return mode==='result'?{$tag:0,_0:primary}:{$tag:1,_0:{}};};
+    f=controlWorkFixture({clientProgramInstalledEffectRecoveredPreviewKeys:method,
+      clientProgramInstalledEffectManagedOperationPlan(){reads++;if(mode==='current')throw primary;return {$tag:1,_0:f.run.operationPlan};}});
+    const args=[f.run.value,f.run.prepared,f.run.request,f.run.operationPlan,...Array(11).fill(undefined)];
+    let refusal;
+    assert.throws(()=>f.work(f.runtime,method,args),error=>{refusal=error;return mode==='current'?error===primary:mode==='result'?error.code==='MoonBitHostFailure'&&error.cause===primary:error.code==='ForeignInstalledEffectManagedRun';});
+    assert.throws(()=>f.work(f.runtime,method,args),error=>error===refusal);
+    assert.equal(keys,mode==='current'?0:1);assert.equal(f.run.selecting,false);
   }
-  const f=controlWorkFixture(),calls=[];const original=Object.freeze({currentAdmitted(value){assert.strictEqual(this,original);calls.push(value);return undefined;}});
-  const legacy=(receiver,method,args)=>f.work(receiver,method,args);
-  assert.strictEqual(bind(original,legacy,effectLedgerImplementationBounds).currentAdmitted('original CID'),undefined);
-  assert.deepEqual(f.events,['begin','complete']);assert.deepEqual(calls,['original CID']);
 });

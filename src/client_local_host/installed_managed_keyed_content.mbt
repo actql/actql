@@ -512,6 +512,15 @@ fn require_installed_keyed_source_read(
     }
     return installed_model_keyed_source_ledger(parent, model)
   }
+  if value.selected is None &&
+    parent.preparation is Some(PlannedEffectManaged(_, plan)) {
+    guard value.selected is None &&
+      value.request is Some(request) &&
+      plan.keyed_original is Some(original) else {
+      return Err(ForeignOriginal)
+    }
+    return installed_effect_keyed_source_ledger(parent, plan, original, request)
+  }
   guard value.selected is Some(selected) &&
     parent.content is KeyedContent(original, _) &&
     physical_equal(original, selected) else {

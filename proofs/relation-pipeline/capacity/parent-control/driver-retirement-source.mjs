@@ -1,10 +1,19 @@
 import assert from 'node:assert/strict';
+import {reviewedFunction} from './provider-construction-source-review.mjs';
 export const driverPath='src/connectors/local/driver/managed_dispatch.mbt';
 export const scratchRetirementPath='src/connectors/local/driver/scratch_retirement.mbt';
 export const inputStopPath='src/connectors/local/driver/input_stop.mbt';
 export const bridgeReclamationPath='src/execution_relation/managed_producer_bridge.mbt';
 export const importReclamationPath='src/execution_relation/completed_output_import.mbt';
 export const strategyPath='src/physical_strategy_host/task_execution.mbt';
+export function checkBindingRowsCleanupSource(source) {
+  const execution=clean(reviewedFunction(source,'selected_binding_rows_execution'));
+  const guard=clean(`if !terminated.val { return Ok(false) }
+    if reclaimed.val { return Ok(true) }
+    match @execution.cleanup_bounded_binding_rows(active)`);
+  assert.equal(execution.split(guard).length,2,
+    'Changed row cleanup stop/ACK boundary');
+}
 const clean=s=>s.replace(/\/\/[^\n]*/g,'').replace(/\s+/g,'').replace(/,\)/g,')');
 export function blockAfter(source,anchor) {
   assert.equal(source.split(anchor).length,2,`Changed unique owner boundary ${anchor}`);
@@ -323,6 +332,17 @@ const snapshotFinish=`{
   guard live.val && phase.val == Restored && storage_released() &&
     stored.val is None && stream.val is None && receipt.val is None &&
     restored.val is Some(value) else { return Err(Configuration(InvalidLimits)) }
+  guard live.val && !disposed.val && !import_mutating.val &&
+    phase.val == Restored && importing.val is None &&
+    restored.val.map(original => physical_equal(original, value)).unwrap_or(false) &&
+    import_scalar_reusable.val == 0L else { return Err(Execution(Stopped)) }
+  if setup.metered_retention && reload_scalar_text.val is Some(bytes) {
+    guard reload_capacity.val is Some(quoted) && bytes >= 0L &&
+      bytes <= quoted && bytes <= import_extra.val else {
+      return Err(Configuration(InvalidLimits))
+    }
+    import_scalar_reusable.val = bytes
+  }
   ordinary.val = Some(value)
   restored.val = None
   relation_snapshot_cancel.val = None
@@ -364,6 +384,7 @@ const cancelFinalization=`{
   }
 }`;
 export function checkDriverRetirementSource(read) {
+  checkBindingRowsCleanupSource(read('src/connectors/local/selected_relation_provider.mbt').toString());
   const driver=read(driverPath).toString(),strategy=read(strategyPath).toString();
   const roots=read(scratchRetirementPath).toString();
   const inputs=read(inputStopPath).toString();
@@ -405,10 +426,8 @@ export function checkDriverRetirementSource(read) {
   assert.equal(clean(blockAfter(roots,'advance_local_managed_scratch_retirement(')),clean(rootSlice),'Changed bounded scratch root retirement slice');
   assert.equal(clean(blockAfter(roots,'fn local_managed_input_writes_open(')),clean('{ live && !settled && !disposed }'),'Changed late input write rejection');
   assert.equal((driver.match(/let scratch_retirement = local_managed_scratch_retirement\(\)/g)??[]).length,1,'Changed installed scratch cursor construction');
-  // The sixth guard rechecks the same bridge after import grow/current. The
-  // shared mutation scope must already enclose the earlier transfer/current;
-  // counting a new call alone cannot admit a weakened guard or per-copy latch.
-  assert.equal((driver.match(/local_managed_input_writes_open\(/g)??[]).length,6,'Changed import/bridge write guards');
+  // Each selected import must recheck its SAME owner after grow/current.
+  // Whole-file call counts cannot distinguish a guard from an unrelated use.
   assert.equal(clean(blockAfter(driver,'fn[A] with_local_managed_import_mutation(')),clean(`{
     if active.val { return Err(Configuration(InputUnavailable)) }
     active.val = true
@@ -434,13 +453,40 @@ export function checkDriverRetirementSource(read) {
     mutation.indexOf('local_managed_input_writes_open('),
     mutation.indexOf('@strategy.charge_task_execution_transfer('),
     mutation.indexOf('local_managed_import_next_extent('),
-    mutation.indexOf('reserve_import(next)'),
+    mutation.indexOf('reserve_import(next,None)'),
     mutation.indexOf(currentBridge),
     mutation.indexOf('copied_rows.val=rows'),
     mutation.indexOf('@execution.append_managed_producer_bridge_wire('),
   ];
   assert(ordered.every((at,index)=>at>=0&&(index===0||at>ordered[index-1])),
     'Original import calculation/current/bridge checks must precede counter commit and copy');
+  const retainedTransfer=blockAfter(driver,'retained_transfers.push(');
+  const retainedAppend=blockAfter(retainedTransfer,'append: row =>');
+  const retainedMutation=blockAfter(retainedAppend,'with_local_managed_import_mutation(import_mutating, fn()');
+  assert.equal(clean(retainedAppend),clean(`{ with_local_managed_import_mutation(import_mutating, fn() ${retainedMutation}) }`),
+    'Retained import grow/current and append must stay inside the SAME Task mutation fence');
+  const retained=clean(retainedMutation);
+  const retainedCurrent=clean(`guard local_managed_input_writes_open(live.val, settled.val, disposed.val) &&
+    importer.val is Some(current) && physical_equal(current, active) else {
+      return Err(Configuration(InputUnavailable))
+    }`);
+  const retainedOrder=[retained.indexOf(clean(`guard importer.val is Some(active) &&
+    local_managed_input_writes_open(live.val, settled.val, disposed.val)`)),
+    retained.indexOf('local_managed_import_next_extent('),retained.indexOf('reserve_import(next,None)'),
+    retained.indexOf(retainedCurrent),retained.indexOf('copied_rows.val=rows'),
+    retained.indexOf('@execution.append_completed_output_import_wire(')];
+  assert(retainedOrder.every((at,index)=>at>=0&&(index===0||at>retainedOrder[index-1])),
+    'Retained import calculation/current/original importer checks must precede counter commit and copy');
+  for(const [method,prefix] of [
+    ['begin: fn()',`{ guard local_managed_input_writes_open(live.val, settled.val, disposed.val) &&
+      importer.val is None && !import_mutating.val else { return Err(Configuration(InputUnavailable)) }`],
+    ['finish: fn()',`{ guard !import_mutating.val && importer.val is Some(active) &&
+      local_managed_input_writes_open(live.val, settled.val, disposed.val) else { return Err(Configuration(InputUnavailable)) }`],
+  ]) {
+    const body=clean(blockAfter(retainedTransfer,method));
+    assert(body.startsWith(clean(prefix)),
+    'Retained import begin/finish must refuse during mutation and after cancellation');
+  }
   assert.equal(clean(blockAfter(strategy,'fn release_task_execution(')),clean(retirementObservation),'Changed common cleanup reentry/refusal observation boundary');
   assert.equal(clean(blockAfter(strategy,'fn release_task_execution_owned(')),clean(retirement),'Changed common reservation retirement boundary');
   assert.match(driver.replace(/\s+/g,' '),/let provider_execution : Ref\[@local\.ManagedProviderExecution\?\] = Ref\(None\)/);

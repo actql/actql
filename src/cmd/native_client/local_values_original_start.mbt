@@ -28,8 +28,8 @@ fn local_execute_original_publish_values(
     stop("LocalValuesInstallationRequired")
   })
   let payload_limit = local_values_publication_payload_limit(run)
-  let publisher = selection.host
-    .bind_original_run_publisher(
+  let publisher = match
+    selection.host.bind_original_run_publisher(
       operation,
       settings.principal,
       settings.connection,
@@ -39,8 +39,13 @@ fn local_execute_original_publish_values(
         stop("LocalRunInstallationRequired")
       }),
       store,
-    )
-    .unwrap_or_else(() => stop("LocalPublisherAuthorityUnavailable"))
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      local_report_publisher_binding_issue(issue)
+      stop("LocalPublisherAuthorityUnavailable")
+    }
+  }
   business.publication_publisher = Some(publisher)
   let results : Array[@local_publication.NativeCapturedResultPublicationContext] = @run_host.client_compiled_run_result_names(
     compiled,

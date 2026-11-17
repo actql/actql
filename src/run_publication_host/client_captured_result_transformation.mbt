@@ -105,6 +105,12 @@ pub fn start_captured_result_publication_export(
     Err(issue) => return Err(issue)
   }
   let graph = @strategy.captured_dag_graph(run)
+  let row_ceiling = captured_result_publication_row_ceiling(
+    graph, result, occurrence,
+  )
+  if row_ceiling < 0L {
+    return Err(ForeignSelection)
+  }
   let ceiling = if max_pins == 0 {
     @strategy.graph_result_count(graph) + 1
   } else {
@@ -120,6 +126,14 @@ pub fn start_captured_result_publication_export(
       ) {
       Ok(value) => value
       Err(issue) => return Err(Retain(issue))
+    }
+    guard @strategy.captured_any_result_borrow_row_count(borrow) is Some(rows) else {
+      @strategy.release_captured_any_result_borrow(borrow) |> ignore
+      return Err(Transform(Output(Unavailable)))
+    }
+    if rows.to_int64() > row_ceiling {
+      @strategy.release_captured_any_result_borrow(borrow) |> ignore
+      return Err(Transform(Output(Admission(CaptureLimit))))
     }
     match
       @strategy.start_captured_any_result_borrow_export(
@@ -156,6 +170,10 @@ pub fn start_captured_result_publication_export(
       Err(issue) => return Err(Retain(issue))
     }
     let materialized = @strategy.captured_result_borrow_output(borrow)
+    if @execution.completed_row_count(materialized).to_int64() > row_ceiling {
+      @strategy.release_captured_result_borrow(borrow) |> ignore
+      return Err(Transform(Output(Admission(CaptureLimit))))
+    }
     let output = match converted_output {
       None => materialized
       Some(converted) => {
@@ -228,6 +246,12 @@ pub fn[T] start_captured_managed_result_publication_export(
     Err(issue) => return Err(issue)
   }
   let graph = @strategy.captured_dag_graph(run)
+  let row_ceiling = captured_result_publication_row_ceiling(
+    graph, result, occurrence,
+  )
+  if row_ceiling < 0L {
+    return Err(ForeignSelection)
+  }
   let ceiling = if max_pins == 0 {
     @strategy.graph_result_count(graph) + 1
   } else {
@@ -241,6 +265,14 @@ pub fn[T] start_captured_managed_result_publication_export(
   if !@strategy.captured_any_result_borrow_matches_managed(borrow, managed) {
     @strategy.release_captured_any_result_borrow(borrow) |> ignore
     return Err(ForeignSelection)
+  }
+  guard @strategy.captured_any_result_borrow_row_count(borrow) is Some(rows) else {
+    @strategy.release_captured_any_result_borrow(borrow) |> ignore
+    return Err(Transform(Output(Unavailable)))
+  }
+  if rows.to_int64() > row_ceiling {
+    @strategy.release_captured_any_result_borrow(borrow) |> ignore
+    return Err(Transform(Output(Admission(CaptureLimit))))
   }
   let preparation = match
     start_result_publication_export(output, occurrence, definition, limits) {
@@ -272,6 +304,45 @@ pub fn CapturedClientResultTransformation::advance(
     return Err(InvalidState)
   }
   self.preparation.advance(quantum).map_err(issue => Transform(issue))
+}
+
+///|
+/// Preserve work consumed by a failed poll. The original transport meters
+/// this delta before interpreting the semantic refusal or cancelling custody.
+pub fn CapturedClientResultTransformation::advance_progress(
+  self : CapturedClientResultTransformation,
+  quantum : Int,
+) -> (Bool, Int, CapturedClientResultTransformationIssue?) {
+  if self.borrow is None {
+    return (false, 0, Some(InvalidState))
+  }
+  let (ready, work, issue) = self.preparation.advance_progress(quantum)
+  (ready, work, issue.map(value => Transform(value)))
+}
+
+///|
+/// Existing live Result pins carry the exact captured Run. No new identity,
+/// producer read, body admission or retention owner is constructed here.
+pub fn captured_client_result_transformation_matches_run(
+  value : CapturedClientResultTransformation,
+  run : @strategy.CapturedDAG,
+) -> Bool {
+  match value.borrow {
+    Some(Cells(borrow)) =>
+      @strategy.captured_result_borrow_matches_run(borrow, run)
+    Some(Any(borrow)) =>
+      @strategy.captured_any_result_borrow_matches_run(borrow, run)
+    None => false
+  }
+}
+
+///|
+/// Callback-free custody fence for a synchronous original work view. Immutable
+/// Run correspondence is checked at the fresh outer boundary above.
+pub fn captured_client_result_transformation_retained(
+  value : CapturedClientResultTransformation,
+) -> Bool {
+  value.borrow is Some(_)
 }
 
 ///|

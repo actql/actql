@@ -4,11 +4,44 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {installedProjectOriginalsForRuntime, resolveInstalledProjectTaskPath} from '../host-node/installed-project-configuration.mjs';
 import {readBoundedConfigurationUtf8} from '../host-node/source-profile-json.mjs';
+import {assertDeclaredFileInstallationInventory} from './declared-file-installation.mjs';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const fields=Object.freeze(['contractDepth','contractNodes','contractTextBytes','maxBytes',
   'maxDepth','maxEntries','maxMembers','maxNodes','maxTasks','maxWork',
   'valueDepth','valueNodes','valueTextBytes']);
+
+// This fixed selection borrows the already admitted registry original. It
+// allocates no taskCount-sized list and does not read/normalize unused Tasks.
+// The SAME working Source material funds the new control/result before the
+// count projection; neither a caller number nor a copied inventory admits it.
+export function prepareInstalledMockRegistrySelection(moon,project,inventory){
+  const original=installedProjectOriginalsForRuntime(project,moon);
+  assertDeclaredFileInstallationInventory(inventory,moon,original);
+  const count=moon?.clientProjectModelRegistryTaskCount;
+  const quote=moon?.clientProgramInstalledSourceConstructionCapacity;
+  if(typeof count!=='function'||typeof quote!=='function')fail('InstalledProjectRuntimeUnavailable');
+  const check=()=>{
+    assertDeclaredFileInstallationInventory(inventory,moon,original);
+    if(installedProjectOriginalsForRuntime(project,moon)!==original){
+      fail('ForeignInstalledMockAnswerOriginal');
+    }
+  };
+  const selected=inventory.prepareMetadataInput(Object.freeze({
+    // Existing generic native-input recipe: the fixed projection/result,
+    // closures/Some/control carriers. No registry body is parsed or copied.
+    capacity:()=>checked(Reflect.apply(quote,moon,[8n,0n,0n,4n,0n,0n])),
+    project(){
+      check();
+      const tasks=original.modelRegistry===undefined?0:Reflect.apply(count,moon,[original.modelRegistry]);
+      if(!Number.isSafeInteger(tasks)||tasks<0)fail('InstalledMockAnswerCountLimit');
+      return Object.freeze({registry:original.modelRegistry,count:tasks});
+    },
+  }));
+  check();
+  if(selected.registry!==original.modelRegistry)fail('ForeignInstalledMockAnswerOriginal');
+  return selected;
+}
 
 function snapshotLimits(value){
   if(value===null||typeof value!=='object'||Array.isArray(value))fail('InvalidInstalledMockAnswerLimits');
@@ -33,7 +66,7 @@ function format(path){
 // Source/Effect/Model execution, a Provider, handling policy or physical funds.
 // The caller funds all original wires/trees/checked values and read workspace.
 export async function loadInstalledProjectMockAnswers(moon,project,profile,
-  {limits,assertCurrent,openFile=open,deferAnswers=false}={}){
+  {limits,assertCurrent,openFile=open,deferAnswers=false,installationInventory}={}){
   let original=installedProjectOriginalsForRuntime(project,moon);
   const bounds=snapshotLimits(limits);
   if(typeof deferAnswers!=='boolean'||typeof assertCurrent!=='function'||typeof openFile!=='function'||
@@ -61,8 +94,13 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
   };
   check();
   const answerCount=select('locators').answerCount;
-  const taskCount=original.modelRegistry===undefined?0:call('count',original.modelRegistry);
-  if(!Number.isSafeInteger(taskCount)||taskCount<0||taskCount>bounds.maxTasks||
+  const registered=installationInventory===undefined?undefined:
+    prepareInstalledMockRegistrySelection(moon,project,installationInventory);
+  check();
+  const taskCount=registered===undefined
+    ? original.modelRegistry===undefined?0:call('count',original.modelRegistry) : registered.count;
+  if(!Number.isSafeInteger(taskCount)||taskCount<0||
+      registered===undefined&&taskCount>bounds.maxTasks||
       !Number.isSafeInteger(answerCount)||answerCount<0||answerCount>bounds.maxTasks){
     fail('InstalledMockAnswerCountLimit');
   }

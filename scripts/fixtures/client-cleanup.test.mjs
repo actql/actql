@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {generateKeyPairSync} from 'node:crypto';
 import {userInfo} from 'node:os';
-import {parse} from 'acorn';
-import {readFile} from 'node:fs/promises';
+import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {closeFixtureClient, withFixtureClientCleanup} from './client-cleanup.mjs';
+import {shortQueryAuthorization} from './run-revision-assertions.mjs';
+import {stageShortQueryFixtures} from '../packed-fixture-support.mjs';
 
 const pending = () => Object.assign(new Error('ClientCleanupPending'),
   {code:'ClientCleanupPending', cleanupPending:true});
@@ -93,31 +96,25 @@ test('fixture retains a raw undefined primary beside outstanding cleanup', async
   });
 });
 
-test('both normal external staging paths include every relative short-query helper', async () => {
-  const consumer = await readFile(new URL('./packed-short-queries.mjs', import.meta.url), 'utf8');
-  const names = [...consumer.matchAll(/from '\.\/([^']+\.mjs)'/gu)].map(match => match[1]);
-  assert(names.includes('client-cleanup.mjs'));
-  assert(names.includes('run-revision-assertions.mjs'));
-  for (const path of ['test-package-release-install.mjs','test-packed-local-without-duckdb.mjs']) {
-    const source = await readFile(new URL('../' + path, import.meta.url), 'utf8');
-    for (const name of names) {
-      assert(source.includes(`copyFile(join(repository, 'scripts/fixtures/${name}'),`),
-        `${path} must stage ${name}`);
-    }
+test('external short-query staging follows actual relative imports and preserves fixture bytes', async t => {
+  const destination = await mkdtemp(join(tmpdir(), 'actql-short-query-staging-'));
+  t.after(() => rm(destination, {recursive: true, force: true}));
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  const staged = await stageShortQueryFixtures({repository, destination});
+  assert(staged.includes('short-queries.mjs'));
+  assert(staged.includes('client-cleanup.mjs'));
+  assert(staged.includes('run-revision-assertions.mjs'));
+  for (const name of staged) {
+    const source = name === 'short-queries.mjs' ? 'packed-short-queries.mjs' : name;
+    assert.deepEqual(await readFile(join(destination, name)),
+      await readFile(join(repository, 'scripts/fixtures', source)));
   }
 });
 
 
 test('short-query fixture keeps Host reads separate from its selected write and delegation outcome', async () => {
-  const source = await readFile(new URL('./packed-short-queries.mjs', import.meta.url), 'utf8');
-  const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body
-    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'authorization');
-  assert.ok(declaration);
-  const factory = new Function('generateKeyPairSync', 'userInfo', 'createComputedBarrier',
-    'return (' + source.slice(declaration.start, declaration.end) + ');')(
-    generateKeyPairSync, userInfo, () => {throw Error('No Compute is needed to select permissions');});
   for (const selected of ['allow', 'delegate']) {
-    const value = factory(selected), account = JSON.parse(value.value.accountConfiguration);
+    const value = shortQueryAuthorization(selected), account = JSON.parse(value.value.accountConfiguration);
     assert.equal(value.count(), 0);
     assert.deepEqual(account.entries.map(entry => entry.entry_id), ['owner-read', 'write']);
     const [read, write] = account.entries;

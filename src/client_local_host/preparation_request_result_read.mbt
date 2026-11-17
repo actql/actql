@@ -9,6 +9,8 @@ priv struct ClientRequestResultReadBudget {
   max_nodes : Int
   mut window : Int
   mut row_units : Int
+  mut wire_work : @resources.PreparationPhaseWorkContinuation64?
+  mut wire_preflight : @source.JsonSourcePreflight?
 }
 
 ///|
@@ -23,6 +25,42 @@ fn result_read_data_cost(nodes : Int64, text : Int64, wire : Int64) -> Int64? {
 }
 
 ///|
+pub fn result_read_row_cost(units : Int, max_nodes : Int) -> Int64? {
+  if units < 0 || max_nodes < 1 {
+    return None
+  }
+  result_read_row_nodes_cost(units, Int::min(units, max_nodes))
+}
+
+///|
+fn result_read_row_nodes_cost(units : Int, nodes : Int) -> Int64? {
+  if units < 0 || nodes < 0 {
+    return None
+  }
+  let data = match
+    result_read_data_cost(
+      nodes.to_int64(),
+      6L * units.to_int64(),
+      2L * units.to_int64(),
+    ) {
+    Some(value) => value
+    None => return None
+  }
+  let buffers = match
+    @execution.preparation_representation_cost({
+      record_headers: 2L,
+      reference_slots: 2L * units.to_int64(),
+      scalar_words: 2L * units.to_int64(),
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }) {
+    Some(value) => value
+    None => return None
+  }
+  Some(data + buffers)
+}
+
+///|
 fn result_read_window_cost(bytes : Int) -> Int64? {
   @execution.preparation_representation_cost({
     // Conservative common representation demand, including fragmented
@@ -33,6 +71,35 @@ fn result_read_window_cost(bytes : Int) -> Int64? {
     owned_utf16_units: 2L * bytes.to_int64(),
     owned_wire_bytes: bytes.to_int64(),
   })
+}
+
+///|
+/// Shared immutable workspace quote for the same bounded row-framer inputs.
+/// This neither reserves a Request nor certifies Native allocator geometry.
+pub fn result_read_frame_cost(max_row : Int, frame : Int) -> Int64? {
+  if max_row < 1 || frame < 1 {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: frame.to_int64(),
+    reference_slots: frame.to_int64(),
+    scalar_words: 0L,
+    owned_utf16_units: 2L * max_row.to_int64() + frame.to_int64(),
+    owned_wire_bytes: max_row.to_int64() + Int::min(frame, 65536).to_int64(),
+  })
+}
+
+///|
+/// Original schema/frame quote shared by the installed READ consumers.
+pub fn result_read_schema_cost(units : Int, max_nodes : Int) -> Int64? {
+  if units < 0 || max_nodes < 1 {
+    return None
+  }
+  result_read_data_cost(
+    Int::min(units, max_nodes).to_int64(),
+    4L * units.to_int64(),
+    units.to_int64(),
+  )
 }
 
 ///|
@@ -68,30 +135,21 @@ pub fn[I] reserve_request_result_read(
     Ok(value) => value
     Err(issue) => return Err(Capacity(issue))
   }
-  let schema = match
-    result_read_data_cost(
-      Int::min(schema_units, max_nodes).to_int64(),
-      4L * schema_units.to_int64(),
-      schema_units.to_int64(),
-    ) {
+  let schema = match result_read_schema_cost(schema_units, max_nodes) {
     Some(value) => value
     None => return Err(Policy)
   }
-  let frames = match
-    @execution.preparation_representation_cost({
-      record_headers: frame.to_int64(),
-      reference_slots: frame.to_int64(),
-      scalar_words: 0L,
-      owned_utf16_units: 2L * max_row.to_int64() + frame.to_int64(),
-      owned_wire_bytes: max_row.to_int64() + Int::min(frame, 65536).to_int64(),
-    }) {
+  let initial_row = Int::min(32, max_row)
+  let frames = match result_read_frame_cost(initial_row, frame) {
     Some(value) => value
     None => return Err(Policy)
   }
   // Original metadata, partial raw row, decoded frame and physical FD backing
   // coexist. The later row high-water grow precedes canonical parse/encoding.
-  let base_r = old.0 + schema + frames
-  let base_e = old.1 + schema + frames
+  // Two nullable reference slots on this SAME existing budget record. None
+  // and a reference use the same word tariff; no new owner is constructed.
+  let base_r = old.0 + schema + frames + 16L
+  let base_e = old.1 + schema + frames + 16L
   let limits = @resources.ledger_limits(owner.ledger)
   let usage = @resources.ledger_usage(owner.ledger)
   let available_r = limits.retained_bytes -
@@ -101,12 +159,7 @@ pub fn[I] reserve_request_result_read(
     (usage.reserved_execution_bytes - old.1)
   let per_byte = result_read_window_cost(1).unwrap()
   let row_units = Int::min(32, max_row)
-  let first_row = match
-    result_read_data_cost(
-      Int::min(row_units, max_nodes).to_int64(),
-      6L * row_units.to_int64(),
-      2L * row_units.to_int64(),
-    ) {
+  let first_row = match result_read_row_cost(row_units, max_nodes) {
     Some(value) => value
     None => return Err(Policy)
   }
@@ -140,6 +193,8 @@ pub fn[I] reserve_request_result_read(
         max_nodes,
         window,
         row_units,
+        wire_work: None,
+        wire_preflight: None,
       })
       owner.phase = ResultRead
       Ok(window)
@@ -157,6 +212,7 @@ pub fn[I] grow_request_result_read_row(
 ) -> Result[(Int, Int), ClientRequestPreparationIssue] {
   guard owner.phase == ResultRead &&
     owner.result_read is Some(read) &&
+    read.wire_work is None &&
     !result_read_metadata_active(owner) else {
     return Err(WrongPhase)
   }
@@ -180,15 +236,22 @@ pub fn[I] grow_request_result_read_row(
       },
     ),
   )
-  let row = match
-    result_read_data_cost(
-      Int::min(high, read.max_nodes).to_int64(),
-      6L * high.to_int64(),
-      2L * high.to_int64(),
-    ) {
+  let row = match result_read_row_cost(high, read.max_nodes) {
     Some(value) => value
     None => return Err(Policy)
   }
+  reserve_request_result_read_row_cost(owner, input, read, high, row)
+}
+
+///|
+fn[I] reserve_request_result_read_row_cost(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  read : ClientRequestResultReadBudget,
+  high : Int,
+  row : Int64,
+  shrink_window? : Bool = true,
+) -> Result[(Int, Int), ClientRequestPreparationIssue] {
   let old = match
     @resources.preparation_capacity_working_extents(owner.capacity, input) {
     Ok(value) => value
@@ -209,7 +272,9 @@ pub fn[I] grow_request_result_read_row(
   )
   // The caller has flushed/disposed its old staged text before this boundary.
   // Prefer a smaller real window over a policy-sized whole-result allocation.
-  let window = if spare < result_read_window_cost(1).unwrap() {
+  let window = if !shrink_window {
+    read.window
+  } else if spare < result_read_window_cost(1).unwrap() {
     1
   } else {
     Int64::min(

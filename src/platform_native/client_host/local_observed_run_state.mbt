@@ -76,6 +76,14 @@ pub fn NativeLocalHostConnection::observe_publication_run_state(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  if publisher.operation is Some(operation) &&
+    operation.receiver.original is Some(original) &&
+    original.active_phase is Some(@arena.HostRead) {
+    return self.observe_publication_in_original_read(
+      publisher, authority, pending, operation, observed_at, max_workspace, quantum,
+      max_rounds,
+    )
+  }
   let candidate = match
     pending.prepare_run_state_candidate(
       observed_at, max_workspace, quantum, max_rounds,
@@ -163,6 +171,10 @@ fn NativeLocalHostConnection::finalize_observed_run_state_candidate(
   publisher : NativeLocalPublisherBinding,
   authority : NativeLocalPolicyAuthority,
   candidate : @native_publication.NativeRunStateCandidate,
+  read_fence? : (() -> Result[
+    Unit,
+    @native_publication.NativeRunStateCandidateIssue,
+  ])? = None,
 ) -> Result[NativeLocalObservedRunState, NativeLocalObservedRunStateIssue] {
   let request = publisher.request
   if !physical_equal(publisher.authority.host, self) ||
@@ -194,9 +206,21 @@ fn NativeLocalHostConnection::finalize_observed_run_state_candidate(
   if !publisher.current() || !authority.current_for(self.journal, request) {
     return Err(AuthorizationDenied)
   }
+  if read_fence is Some(fence) {
+    match fence() {
+      Err(issue) => return Err(Candidate(issue))
+      Ok(_) => ()
+    }
+  }
   match candidate.require_original_store_current() {
     Ok(_) => ()
     Err(issue) => return Err(Candidate(issue))
+  }
+  if read_fence is Some(fence) {
+    match fence() {
+      Err(issue) => return Err(Candidate(issue))
+      Ok(_) => ()
+    }
   }
   let (projection, view, observed_at, max_wire, max_nodes, max_depth) = match
     candidate.projection_materials() {
@@ -226,6 +250,12 @@ fn NativeLocalHostConnection::finalize_observed_run_state_candidate(
   }
   if !accepted.require_current_for(self, request) {
     return Err(AuthorizationDenied)
+  }
+  if read_fence is Some(fence) {
+    match fence() {
+      Err(issue) => return Err(Candidate(issue))
+      Ok(_) => ()
+    }
   }
   Ok(accepted)
 }

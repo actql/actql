@@ -42,6 +42,8 @@ pub fn admit_account_configuration(RawAccountConfiguration) -> Result[AdmittedAc
 
 pub fn admit_account_configuration_json(String) -> Result[AdmittedAccountConfiguration, ConfigurationIssue]
 
+pub fn admit_account_configuration_json_prepared(String, (AccountConfigurationConstruction) -> Bool) -> Result[AdmittedAccountConfiguration, ConfigurationIssue]?
+
 pub fn admit_host_answer(DecisionRequest, HostAnswer) -> Result[RuntimeAction, AnswerIssue]
 
 pub fn bind_bootstrap_adoption(AdmittedAccountConfiguration, BootstrapAdoptionRecord) -> Result[BootstrappedConfiguration, BootstrapIssue]
@@ -84,6 +86,8 @@ pub fn local_mock_profile_predecessor_body() -> String
 
 pub fn local_standard_account_configuration(LocalStandardAccountSubjects) -> Result[String, LocalStandardProfileIssue]
 
+pub fn local_standard_account_configuration_prepared(LocalStandardAccountSubjects, (AccountConfigurationConstruction) -> Bool) -> Result[String, LocalStandardProfileIssue]?
+
 pub fn local_standard_profile_body() -> String
 
 pub fn local_standard_profile_identity() -> BootstrapProfile
@@ -102,6 +106,19 @@ pub(all) struct AccessTuple {
   connection : String
   resource : String
   operation : String
+} derive(Eq, @debug.Debug)
+
+pub(all) struct AccountConfigurationConstruction {
+  retained : AccountConfigurationConstructionUnits
+  execution : AccountConfigurationConstructionUnits
+} derive(Eq, @debug.Debug)
+
+pub(all) struct AccountConfigurationConstructionUnits {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
 } derive(Eq, @debug.Debug)
 
 pub(all) struct AccountConfigurationRepresentationExtent {

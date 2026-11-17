@@ -1000,17 +1000,33 @@ fn assert_captured_keyed_count_chain_budget(
         )
       })
       .unwrap()
-    // The independent transient peak remains fourteen cursor-root slots.
-    // Keep the original exact/one-byte-short physical test, now for the
-    // combined cumulative DATA and missing workspace, not slots alone.
-    let workspace = @execution.execution_capacity_inventory_add(
-      0L,
-      @execution.CursorRootSlots,
-      (14 - max_entries).to_int64(),
-      1,
-    ).unwrap()
+    // The fourteen cursor-root slots are already prepaid by the admitted
+    // explicit workspace limit. Physical headroom cannot enlarge that limit.
+    assert_eq(max_entries, 14)
+    // This all-bounded chain no longer prepays the generic live-value region.
+    // The n > 0 predicate coholds the one-byte numeric operands, then
+    // releases both before retaining the four-byte true result (both n=1).
+    // Logical working extent counts canonical bytes, not just root handles:
+    // max(1+1,4)=4. It is separate from cursor slots and accepted output DATA.
+    // Exact and one-byte-short runs below enforce this independent peak.
+    let logical_peak = Int64::max(1L + 1L, 4L)
+    let logical = @execution.execution_capacity_inventory_add(
+        0L,
+        @execution.ValueNodeSlots,
+        logical_peak,
+        1,
+      )
+      .bind(bytes => {
+        @execution.execution_capacity_inventory_add(
+          bytes,
+          @execution.CanonicalWireBytes,
+          logical_peak,
+          1,
+        )
+      })
+      .unwrap()
     let required = @execution.checked_preparation_add_product(
-      persistent, workspace, 1L,
+      persistent, logical, 1L,
     ).unwrap()
     let headroom = required - (if expected == "workspace" { 1L } else { 0L })
     let available = @resources.ledger_limits(ledger).execution_bytes -
@@ -1022,6 +1038,7 @@ fn assert_captured_keyed_count_chain_budget(
   }
   let mut done = false
   let mut rejected = false
+  let mut workspace_refusal = None
   let mut charged_work = 0L
   for _ in 0..<1000 {
     if !done && !rejected {
@@ -1040,10 +1057,29 @@ fn assert_captured_keyed_count_chain_budget(
           @local_driver.Configuration(
             @connector.Execution(@execution.Rows(_, @execution.RowLimit))
           )
-        ) => fail("prepaid workspace is not the task's physical growth limit")
+        ) => {
+          assert_eq(expected, "entries")
+          rejected = true
+        }
         Err(
           @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
         ) => rejected = expected == "workspace"
+        Err(
+          @local_driver.ExecutionCapacityRefusal(
+            @resources.ExecutionLimit,
+            needed,
+            available,
+            policy
+          )
+        ) => {
+          // The same one-byte-short reservation now retains its exact DATA.
+          // Other causes and a sufficient original allowance still fail.
+          assert_eq(expected, "workspace")
+          assert_eq(needed, available + 1L)
+          assert_true(available >= 0L && policy >= available)
+          workspace_refusal = Some((needed, available, policy))
+          rejected = true
+        }
         Err(_) => fail("keyed count chain rejected with another issue")
       }
     }
@@ -1093,19 +1129,42 @@ fn assert_captured_keyed_count_chain_budget(
           )
         ),
       )
+    } else if expected == "entries" {
+      for
+        refusal in [
+          (operations.advance)(1).map(fn(_) { () }),
+          (operations.execute)(),
+        ] {
+        assert_true(
+          refusal
+          is Err(
+            @local_driver.Configuration(
+              @connector.Execution(@execution.Rows(_, @execution.RowLimit))
+            )
+          ),
+        )
+      }
     } else if expected == "workspace" {
-      assert_true(
-        (operations.advance)(1)
-        is Err(
-          @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
-        ),
-      )
-      assert_true(
-        (operations.execute)()
-        is Err(
-          @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
-        ),
-      )
+      for
+        refusal in [
+          (operations.advance)(1).map(fn(_) { () }),
+          (operations.execute)(),
+        ] {
+        match refusal {
+          Err(
+            @local_driver.ExecutionCapacityRefusal(
+              @resources.ExecutionLimit,
+              needed,
+              available,
+              policy
+            )
+          ) => assert_eq(Some((needed, available, policy)), workspace_refusal)
+          _ =>
+            fail(
+              "keyed count chain did not retain its original capacity refusal",
+            )
+        }
+      }
     }
     assert_true((operations.output_row)(0) is Err(_))
     assert_false(@strategy.captured_task_completed(run, 1))
@@ -1145,26 +1204,43 @@ test "ordinary keyed count chain admits exact work and one-short limits" {
 }
 
 ///|
-test "ordinary keyed count chain grows prepaid workspace and preserves one-short physical limits" {
+test "ordinary keyed count chain enforces explicit workspace and one-short physical limits" {
   // COUNT holds eight metadata slots plus four sort slots for two rows.
   // Filter peaks at six metadata slots, two roots, two snapshot cells,
   // two output cells and two checked cells: 14. Select stays below this peak.
   // Retain this workspace fixture's original work allowance unchanged.
-  assert_captured_keyed_count_chain_budget(199, "complete", max_entries=14)
-  assert_captured_keyed_count_chain_budget(199, "complete", max_entries=13)
-  assert_captured_keyed_count_chain_budget(199, "complete", max_entries=12)
-  assert_captured_keyed_count_chain_budget(
-    199,
-    "workspace_exact",
-    max_entries=13,
-  )
-  assert_captured_keyed_count_chain_budget(199, "workspace", max_entries=13)
-  assert_captured_keyed_count_chain_budget(
-    199,
-    "workspace_exact",
-    max_entries=12,
-  )
-  assert_captured_keyed_count_chain_budget(199, "workspace", max_entries=12)
+  for quantum in [1, 7, 256] {
+    assert_captured_keyed_count_chain_budget(
+      199,
+      "complete",
+      max_entries=14,
+      quantum~,
+    )
+    assert_captured_keyed_count_chain_budget(
+      199,
+      "entries",
+      max_entries=13,
+      quantum~,
+    )
+    assert_captured_keyed_count_chain_budget(
+      199,
+      "entries",
+      max_entries=12,
+      quantum~,
+    )
+    assert_captured_keyed_count_chain_budget(
+      199,
+      "workspace_exact",
+      max_entries=14,
+      quantum~,
+    )
+    assert_captured_keyed_count_chain_budget(
+      199,
+      "workspace",
+      max_entries=14,
+      quantum~,
+    )
+  }
 }
 
 ///|
@@ -1218,11 +1294,20 @@ test "ordinary keyed count chain reserves overlapping child capacity" {
   // Completed outputs still overlap. Confirmed child cleanup bounds scratch
   // to one live execution; the independent lifetime fixtures certify retirement.
   // Input-selection and common-read cursors coexist in two 256-byte handles.
-  assert_true(retained + scratch > base.execution_bytes)
   assert_eq(capacity.retained_bytes, base.retained_bytes)
   assert_eq(
     capacity.execution_bytes,
-    retained + scratch + count.to_int64() * 256L + 512L,
+    // The generic sequence's execution quote is not an ordering oracle for
+    // this audited chain. Its persistent output floor and the independently
+    // coheld child outputs/scratch/handles are simultaneous obligations.
+    Int64::max(
+      base.retained_bytes,
+      retained +
+      scratch +
+      count.to_int64() * 256L +
+      512L +
+      capacity_evidence_selection_bytes(),
+    ),
   )
   @strategy.stop_captured_dag(run)
   @mock.close_mock_query_issuer(issuer)

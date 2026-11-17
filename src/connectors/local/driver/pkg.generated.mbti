@@ -9,6 +9,7 @@ import {
   "actql/actql/physical_cost",
   "actql/actql/physical_host",
   "actql/actql/physical_host_dispatch",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_host",
 }
@@ -42,6 +43,8 @@ pub fn local_dispatch_original_preparation(LocalDispatchModule) -> LocalDispatch
 
 pub fn local_dispatch_predecessor_is_carrier(LocalDispatchModule, Int) -> Bool
 
+pub fn local_dispatch_preparation_input_scan_work(LocalDispatchPreparation, Int) -> Int?
+
 pub fn local_dispatch_preparation_retained_bytes(LocalDispatchPreparation) -> Int64?
 
 pub fn local_dispatch_preparation_task_capacity(LocalDispatchPreparation, Int) -> @physical_strategy_host.PhysicalEnvelope?
@@ -68,6 +71,8 @@ pub fn[T] local_managed_dispatch_site_capacity(LocalManagedDispatchConfiguration
 
 pub fn[T] local_managed_dispatch_uses_provider(LocalManagedDispatchConfiguration[T]) -> Bool
 
+pub fn local_managed_failure_budget(LocalDispatchIssue) -> (String, Bool, Int64, Int64, Int64)?
+
 pub fn local_managed_failure_resource_dimension(LocalDispatchIssue) -> String?
 
 pub fn[T] local_managed_relation_output(@execution_relation.ManagedCompletedOutput[T]) -> LocalManagedAvailableOutput[T]
@@ -92,9 +97,9 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(LocalDispatchModule, Array
 
 pub fn[C, E] start_local_dispatch(LocalDispatchModule, @physical_host_dispatch.DispatchHost[C, E], @physical_host_dispatch.PreparedTaskDispatch) -> Result[LocalDispatchOperations, LocalDispatchIssue]
 
-pub fn[T] start_local_managed_dispatch(LocalManagedDispatchConfiguration[T]) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue]
+pub fn[T] start_local_managed_dispatch(LocalManagedDispatchConfiguration[T], retained_relation? : Bool) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue]
 
-pub fn start_local_managed_dispatch_node(LocalManagedDispatchConfiguration[Int]) -> Result[LocalManagedDispatchOperations[Int], LocalDispatchIssue]
+pub fn start_local_managed_dispatch_node(LocalManagedDispatchConfiguration[Int], retained_relation? : Bool) -> Result[LocalManagedDispatchOperations[Int], LocalDispatchIssue]
 
 pub fn validate_local_dispatch_binding(LocalDispatchModule, @physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry) -> Result[Unit, LocalDispatchIssue]
 
@@ -123,6 +128,7 @@ pub(all) enum LocalDispatchIssue {
   IdentityExport(@execution_relation.CompletedExportIssue)
   CarrierSnapshot(@managed_carrier_runtime.SnapshotIssue)
   ControlWorkLimit(Int)
+  ExecutionCapacityRefusal(@physical_resources.LedgerIssue, Int64, Int64, Int64)
 }
 
 type LocalDispatchModule

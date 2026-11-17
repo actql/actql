@@ -30,15 +30,24 @@ fn reserve_prepared_model_capacity(
 fn finish_prepared_model_capacity(
   state : ModelState,
 ) -> Result[Bool, ModelExecutionIssue] {
-  if state.prepared_capacity is Some(reservation) {
-    if state.original_startup is Some(original) &&
-      (
-        !original.used ||
-        !physical_equal(original.ledger, state.ledger) ||
-        !physical_equal(original.capacity, reservation)
-      ) {
-      return Err(RequestIdentity)
+  if state.prepared_capacity is Some(reservation) &&
+    state.original_startup is Some(original) &&
+    (
+      !original.used ||
+      !physical_equal(original.ledger, state.ledger) ||
+      !physical_equal(original.capacity, reservation)
+    ) {
+    return Err(RequestIdentity)
+  }
+  // Only the existing physical/alias cleanup reaches this function. The Host
+  // custody caller must also have settled its SAME attempt/Store obligations.
+  if state.attempt_proof_capacity is Some(proof) {
+    match @resources.settle_capacity(state.ledger, proof.capacity) {
+      Err(issue) => return Err(Ledger(issue))
+      Ok(_) => state.attempt_proof_capacity = None
     }
+  }
+  if state.prepared_capacity is Some(reservation) {
     // The caller reaches here only after all original output uses and the
     // bounded physical cleanup have permitted retirement. Failure preserves
     // this exact token. Historical/unknown proof custody is not declared free.

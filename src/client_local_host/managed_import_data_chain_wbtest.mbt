@@ -110,6 +110,7 @@ fn managed_import_data_chain(
     execution_bytes: client_local_execution_byte_ceiling(),
   }
   let ledger = ledger_factory(prepared, limits)
+  let source_baseline = @resources.ledger_usage(ledger)
   let rows = @row_source_host.start_accounted_row_input_acquisition(
     source.acquisition,
     source.provider,
@@ -146,9 +147,14 @@ fn managed_import_data_chain(
     assert_true(failed.held_bytes > before_capture.held_bytes)
     if refusal_after_workspace {
       assert_eq(
-        before_capture.reserved_execution_bytes -
         failed.reserved_execution_bytes,
-        239908928L,
+        source_baseline.reserved_execution_bytes +
+        failed.held_bytes -
+        before_capture.held_bytes,
+      )
+      assert_true(
+        before_capture.reserved_execution_bytes >
+        failed.reserved_execution_bytes,
       )
     } else {
       assert_eq(
@@ -169,8 +175,13 @@ fn managed_import_data_chain(
   if check_capture_workspace {
     let after = @resources.ledger_usage(ledger)
     assert_eq(
-      before_capture.reserved_execution_bytes - after.reserved_execution_bytes,
-      239908928L,
+      after.reserved_execution_bytes,
+      source_baseline.reserved_execution_bytes +
+      after.held_bytes -
+      before_capture.held_bytes,
+    )
+    assert_true(
+      before_capture.reserved_execution_bytes > after.reserved_execution_bytes,
     )
     assert_eq(after.attempts, before_capture.attempts)
     assert_eq(after.transferred_bytes, before_capture.transferred_bytes)
@@ -208,7 +219,8 @@ fn managed_import_data_chain(
     1L,
     1L,
   ).unwrap()
-  @host_driver.refresh_compute_host(@builtin.configured_host_runtime(host)).unwrap()
+  // The managed task below selects its exact installed registration.
+  // Legacy materializing estimates are invoked only by legacy dispatch.
   let installed = @builtin.configured_local_module(
     @builtin.configured_host_modules(host),
   ).unwrap()
@@ -225,7 +237,6 @@ fn managed_import_data_chain(
   let count = @strategy.graph_task_count(plan.graph)
   let tasks : Array[LocalValuesTaskExecution?] = Array::make(count, None)
   let output_live = Ref(true)
-  let coexistence_fits = Ref(true)
   let refused_import : Ref[@resources.CapacityReservation?] = Ref(None)
   let mut control_observed = false
   let mut failure : @local_driver.LocalDispatchIssue? = None
@@ -330,10 +341,6 @@ fn managed_import_data_chain(
         "managed DISTINCT task=\{task} execution=\{@local_driver.local_managed_dispatch_site_capacity(dispatch).unwrap().1} prior=\{observed_prior_execution}",
       )
     }
-    coexistence_fits.val = coexistence_fits.val &&
-      @local_driver.local_managed_dispatch_site_capacity(dispatch).unwrap().1 +
-      observed_prior_execution <=
-      client_local_execution_byte_ceiling()
     let operations = match
       @local_driver.start_local_managed_dispatch_node(dispatch) {
       Ok(value) => value
@@ -342,6 +349,16 @@ fn managed_import_data_chain(
         break
       }
     }
+    // Actual started Task reservations coexist with every retained parent.
+    // A provider's maximum future envelope is not an upfront reservation.
+    let started_usage = @resources.ledger_usage(ledger)
+    assert_true(
+      started_usage.reserved_execution_bytes <= limits.execution_bytes,
+    )
+    assert_true(
+      started_usage.reserved_retention_bytes + started_usage.held_bytes <=
+      limits.retained_bytes,
+    )
     let current : LocalValuesTaskExecution = {
       operations,
       settled: false,
@@ -371,10 +388,22 @@ fn managed_import_data_chain(
           ).unwrap(),
         )
         let before = @resources.ledger_usage(ledger).reserved_execution_bytes
-        assert_true(
-          (operations.inputs[0].append)("{")
-          is Err(@local_driver.Execution(Physical(ExecutionLimit))),
-        )
+        guard (operations.inputs[0].append)("{")
+          is Err(
+            @local_driver.ExecutionCapacityRefusal(
+              ExecutionLimit,
+              needed,
+              available,
+              ceiling
+            )
+          ) else {
+          fail(
+            "the original import must refuse funding before malformed row decode",
+          )
+        }
+        assert_true(needed > 0L)
+        assert_eq(available, 0L)
+        assert_eq(ceiling, @resources.ledger_limits(ledger).execution_bytes)
         assert_eq(
           @resources.ledger_usage(ledger).reserved_execution_bytes,
           before,
@@ -492,10 +521,8 @@ fn managed_import_data_chain(
         @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
       ),
     )
-    assert_false(coexistence_fits.val)
   } else {
     assert_true(failure is None)
-    assert_true(coexistence_fits.val)
   }
   assert_false(selection_missing)
   // Every route retains its SAME admitted original policy through import,
@@ -635,7 +662,10 @@ test "post-return current refusal cannot restore workspace or recapture the orig
   managed_import_data_chain(
     RefuseCapture,
     source_current=ledger => {
-      @resources.ledger_usage(ledger).reserved_execution_bytes >= 239908928L
+      let usage = @resources.ledger_usage(ledger)
+      // This isolated Source owns the captured holding and its execution
+      // overlap. Revoke current exactly when only that DATA remains funded.
+      usage.reserved_execution_bytes > usage.held_bytes
     },
     refusal_after_workspace=true,
   )

@@ -29,7 +29,7 @@ import {canonicalJson} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
-import {valuesExecutionContextCid} from './local-values-capacity.mjs';
+import {valuesExecutionContextCid, validValuesHostPolicyRows} from './local-values-capacity.mjs';
 import {sourceOperationTable, inspectClientSourceOperationStorage,
   clientSourceOperationStorage, snapshotClientSourceOperationLimits} from './client-source-operation.mjs';
 import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
@@ -975,7 +975,7 @@ function admissionEvidenceShape(value, updateOriginalControl, captured) {
         Object.keys(body).sort().join(',') !== 'max_rows,name,version' ||
         body.version !== 'actql-installed-local-policy/0.1' ||
         body.name !== 'source-free-values' ||
-        !Number.isSafeInteger(body.max_rows) || body.max_rows < 1 || body.max_rows > 10000 ||
+        !validValuesHostPolicyRows(body.max_rows) ||
         canonicalJson(body) !== original.wire ||
         `sha256:${createHash('sha256').update(original.wire).digest('hex')}` !== original.cid ||
         prepared?.host_policy_cid !== original.cid ||
@@ -1140,6 +1140,35 @@ function retainedRunFacts(row, publicationControl, maxWireBytes, updateOriginalC
   });
 }
 
+// The existing observation key already retains every non-clock state field.
+// Reuse only its closed budget message for this SAME failed Run/control frame;
+// no second store, error chain, execution owner or status inference is added.
+function retainedBudgetFailureMessage(key, state, runId, control) {
+  if (typeof key !== 'string' || state.status !== 'failed' ||
+      state.terminal_error?.code !== 'ACTQL_E_UNPUBLISHED_RUN' ||
+      control.physical_stop !== 'confirmed') return undefined;
+  let previous;
+  try { previous = JSON.parse(key); } catch { return undefined; }
+  if (previous?.run_id !== runId || previous.status !== 'failed' ||
+      previous.result_available !== false || previous.next_action?.kind !== 'none' ||
+      previous.terminal_error?.code !== 'ACTQL_E_UNPUBLISHED_RUN' ||
+      previous.control === null || typeof previous.control !== 'object' ||
+      Object.keys(previous.control).sort().join('\0') !== Object.keys(control).sort().join('\0') ||
+      Object.keys(control).some(name => previous.control[name] !== control[name])) return undefined;
+  const message = previous.terminal_error.message;
+  if (typeof message !== 'string') return undefined;
+  const amount = '(?:0|[1-9][0-9]{0,18}|unavailable)';
+  const prefix = 'Budget exceeded: phase=local_managed_advance; dimension=';
+  const memory = new RegExp('^' + prefix + '(retained_bytes|execution_bytes); requested_delta=' + amount +
+    '; remaining=' + amount + '; policy=' + amount + '; unit=logical_bytes; setting=installation\\.requestMemory\\.' +
+    '(retainedBytes|executionBytes)\\. Logical quota, not process RSS\\.$', 'u').exec(message);
+  if (memory && memory[2] === (memory[1] === 'retained_bytes' ? 'retainedBytes' : 'executionBytes')) return message;
+  const work = new RegExp('^' + prefix + '(?:value_capture_work|control_work); requested_delta=(?:>=[1-9][0-9]{0,18}|unavailable)' +
+    '; remaining=' + amount + '; policy=' + amount + '; unit=work_units; setting=installation\\.sourceFreeMaxWork\\. ' +
+    'Runtime work, not Program parsing/checking\\. A lower bound does not give the complete UTF8 demand\\.$', 'u');
+  return work.test(message) ? message : undefined;
+}
+
 const columns = `authority_scope_cid, caller_request_id,
   logical_request_scope_cid, intent_fingerprint_cid,
   program_definition_cid, parameter_values_cid, caller_input_intent_cid,
@@ -1237,9 +1266,12 @@ const submissionUsageTables = submissionUsageSources.map(([name]) => [name,
   `CREATE TABLE ${name} (
     singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
     retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991),
-    retained_bytes INTEGER NOT NULL CHECK (retained_bytes >= 0 AND retained_bytes <= 67108864),
+    retained_bytes INTEGER NOT NULL CHECK (retained_bytes >= 0 AND retained_bytes <= 9007199254740991),
     revision INTEGER NOT NULL CHECK (revision >= 0 AND revision <= 9007199254740991)
   ) STRICT`]);
+// Exact earlier private format, recognized only for same-transaction adoption.
+const legacySubmissionUsageTables = submissionUsageTables.map(([name,sql]) => [name,
+  sql.replace('retained_bytes <= 9007199254740991','retained_bytes <= 67108864')]);
 const submissionUsageTriggers = submissionUsageSources.flatMap(([usage,table,wire]) => [
   [`${usage}_insert`, `CREATE TRIGGER ${usage}_insert AFTER INSERT ON ${table} BEGIN
     UPDATE ${usage} SET retained_count = retained_count + 1,
@@ -1259,7 +1291,7 @@ const submissionUsageTriggers = submissionUsageSources.flatMap(([usage,table,wir
 ]);
 const validSubmissionUsage = row => row?.singleton === 1 &&
   Number.isSafeInteger(row.retained_count) && row.retained_count >= 0 &&
-  Number.isSafeInteger(row.retained_bytes) && row.retained_bytes >= 0 && row.retained_bytes <= 67108864 &&
+  Number.isSafeInteger(row.retained_bytes) && row.retained_bytes >= 0 &&
   Number.isSafeInteger(row.revision) && row.revision >= 0;
 const journalRowUsageSources = [
   ['client_request_row_usage','client_requests','client_submission_custody'],
@@ -1284,7 +1316,7 @@ function inspectJournalRowUsage(database, version) {
   const schema=database.prepare(`SELECT name,sql FROM sqlite_master
     WHERE name IN (${names.map(()=>'?').join(',')})`).all(...names);
   if(version<2 && schema.length===0) return;
-  if(version!==2 || schema.length!==originals.length || originals.some(([name,sql])=>
+  if(![2,3].includes(version) || schema.length!==originals.length || originals.some(([name,sql])=>
     schema.find(row=>row.name===name)?.sql!==sql)) fail('UnknownClientRequestJournalFormat');
   for(const [table] of journalRowUsageTables) {
     if(!validJournalRowUsage(database.prepare(`SELECT * FROM ${table} WHERE singleton=1`).get())) {
@@ -1294,9 +1326,10 @@ function inspectJournalRowUsage(database, version) {
 }
 function inspectSubmissionUsageStorage(database, enabled) {
   const version = database.prepare('PRAGMA user_version').get()?.user_version;
-  if (![0,1,2].includes(version)) fail('UnknownClientRequestJournalFormat');
+  if (![0,1,2,3].includes(version)) fail('UnknownClientRequestJournalFormat');
   inspectJournalRowUsage(database,version);
-  const originals = [...submissionUsageTables,...submissionUsageTriggers];
+  const tables = version < 3 ? legacySubmissionUsageTables : submissionUsageTables;
+  const originals = [...tables,...submissionUsageTriggers];
   const names = originals.map(([name]) => name);
   const schema = database.prepare(`SELECT name,sql FROM sqlite_master
     WHERE name IN (${names.map(() => '?').join(',')})`).all(...names);
@@ -1304,7 +1337,8 @@ function inspectSubmissionUsageStorage(database, enabled) {
   if (schema.length !== originals.length || originals.some(([name,sql]) =>
     schema.find(row => row.name === name)?.sql !== sql)) fail('UnknownClientRequestJournalFormat');
   for (const [table] of submissionUsageTables) {
-    if (!validSubmissionUsage(database.prepare(`SELECT * FROM ${table} WHERE singleton=1`).get())) {
+    const row = database.prepare(`SELECT * FROM ${table} WHERE singleton=1`).get();
+    if (!validSubmissionUsage(row) || version < 3 && row.retained_bytes > 67108864) {
       fail('UnknownClientRequestJournalFormat');
     }
   }
@@ -1314,8 +1348,8 @@ function inspectSubmissionUsageStorage(database, enabled) {
 function createSubmissionUsageStorage(database, retained) {
   database.exec(submissionUsageTables.map(([,sql]) => `${sql};`).join('\n'));
   for (let i=0;i<submissionUsageTables.length;i++) {
-    database.prepare(`INSERT INTO ${submissionUsageTables[i][0]} VALUES(1,?,?,0)`)
-      .run(retained[i].n,retained[i].bytes);
+    database.prepare(`INSERT INTO ${submissionUsageTables[i][0]} VALUES(1,?,?,?)`)
+      .run(retained[i].n,retained[i].bytes,retained[i].revision ?? 0);
   }
   database.exec(submissionUsageTriggers.map(([,sql]) => `${sql};`).join('\n'));
 }
@@ -1326,15 +1360,15 @@ function createJournalRowUsageStorage(database, retainedRows) {
   }
   database.exec(journalRowUsageTriggers.map(([,sql])=>`${sql};`).join('\n'));
 }
-function adoptSubmissionUsageStorage(database, transact, previousMarker, fresh) {
+function adoptSubmissionUsageStorage(database, transact, previousMarker, fresh, parentByteLimit) {
+  const version = database.prepare('PRAGMA user_version').get()?.user_version;
   const complete = !fresh && inspectSubmissionUsageStorage(database,previousMarker);
   transact(() => {
     if (fresh) {
-      // This connection created all source tables in this same transaction.
-      // No historical issuance exists to census or adopt.
+      // No previous custody exists; both counters belong to this same creation.
       createSubmissionUsageStorage(database,[{n:0,bytes:0},{n:0,bytes:0}]);
       createJournalRowUsageStorage(database,[0,0]);
-      database.exec('PRAGMA user_version=2');
+      database.exec('PRAGMA user_version=3');
       return;
     }
     const issued = database.prepare('SELECT issued_count FROM client_submitted_intent_custody WHERE singleton=1').get()?.issued_count;
@@ -1345,38 +1379,48 @@ function adoptSubmissionUsageStorage(database, transact, previousMarker, fresh) 
       fail('ClientSubmittedIntentCustodyLost');
     }
     const counts = [issued-retired,restarts];
-    if (complete) {
-      for (let i=0;i<submissionUsageTables.length;i++) {
-        const usage = database.prepare(`SELECT retained_count FROM ${submissionUsageTables[i][0]} WHERE singleton=1`).get();
-        if (usage?.retained_count !== counts[i]) fail('ClientSubmittedIntentCustodyLost');
-      }
-    } else {
-    // One bounded legacy adoption, never a normal-open or per-operation scan.
-    // The existing original issuance/retirement bounds the selected prefix;
-    // one extra row detects missing coverage instead of silently truncating it.
-    const retained = submissionUsageSources.map(([,table,wire],index) => {
+    const retained = complete ? submissionUsageTables.map(([table],index) => {
+      const row = database.prepare(`SELECT retained_count AS n,retained_bytes AS bytes,revision FROM ${table} WHERE singleton=1`).get();
+      if (row?.n !== counts[index] || !Number.isSafeInteger(row.bytes) || row.bytes < 0 ||
+          !Number.isSafeInteger(row.revision) || row.revision < 0) fail('ClientSubmittedIntentCustodyLost');
+      return row;
+    }) : submissionUsageSources.map(([,table,wire],index) => {
+      // Existing one-time legacy census only; adopted histories never rescan.
       const row = database.prepare(`SELECT COUNT(*) AS n,COALESCE(SUM(length(CAST(${wire} AS BLOB))),0) AS bytes
         FROM (SELECT ${wire} FROM ${table} LIMIT ?)` ).get(counts[index]+1);
-      if (row.n !== counts[index] || !Number.isSafeInteger(row.bytes) || row.bytes < 0 || row.bytes > 67108864) {
+      if (row.n !== counts[index] || !Number.isSafeInteger(row.bytes) || row.bytes < 0) {
         fail(index === 0 ? 'ClientSubmittedIntentCustodyLost' : 'ClientSubmissionRestartCustodyLost');
       }
       return row;
     });
-    createSubmissionUsageStorage(database,retained);
+    // This is the same selected durable/inspection parent, not another byte
+    // allowance per counter. Refuse before DDL or native operand construction.
+    if (retained[0].bytes > parentByteLimit || retained[1].bytes > parentByteLimit - retained[0].bytes) {
+      fail('ClientSubmittedIntentCapacity');
     }
-    // Extend the same private adoption transaction. No request or cancel is
-    // issued here: original cumulative custody bounds this one legacy census.
-    const retainedRows=journalRowUsageSources.map(([,table,custody])=>{
-      const issued=database.prepare(`SELECT issued_count FROM ${custody} WHERE singleton=1`).get()?.issued_count;
-      if(!Number.isSafeInteger(issued) || issued<0 || issued===Number.MAX_SAFE_INTEGER) fail('ClientRequestSubmissionCustodyLost');
-      const n=database.prepare(`SELECT COUNT(*) AS n FROM (SELECT 1 FROM ${table} LIMIT ?)`).get(issued+1).n;
-      if(n!==issued) fail(table==='client_requests'?'ClientRequestSubmissionCustodyLost':'ClientRequestJournalCorrupt');
-      return n;
-    });
-    createJournalRowUsageStorage(database,retainedRows);
-    database.exec('PRAGMA user_version=2');
+    if (complete) {
+      // Replace ONLY two derived counter rows under the existing transaction.
+      // No history, original wire, count, revision, issuance or retirement resets.
+      for (const [name] of submissionUsageTriggers) database.exec(`DROP TRIGGER ${name}`);
+      for (const [name] of legacySubmissionUsageTables) database.exec(`DROP TABLE ${name}`);
+    }
+    createSubmissionUsageStorage(database,retained);
+    if (version < 2) {
+      // The previous format lacks these indices. Its original issuance bounds
+      // this one-time census; v2->v3 keeps the exact existing indices untouched.
+      const retainedRows=journalRowUsageSources.map(([,table,custody])=>{
+        const issued=database.prepare(`SELECT issued_count FROM ${custody} WHERE singleton=1`).get()?.issued_count;
+        if(!Number.isSafeInteger(issued) || issued<0 || issued===Number.MAX_SAFE_INTEGER) fail('ClientRequestSubmissionCustodyLost');
+        const n=database.prepare(`SELECT COUNT(*) AS n FROM (SELECT 1 FROM ${table} LIMIT ?)`).get(issued+1).n;
+        if(n!==issued) fail(table==='client_requests'?'ClientRequestSubmissionCustodyLost':'ClientRequestJournalCorrupt');
+        return n;
+      });
+      createJournalRowUsageStorage(database,retainedRows);
+    }
+    database.exec('PRAGMA user_version=3');
   });
 }
+
 const nameMarker = Buffer.from(JSON.stringify({
   version: 'actql-client-request-journal/0.1', feature: 'scoped_submission_names',
 }));
@@ -1527,7 +1571,7 @@ function inspectCancellationStorage(database, enabled) {
     .all().map(field => field.name).sort();
   const custodyFields = database.prepare('PRAGMA table_info(client_cancellation_custody)')
     .all().map(field => field.name).sort();
-  const indexed=database.prepare('PRAGMA user_version').get().user_version===2;
+  const indexed=[2,3].includes(database.prepare('PRAGMA user_version').get().user_version);
   const usage=indexed?database.prepare('SELECT * FROM client_cancellation_row_usage WHERE singleton=1').get():undefined;
   if(indexed && !validJournalRowUsage(usage)) fail('UnknownClientRequestJournalFormat');
   // A legacy database is counted once by the bounded adoption transaction,
@@ -2080,8 +2124,8 @@ export function openClientRequestJournal(directory, {
       `));
       publishFormatMarker(nameMarkerName,nameMarker);
     }
-    if (database.prepare('PRAGMA user_version').get().user_version < 2) {
-      adoptSubmissionUsageStorage(database,initializeFeature,existsSync(join(root,usageMarkerName)),!existed);
+    if (database.prepare('PRAGMA user_version').get().user_version < 3) {
+      adoptSubmissionUsageStorage(database,initializeFeature,existsSync(join(root,usageMarkerName)),!existed,inspectionBytes);
     }
     // This optional original-operation storage belongs to this same Journal.
     // Legacy absence grants no new dispatch: live scope issuance additionally
@@ -2461,7 +2505,7 @@ export function openClientRequestJournal(directory, {
   const assertRestartCustody = () => {
     const retained = restartUsage.get();
     if (!retained || !Number.isSafeInteger(retained.n) || retained.n < 0 ||
-        !Number.isSafeInteger(retained.bytes) || retained.bytes < 0 || retained.bytes > 67108864 ||
+        !Number.isSafeInteger(retained.bytes) || retained.bytes < 0 || retained.bytes > inspectionBytes ||
         !Number.isSafeInteger(retained.revision) || retained.revision < 0 ||
         restartIssued.get()?.issued_count !== retained.n) {
       fail('ClientSubmissionRestartCustodyLost');
@@ -2473,7 +2517,7 @@ export function openClientRequestJournal(directory, {
     const issued = intentIssued.get()?.issued_count;
     const retired = intentRetired.get()?.retired_count;
     if (!retained || !Number.isSafeInteger(retained.n) || retained.n < 0 ||
-        !Number.isSafeInteger(retained.bytes) || retained.bytes < 0 || retained.bytes > 67108864 ||
+        !Number.isSafeInteger(retained.bytes) || retained.bytes < 0 || retained.bytes > inspectionBytes ||
         !Number.isSafeInteger(retained.revision) || retained.revision < 0 ||
         !Number.isSafeInteger(issued) || !Number.isSafeInteger(retired) || retired < 0 ||
         !Number.isSafeInteger(retained.n + retired) || retained.n + retired !== issued) {
@@ -2559,9 +2603,17 @@ export function openClientRequestJournal(directory, {
     if (current.validity !== 'admissible') return {epochRejected: current.validity};
     const {restarts, originalRequestId} = checkRestartLocked(requestId, restartWire,
       {authorityScopeCid, currentAuthorization}, control);
+    const intentBytes = Buffer.byteLength(original.wire);
+    // Both retained purposes consume the SAME selected parent before any bind.
+    // Subtraction avoids overflow and neither refunds history nor grants memory.
     if (retained.n >= maxRecords || retained.issued === Number.MAX_SAFE_INTEGER ||
-        retained.bytes + Buffer.byteLength(original.wire) > 64 * 1024 * 1024) {
+        retained.bytes > inspectionBytes - restarts.bytes ||
+        intentBytes > inspectionBytes - retained.bytes - restarts.bytes) {
       rejectSubmission('ClientSubmittedIntentCapacity', 'refused', 'admission_capacity');
+    }
+    if (restartWire !== undefined && Buffer.byteLength(restartWire) >
+        inspectionBytes - retained.bytes - restarts.bytes - intentBytes) {
+      fail('ClientSubmissionRestartCapacity');
     }
     database.prepare(`INSERT INTO client_submitted_intents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`)
       .run(requestId, authorityScopeCid, submissionRef.nonce,
@@ -2612,8 +2664,7 @@ export function openClientRequestJournal(directory, {
       fail('ClientSubmissionRestartRequiresReconciliation');
     }
     if (restartSelect.get(requestId) !== undefined) fail('ClientSubmissionRestartConflict');
-    if (restarts.n >= maxRecords || restarts.n === Number.MAX_SAFE_INTEGER ||
-        restarts.bytes + Buffer.byteLength(restartWire) > 64 * 1024 * 1024) {
+    if (restarts.n >= maxRecords || restarts.n === Number.MAX_SAFE_INTEGER) {
       fail('ClientSubmissionRestartCapacity');
     }
     return {restarts, originalRequestId};
@@ -3595,14 +3646,20 @@ export function openClientRequestJournal(directory, {
       }
       // The frame already admitted this complete original row. Reuse its
       // typed Run/control facts, not a decode/encode/hash of identical bytes.
-      const projection = prepareInstalledRunStateObservation(requestControl, {
-        state: {...state, control: issueInstalledRunControlObservation(requestControl, {
+      const control = issueInstalledRunControlObservation(requestControl, {
           revision: frame.revision,
           cancellationRequested: frame.cancellationRequested,
           physicallyUnstarted: frame.physicalStartReserved === false,
           preDispatchFailureConfirmed: frame.preDispatchFailureConfirmed,
           physicalCloseConfirmed: frame.physicalCloseConfirmed,
-        })}, runId: publicationControl.runDefinitionRunId(frame.runDefinition),
+        });
+      const runId = publicationControl.runDefinitionRunId(frame.runDefinition);
+      const originalMessage = retainedBudgetFailureMessage(expected.state_observation_key,
+        state, runId, control);
+      const projection = prepareInstalledRunStateObservation(requestControl, {
+        state: {...state, ...(originalMessage === undefined ? {} : {
+          terminal_error: {...state.terminal_error, message: originalMessage},
+        }), control}, runId,
         revision: expected.state_revision, priorKey: expected.state_observation_key,
       });
       const currentRow = () => {
@@ -3909,7 +3966,7 @@ export function openClientRequestJournal(directory, {
     // Persist the original checked activation BEFORE its first physical
     // attempt. An existing/uncertain entry never authorizes another send.
     persistOriginalKeyedLookupActivation(ref, {activation, identity, preparedEffect,
-      compilation, compiled, runDefinition, graph, limits}, requestControl, publicationControl) {
+      compilation, compiled, runDefinition, graph, limits, sourceOriginal}, requestControl, publicationControl) {
       ensureOpen();
       if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
           runDefinition?.identity !== ref.runDefinitionCid ||
@@ -3920,7 +3977,7 @@ export function openClientRequestJournal(directory, {
       publicationControl.checkClientCompiledEffectRunOwner(compiled, preparedEffect, compilation);
       publicationControl.checkClientCompiledRunDefinition(compiled, runDefinition);
       const record = publicationControl.keyedLookupActivationJournalRecord(
-        activation, identity, compiled, runDefinition, graph, limits);
+        activation, identity, compiled, runDefinition, graph, limits, sourceOriginal);
       if (!cid(record?.batchCid) || !cid(record?.slotCid) ||
           !Number.isSafeInteger(record?.batchIndex) || record.batchIndex < 0 ||
           !Number.isSafeInteger(record?.batchCount) || record.batchCount < 1 ||
@@ -3930,7 +3987,7 @@ export function openClientRequestJournal(directory, {
       const current = () => {
         ensureOpen();
         if (publicationControl.keyedLookupActivationJournalCurrent(
-          activation, identity, compiled, runDefinition, graph) !== true) {
+          activation, identity, compiled, runDefinition, graph, sourceOriginal) !== true) {
           fail('ForeignClientKeyedLookupOriginal');
         }
       };
@@ -3976,7 +4033,7 @@ export function openClientRequestJournal(directory, {
     // Exact original wires and the checked nominal page are both required;
     // neither row absence nor a lost commit permits another physical read.
     persistOriginalKeyedLookupPage(ref, {page, keyedRequest, identity, preparedEffect,
-      compilation, compiled, runDefinition, graph, limits, activationRecord}, requestControl, publicationControl) {
+      compilation, compiled, runDefinition, graph, limits, activationRecord, sourceOriginal}, requestControl, publicationControl) {
       ensureOpen();
       if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
           runDefinition?.identity !== ref.runDefinitionCid ||
@@ -3988,7 +4045,7 @@ export function openClientRequestJournal(directory, {
       publicationControl.checkClientCompiledEffectRunOwner(compiled, preparedEffect, compilation);
       publicationControl.checkClientCompiledRunDefinition(compiled, runDefinition);
       const record = publicationControl.keyedLookupPageJournalRecord(page, keyedRequest,
-        identity, compiled, runDefinition, graph, limits);
+        identity, compiled, runDefinition, graph, limits, sourceOriginal);
       if (!cid(record?.batchCid) || !cid(record?.slotCid) || !cid(record?.activationCid) ||
           typeof record.wire !== 'string' || record.batchCid !== activationRecord.batchCid ||
           record.slotCid !== activationRecord.slotCid || record.batchIndex !== activationRecord.batchIndex ||
@@ -3999,7 +4056,7 @@ export function openClientRequestJournal(directory, {
       const current = () => {
         ensureOpen();
         if (publicationControl.keyedLookupPageJournalCurrent(page, keyedRequest, identity,
-            compiled, runDefinition, graph) !== true) fail('ForeignClientKeyedLookupPage');
+            compiled, runDefinition, graph, sourceOriginal) !== true) fail('ForeignClientKeyedLookupPage');
       };
       current();
       transact('keyed_lookup_page', 'ClientKeyedLookupPageUnknown',

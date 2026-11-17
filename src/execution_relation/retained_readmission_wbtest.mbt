@@ -1,4 +1,21 @@
 ///|
+fn[P] retained_readmission_test_attempt(
+  preparation : CompletionPreparation,
+  expected : RetainedCompletionDescriptor,
+  metadata_entries : Int,
+  name_bytes : Int,
+  verify : (P) -> RetainedOutputMaterial?,
+) -> Result[TrustedRetainedReadmission[P], TrustedOutputIssue] {
+  prepare_retained_readmission_facts(preparation, expected, expected.rows, {
+    producer_inputs: Some(metadata_entries),
+    schema_columns: Some(metadata_entries),
+    name_bytes: Some(name_bytes),
+  }).bind(facts => {
+    prepare_trusted_retained_readmission(preparation, expected, facts, verify)
+  })
+}
+
+///|
 priv struct ReadmissionProof {
   evidence : RetainedCompletionEvidence
   material : RetainedOutputMaterial
@@ -37,7 +54,7 @@ fn readmission_port(
   material : RetainedOutputMaterial,
   permitted : Ref[Bool],
 ) -> TrustedRetainedReadmission[ReadmissionProof] raise {
-  prepare_trusted_retained_readmission(
+  retained_readmission_test_attempt(
     content_read_preparation(owner),
     retained_completion_descriptor(evidence),
     100,
@@ -187,7 +204,7 @@ test "readmission verifies owner and content independently of installed custody 
     Ref(true),
   )
   let expected = retained_completion_descriptor(evidence)
-  let altered = prepare_trusted_retained_readmission(
+  let altered = retained_readmission_test_attempt(
     content_read_preparation(owner),
     { ..expected, rows_cid: "not-the-retained-content", },
     100,
@@ -229,7 +246,7 @@ test "readmission requires live independent holding and rejects wrong output con
   )
   let expected = retained_completion_descriptor(evidence)
   assert_true(
-    prepare_trusted_retained_readmission(
+    retained_readmission_test_attempt(
       content_read_preparation(owner),
       { ..expected, input_count: expected.input_count + 1, },
       100,
@@ -238,4 +255,105 @@ test "readmission requires live independent holding and rejects wrong output con
     )
     is Err(ForeignOutput),
   )
+}
+
+///|
+test "retained metadata facts bind exact preparation and descriptor without calling custody" {
+  let owner = capture_fixture()
+  let evidence = retain_completion_evidence(
+    evidence_fixture(owner, Ref(true)),
+    10,
+    10,
+  ).unwrap()
+  let expected = retained_completion_descriptor(evidence)
+  let prepared = content_read_preparation(owner)
+  let policy : RetainedReadmissionMetadataPolicy = {
+    producer_inputs: None,
+    schema_columns: None,
+    name_bytes: Some(10000),
+  }
+  let facts = prepare_retained_readmission_facts(
+    prepared,
+    expected,
+    expected.rows,
+    policy,
+  ).unwrap()
+  assert_eq(retained_readmission_rows(facts), expected.rows)
+  assert_eq(retained_readmission_producer_inputs(facts), expected.input_count)
+  assert_eq(retained_readmission_schema_columns(facts), expected.columns)
+  let calls = Ref(0)
+  let verify = fn(_ : Unit) {
+    calls.val += 1
+    None
+  }
+  let other = content_read_preparation(owner)
+  assert_true(
+    prepare_trusted_retained_readmission(other, expected, facts, verify)
+    is Err(ForeignOutput),
+  )
+  assert_true(
+    prepare_trusted_retained_readmission(
+      prepared,
+      { ..expected, },
+      facts,
+      verify,
+    )
+    is Err(ForeignOutput),
+  )
+  assert_true(
+    prepare_retained_readmission_facts(
+      prepared,
+      { ..expected, columns: expected.columns + 1, },
+      expected.rows,
+      policy,
+    )
+    is Err(ForeignOutput),
+  )
+  assert_true(
+    prepare_retained_readmission_facts(
+      prepared,
+      { ..expected, registry_cid: "sha256:" + "f".repeat(64), },
+      expected.rows,
+      policy,
+    )
+    is Err(ForeignOutput),
+  )
+  assert_true(
+    prepare_retained_readmission_facts(
+      prepared,
+      expected,
+      expected.rows + 1,
+      policy,
+    )
+    is Err(ForeignOutput),
+  )
+  assert_true(
+    prepare_retained_readmission_facts(prepared, expected, expected.rows, {
+      producer_inputs: None,
+      schema_columns: Some(0),
+      name_bytes: Some(10000),
+    })
+    is Err(Limit),
+  )
+  assert_true(
+    prepare_retained_readmission_facts(prepared, expected, expected.rows, {
+      producer_inputs: None,
+      schema_columns: None,
+      name_bytes: Some(0),
+    })
+    is Err(Limit),
+  )
+  // Equal canonical facts can be issued afresh for a recovered preparation.
+  // The old nominal object itself never upgrades another receiving entrance.
+  let recovered = prepare_retained_readmission_facts(
+    other,
+    expected,
+    expected.rows,
+    policy,
+  ).unwrap()
+  assert_true(
+    prepare_trusted_retained_readmission(other, expected, recovered, verify)
+    is Ok(_),
+  )
+  assert_eq(calls.val, 0)
 }

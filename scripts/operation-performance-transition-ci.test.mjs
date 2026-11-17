@@ -8,6 +8,10 @@ import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
+function workflowInputDefaults() {
+  return Object.fromEntries(Object.entries(workflow.on.workflow_call.inputs)
+    .map(([name, declaration]) => [name, declaration.default]));
+}
 const source = 'a'.repeat(40);
 function temporary(t) {
   const root = mkdtempSync(join(tmpdir(), 'actql-priority-ci-'));
@@ -225,8 +229,7 @@ test('Native approval only selects its original Native artifact without unrelate
   assert(Object.keys(ci.on.workflow_dispatch.inputs).length <= 25);
   for (const enabled of [false, true]) {
     const context = {github: {event: {repository: {visibility: 'public', private: false}}},
-      inputs: {'native-approval-only': enabled, 'native-approval-cpu-diagnostic': false,
-        'node-wait-cpu-diagnostic': false}, toJSON: JSON.stringify};
+      inputs: {...workflowInputDefaults(), 'native-approval-only': enabled}, toJSON: JSON.stringify};
     assert.equal(runInNewContext(job.if.slice(3, -2), context), enabled);
     if (enabled) for (const [name, other] of Object.entries(workflow.jobs)) {
       if (name !== 'native-approval') assert.equal(runInNewContext(other.if.slice(3, -2), context), false, name);
@@ -236,6 +239,22 @@ test('Native approval only selects its original Native artifact without unrelate
   const download = job.steps.findIndex(step => step.uses?.startsWith('actions/download-artifact@'));
   const collect = job.steps.findIndex(step => step.run?.includes('scripts/test-native-approval-performance.mjs'));
   assert(inspect >= 0 && inspect < download && download < collect);
+  for (const [input, collector] of [
+    ['native-approval-cpu-diagnostic', 'cpu-diagnostic.mjs'],
+    ['native-source-free-shape-diagnostic', 'source-free-shape-diagnostic.mjs'],
+  ]) {
+    const context = {github: {event: {repository: {visibility: 'public', private: false}}},
+      inputs: {...workflowInputDefaults(), [input]: true}, toJSON: JSON.stringify};
+    assert.equal(runInNewContext(job.if.slice(3, -2), context), true, input);
+    assert.equal(runInNewContext(job.steps[collect].if.slice(3, -2), context), false,
+      `${input} cannot collect formal samples`);
+    const diagnostic = job.steps.find(step => step.run?.includes(collector));
+    assert(diagnostic, input);
+    assert.equal(runInNewContext(diagnostic.if.slice(3, -2), context), true, input);
+    for (const [name, other] of Object.entries(workflow.jobs)) {
+      if (name !== 'native-approval') assert.equal(runInNewContext(other.if.slice(3, -2), context), false, name);
+    }
+  }
   assert.equal(job.steps[inspect].env.PACKAGE_PRODUCER_JOB, '${{ inputs.native-package-producer-job }}');
   assert.equal(job.steps[download].with['run-id'], '${{ inputs.native-package-run-id }}');
   assert.equal(job.steps[download].with['artifact-ids'], '${{ inputs.native-package-artifact-id }}');
@@ -284,12 +303,15 @@ test('Native approval upload always keeps partial assessment and actual receipts
     step.with?.name === 'native-approval-${{ inputs.native-approval-runner }}-${{ github.sha }}');
   assert.equal(uploads.length, 1, 'Select the unique normal Native assessment upload');
   const [upload] = uploads;
-  assert.equal(upload.if, "${{ always() && !inputs['native-approval-cpu-diagnostic'] }}");
-  for (const outcome of ['success', 'failure', 'cancelled']) for (const diagnostic of [false, true]) {
+  for (const outcome of ['success', 'failure', 'cancelled'])
+    for (const cpuDiagnostic of [false, true]) for (const shapeDiagnostic of [false, true]) {
     assert.equal(runInNewContext(upload.if.slice(3, -2).trim(), {
       always: () => true, success: () => outcome === 'success', failure: () => outcome === 'failure',
-      cancelled: () => outcome === 'cancelled', inputs: {'native-approval-cpu-diagnostic': diagnostic},
-    }, {timeout: 100}), !diagnostic, `Normal evidence retention after ${outcome}; diagnostic=${diagnostic}`);
+      cancelled: () => outcome === 'cancelled', inputs: {...workflowInputDefaults(),
+        'native-approval-cpu-diagnostic': cpuDiagnostic,
+        'native-source-free-shape-diagnostic': shapeDiagnostic},
+    }, {timeout: 100}), !cpuDiagnostic && !shapeDiagnostic,
+    `Normal evidence retention after ${outcome}; cpu=${cpuDiagnostic}; shape=${shapeDiagnostic}`);
   }
   assert.equal(upload['continue-on-error'], undefined);
   assert(upload.uses.startsWith('actions/upload-artifact@'));

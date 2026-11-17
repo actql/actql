@@ -32,7 +32,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
   const source = runtimeField(facts, 0);
   // No Source cardinality is needed to create an empty retained inventory.
   // Each actual addition grows the SAME workspace before constructing it.
-  let inventoryCount = 0, inventoryGrowing = false;
+  let inventoryCount = 0, inventoryWireCapacity = 0n, inventoryWireUnits = 0n, inventoryGrowing = false;
   const limits = Object.freeze({maxBytes, maxNodes: 256, maxDepth: 32, maxTextUnits: maxBytes});
   const live = () => !cleaned && cleanupFlight === undefined && signal?.aborted !== true &&
     inputAvailable() === true &&
@@ -42,24 +42,28 @@ export function installRunKeyedContentCapture({moon, publications, control,
   let inventoryReady = true, inventoryFlight;
   const inventory = new Map();
   const contentReaders = new Set();
-  const ensureInventoryCapacity = count => {
-    if (!Number.isSafeInteger(count) || count < 0 || count > 2147483647 || inventoryGrowing) {
+  const ensureInventoryCapacity = (count, wireUnits) => {
+    if (!Number.isSafeInteger(count) || count < 0 || count > 2147483647 || typeof wireUnits !== 'bigint' || wireUnits < 0n ||
+        wireUnits > BigInt(count) * BigInt(maxBytes) || inventoryGrowing) {
       throw new TypeError('InvalidInstalledContentInventoryCapacity');
     }
-    if (count <= inventoryCount) return;
+    if (count <= inventoryCount && wireUnits <= inventoryWireCapacity) return;
     if (!live() || reservation === undefined) throw new Error('InstalledContentAuthorityUnavailable');
     const original = reservation;
     inventoryGrowing = true;
     try {
-      control.growWorkspace(ledger, original, maxBytes, count);
+      const nextCount = Math.max(count, inventoryCount);
+      const nextUnits = wireUnits > inventoryWireCapacity ? wireUnits : inventoryWireCapacity;
+      control.growWorkspace(ledger, original, maxBytes, nextCount, nextUnits);
       // A successful debit remains owned even if its current callback began
       // cleanup. Never expose a new inventory entry after that state change.
-      inventoryCount = count;
+      inventoryCount = nextCount; inventoryWireCapacity = nextUnits;
       if (reservation !== original || !live()) throw new Error('InstalledContentAuthorityUnavailable');
     } finally { inventoryGrowing = false; }
   };
   const checkInventoryRoom = wire => {
-    if (!inventory.has(wire) && inventory.size >= inventoryCount) {
+    const nextUnits = inventoryWireUnits + (inventory.has(wire) ? 0n : BigInt(wire.length));
+    if ((!inventory.has(wire) && inventory.size >= inventoryCount) || nextUnits > inventoryWireCapacity) {
       throw new TypeError('InstalledContentInventoryLimit');
     }
   };
@@ -69,6 +73,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
       throw new TypeError('InstalledContentInventoryChanged');
     }
     checkInventoryRoom(entry.wire);
+    if (prior === undefined) inventoryWireUnits += BigInt(entry.wire.length);
     inventory.set(entry.wire, entry);
     last = entry;
   };
@@ -106,7 +111,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
       // Committed Content has its own original declared lifetime and Store
       // quota. Temporary Source close is not permission to retire those bytes.
       last = undefined;
-      inventory.clear();
+      inventory.clear(); inventoryWireUnits = 0n;
       if (reservation !== undefined) control.releaseWorkspace(ledger, reservation);
       reservation = undefined;
       cleaned = true;
@@ -175,13 +180,17 @@ export function installRunKeyedContentCapture({moon, publications, control,
       if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
       if (!await releaseCurrent()) throw new Error('CapturedContentCleanupPending');
       last = undefined;
-      ensureInventoryCapacity(inventory.size + 1);
+      // The original reserved frame already covers this one bounded candidate
+      // and its measurement. Fund its persistent inventory before issuance,
+      // physical Store construction or the next retained entry is built.
       const binding = bindingFor(options.readSubjectCid);
       const candidate = control.candidateForRun(plan.compiled, plan.runDefinition,
         acquisition, options.request, binding,
         {mediaType: options.mediaType, contentCid: options.contentCid,
           sizeBytes: options.bytes?.byteLength}, limits);
       const description = control.inspect(candidate);
+      ensureInventoryCapacity(inventory.size + (inventory.has(description.wire) ? 0 : 1),
+        inventoryWireUnits + (inventory.has(description.wire) ? 0n : BigInt(description.wire.length)));
       checkInventoryRoom(description.wire);
       current = {};
       let storedOriginal;
@@ -229,7 +238,11 @@ export function installRunKeyedContentCapture({moon, publications, control,
       if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
       if (!await releaseCurrent()) throw new Error('CapturedContentCleanupPending');
       last = undefined;
-      ensureInventoryCapacity(inventory.size + (inventory.has(options.referenceWire) ? 0 : 1));
+      // Saved wire is borrowed DATA. Bound its complete original extent before
+      // parsing/restoring a candidate in the same already reserved frame.
+      if (Buffer.byteLength(options.referenceWire) > maxBytes) throw new TypeError('InstalledKeyedContentRecoveryMismatch');
+      ensureInventoryCapacity(inventory.size + (inventory.has(options.referenceWire) ? 0 : 1),
+        inventoryWireUnits + (inventory.has(options.referenceWire) ? 0n : BigInt(options.referenceWire.length)));
       const candidate = control.recoveryCandidateForRun(plan.compiled, plan.runDefinition,
         acquisition, options.referenceWire, bindingFor(options.captureAuthorityCid), limits);
       const description = control.inspect(candidate);
@@ -261,31 +274,56 @@ export function installRunKeyedContentCapture({moon, publications, control,
         !Array.isArray(original.entries) || original.entries.length > 2147483647) {
       throw new TypeError('InstalledKeyedContentInventoryMismatch');
     }
-    // The authenticated original inventory supplies its actual entry count;
-    // fund its copy and duplicate index before either collection is built.
+    // Count borrowed originals without building a second collection. The
+    // existing frame covers this bounded preflight. Old inventory + snapshot,
+    // then restored inventory + snapshot, coexist under this SAME reservation.
     const entriesOriginal = original.entries, count = entriesOriginal.length;
-    ensureInventoryCapacity(count);
+    let units = 0n;
+    for (let index = 0; index < count; index++) {
+      const entry = entriesOriginal[index];
+      if (!closed(entry, 'captureAuthorityCid,referenceWire')) throw new TypeError('InstalledKeyedContentInventoryMismatch');
+      const referenceWire = entry.referenceWire, captureAuthorityCid = entry.captureAuthorityCid;
+      if (typeof referenceWire !== 'string' || Buffer.byteLength(referenceWire) > maxBytes ||
+          typeof captureAuthorityCid !== 'string' || captureAuthorityCid.length > maxBytes) {
+        throw new TypeError('InstalledKeyedContentInventoryMismatch');
+      }
+      units += BigInt(referenceWire.length);
+    }
+    if (original.entries !== entriesOriginal || entriesOriginal.length !== count) {
+      throw new TypeError('InstalledKeyedContentInventoryMismatch');
+    }
+    const receivingCount = Math.max(inventory.size + count, 2 * count);
+    const receivingUnits = inventoryWireUnits + units > 2n * units ? inventoryWireUnits + units : 2n * units;
+    ensureInventoryCapacity(receivingCount, receivingUnits);
     if (original.entries !== entriesOriginal || entriesOriginal.length !== count ||
         original.version !== 'actql-installed-captured-content-inventory/0.1' ||
         original.runDefinitionCid !== plan.runDefinition.identity) {
       throw new TypeError('InstalledKeyedContentInventoryMismatch');
     }
-    const seen = new Set();
-    for (const entry of original.entries) {
-      if (!closed(entry, 'captureAuthorityCid,referenceWire') ||
-          typeof entry.referenceWire !== 'string' || Buffer.byteLength(entry.referenceWire) > maxBytes ||
-          typeof entry.captureAuthorityCid !== 'string' || seen.has(entry.referenceWire)) {
+    const seen = new Set(), entries = [];
+    let copiedUnits = 0n;
+    for (let index = 0; index < count; index++) {
+      const entry = entriesOriginal[index];
+      if (!closed(entry, 'captureAuthorityCid,referenceWire')) throw new TypeError('InstalledKeyedContentInventoryMismatch');
+      const referenceWire = entry.referenceWire, captureAuthorityCid = entry.captureAuthorityCid;
+      if (typeof referenceWire !== 'string' || Buffer.byteLength(referenceWire) > maxBytes ||
+          typeof captureAuthorityCid !== 'string' || captureAuthorityCid.length > maxBytes || seen.has(referenceWire)) {
         throw new TypeError('InstalledKeyedContentInventoryMismatch');
       }
-      seen.add(entry.referenceWire);
+      copiedUnits += BigInt(referenceWire.length);
+      if (copiedUnits > units) throw new TypeError('InstalledKeyedContentInventoryMismatch');
+      seen.add(referenceWire);
+      entries.push(Object.freeze({referenceWire, captureAuthorityCid}));
     }
-    const entries = original.entries.map(entry => Object.freeze({...entry}));
+    if (copiedUnits !== units || original.entries !== entriesOriginal || entriesOriginal.length !== count) {
+      throw new TypeError('InstalledKeyedContentInventoryMismatch');
+    }
     const verifyRead = options.verifyRead;
     // One receiving frame confirms the full original inventory before its
     // issuer becomes usable. A failed batch keeps custody but exposes no
     // partial restored authority; an explicit retry confirms saved bytes only.
     inventoryReady = false;
-    inventory.clear();
+    inventory.clear(); inventoryWireUnits = 0n;
     last = undefined;
     let operation;
     operation = (async () => {

@@ -787,7 +787,7 @@ test('Remote Host close waits for a read recording its delivery attempt',
     try { await client.lookupSubmission(submissionRef); }
     finally { globalThis.fetch = real; }
     const raw = (operation, body) => Object.assign(Readable.from([
-      Buffer.from(JSON.stringify({connection, ...body}))]), {
+      Buffer.from(JSON.stringify({connection, ...body}))], {objectMode: false}), {
       method: 'POST', url: `/actql/client/0.1/${operation}`,
       headers: {'content-type': 'application/json',
         authorization: 'Bearer owner-token'}});

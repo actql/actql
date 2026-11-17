@@ -56,3 +56,26 @@ fn check_client_model_input_scope(
   }
   Ok(())
 }
+
+///|
+/// Same original Read/Run and actual Scope/row/input before materialization.
+/// This is an identity/current predicate, not a byte grant or send admission.
+pub fn client_model_input_materialization_matches(
+  read : ClientModelReadPreparation,
+  consumer : ClientModelReadConsumer,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  scope : ClientInferCallScope,
+  rows : @execution.PreparedInferRows,
+  input : @execution.CompletedOutput,
+) -> Bool {
+  !read.retired &&
+  client_model_read_origin_matches(read, compiled, definition, plan) &&
+  (match @resources.funded_read_consumer_origin(consumer.consumer) {
+    Some(origin) => physical_equal(origin, read.origin)
+    None => false
+  }) &&
+  check_client_model_input_scope(compiled, plan, scope, rows) is Ok(_) &&
+  @execution.prepared_infer_rows_matches_completed_input(rows, input)
+}

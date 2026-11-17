@@ -4,10 +4,21 @@
 /// current installation or caller-supplied replacement is introduced here.
 fn client_effect_original_infer_input(
   compilation : ClientEffectCompilation,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
 ) -> Result[(String, String)?, ClientEffectRunMaterialsIssue] {
   guard compilation.compiled.infer is Some(component) else { return Ok(None) }
   guard client_effect_compilation_infer_original(compilation) is Some(_) else {
     return Err(Compilation(ForeignInferOwner))
+  }
+  if before_body is Some(fund) {
+    let wire = match
+      client_effect_funded_execution_wire(component.execution, fund) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    return Ok(
+      Some((@environment.model_execution_cid(component.execution), wire)),
+    )
   }
   try {
     let writer = @encode.writer(65536, 4096, 64)
@@ -154,9 +165,15 @@ fn restore_client_effect_original_infer(
 ///|
 fn client_effect_original_infer_inputs(
   compilation : ClientEffectCompilation,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
 ) -> Result[String?, ClientEffectRunMaterialsIssue] {
   if compilation.compiled.infers.length() <= 1 {
     return Ok(None)
+  }
+  if before_body is Some(fund) {
+    return client_effect_funded_infer_inventory(compilation, fund).map(value => {
+      Some(value)
+    })
   }
   guard client_effect_compilation_infer_originals(compilation)
     is Some(originals) else {

@@ -1,13 +1,14 @@
 import './native-remote-runtime-timing.test.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFileSync,mkdtempSync,writeFileSync,rmSync,existsSync} from 'node:fs';
+import {readFileSync,mkdtempSync,mkdirSync,writeFileSync,rmSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,delimiter} from 'node:path';
 import {runInNewContext} from 'node:vm';
 import {fileURLToPath} from 'node:url';
 import {parse as parseYaml} from 'yaml';
 import {nativeQueryCoverage,runNativeQueryTests,readNativeQuerySources,selectNativeQueryTests} from './native-query-coverage.mjs';
+import {nativeQuerySourceFixture} from './fixtures/native-query-source-fixture.mjs';
 import test from 'node:test';
 import {parse} from 'acorn';
 
@@ -123,22 +124,27 @@ test('remote compiler environment changes only the private tool home and PATH wh
 
 test('private Query output forwards the complete original default-profile selection and retains required-case refusal',async t=>{
   const root=mkdtempSync(join(tmpdir(),'actql-remote-query-output-'));t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const cwd=join(root,'source');
+  for(const [path,text] of Object.entries(nativeQuerySourceFixture())) {
+    const destination=join(cwd,path);mkdirSync(join(destination,'..'),{recursive:true});writeFileSync(destination,text);
+  }
   const moon=join(root,'moon.mjs'),commands=join(root,'commands.jsonl'),targetDirectory=join(root,'native-query-build');
   writeFileSync(moon,'#!'+process.execPath+'\n'+
     'import {appendFileSync} from "node:fs";\n'+
     'appendFileSync(process.env.FIXTURE_COMMANDS,JSON.stringify(process.argv.slice(2))+"\\n");\n'+
-    'const n=process.env.FIXTURE_SHORT?11:12;console.log("Total tests: "+n+", passed: "+n+", failed: 0.");\n',{mode:0o700});
+    'const n=Number(process.env.FIXTURE_EXPECTED)-(process.env.FIXTURE_SHORT?1:0);console.log("Total tests: "+n+", passed: "+n+", failed: 0.");\n',{mode:0o700});
   const env={...process.env,...Object.fromEntries(nativeQueryCoverage.requiredEnvironment['remote-runtime'].map(name=>[name,'1'])),FIXTURE_COMMANDS:commands};
-  const selected=selectNativeQueryTests('remote-runtime',readNativeQuerySources(fileURLToPath(repository)),env);
-  await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env,targetDirectory:'relative'}));
+  const selected=selectNativeQueryTests('remote-runtime',readNativeQuerySources(cwd),env);
+  env.FIXTURE_EXPECTED=String(selected.expected);
+  await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd,env,targetDirectory:'relative'}));
   assert.equal(existsSync(commands),false);
-  await runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env,targetDirectory});
+  await runNativeQueryTests(moon,'remote-runtime',{cwd,env,targetDirectory});
   const observed=readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse);
   assert.equal(observed.length,2);
   const command=observed[1];
   assert.deepEqual(command,['test',...selected.paths,'--target','native','--target-dir',targetDirectory]);
   assert.deepEqual(observed[0],[...command,'--build-only']);
   assert(!command.includes('--strip')&&!command.includes('--release'));
-  await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd:new URL('../',import.meta.url),env:{...env,FIXTURE_SHORT:'1'},targetDirectory}),/coverage mismatch/u);
+  await assert.rejects(()=>runNativeQueryTests(moon,'remote-runtime',{cwd,env:{...env,FIXTURE_SHORT:'1'},targetDirectory}),/coverage mismatch/u);
 });
 import './native-http-phases.test.mjs';

@@ -54,7 +54,8 @@ export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIde
     const adapter = installedSourceFor(sourceProfile, sourceRef);
     const prepare = Object.getOwnPropertyDescriptor(adapter, 'managedEffectPlanSelection')?.value;
     if (typeof prepare !== 'function') throw new TypeError('InstalledEffectPlanInputsUnavailable');
-    const original = Reflect.apply(prepare, adapter, []);
+    const original = Reflect.apply(prepare, adapter,
+      kind === 'whole-input' ? [Object.freeze({preparedEffect})] : []);
     const native = original?.nativeSource;
     if (kind === 'whole-input' && native !== undefined) throw new TypeError('UnsupportedEffectSourceRealization');
     if (kind === 'whole-input') {

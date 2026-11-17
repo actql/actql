@@ -76,8 +76,18 @@ test "static profile uses its selected layout or refuses before backing" {
     assert_eq(profile.read_budget.workspace_execution, 8L * mib)
     assert_eq(profile.read_budget.read_retained, 7L * mib)
     assert_eq(profile.read_budget.read_execution, 96L * mib)
-    assert_eq(profile.read_domain_limits.retained_bytes, 8L * mib)
-    assert_eq(profile.read_domain_limits.execution_bytes, 105L * mib)
+    assert_eq(
+      profile.read_domain_limits.retained_bytes,
+      @local_values.client_local_preparation_initial_limits(
+        @local_values.client_local_resource_policy(),
+      ).unwrap().retained_bytes,
+    )
+    assert_eq(
+      profile.read_domain_limits.execution_bytes,
+      @local_values.client_local_preparation_initial_limits(
+        @local_values.client_local_resource_policy(),
+      ).unwrap().execution_bytes,
+    )
     assert_eq(profile.sqlite_domain_limits.execution_bytes, 48L * mib)
     let payload = profile.read_domain_limits.retained_bytes +
       profile.read_domain_limits.execution_bytes
@@ -103,7 +113,7 @@ test "static profile uses its selected layout or refuses before backing" {
       48L * mib,
     )
     assert_true(
-      profile.read_domain_bytes + profile.sqlite_domain_bytes < 192L * mib,
+      profile.read_domain_bytes + profile.sqlite_domain_bytes >= payload,
     )
     assert_true(
       profile.arena_bytes >=

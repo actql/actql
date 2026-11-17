@@ -155,3 +155,140 @@ test "retained validation failed growth can clear slot without releasing sibling
   @resources.settle_capacity(ledger, other).unwrap()
   validation_custody_retire(publication, ledger, capacity, initial)
 }
+
+///|
+// The actual adopted B owner has a real current callback; its issuer is still
+// deliberately unadvanced. These are Read/custody lifecycle checks, never a
+// semantically valid publication or Native physical Read/Store acknowledgement.
+fn validation_read_fence_lifecycle(mode : Int) -> Unit raise {
+  let read = @resources.create_ledger({
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 1024L,
+    execution_bytes: 1024L,
+  }).unwrap()
+  let reservation = @resources.reserve_capacity(read, 128L, 256L).unwrap()
+  let armed = Ref(false)
+  let closed_read = Ref(false)
+  let (publication, business, capacity, initial) = publication_custody_fixture_originals(() => {
+      if armed.val {
+        armed.val = false
+        @resources.settle_capacity(read, reservation).unwrap()
+        closed_read.val = true
+      }
+    },
+  )
+  let capture = validation_custody_capture(publication)
+  let value = new_program_validation(capture, false).unwrap()
+  let business_before = @resources.ledger_usage(business)
+  let quotes_before = (
+    publication.retained_quote,
+    publication.execution_quote,
+    capture.validation_retained,
+  )
+  let fences = Ref(0)
+  let fund : (ClientProgramValidationReadDemand) -> Result[
+    Unit,
+    ClientProgramValidationIssue,
+  ] = fn(demand) {
+    fences.val += 1
+    if !(demand.phase is Fence) ||
+      demand.retained_bytes != 0L ||
+      demand.execution_bytes != 0L ||
+      demand.copied_slots != 0 ||
+      demand.copied_arrays != 0 ||
+      demand.metadata_nodes != 0 {
+      return Err(Owner(Policy))
+    }
+    // This is the SAME actual A reservation. Closing it is an existing typed
+    // refusal, not a Bool currentness stub or a second business reservation.
+    @resources.grow_capacity_reservation(read, reservation, 128L, 256L).map_err(issue => {
+        Owner(Capacity(@resources.Resource(issue)))
+      },
+    )
+  }
+  armed.val = true
+  let result = match mode {
+    0 => advance_program_validation_funded(value, 1, Some(fund)).map(_ => ())
+    1 => finish_program_validation_funded(value, Some(fund))
+    2 => {
+      refresh_publication_original(publication).unwrap() |> ignore
+      // Progress here is typed DATA only, not a completed semantic checker.
+      // Exercise the actual post-step gate independently of that checker.
+      assert_true(
+        finish_program_validation_read_step(value, Ok((false, 1)), None)
+        is Ok((false, 1)),
+      )
+      finish_program_validation_read_step(value, Ok((false, 1)), Some(fund)).map(_ => {
+          ()
+        },
+      )
+    }
+    _ => {
+      // Obtain a genuine lifecycle refusal from the original implementation:
+      // the unadvanced issuer owns no checker. Its primary must survive an
+      // already closed A Read, without invoking a replacement fence failure.
+      let primary = match advance_program_validation(value, 1) {
+        Err(issue) => issue
+        Ok(_) => fail("unadvanced lifecycle fixture acquired a checker")
+      }
+      assert_true(primary is Owner(WrongPhase))
+      finish_program_validation_read_step(value, Err(primary), Some(fund)).map(_ => {
+        ()
+      })
+    }
+  }
+  assert_true(closed_read.val)
+  if mode == 3 {
+    assert_true(result is Err(Owner(WrongPhase)))
+    assert_eq(fences.val, 0)
+  } else {
+    // Without the post-current Read gate, advance/finish would merely observe
+    // the missing checker (WrongPhase), or the post-step would accept progress.
+    assert_true(
+      result is Err(Owner(Capacity(@resources.Resource(ClosedReservation)))),
+    )
+    assert_eq(fences.val, 1)
+  }
+  assert_eq(@resources.ledger_usage(business), business_before)
+  assert_eq(
+    (
+      publication.retained_quote,
+      publication.execution_quote,
+      capture.validation_retained,
+    ),
+    quotes_before,
+  )
+  assert_true(value.plan is None && value.chain is None && value.commit is None)
+  // As in the synchronous wrapper, the caller cancels its failed continuation
+  // before leaving the Read. This must not remove a different validation slot.
+  cancel_program_validation(value)
+  assert_true(value.closed && capture.validation is None)
+  assert_eq(@resources.ledger_usage(read).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(read).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(read).reserved_execution_bytes, 0L)
+  validation_custody_retire(publication, business, capacity, initial)
+  assert_eq(@resources.ledger_usage(business).live_reservations, 0)
+}
+
+///|
+test "Read validation advance rejects A closed by B current before checker access" {
+  validation_read_fence_lifecycle(0)
+}
+
+///|
+test "Read validation finish rejects A closed by B current before checker access" {
+  validation_read_fence_lifecycle(1)
+}
+
+///|
+test "Read validation post-progress gate refuses expired A without semantic completion" {
+  validation_read_fence_lifecycle(2)
+}
+
+///|
+test "Read validation preserves original lifecycle refusal when A has expired" {
+  validation_read_fence_lifecycle(3)
+}

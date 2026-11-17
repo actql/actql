@@ -176,7 +176,7 @@ test "request JSON caller keeps the same source while its actual domain consumer
 }
 
 ///|
-test "request bootstrap independently covers generic JSON entry allocated carriers before domain grow" {
+fn request_json_expected_bootstrap_control() -> Int64 {
   // The original 220H/402R/457W envelope adds four default-input limit
   // records and a Result wrapper (5H/7R/10W), plus the retired-scratch scalar (1W).
   // Observed intake adds ParseLimits/Some (2H/1R/3W) and the original
@@ -188,19 +188,34 @@ test "request bootstrap independently covers generic JSON entry allocated carrie
   // Four original observation counters add 4W. The separately retained
   // source-free work selection adds its Some and scalar plus two reference
   // slots (1H/2R/1W =40 bytes), before any later module constructor.
+  // Default generated-Query selection adds four records (4H/11R/14W).
+  // Common observed input selections add3H/6R/13W =200 bytes.
+  // The selected lexical-work Some/scalar and original holder reference add
+  // 1H/1R/1W =32 bytes before the syntax grow.
+  // The shared post-lowering returned selection adds1H/1R =24 bytes.
+  // One normalization-original reference adds1R before any grow.
+  // The prepared-original method's proxy, pair Array/backing, three growing
+  // names/methods/result backings and retained key/value add3H/16R/2W.
+  // Nine installed family recipe slots add9R. Interval, Sequence and flat
+  // Ranking each retain Some(quote)1H1R and a workspace-count closure1H1W.
+  // Events retains Some(quote)1H1R plus its policy/storage closure1H1R1W.
+  // Together8H/14R/4W before the installed factory is entered. The latter
+  // two real constructor controls add 48 and 56 bytes, not domain payload.
   // The existing 4096-byte entry group remains separate.
   // This independent tariff expansion includes no domain Source or Check body.
+  16L * (225L + 2L + 2L + 2L + 2L + 1L + 4L + 3L + 1L + 1L + 3L + 3L + 8L) +
+  8L *
+  (409L + 1L + 2L + 2L + 2L + 2L + 11L + 6L + 1L + 1L + 4L + 1L + 16L + 14L) +
+  8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L + 14L + 13L + 1L + 7L + 2L + 4L) +
+  4096L
+}
+
+///|
+test "request bootstrap independently covers generic JSON entry allocated carriers before domain grow" {
   let (retained, execution) = client_request_preparation_control_capacity(
     client_local_resource_policy(),
   ).unwrap()
-  assert_eq(retained, 15040L)
-  assert_eq(
-    16L * (225L + 2L + 2L + 2L + 2L + 1L) +
-    8L * (409L + 1L + 2L + 2L + 2L + 2L) +
-    8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L) +
-    4096L,
-    15040L,
-  )
+  assert_eq(retained, request_json_expected_bootstrap_control())
   assert_eq(16L * 4L + 8L * 3L + 8L * 4L, 120L)
   assert_eq(16L * 2L + 8L * 2L + 8L * 2L, 64L)
   assert_eq(16L * 2L + 8L * 2L + 8L * 3L, 72L)
@@ -212,6 +227,7 @@ test "request bootstrap independently covers generic JSON entry allocated carrie
 ///|
 test "original request bootstrap entry carriers are already debited at the sole domain current callback" {
   let input = [1]
+  let expected_entry = request_json_expected_bootstrap_control()
   let selected : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
   let armed = Ref(false)
   let calls = Ref(0)
@@ -223,7 +239,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
       let usage = @resources.ledger_usage(parent.ledger)
       backed_before_resize.val = parent.phase == Selecting &&
         parent.program_json is None &&
-        usage.reserved_retention_bytes == 15040L &&
+        usage.reserved_retention_bytes == expected_entry &&
         usage.reserved_execution_bytes == 0L
     }
     true
@@ -243,17 +259,17 @@ test "original request bootstrap entry carriers are already debited at the sole 
   assert_eq(calls.val, 1)
   assert_true(backed_before_resize.val)
   let usage = @resources.ledger_usage(parent.ledger)
-  // Domain quote540H155R1153W +driver23H31R39W +stage5H7R4W
+  // Domain quote540H155R1154W +driver23H31R39W +stage5H7R4W
   // +preflight17H35R58W +observed-geometry/canonical return8H4R20W
   // +original SyntaxError alias/conservative Some1H2R2W (48 bytes)
-  // =594H234R1276W=21584, once. It neither
+  // =594H234R1277W=21592, once. It neither
   // replaces nor supplies the pre-entry carriers observed by that callback.
   assert_eq(
-    16L * (585L + 8L + 1L) + 8L * (228L + 4L + 2L) + 8L * (1254L + 20L + 2L),
-    21536L + 48L,
+    16L * (585L + 8L + 1L) + 8L * (228L + 4L + 2L) + 8L * (1255L + 20L + 2L),
+    21536L + 48L + 8L,
   )
-  assert_eq(usage.reserved_retention_bytes, 15040L + 21536L + 48L)
-  assert_eq(usage.reserved_execution_bytes, 21536L + 48L)
+  assert_eq(usage.reserved_retention_bytes, expected_entry + 21536L + 48L + 8L)
+  assert_eq(usage.reserved_execution_bytes, 21536L + 48L + 8L)
   assert_true(physical_equal(child.capacity, parent.capacity))
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)

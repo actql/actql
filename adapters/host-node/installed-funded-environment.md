@@ -33,6 +33,13 @@ and construction reader. Copies, equal wires and equal CIDs do not confer this
 provenance. Every borrowed original rechecks the current reader. The first base
 is retained on that service; later calls must pass that exact base or its wire.
 An independently supplied string is admitted, not looked up in a global cache.
+The fixed native Source Environment writer may also retain its exact frozen
+body and census alongside its original DTO on this same owner. Its parse,
+member sort, body hash and wire output are separate synchronous constructors.
+The shared Core wire reader still verifies canonical bytes, evidence identity
+and every member before model admission. This native association only avoids
+reparsing that actual writer's output in JavaScript; a copied DTO, foreign
+runtime or independently supplied wire cannot recover it.
 The shared pure merge still validates policies, selector conflicts, canonical
 member equivalence and evidence identity; it cannot authorize installed reuse.
 
@@ -46,6 +53,16 @@ failure and busy state tied to the actual services, not to caller-owned options.
 Published Source contexts retain the central result instead of rebuilding it
 or manufacturing a Row declaration. Existing aggregate cleanup continues to
 own partially loaded adapters and physical children.
+
+The Table initializer retains its complete original installation profile.
+A selected Table reader prices its first outbound selector through the same
+Bridge preflight frame constructor, including the actual Catalog and protocol
+envelope. The Source owner inspects all original targets and uses conservative
+per-dimension maxima with the existing shared Table construction recipe. It
+does not replicate unrelated target inventories in each reader's three outbound
+stages. Later receipt-derived payloads still grow through that same RowRun from
+the actual announced body before allocation. None of these quantities grants
+read permission or acknowledges an earlier physical reader's stop.
 
 A successful synchronous input constructor cuts its callback aliases and
 replaces its peak quote with its original retained-output quote. Failed or
@@ -115,6 +132,15 @@ Core. This adds no serialization, parse, tree walk or frozen snapshot.
 Both JSON entrances retain the same original value and dependencies. Failed
 completion keeps the old full peak as debt on that material until retirement;
 it neither revives the failed parent nor invents an unclosed physical child.
+
+Source completion can join an already-funded admitted original to the exact
+prepared public Environment through Core's existing physical-identity matcher.
+That branch adds only its shallow body association: every earlier native/Core
+quantity remains retained. A changed final Environment, copied original or
+other namespace cannot select it. Complete Checkpoint inventories are reserved
+before Source completion and retain a real borrow of that same completed body.
+Checkpoint authorization flights and their gates must quiesce before returning
+the borrow; close, current loss or an equal wire is not a physical child ACK.
 
 Source and Effect profile parsing, checked snapshots and Table inspection
 consume the shared MoonBit profile recipe on the same PreparationCapacity.

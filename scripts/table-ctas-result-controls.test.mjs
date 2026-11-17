@@ -27,11 +27,17 @@ test('SQL and AQL retained CTAS use the adopted whole Compute wrapper and unchan
   assert.throws(()=>ctasResultControl('other', {}));
 });
 
-test('closed CTAS physical selection retains the original twenty cases and requires six new controls', () => {
+test('closed physical selection retains Table and CTAS cases with one Source inventory case', () => {
   const all = tablePublicTestGroups();
-  assert.deepEqual(all.slice(0,-1).map(value=>value.expected), [4,7,2,2,2,3]);
-  assert.equal(all.slice(0,-1).reduce((sum,value)=>sum+value.expected,0),20);
-  assert.equal(all.reduce((sum,value)=>sum+value.expected,0),26);
+  assert.deepEqual(all.slice(0,-2).map(value=>value.expected), [4,7,2,2,2,3]);
+  assert.equal(all.slice(0,-2).reduce((sum,value)=>sum+value.expected,0),20);
+  assert.equal(all.at(-2).expected, 6);
+  assert.equal(all.reduce((sum,value)=>sum+value.expected,0),27);
+  const inventory = tablePublicTestGroups('source-inventory');
+  assert.equal(inventory.length, 1);
+  assert.equal(inventory[0].expected, 1);
+  assert.match('Table public129 Source views read real rows and retain SAME Saved after cold first-close',
+    new RegExp(inventory[0].pattern));
   const focused = tablePublicTestGroups('ctas');
   assert.deepEqual(focused.map(value=>value.expected),[4,6]);
   const expectedNames=['Local','HTTPS'].flatMap(transport=>['json','sql','aql'].map(format=>

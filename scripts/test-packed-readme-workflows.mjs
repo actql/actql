@@ -8,6 +8,10 @@ import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
 import {prepareHealthPackages, mockWorkflowMetrics, execute} from './health-monitor-adapters.mjs';
 import {packedEffectControlCases, runMockEffectControls} from './packed-mock-effect-controls.mjs';
+import {runPackedAccountControls} from './packed-account-controls.mjs';
+import {packedModelControlPhases, runPackedModelControls} from './packed-model-controls.mjs';
+import {runPackedProjectFileStoreInventory} from './packed-project-file-store-inventory.mjs';
+import {runPackedDependencyBoundaries} from './packed-project-dependency-boundary.mjs';
 import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 
 export const packedReadmeCases = Object.freeze([
@@ -27,11 +31,11 @@ export const packedCompositionCases = Object.freeze([
 // SAME completed original Result. This helper installs nothing and submits no
 // replacement Run. Its caller owns software/fixture correspondence and alias cleanup.
 export async function runCollectionPhase({collection, command, record, capturePid}) {
-  assert(['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved'].includes(record.phase));
-  if (record.phase === 'saved') assert(Number.isSafeInteger(capturePid) && capturePid > 0);
+  assert(['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved', 'large-row-capture', 'large-row-saved'].includes(record.phase));
+  if (record.phase === 'saved' || record.phase === 'large-row-saved') assert(Number.isSafeInteger(capturePid) && capturePid > 0);
   const members = ['scripts/fixtures/packed-result-collection.mjs'];
   const {phase} = record;
-  const args = [join(collection, members[0]), phase, join(collection, 'original.json')];
+  const args = [join(collection, members[0]), phase, join(collection, phase.startsWith('large-row-') ? 'large-row-original.json' : 'original.json')];
   Object.assign(record, {command: process.execPath, args, cwd: collection,
     startedAt: new Date().toISOString(), status: 'running'});
   delete record.unexecutedReason;
@@ -41,15 +45,43 @@ export async function runCollectionPhase({collection, command, record, capturePi
       {cwd: collection, name: `collection-${phase}`, timeout: 120_000});
     const actual = JSON.parse(observed.stdout.trim()); record.actual = actual;
     assert.equal(actual.phase, phase); assert.equal(actual.pid, observed.pid);
-    if (phase === 'saved') assert.notEqual(actual.pid, capturePid);
-    assert.equal(actual.sourceFreeMaxWork, phase === 'work-recovery' ? 100000 : 30000000);
+    if (phase === 'saved' || phase === 'large-row-saved') assert.notEqual(actual.pid, capturePid);
+    assert.equal(actual.sourceFreeMaxWork, phase.startsWith('large-row-') ? 100000000 : phase === 'work-recovery' ? 100000 : 30000000);
     const memory = phase === 'budget' ? 32768 : phase === 'memory-recovery' ? 268435456
       : phase === 'accepted-memory-recovery' ? 536870912 : 1073741824;
     assert.deepEqual(actual.requestMemory, {retainedBytes: memory, executionBytes: memory});
     assert(actual.complete); assert.equal(actual.firstClose, 'returned');
     assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0});
-    assert.equal(actual.submits, phase === 'capture' ? 5 : phase === 'budget' ? 1 : phase.endsWith('-recovery') ? 3 : 0);
-    if (phase === 'budget') {
+    assert.equal(actual.submits, phase === 'large-row-capture' ? 2 : phase === 'capture' ? 6 : phase === 'budget' ? 1 : phase.endsWith('-recovery') ? 3 : 0);
+    if (phase.startsWith('large-row-')) {
+      assert.equal(actual.firstCloseCalls, 1); assert.deepEqual(actual.cleanup, []);
+      assert.deepEqual(actual.cases.map(value => value.id), ['one-row', 'many-rows']);
+      const [one, many] = actual.cases;
+      for (const value of actual.cases) {
+        assert(value.complete && value.ref !== undefined && typeof value.resultName === 'string' && value.resultName.length);
+        assert(value.wireBytes > 16777216);
+      }
+      assert.equal(one.rows, 1); assert.equal(one.wireBytes, 16834521);
+      assert.equal(one.maxRowWireBytes, one.wireBytes);
+      assert.equal(many.rows, 272); assert(many.maxRowWireBytes < 16777216);
+      const original = JSON.parse(await readFile(join(collection, 'large-row-original.json'), 'utf8'));
+      assert.deepEqual(actual.cases, original.cases);
+      if (phase === 'large-row-capture') {
+        assert.deepEqual(actual.largeRowTerminals, [
+          {id: 'one-row', status: 'succeeded', resultAvailable: true, physicalStop: 'confirmed'},
+          {id: 'many-rows', status: 'succeeded', resultAvailable: true, physicalStop: 'confirmed'},
+        ]);
+        assert.equal(actual.explicitRefusal, 'ResultRowWireLimit'); assert.equal(actual.sameRunRecovery, true);
+        assert.equal(actual.originalProgramsRemovedAfterFirstClose, 2);
+      } else {
+        const captured = JSON.parse(await readFile(join(collection, 'large-row-capture.observation.json'), 'utf8'));
+        assert.equal(captured.pid, capturePid); assert.equal(captured.complete, true);
+        assert.equal(captured.firstClose, 'returned'); assert.equal(captured.firstCloseCalls, 1);
+        assert.deepEqual(captured.aliveScopedFD, {before: 0, after: 0}); assert.deepEqual(captured.cleanup, []);
+        assert.deepEqual(actual.cases, captured.cases); assert.equal(actual.originalProgramsAbsent, true);
+        assert.equal(captured.originalProgramsRemovedAfterFirstClose, 2);
+      }
+    } else if (phase === 'budget') {
       assert.equal(actual.budgetRefusal?.verified, true);
       assert.equal(actual.budgetDisposition, 'pre_send_capture');
       assert.equal(actual.budgetInputPublished, false);
@@ -104,7 +136,7 @@ export async function runCollectionPhase({collection, command, record, capturePi
           assert.equal(actual.acceptedComputeTerminal.result_available, false);
           const data = actual.acceptedMemoryRefusal;
           assert.equal(data?.verified, true);
-          assert.deepEqual(Object.keys(data).sort(), ['code', 'dimension', 'kind', 'phase', 'task', 'verified']);
+          assert.deepEqual(Object.keys(data).sort(), ['budget', 'code', 'dimension', 'kind', 'phase', 'publicBudget', 'task', 'verified']);
           assert.equal(data.code, 'MoonBitHostFailure');
           assert.equal(data.phase, 'local_managed_advance');
           assert.equal(data.kind, 'resource');
@@ -115,7 +147,7 @@ export async function runCollectionPhase({collection, command, record, capturePi
           assert.deepEqual(original.ref, actual.acceptedComputeRef);
           assert.equal(original.code, 'CapturedRunExecutionFailed');
           assert.equal(original.primaryCode, 'MoonBitHostFailure');
-          const {verified, ...diagnostic} = data;
+          const {verified, publicBudget, ...diagnostic} = data;
           assert.deepEqual(original.primaryDiagnostic, diagnostic);
           assert.deepEqual(actual.cases, [{count: 100000, disposition: 'resource_refused', complete: true}]);
         }
@@ -125,15 +157,32 @@ export async function runCollectionPhase({collection, command, record, capturePi
         assert.equal(data.phase, 'local_managed_advance');
         assert(Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647);
         if (data.kind === 'control_work') {
-          assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'task', 'verified']);
+          assert.deepEqual(Object.keys(data).sort(), ['code', 'controlWorkLimit', 'kind', 'phase', 'publicBudget', 'task', 'verified']);
           assert.equal(data.controlWorkLimit, actual.sourceFreeMaxWork);
         } else {
           assert.equal(data.kind, 'value_capture_work');
-          assert.deepEqual(Object.keys(data).sort(), ['code', 'kind', 'phase', 'step', 'task', 'verified', 'workLimit']);
+          assert.deepEqual(Object.keys(data).sort(), ['budget', 'code', 'kind', 'phase', 'publicBudget', 'step', 'task', 'verified', 'workLimit']);
           assert(Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647);
           assert.equal(data.workLimit, actual.sourceFreeMaxWork);
         }
         assert.deepEqual(actual.cases, [{expectedRefusal: data.kind, complete: true}]);
+      }
+      if (phase === 'work-recovery' || phase === 'accepted-memory-recovery' && actual.acceptedComputeTerminal.status === 'failed') {
+        const original = phase === 'work-recovery' ? actual.workRefusal : actual.acceptedMemoryRefusal;
+        const publicBudget = original.publicBudget;
+        assert.equal(publicBudget?.phase, 'local_managed_advance');
+        assert.equal(publicBudget.dimension, original.kind === 'resource' ? original.dimension : original.kind);
+        const setting = original.kind === 'resource'
+          ? `installation.requestMemory.${original.dimension === 'retained_bytes' ? 'retainedBytes' : 'executionBytes'}`
+          : 'installation.sourceFreeMaxWork';
+        assert.equal(publicBudget.setting, setting);
+        assert.equal(publicBudget.policy, String(original.kind === 'resource' ? memory : actual.sourceFreeMaxWork));
+        assert.equal(typeof publicBudget.message, 'string');
+        assert(publicBudget.message.includes(`phase=local_managed_advance; dimension=${publicBudget.dimension};`));
+        assert(publicBudget.message.includes(`setting=${setting}.`));
+        assert.deepEqual(publicBudget.quantities, original.budget ?? 'unavailable');
+        assert.deepEqual(actual.publicBudgetReread, {sameHost: true, originalFailedRun: true,
+          sameMessage: true, sameRevision: true, newSubmissions: 0});
       }
     } else if (phase === 'capture') {
       assert.deepEqual(actual.cases.map(value => value.count), [9999, 10000, 10001, 100000]);
@@ -141,10 +190,42 @@ export async function runCollectionPhase({collection, command, record, capturePi
       assert.deepEqual(actual.controls, {tighterRows: true, collectionBytes: true,
         wireBytes: true, rowWireBytes: true, rowBytes: true, originalChargeBeforeValidation: true,
         boundedBatches: true, batchBytes: true, earlyBreak: true, readerCancellation: true});
-      assert.deepEqual(actual.oversizedRow, {rows: 1, arrayElements: 20000,
+      assert.deepEqual(actual.oversizedRow, {rows: 1, arrayElements: 20000, maxRowRetainedValueBytes: 1048576,
         expectedRefusal: 'ResultRowRetainedLimit', complete: true});
-      assert.equal(actual.originalProgramsRemovedAfterFirstClose, 5);
-    } else assert.deepEqual(actual.cases, [{count: 100000, complete: true}]);
+      assert(actual.largeRow?.ref !== undefined);
+      assert.equal(typeof actual.largeRow.resultName, 'string'); assert(actual.largeRow.resultName.length > 0);
+      assert.deepEqual(actual.largeRow, {ref: actual.largeRow.ref, resultName: actual.largeRow.resultName,
+        rows: 1, fields: 17, textUnitsPerField: 64000, wireBytes: 1088144,
+        aboveLegacyRowWireBytes: 1048576, explicitRefusal: 'ResultRowWireLimit', sameRunRecovery: true, complete: true});
+      assert.equal(actual.originalProgramsRemovedAfterFirstClose, 6);
+    } else {
+      assert.deepEqual(actual.cases, [{count: 100000, complete: true}]);
+      const original = JSON.parse(await readFile(join(collection, 'original.json'), 'utf8'));
+      const captured = JSON.parse(await readFile(join(collection, 'capture.observation.json'), 'utf8'));
+      assert.equal(captured.pid, capturePid); assert.equal(captured.phase, 'capture');
+      assert.equal(captured.firstClose, 'returned');
+      assert.deepEqual(captured.aliveScopedFD, {before: 0, after: 0}); assert.deepEqual(captured.cleanup, []);
+      const small = captured.cases.find(value => value.count === 100000 && value.complete === true);
+      assert(small); assert.equal(original.count, 100000);
+      assert.deepEqual(original.ref, small.ref); assert.equal(original.resultName, small.resultName);
+      if (original.largeRow !== undefined) {
+        const large = original.largeRow;
+        assert.deepEqual(Object.keys(large).sort(),
+          ['fields', 'ref', 'resultName', 'rows', 'textUnitsPerField', 'wireBytes']);
+        assert.equal(large.rows, 1); assert.equal(large.fields, 17);
+        assert.equal(large.textUnitsPerField, 64000); assert.equal(large.wireBytes, 1088144);
+        assert.equal(captured.largeRow?.complete, true);
+        for (const name of Object.keys(large)) assert.deepEqual(large[name], captured.largeRow[name]);
+        assert.deepEqual(actual.largeRow, {...large, complete: true});
+      } else {
+        // A failed later capture does not erase an earlier completed Result.
+        // It also cannot claim completion of the missing large Saved check.
+        assert.notEqual(captured.complete, true); assert.notEqual(captured.largeRow?.complete, true);
+        assert.deepEqual(actual.largeRow,
+          {complete: false, unexecutedReason: 'Requires completed original large-row handoff'});
+        record.largeRowUnexecutedReason = actual.largeRow.unexecutedReason;
+      }
+    }
     record.completed = true; record.status = 'passed';
   } catch (error) {
     observed ??= error?.commandResult;
@@ -202,6 +283,20 @@ export async function completedCollectionCapture(collection, capturePid) {
   } catch {return false;}
 }
 
+export async function completedLargeRowCapture(collection, capturePid) {
+  try {
+    const captured = JSON.parse(await readFile(join(collection, 'large-row-capture.observation.json'), 'utf8'));
+    const original = JSON.parse(await readFile(join(collection, 'large-row-original.json'), 'utf8'));
+    assert.equal(captured.pid, capturePid); assert.equal(captured.phase, 'large-row-capture');
+    assert.equal(captured.complete, true); assert.equal(captured.firstClose, 'returned');
+    assert.equal(captured.firstCloseCalls, 1); assert.equal(captured.originalProgramsRemovedAfterFirstClose, 2);
+    assert.deepEqual(captured.aliveScopedFD, {before: 0, after: 0}); assert.deepEqual(captured.cleanup, []);
+    assert.deepEqual(captured.cases.map(value => value.id), ['one-row', 'many-rows']);
+    assert(captured.cases.every(value => value.complete)); assert.deepEqual(captured.cases, original.cases);
+    return true;
+  } catch {return false;}
+}
+
 async function runCollectionConsumer({prepared, root, repository, command, report, cleanup}) {
   const collection = join(root, 'collection'); await mkdir(collection);
   const members = ['scripts/fixtures/packed-result-collection.mjs',
@@ -215,15 +310,20 @@ async function runCollectionConsumer({prepared, root, repository, command, repor
   await symlink(software, alias, 'dir');
   try {
     const failures = [];
-    let capturePid;
+    let capturePid, largeCapturePid;
     for (const record of report.collection) {
       if (record.phase === 'saved' && !await completedCollectionCapture(collection, capturePid)) {
         record.unexecutedReason = 'Requires completed original 100000 Result, matching handoff and FIRST close';
         continue;
       }
-      try {await runCollectionPhase({collection, command, record, capturePid});}
+      if (record.phase === 'large-row-saved' && !await completedLargeRowCapture(collection, largeCapturePid)) {
+        record.unexecutedReason = 'Requires both original large Results, SQL removal and FIRST close'; continue;
+      }
+      try {await runCollectionPhase({collection, command, record,
+        capturePid: record.phase === 'large-row-saved' ? largeCapturePid : capturePid});}
       catch (error) {failures.push(error);}
       if (record.phase === 'capture') capturePid = record.pid;
+      if (record.phase === 'large-row-capture') largeCapturePid = record.pid;
     }
     if (failures.length === 1) throw failures[0];
     if (failures.length) throw new AggregateError(failures, 'CollectionPhasesFailed', {cause: failures[0]});
@@ -341,8 +441,14 @@ export async function runPackedReadmeWorkflows(root) {
   const raw = join(root, 'raw'); await mkdir(raw);
   const report = {source, node: process.version, platform: process.platform,
     architecture: process.arch, requiredCases: packedReadmeCases, requiredCompositions: packedCompositionCases,
-    collection: ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
-      unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close' : 'Requires verified normal packages'})),
+    collection: ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved', 'large-row-capture', 'large-row-saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
+      unexecutedReason: phase === 'saved' ? 'Requires completed original 100000 Result, matching handoff and FIRST close'
+        : phase === 'large-row-saved' ? 'Requires both original large Results, SQL removal and FIRST close' : 'Requires verified normal packages'})),
+    fileInventory: {cases: []},
+    dependencyBoundaries: {cases: [], complete: false},
+    account: {completed: false, status: 'unexecuted', unexecutedReason: 'Requires verified normal packages'},
+    model: packedModelControlPhases.map(phase => ({phase, completed: false, status: 'unexecuted',
+      unexecutedReason: 'Requires the same verified normal packages and original capture'})),
     projectFiles: ['capture', 'saved'].map(phase => ({phase, completed: false, status: 'unexecuted',
       unexecutedReason: phase === 'saved' ? 'Requires original two-file JOIN and FIRST close' : 'Requires verified normal packages'})),
     cases: packedReadmeCases.map(selected => ({...selected, completed: false, status: 'unexecuted',
@@ -362,13 +468,29 @@ export async function runPackedReadmeWorkflows(root) {
     try {
       await runCollectionConsumer({prepared, root, repository, command, report, cleanup});
     } catch (error) {failures.push(error);}
+    try {await runPackedAccountControls({prepared, root, repository, command, report, cleanup});}
+    catch (error) {failures.push(error);}
+    try {await runPackedModelControls({prepared, root, repository, command, records: report.model, failures});}
+    catch (error) {failures.push(error);}
+    try {await runPackedProjectFileStoreInventory({prepared, root: join(root, 'project-store-inventory'),
+      repository, command, report: report.fileInventory, cleanup});}
+    catch (error) {failures.push(error);}
+    try {
+      await runPackedDependencyBoundaries({prepared, root: join(root, 'dependency-boundary'),
+        repository, command, report: report.dependencyBoundaries, cleanup});
+    } catch (error) {failures.push(error);}
     try {
       await runProjectFileJoinConsumer({prepared, root, repository, command, report, cleanup});
     } catch (error) {failures.push(error);}
     await runReadmeCases({prepared, root, repository, command, report, failures});
     await runReadmeCases({prepared, root, repository, command, report, failures, cases: report.compositions});
     await runMockEffectControls({prepared, root, repository, command, records: report.controls, failures});
-    report.complete = failures.length === 0 && report.collection.every(row => row.completed) &&
+    report.complete = failures.length === 0 && report.account.completed &&
+      report.dependencyBoundaries.complete &&
+      report.fileInventory.cases.length === 6 &&
+      report.fileInventory.cases.every((row, index) => row.completed && row.status === 'passed' &&
+        row.case === (index < 3 ? 'rows101' : 'members17') && row.phase === ['capture', 'approve', 'saved'][index % 3]) &&
+      report.model.every(row => row.completed && row.status === 'passed') && report.collection.every(row => row.completed) &&
       report.projectFiles.every(row => row.completed) &&
       report.cases.every(row => row.completed) && report.compositions.every(row => row.completed) && report.controls.every(row => row.completed);
   } catch (error) {failures.push(error);}

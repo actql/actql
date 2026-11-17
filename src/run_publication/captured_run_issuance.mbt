@@ -22,6 +22,22 @@ struct CapturedEffectSourceArtifact {
   effect_id : String
   artifact : PublicationContract
   holding_cid : String
+  context_binding : CapturedEffectSourceContext?
+}
+
+///|
+// Only the two whole-context admission entrances may issue this immutable
+// association. It borrows exact originals, never an availability verdict.
+priv struct CapturedEffectSourceContext {
+  captured : PublicationContract
+  preview : EffectPreviewIdentity
+  invocation : PublicationContract
+  artifact : PublicationContract
+  store_authority_cid : String
+  member_index : Int
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
 }
 
 ///|
@@ -355,6 +371,7 @@ fn admit_captured_effect_source_binding(
   artifact : PublicationContract,
   preview_artifact_cid : String,
   store_authority_cid : String,
+  context_binding? : CapturedEffectSourceContext? = None,
 ) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
   guard effect_preview_member_effect_id(preview, member_index)
     is Some(effect_id) &&
@@ -384,7 +401,7 @@ fn admit_captured_effect_source_binding(
     is Some(holding_cid) else {
     return Err(CaptureIssuanceReferenceMismatch("effect_source_holding"))
   }
-  Ok({ effect_id, artifact, holding_cid, })
+  Ok({ effect_id, artifact, holding_cid, context_binding, })
 }
 
 ///|
@@ -566,8 +583,11 @@ fn prepare_captured_effect_sources(
     )
   }
   for index in 0..<ordered_sources.length() {
-    if ordered_sources[index].effect_id !=
-      ordered_local_sources[index].effect_id ||
+    if (
+        index > 0 &&
+        ordered_sources[index - 1].effect_id == ordered_sources[index].effect_id
+      ) ||
+      ordered_sources[index].effect_id != ordered_local_sources[index].effect_id ||
       validate_captured_local_effect_source_value(
         ordered_local_sources[index].value,
         ordered_sources[index].artifact,
@@ -591,22 +611,16 @@ fn prepare_captured_effect_sources(
       for index in 0..<identity.member_effect_ids.length() {
         if effect_preview_member_relation_source(identity, index) is Some(_) {
           expected_source_count += 1
-          let matches = ordered_sources.filter(source => {
-            source.effect_id == identity.member_effect_ids[index]
-          })
-          let locals = ordered_local_sources.filter(local_evidence => {
-            local_evidence.effect_id == identity.member_effect_ids[index]
-          })
-          if matches.length() != 1 ||
-            locals.length() != 1 ||
-            !captured_local_effect_source_matches_preview(
+          let position = captured_source_position(
+            ordered_sources,
+            identity.member_effect_ids[index],
+          )
+          if position is None ||
+            !captured_local_effect_source_preview_facts_match(
               identity,
               index,
-              matches[0].artifact,
-              locals[0].value,
-              max_wire_bytes,
-              max_nodes,
-              max_depth,
+              ordered_sources[position.unwrap()].artifact,
+              ordered_local_sources[position.unwrap()].value,
             ) {
             return Err(
               CaptureIssuanceInventoryMismatch("effect_source_artifacts"),
@@ -629,6 +643,7 @@ fn prepare_captured_context_inputs(
   ordered_sources : Array[CapturedEffectSourceArtifact],
   ordered_local_sources : Array[CapturedLocalEffectSourceEvidence],
   ordered_models : Array[RunEvidenceValue],
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[EffectContextInputs, CapturedRunIssuanceIssue] {
   let {
     advances,
@@ -642,22 +657,34 @@ fn prepare_captured_context_inputs(
     ..
   } = inputs
   let plans : Array[(String, @json.CanonicalValue)] = []
-  for (name, wire) in plan_values {
-    guard preview is Some(identity) && identity.member_effect_ids.contains(name) else {
-      return Err(CaptureIssuanceInventoryMismatch("effect_plans"))
-    }
-    let mut index = -1
-    for position in 0..<identity.member_effect_ids.length() {
-      if identity.member_effect_ids[position] == name {
-        index = position
-        break
+  let members : Map[String, Int] = Map([])
+  let seen : Map[String, Bool] = Map([])
+  if preview is Some(identity) {
+    for index in 0..<identity.member_effect_ids.length() {
+      let name = identity.member_effect_ids[index]
+      if !captured_issuance_work(work, name.length().to_int64() + 1L) {
+        return Err(CaptureIssuanceEncoding)
       }
+      if members.contains(name) {
+        return Err(CaptureIssuanceInventoryMismatch("effect_plans"))
+      }
+      members[name] = index
     }
-    if index < 0 ||
-      identity.member_effect_plan_cids[index] is None ||
-      plans.any(fn(value) { value.0 == name }) {
+  }
+  for (name, wire) in plan_values {
+    if !captured_issuance_work(
+        work,
+        8L * wire.length().to_int64() + name.length().to_int64() + 1L,
+      ) {
+      return Err(CaptureIssuanceEncoding)
+    }
+    guard preview is Some(identity) && members.get(name) is Some(index) else {
       return Err(CaptureIssuanceInventoryMismatch("effect_plans"))
     }
+    if identity.member_effect_plan_cids[index] is None || seen.contains(name) {
+      return Err(CaptureIssuanceInventoryMismatch("effect_plans"))
+    }
+    seen[name] = true
     let value = match
       parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth) {
       Ok(value) => value
@@ -676,23 +703,50 @@ fn prepare_captured_context_inputs(
       return Err(CaptureIssuanceInventoryMismatch("effect_plans"))
     }
   }
+  let mut levels = 0L
+  let mut width = plans.length()
+  while width > 1 {
+    levels += 1L
+    width = width / 2 + width % 2
+  }
+  for (name, _) in plans {
+    if !captured_issuance_work(
+        work,
+        2L * levels * name.length().to_int64() + 1L,
+      ) {
+      return Err(CaptureIssuanceEncoding)
+    }
+  }
   plans.sort_by(fn(left, right) { @canonical.compare_utf16(left.0, right.0) })
-  let dependencies = match
-    admit_effect_context_dependencies(
-      ordered_local_sources.map(source => source.value),
-      match dependency_inventory {
-        Some(value) => value.wire
-        None => "[]"
-      },
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(value) => value
-    Err(_) =>
-      return Err(
-        CaptureIssuanceInventoryMismatch("effect_dependency_inventory"),
-      )
+  let dependencies = match dependency_inventory {
+    Some(value) => {
+      if !captured_effect_dependency_sources_match(
+          ordered_local_sources, value, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        return Err(
+          CaptureIssuanceInventoryMismatch("effect_dependency_inventory"),
+        )
+      }
+      value
+    }
+    None =>
+      match
+        admit_effect_context_dependencies(
+          ordered_local_sources.map(source => source.value),
+          match dependency_inventory {
+            Some(value) => value.wire
+            None => "[]"
+          },
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(_) =>
+          return Err(
+            CaptureIssuanceInventoryMismatch("effect_dependency_inventory"),
+          )
+      }
   }
   Ok({
     snapshots: ordered_snapshots,
@@ -764,4 +818,26 @@ fn issue_captured_computation_run(
   } nobreak {
     Err(CaptureIssuanceEncoding)
   }
+}
+
+///|
+fn captured_source_position(
+  sources : Array[CapturedEffectSourceArtifact],
+  name : String,
+) -> Int? {
+  let mut lower = 0
+  let mut upper = sources.length()
+  while lower < upper {
+    let middle = lower + (upper - lower) / 2
+    let order = @canonical.compare_utf16(sources[middle].effect_id, name)
+    if order == 0 {
+      return Some(middle)
+    }
+    if order < 0 {
+      lower = middle + 1
+    } else {
+      upper = middle
+    }
+  }
+  None
 }

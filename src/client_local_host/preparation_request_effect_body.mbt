@@ -74,8 +74,18 @@ fn[I] request_effect_plan_quote(
     return Err(ForeignOriginal)
   }
   if owner.phase == EffectCompiled {
+    guard owner.compiled_effect is Some(effect) else { return Err(WrongPhase) }
     let (r, e) = match
-      original_request_plan_construction_quote(capacity, input, data) {
+      original_request_plan_construction_quote(
+        capacity,
+        input,
+        data,
+        tasks=@strategy.graph_task_count(
+          @strategy.checked_effect_computation_graph(
+            @publication_host.prepared_client_effect_computation_graph(effect),
+          ),
+        ),
+      ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
@@ -92,6 +102,28 @@ fn[I] request_effect_plan_quote(
       is Some(e) else {
       return Err(Policy)
     }
+    // This is the SAME checked member inventory, before the existing
+    // EffectPlanReserved borrow exposes it to the Host's wrapper constructors.
+    let headers = @checked.effect_program_static_headers(
+      @publication_host.prepared_client_effect_computation_candidate(prepared),
+    )
+    guard installed_effect_member_selection_layout(
+        @syntax.effect_header_count(headers),
+      )
+      is Some((member_retained, member_execution)) &&
+      @execution.checked_preparation_add_product(r, member_retained, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(e, member_execution, 1L)
+      is Some(e) else {
+      return Err(Policy)
+    }
+    guard @publication_host.prepared_client_effect_infer_count(prepared)
+      is Some(model_count) &&
+      installed_model_selection_layout(model_count) is Some((model_r, model_e)) &&
+      @execution.checked_preparation_add_product(r, model_r, 1L) is Some(r) &&
+      @execution.checked_preparation_add_product(e, model_e, 1L) is Some(e) else {
+      return Err(Policy)
+    }
     // The captured Effect's existing schema walk also resolves its SAME
     // checked Result endpoints. Back the additional fixed scratch before
     // that call; no new graph, proof arrays or caller-selected bounds.
@@ -106,6 +138,29 @@ fn[I] request_effect_plan_quote(
           prepared,
         ).is_empty() => installed_effect_source_result_bound_scratch_bytes()
       _ => 0L
+    }
+    // Fund the exact early receipt, extra Plan reference and transient outer
+    // Ok before Host prepareExecution; all original issuer Strings are borrowed.
+    let invocation_original = installed_effect_early_publication_receipt_capacity()
+    guard @execution.checked_preparation_add_product(
+        r,
+        @execution.execution_capacity_retained_bytes(invocation_original),
+        1L,
+      )
+      is Some(r) &&
+      @execution.checked_preparation_add_product(
+        e,
+        @execution.execution_capacity_execution_bytes(invocation_original),
+        1L,
+      )
+      is Some(e) else {
+      return Err(Policy)
+    }
+    let keyed_field = installed_effect_keyed_plan_field_bytes()
+    guard @execution.checked_preparation_add_product(r, keyed_field, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(e, keyed_field, 1L) is Some(e) else {
+      return Err(Policy)
     }
     let control_phase = installed_effect_control_phase_quote_capacity()
     guard @execution.checked_preparation_add_product(

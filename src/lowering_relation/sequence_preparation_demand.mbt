@@ -8,6 +8,10 @@ pub(all) struct SequencePreparationDemand {
   projection_name_bytes_bound : Int
   authored_expression_nodes : Int
   work_used : Int
+  // Original cached pipeline inventory, separate from work and output rows.
+  full_sequence_steps : Int
+  // Appended: original checker UTF8 consumption, not a configured maximum.
+  authored_expression_text_bytes : Int
 } derive(Eq, Debug)
 
 ///|
@@ -49,6 +53,7 @@ pub fn prepared_sequence_preparation_demand(
   let mut cells = 0L
   let mut projection_names = 0L
   let mut expression_nodes = 0L
+  let mut expression_text = 0L
   let mut remaining = max_work - count
   for index in 0..<count {
     match prepared.nodes[index].payload {
@@ -101,6 +106,15 @@ pub fn prepared_sequence_preparation_demand(
             return Err(CountOverflow)
           }
           expression_nodes += nodes
+          // This same binding already retains its semantic text accounting.
+          // Propagate only text already charged by the checker. Untallied
+          // opaque/late values keep their own original admission limits;
+          // no expression/body/string is visited again.
+          let text = @typing.usage(original).text_bytes.to_int64()
+          if text < 0L || text > 2147483647L - expression_text {
+            return Err(CountOverflow)
+          }
+          expression_text += text
         }
       }
     }
@@ -132,6 +146,8 @@ pub fn prepared_sequence_preparation_demand(
     authored_literal_cells: cells.to_int(),
     projection_name_bytes_bound: projection_names.to_int(),
     authored_expression_nodes: expression_nodes.to_int(),
+    authored_expression_text_bytes: expression_text.to_int(),
     work_used: max_work - remaining,
+    full_sequence_steps: count,
   })
 }

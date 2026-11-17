@@ -29,6 +29,7 @@ fn native_custody_record_inputs() -> (
       "effect_source_artifact", "{\"source\":\"original\"}",
     ),
     holding_cid: "holding-original",
+    context_binding: None,
   }
   (run, source)
 }

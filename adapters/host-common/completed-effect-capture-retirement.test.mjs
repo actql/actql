@@ -5,9 +5,10 @@ import {retireCompletedEffectfulCapture} from
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
+for (const preparedProjection of [false, true]) {
 for (const dependencyPayloads of [false, true]) {
 for (const publicResults of [false, true]) {
-test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)${dependencyPayloads ? " with retained Table/Result dependencies" : ""}`,
+test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)${dependencyPayloads ? " with retained Table/Result dependencies" : ""}${preparedProjection ? ' using prepared Source projection' : ''}`,
   async () => {
     const run = {name: 'run_definition', identity: cid('a'), wire: 'run'};
     const recordCid = cid('b');
@@ -73,6 +74,8 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
         holdings.delete(key);
         return {cleanup: {status: () => ({pending: false})}};
       }};
+    let chainChecked=false,projectionCalls=0;
+    const originalSource={};
     const control = {
       admit(name, wire) { return {name, wire, identity: wire === 'run'
         ? run.identity : wire === 'captured' ? capturedCid :
@@ -84,9 +87,18 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
       },
       effectComputationRecordHoldingCid() { return recordCid; },
       effectComputationCaptureHoldingCid() { return captureCid; },
-      effectfulComputationEvidenceChainValid() { return true; },
+      effectfulComputationEvidenceChainValid() {assert.equal(preparedProjection,false);chainChecked=true; return true; },
+      ...(preparedProjection?{hasPreparedCapturedEffectRun:()=>true,
+      prepareCapturedEffectSourceInventory(chain,preview,sources,authority){
+        assert.equal(chain.capturedRun.identity,capturedCid);assert.equal(chain.runDefinition.identity,run.identity);
+        assert.equal(authority,store.storeAuthorityCid);assert.equal(chain.invocation.wire,'invocation');
+        chainChecked=true;
+        assert.deepEqual(sources.map(source=>source.memberIndex),[0]);projectionCalls++;
+        return [originalSource];
+      }}:{}),
       capturedEffectSourceInventoryFromCaptureValid(preview, sources,
         invocation, captured, storeAuthorityCid) {
+        assert.equal(preparedProjection,false,'prepared projection does not repeat whole-context admission');
         assert.equal(captured.identity, capturedCid);
         assert.equal(invocation.wire, 'invocation');
         assert.equal(storeAuthorityCid, store.storeAuthorityCid);
@@ -95,6 +107,7 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
       },
       admitCapturedEffectSourceFromCapture(_preview, memberIndex,
         invocation, artifact, captured, storeAuthorityCid) {
+        assert.equal(preparedProjection,false,'prepared typed Source is consumed directly');
         assert.equal(memberIndex, 0);
         assert.equal(artifact.identity, sourceArtifactCid);
         assert.equal(captured.identity, capturedCid);
@@ -102,7 +115,7 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
         assert.equal(storeAuthorityCid, store.storeAuthorityCid);
         return {};
       },
-      capturedEffectSourceHoldingCid() { return sourceCid; },
+      capturedEffectSourceHoldingCid(source) {if(preparedProjection)assert.strictEqual(source,originalSource);return sourceCid; },
       capturedEffectDependencyPayloadBindings(_captured, dependencies) {
         assert.deepEqual(dependencies, body.effect_dependency_payloads);
         return dependencies;
@@ -110,6 +123,13 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
     };
     const options = {store, control, runDefinition: run,
       contractLimits: {maxWireBytes: 1000, maxNodes: 100, maxDepth: 10}};
+    if(preparedProjection&&!dependencyPayloads&&!publicResults){
+      const original=control.prepareCapturedEffectSourceInventory;
+      control.prepareCapturedEffectSourceInventory=()=>undefined;
+      await assert.rejects(retireCompletedEffectfulCapture(options),{code:'InvalidCompletedEffectfulCaptureSource'});
+      assert.deepEqual(visits,[],'routing DATA alone never permits deletion or legacy fallback');
+      control.prepareCapturedEffectSourceInventory=original;
+    }
     await assert.rejects(retireCompletedEffectfulCapture(options),
       {code: 'CompletedEffectfulCaptureCleanupPending'});
     assert.deepEqual(visits, [sourceCid, captureCid]);
@@ -122,6 +142,9 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
     assert.equal(holdings.size, 0);
     assert.equal(captureCustody, false);
     assert.equal(await retireCompletedEffectfulCapture(options), false);
+    assert.equal(projectionCalls,preparedProjection?2:0);
+    assert(chainChecked);
   });
+}
 }
 }

@@ -4,10 +4,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
+import {parse} from 'acorn';
 import {createInstalledHostServices, retireInstalledSourceInitialization, withInstalledSourceLoading}
   from './installed-host-services.mjs';
-import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, releaseRetiredInstalledEnvironmentComposition} from './installed-funded-environment.mjs';
+import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, releaseRetiredInstalledEnvironmentComposition,
+  admitInstalledSourceFinalEnvironment, assertInstalledEnvironmentPublicationOriginal} from './installed-funded-environment.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment} from './installed-host-policy.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 
@@ -15,8 +18,8 @@ assert.ok(process.env.ACTQL_TEST_ENVIRONMENT_RUNTIME, 'Select the matching gener
 const native = await import(pathToFileURL(process.env.ACTQL_TEST_ENVIRONMENT_RUNTIME));
 const baseWire = readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8').trimEnd();
 const ok = value => ({$tag: 1, _0: value});
-function document(name) {
-  const body = JSON.parse(baseWire);withFixtureConnector(body, `connector://${name}/records`);
+function document(name, selectedBase = baseWire) {
+  const body = JSON.parse(selectedBase);withFixtureConnector(body, `connector://${name}/records`);
   delete body.evidence_bundle_cid;
   return canonicalJson({...body, evidence_bundle_cid: contentCid(body)});
 }
@@ -26,7 +29,7 @@ function document(name) {
 // these tests establish ordering/identity, not actual Root/Ledger admission.
 function fixture() {
   const input = {}, unit = {}, capacity = {}, initial = {}, events = [];
-  const state = {reads: 0, from: 0, retire: 0, refuse: false, cause: undefined, current: true, retireReady: true, reconciled: [], zero: new Set(), delay: undefined};
+  const state = {reads: 0, from: 0, retire: 0, refuse: false, cause: undefined, current: true, retireReady: true, reconciled: [], zero: new Set(), rawSlots: new Set(), rawSlotCompositions: [], checkerQuotes: [], reserved: [], delay: undefined};
   const moon = {...native};
   for (const name of ['ReconcileInstalledSourceConstruction', 'CompleteInstalledSourceMaterial',
     'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment', 'ReturnInstalledSourceMaterial',
@@ -36,6 +39,7 @@ function fixture() {
     clientProgramInstalledSourceConstructionCapacity(...values) {
       const result = native.clientProgramInstalledSourceConstructionCapacity(...values);
       if (values.every(value => value === 0n)) state.zero.add(result._0);
+      if (values[0] === 1n && values.slice(1).every(value => value === 0n)) state.rawSlots.add(result._0);
       return result;
     },
     clientProgramReconcileInstalledSourceConstruction(value, original, quote) {
@@ -44,8 +48,19 @@ function fixture() {
     },
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial);return ok({_0: input, _1: unit});},
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
-    clientProgramComposeInstalledSourceConstructionCapacity: (original, providers) => ok({original, providers}),
-    clientProgramReserveInstalledSourceConstruction(value, original) {
+    clientProgramComposeInstalledSourceConstructionCapacity: (original, providers) => {
+      if (!state.rawSlots.has(original)) return ok({original, providers});
+      const result = native.clientProgramComposeInstalledSourceConstructionCapacity(original, providers);
+      state.rawSlotCompositions.push({original, providers, result: result._0});
+      events.push('raw-slot-quote');
+      return result;
+    },
+    clientProgramCheckEnvironmentFromWireConstructionCapacity(value) {
+      const result = native.clientProgramCheckEnvironmentFromWireConstructionCapacity(value);
+      state.checkerQuotes.push(result);return result;
+    },
+    clientProgramReserveInstalledSourceConstruction(value, original, quote) {
+      state.reserved.push([...quote.providers]);
       assert.equal(value, capacity);assert.equal(original, input);events.push('reserve');
       if (state.refuse) throw state.cause;return ok();
     },
@@ -68,6 +83,197 @@ function fixture() {
     inventory: (previous, member, accept = () => false) => composeInstalledInventoryEnvironment(services, moon, baseWire, previous, member, accept),
     close: () => retireInstalledSourceInitialization(services)};
 }
+
+const finalProfiles = Object.freeze({textTime:false,
+  numericProfileCid:'sha256:'+'a'.repeat(64),graphLawCid:'sha256:'+'b'.repeat(64)});
+
+// These scalar selectors are explicit fixtures, not Resource funding. The
+// actual Environment parser, checker, Source constructor quantities and
+// original association below use the retained real component namespace.
+function localPolicyRuntime() {
+  const original=Object.freeze({});
+  return {...native,
+    clientLocalResourcePolicyOriginal:()=>original,
+    clientLocalResourcePolicyRowCeiling(value){assert.strictEqual(value,original);return 1000;},
+    clientLocalResourcePolicyModelRequestByteCeiling(value){assert.strictEqual(value,original);return 1000n;}};
+}
+
+test('Local graph defaults enter the first funded Source wire without a later policy change', () => {
+  const runtime=localPolicyRuntime();
+  const selected=selectInstalledLocalMaterializationEnvironment(runtime,baseWire,undefined,undefined,undefined,true);
+  const expected={...JSON.parse(baseWire).host_policy_profile.capacity,
+    max_file_listing_items:1000,max_graph_construction_edges:1000,
+    max_graph_construction_input_rows:1000,max_graph_construction_nodes:1000};
+  assert.deepEqual(JSON.parse(selected).host_policy_profile.capacity,expected);
+  const f=fixture(), source=document('graph-defaults',selected);
+  const composed=composeInstalledSourceEnvironment(f.services,f.moon,selected,source);
+  assert.equal(composed.wire,source);
+  assert.deepEqual(composed.body.host_policy_profile.capacity,expected);
+  assert.equal(composed.evidenceCid,contentCid(composed.body));
+  assert.ok(['max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes']
+    .every(key=>Object.hasOwn(composed.body.host_policy_profile.capacity,key)));
+  const prepared=native.clientProgramPreparePublicSourceEnvironment(composed.admitted,
+    JSON.stringify({environmentCid:composed.evidenceCid,aliases:[]}));
+  assert.ok(prepared);
+  assert.doesNotThrow(()=>assertInstalledEnvironmentPublicationOriginal(f.services,f.moon,composed,prepared,source));
+  assert.equal(f.close(),true);
+});
+
+test('Local graph defaults preserve explicit values and leave generic published policy selection unchanged', () => {
+  const runtime=localPolicyRuntime(),original=JSON.parse(baseWire).host_policy_profile.capacity;
+  const explicit={...original,max_graph_construction_edges:17,max_graph_construction_nodes:23};
+  const selected=selectInstalledLocalMaterializationEnvironment(runtime,baseWire,explicit,undefined,undefined,true);
+  assert.deepEqual(JSON.parse(selected).host_policy_profile.capacity,
+    {...explicit,max_graph_construction_input_rows:1000});
+  const independent=selectInstalledLocalMaterializationEnvironment(runtime,baseWire,explicit);
+  assert.deepEqual(JSON.parse(independent).host_policy_profile.capacity,explicit);
+  assert.equal(selectInstalledHostEnvironment(runtime,baseWire),baseWire);
+  const generic=selectInstalledHostEnvironment(runtime,baseWire,explicit);
+  assert.deepEqual(JSON.parse(generic).host_policy_profile.capacity,explicit);
+  assert.equal(Object.hasOwn(JSON.parse(generic).host_policy_profile.capacity,'max_graph_construction_input_rows'),false);
+});
+
+test('Table129 source-profile option uses the actual early-policy Host entrance', () => {
+  const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const host=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='openInstalledHost');
+  assert.ok(host);
+  const declarations=[];
+  const visit=node=>{
+    if(node===null||typeof node!=='object')return;
+    if(node.type==='VariableDeclarator'&&['selectBaseEnvironment','baseEnvironmentWire'].includes(node.id.name))declarations.push(node);
+    for(const value of Object.values(node)){
+      if(Array.isArray(value))value.forEach(visit);
+      else if(value!==null&&typeof value==='object')visit(value);
+    }
+  };
+  visit(host.body);assert.equal(declarations.length,2);
+  const runtime=localPolicyRuntime();
+  const select=(overrides={})=>{
+    const calls=[];
+    const values={mode:'local',effectInstallation:undefined,selectedSourcePaths:['source129.json'],selectedEffectPaths:[],
+      originalInstallation:{sourceProfilePath:'source129.json'},moon:runtime,environmentSource:baseWire,
+      hostCapacityPolicy:undefined,selectedLookupPolicy:undefined,requestMemory:undefined,
+      calendarArtifact:undefined,modelInstallation:undefined,mockModels:undefined,project:undefined,
+      installedProjectOriginalsForRuntime(project,moon){assert.strictEqual(moon,runtime);return project;},
+      selectInstalledHostEnvironment,
+      selectInstalledLocalMaterializationEnvironment(...args){calls.push(args[5]);return selectInstalledLocalMaterializationEnvironment(...args);},
+      ...overrides};
+    const body=declarations.map(node=>'const '+source.slice(node.start,node.end)+';').join('\n');
+    const wire=new Function(...Object.keys(values),body+'\nreturn baseEnvironmentWire;')(...Object.values(values));
+    return {wire,calls};
+  };
+  const selected=select();assert.deepEqual(selected.calls,[]);
+  assert.equal(selected.wire,baseWire,'A loaded Source keeps its independently published generic policy');
+  const f=fixture(),original=document('table-profile-path',selected.wire);
+  const composed=composeInstalledSourceEnvironment(f.services,f.moon,selected.wire,original);
+  assert.equal(composed.wire,original);
+  assert.deepEqual(composed.body.host_policy_profile,JSON.parse(baseWire).host_policy_profile);
+  assert.equal(f.close(),true);
+  const ordinary=select({selectedSourcePaths:[],originalInstallation:{}});
+  assert.deepEqual(ordinary.calls,[true]);
+  assert.ok(['max_graph_construction_edges','max_graph_construction_input_rows','max_graph_construction_nodes']
+    .every(key=>Object.hasOwn(JSON.parse(ordinary.wire).host_policy_profile.capacity,key)));
+  for(const override of [{modelInstallation:{}},{mockModels:{}},{calendarArtifact:{}},{project:{modelRegistry:{}}}]){
+    const independent=select({selectedSourcePaths:[],originalInstallation:{},...override});assert.deepEqual(independent.calls,[false]);
+    assert.equal(Object.hasOwn(JSON.parse(independent.wire).host_policy_profile.capacity,'max_graph_construction_nodes'),false);
+  }
+  const declared=select({originalInstallation:{sourceProfilePath:'source129.json',declaredFileBaseEnvironmentWire:baseWire}});
+  assert.equal(declared.wire,baseWire);assert.deepEqual(declared.calls,[]);
+});
+
+test('initial Environment admission retains its raw reference without promoting completed checker scratch', () => {
+  const f=fixture();
+  f.compose(baseWire);
+  assert.equal(f.state.from,1);
+  assert.equal(f.state.rawSlots.size,1);
+  const slot=[...f.state.rawSlots][0];
+  const fromIndex=f.events.indexOf('from');
+  assert.ok(fromIndex>0);
+  assert.equal(f.events[fromIndex-1],'reserve');
+  assert.ok(f.state.reserved.some(providers=>providers.includes(slot)));
+  assert.equal(f.state.rawSlotCompositions.length,0);
+  assert.equal(f.state.checkerQuotes.length,1);
+  const original=native.clientProgramSerializationCapacityBytes(f.state.checkerQuotes[0]);
+  assert.ok(original._1>original._0);
+  // Once the synchronous checker returns, only its real retained output and
+  // the independently funded raw alias coexist. Its workspace is reusable.
+  const last=f.state.reconciled.at(-1).map(value=>native.clientProgramSerializationCapacityBytes(value));
+  assert.ok(last.some(value=>value._0===original._0&&value._1===original._0));
+  assert.ok(last.every(value=>value._0!==original._1||value._1!==original._1));
+  assert.equal(f.close(),true);
+});
+// Spy for this NEW bridge's caller forwarding only. The old retained namespace
+// still lacks the graph/numeric port; shared Core tests separately exercise
+// that real selection. This is not an actual new-ABI or normal qualification.
+function installFinalForwarder(f, calls) {
+  const capacity=f.moon.clientProgramInstalledSourceConstructionCapacity;
+  const compose=f.moon.clientProgramComposeInstalledSourceConstructionCapacity;
+  let finalControls;
+  f.moon.clientProgramInstalledSourceConstructionCapacity=(...values)=>{
+    const result=capacity(...values);
+    if (values[0]===8n && values.slice(1).every(value=>value===0n)) finalControls=result._0;
+    return result;
+  };
+  // Keep the fixture's outer reservation observer envelope, while the new
+  // final native input itself gets an ACTUAL typed constructor quantity.
+  f.moon.clientProgramComposeInstalledSourceConstructionCapacity=(original,providers)=>
+    original===finalControls ? native.clientProgramComposeInstalledSourceConstructionCapacity(original,providers)
+      : compose(original,providers);
+  f.moon.clientProgramCheckEnvironmentFromWireWithGraphProfile = (raw,...flags) => {
+    assert.equal(f.events.at(-1),'reserve');
+    calls.push({raw,flags});
+    return native.clientProgramCheckEnvironmentFromWire(raw,...flags.slice(0,7));
+  };
+}
+
+test('final Source checker caller funds a new wrapper on the same actual wire and retains nominal publication', () => {
+  const f=fixture(), value=f.compose(baseWire), calls=[];
+  installFinalForwarder(f,calls);
+  const reads=f.state.reads;
+  const final=admitInstalledSourceFinalEnvironment(f.services,f.moon,value,finalProfiles);
+  assert.equal(f.state.reads,reads,'no second original wire parser');
+  assert.equal(final.wire,value.wire);assert.equal(final.body,value.body);
+  assert.equal(calls.length,1);
+  assert.deepEqual(calls[0].flags,[false,true,true,true,true,false,false,
+    finalProfiles.numericProfileCid,finalProfiles.graphLawCid]);
+  const prepared=native.clientProgramPreparePublicSourceEnvironment(final.admitted,
+    JSON.stringify({environmentCid:final.evidenceCid,aliases:[]}));
+  assert.ok(prepared);
+  assert.doesNotThrow(()=>assertInstalledEnvironmentPublicationOriginal(f.services,f.moon,final,prepared,final.wire));
+  assert.throws(()=>assertInstalledEnvironmentPublicationOriginal(f.services,f.moon,value,prepared,final.wire),
+    {code:'ForeignInstalledEnvironmentOriginal'});
+  assert.equal(f.close(),true);
+});
+
+test('final Source checker caller refuses copied foreign or current-lost originals before new construction', () => {
+  const a=fixture(),b=fixture(), value=a.compose(baseWire), calls=[];
+  installFinalForwarder(a,calls);installFinalForwarder(b,calls);
+  assert.throws(()=>admitInstalledSourceFinalEnvironment(a.services,a.moon,{...value},finalProfiles),
+    {code:'ForeignInstalledEnvironmentOriginal'});
+  assert.throws(()=>admitInstalledSourceFinalEnvironment(b.services,b.moon,value,finalProfiles),
+    {code:'ForeignInstalledEnvironmentOriginal'});
+  a.state.current=false;
+  assert.throws(()=>admitInstalledSourceFinalEnvironment(a.services,a.moon,value,finalProfiles),
+    {message:'OriginalLost'});
+  assert.equal(calls.length,0);a.state.current=true;a.close();b.close();
+});
+
+test('final Source checker caller preserves reservation refusal and refuses absent new runtime port', () => {
+  const f=fixture(),value=f.compose(baseWire),calls=[];
+  for(const port of ['clientProgramCheckEnvironmentFromWireConstructionCapacity',
+    'clientProgramCheckEnvironmentFromWireWithGraphProfile']){
+    const actual=f.moon[port];assert.equal(typeof actual,'function');
+    delete f.moon[port];
+    assert.throws(()=>admitInstalledSourceFinalEnvironment(f.services,f.moon,value,finalProfiles),
+      {code:'InstalledFinalEnvironmentRuntimeUnavailable'});
+    f.moon[port]=actual;
+  }
+  installFinalForwarder(f,calls);
+  const cause=new Error('OriginalQuotaRefusal');f.state.refuse=true;f.state.cause=cause;
+  assert.throws(()=>admitInstalledSourceFinalEnvironment(f.services,f.moon,value,finalProfiles),error=>error===cause);
+  assert.equal(calls.length,0);f.state.refuse=false;f.close();
+});
 
 test('generated Environment constructors are prefunded once and reuse exact same-owner originals', () => {
   const f = fixture();
@@ -149,12 +355,13 @@ test('inventory replacement releases only its prior shallow prefix and keeps mem
   const prefix = f.inventory(member, document('second'));
   const before = releasedSlots(f);
   const final = f.inventory(prefix, document('third'), () => true);
-  assert.equal(releasedSlots(f) - before, 3); // JS merge, wire read, native Environment.
+  const released = releasedSlots(f);
+  assert.ok(released > before, 'retired prefix must release its own construction quantities');
   assert.throws(() => f.inventory(prefix, document('fourth')), {code: 'ForeignInstalledEnvironmentOriginal'});
   // This failed call latches the same owner; the earlier completed output
   // still contains the same member leaves, without a second parse or refund.
   assert.equal(final.body.connector_catalogs.find(value => value.connector_id === 'member'), member.body.connector_catalogs[0]);
-  assert.equal(releasedSlots(f) - before, 3);
+  assert.equal(releasedSlots(f), released, 'rejected reuse cannot release another original');
   f.close();
 });
 

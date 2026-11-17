@@ -784,6 +784,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/captured-effect-dependencies.original-envelope",
+      "statement_sha256": "ed12e9825d486666f13926b011d9fe1bf2e8de2d9413c94b1e183672f13cccaa",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "captured-effect-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/captured-effect-dependencies.funded-construction",
+      "statement_sha256": "30ca452d5aef874523d5789d8d2ca61f61ffc85e257296ff5d063064a83537ea",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "captured-effect-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/captured-effect-dependencies.durable-before-wait",
       "statement_sha256": "97023820a1044001300b50e922b787002f59d288f1c417ca901e197ebb076ed1",
       "status": "pending",
@@ -818,7 +840,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "07542090aef4d73a8148b8ba9aa31af699fce222bc75443acaea84d51254bda4",
+      "statement_sha256": "a0180409cd0cfe30433e80114e9be42a829ae4c7851a72f17e1384252ad977ca",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

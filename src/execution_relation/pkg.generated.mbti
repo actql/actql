@@ -19,6 +19,7 @@ import {
   "actql/actql/source_value",
   "actql/actql/text_time_bounds",
   "actql/actql/value_admission",
+  "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
 
@@ -263,9 +264,15 @@ pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Val
 
 pub fn bound_producer_read_demand(@lowering_relation.BoundPrepared, BoundProducerInput) -> ProducerReadDemand?
 
+pub fn bounded_analytic_borrows_input(@lowering_relation.PreparedKernel) -> Bool
+
+pub fn bounded_analytic_staged_text_capacity(@lowering_relation.PreparedKernel, SequenceExecutionLimits) -> Int64?
+
 pub fn bounded_append_cleanup_pending(BoundedAppendExecution) -> Bool
 
 pub fn bounded_asof_join_cleanup_pending(BoundedAsOfJoinExecution) -> Bool
+
+pub fn bounded_binding_alias_node_count(@lowering_relation.PreparedKernel) -> Int?
 
 pub fn bounded_binding_rows_cleanup_continuation(BoundedBindingRowsExecution) -> Int64
 
@@ -289,13 +296,21 @@ pub fn bounded_interval_join_cleanup_pending(BoundedIntervalJoinExecution) -> Bo
 
 pub fn bounded_join_cleanup_pending(BoundedJoinExecution) -> Bool
 
+pub fn bounded_literal_string_group_chain(GeneratedSequence) -> Bool
+
 pub fn bounded_nest_cleanup_pending(BoundedNestExecution) -> Bool
 
+pub fn bounded_number_group_borrows_input(@lowering_relation.PreparedKernel) -> Bool
+
 pub fn bounded_row_window_cleanup_pending(BoundedRowWindowExecution) -> Bool
+
+pub fn bounded_sequence_match_cleanup_continuation(BoundedSequenceMatchExecution) -> Int64
 
 pub fn bounded_sequence_match_cleanup_pending(BoundedSequenceMatchExecution) -> Bool
 
 pub fn bounded_set_cleanup_pending(BoundedSetExecution) -> Bool
+
+pub fn bounded_string_group_borrows_input(@lowering_relation.PreparedKernel) -> Bool
 
 pub fn bounded_unnest_cleanup_pending(BoundedUnnestExecution) -> Bool
 
@@ -537,6 +552,8 @@ pub fn completed_output_has_row_table(CompletedOutput) -> Bool
 
 pub fn completed_output_import_cumulative_work(CompletedOutputImport) -> Int64
 
+pub fn completed_output_import_shared_scalar_text_bytes(CompletedOutputImport, CompletedOutput) -> Int64?
+
 pub fn completed_output_matches_captured_inputs(CompletedOutput, Array[CapturedRows]) -> Bool
 
 pub fn completed_output_matches_fixed_inputs(CompletedOutput, Int?, Array[FixedRelationRead]) -> Bool
@@ -587,6 +604,8 @@ pub fn completed_relation_export_original_source(CompletedRelationExportReceipt)
 
 pub fn completed_relation_export_receipt_live(CompletedRelationExportReceipt) -> Bool
 
+pub fn completed_relation_export_scalar_geometry(CompletedRelationExportReceipt) -> (Int, Int, Int, Int, Int)
+
 pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt) -> RelationSchemaIdentity
 
 pub fn completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int) -> Result[(String, Array[String]), CompletedExportIssue]
@@ -603,7 +622,7 @@ pub fn completed_relation_identity_scan_body_receipt(CompletedRelationIdentitySc
 
 pub fn completed_relation_identity_scan_next_construction_capacity(CompletedRelationIdentityScan) -> ExecutionCapacity?
 
-pub fn completed_relation_identity_scan_start_construction_capacity(CompletedOutput, retain_body? : Bool) -> ExecutionCapacity?
+pub fn completed_relation_identity_scan_start_construction_capacity(CompletedOutput, retain_body? : Bool, producer_input? : ProducerRead?) -> ExecutionCapacity?
 
 pub fn completed_relation_identity_scan_work(CompletedRelationIdentityScan) -> Int64
 
@@ -809,7 +828,15 @@ pub fn fixed_supplied_relation_read(SuppliedRelationRead) -> FixedRelationRead
 
 pub fn generated_asof_search_ceiling(GeneratedSequence, Int) -> Int64?
 
+pub fn generated_bounded_events_projection_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
+
+pub fn generated_bounded_interval_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits, Int) -> ExecutionCapacity?
+
+pub fn generated_bounded_ranking_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits, Int) -> ExecutionCapacity?
+
 pub fn generated_bounded_sequence_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
+
+pub fn generated_bounded_sequence_match_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits, Int) -> ExecutionCapacity?
 
 pub fn generated_calendar_output_ceiling(GeneratedSequence, Int) -> Int64?
 
@@ -876,6 +903,8 @@ pub fn infer_rows_preparation_stopped(InferRowsPreparation) -> Bool
 pub fn infer_rows_preparation_usage(InferRowsPreparation) -> (Int, Int, Int)
 
 pub fn issue_managed_execution_attempt() -> ManagedExecutionAttempt
+
+pub fn json_leaf_representation_contract(@value_contract.Contract) -> Bool
 
 pub fn json_source_preflight_capacity(Int) -> ExecutionCapacity?
 
@@ -1215,6 +1244,8 @@ pub fn prepare_retained_content_read(CompletionPreparation, RetainedCompletionDe
 
 pub fn prepare_retained_producer_scan(ProducerRead, Int, ValueLimits, RowWireLimits, Int) -> Result[RetainedProducerScan, CompletedImportIssue]
 
+pub fn prepare_retained_readmission_facts(CompletionPreparation, RetainedCompletionDescriptor, Int, RetainedReadmissionMetadataPolicy) -> Result[RetainedReadmissionFacts, TrustedOutputIssue]
+
 pub fn prepare_retained_relation_identity_scan(ProducerStorage, Int, ValueLimits, RowWireLimits, RowWireLimits, Int) -> Result[RetainedStorageScan, CompletedImportIssue]
 
 pub fn prepare_retained_serialization_completion(GeneratedSequence, @lowering_relation.PreparedSerialization) -> CompletionPreparation?
@@ -1247,7 +1278,7 @@ pub fn[P] prepare_trusted_output_port_with_inputs(CompletionPreparation, @pipeli
 
 pub fn[P] prepare_trusted_retained_output_port(CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> RetainedOutputMaterial?, inputs? : Array[ProducerRead]) -> Result[TrustedRetainedOutputPort[P], TrustedOutputIssue]
 
-pub fn[P] prepare_trusted_retained_readmission(CompletionPreparation, RetainedCompletionDescriptor, Int, Int, (P) -> RetainedOutputMaterial?) -> Result[TrustedRetainedReadmission[P], TrustedOutputIssue]
+pub fn[P] prepare_trusted_retained_readmission(CompletionPreparation, RetainedCompletionDescriptor, RetainedReadmissionFacts, (P) -> RetainedOutputMaterial?) -> Result[TrustedRetainedReadmission[P], TrustedOutputIssue]
 
 pub fn[P] prepare_trusted_retained_scan_reuse(ProducerRead, P, (P, ProducerRead) -> Bool) -> RetainedScanReuse?
 
@@ -1377,6 +1408,8 @@ pub fn retain_completed_segment_inputs(CompletedOutput, GeneratedSequence, Array
 
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
 
+pub fn retain_completion_evidence_with_facts(CompletedOutput, RetainedReadmissionFacts) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
+
 pub fn retain_generated_sequence_refinement(GeneratedSequence, GeneratedSequence) -> GeneratedSequence?
 
 pub fn[P, T] retain_managed_output(ManagedOutputRetentionPort[P, T], P) -> Result[ManagedRetainedOutput[T], ManagedOutputRetentionIssue]
@@ -1389,11 +1422,15 @@ pub fn retained_completion_can_handoff(RetainedCompletionEvidence, CompletedOutp
 
 pub fn retained_completion_descriptor(RetainedCompletionEvidence) -> RetainedCompletionDescriptor
 
+pub fn retained_completion_descriptor_with_facts(RetainedCompletionEvidence, RetainedReadmissionFacts) -> Result[RetainedCompletionDescriptor, RetainedCompletionEvidenceIssue]
+
 pub fn retained_completion_matches_output(RetainedCompletionEvidence, CompletedOutput) -> Bool
 
 pub fn retained_completion_material(RetainedCompletionEvidence, CompletedOutput) -> RetainedOutputMaterial?
 
 pub fn retained_content_read_cumulative_work(RetainedContentRead) -> Int64
+
+pub fn retained_input_facts(CompletedOutput) -> Result[RetainedReadmissionFacts, TrustedOutputIssue]
 
 pub fn retained_output_matches_receipt(RetainedOutputMaterial, AdmittedOutputStreamReceipt) -> Bool
 
@@ -1410,6 +1447,16 @@ pub fn retained_producer_scan_column_measurement(RetainedProducerScan, Int) -> R
 pub fn retained_producer_scan_reuse_current(RetainedProducerScan) -> Bool
 
 pub fn retained_producer_scan_schema(RetainedProducerScan) -> @relation_schema.Schema
+
+pub fn retained_readmission_binding_entries(RetainedReadmissionFacts) -> Int
+
+pub fn retained_readmission_facts_control_bytes() -> Int64
+
+pub fn retained_readmission_producer_inputs(RetainedReadmissionFacts) -> Int
+
+pub fn retained_readmission_rows(RetainedReadmissionFacts) -> Int
+
+pub fn retained_readmission_schema_columns(RetainedReadmissionFacts) -> Int
 
 pub fn retained_storage_canonical_copy_matches(ProducerStorage, String, Int, Int) -> Bool
 
@@ -1511,7 +1558,7 @@ pub fn start_completed_record_guard(@bounded_execution.Control, CompletedOutput,
 
 pub fn start_completed_relation_export_snapshot(CompletedOutputExport, CompletedRelationExportReceipt, Int, Int, Int, Int) -> Result[CompletedRelationSnapshotPreparation, CompletedExportIssue]
 
-pub fn start_completed_relation_identity_scan(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int, Int, incremental_metadata? : Bool, retain_body? : Bool, source_input? : SuppliedRelationRead?) -> Result[CompletedRelationIdentityScan, CompletedExportIssue]
+pub fn start_completed_relation_identity_scan(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int, Int, incremental_metadata? : Bool, retain_body? : Bool, source_input? : SuppliedRelationRead?, producer_input? : ProducerRead?) -> Result[CompletedRelationIdentityScan, CompletedExportIssue]
 
 pub fn start_completed_result_key_validation(@bounded_execution.Control, CompletedResultRelationExportPreparation, @relation_schema.Field, Int, Int, Int) -> Result[CompletedResultKeyValidation, CompletedResultKeyIssue]
 
@@ -1950,6 +1997,7 @@ pub(all) enum CaptureIssue {
   ClosedCapture
   ForeignCheckedValue(Int, Int)
   CaptureWorkLimit(Int)
+  CaptureWorkRefusal(Int, Int)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum CaptureOrigin {
@@ -2789,6 +2837,14 @@ type RetainedOutputHandle[T]
 type RetainedOutputMaterial
 
 type RetainedProducerScan
+
+type RetainedReadmissionFacts
+
+pub(all) struct RetainedReadmissionMetadataPolicy {
+  producer_inputs : Int?
+  schema_columns : Int?
+  name_bytes : Int?
+}
 
 pub(all) enum RetainedRowDecodeIssue {
   InvalidLimits

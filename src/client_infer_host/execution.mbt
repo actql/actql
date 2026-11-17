@@ -1007,6 +1007,10 @@ fn stopped(active : Execution) -> Poll {
 ///|
 fn begin_model(active : Execution) -> Poll {
   guard active.rows is Some(rows) else { return fail(active, InvalidAdvance) }
+  match prepare_original_infer_scope_snapshot(active) {
+    Err(issue) => return fail(active, issue)
+    Ok(_) => ()
+  }
   let mut model_limits = active.limits.model
   let started = match active.source {
     Physical(provider) =>
@@ -1912,6 +1916,10 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
   if active.identity is Some(identity) {
     @relation.cancel_completed_relation_identity_scan(identity) |> ignore
     active.identity = None
+  }
+  if active.identity_body is Some(body) &&
+    body.input_materialization is Some(witness) {
+    @input.retire_client_infer_input_materialization(witness)
   }
   active.identity_body = None
   match @input.cleanup_client_infer_input(active.input) {

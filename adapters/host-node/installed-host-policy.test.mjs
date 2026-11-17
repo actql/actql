@@ -1,3 +1,12 @@
+import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
+import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {composeInstalledSourceEnvironment, readInstalledHostEnvironment}
+  from './installed-funded-environment.mjs';
+import {installedSourceConfigurationReader, completeInstalledSourceInitialization}
+  from './installed-host-services.mjs';
+import {captureSourceAliasConstruction} from './source-alias-construction.mjs';
+import {sourceAliasPublication, sourceAliasPublicationOriginal} from './source-alias-publication.mjs';
+import {prepareInstalledSourceCheckpointInventory} from './installed-source.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -319,4 +328,91 @@ test('default Local connection scopes separate roots and survive the same-root r
   assert.deepEqual(lookup.submissionRef, submissionRef);
   assert.deepEqual(lookup.admission.ref, original.ref);
   assert.deepEqual((await reopened.attach(lookup.admission.ref)).ref, original.ref);
+});
+
+// Actual initial Resource and the ordinary Source completion chain. These
+// components never start the fixture's nonexistent Python or submit a Run.
+async function completeTableSourceInitialization(f, source, beforeComplete) {
+  const composed = composeInstalledSourceEnvironment(f.services, f.moon, f.baseEnvironmentWire,
+    source.environmentOriginal ?? source.environmentWire);
+  // This is the ordinary late Host policy projection: preserve the published
+  // base identity during Source loading, then fund the exact final document.
+  const body = {...composed.body, host_policy_profile:{...composed.body.host_policy_profile,
+    capacity:{max_graph_construction_edges:1000, max_graph_construction_input_rows:1000,
+      max_graph_construction_nodes:1000, ...composed.body.host_policy_profile.capacity}}};
+  const wire = canonicalJson({...body, evidence_bundle_cid:contentCid(body)});
+  const [numeric, graph] = await Promise.all([
+    readFile(new URL('../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8').then(JSON.parse),
+    readFile(new URL('../../spec/dependencies/actql-graph-laws.json', import.meta.url), 'utf8').then(JSON.parse),
+  ]);
+  const original = readInstalledHostEnvironment(f.services, f.moon, wire,
+    {textTime:Object.hasOwn(composed.body.host_policy_profile,'text_time_evaluation'), calendar:false,
+      numericProfileCid:contentCid(numeric),graphLawCid:contentCid(graph)});
+  assert.equal(original.wire, wire);
+  const construct = captureSourceAliasConstruction(installedSourceConfigurationReader(f.services), f.moon);
+  const publication = sourceAliasPublication(f.moon, original.admitted, source.queryAliases ?? [], [],
+    {construct, installedSources:[source], updateTargets:[], storeTargets:[]});
+  const publicationOriginal = sourceAliasPublicationOriginal(f.moon, original.admitted, publication);
+  assert.ok(publicationOriginal);
+  const inventory = prepareInstalledSourceCheckpointInventory(source, construct);
+  assert.equal(inventory.sources.length, 129);
+  beforeComplete?.();
+  completeInstalledSourceInitialization(f.services, f.sourceInputOriginal,
+    publicationOriginal.preparedEnvironment, original.wire, original);
+  return {original, inventory};
+}
+
+function constructionBudgetRefusal(failure) {
+  const pending = [failure], seen = new Set();
+  while (pending.length && seen.size < 12) {
+    const value = pending.shift();
+    if (!value || typeof value !== 'object' || seen.has(value)) continue;
+    seen.add(value);
+    if (value.installedSourcePhase === 'ReserveInstalledSourceConstruction' &&
+        value.installedSourceIssueTag === 7 &&
+        (BigInt(value.installedSourceRetainedBytes) > 536870912n ||
+          BigInt(value.installedSourceExecutionBytes) > 536870912n)) return true;
+    pending.push(value.primaryFailure, value.cause);
+  }
+  return false;
+}
+
+test('Table129 final Source initialization retains its nominal original under default512MiB', async t => {
+  const f = await boundConstructionActualFixture(t);
+  const limits = f.moon.clientLocalPreparationResourceLimits(f.moon.clientLocalResourcePolicyOriginal());
+  assert.equal(limits[4], 536870912n); assert.equal(limits[5], 536870912n);
+  const selected = await f.tableSourceProfile({targetCount:129});
+  const source = await f.load(selected);
+  assert.deepEqual(source.tableReadTargets.map(target => target.resource),
+    Array.from({length:129}, (_, index) => `rows_${index}`));
+  for (const [index, target] of source.tableReadTargets.entries()) {
+    assert.deepEqual(target.selector, selected.value.targets[index].selector);
+  }
+  const {original, inventory} = await completeTableSourceInitialization(f, source);
+  assert.equal(inventory.bindings.length, 129);
+  assert.equal(original.wire, canonicalJson({...original.body, evidence_bundle_cid:original.evidenceCid}));
+  assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
+
+test('Table129 Source initialization refuses genuine coheld input demand without another budget', async t => {
+  const f = await boundConstructionActualFixture(t);
+  const path = join(f.root, 'retained-original-metadata.txt'), input = 'A'.repeat(4 * 1024 * 1024);
+  await writeFile(path, input);
+  const held = await installedSourceConfigurationReader(f.services).readText(path, {maxBytes:input.length});
+  assert.equal(held.length, input.length);
+  const selected = await f.tableSourceProfile({targetCount:129});
+  await assert.rejects(f.load(selected), constructionBudgetRefusal);
+  assert.equal(f.sources.length, 0); assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
+});
+
+test('Table129 Source completion rejects original current loss before adopting the body', async t => {
+  const f = await boundConstructionActualFixture(t);
+  const source = await f.load(await f.tableSourceProfile({targetCount:129}));
+  let fault;
+  await assert.rejects(completeTableSourceInitialization(f, source,
+    () => {fault=f.failCurrentBeforeNextConstruction();}));
+  assert.equal(fault.calls, 1); assert.equal(f.secretReads(), 0);
+  await f.close(); assert.equal(f.pending(), false); assert.equal(f.retire(), true);
 });

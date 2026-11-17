@@ -140,6 +140,25 @@ fn effect_unit_publication_body(
 }
 
 ///|
+/// Publication DATA from the same admitted Effect Compute plan. This neither
+/// widens the installed policy nor grants execution, input access or a claim.
+/// The original metadata quote already owns the Result row/index envelope.
+pub fn installed_effect_managed_publication_limits(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  max_payload_bytes : Int,
+) -> @publication_host.PublicationOutputExportLimits? {
+  guard check_installed_effect_managed_run(value, prepared, request) is Ok(_) &&
+    physical_equal(plan.prepared, prepared) &&
+    effect_unit_publication_body(value, plan, request) is Ok(_) else {
+    return None
+  }
+  client_node_publication_limits_original(max_payload_bytes, plan.capacity_plan)
+}
+
+///|
 // The owned contract registry selects the identity field. Measuring that
 // single field uses the same String encoder; no second protocol field table,
 // manufactured contract, wire or identity is introduced by this calculation.
@@ -202,6 +221,7 @@ fn effect_unit_sealed_geometry(
 fn effect_unit_publication_capacity(
   bodies : Array[(String, @encode.EncodingConstructionGeometry)],
   identity : String,
+  complete_body? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
   let mut held : @execution.PreparationRepresentationUnits = {
     record_headers: 0L,
@@ -251,8 +271,16 @@ fn effect_unit_publication_capacity(
       name != "local_result_definition" &&
       name != "local_manifest" &&
       name != "result_import_observation" {
-      guard effect_unit_sealed_geometry(name, geometry, identity)
-        is Some(sealed_body) &&
+      // Keyed invocation's two closed emitters measure the complete body,
+      // including its canonical-width self CID. Reuse that larger geometry
+      // for BOTH preimage and final parse/codec overlap. It is not a contract
+      // registry lookup (observation_set is RunEvidence), nor a second CID.
+      let sealed_body = if complete_body {
+        Some(geometry)
+      } else {
+        effect_unit_sealed_geometry(name, geometry, identity)
+      }
+      guard sealed_body is Some(sealed_body) &&
         program_artifact_parse_layout(
           @encode.construction_geometry_usage(geometry),
           structure=Some(geometry),
@@ -417,6 +445,13 @@ pub fn prepare_installed_effect_model_source_unit_catalog(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Array[(String, String, String)], ClientEffectUnitPreparationIssue] {
+  if value.effect_operation_opening || value.effect_operation_closing {
+    return Err(Run(AlreadyBound))
+  }
+  value.effect_operation_opening = true
+  defer {
+    value.effect_operation_opening = false
+  }
   let holder = match effect_unit_publication_body(value, plan, request) {
     Ok(value) => value
     Err(issue) => return Err(Run(issue))
@@ -432,95 +467,54 @@ pub fn prepare_installed_effect_model_source_unit_catalog(
     ) else {
     return Err(Run(ForeignOriginal))
   }
-  let mut failure : ClientInstalledManagedRunIssue? = None
-  let result = @publication_host.client_effect_combined_source_unit_catalog_bodies(
+  let (program, unit_index, parts) = @publication_host.client_effect_combined_source_unit_catalog_subject(
     unit,
-    max_bytes,
-    max_nodes,
-    max_depth,
-    before_body=Some(fn(bytes, nodes, depth) {
-      if failure is Some(_) {
-        return false
-      }
-      guard effect_unit_publication_body(value, plan, request) is Ok(actual) &&
-        physical_equal(actual, holder) else {
-        failure = Some(Retired)
-        return false
-      }
-      guard @encode.text_writer_construction_inventory(bytes, nodes, depth)
-        is Some(writer) &&
-        @resources.preparation_body_borrow_reserved_extents(holder)
-        is Ok((r, e)) else {
-        failure = Some(InsufficientCapacity)
-        return false
-      }
-      let inventory : @execution.PreparationRepresentationUnits = {
-        record_headers: writer.record_headers,
-        reference_slots: writer.reference_slots,
-        scalar_words: writer.scalar_words,
-        owned_utf16_units: writer.owned_utf16_units,
-        owned_wire_bytes: bytes.to_int64(),
-      }
-      let retained : @execution.PreparationRepresentationUnits = {
-        record_headers: 0L,
-        reference_slots: 0L,
-        scalar_words: 0L,
-        owned_utf16_units: bytes.to_int64(),
-        owned_wire_bytes: 0L,
-      }
-      guard @execution.preparation_execution_capacity({
-          retained,
-          workspace: inventory,
-          retained_nodes: 0L,
-          workspace_nodes: 0L,
-          retained_bytes: 0L,
-          workspace_bytes: 0L,
-        })
-        is Some(capacity) &&
-        @execution.checked_preparation_add_product(
-          r,
-          @execution.execution_capacity_retained_bytes(capacity),
-          1L,
-        )
-        is Some(next_r) &&
-        @execution.checked_preparation_add_product(
-          r,
-          @execution.execution_capacity_execution_bytes(capacity),
-          1L,
-        )
-        is Some(next_e) else {
-        failure = Some(InsufficientCapacity)
-        return false
-      }
-      match
-        @resources.reserve_preparation_publication_phase(
-          holder,
-          plan,
-          next_r,
-          Int64::max(e, next_e),
-        ) {
-        Err(issue) => {
-          failure = Some(Preparation(issue))
-          return false
-        }
-        Ok(_) => ()
-      }
-      guard effect_unit_publication_body(value, plan, request) is Ok(actual) &&
-        physical_equal(actual, holder) else {
-        failure = Some(Retired)
-        return false
-      }
-      true
-    }),
   )
-  if failure is Some(issue) {
-    return Err(Run(issue))
+  match
+    reserve_effect_unit_catalog_controls(value, plan, request, holder, parts) {
+    Err(issue) => return Err(Run(issue))
+    Ok(_) => ()
+  }
+  let bodies = []
+  let seen : Map[String, Bool] = Map([])
+  let mut remaining = max_bytes
+  for part in 0..<parts {
+    let references = match
+      @publication_host.client_effect_combined_source_unit_catalog_dependencies_at(
+        unit, part,
+      ) {
+      Err(issue) => return Err(Evidence(issue))
+      Ok(value) => value
+    }
+    for (role, cid) in references {
+      let key = role + "\u0000" + cid
+      if seen.contains(key) {
+        continue
+      }
+      let (body, bytes) = match
+        prepare_effect_model_catalog_body(
+          value, plan, request, program, unit_index, role, cid, remaining, max_nodes,
+          max_depth,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      remaining -= bytes
+      bodies.push(
+        (
+          role,
+          @checked.checked_local_dependency_body_cid(body),
+          @checked.checked_local_dependency_body_json(body),
+        ),
+      )
+      seen[key] = true
+    }
   }
   guard effect_unit_publication_body(value, plan, request) is Ok(actual) &&
     physical_equal(actual, holder) else {
     return Err(Run(Retired))
   }
-  result.map_err(issue => Evidence(issue))
+  Ok(bodies)
 }
 
 ///|

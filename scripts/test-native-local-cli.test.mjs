@@ -9,7 +9,9 @@ import {join} from 'node:path';
 import {after, test} from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {verifyNativeLocalCheckEnvironmentOriginal} from './test-native-local-source-result.mjs';
+import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 
 const executable=process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY;
 assert(executable && process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER,
@@ -44,10 +46,10 @@ function check(file, format = 'json', options = [], global = []) {
   return runNative(args);
 }
 
-function runNative(args,cwd=project) {
+function runNative(args,cwd=project,observations={}) {
   const launcher = process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER;
   const result = spawnSync(process.execPath,[launcher,...args],
-    {cwd,env:{PATH:emptyPath,LANG:'C'},maxBuffer:65536,
+    {cwd,env:{PATH:emptyPath,LANG:'C',...observations},maxBuffer:65536,
       encoding: 'utf8', timeout: 15_000});
   assert.ifError(result.error);
   assert.equal(result.signal, null);
@@ -213,3 +215,36 @@ for (const count of [101,1000]) {
       Array.from({length:count-2},(_,index)=>({id:index+2})));
   });
 }
+
+
+// The same installed ordinary initial Read must refuse its explicit budget
+// before constructing an oversized Project body or admitting a Run. This is
+// distinct from small schema refusals and from pure constructor DATA tests.
+test('Native Local initial Read refuses an oversized Project and completes its first cleanup', async () => {
+  const rejected=join(scratch.path,'initial-read-budget-refusal');
+  await mkdir(rejected);
+  const configuration=Buffer.concat([Buffer.alloc(4*1024*1024,32),originalConfiguration]);
+  await writeFile(join(rejected,'actql.config.json'),configuration);
+  await writeFile(join(rejected,'original.sql'),'SELECT 0 AS n\n');
+  const result=runNative(['check','--program-file','original.sql','--format','sql','--json'],rejected,
+    {ACTQL_NATIVE_TIMINGS:'1',ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS:'1'});
+  assert.equal(result.status,1);assert.equal(result.stdout,'');
+  assert.match(result.stderr,/ProjectConfigurationReadUnavailable/u);
+  // The launcher owns its timing trailer; it is not a Native child event.
+  // Validate that envelope before checking the complete child diagnostics.
+  const child=nativeLauncherEnvelope(result.stderr,'required').native;
+  const rows=child.trimEnd().split('\n').filter(line=>line.startsWith('ACTQL_NATIVE_'));
+  const groups=nativeMockAcceptanceObservations(rows.join('\n')+'\n');
+  assert.equal(groups.length,1);
+  const values=prefix=>rows.filter(line=>line.startsWith(prefix)).map(line=>JSON.parse(line.slice(prefix.length)));
+  const close=values('ACTQL_NATIVE_PHASE ').find(value=>value.tag===5);
+  assert(close);assert.equal(close.begins,1);assert.equal(close.ends,1);
+  assert.equal(close.active,0);assert.equal(close.unmatched_end,0);
+  for(const tag of [27,66,67,68,69]){
+    const selected=values('ACTQL_NATIVE_COUNTER ').filter(value=>value.tag===tag);
+    assert.equal(selected.length,1);assert.equal(selected[0].count,0);
+  }
+  assert.equal(result.stderr.includes('CleanupPending'),false);
+  assert.deepEqual((await readdir(rejected)).sort(),['actql.config.json','original.sql']);
+  assert.deepEqual(await readFile(join(rejected,'actql.config.json')),configuration);
+});

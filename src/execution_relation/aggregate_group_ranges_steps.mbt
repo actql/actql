@@ -43,7 +43,7 @@ fn[T] start_aggregate_group_ranges(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
-      tree: None,
+      tree: NoRowComparison,
     },
     position: 1,
     start: 0,

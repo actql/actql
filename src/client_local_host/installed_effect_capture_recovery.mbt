@@ -16,8 +16,16 @@ struct ClientInstalledEffectCaptureRecovery {
   mut material : @resources.CapacityReservation?
   mut material_bytes : Int?
   mut material_nodes : Int?
+  mut material_plaintext_bytes : Int?
+  mut material_staged_envelope : Bool
+  mut material_envelope_wire : String?
+  mut material_envelope_nodes : Int?
   mut material_wire : String?
+  mut material_captured : @publication.PreparedCapturedEffectRun?
   mut material_ready : Bool
+  mut material_completed : Bool
+  mut publication_retained : Int64
+  mut publication_inputs : Int?
   mut transitioning : Bool
   mut closing : Bool
 }
@@ -73,8 +81,16 @@ pub fn prepare_installed_effect_capture_recovery(
     material: None,
     material_bytes: None,
     material_nodes: None,
+    material_plaintext_bytes: None,
+    material_staged_envelope: false,
+    material_envelope_wire: None,
+    material_envelope_nodes: None,
     material_wire: None,
+    material_captured: None,
     material_ready: false,
+    material_completed: false,
+    publication_retained: 0L,
+    publication_inputs: None,
     transitioning: false,
     closing: false,
   })
@@ -90,10 +106,410 @@ pub fn begin_installed_effect_capture_recovery(
   if owner.transitioning || owner.closing || owner.fixed is None {
     return Err(Retired)
   }
+  owner.material_completed = false
   owner.transitioning = true
   preparation_module_call(
-    () => resize_installed_effect_capture_recovery_definition(owner, false),
+    () => {
+      match resize_installed_effect_capture_recovery_definition(owner, false) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      // A later inverse borrows this SAME captured original. Re-enter its
+      // complete material constructor before allocating validation scratch;
+      // successful prior output retained only its returned trees and wires.
+      if owner.material is Some(_) {
+        resize_installed_effect_capture_recovery_material(owner, false)
+      } else {
+        Ok(())
+      }
+    },
     () => owner.transitioning = false,
+  )
+}
+
+///|
+/// Validate an already returned capture on its SAME Read. The trusted Store
+/// return has ended the physical receive/decrypt buffers and parsed container;
+/// the returned trees, Strings and full synchronous validator remain funded.
+pub fn begin_installed_effect_capture_validation(
+  owner : ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if owner.transitioning || owner.closing || owner.fixed is None {
+    return Err(Retired)
+  }
+  if !owner.material_completed ||
+    !owner.material_ready ||
+    owner.material is None {
+    return Err(ForeignOriginal)
+  }
+  // Failure of this next constructor keeps its prefix and cannot reuse the
+  // previous success as a completion or physical cleanup acknowledgement.
+  owner.material_completed = false
+  owner.transitioning = true
+  preparation_module_call(
+    () => {
+      match resize_installed_effect_capture_recovery_definition(owner, false) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      resize_installed_effect_capture_recovery_material(
+        owner,
+        false,
+        validation=true,
+      )
+    },
+    () => owner.transitioning = false,
+  )
+}
+
+///|
+/// Prepaid metadata capacity of this SAME completed Read. The Host checks all
+/// list lengths before flattening/tokenizing any publication argument Arrays.
+pub fn installed_effect_capture_publication_input_limit(
+  owner : ClientInstalledEffectCaptureRecovery,
+) -> Result[Int, ClientInstalledManagedRunIssue] {
+  if owner.transitioning || owner.closing || owner.fixed is None {
+    return Err(Retired)
+  }
+  guard owner.fixed is Some(fixed) &&
+    owner.material is Some(material) &&
+    owner.material_ready &&
+    owner.material_completed &&
+    owner.material_captured is Some(captured) &&
+    owner.publication_inputs is Some(inputs) &&
+    owner.parent is Some(parent) &&
+    owner.prepared is Some(prepared) &&
+    owner.request is Some(request) else {
+    return Err(ForeignOriginal)
+  }
+  owner.transitioning = true
+  preparation_module_call(
+    () => {
+      match check_installed_effect_managed_run(parent, prepared, request) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard !owner.closing &&
+        owner.transitioning &&
+        owner.material_completed &&
+        owner.parent is Some(p) &&
+        physical_equal(p, parent) &&
+        owner.prepared is Some(p) &&
+        physical_equal(p, prepared) &&
+        owner.request is Some(r) &&
+        physical_equal(r, request) &&
+        owner.fixed is Some(f) &&
+        physical_equal(f, fixed) &&
+        owner.material is Some(m) &&
+        physical_equal(m, material) &&
+        owner.material_captured is Some(c) &&
+        physical_equal(c, captured) &&
+        owner.publication_inputs == Some(inputs) else {
+        return Err(Retired)
+      }
+      Ok(inputs)
+    },
+    () => owner.transitioning = false,
+  )
+}
+
+///|
+/// The prepared final-publication methods borrow the admitted Definition and
+/// capture; they do not read/decrypt or re-admit either original. New escaped
+/// receipts/adoption envelopes join this Read's material reservation before
+/// construction and stay until its existing cleanup, including failure.
+pub fn begin_installed_effect_capture_publication(
+  owner : ClientInstalledEffectCaptureRecovery,
+  issue : Bool,
+  contracts : Array[@publication.PublicationContract],
+  receipt_wires : Array[String],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  let limit = match installed_effect_capture_publication_input_limit(owner) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard contracts.length() >= 2 &&
+    contracts.length() <= limit &&
+    receipt_wires.length() >= 1 &&
+    receipt_wires.length() <= limit &&
+    contracts.length() <= limit - receipt_wires.length() &&
+    owner.material_captured is Some(captured) &&
+    physical_equal(
+      contracts[0],
+      @publication.prepared_captured_effect_run_contract(captured),
+    ) else {
+    return Err(ForeignOriginal)
+  }
+  owner.material_completed = false
+  owner.transitioning = true
+  preparation_module_call(
+    () => {
+      guard @publication.effectful_publication_measurement_construction_inventory(
+          owner.max_depth,
+        )
+        is Some(measurement) &&
+        installed_effect_publication_inventory_bytes(measurement)
+        is Some(census_workspace) else {
+        return Err(InsufficientCapacity)
+      }
+      // The census creates only depth-bounded writer/cursor DATA. Fund it on
+      // this SAME material token now, never as an early standing output floor.
+      match
+        grow_installed_effect_capture_publication(owner, 0L, census_workspace) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard owner.parent is Some(parent) &&
+        owner.prepared is Some(prepared) &&
+        owner.request is Some(request) &&
+        owner.ledger is Some(ledger) &&
+        owner.material is Some(material) &&
+        parent.preparation is Some(preparation) &&
+        preparation is PlannedEffectManaged(admission, plan) &&
+        parent.effect_operation_controls is Some(control) else {
+        return Err(Retired)
+      }
+      let (returned, peak) = match
+        with_installed_effect_dependency_work(
+          control,
+          admission,
+          plan,
+          ledger,
+          () => {
+            guard owner.transitioning &&
+              !owner.closing &&
+              owner.material is Some(same) &&
+              physical_equal(same, material) else {
+              return Err(Retired)
+            }
+            match
+              check_installed_effect_managed_run_binding(
+                parent, prepared, request,
+              ) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+            check_installed_managed_run_original(parent, ledger, preparation).map(_ => {
+                ()
+              },
+            )
+          },
+          material,
+          () => {
+            owner.transitioning &&
+            !owner.closing &&
+            owner.material is Some(same) &&
+            physical_equal(same, material)
+          },
+          spend => {
+            let refused : Ref[@resources.LedgerIssue?] = Ref(None)
+            let inventory = @publication.effectful_publication_construction_inventory(
+              issue,
+              contracts,
+              receipt_wires,
+              max_bytes,
+              max_nodes,
+              max_depth,
+              prepared=Some(captured),
+              work=Some(units => {
+                match spend(units) {
+                  Ok(_) => true
+                  Err(issue) => {
+                    refused.val = Some(issue)
+                    false
+                  }
+                }
+              }),
+            )
+            match refused.val {
+              Some(issue) =>
+                Err(@resources.NodeManagedRunOperationIssue::Control(issue))
+              None =>
+                match inventory {
+                  Some(value) => Ok(value)
+                  None =>
+                    Err(
+                      @resources.NodeManagedRunOperationIssue::Original(
+                        InsufficientCapacity,
+                      ),
+                    )
+                }
+            }
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) =>
+          return Err(installed_effect_operation_reservation_issue(issue))
+      }
+      // Every temporary measurement frame and borrowed Work view has returned
+      // before the final fresh original/current reservation and constructor.
+      guard @execution.preparation_representation_cost({
+          record_headers: returned.record_headers,
+          reference_slots: returned.reference_slots,
+          scalar_words: returned.scalar_words,
+          owned_utf16_units: returned.owned_utf16_units,
+          owned_wire_bytes: returned.owned_wire_bytes,
+        })
+        is Some(retained) &&
+        @execution.preparation_representation_cost({
+          record_headers: peak.record_headers,
+          reference_slots: peak.reference_slots,
+          scalar_words: peak.scalar_words,
+          owned_utf16_units: peak.owned_utf16_units,
+          owned_wire_bytes: peak.owned_wire_bytes,
+        })
+        is Some(workspace) else {
+        return Err(InsufficientCapacity)
+      }
+      grow_installed_effect_capture_publication(owner, retained, workspace)
+    },
+    () => owner.transitioning = false,
+  )
+}
+
+///|
+fn installed_effect_publication_inventory_bytes(
+  value : @publication.EffectPreviewIdentityConstructionInventory,
+) -> Int64? {
+  @execution.preparation_representation_cost({
+    record_headers: value.record_headers,
+    reference_slots: value.reference_slots,
+    scalar_words: value.scalar_words,
+    owned_utf16_units: value.owned_utf16_units,
+    owned_wire_bytes: value.owned_wire_bytes,
+  })
+}
+
+///|
+fn grow_installed_effect_capture_publication(
+  owner : ClientInstalledEffectCaptureRecovery,
+  retained : Int64,
+  workspace : Int64,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.transitioning &&
+    !owner.closing &&
+    owner.parent is Some(parent) &&
+    owner.prepared is Some(prepared) &&
+    owner.request is Some(request) &&
+    owner.ledger is Some(ledger) &&
+    owner.material is Some(material) &&
+    parent.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) else {
+    return Err(Retired)
+  }
+  let previous = owner.publication_retained
+  guard installed_effect_capture_completed_material_retention(owner)
+    is Some(floor) &&
+    @execution.checked_preparation_add_product(previous, retained, 1L)
+    is Some(next) &&
+    @execution.checked_preparation_add_product(floor, retained, 1L)
+    is Some(required_retained) &&
+    @execution.checked_preparation_add_product(required_retained, workspace, 1L)
+    is Some(required_execution) else {
+    return Err(InsufficientCapacity)
+  }
+  let original : () -> Result[Unit, ClientInstalledManagedRunIssue] = () => {
+    guard !owner.closing &&
+      owner.transitioning &&
+      owner.publication_retained == previous &&
+      owner.parent is Some(p) &&
+      physical_equal(p, parent) &&
+      owner.prepared is Some(p) &&
+      physical_equal(p, prepared) &&
+      owner.request is Some(r) &&
+      physical_equal(r, request) &&
+      owner.ledger is Some(l) &&
+      physical_equal(l, ledger) &&
+      owner.material is Some(m) &&
+      physical_equal(m, material) else {
+      return Err(Retired)
+    }
+    check_installed_managed_run_original(parent, ledger, preparation).map(_ => {
+      ()
+    })
+  }
+  match
+    @resources.grow_prepared_run_operation_capacity(
+      admission,
+      plan,
+      ledger,
+      original,
+      @resources.NodeManagedRunOperationBacking::Construction(material),
+      required_retained,
+      required_execution,
+    ).map_err(installed_effect_operation_reservation_issue) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      owner.publication_retained = next
+      Ok(())
+    }
+  }
+}
+
+///|
+// Exact existing completed-material floor, including every earlier escaped
+// publication output. This reads original geometry only, not a heap census or
+// another capacity receipt. All terms match the ordinary completion below.
+fn installed_effect_capture_completed_material_retention(
+  owner : ClientInstalledEffectCaptureRecovery,
+) -> Int64? {
+  guard owner.definition is Some(definition) &&
+    owner.material_bytes is Some(bytes) &&
+    owner.material_nodes is Some(nodes) &&
+    request_effect_capture_recovery_capacity(
+      bytes,
+      @publication.publication_contract_json(definition).length(),
+      owner.max_wire_bytes,
+      owner.max_nodes,
+      owner.max_depth,
+      nodes=Some(nodes),
+      staged_envelope=owner.material_staged_envelope,
+      envelope_nodes=owner.material_envelope_nodes,
+      plaintext_bytes=owner.material_plaintext_bytes,
+      publication_inputs=owner.publication_inputs.unwrap_or(0),
+      envelope_units=owner.material_envelope_wire
+        .map(String::length)
+        .unwrap_or(0),
+    )
+    is Some(required) &&
+    request_effect_capture_recovery_capacity(
+      0,
+      @publication.publication_contract_json(definition).length(),
+      owner.max_wire_bytes,
+      owner.max_nodes,
+      owner.max_depth,
+    )
+    is Some(base) &&
+    @execution.execution_capacity_inventory_bytes([
+      {
+        unit: ValueNodeSlots,
+        count: Int64::max(
+          if owner.material_staged_envelope {
+            owner.material_envelope_nodes.unwrap_or(0).to_int64()
+          } else {
+            bytes.to_int64()
+          },
+          nodes.to_int64() * 3L,
+        ) -
+        nodes.to_int64() * 2L,
+        copies: 1,
+      },
+    ])
+    is Some(trees) &&
+    request_effect_capture_binary_bytes(bytes, owner.material_staged_envelope)
+    is Some(buffers) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(
+    @execution.execution_capacity_retained_bytes(required) -
+    @execution.execution_capacity_retained_bytes(base) -
+    trees -
+    buffers,
+    owner.publication_retained,
+    1L,
   )
 }
 
@@ -108,6 +524,7 @@ pub fn reserve_installed_effect_capture_recovery(
   if owner.transitioning || owner.closing || owner.fixed is None {
     return Err(Retired)
   }
+  owner.material_completed = false
   owner.transitioning = true
   preparation_module_call(
     () => {
@@ -138,6 +555,7 @@ pub fn reserve_installed_effect_capture_recovery(
           owner.max_nodes,
           owner.max_depth,
           nodes=Some(0),
+          staged_envelope=owner.material_staged_envelope,
         )
         is Some(required) &&
         request_effect_capture_recovery_capacity(
@@ -170,17 +588,106 @@ pub fn reserve_installed_effect_capture_recovery(
 }
 
 ///|
+pub fn reserve_installed_effect_capture_encrypted(
+  owner : ClientInstalledEffectCaptureRecovery,
+  bytes : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if owner.material is None {
+    if owner.transitioning || owner.closing || owner.fixed is None {
+      return Err(Retired)
+    }
+    owner.material_completed = false
+    owner.transitioning = true
+    let started = preparation_module_call(
+      () => prepare_installed_effect_capture_recovery_work(owner),
+      () => owner.transitioning = false,
+    )
+    match started {
+      Err(issue) => return Err(issue)
+      Ok(_) => owner.material_staged_envelope = true
+    }
+  }
+  reserve_installed_effect_capture_recovery(owner, bytes)
+}
+
+///|
+// Cold recovery has the SAME adopted Plan but no fresh Source pin's Work
+// continuation. Start that existing publication phase once on its original
+// control before funding bytes, lexical geometry and authenticated plaintext.
+// The nominal continuation remains backed by the parent after this Read ends;
+// the Read's fixed recipe already funds its lexical construction workspace.
+fn prepare_installed_effect_capture_recovery_work(
+  owner : ClientInstalledEffectCaptureRecovery,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.transitioning &&
+    !owner.closing &&
+    owner.fixed is Some(_) &&
+    owner.parent is Some(parent) &&
+    owner.prepared is Some(prepared) &&
+    owner.request is Some(request) &&
+    owner.ledger is Some(ledger) &&
+    parent.ledger is Some(original_ledger) &&
+    physical_equal(ledger, original_ledger) &&
+    parent.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) else {
+    return Err(ForeignOriginal)
+  }
+  match check_installed_effect_managed_run(parent, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if parent.effect_operation_controls is None {
+    match
+      retain_installed_effect_operation_controls_before_construction(
+        parent, prepared, request, plan,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  guard parent.effect_operation_controls is Some(control) else {
+    return Err(ForeignOriginal)
+  }
+  if control.dependency_work is Some(_) {
+    return Ok(())
+  }
+  let phase = @resources.preparation_phase_work_continuation64_construction_inventory()
+  guard @execution.preparation_representation_cost({
+      record_headers: phase.record_headers,
+      reference_slots: phase.reference_slots,
+      scalar_words: phase.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) &&
+    @execution.execution_capacity(bytes, bytes) is Some(capacity) else {
+    return Err(InsufficientCapacity)
+  }
+  match
+    retain_installed_effect_dependency_capacity(
+      parent, preparation, admission, plan, ledger, control, capacity,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  begin_installed_effect_dependency_work(admission, plan, ledger, control)
+}
+
+///|
 /// Observe only allocation geometry of the SAME authenticated plaintext before
 /// native JSON.parse or typed reconstruction. This is not JSON admission: all
 /// original validators still consume the complete wire. Include punctuation
 /// and escapes INSIDE strings to cover the embedded contract trees as well.
+/// One escape can introduce at most one decoded code unit, including a
+/// structural Unicode escape. First values are already covered by the root,
+/// collection openings and field/element separators; quotes are not two nodes.
 fn effect_capture_wire_nodes(wire : String) -> Int? {
   let mut nodes = 1L
   for index = 0; index < wire.length(); index = index + 1 {
     let code = wire[index].to_int()
-    nodes += if code == 123 || code == 91 || code == 92 {
+    nodes += if code == 123 || code == 91 {
       2L
-    } else if code == 58 || code == 44 {
+    } else if code == 58 || code == 44 || code == 92 {
       1L
     } else {
       0L
@@ -203,20 +710,38 @@ pub fn reserve_installed_effect_capture_decoded(
   if owner.transitioning || owner.closing || owner.fixed is None {
     return Err(Retired)
   }
+  owner.material_completed = false
   guard owner.material_bytes is Some(bytes) &&
     wire.length() <= bytes &&
-    effect_capture_wire_nodes(wire) is Some(nodes) else {
+    (
+      !owner.material_staged_envelope ||
+      owner.material_envelope_nodes is Some(_)
+    ) else {
     return Err(ForeignOriginal)
   }
   if owner.material_wire is Some(original) && original != wire {
     return Err(ForeignOriginal)
   }
-  owner.material_nodes = Some(nodes)
-  owner.material_wire = Some(wire)
-  owner.material_ready = false
   owner.transitioning = true
   preparation_module_call(
     () => {
+      let nodes = if owner.material_staged_envelope {
+        match observe_installed_effect_capture_plaintext_nodes(owner, wire) {
+          Err(issue) => return Err(issue)
+          Ok(nodes) => nodes
+        }
+      } else if owner.material_wire == Some(wire) &&
+        owner.material_nodes is Some(nodes) {
+        nodes
+      } else {
+        match effect_capture_wire_nodes(wire) {
+          Some(nodes) => nodes
+          None => return Err(ForeignOriginal)
+        }
+      }
+      owner.material_nodes = Some(nodes)
+      owner.material_wire = Some(wire)
+      owner.material_ready = false
       match resize_installed_effect_capture_recovery_material(owner, false) {
         Err(issue) => Err(issue)
         Ok(_) => {
@@ -249,7 +774,13 @@ pub fn complete_installed_effect_capture_recovery(
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-      resize_installed_effect_capture_recovery_definition(owner, true)
+      match resize_installed_effect_capture_recovery_definition(owner, true) {
+        Err(issue) => Err(issue)
+        Ok(_) => {
+          owner.material_completed = true
+          Ok(())
+        }
+      }
     },
     () => owner.transitioning = false,
   )
@@ -340,6 +871,7 @@ fn resize_installed_effect_capture_recovery_definition(
 fn resize_installed_effect_capture_recovery_material(
   owner : ClientInstalledEffectCaptureRecovery,
   completed : Bool,
+  validation? : Bool = false,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard !owner.closing &&
     owner.transitioning &&
@@ -360,7 +892,11 @@ fn resize_installed_effect_capture_recovery_material(
   guard owner.material is Some(material) && owner.material_bytes is Some(bytes) else {
     return check_installed_effect_managed_run(parent, prepared, request)
   }
+  if !completed && !validation {
+    owner.material_completed = false
+  }
   let nodes = owner.material_nodes.unwrap_or(0)
+  let plaintext_bytes = owner.material_plaintext_bytes
   let original : () -> Result[Unit, ClientInstalledManagedRunIssue] = () => {
     guard !owner.closing &&
       owner.transitioning &&
@@ -379,7 +915,8 @@ fn resize_installed_effect_capture_recovery_material(
       owner.material is Some(m) &&
       physical_equal(m, material) &&
       owner.material_bytes == Some(bytes) &&
-      owner.material_nodes.unwrap_or(0) == nodes else {
+      owner.material_nodes.unwrap_or(0) == nodes &&
+      owner.material_plaintext_bytes == plaintext_bytes else {
       return Err(Retired)
     }
     check_installed_managed_run_original(parent, ledger, preparation).map(_ => {
@@ -396,6 +933,13 @@ fn resize_installed_effect_capture_recovery_material(
       owner.max_nodes,
       owner.max_depth,
       nodes=Some(nodes),
+      staged_envelope=owner.material_staged_envelope,
+      envelope_nodes=owner.material_envelope_nodes,
+      plaintext_bytes~,
+      publication_inputs=owner.publication_inputs.unwrap_or(0),
+      envelope_units=owner.material_envelope_wire
+        .map(String::length)
+        .unwrap_or(0),
     )
     is Some(required) &&
     request_effect_capture_recovery_capacity(
@@ -408,11 +952,29 @@ fn resize_installed_effect_capture_recovery_material(
     is Some(base) else {
     return Err(InsufficientCapacity)
   }
-  let retained = @execution.execution_capacity_retained_bytes(required) -
+  let mut retained = @execution.execution_capacity_retained_bytes(required) -
     @execution.execution_capacity_retained_bytes(base)
-  let execution = @execution.execution_capacity_execution_bytes(required) -
+  let mut execution = @execution.execution_capacity_execution_bytes(required) -
     @execution.execution_capacity_execution_bytes(base)
-  if completed {
+  // Publication adds genuine escaped outputs to this SAME material owner;
+  // no subsequent validation/completion may refund those still-live aliases.
+  guard @execution.checked_preparation_add_product(
+      retained,
+      owner.publication_retained,
+      1L,
+    )
+    is Some(total_retained) &&
+    @execution.checked_preparation_add_product(
+      execution,
+      owner.publication_retained,
+      1L,
+    )
+    is Some(total_execution) else {
+    return Err(InsufficientCapacity)
+  }
+  retained = total_retained
+  execution = total_execution
+  if completed || validation {
     // The full parsed capture container no longer exists after the trusted
     // Store return. That return also cuts the envelope/ciphertext/plaintext
     // buffers and completed schema-writer bytes; failures never enter here.
@@ -422,28 +984,58 @@ fn resize_installed_effect_capture_recovery_material(
     guard @execution.execution_capacity_inventory_bytes([
         {
           unit: ValueNodeSlots,
-          count: Int64::max(bytes.to_int64(), nodes.to_int64() * 3L) -
+          count: Int64::max(
+            if owner.material_staged_envelope {
+              owner.material_envelope_nodes.unwrap_or(0).to_int64()
+            } else {
+              bytes.to_int64()
+            },
+            nodes.to_int64() * 3L,
+          ) -
           nodes.to_int64() * 2L,
           copies: 1,
         },
-        { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 4, },
       ])
+      is Some(completed_trees) &&
+      request_effect_capture_binary_bytes(bytes, owner.material_staged_envelope)
+      is Some(completed_buffers) &&
+      @execution.checked_preparation_add_product(
+        completed_trees, completed_buffers, 1L,
+      )
       is Some(completed_material) else {
       return Err(InsufficientCapacity)
     }
-    return @resources.complete_prepared_run_operation_construction_output(
-      admission,
-      plan,
-      ledger,
-      original,
-      backing,
-      retained - completed_material,
-    ).map_err(installed_effect_operation_reservation_issue)
+    if completed {
+      return @resources.complete_prepared_run_operation_construction_output(
+        admission,
+        plan,
+        ledger,
+        original,
+        backing,
+        retained - completed_material,
+      ).map_err(installed_effect_operation_reservation_issue)
+    }
+    // A retained-value validator keeps the identical live output floor and
+    // every existing parser/cursor/text/hash workspace term. Only the ended
+    // physical four-buffer and full parsed-container packet is absent in BOTH
+    // dimensions; this never returns the two live trees or decoded Strings.
+    retained -= completed_material
+    execution -= completed_material
   }
   if @resources.capacity_reservation_covers(
       ledger, material, retained, execution,
     ) {
     return original()
+  }
+  if owner.material_staged_envelope && plaintext_bytes is Some(_) {
+    // The SAME authenticated plaintext refines an unused encrypted-byte text
+    // ceiling. Its retained bound can decrease while the actual decoded-node
+    // constructor workspace increases. This existing closed resize preserves
+    // all live envelope/binary/text/tree copies and the original current fence;
+    // grow-only cannot express that vector, and no physical ACK is inferred.
+    return @resources.resize_prepared_run_operation_control_construction(
+      admission, plan, ledger, original, material, retained, execution,
+    ).map_err(installed_effect_operation_reservation_issue)
   }
   @resources.grow_prepared_run_operation_capacity(
     admission, plan, ledger, original, backing, retained, execution,
@@ -468,8 +1060,14 @@ pub fn retire_installed_effect_capture_recovery(
   owner.request = None
   owner.definition = None
   owner.material_wire = None
+  owner.material_captured = None
+  owner.material_envelope_wire = None
+  owner.material_envelope_nodes = None
   owner.material_nodes = None
+  owner.material_plaintext_bytes = None
   owner.material_ready = false
+  owner.material_completed = false
+  owner.publication_inputs = None
   owner.transitioning = true
   preparation_module_call(
     () => {

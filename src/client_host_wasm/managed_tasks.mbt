@@ -521,6 +521,7 @@ pub fn managed_task_issue(nonce : Int64, handle : Int) -> Int {
         IdentityExport(_) => 80
         CarrierSnapshot(_) => 81
         ControlWorkLimit(_) => 82
+        ExecutionCapacityRefusal(_, _, _, _) => 83
       }
     Some(Estimate(issue)) =>
       match issue {

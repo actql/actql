@@ -181,3 +181,40 @@ pub fn[T] relocate_funded_read_consumer_cleanup_state(
   claim.admitted = admitted
   Ok(())
 }
+
+///|
+/// Add a constructor span to THIS entered Read's actual current token/child
+/// amounts. Caller snapshots are not an authority to omit an earlier prefix.
+/// Reuses the existing grow/current/reentry protocol and creates no token.
+pub fn[T] grow_funded_read_consumer_span(
+  consumer : FundedReadConsumer[T],
+  origin : T,
+  retained_span : Int64,
+  execution_span : Int64,
+) -> Result[(Int64, Int64), OriginalReadIssue] {
+  if retained_span < 0L || execution_span < 0L {
+    return Err(Resource(InvalidCharge))
+  }
+  guard consumer.claim is Some(claim) else { return Err(SpentClaim) }
+  let (r, e) = if claim.children is Some(_) {
+    guard original_read_child(claim, consumer) is Some(child) &&
+      physical_equal(child.origin, origin) else {
+      return Err(ForeignOrigin)
+    }
+    (child.retained_bytes, child.execution_bytes)
+  } else {
+    if !physical_equal(claim.descriptor.origin, origin) {
+      return Err(ForeignOrigin)
+    }
+    (claim.read.reservation.retention, claim.read.reservation.execution)
+  }
+  if retained_span > 9223372036854775807L - r ||
+    execution_span > 9223372036854775807L - e {
+    return Err(Resource(InvalidCharge))
+  }
+  let next = (r + retained_span, e + execution_span)
+  match grow_funded_read_consumer_capacity(consumer, origin, next.0, next.1) {
+    Ok(_) => Ok(next)
+    Err(issue) => Err(issue)
+  }
+}

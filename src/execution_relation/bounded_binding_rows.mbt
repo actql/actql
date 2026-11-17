@@ -267,7 +267,93 @@ priv struct BoundedRowComparison {
   mut phase : Int
   mut offset : Int
   charge : BoundedTextCharge
-  mut tree : BoundedCompleteTreeComparison?
+  mut tree : BoundedRowComparisonContinuation
+}
+
+///|
+/// Reuse the existing optional tree continuation's tag and payload slot. Text
+/// and recursive complete-value comparisons never coexist in one term.
+priv enum BoundedRowComparisonContinuation {
+  NoRowComparison
+  TreeRowComparison(BoundedCompleteTreeComparison)
+  TextRowComparison(BoundedComparisonTextOperands)
+}
+
+///|
+/// Exact in-memory reads anchor the cell DATA for its live owner. Supplied
+/// rows use the same sealed backing as a producer's captured-input table.
+/// Their availability callback is still checked by every owning pair poll;
+/// this record retains Text DATA, never a currentness or permission result.
+priv struct BoundedComparisonTextSource {
+  left : BoundedBindingInput
+  right : BoundedBindingInput
+  keys : Array[(Int, Int)]
+}
+
+///|
+priv struct BoundedComparisonTextOperands {
+  source : BoundedComparisonTextSource
+  key : Int
+  left_column : Int
+  right_column : Int
+  left : String
+  right : String
+  workspace : RowWorkspace
+}
+
+///|
+fn bounded_comparison_text_input_supported(input : BoundedBindingInput) -> Bool {
+  match input {
+    CompletedBindingInput(read) => read.bound.output.table is Some(_)
+    SuppliedBindingInput(_) => true
+  }
+}
+
+///|
+fn bounded_comparison_text_input_current(input : BoundedBindingInput) -> Bool {
+  match input {
+    CompletedBindingInput(read) => producer_read_available(read)
+    SuppliedBindingInput(read) => supplied_relation_read_available(read)
+  }
+}
+
+///|
+fn prepare_bounded_comparison_text_source(
+  left : BoundedBindingInput,
+  right : BoundedBindingInput,
+  keys : Array[(Int, Int)],
+  workspace : RowWorkspace,
+) -> Result[BoundedComparisonTextSource?, OrderingIssue] {
+  guard bounded_comparison_text_input_supported(left) &&
+    bounded_comparison_text_input_supported(right) else {
+    return Ok(None)
+  }
+  // One record header and three borrowed fields. The exact live reads retain
+  // their sealed backing; no String or row payload is copied.
+  if !reserve_slots(workspace, 4) {
+    return Err(Limit)
+  }
+  Ok(Some({ left, right, keys, }))
+}
+
+///|
+fn clear_bounded_comparison_text(cursor : BoundedRowComparison) -> Unit {
+  if cursor.tree is TextRowComparison(text) {
+    cursor.tree = NoRowComparison
+    release_slots(text.workspace, 8)
+  }
+}
+
+///|
+fn reset_bounded_row_comparison(cursor : BoundedRowComparison) -> Unit {
+  clear_bounded_comparison_text(cursor)
+  if cursor.tree is TreeRowComparison(tree) {
+    close_complete_tree_comparison(tree)
+    cursor.tree = NoRowComparison
+  }
+  cursor.phase = -1
+  cursor.offset = 0
+  reset_bounded_text_charge(cursor.charge)
 }
 
 ///|
@@ -279,12 +365,10 @@ fn bounded_comparison_charge_text(
     Captured(@admitted.Date(text)) | Captured(@admitted.Timestamp(text)) =>
       Ok(Some(text))
     Captured(@admitted.Decimal(decimal)) => Ok(Some(decimal.coefficient))
-    Captured(@admitted.Reference(reference)) =>
-      if @admitted.reference_available(reference) {
-        Ok(Some(@admitted.reference_identity_cid(reference)))
-      } else {
-        Err(Scalar(InvalidOperand))
-      }
+    // Admitted reference CIDs have a fixed canonical width. Use the existing
+    // scalar operand charge, including its current-authorization check and
+    // complete CID work debit, rather than reopening the operand per byte.
+    Captured(@admitted.Reference(_)) => Ok(None)
     _ => Ok(None)
   }
 }
@@ -302,6 +386,48 @@ fn bounded_row_comparison_step_with(
   complete_values? : Bool = false,
   workspace? : RowWorkspace? = None,
   positional_at? : (Int) -> Int = _ => 0,
+  text_source? : BoundedComparisonTextSource? = None,
+) -> Result[Int?, OrderingIssue] {
+  let result = bounded_row_comparison_step_inner(
+    cursor,
+    orders,
+    control,
+    read_cell,
+    left_row,
+    right_row,
+    terms,
+    presence~,
+    complete_values~,
+    workspace~,
+    positional_at~,
+    text_source=if presence is None { text_source } else { None },
+  )
+  // The general complete-value path keeps its original failed tree until its
+  // owning cleanup. Only this Text extension owns the new borrowed operands.
+  if result is Err(_) &&
+    (
+      cursor.tree is TextRowComparison(_) ||
+      (text_source is Some(_) && presence is None)
+    ) {
+    reset_bounded_row_comparison(cursor)
+  }
+  result
+}
+
+///|
+fn bounded_row_comparison_step_inner(
+  cursor : BoundedRowComparison,
+  orders : Array[ColumnOrder],
+  control : ControlBudget,
+  read_cell : (Int, Int) -> Value?,
+  left_row : Int,
+  right_row : Int,
+  terms : Int,
+  presence? : ((Int, Int) -> Result[Bool, OrderingIssue])? = None,
+  complete_values? : Bool = false,
+  workspace? : RowWorkspace? = None,
+  positional_at? : (Int) -> Int = _ => 0,
+  text_source? : BoundedComparisonTextSource? = None,
 ) -> Result[Int?, OrderingIssue] {
   if terms < 0 || terms > orders.length() {
     return Err(InvalidInput)
@@ -320,7 +446,7 @@ fn bounded_row_comparison_step_with(
     return Err(InvalidInput)
   }
   if cursor.term == terms {
-    cursor.phase = -1
+    reset_bounded_row_comparison(cursor)
     return Ok(Some(0))
   }
   let order = orders[cursor.term]
@@ -340,9 +466,10 @@ fn bounded_row_comparison_step_with(
       // This private index order groups equal complete rows. It neither
       // fabricates a scalar nor grants authors permission to order by absence.
       if left_present != right_present {
-        cursor.phase = -1
+        reset_bounded_row_comparison(cursor)
         return Ok(Some(if left_present { 1 } else { -1 }))
       }
+      clear_bounded_comparison_text(cursor)
       cursor.term += 1
       cursor.phase = 0
       cursor.offset = 0
@@ -350,10 +477,77 @@ fn bounded_row_comparison_step_with(
       return Ok(None)
     }
   }
-  let left = read_cell(left_row, order.column)
-  let right = read_cell(right_row, order.column)
-  guard left is Some(left) && right is Some(right) else {
-    return Err(InvalidInput)
+  let (left, right) = match cursor.tree {
+    TextRowComparison(text) => {
+      guard text_source is Some(source) &&
+        physical_equal(text.source, source) &&
+        text.key == order.column &&
+        source.keys.get(order.column) is Some(columns) &&
+        text.left_column == (if left_row >= 0 { columns.0 } else { columns.1 }) &&
+        text.right_column ==
+        (if right_row >= 0 { columns.0 } else { columns.1 }) else {
+        return Err(InvalidInput)
+      }
+      (Text(text.left), Text(text.right))
+    }
+    NoRowComparison | TreeRowComparison(_) => {
+      let read = fn(row, column) {
+        match text_source {
+          Some(source) => {
+            guard source.keys.get(column) is Some(columns) else { return None }
+            if row >= 0 {
+              bounded_binding_input_cell(source.left, row, columns.0)
+            } else {
+              bounded_binding_input_cell(source.right, -1 - row, columns.1)
+            }
+          }
+          None => read_cell(row, column)
+        }
+      }
+      guard read(left_row, order.column) is Some(left) &&
+        read(right_row, order.column) is Some(right) else {
+        return Err(InvalidInput)
+      }
+      if text_source is Some(source) &&
+        presence is None &&
+        left is Text(a) &&
+        right is Text(b) {
+        guard workspace is Some(workspace) &&
+          source.keys.get(order.column) is Some(columns) else {
+          return Err(InvalidInput)
+        }
+        // Header plus seven fields, including the workspace and exact source
+        // anchors. The two Strings borrow existing immutable backing bytes.
+        if !reserve_slots(workspace, 8) {
+          return Err(Limit)
+        }
+        // Funding can call the Host. It cannot carry the entry check across
+        // that callback, even though the retained DATA itself is immutable.
+        if !bounded_comparison_text_input_current(source.left) ||
+          !bounded_comparison_text_input_current(source.right) {
+          release_slots(workspace, 8)
+          return Err(InvalidInput)
+        }
+        cursor.tree = TextRowComparison({
+          source,
+          key: order.column,
+          left_column: if left_row >= 0 {
+            columns.0
+          } else {
+            columns.1
+          },
+          right_column: if right_row >= 0 {
+            columns.0
+          } else {
+            columns.1
+          },
+          left: a,
+          right: b,
+          workspace,
+        })
+      }
+      (left, right)
+    }
   }
   let positional_count = positional_at(cursor.term)
   if positional_count > 1 &&
@@ -366,7 +560,7 @@ fn bounded_row_comparison_step_with(
     // The private whole-row order uses the same complete-value domain as Set.
     // Recursive admitted values retain their cursor, roots and reservation
     // across merge and adjacent-row polls; this is not an authored sort key.
-    if cursor.tree is None &&
+    if cursor.tree is NoRowComparison &&
       left is Captured(a) &&
       right is Captured(b) &&
       (match (a, b) {
@@ -385,28 +579,30 @@ fn bounded_row_comparison_step_with(
           workspace,
           positional_count~,
         ) {
-        Ok(tree) => cursor.tree = Some(tree)
+        Ok(tree) => cursor.tree = TreeRowComparison(tree)
         Err(issue) => return Err(issue)
       }
     }
     let compared = match cursor.tree {
-      Some(tree) => advance_complete_tree_comparison(tree, control)
-      None =>
+      TreeRowComparison(tree) => advance_complete_tree_comparison(tree, control)
+      NoRowComparison =>
         compare_complete_value(left, right, control).map(value => Some(value))
+      TextRowComparison(_) => return Err(InvalidInput)
     }
     let compared = match compared {
       Ok(None) => return Ok(None)
       Ok(Some(value)) => value
       Err(issue) => return Err(issue)
     }
-    if cursor.tree is Some(tree) {
+    if cursor.tree is TreeRowComparison(tree) {
       close_complete_tree_comparison(tree)
-      cursor.tree = None
+      cursor.tree = NoRowComparison
     }
     if compared != 0 {
-      cursor.phase = -1
+      reset_bounded_row_comparison(cursor)
       return Ok(Some(compared))
     }
+    clear_bounded_comparison_text(cursor)
     cursor.term += 1
     cursor.phase = 0
     cursor.offset = 0
@@ -492,9 +688,10 @@ fn bounded_row_comparison_step_with(
         -compared
       }
       if compared != 0 {
-        cursor.phase = -1
+        reset_bounded_row_comparison(cursor)
         Ok(Some(compared))
       } else {
+        clear_bounded_comparison_text(cursor)
         cursor.term += 1
         cursor.phase = 0
         cursor.offset = 0
@@ -844,10 +1041,7 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   }
   // The child sort must confirm stop before its borrowed comparison cursor
   // can release the admitted roots and scratch reservation.
-  if state.comparison.tree is Some(tree) {
-    close_complete_tree_comparison(tree)
-    state.comparison.tree = None
-  }
+  reset_bounded_row_comparison(state.comparison)
   state.sort_orders = []
   state.dedupe_orders = []
   state.sorted_indices = None
@@ -4279,7 +4473,7 @@ fn start_bounded_binding_rows_with_input(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
-      tree: None,
+      tree: NoRowComparison,
     },
     sort_kernel,
     sort_only,

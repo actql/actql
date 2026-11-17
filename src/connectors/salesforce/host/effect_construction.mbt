@@ -34,11 +34,17 @@ pub fn effect_driver_construction_capacity() -> @execution.ExecutionCapacity? {
       // alternatives/four Some maxima, and four original callback/context
       // pairs per kind. Six added captured native methods share one owner.
       // The current-body projector adds the same 2H14R original-method view.
-      records: 2L * 26L + 3L + 3L * (24L + 17L + 7L + 9L + 3L + 16L + 4L + 8L),
+      // Two warm selectors per kind each retain their original extent and
+      // closure context (2H14R); request selection adds one recipe reference.
+      // Its equal-bound request stage adds the real extent (1H8R2W),
+      // maximum Some (1H1R) and constructor Result (1H1R) before selection.
+      records: 2L * 26L +
+      3L +
+      3L * (24L + 17L + 7L + 9L + 3L + 16L + 4L + 8L + 4L + 3L),
       record_references: 26L * 14L +
       19L +
-      3L * (17L * 8L + 7L * 3L + 9L * 2L + 48L + 4L + 4L * 14L),
-      record_words: 1L + 3L * (24L * 2L + 17L * 4L + 7L * 3L + 32L + 4L),
+      3L * (17L * 8L + 7L * 3L + 9L * 2L + 48L + 4L + 4L * 14L + 29L + 10L),
+      record_words: 1L + 3L * (24L * 2L + 17L * 4L + 7L * 3L + 32L + 4L + 2L),
       // The three original immutable kind labels borrow module Strings.
       reference_arrays: 4L + 3L * 9L,
       reference_items: 3L + 22L + 8L + 6L + 3L * (24L + 4L + 5L + 7L + 4L + 24L),

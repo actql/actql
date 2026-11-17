@@ -118,6 +118,22 @@ not become initial listing demand. Resource refusal keeps original cleanup
 responsibility; no grant, Source success or physical stop follows from a quote.
 The separate Query-shaped listing/report path keeps its existing recipe.
 
+For an ordinary Query-shaped listing, the installed requirement selects its
+logical row ceiling from that same Direct request's admitted Catalog profile
+before constructing the acquisition Fragment contexts, requirement wire and
+CID. Those contexts use the same row ceiling rather than the unrelated Values
+default. The residual filter/capture then consumes the narrower of that original logical guard and its resolved
+physical listing ceiling. An explicitly selected smaller logical guard remains
+binding even when the physical ceiling is larger. Neither ceiling supplies
+capacity, observed row counts or permission; value, depth, work and physical
+Source admission remain separate. Missing Catalog limits retain the existing
+logical selection and still require the physical resolver's finite policy.
+
+Previously issued requirements keep their original guards, CIDs and receipts.
+This selection does not rewrite saved originals or reopen Source computation.
+The named checked-capture regression is a Source reference; ordinary physical
+execution and Saved acceptance require their own original-owner evidence.
+
 The Plan composes the original input, provider, Compute imports, output and
 simultaneous failed-child bounds through existing capacity functions and units.
 These immutable capacity DATA reserve nothing. Actual initialization and

@@ -46,11 +46,22 @@ test "READ metadata reconciles ended decode scratch to distinct actual retained 
   finish_request_result_metadata(owner, input).unwrap()
   assert_eq(grow_request_result_read_row(owner, input, 50).unwrap(), (64, 64))
   let grown = @resources.ledger_usage(owner.ledger)
+  // Coheld roles: metadata736+224, schema32*160+8*64+64,
+  // original128-byte frame with initial32-unit row, two wire-work slots,
+  // 64-byte output window, and the grown64-unit/32-node row plus buffers.
+  let expected = 736L +
+    224L +
+    (32L * 160L + 8L * 64L + 64L) +
+    (128L * 24L + 2L * (64L + 128L) + 32L + 128L) +
+    16L +
+    64L * 29L +
+    (32L * 160L + 12L * 64L + 2L * 64L + 32L + 32L * 64L)
+  assert_eq(expected, 20240L)
   assert_eq(
     grown.reserved_retention_bytes - before.reserved_retention_bytes,
-    18304L,
+    expected,
   )
-  assert_eq(grown.reserved_execution_bytes, 18304L)
+  assert_eq(grown.reserved_execution_bytes, expected)
   assert_eq(grown.live_reservations, before.live_reservations)
   assert_true(physical_equal(capacity, owner.capacity))
   abort_request_preparation_after_cleanup(owner).unwrap()

@@ -3,8 +3,7 @@
 // Store. Account/resource ports remain explicit; no approval or target send.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import fsPromises, {readFile, mkdtemp} from 'node:fs/promises';
-import {syncBuiltinESMExports} from 'node:module';
+import {readFile, mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -28,11 +27,7 @@ import {openLocalPublicationStore} from '../../../store-local/publication-store.
 import {acquiredEffectPublicationAdmission,sourceFreeContentEffectPublicationPlan,localOutputLimits} from '../../../host-node/local-values-plan.mjs';
 import {createLocalFileStoreDriver,LOCAL_STORE_LIMITS} from './installed-project-file-effects.mjs';
 import {releaseCompletedRunPreparedPayloads, suspendCompletedEffectfulComputation,
-  recoverCompletedEffectfulComputation, transferCompletedEffectfulCaptureCustody,
-  prepareCompletedEffectfulPublication, publishCompletedEffectfulRun} from '../../../host-common/completed-run-publication.mjs';
-import {captureClaimedEffectResponse} from '../../../host-node/effect-physical-dispatch.mjs';
-import {issueAuthorizedEffectSetReceipt} from '../../../host-node/effect-response-recovery.mjs';
-import {refusedEffectPreparation} from '../../../host-common/effect-preparation-result.mjs';
+  recoverCompletedEffectfulComputation} from '../../../host-common/completed-run-publication.mjs';
 
 const commonRuntime=process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME
   ?pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME)
@@ -165,7 +160,7 @@ test('actual Local STORE refuses missing or wrong typed inputs and conflicting o
 });
 
 async function storeOwnerFixture({withMapping=true,driverKinds=['command'],continuationBinding,serializationOptions='',authoredResult=false,
-  withCollection=false,requestBoundary,inspectRequest,withLocalDriver=false,observeRecovery,
+  withCollection=false,requestBoundary,inspectRequest,withLocalDriver=false,
   withContentContracts=false}={}) {
   const f={...fixture(),serializationOptions,authoredResult},mapping=JSON.parse(f.data.mappingWire),command=JSON.parse(f.data.commandWire);
   // The fixture owns one actual installed sequence-contract admission, just
@@ -215,11 +210,7 @@ async function storeOwnerFixture({withMapping=true,driverKinds=['command'],conti
       'send','project','footprint','recheckRequests','recoveryEntry','recoverRequests','requestCid']
       .map(name=>[name,name==='prepareRequest'&&requestBoundary!==undefined?facts=>{
         inspectRequest?.(facts);throw requestBoundary;
-      }:unavailable]))}:observeRecovery===undefined?local.driver:Object.freeze({...local.driver,
-        recoverRequests(...args){
-          const result=Reflect.apply(local.driver.recoverRequests,local.driver,args);
-          observeRecovery(result);return result;
-        }})});
+      }:unavailable]))}:local.driver});
   try{
     const publication=JSON.parse(f.publication);
     publication.storeTargets[0].installationOwnerCid=installedRowEffectOwnerBinding(owner).cid;
@@ -528,14 +519,13 @@ test('actual Local STORE authored Content captures Preview with its original pub
   }
 });
 
-test('actual Local STORE cold Content restores its retained generation before send',async t=>{
+test('actual Local STORE cold capture retains Source artifact and saved Run ownership',async t=>{
   const f=await storeOwnerFixture({withContentContracts:true,authoredResult:true,withCollection:true,withLocalDriver:true});
   const core=runtimeCore(moon),control=core.publicationControl;
   const directory=await mkdtemp(join(tmpdir(),'actql-store-cold-component-'));
   t.diagnostic(`Fresh component Store retained at ${directory}`);
   const storeAuthorityCid='sha256:'+'8'.repeat(64);
-  let store,family,execution,stage,recoveredStage,recoveredComputation,suspended=false;
-  const recoveryOwners=[];
+  let store,family,execution,stage,recoveredComputation,suspended=false;
   try{
     const {registry,values,fragment,ordered}=f.contentBodies;
     const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
@@ -584,7 +574,6 @@ test('actual Local STORE cold Content restores its retained generation before se
     assert.deepEqual(preview.effects[0].changes[0].target_row_identity,JSON.parse(f.target.resourceWire));
     const materials=JSON.parse(JSON.stringify(f.originals.captureRun({
       prepared:f.prepared,compilation:f.compilation,allowed,definition,identity})));
-    const continuation=JSON.parse(stage.continuationWire);
     // The actual Host beforeDefer callback prepares these SAME unsent intents
     // before suspending capture. This creates no dispatch or send permission.
     assert.equal(stage.apply.ledger.prepareCapturedSetIntents(
@@ -600,229 +589,25 @@ test('actual Local STORE cold Content restores its retained generation before se
     recoveredComputation=await recoverCompletedEffectfulComputation({store,control,runDefinition,
       contractLimits:{maxWireBytes:1000000,maxNodes:100000,maxDepth:100}});
     const restored=f.originals.restoreRun(materials,runDefinition,identity);
-    const recovered=Object.freeze({...restored,requestIdentity:identity,
-      requestScope:moon.clientRequestLogicalScope(identity),runDefinition,computation:recoveredComputation});
-    const embedded=await readFile(new URL('../../../host-node/embedded-local.mjs',import.meta.url),'utf8');
-    const begin=embedded.indexOf('  function recoveredInstalledEffect(facts) {');
-    const end=embedded.indexOf('\n  try {\n    const installationSourcePreparation',begin);
-    assert(begin>0&&end>begin);
-    const actualSelector=new Function('updateTargetOriginals','installedEffect',
-      'validateInstalledUpdateOwnerSelections','installedEffectFor','refusedEffectPreparation',
-      'clientOperationError',`return (${embedded.slice(begin,end).trim()});`)(
-      f.originals,f.owner,validateInstalledUpdateOwnerSelections,
-      ()=>assert.fail('The singular actual installation is the selected component'),
-      refusedEffectPreparation,code=>Object.assign(new Error(code),{code}));
-    const facts=Object.freeze({moon,control,store,recovered,continuation,contentRun:content,
-      principalId:'component',retainRecoveryOwner:owner=>recoveryOwners.push(owner)});
-    // Same actual Host selector and callback argument shape. In particular do
-    // not supply additional prepared/Plan/definition hints to mask a gap.
-    const selected=actualSelector(facts);
-    recoveredStage=await selected.prepareRecovered({...facts,
-      updateTargetSelections:recovered.updateTargetSelections,
-      assertUpdateSelectionCurrent:recovered.assertUpdateSelectionCurrent});
-    assert.strictEqual(recoveredStage.preview,recoveredComputation.preview);
-    assert.strictEqual(recoveredStage.computation,recoveredComputation.computation);
-    assert.strictEqual(recoveredStage.storedResults,recoveredComputation.storedResults);
-    assert(recoveryOwners.length>0);
-    const copiedSource=Object.freeze({...recoveredComputation.effectSources[0].source});
-    const copiedComputation=Object.freeze({...recoveredComputation,effectSources:Object.freeze(
-      recoveredComputation.effectSources.map((entry,index)=>index===0
-        ? Object.freeze({...entry,source:copiedSource}) : entry))});
-    const copied=Object.freeze({...recovered,computation:copiedComputation});
-    await assert.rejects(selected.prepareRecovered({...facts,recovered:copied,
-      updateTargetSelections:copied.updateTargetSelections,
-      assertUpdateSelectionCurrent:copied.assertUpdateSelectionCurrent}),
+    restored.assertUpdateSelectionCurrent();
+    assert.deepEqual(f.originals.captureRun({...restored,identity}),materials);
+    assert.deepEqual(JSON.parse(control.effectComputationPreviewWire(recoveredComputation.preview)),preview);
+    assert.equal(recoveredComputation.effectSources.length,1);
+    const savedSource=recoveredComputation.effectSources[0];
+    assert.equal(savedSource.memberIndex,0);
+    assert.equal(control.capturedEffectSourceArtifactCid(savedSource.source),savedSource.artifact.identity);
+    assert.equal(control.capturedEffectSourceStoreAuthorityCid(savedSource.source),storeAuthorityCid);
+    assert.match(control.capturedEffectSourceHoldingCid(savedSource.source),/^sha256:[0-9a-f]{64}$/u);
+    // The actual imported recovery boundary returned this exact nominal
+    // Source owner. Equal DATA cannot reconstruct its original capability.
+    assert.throws(()=>control.capturedEffectSourceArtifactCid(Object.freeze({...savedSource.source})),
       /Foreign captured Effect source artifact/);
     const foreignDefinition=control.admit('run_definition',moon.strategyPublicationContractJson(
       checked(moon.clientProgramIssueEffectRunDefinition(allowed,'store-reference-component',
         'foreign-cold-content-run','2026-10-21T00:00:00.000Z','2098-01-01T00:00:00.000Z'))),
       {maxWireBytes:1000000,maxNodes:100000,maxDepth:100});
-    const foreign=Object.freeze({...recovered,runDefinition:foreignDefinition});
-    await assert.rejects(selected.prepareRecovered({...facts,recovered:foreign,
-      updateTargetSelections:foreign.updateTargetSelections,
-      assertUpdateSelectionCurrent:foreign.assertUpdateSelectionCurrent}));
+    assert.throws(()=>f.originals.restoreRun(materials,foreignDefinition,identity));
   }finally{
-    // Match installed Effect custody: close the original physical recovery
-    // child before disposing the stage whose pending check protects it.
-    for(const owner of recoveryOwners)await owner.close();
-    await recoveredStage?.dispose();
-    await stage?.dispose();
-    if(recoveredComputation)await suspendCompletedEffectfulComputation({execution:null,store,
-      storedResults:recoveredComputation.storedResults,control,
-      computation:recoveredComputation.computation,preview:recoveredComputation.preview});
-    if(stage&&!suspended)await releaseCompletedRunPreparedPayloads(stage.storedResults,control);
-    await execution?.close();
-    if(execution)assert.equal(execution.cleanupPending(),false);
-    await family?.close();
-    if(family)assert.equal(family.cleanupPending(),false);
-    await store?.close();
-    await f.close();
-  }
-});
-
-test('actual Local STORE cold Content settles its original response through final publication',async t=>{
-  let recoveredRequests;
-  const f=await storeOwnerFixture({withContentContracts:true,authoredResult:true,withCollection:true,withLocalDriver:true,
-    observeRecovery:value=>{assert.equal(recoveredRequests,undefined);recoveredRequests=value;}});
-  const core=runtimeCore(moon),control=core.publicationControl;
-  const directory=await mkdtemp(join(tmpdir(),'actql-store-postwrite-component-'));
-  t.diagnostic(`Fresh component Store retained at ${directory}`);
-  const storeAuthorityCid='sha256:'+'8'.repeat(64);
-  let store,family,execution,stage,recoveredStage,recoveredComputation,suspended=false;
-  const recoveryOwners=[],missingContracts=[];
-  const originalOpen=fsPromises.open;
-  let observing=false,phase='capture',inventory;
-  const observedOpen=async function(...args){
-    const path=typeof args[0]==='string'?args[0]:undefined;
-    const selected=observing&&path?.startsWith(directory+'/contracts/')&&
-      /^[0-9a-f]{64}\.json$/.test(path.slice((directory+'/contracts/').length));
-    const callStack=selected?new Error('Original component contract read').stack:undefined;
-    try{return await Reflect.apply(originalOpen,this,args);}
-    catch(error){
-      if(selected&&error?.code==='ENOENT'&&missingContracts.length<8)
-        missingContracts.push({phase,cid:'sha256:'+path.split('/').at(-1).slice(0,64),stack:callStack});
-      throw error; // Same actual error, no missing-contract substitution.
-    }
-  };
-  try{
-    const {registry,values,fragment,ordered}=f.contentBodies;
-    const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
-      'sha256:'+'1'.repeat(64),'sha256:'+'2'.repeat(64),'2099-01-01T00:00:00.000Z'));
-    const definition=checked(moon.clientProgramIssueEffectRunDefinition(allowed,
-      'store-reference-component','store-reference-run','2026-10-21T00:00:00.000Z','2098-01-01T00:00:00.000Z'));
-    const runDefinition=control.admit('run_definition',moon.strategyPublicationContractJson(definition),
-      {maxWireBytes:1000000,maxNodes:100000,maxDepth:100});
-    const compiled=control.adoptCheckedClientEffectSerializationRun(allowed,runDefinition);
-    const owner=checked(moon.clientProgramBindCompiledEffectRun(f.prepared,allowed,definition));
-    store=await openLocalPublicationStore({directory,storeAuthorityCid,
-      capacityBytes:512*1024*1024,maxObjectBytes:localOutputLimits.maxWireBytes,maxObjects:100,
-      maxContractNodes:100000,maxContractDepth:100,privateEvidenceKey:Buffer.alloc(32,7)},control);
-    const content=installNodeContentRun({moon,core,registry,values,fragment,ordered,
-      namespaceId:'store-reference-component',authorityScopeCid:'sha256:'+'a'.repeat(64),
-      storeAuthorityCid,ownerPrincipal:'component',now:()=> '2026-10-21T00:00:00.000Z',authorize:()=>true});
-    family=content.effectFamily({prepared:f.prepared,plan:{kind:'effect',compiled,runDefinition,
-      serializationGraph:control.compiledSerializationGraph(compiled)},store,principalId:'component'});
-    const host=moon.clientProgramOpenSourceFreeFamilyEffectHost(owner,
-      registry,values,fragment,ordered,[family.provider]);
-    assert(host,'the actual authored Content has its original family Host');
-    const entry=createNodeHostEntry(()=>Promise.resolve(moon),installStrategyContributions);
-    execution=await entry.runCapturedEffectComputation(host,
-      {local:withLocalExecutionPauseHandler(undefined,boundary=>family.handlePause(boundary))});
-    assert.equal(execution.status,'host-tasks-completed');
-    assert(family.generation());
-    assert(moon.clientProgramEffectCompilationResultNames(f.compilation).includes('answer'));
-    const identity=moon.clientProgramEffectRequestIdentity(f.prepared,'sha256:'+'a'.repeat(64),
-      'store-reference-request',moon.clientProgramSourceFreeInputIntentCid());
-    assert(identity);
-    const acquired=acquiredEffectPublicationAdmission({moon,control,prepared:f.prepared,
-      compilation:f.compilation,allowed,definition,authorityScopeCid:'sha256:'+'a'.repeat(64),
-      namespaceId:'store-reference-component',storeAuthorityCid,now:()=> '2026-10-21T00:00:00.000Z',
-      resultDataPolicy:control.compiledSerializationPolicy(compiled)});
-    const plan=sourceFreeContentEffectPublicationPlan({acquired,compiled,generation:family.generation()});
-    try{stage=await f.owner.prepareCaptured({moon,control,store,execution,checkedHost:host,
-      prepared:f.prepared,compilation:f.compilation,identity,definition,publicationPlan:plan,
-      updateTargetSelections:f.selections,assertUpdateSelectionCurrent(){},contentOwner:family});}
-    catch(error){t.diagnostic(`Original postcompute consumer: ${inspect(error,{depth:6})}`);throw error;}
-    assert(stage.preview);
-    const preview=JSON.parse(control.effectComputationPreviewWire(stage.preview));
-    assert.equal(preview.effects.length,1);
-    assert.equal(preview.effects[0].effect_kind,'command');
-    assert.equal(preview.effects[0].changes.length,1);
-    assert.equal(preview.effects[0].changes[0].intended_changes.value.path,'copy.jsonl');
-    assert.deepEqual(preview.effects[0].changes[0].target_row_identity,JSON.parse(f.target.resourceWire));
-    const materials=JSON.parse(JSON.stringify(f.originals.captureRun({
-      prepared:f.prepared,compilation:f.compilation,allowed,definition,identity})));
-    const continuation=JSON.parse(stage.continuationWire);
-    // The actual Host beforeDefer callback prepares these SAME unsent intents
-    // before suspending capture. This creates no dispatch or send permission.
-    assert.equal(stage.apply.ledger.prepareCapturedSetIntents(
-      stage.apply.capturedInputs,stage.apply.members,stage.apply.maxFrontierWork),1);
-    await suspendCompletedEffectfulComputation({execution,store,storedResults:stage.storedResults,
-      control,computation:stage.computation,preview:stage.preview});
-    suspended=true;
-    await stage.dispose();
-    await execution.close();assert.equal(execution.cleanupPending(),false);execution=undefined;
-    await family.close();assert.equal(family.cleanupPending(),false);family=undefined;
-    // Re-admit only this NEW component's saved capture. No public/failed Run
-    // state, private dispatch/retry or physical target send is a test port.
-    recoveredComputation=await recoverCompletedEffectfulComputation({store,control,runDefinition,
-      contractLimits:{maxWireBytes:1000000,maxNodes:100000,maxDepth:100}});
-    const restored=f.originals.restoreRun(materials,runDefinition,identity);
-    const recovered=Object.freeze({...restored,requestIdentity:identity,
-      requestScope:moon.clientRequestLogicalScope(identity),runDefinition,computation:recoveredComputation});
-    const embedded=await readFile(new URL('../../../host-node/embedded-local.mjs',import.meta.url),'utf8');
-    const begin=embedded.indexOf('  function recoveredInstalledEffect(facts) {');
-    const end=embedded.indexOf('\n  try {\n    const installationSourcePreparation',begin);
-    assert(begin>0&&end>begin);
-    const actualSelector=new Function('updateTargetOriginals','installedEffect',
-      'validateInstalledUpdateOwnerSelections','installedEffectFor','refusedEffectPreparation',
-      'clientOperationError',`return (${embedded.slice(begin,end).trim()});`)(
-      f.originals,f.owner,validateInstalledUpdateOwnerSelections,
-      ()=>assert.fail('The singular actual installation is the selected component'),
-      refusedEffectPreparation,code=>Object.assign(new Error(code),{code}));
-    const facts=Object.freeze({moon,control,store,recovered,continuation,contentRun:content,
-      principalId:'component',retainRecoveryOwner:owner=>recoveryOwners.push(owner)});
-    // Same actual Host selector and callback argument shape. In particular do
-    // not supply additional prepared/Plan/definition hints to mask a gap.
-    const selected=actualSelector(facts);
-    recoveredStage=await selected.prepareRecovered({...facts,
-      updateTargetSelections:recovered.updateTargetSelections,
-      assertUpdateSelectionCurrent:recovered.assertUpdateSelectionCurrent});
-    assert.strictEqual(recoveredStage.preview,recoveredComputation.preview);
-    assert.strictEqual(recoveredStage.computation,recoveredComputation.computation);
-    assert.strictEqual(recoveredStage.storedResults,recoveredComputation.storedResults);
-    assert(recoveryOwners.length>0);
-    assert.equal(recoveredRequests.requests.length,1);
-    assert.equal(recoveredRequests.requests[0].length,1);
-    const request=recoveredRequests.requests[0][0];
-    const claim=recoveredStage.receipt.members[0].rowOwners[0].claim;
-    assert.equal(f.localDriver.requestCid(request),claim.canonicalRequestCid);
-    const {execution:restoredExecution,store:restoredStore,storedResults,control:restoredControl,
-      computation:restoredCapture,preview:restoredPreview}=recoveredStage.publication;
-    inventory=prepareCompletedEffectfulPublication({execution:restoredExecution,store:restoredStore,
-      storedResults,control:restoredControl,computation:restoredCapture,preview:restoredPreview});
-    // The original claim, saved response, projector, Ledger, Common issuers
-    // and publication are real. Account/current/Resource and this provider
-    // observation are explicit component DATA ports; no filesystem send or
-    // physical ACK is inferred from the authored observation.
-    fsPromises.open=observedOpen;syncBuiltinESMExports();observing=true;
-    phase='capture-custody-transfer';
-    await transferCompletedEffectfulCaptureCustody(recoveredStage.publication);
-    phase='response-capture';
-    const value=f.localDriver.requestFacts(request).value;
-    const response={request_cid:claim.canonicalRequestCid,path:value.path,bytes:9,action:'stored'};
-    const captured=await captureClaimedEffectResponse({ledger:recoveredStage.apply.ledger,
-      claim,requestCid:claim.canonicalRequestCid,
-      execute:async()=>({observation:{useCid:'sha256:'+'9'.repeat(64),statusCode:200,
-        body:Buffer.from(canonical(response))}})});
-    assert.equal(captured.claimed,true);
-    phase='response-projection';
-    const projected=f.localDriver.project({request,observation:captured.physical.observation});
-    assert.deepEqual(projected,{kind:'typed-success-response',outcome:{state:'applied',result:{}}});
-    phase='row-outcome';
-    const row={claim,preview:recoveredStage.receipt.preview,memberIndex:0,previewRowIndex:0};
-    recoveredStage.apply.ledger.recordAdmittedRowOutcome({...row,outcomeWire:canonical(projected.outcome)});
-    recoveredStage.apply.ledger.commitAdmittedRowOutcome(row);
-    phase='effect-set';
-    const issuedSet=await issueAuthorizedEffectSetReceipt(recoveredStage.receipt);
-    phase='final-publication';
-    const published=await publishCompletedEffectfulRun({...recoveredStage.publication,issuedSet,signal:undefined});
-    assert(published);
-  }catch(error){
-    t.diagnostic(JSON.stringify({phase,error:{code:error?.code,message:error?.message,stack:error?.stack},
-      missingContracts,inventory:inventory===undefined?undefined:{
-        sourceArtifacts:inventory.sourceArtifacts.map(value=>({name:value.name,cid:value.identity})),
-        chain:Object.entries(inventory.chain).flatMap(([name,value])=>
-          Array.isArray(value)?value.map(item=>({slot:name,name:item?.name,cid:item?.identity})):
-            [{slot:name,name:value?.name,cid:value?.identity}])}}));
-    throw error;
-  }finally{
-    observing=false;fsPromises.open=originalOpen;syncBuiltinESMExports();
-    assert.strictEqual(fsPromises.open,originalOpen);
-    // Match installed Effect custody: close the original physical recovery
-    // child before disposing the stage whose pending check protects it.
-    for(const owner of recoveryOwners)await owner.close();
-    await recoveredStage?.dispose();
     await stage?.dispose();
     if(recoveredComputation)await suspendCompletedEffectfulComputation({execution:null,store,
       storedResults:recoveredComputation.storedResults,control,

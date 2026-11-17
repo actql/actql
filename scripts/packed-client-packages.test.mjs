@@ -12,89 +12,62 @@ import fsPromises from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import './npm-pack-json.test.mjs';
 import './normal-pack-source-inputs.test.mjs';
-import {packClientPackages, packedClientPackage, pinnedDuckDBPackage} from
+import {packClientPackages, packedClientPackage, pinnedDuckDBPackage, acquireRunHostClientPackages} from
   './packed-client-packages.mjs';
+import {packedFixtureSupport, packedReadOpeningFixtureInputs, rewritePackedFixtureSource}
+  from './packed-fixture-support.mjs';
 
 const tarball = name => `actql-${name}-0.0.0-development.tgz`;
 const git = (repository, ...args) => execFileSync('git', args,
   {cwd: repository, encoding: 'utf8'});
 
-// Exercise the actual packed wrapper callback without running a producer or
-// replacing its import decisions with a second test implementation.
-async function readOpeningImportRewriter(repository, path, installedHost) {
-  const {parse} = await import('acorn');
-  const source = await readFile(new URL('./test-packed-read-opening.mjs', import.meta.url), 'utf8');
-  const callbacks = [], supports = [];
-  const visit = node => {
-    if (node === null || typeof node !== 'object') return;
-    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
-        node.callee.property.name === 'replace' &&
-        node.arguments[1]?.type === 'ArrowFunctionExpression' &&
-        node.arguments[1].params.map(parameter => parameter.name).join(',') === 'original,quote,specifier') {
-      callbacks.push(node);
-    }
-    if (node.type === 'VariableDeclarator' && node.id.name === 'support') supports.push(node.init);
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value !== null && typeof value === 'object') visit(value);
-    }
-  };
-  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
-  assert.equal(callbacks.length, 1);
-  assert.equal(supports.length, 1);
-  const call = callbacks[0], callback = call.arguments[1];
-  const support = supports[0].elements.map(value => value.value);
-  const pattern = new RegExp(call.arguments[0].regex.pattern, call.arguments[0].regex.flags);
-  const replacement = Function('relative', 'resolve', 'pathToFileURL', 'repository', 'path', 'support', 'installedHost',
-    `return (${source.slice(callback.start, callback.end)});`)(
-      relative, resolve, pathToFileURL, repository, path, support, installedHost);
-  const rewrite = text => text.replace(pattern, replacement);
+// Exercise the same installed import transformation the real isolated copy uses.
+function readOpeningImportRewriter(repository, path, installedHost) {
+  const support = packedFixtureSupport(repository, packedReadOpeningFixtureInputs);
+  const rewrite = text => rewritePackedFixtureSource(text, {repository, path, support, installedHost});
   rewrite.support = support;
   return rewrite;
 }
 
-test('packed read-opening stages its complete authored static helper closure', async () => {
-  const {parse} = await import('acorn');
+test('packed read-opening keeps its authored preparation import at the installed SDK export', async () => {
   const repository = fileURLToPath(new URL('../', import.meta.url));
-  const first = await readOpeningImportRewriter(repository,
-    'adapters/host-node/client-read-opening.fixture.mjs', '/installed-local-node');
-  for (const path of first.support.filter(path => path.endsWith('.mjs'))) {
-    const syntax = parse(await readFile(join(repository, path), 'utf8'),
-      {sourceType: 'module', ecmaVersion: 'latest'});
-    for (const declaration of syntax.body) {
-      const specifier = declaration.source?.value;
-      if (!specifier?.startsWith('.')) continue;
-      const target = relative(repository, resolve(repository, path, '..', specifier));
-      if (/(?:\.fixture|\.test|\.child)\.mjs$/u.test(target)) {
-        assert(first.support.includes(target), `Missing authored helper: ${path} -> ${target}`);
-      }
-    }
-  }
   const path = 'adapters/host-node/funded-client-preparation.fixture.mjs';
   const source = await readFile(join(repository, path), 'utf8');
   const imported = source.split('\n').find(line => line.includes('sdk/internal/private-source-preparation.mjs'));
   assert(imported);
-  const rewrite = await readOpeningImportRewriter(repository, path, '/installed-local-node');
+  const rewrite = readOpeningImportRewriter(repository, path, '/installed-local-node');
   assert.equal(rewrite(imported), "import {freezeInput} from '@actql/sdk/_internal/source-preparation';");
   const manifest = JSON.parse(await readFile(join(repository, 'packages/sdk/package.json'), 'utf8'));
   assert.equal(manifest.exports['./_internal/source-preparation'], './internal/private-source-preparation.mjs');
 });
 
-test('packed capacity group includes every existing policy and recovery entrance', async () => {
-  const {parse} = await import('acorn');
-  const source = await readFile(new URL('./test-packed-read-opening.mjs', import.meta.url), 'utf8');
-  const syntax = parse(source, {sourceType: 'module', ecmaVersion: 'latest'});
-  const declaration = syntax.body.filter(node => node.type === 'VariableDeclaration')
-    .flatMap(node => node.declarations).find(node => node.id.name === 'groups');
-  assert(declaration);
-  const groups = declaration.init.elements.map(node => Object.fromEntries(
-    node.properties.map(property => [property.key.name, property.value.value])));
-  // Two fixed configuration checks, Local/HTTPS installation for each of two
-  // authored policies, and two recovery cases on each original transport.
-  const capacityCases = 2 + 2 * 2 + 2 * 2;
-  assert.equal(groups.find(group => group.name === 'installed-capacity').count, capacityCases);
-  assert.equal(groups.reduce((count, group) => count + group.count, 0), 52);
-  assert.match(source, /publicRowPolicyAdmission: 2, publicHttpRowPolicyInstallation: 2/u);
+test('packed fixture support follows unnamed transitive helpers without copying product modules', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-packed-fixture-graph-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  await writeFile(join(root, 'product.mjs'), 'export const product = 1;\n');
+  await writeFile(join(root, 'entry.mjs'),
+    "import {product} from './product.mjs'; export {value} from './first.mjs';\n");
+  await writeFile(join(root, 'first.mjs'), "export {value} from './second.mjs';\n");
+  await writeFile(join(root, 'second.mjs'), 'export const value = 2;\n');
+  const options = {productEntries: ['product.mjs']};
+  assert.deepEqual(packedFixtureSupport(root, ['entry.mjs'], options),
+    ['entry.mjs', 'first.mjs', 'second.mjs']);
+  await writeFile(join(root, 'second.mjs'), "export {value} from './third.mjs';\n");
+  await writeFile(join(root, 'third.mjs'), 'export const value = 3;\n');
+  assert.deepEqual(packedFixtureSupport(root, ['entry.mjs'], options),
+    ['entry.mjs', 'first.mjs', 'second.mjs', 'third.mjs']);
+});
+
+test('packed fixture support refuses a transitive source outside its checkout', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-packed-fixture-foreign-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const repository = join(root, 'checkout');
+  await mkdir(repository);
+  await writeFile(join(repository, 'product.mjs'), 'export const product = 1;\n');
+  await writeFile(join(repository, 'entry.mjs'), "export {value} from '../foreign.mjs';\n");
+  await writeFile(join(root, 'foreign.mjs'), 'export const value = 2;\n');
+  assert.throws(() => packedFixtureSupport(repository, ['entry.mjs'],
+    {productEntries: ['product.mjs']}), /Unpackaged fixture import:/u);
 });
 
 test('packed read-opening imports the public installed wire entry without checkout fallback', async t => {
@@ -339,28 +312,10 @@ async function fixture(t, {names = ['sdk']} = {}) {
   return {base, repository, shared, destination, pack, reuse};
 }
 
-// Execute the real consumer's package-acquisition statements with the original
-// canonical helper. The npm port is explicit; this is not prepack or runtime
-// acceptance, and the remaining installed smoke assertions are untouched.
+// Exercise the same imported recipe as the actual Run Host consumer. The
+// filesystem and manifest are real; only an absent-artifact npm fallback is a port.
 async function runHostPackageAcquisition(repository, installation, run) {
-  const {parse} = await import('acorn');
-  const source = await readFile(new URL('./test-packed-run-host-core.mjs', import.meta.url), 'utf8');
-  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const acquiresPackage = node => {
-    if (node === null || typeof node !== 'object') return false;
-    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' &&
-        (node.callee.name === 'packedClientPackage' ||
-          node.callee.name === 'run' && node.arguments[0]?.value === 'npm' &&
-          node.arguments[1]?.elements?.[0]?.value === 'pack')) return true;
-    return Object.values(node).some(value => Array.isArray(value)
-      ? value.some(acquiresPackage) : acquiresPackage(value));
-  };
-  const selected = tree.body.filter(acquiresPackage);
-  assert(selected.length > 0, 'Exercise the actual consumer package acquisition');
-  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-  return new AsyncFunction('repository', 'installation', 'run', 'packedClientPackage', 'join',
-    selected.map(node => source.slice(node.start, node.end)).join('\n'))(
-    repository, installation, run, packedClientPackage, join);
+  return acquireRunHostClientPackages({repository, destination: installation, run});
 }
 
 test('Run Host packed consumer reuses both original tarballs without another prepack', async t => {

@@ -74,9 +74,75 @@ unknown or corrupt head with absence. There is no additional quantity recipe
 or mode for these two methods. The original wrapper reads only immutable
 member/claim-array lengths through DATA descriptors for the frontier methods. It passes
 those coordinates and the original Ledger policy to MoonBit. Mutable or
-unknown inventories, larger policies and all other methods retain the complete
-generic frame. This is a quantity selection, not Preview membership, current
+unknown inventories and larger policies retain the complete generic frame.
+Unknown methods retain the generic frame. This is a quantity selection, not Preview membership, current
 permission, completed validation or a claim that any durable head is absent.
+
+The original wrapper also classifies its closed single-row calls. Entry calls
+retain the single-head codec and physical response envelope; response recording
+needs bounded SQL carriers, binary copies and hashing rather than a Receipt
+parser. Row Receipt calls retain those physical intermediates while their real
+issuer/admission codecs run. The nested Receipt quote follows an allocation-free
+scan of the actual immutable outcome or Receipt wire, with the closed envelope
+fields added conservatively. Malformed input keeps the full fallback. Admission,
+canonical form, identity, dispatch binding and currentness checks still execute;
+the scan grants none of those facts. Returned populations remain on the original
+per-row retained floor.
+
+History construction obtains its actual count and total text geometry before
+materializing rows, in the same SQLite transaction as the read. The original
+control grows first or the read refuses. Its existing frame keeps base scratch
+plus the maximum history scratch observed during that constructor. Sequential
+histories do not accumulate their expired temporary demands; nested codecs keep
+the live peak until outer completion. Same-query native text and integer bounds
+protect refused records too. A typed single-response read checks incompatible
+batch presence without constructing a batch member population.
+
+An installing recipe may bind an opaque constructor quote to its exact original
+receiver and method. Grant and provider projection callers use it only while
+both identities match; unknown or replaced issuers keep the generic path. Such
+a scratch-only quote relies on the same recipe's prepaid returned population,
+including fallback control recipes. It neither returns retained proof records
+early nor supplies a grant, approval or physical cleanup acknowledgement.
+
+Member Receipt construction keeps the row Ledger and terminal Receipt codecs unchanged.
+Its aggregate output bounds follow the closed CID/state/index grammar at the
+actual row count. The same managed Effect control funds the fixed quote carrier,
+then grows aggregate writer/parser workspace before the issuer or checker.
+The original per-row retained controls continue to back returned receipts.
+The Receipt-specific entrance selects the existing Ledger frame on that same
+control, retaining aggregate scratch beside the nested normalizing Ledger
+codec before the writer. Generic native Fixed frames still reject nesting;
+the original prepared Program, Request, Plan and current checks remain required.
+A changed or Proxy row-owner Array or a changed row count refuses that extent
+before constructing evidence; original
+row identities, durable heads, current authority and terminal outcomes remain
+fully checked. Empty members retain their existing codec path.
+
+Cold final publication re-enters its original captured Read for the synchronous
+final-Receipt and commit validators. Its exact typed captured Run supplies the
+complete context extent; member, Set and final Receipt codecs retain their
+separate original limits. The completed owner lends that same Read through
+publication and Store inspection, then severs it at the original cleanup.
+No new owner, permission cache, or asynchronous I/O scope is introduced.
+
+Only the installing control's original final-Receipt and commit methods select
+this completed-Read constructor class. It borrows the admitted Definition and
+capture, preserving their streaming context, reference and identity checks.
+It funds the actual Receipt codecs instead of rebuilding the capture's Source
+and canonical forests or receiving its ended encrypted buffers again. Other
+methods retain the complete validation class; a selected refusal never retries
+a different class.
+
+New canonical Receipt/artifact trees, complete wires and Host views remain on
+the same material reservation across publication awaits. A single maximum
+adoption envelope covers sequential post-return admissions; ended per-body
+parser and writer scratch does not accumulate with every output. Completion
+returns only synchronous scratch, while failure retains its funded prefix.
+Publication metadata uses the captured result, member and Source inventories,
+independently of payload node counts. Its matching bound is funded before the
+Host constructs token and Receipt argument arrays, and is checked again before
+the original constructor runs. It supplies no chain admission or currentness.
 
 The captured row-stage constructor freezes only the three structural envelopes
 it newly creates for this inventory: the outer member Array, each member record
@@ -156,9 +222,9 @@ under the same property limit passed to that native recheck. Sequential Unit
 checks do not retain one Map per request.
 
 Installing code may pass this scratch-only opaque Common quote through the
-existing control-construction entrance. Core accepts no retained output in
-this optional argument, preserves its whole original retained/idle floor,
-and funds the quote before invoking the callback. Omission keeps the complete
+existing control-construction entrance. This Catalog recheck returns no retained
+output. The entrance preserves its whole original retained/idle floor and
+funds the quote before invoking the callback. Omission keeps the complete
 generic constructor. The quote cannot combine with another selected frame
 or enter a nested Ledger codec. Active or failed scratch stays on that same
 control reservation until explicit checked completion; the original current,
@@ -168,6 +234,39 @@ current memo, another Ledger, row-coordinate inference or physical ACK.
 The original four-argument Node export stays unchanged. Because exported
 MoonBit functions cannot have optional arguments, one typed native-quote
 variant delegates to that same Core entrance; it creates no new reservation.
+
+### Sealed review construction and adoption
+
+The private Preview keeps the codec policy under which its original Run admitted
+it. The public review has its own finite output policy. A smaller review limit
+does not reselect the input policy: projection still re-admits the complete
+Preview against its original Run and Authoring Context and compares its semantic
+CID before emitting any displayed evidence.
+
+For the original-aware quote, the Host retrieves the admitted identity and its
+immutable wire through the same private Preview key. The shared projection
+emitter measures its actual input shape and bounds the generated output before
+construction. Known ordered canonical subtrees do not acquire unordered-key
+maps; the quote still covers their frame headers and actual backing. Literal
+unordered frames include all simultaneously live parent keys. Preview semantic
+writers keep their own wider key bounds, separately from the review emitter.
+Raw-wire callers retain the general constructor inventory.
+
+The existing control frame funds bounded wire preflight before Common quotes
+the actual input geometry and bounded output construction. Its native constructor
+entrance reserves both the temporary parse/encode peak and returned DATA on the
+same control reservation before invoking projection. Returned capacity also
+covers the subsequent Checkpoint admission, parsing and evidence-holding
+envelope; it is not released with the first constructor's scratch.
+
+Each successful reservation adds the returned capacity to that control's retained
+output inventory. Successful completion returns only temporary scratch. Current
+checks, subsequent constructors and failures preserve the accumulated output
+allowance until the existing control owner retires after its borrowers drain.
+An unsuccessful reservation changes neither that inventory nor the callback's
+execution state. The additional scalar is included in the fixed control quote.
+This adds no owner, permission, cached authorization or physical cleanup
+acknowledgement; scratch-only callers keep their existing zero-retained quotes.
 
 ### Completed check-only metadata projections
 
@@ -254,3 +353,20 @@ their original responsibility, and attempts, transfer, spent coordinates and
 historical peaks remain unchanged. JavaScript selects no price or shrink amount.
 The added policy, original method, phase word and argument/name carriers are
 funded by the existing installation, Plan and operation-control inventories.
+
+## Immutable frontier claim checks
+
+A progress query compares each opaque Ledger basis with its actual scope,
+locator, dispatch key, request and intent. For the closed entry format, a pure
+Core check can establish the same facts without constructing and hashing
+temporary Prepared and Dispatching entries. It first proves that both complete
+entry encodings fit the selected byte, node and depth policy. Unsupported or
+tighter policies retain the original codec and its refusal precedence. This
+check issues no entry, permission, cached frontier or physical completion.
+
+Every query still reads the current durable heads, admits their exact bytes,
+checks active physical owners, and asks the existing Core frontier and recovery
+guards to decide progress. Sending still requires its current checks and grant.
+The direct scalar check stays inside the same existing construction envelope;
+the fixed copied-control reference and sequential status word are prepaid. No
+entry forests or cross-query cache survive this comparison.

@@ -53,6 +53,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   max_depth : Int,
   physical_source : (String, String)?,
   before_body : ((Int, Int, Int) -> Bool)?,
+  retain_catalog? : Bool = true,
 ) -> Result[
   Array[@publication.CapturedEffectDependencyBody],
   ClientEffectDependencyCaptureIssue,
@@ -72,7 +73,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     lookup.native_completion is Some(same_completion) &&
     physical_equal(same_completion, completed) &&
     lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(original) is Some(component) &&
     original.keyed.program is KeyedEffect(prepared) &&
     lookup.native_sources is Some(native) &&
     native.relation is Some(left) &&
@@ -98,10 +99,11 @@ fn keyed_lookup_native_dependency_bodies_from_original(
   let bodies : Array[@publication.CapturedEffectDependencyBody] = []
   let seen : Map[String, String] = Map([])
   let mut remaining = limits.max_total_bytes
-  fn append(
+  fn append_measured(
     kind : String,
     cid : String,
     wire : String,
+    wire_extent : (Int, Int)?,
   ) -> Unit raise NativeLookupDependencyStop {
     let key = kind + "\u0000" + cid
     if seen.get(key) is Some(previous) {
@@ -132,32 +134,79 @@ fn keyed_lookup_native_dependency_bodies_from_original(
           .map(value => physical_equal(value, completed))
           .unwrap_or(false)
         },
+        wire_extent~,
       ),
     )
     bodies.push(body)
     seen[key] = wire
     remaining -= bytes
   }
+  fn append(
+    kind : String,
+    cid : String,
+    wire : String,
+  ) -> Unit raise NativeLookupDependencyStop {
+    append_measured(kind, cid, wire, None)
+  }
   fn contract(
     kind : String,
     value : @publication.PublicationContract,
   ) -> Unit raise NativeLookupDependencyStop {
-    append(
+    // The SAME sealed original owns these encoder facts and the wire below.
+    // Preserve full body/CID admission; unknown wires keep the byte-node bound.
+    let extent = @publication.publication_contract_wire_usage(value).map(usage => {
+      (usage.0, usage.1)
+    })
+    append_measured(
       kind,
       @publication.publication_contract_identity(value),
       @publication.publication_contract_json(value),
+      extent,
     )
   }
   fn evidence(
     kind : String,
     value : @publication.RunEvidenceValue,
   ) -> Unit raise NativeLookupDependencyStop {
-    append(
+    let extent = @publication.run_evidence_value_wire_usage(value).map(usage => {
+      (usage.0, usage.1)
+    })
+    append_measured(
       kind,
       @publication.run_evidence_value_identity(value),
       @publication.run_evidence_value_json(value),
+      extent,
     )
   }
+  fn receive_policy_body(
+    body : @publication.CapturedEffectDependencyBody,
+    bytes : Int,
+  ) -> Result[Unit, @checked.LocalDependencyBodyIssue] {
+    let kind = @publication.captured_effect_dependency_body_kind(body)
+    let cid = @publication.captured_effect_dependency_body_cid(body)
+    let wire = @publication.captured_effect_dependency_body_json(body)
+    let key = kind + "\u0000" + cid
+    if lookup.closed ||
+      lookup.left.lookup_issue is Some(_) ||
+      !lookup.native_completion
+      .map(value => physical_equal(value, completed))
+      .unwrap_or(false) {
+      return Err(ForeignBody)
+    }
+    if seen.get(key) is Some(previous) {
+      return if previous == wire { Ok(()) } else { Err(ForeignBody) }
+    }
+    if bytes < 0 || bytes > remaining || bodies.length() >= limits.max_entries {
+      return Err(BudgetExceeded)
+    }
+    // The policy codec already admitted this SAME body after its measured
+    // construction. Keep its original, rather than decode a wire copy again.
+    bodies.push(body)
+    seen[key] = wire
+    remaining -= bytes
+    Ok(())
+  }
+  let policy_receiver = Some(receive_policy_body)
   fn emit(
     kind : String,
     cid : String,
@@ -178,14 +227,14 @@ fn keyed_lookup_native_dependency_bodies_from_original(
         raise NativeLookupDependencyStop(ForeignInput)
       }
     }
-    let wire = try {
+    let (wire, bytes, nodes, _) = try {
       let writer = @encode.writer(remaining, max_nodes, max_depth)
       produce(writer)
-      @encode.finish(writer)
+      @encode.finish_text_usage(writer)
     } catch {
       _ => raise NativeLookupDependencyStop(Dependency(InvalidBody))
     }
-    append(kind, cid, wire)
+    append_measured(kind, cid, wire, Some((bytes, nodes)))
   }
   fn carrier(
     original : @carrier.Carrier,
@@ -247,6 +296,13 @@ fn keyed_lookup_native_dependency_bodies_from_original(
     }
     contract("request_key_set", identity.keys)
     contract("acquisition_scope", identity.scope)
+    // The keyed scope names this SAME checked template's static request.
+    // Each Whole Source request below is an independent scope obligation.
+    append(
+      "request_values",
+      identity.static_request_cid,
+      identity.static_request,
+    )
     append(
       "lookup_barrier",
       component.barrier.logical_cid,
@@ -301,7 +357,7 @@ fn keyed_lookup_native_dependency_bodies_from_original(
       @execution.relation_schema_cid(right_schema),
       right_bodies.1,
     )
-    guard original.plan.graph_nodes
+    guard client_composed_keyed_original_graph_nodes(original)
       .iter()
       .find_first(node => {
         @canonical.object_field(node, "node_id")
@@ -409,9 +465,10 @@ fn keyed_lookup_native_dependency_bodies_from_original(
             max_nodes,
             max_depth,
             max_nodes,
-            retain_catalog=true,
+            retain_catalog~,
             retained_body_keys=Some(seen),
             before_body~,
+            admitted_body=policy_receiver,
           ).map_err(issue => Static(issue)),
         )
         for (kind, cid, wire) in selected {
@@ -447,14 +504,15 @@ fn keyed_lookup_native_dependency_bodies_from_original(
           // The physical descriptor owns this implementation-only view;
           // the logical checked Source Catalog need not contain it.
           append(kind, cid, original_wire)
-        } else if [
+        } else if retain_catalog &&
+          [
             "source_contract", "source_view_contract", "data_policy", "request_schema",
             "carrier_schema", "schema_evidence", "capability_evidence",
           ].contains(kind) {
           let body = require_native_lookup_dependency(
             @checked.checked_local_catalog_dependency_body(
               program,
-              original.plan.stage,
+              client_composed_keyed_original_stage(original),
               kind,
               cid,
               remaining,

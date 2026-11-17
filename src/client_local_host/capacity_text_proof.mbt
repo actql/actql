@@ -208,10 +208,312 @@ fn client_local_decimal_text_bound(
 }
 
 ///|
+// Borrow cached literal geometry only through the same closed checked graph.
+// Field selection, filtering, sorting, limiting and proved scalar bindings
+// cannot create Text. Actual immutable parameter literals contribute their own
+// finite geometry.
+// Checked interval projections and numeric-time sequence matches likewise copy
+// their Text cells; multiplicity still uses every output field and the SAME
+// execution row bound below. Predicates may not construct new Text.
+// Other sources, families and Text-producing expressions keep the old policy.
+fn client_local_original_values_copy_text_bound(
+  sequences : Array[@execution.GeneratedSequence],
+  demand : ClientLocalValueNodeDemand,
+  graph : @strategy.CheckedDAG?,
+  graph_offset : Int,
+  max_work? : Int = client_local_schema_proof_work(),
+) -> (Int, Int, Int)? {
+  guard graph is Some(graph) &&
+    graph_offset == 0 &&
+    @strategy.graph_captured_prefix(graph) == 0 &&
+    @strategy.graph_task_count(graph) == sequences.length() &&
+    !sequences.is_empty() &&
+    max_work > 0 else {
+    return None
+  }
+  let remaining = Ref(max_work)
+  let literal_text = Ref(0L)
+  let mut literal_seeds = 0
+  let mut text_fields = 0L
+  for task, sequence in sequences {
+    if remaining.val < 1 {
+      return None
+    }
+    remaining.val -= 1
+    let original = @execution.generated_prepared_sequence(sequence)
+    let owner = @lower.sequence_owner(original)
+    guard @strategy.graph_task_owner(graph, task) is Some(expected) &&
+      physical_equal(owner, expected) else {
+      return None
+    }
+    let prepared = @lower.bound_preparation(owner)
+    // Each input must borrow a preceding member of this SAME checked graph.
+    // Missing, supplied and captured inputs cannot inherit literal geometry.
+    for input in 0..<@lower.preparation_input_count(prepared) {
+      let mut found = false
+      for index in 0..<@strategy.graph_data_count(graph) {
+        if remaining.val < 1 {
+          return None
+        }
+        remaining.val -= 1
+        guard @strategy.graph_data_at(graph, index) is Some(edge) else {
+          return None
+        }
+        if edge.consumer == task && edge.input == input {
+          if found || edge.producer < 0 || edge.producer >= task {
+            return None
+          }
+          found = true
+        }
+      }
+      if !found {
+        return None
+      }
+    }
+    for step in 0..<@lower.sequence_count(original) {
+      if remaining.val < 1 {
+        return None
+      }
+      remaining.val -= 1
+      guard @lower.sequence_step(original, step) is Some(operation) &&
+        @lower.node_at(prepared, step) is Some(node) &&
+        @lower.node_relation_schema(node) is Some(schema) &&
+        client_local_json_leaf_schema(schema) else {
+        return None
+      }
+      let fields = @schema.field_count(schema)
+      if fields > remaining.val {
+        return None
+      }
+      remaining.val -= fields
+      let mut row_text_fields = 0L
+      for field in 0..<fields {
+        guard @schema.field_at(schema, field) is Some(field) else {
+          return None
+        }
+        match field.contract.shape {
+          @contract.Text(_) => row_text_fields += 1L
+          @contract.Number | @contract.Boolean => ()
+          _ => return None
+        }
+      }
+      text_fields = Int64::max(text_fields, row_text_fields)
+      match operation {
+        @lower.ValuesStep(_) => {
+          guard @lower.node_values_literal_text_bytes(node) is Some(bytes) &&
+            @execution.checked_preparation_add_product(
+              literal_text.val,
+              bytes.to_int64(),
+              1L,
+            )
+            is Some(next) else {
+            return None
+          }
+          literal_text.val = next
+          literal_seeds += 1
+        }
+        @lower.RowStep(kernel) =>
+          match @lower.kernel_body(kernel) {
+            @lower.Filter(expression) =>
+              if !client_local_copy_filter_text(
+                  expression, remaining, literal_text,
+                ) {
+                return None
+              }
+            @lower.Select(_) | @lower.Limit(_, _, _) | @lower.StableSort(_) =>
+              ()
+            @lower.SnapshotMap(bindings) | @lower.OrderedBindings(bindings) =>
+              for (_, expression) in bindings {
+                // These bindings add only scalar DATA. Their complete child
+                // expressions still need the same literal/copy proof; an
+                // unbounded Text-producing intermediate keeps general policy.
+                match @lower.expression_contract(expression).shape {
+                  @contract.Number | @contract.Boolean =>
+                    if !client_local_copy_filter_text(
+                        expression, remaining, literal_text,
+                      ) {
+                      return None
+                    }
+                  _ => return None
+                }
+              }
+            _ => return None
+          }
+        @lower.IntervalJoinStep(join) => {
+          guard physical_equal(@lower.interval_join_owner(join), owner) &&
+            @lower.interval_join_step(join) == step &&
+            @lower.node_input_count(node) == 2 &&
+            !@lower.interval_join_uses_timestamps(join) &&
+            @lower.interval_join_output_limit(join) is Some(limit) &&
+            limit > 0L &&
+            limit <= demand.rows.to_int64() else {
+            return None
+          }
+          // Prepared projections contain field references only. Null extension
+          // can add no Text backing, even when the two sides duplicate rows.
+          if @lower.interval_join_field_count(join) != fields {
+            return None
+          }
+        }
+        @lower.SequenceMatchStep(pattern) => {
+          guard physical_equal(@lower.sequence_match_owner(pattern), owner) &&
+            @lower.sequence_match_step(pattern) == step &&
+            @lower.node_input_count(node) == 1 &&
+            !@lower.sequence_match_uses_timestamp(pattern) &&
+            @lower.sequence_match_pattern_count(pattern) > 0 else {
+            return None
+          }
+          // IDs/partition fields are the original immutable cells; added time
+          // boundaries are numeric. Visit every authored predicate, including
+          // dormant children, without executing or narrowing its work budget.
+          for index in 0..<@lower.sequence_match_pattern_count(pattern) {
+            guard @lower.sequence_match_predicate(pattern, index)
+              is Some(predicate) &&
+              client_local_copy_filter_text(predicate, remaining, literal_text) else {
+              return None
+            }
+          }
+        }
+        _ => return None
+      }
+    }
+  }
+  // A copied cell cannot contain more Text than all original literal backing.
+  // Count every possible field/row occurrence; equal Text never grants sharing.
+  guard literal_seeds > 0 &&
+    literal_text.val >= 0L &&
+    @execution.checked_preparation_add_product(
+      0L,
+      text_fields,
+      demand.rows.to_int64(),
+    )
+    is Some(copies) &&
+    @execution.checked_preparation_add_product(0L, literal_text.val, copies)
+    is Some(payload) &&
+    @execution.checked_preparation_add_product(
+      payload,
+      demand.original.max_name_width,
+      demand.rows.to_int64(),
+    )
+    is Some(total) &&
+    total < 2147483647L &&
+    client_local_json_leaf_wire_byte_bound(
+      demand.original.fields,
+      demand.rows,
+      total,
+    )
+    is Some(wire) &&
+    @execution.checked_preparation_add_product(
+      0L,
+      literal_text.val,
+      text_fields,
+    )
+    is Some(row_payload) &&
+    @execution.checked_preparation_add_product(
+      row_payload,
+      demand.original.max_name_width,
+      1L,
+    )
+    is Some(row_text) &&
+    client_local_json_leaf_wire_byte_bound(demand.original.fields, 1, row_text)
+    is Some(row_wire) else {
+    return None
+  }
+  Some((total.to_int(), wire, row_wire))
+}
+
+///|
+// Only predicates with scalar results and field/literal Text leaves qualify.
+// Walk every child, including dormant branches; Text-producing expressions
+// retain the general policy rather than receiving a guessed output bound.
+fn client_local_copy_filter_text(
+  expression : @lower.Expression,
+  remaining : Ref[Int],
+  text : Ref[Int64],
+) -> Bool {
+  if remaining.val < 1 {
+    return false
+  }
+  remaining.val -= 1
+  match @lower.expression_body(expression) {
+    @lower.Field(_, _) => true
+    @lower.Literal(value) =>
+      match value.value {
+        @admitted.Array(items) => {
+          // Lowering retains the actual bound parameter's immutable admitted
+          // value here. A declaration's unbounded array type is not a bound.
+          // Inspect only this original flat primitive inventory, without
+          // rebuilding, encoding or retaining another parameter representation.
+          let count = @admitted.element_count(items)
+          if count > remaining.val {
+            return false
+          }
+          for index in 0..<count {
+            guard @admitted.element_at(items, index) is Some(item) &&
+              client_local_copy_scalar_literal_text(item, remaining, text) else {
+              return false
+            }
+          }
+          true
+        }
+        scalar => client_local_copy_scalar_literal_text(scalar, remaining, text)
+      }
+    @lower.TypedNull => true
+    @lower.Unary(_, child) =>
+      match @lower.expression_contract(expression).shape {
+        @contract.Number | @contract.Boolean =>
+          client_local_copy_filter_text(child, remaining, text)
+        _ => false
+      }
+    @lower.Binary(_, left, right) =>
+      match @lower.expression_contract(expression).shape {
+        @contract.Number | @contract.Boolean =>
+          client_local_copy_filter_text(left, remaining, text) &&
+          client_local_copy_filter_text(right, remaining, text)
+        _ => false
+      }
+    _ => false
+  }
+}
+
+///|
+// UTF-16 length times three bounds every valid UTF-8 Text, including surrogate
+// pairs. Use the original immutable value, not a fresh encoded buffer or a type
+// maximum. References, objects and nested arrays keep the general envelope.
+fn client_local_copy_scalar_literal_text(
+  value : @admitted.Value,
+  remaining : Ref[Int],
+  text : Ref[Int64],
+) -> Bool {
+  if remaining.val < 1 {
+    return false
+  }
+  remaining.val -= 1
+  match value {
+    @admitted.Null | @admitted.Number(_) | @admitted.Boolean(_) => true
+    @admitted.Text(value) => {
+      guard @execution.checked_preparation_add_product(
+          text.val,
+          value.length().to_int64(),
+          3L,
+        )
+        is Some(next) else {
+        return false
+      }
+      text.val = next
+      true
+    }
+    _ => false
+  }
+}
+
+///|
 // Borrow cached admission geometry from the SAME literal Values originals.
 // No second row/payload scan, parse, serialization or value copy occurs.
-// Checked CrossJoin may only copy these fields. Parameters and all other step
-// families retain the independent selected general policy.
+// Checked CrossJoin may only copy these fields. A closed Graph construction
+// keeps its own storage/identity/snapshot budgets; only immediate numeric MATCH
+// rows and predicates join this Relation Text proof. Unknown families retain
+// the independent selected general policy.
 fn client_local_original_values_text_bound(
   sequences : Array[@execution.GeneratedSequence],
   demand : ClientLocalValueNodeDemand,
@@ -221,6 +523,9 @@ fn client_local_original_values_text_bound(
   let mut text = 0L
   let mut copied = false
   let mut text_fields = 0L
+  let mut literal_total = 0L
+  let mut graph = false
+  let mut graph_inputs_required = true
   for sequence in sequences {
     let original = @execution.generated_prepared_sequence(sequence)
     let owner = @lower.sequence_owner(original)
@@ -234,8 +539,16 @@ fn client_local_original_values_text_bound(
       }
       remaining -= 1
       guard @lower.sequence_step(original, step) is Some(operation) &&
-        @lower.node_at(prepared, step) is Some(node) &&
-        @lower.node_relation_schema(node) is Some(schema) &&
+        @lower.node_at(prepared, step) is Some(node) else {
+        return None
+      }
+      if operation is @lower.GraphConstructionStep(_) {
+        // This opaque Carrier is never priced as a Relation. Its provider
+        // keeps the original Graph storage, labels, identity and snapshots.
+        graph = true
+        continue
+      }
+      guard @lower.node_relation_schema(node) is Some(schema) &&
         client_local_json_leaf_schema(schema) else {
         return None
       }
@@ -246,8 +559,13 @@ fn client_local_original_values_text_bound(
       remaining -= fields
       let mut row_text_fields = 0L
       for field in 0..<fields {
-        if @schema.field_at(schema, field) is Some(field) &&
-          @schema.field_contract(field).shape is @contract.Text(_) {
+        guard @schema.field_at(schema, field) is Some(field) else {
+          return None
+        }
+        if field.contract.nullable {
+          graph_inputs_required = false
+        }
+        if @schema.field_contract(field).shape is @contract.Text(_) {
           row_text_fields += 1L
         }
       }
@@ -258,15 +576,58 @@ fn client_local_original_values_text_bound(
             return None
           }
           text = Int64::max(text, bytes.to_int64())
+          guard @execution.checked_preparation_add_product(
+              literal_total,
+              bytes.to_int64(),
+              1L,
+            )
+            is Some(total) else {
+            return None
+          }
+          literal_total = total
         }
         // The checked CrossJoin projection copies original fields; it does
         // not evaluate expressions or synthesize Text. Count every repeated
         // Text field and output row, including duplicate aliases.
         @lower.CrossJoinStep(_) => copied = true
+        @lower.GraphMatchStep(matched) => {
+          graph = true
+          if fields > remaining {
+            return None
+          }
+          remaining -= fields
+          for field in 0..<fields {
+            guard @schema.field_at(schema, field) is Some(field) &&
+              !field.contract.nullable else {
+              return None
+            }
+            match field.contract.shape {
+              @contract.Number | @contract.Boolean => ()
+              _ => return None
+            }
+          }
+          if @lower.graph_match_predicate(matched) is Some(predicate) {
+            guard client_local_graph_immediate_predicate_work(
+                predicate, remaining,
+              )
+              is Some(used) else {
+              return None
+            }
+            remaining -= used
+          }
+        }
         _ => return None
       }
     }
   }
+  if graph && !graph_inputs_required {
+    return None
+  }
+  // Several Graph definitions can read different original Values. Sum every
+  // cached literal occurrence, including repeated prepared views, rather than
+  // assuming the largest source covers their simultaneous input. No rows or
+  // Graph properties are scanned or rebuilt by this optimization.
+  let text = if graph { literal_total } else { text }
   let text = if copied {
     // The existing literal admission charges each payload's UTF-8 at least
     // three times: whole Values preflight, literal scan and its reservation.
@@ -322,4 +683,45 @@ fn client_local_original_values_text_bound(
     wire
   }
   Some((total.to_int(), wire, row_wire))
+}
+
+///|
+// Deliberately closed, allocation-free predicate proof. A complete immediate
+// leaf or one immediate binary node cannot hide Text in a dormant descendant.
+// More general expressions keep the original independent policy.
+fn client_local_graph_immediate_predicate_leaf(
+  expression : @lower.Expression,
+) -> Bool {
+  if @lower.expression_contract(expression).nullable {
+    return false
+  }
+  match @lower.expression_contract(expression).shape {
+    @contract.Number | @contract.Boolean => ()
+    _ => return false
+  }
+  match @lower.expression_body(expression) {
+    @lower.Field(_, _) | @lower.Literal(_) => true
+    _ => false
+  }
+}
+
+///|
+fn client_local_graph_immediate_predicate_work(
+  expression : @lower.Expression,
+  remaining : Int,
+) -> Int? {
+  if remaining < 1 || @lower.expression_contract(expression).nullable {
+    return None
+  }
+  match @lower.expression_contract(expression).shape {
+    @contract.Number | @contract.Boolean => ()
+    _ => return None
+  }
+  match @lower.expression_body(expression) {
+    @lower.Field(_, _) | @lower.Literal(_) => Some(1)
+    @lower.Binary(_, left, right) if remaining >= 3 &&
+      client_local_graph_immediate_predicate_leaf(left) &&
+      client_local_graph_immediate_predicate_leaf(right) => Some(3)
+    _ => None
+  }
 }

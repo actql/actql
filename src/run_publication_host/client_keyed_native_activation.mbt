@@ -20,7 +20,6 @@ pub struct ClientKeyedNativeActivation {
   priv request : ClientKeyedRequest
   priv client_request : ClientRequestIdentity
   priv definition : @publication.PublicationContract
-  priv graph : ClientInferPlanGraph
   priv usage : ClientKeyedNativeAttemptUsage
   batch : @publication.PublicationContract
   transport : @publication.PublicationContract
@@ -93,7 +92,7 @@ pub fn prepare_client_keyed_native_activation(
     history._retained_activation is None &&
     state.planned_order is Some(order) &&
     state.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(original) is Some(component) &&
     original.keyed.program is KeyedEffect(prepared) &&
     prepared_client_effect_request_scope(prepared, client_request) is Ok(_) &&
     physical_equal(original.keyed, state.left.acquisition) &&
@@ -119,8 +118,7 @@ pub fn prepare_client_keyed_native_activation(
     owned_utf16_units: 24L,
     owned_wire_bytes: 0L,
   }).unwrap()
-  let writer_bytes = if @publication.publication_contract_name(profile) ==
-    "declared_file_content_read" {
+  let writer_bytes = if @publication.read_profile_uses_installed_rows(profile) {
     // The original encoded Request is already retained by this plan. Only
     // its actual subtree and the closed issuer/envelope Strings are next;
     // a large accepted codec ceiling is not an allocation request.
@@ -279,7 +277,6 @@ pub fn prepare_client_keyed_native_activation(
     request,
     client_request,
     definition: original.definition,
-    graph: original.plan,
     usage: {
       request_bytes: 0L,
       response_wire_bytes: 0L,
@@ -339,13 +336,49 @@ pub fn client_keyed_native_activation_matches(
   definition : @publication.PublicationContract,
   graph : ClientInferPlanGraph,
 ) -> Bool {
+  guard value.original.left.composed is Some(original) &&
+    client_composed_keyed_original_model_plan(original) is Some(original_graph) &&
+    physical_equal(original_graph, graph) else {
+    return false
+  }
+  client_keyed_native_activation_matches_original(
+    value, request, compiled, definition,
+  )
+}
+
+///|
+pub fn client_effect_keyed_native_activation_matches(
+  value : ClientKeyedNativeActivation,
+  request : ClientRequestIdentity,
+  parent : ClientEffectKeyedOriginal,
+) -> Bool {
+  guard value.original.left.composed is Some(original) &&
+    original.origin is SourceEffectOrigin(bound) &&
+    physical_equal(bound, parent) &&
+    client_request_identity_relation(parent.request, request) is SameRequest else {
+    return false
+  }
+  client_keyed_native_activation_matches_original(
+    value,
+    request,
+    parent.compiled,
+    parent.definition,
+  )
+}
+
+///|
+fn client_keyed_native_activation_matches_original(
+  value : ClientKeyedNativeActivation,
+  request : ClientRequestIdentity,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
   let state = value.original
   !state.closed &&
   state.left.lookup_issue is None &&
   state.left.composed is Some(original) &&
   physical_equal(original.compiled, compiled) &&
   physical_equal(value.definition, definition) &&
-  physical_equal(value.graph, graph) &&
   client_request_identity_relation(value.client_request, request) is SameRequest &&
   state.native_batch_plan is Some(batch) &&
   physical_equal(batch, value.batch) &&

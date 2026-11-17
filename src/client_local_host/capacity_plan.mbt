@@ -128,11 +128,48 @@ fn client_local_capacity_plan(
     value_node_demand~,
     source_free_max_work~,
   )
-  let original_values_text = if scalar_demand is None {
+  let execution = {
+    ..execution,
+    rows: {
+      ..execution.rows,
+      operation_entries: match dispatch_inventory {
+        Some({ closed_rows: Some(_), .. }) =>
+          client_local_request_operation_entries(
+            sequences,
+            max_rows,
+            execution.rows.operation_entries,
+            execution.max_frames,
+          )
+        _ => execution.rows.operation_entries
+      },
+    },
+  }
+  let leaf_text_wire = if scalar_demand is None {
     value_node_demand.bind(demand => {
       match client_local_original_values_text_bound(sequences, demand) {
-        Some(value) if value.0 > values.max_text_bytes => Some(value)
-        _ => None
+        Some(value) => Some(value)
+        None if client_local_original_values_copy_text_bound(
+            sequences, demand, graph, graph_offset,
+          )
+          is Some(value) => Some(value)
+        None if client_local_original_values_replace_text_bound(
+            sequences, demand, graph, graph_offset,
+          )
+          is Some(value) &&
+          value.0 <= values.max_work => Some(value)
+        None if content is None && demand.original.flat_json_leaves => {
+          // This same closed JSON-leaf schema has no opaque reference wire.
+          // ValueBudget charges every UTF-8 text/name byte against max_work;
+          // that original counter already bounds cumulative Text. Reuse its
+          // units, never Ledger planning work or an assumed expression value.
+          let text = values.max_work
+          client_local_json_leaf_wire_byte_bound(
+            demand.nodes,
+            1,
+            text.to_int64(),
+          ).map(wire => (text, wire, wire))
+        }
+        None => None
       }
     })
   } else {
@@ -142,7 +179,7 @@ fn client_local_capacity_plan(
     value_node_demand is Some(original) {
     Some({
       ..original,
-      text_bound: match original_values_text {
+      text_bound: match leaf_text_wire {
         Some((bytes, _, _)) => Some(bytes)
         None =>
           match content {
@@ -186,10 +223,10 @@ fn client_local_capacity_plan(
   // IO observes scalar cells plus row field names, not evaluator intermediates.
   // Keep expression text independent unless every original typed child and
   // generated step has a separate text-free proof.
-  let decimal_text = value_node_demand.bind(demand => demand.text_bound)
+  let checked_text = value_node_demand.bind(demand => demand.text_bound)
   let io_text = match scalar_demand {
     Some(demand) => Some(demand.name_bytes)
-    None => decimal_text
+    None => checked_text
   }
   let values = match io_text {
     Some(bytes) => { ..values, max_text_bytes: bytes, }
@@ -197,7 +234,7 @@ fn client_local_capacity_plan(
   }
   let execution = if io_text is Some(bytes) &&
     (
-      decimal_text is Some(_) ||
+      checked_text is Some(_) ||
       client_local_text_free_scalar_sequences(sequences)
     ) {
     {
@@ -214,7 +251,7 @@ fn client_local_capacity_plan(
   } else {
     execution
   }
-  let measurement = match original_values_text {
+  let measurement = match leaf_text_wire {
     Some((_, wire, _)) =>
       { ..measurement, max_bytes: Int::max(measurement.max_bytes, wire), }
     None => measurement
@@ -282,7 +319,7 @@ fn client_local_capacity_plan(
   // These are working/transport extents of the SAME checked Values, not new
   // policy or capacity. Quote and provider construction consume them together;
   // the original Ledger and operator facility still admit the resulting cost.
-  let imports = match original_values_text {
+  let imports = match leaf_text_wire {
     Some((text, wire, row_wire)) =>
       {
         ..imports,
@@ -292,10 +329,9 @@ fn client_local_capacity_plan(
         },
         row: {
           ..imports.row,
-          max_bytes: Int::max(
-            imports.row.max_bytes,
-            Int::min(row_wire, 16777216),
-          ),
+          // SAME finite checked row-wire proof; importer/framer constructors
+          // remain funded on their original task before allocating this bound.
+          max_bytes: Int::max(imports.row.max_bytes, row_wire),
           max_text_bytes: Int::max(
             imports.row.max_text_bytes,
             Int::min(text, row_wire),
@@ -308,7 +344,7 @@ fn client_local_capacity_plan(
       }
     None => imports
   }
-  let exports = match original_values_text {
+  let exports = match leaf_text_wire {
     Some((_, wire, row_wire)) =>
       {
         ..exports,
@@ -329,7 +365,7 @@ fn client_local_capacity_plan(
   // reference envelope; arbitrary ContentRef still has no such proof. Use a
   // conservative punctuation/numeric envelope per node and escaped text.
   let content_wire = if content is Some(_) &&
-    decimal_text is Some(bytes) &&
+    checked_text is Some(bytes) &&
     value_node_demand is Some(demand) {
     client_local_json_leaf_wire_byte_bound(demand.nodes, 1, bytes.to_int64())
   } else {
@@ -366,12 +402,15 @@ fn client_local_capacity_plan(
     Int::max(
       10000,
       Int::min(
-        // Total wire demand can exceed a single supported physical frame.
-        // Preserve the existing Local/framer 16MiB bound for one value.
-        Int::min(
-          16777216,
-          Int::max(imports.row.max_bytes, imports.wire.max_bytes),
-        ),
+        // The actual provider measures one COMPLETE row, not one cell or
+        // physical chunk. Keep this same row/measurement bound; it grants no
+        // storage and does not enlarge the independent bounded batch window.
+        match leaf_text_wire {
+          // The SAME closed proof already separated per-row spelling from
+          // cumulative output. Total bytes cannot stand in for one row here.
+          Some(_) => imports.row.max_bytes
+          None => Int::max(imports.row.max_bytes, imports.wire.max_bytes)
+        },
         measurement.max_bytes,
       ),
     )
@@ -384,7 +423,10 @@ fn client_local_capacity_plan(
     Some(original) =>
       Some(
         client_local_result_publication_plan(
-          original, max_rows, result_envelope,
+          original,
+          max_rows,
+          result_envelope,
+          execution.max_work,
         ),
       )
     None => None
@@ -553,6 +595,19 @@ fn client_local_capacity_plan_matches(
     !physical_equal(plan.resource_policy, client_local_resource_policy()) ||
     plan.admitted_rows != max_rows ||
     plan.sequences.length() != sequences.length() {
+    return false
+  }
+  let operation_entries = match plan.demand_inventory {
+    Some({ closed_rows: Some(_), .. }) =>
+      client_local_request_operation_entries(
+        sequences,
+        plan.execution.rows.max_rows,
+        client_local_default_operation_entries(),
+        plan.execution.max_frames,
+      )
+    _ => client_local_default_operation_entries()
+  }
+  if plan.execution.rows.operation_entries != operation_entries {
     return false
   }
   if plan.scalar_demand is Some(demand) &&

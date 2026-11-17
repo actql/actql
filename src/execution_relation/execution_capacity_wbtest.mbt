@@ -1,4 +1,97 @@
 ///|
+test "unique assertion borrows original Text cells without a second input codec" {
+  let (source_owner, source) = bounded_binding_rows_source(
+    "[{\"id\":2,\"tag\":\"é😀\"},{\"id\":1,\"tag\":\"other\"}]",
+    distinct=true,
+  )
+  let receiver = bounded_binding_rows_receiver(
+    source_owner,
+    assert_unique=true,
+    unique_text=true,
+  )
+  let prepared = prepared_sequence(receiver)
+  let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared,
+    [],
+    [@lower.node_id(first)],
+    100000,
+    10000,
+  ).unwrap()
+  let generated = select_generated_sequence_step(generated, 0).unwrap()
+  guard generated_sequence_step_at(generated, 0) is Some(@lower.RowStep(kernel)) &&
+    @lower.kernel_body(kernel) is @lower.AssertUnique(_) else {
+    fail("original unique assertion constructor")
+  }
+  let limits = compute_test_limits()
+  let measurement : FixedInputGuardMeasureLimits = {
+    max_work: 10000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let before = generated_bounded_sequence_capacity(
+    generated, limits, measurement,
+  ).unwrap()
+  let after = generated_bounded_sequence_capacity(
+    generated,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        input_values: {
+          ..limits.rows.input_values,
+          max_nodes: 1000000,
+          max_text_bytes: 20000000,
+        },
+      },
+    },
+    { ..measurement, max_nodes: 1000000, max_bytes: 20000000, },
+  ).unwrap()
+  assert_eq(before.retained_bytes, after.retained_bytes)
+  assert_eq(before.execution_bytes, after.execution_bytes)
+  let input = prepare_producer_read(
+    receiver,
+    bind_completed_input(receiver, 0, source_owner, source).unwrap(),
+    100,
+    10000,
+  ).unwrap()
+  let active = start_bounded_binding_rows(
+    @bounded.control(),
+    generated,
+    input,
+    100,
+    limits.rows.input_values,
+    limits.rows.output_values,
+    100000,
+    100,
+    10000,
+    10000,
+  ).unwrap()
+  let mut output : CompletedOutput? = None
+  for _ in 0..<10000 {
+    if output is Some(_) {
+      break
+    }
+    match advance_bounded_binding_rows(active, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(value, ..) => output = Some(value)
+      _ => fail("original Text unique assertion did not complete")
+    }
+  }
+  let output = output.unwrap()
+  assert_eq(completed_row_count(output), 2)
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2.0)))
+  assert_true(completed_cell(output, 0, 1) is Some(Text("é😀")))
+  assert_true(completed_cell(output, 1, 0) is Some(Number(1.0)))
+  assert_true(completed_cell(output, 1, 1) is Some(Text("other")))
+  assert_true(cleanup_bounded_binding_rows(active).unwrap())
+  assert_true(producer_read_available(input))
+  assert_true(completed_output_available(source))
+}
+
+///|
 test "selected sequence capacity charges only reachable fragment contexts" {
   let sequence = prepared_sequence(
     row_owner(
@@ -224,6 +317,62 @@ test "one original primitive Values constructor keeps logical budgets without ph
   let one = generated_bounded_sequence_capacity(selected, limits, measure).unwrap()
   assert_eq(whole.retained_bytes, one.retained_bytes)
   assert_eq(whole.execution_bytes, one.execution_bytes)
+  let unused_workspace = generated_bounded_sequence_capacity(
+    generated,
+    { ..limits, rows: { ..limits.rows, operation_entries: 100000, }, },
+    measure,
+  ).unwrap()
+  assert_eq(unused_workspace.retained_bytes, whole.retained_bytes)
+  assert_eq(unused_workspace.execution_bytes, whole.execution_bytes)
+  // The runtime still receives the original configured cap. A larger unused
+  // allowance grants no extra constructor backing, while a smaller actual
+  // row limit continues to refuse before the first cell is constructed.
+  assert_true(
+    start_bounded_values(
+      @bounded.control(),
+      generated,
+      2,
+      values,
+      values,
+      10000,
+      16,
+      3,
+      100,
+    )
+    is Err(InputLimit),
+  )
+  for entries in [6, 100000] {
+    let active = start_bounded_values(
+      @bounded.control(),
+      generated,
+      2,
+      values,
+      values,
+      10000,
+      16,
+      entries,
+      100,
+    ).unwrap()
+    let mut finished = false
+    for _ in 0..<10000 {
+      match advance_bounded_values(active, 1).unwrap() {
+        BoundedValuesContinue(_) => ()
+        BoundedValuesComplete(output, ..) => {
+          assert_eq(completed_row_count(output), 2)
+          assert_true(completed_cell(output, 0, 0) is Some(Boolean(true)))
+          assert_true(completed_cell(output, 0, 1) is Some(Number(1.0)))
+          assert_true(completed_cell(output, 1, 0) is Some(Boolean(false)))
+          assert_true(completed_cell(output, 1, 1) is Some(Null))
+          finished = true
+          break
+        }
+        _ => fail("primitive Values changed with unused workspace policy")
+      }
+    }
+    assert_true(finished)
+    assert_true(cleanup_bounded_values(active).unwrap())
+    assert_false(bounded_values_cleanup_pending(active))
+  }
   let unused_measurement = {
     ..measure,
     max_nodes: 1000000,
@@ -297,8 +446,9 @@ test "one original primitive Values constructor keeps logical budgets without ph
   )
   let ordinary = generated_sequence_capacity(generated, limits, measure).unwrap()
   assert_true(ordinary.execution_bytes > whole.execution_bytes)
-  // Text keeps the conservative constructor envelope; unused DATA must not
-  // turn a non-primitive schema into this borrowed-scalar case.
+  // Required Text cells use the same original frozen Values and resumable
+  // measurement cursors. No canonical input body or measurement forest is
+  // constructed, while the complete output/row workspace stays funded.
   let text = prepare_generated_sequence(
     registered_relation_contracts(),
     prepared_sequence(
@@ -315,7 +465,27 @@ test "one original primitive Values constructor keeps logical budgets without ph
   let text_large = generated_bounded_sequence_capacity(
     text, limits, unused_measurement,
   ).unwrap()
-  assert_true(text_large.execution_bytes > text_small.execution_bytes)
+  assert_eq(text_large.execution_bytes, text_small.execution_bytes)
+  assert_eq(text_large.retained_bytes, text_small.retained_bytes)
+  let text_output = generated_bounded_sequence_capacity(
+    text,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        output_values: { ..values, max_text_bytes: 200, },
+      },
+    },
+    measure,
+  ).unwrap()
+  // The SAME frozen literal is the physical DATA bound. Increasing an unused
+  // logical ceiling neither creates a Text copy nor changes that original.
+  assert_eq(text_output.retained_bytes, text_small.retained_bytes)
+  assert_eq(text_output.execution_bytes, text_small.execution_bytes)
+  assert_true(
+    generated_sequence_capacity(text, limits, unused_measurement).unwrap().execution_bytes >
+    text_large.execution_bytes,
+  )
 }
 
 ///|
@@ -401,7 +571,9 @@ test "bounded scalar grouped count keeps full output and falls back for copied i
       ("", "", "", true),
       (
         ",\"payload\":{\"type\":\"string\",\"nullable\":false}", ",\"payload\":\"x\"",
-        "", false,
+        // Direct COUNT's stepped cursor also borrows required Text cells.
+        // Recursive input retains the full constructor in the next case.
+         "", true,
       ),
       (
         ",\"payload\":{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
@@ -764,4 +936,173 @@ test "bounded numeric pivot quotes real aggregate cursor geometry without copied
   )
   assert_true(cleanup_bounded_group_execution(active).unwrap())
   assert_true(completed_output_available(source))
+}
+
+///|
+test "bounded Interval quotes full output with actual workspace and borrowed flat inputs" {
+  let captured : Ref[GeneratedSequence?] = Ref(None)
+  let (control, active, _) = bounded_interval_fixture(text_key=true, capture=generated => {
+    captured.val = Some(generated)
+  })
+  let generated = captured.val.unwrap()
+  let limits = compute_test_limits()
+  let measure : FixedInputGuardMeasureLimits = {
+    max_work: 100000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let old = generated_sequence_capacity(generated, limits, measure).unwrap()
+  let bounded = generated_bounded_interval_capacity(
+    generated, limits, measure, 10000,
+  ).unwrap()
+  assert_eq(bounded.retained_bytes, old.retained_bytes)
+  assert_true(bounded.execution_bytes >= bounded.retained_bytes)
+  assert_true(bounded.execution_bytes < old.execution_bytes)
+  let more_input = {
+    ..limits,
+    rows: {
+      ..limits.rows,
+      input_values: {
+        ..limits.rows.input_values,
+        max_nodes: 1000000,
+        max_text_bytes: 20000000,
+      },
+    },
+  }
+  let borrowed = generated_bounded_interval_capacity(
+    generated,
+    more_input,
+    { ..measure, max_nodes: 1000000, max_bytes: 20000000, },
+    10000,
+  ).unwrap()
+  assert_eq(
+    (borrowed.retained_bytes, borrowed.execution_bytes),
+    (bounded.retained_bytes, bounded.execution_bytes),
+  )
+  let output = generated_bounded_interval_capacity(
+    generated,
+    {
+      ..limits,
+      rows: {
+        ..limits.rows,
+        output_values: {
+          ..limits.rows.output_values,
+          max_nodes: limits.rows.output_values.max_nodes + 1,
+        },
+      },
+    },
+    measure,
+    10000,
+  ).unwrap()
+  assert_eq(output.retained_bytes - bounded.retained_bytes, 256L)
+  assert_eq(output.execution_bytes - bounded.execution_bytes, 256L)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_interval_join(active, 1)
+    is Ok(BoundedIntervalJoinStopped(_, ..)),
+  )
+  assert_true(cleanup_bounded_interval_join(active).unwrap())
+  assert_false(bounded_interval_join_cleanup_pending(active))
+}
+
+///|
+test "bounded Interval capacity refuses one-short workspace before allocation" {
+  let captured : Ref[GeneratedSequence?] = Ref(None)
+  let (control, active, _) = bounded_interval_fixture(capture=generated => {
+    captured.val = Some(generated)
+  })
+  let generated = captured.val.unwrap()
+  let limits = compute_test_limits()
+  let measure : FixedInputGuardMeasureLimits = {
+    max_work: 100000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  assert_true(
+    generated_bounded_interval_capacity(
+      generated,
+      { ..limits, rows: { ..limits.rows, operation_entries: 9999, }, },
+      measure,
+      10000,
+    )
+    is None,
+  )
+  let exact = generated_bounded_interval_capacity(
+    generated, limits, measure, 10000,
+  ).unwrap()
+  let extra = generated_bounded_interval_capacity(
+    generated,
+    { ..limits, rows: { ..limits.rows, operation_entries: 10001, }, },
+    measure,
+    10000,
+  ).unwrap()
+  assert_eq(extra.retained_bytes, exact.retained_bytes)
+  assert_eq(extra.execution_bytes - exact.execution_bytes, 256L)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_interval_join(active, 1)
+    is Ok(BoundedIntervalJoinStopped(_, ..)),
+  )
+  assert_true(cleanup_bounded_interval_join(active).unwrap())
+}
+
+///|
+fn interval_capacity_shape(payload : String) -> GeneratedSequence raise {
+  let schema = "{\"at\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"start\":{\"type\":\"number\",\"nullable\":false}," +
+    "\"end\":{\"type\":\"number\",\"nullable\":false},\"payload\":" +
+    payload +
+    "}"
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[]},\"as\":\"l\"}," +
+    "{\"values\":{\"schema\":" +
+    schema +
+    ",\"rows\":[]},\"as\":\"r\"}," +
+    "{\"from\":\"l\",\"interval_join\":{\"with\":\"r\",\"kind\":\"left\"," +
+    "\"mode\":\"point_in_interval\",\"on\":[],\"left\":{\"time\":\"at\"}," +
+    "\"right\":{\"start\":\"start\",\"end\":\"end\"}," +
+    "\"select\":{\"payload\":\"left.payload\"}},\"as\":\"joined\"}]",
+  )
+  let node = @lower.node_at(@lower.bound_preparation(owner), 2).unwrap()
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(owner),
+    [],
+    [@lower.node_id(node)],
+    100000,
+    10000,
+  ).unwrap()
+  select_generated_sequence_step(generated, 2).unwrap()
+}
+
+///|
+test "bounded Interval capacity declines recursive DATA without changing the old recipe" {
+  let generated = interval_capacity_shape(
+    "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+  )
+  let measure : FixedInputGuardMeasureLimits = {
+    max_work: 100000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let limits = compute_test_limits()
+  assert_true(
+    generated_sequence_capacity(generated, limits, measure) is Some(_),
+  )
+  assert_true(
+    generated_bounded_interval_capacity(generated, limits, measure, 10000)
+    is None,
+  )
+  let scalar = interval_capacity_shape(
+    "{\"type\":\"number\",\"nullable\":true}",
+  )
+  assert_true(
+    generated_bounded_interval_capacity(scalar, limits, measure, 10000)
+    is Some(_),
+  )
 }

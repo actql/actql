@@ -7,7 +7,10 @@ test "capture text keeps one exact debit and distinguishes only the strictly sma
     max_work: 15,
   }
   let work = value_budget(limits).unwrap()
-  assert_eq(charge_text_issue(work, "x".repeat(16)), Some(CaptureWorkLimit(15)))
+  assert_eq(
+    charge_text_issue(work, "x".repeat(16)),
+    Some(CaptureWorkRefusal(15, 15)),
+  )
   assert_eq(
     (work.nodes, work.text, work.work, work.external_work),
     (0, 0, 0, 0),
@@ -36,6 +39,9 @@ test "capture text keeps one exact debit and distinguishes only the strictly sma
   assert_eq((success.text, success.work), (13, 13))
   let prior = value_budget(limits).unwrap()
   assert_true(charge_text(prior, "x".repeat(10)))
-  assert_eq(charge_text_issue(prior, "x".repeat(6)), Some(CaptureWorkLimit(15)))
+  assert_eq(
+    charge_text_issue(prior, "x".repeat(6)),
+    Some(CaptureWorkRefusal(15, 5)),
+  )
   assert_eq((prior.text, prior.work), (10, 10))
 }

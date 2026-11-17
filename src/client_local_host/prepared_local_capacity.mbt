@@ -121,18 +121,26 @@ fn installed_mock_models_compute_limits(
   let io = if original.retained_output { 2L } else { 1L }
   let slots = @local_driver.local_dispatch_work_slots().to_int64() + io
   let offer = 2L * slots + 1L + io
+  let mut scan = 0L
+  for task in first..<count {
+    guard @local_driver.local_dispatch_preparation_input_scan_work(
+        original.dispatch,
+        task,
+      )
+      is Some(visits) else {
+      return None
+    }
+    scan = Int64::max(scan, visits.to_int64())
+  }
   let work = if first == 1 {
     // configure_adaptive_dispatch charges count once. Every rebuild charges
-    // nodes/edges and the installed estimate work before its offers/search.
+    // nodes/edges; the Local estimator charges its exact ready-input scan
+    // and each offer separately before their walks.
     // A revision-limit refusal may do that preflight once more before latching.
-    let revision = n +
-      d +
-      client_local_estimate_work.to_int64() +
-      tasks * offer +
-      search
+    let revision = n + d + scan + tasks * offer + search
     n + (client_local_adaptive_revisions.to_int64() + 1L) * revision
   } else {
-    tasks * offer + search
+    scan + tasks * offer + search
   }
   guard @execution.checked_preparation_add_product(
       first.to_int64(),

@@ -14,7 +14,7 @@ pub fn advance_local_materializing_attempt(LocalMaterializingAttempt, Int) -> Re
 
 pub fn advance_local_materializing_cleanup(LocalMaterializingAttempt, Int) -> Bool
 
-pub fn advance_local_output_export(LocalMaterializingAttempt, Int) -> Result[@execution_relation.CompletedOutputExportAdvance, LocalMaterializingIssue]
+pub fn advance_local_output_export(LocalMaterializingAttempt, Int, before_batch_growth? : ((Int) -> Result[Bool, @execution_relation.CompletedExportIssue])?) -> Result[@execution_relation.CompletedOutputExportAdvance, LocalMaterializingIssue]
 
 pub fn advance_local_output_export_preparation(LocalMaterializingAttempt, Int) -> Result[(Bool, Int), LocalMaterializingIssue]
 
@@ -27,6 +27,8 @@ pub fn begin_local_materializing_input(LocalMaterializingAttempt, Int) -> Result
 pub fn begin_local_output_export(LocalMaterializingAttempt) -> Result[Unit, LocalMaterializingIssue]
 
 pub fn bind_local_materializing_numeric_execution(LocalMaterializingAttempt, @execution_relation.NumericAggregateExecution) -> Bool
+
+pub fn bind_local_materializing_workspace_growth(LocalMaterializingAttempt, Int64, (Int64, Int64) -> Result[Unit, @execution_relation.WorkspaceGrowthIssue], Bool) -> Result[Unit, LocalMaterializingIssue]
 
 pub fn bind_local_output_export(LocalMaterializingAttempt, @execution_relation.RetainedOutputMaterial) -> Result[Unit, LocalMaterializingIssue]
 
@@ -64,7 +66,11 @@ pub fn local_export_retention_capacity(LocalExportLimits) -> Int64?
 
 pub fn local_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.FixedComputeRequest, @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @connector_sdk.FixedComputeIssue]
 
+pub fn local_import_next_retention_extent(LocalImportLimits, Int64, Int64, Int64, Int64) -> (Int64, Int64, Int64, Int64)?
+
 pub fn local_import_retention_capacity(LocalImportLimits) -> Int64?
+
+pub fn local_import_start_retention_capacity(LocalImportLimits) -> Int64?
 
 pub fn[T] local_managed_fixed_compute_candidate(@connector_sdk.CapabilityRegistration, @connector_sdk.ManagedFixedComputeRequest[T], @execution_relation.GeneratedSequence, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int, provider_supported? : Bool) -> Result[@connector_sdk.PreparedManagedCompute[T, @execution_relation.GeneratedSequence], @connector_sdk.FixedComputeIssue]
 
@@ -74,7 +80,11 @@ pub fn local_materializing_completed_output(LocalMaterializingAttempt) -> @execu
 
 pub fn local_materializing_cumulative_work(LocalMaterializingAttempt) -> Result[Int64, ManagedProviderWorkIssue]
 
+pub fn local_materializing_export_start_capacity(LocalExportLimits) -> Int64?
+
 pub fn local_materializing_guard_usage(LocalMaterializingAttempt) -> (Int, Int, Int)?
+
+pub fn local_materializing_import_start_capacity(LocalImportLimits) -> Int64?
 
 pub fn local_materializing_input(LocalMaterializingAttempt, Int) -> @execution_relation.ProducerRead?
 
@@ -124,11 +134,15 @@ pub fn local_module_managed_provider(LocalComputeModule, Int, @execution_relatio
 
 pub fn local_module_managed_sequence_supported(LocalComputeModule, Int) -> Bool
 
+pub fn local_module_materializing_start_capacity(LocalComputeModule, Int) -> (@execution_relation.ExecutionCapacity, Bool?)?
+
 pub fn local_module_max_work(LocalComputeModule) -> Int
 
 pub fn local_module_measurement_limits(LocalComputeModule) -> @execution_relation.FixedInputGuardMeasureLimits
 
 pub fn local_module_metered_output_start_capacity(LocalComputeModule, Int, @execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?
+
+pub fn local_module_provider_field_inventory(Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn local_module_sequence_contains_carrier_step(LocalComputeModule, Int) -> Bool
 
@@ -142,11 +156,15 @@ pub fn local_sequence_has_carrier_input(@execution_relation.GeneratedSequence) -
 
 pub fn local_sequence_outputs_carrier(@execution_relation.GeneratedSequence) -> Bool
 
-pub fn managed_provider((@execution_relation.GeneratedSequence) -> Bool, (@execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?, (@execution_relation.GeneratedSequence, Array[@execution_relation.ProducerRead], Int, Int, @execution_relation.SequenceExecutionLimits) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]) -> ManagedProvider
+pub fn managed_provider((@execution_relation.GeneratedSequence) -> Bool, (@execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?, (@execution_relation.GeneratedSequence, Array[@execution_relation.ProducerRead], Int, Int, @execution_relation.SequenceExecutionLimits) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue], bounded_relation_capacity? : ((@execution_relation.GeneratedSequence, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?)?) -> ManagedProvider
 
 pub fn managed_provider_accepts(ManagedProvider, @execution_relation.GeneratedSequence) -> Bool
 
+pub fn managed_provider_bounded_relation_capacity(ManagedProvider, @execution_relation.GeneratedSequence, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn managed_provider_capacity(ManagedProvider, @execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?
+
+pub fn managed_provider_capacity_for_execution(ManagedProvider, @execution_relation.GeneratedSequence, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn managed_provider_carrier_complete(@managed_carrier_runtime.Material, Int64, Int64) -> ManagedProviderPoll
 
@@ -161,6 +179,8 @@ pub fn managed_provider_continue(Int64, Int64) -> ManagedProviderPoll
 pub fn managed_provider_cumulative_work(ManagedProviderExecution) -> Result[Int64, ManagedProviderWorkIssue]
 
 pub fn managed_provider_execution((Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue], () -> Bool, () -> Bool, () -> Result[Bool, @connector_sdk.FixedComputeIssue]) -> ManagedProviderExecution
+
+pub fn managed_provider_execution_with_cleanup_continuation((Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue], () -> Bool, () -> Bool, () -> Result[Bool, @connector_sdk.FixedComputeIssue], () -> Int64) -> ManagedProviderExecution
 
 pub fn managed_provider_execution_with_retained_completion((Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue], () -> Bool, () -> Bool, () -> Result[Bool, @connector_sdk.FixedComputeIssue], () -> Bool) -> ManagedProviderExecution
 
@@ -186,7 +206,7 @@ pub fn managed_provider_waiting(Int64, Int64) -> ManagedProviderPoll
 
 pub fn managed_provider_with_infer_relation_prefix(ManagedProvider, @execution_relation.GeneratedSequence, Int, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> ManagedProvider
 
-pub fn managed_provider_with_inputs((@execution_relation.GeneratedSequence) -> Bool, (@execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?, (@execution_relation.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution_relation.SequenceExecutionLimits) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]) -> ManagedProvider
+pub fn managed_provider_with_inputs((@execution_relation.GeneratedSequence) -> Bool, (@execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?, (@execution_relation.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution_relation.SequenceExecutionLimits) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue], bounded_relation_capacity? : ((@execution_relation.GeneratedSequence, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?)?) -> ManagedProvider
 
 pub fn managed_provider_with_numeric((@execution_relation.GeneratedSequence) -> Bool, (@execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?, (@execution_relation.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution_relation.SequenceExecutionLimits, @execution_relation.NumericAggregateExecution?) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]) -> ManagedProvider
 

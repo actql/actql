@@ -118,38 +118,66 @@ const byCid = values => values.map(value => JSON.parse(value))
 // Without Mappings or Commands the read-only environment remains unchanged.
 // Checked contracts contain exact data text, including enum values and field
 // names. Preserve those originals rather than applying configuration NFC.
-export function rowSourceCheckEnvironment(baseWire, declared, mappings = []) {
-  const base = JSON.parse(baseWire);
-  const {evidence_bundle_cid: _, ...body} = base;
-  const commands = Object.hasOwn(declared, 'command_bodies')
-    ? declared.command_bodies : [];
-  if (body.version !== 'actql-check-environment/0.1' ||
-      body.connector_catalogs.length !== 0 ||
-      body.schema_snapshots.length !== 0 ||
-      body.connector_capabilities.length !== 0 ||
-      body.connector_manifest !== undefined ||
-      declared.evidence_schemas.length !== declared.view_bodies.length ||
-      declared.evidence_capabilities.length !== declared.view_bodies.length ||
-      !Array.isArray(mappings) || !Array.isArray(commands) ||
-      (mappings.length !== 0 && body.mapping_contracts?.length !== 0) ||
-      (commands.length !== 0 && body.command_contracts?.length !== 0)) {
-    fail('InvalidRowSourceCheckEnvironmentBase');
+export function rowSourceCheckEnvironment(baseWire, declared, mappings = [], retainOriginal, construction) {
+  const parse = wire => construction === undefined ? JSON.parse(wire)
+    : construction.freeze(JSON.parse(wire));
+  const members = values => construction === undefined ? byCid(values) : values.map(parse);
+  const build = () => {
+    const base = parse(baseWire);
+    const {evidence_bundle_cid: _, ...body} = base;
+    const commands = Object.hasOwn(declared, 'command_bodies')
+      ? declared.command_bodies : [];
+    if (body.version !== 'actql-check-environment/0.1' ||
+        body.connector_catalogs.length !== 0 ||
+        body.schema_snapshots.length !== 0 ||
+        body.connector_capabilities.length !== 0 ||
+        body.connector_manifest !== undefined ||
+        declared.evidence_schemas.length !== declared.view_bodies.length ||
+        declared.evidence_capabilities.length !== declared.view_bodies.length ||
+        !Array.isArray(mappings) || !Array.isArray(commands) ||
+        (mappings.length !== 0 && body.mapping_contracts?.length !== 0) ||
+        (commands.length !== 0 && body.command_contracts?.length !== 0)) {
+      fail('InvalidRowSourceCheckEnvironmentBase');
+    }
+    const environment = {...body,
+      schema_snapshots: members(declared.evidence_schemas),
+      connector_capabilities: members(declared.evidence_capabilities),
+      source_views: members(declared.view_bodies),
+      contract_registry: members(declared.contracts),
+      connector_catalogs: [parse(declared.catalog)],
+      connector_manifest: {version: 'actql-connectors/0.1',
+        connectors: [parse(declared.manifest_entry)]},
+      ...(mappings.length === 0 ? {} : {mapping_contracts: members(mappings)}),
+      ...(commands.length === 0 ? {} : {command_contracts: members(commands)})};
+    return environment;
+  };
+  const environment = construction === undefined ? build() : construction.parse(build);
+  if (construction !== undefined) {
+    for (const section of ['schema_snapshots', 'connector_capabilities', 'source_views',
+      'contract_registry', 'mapping_contracts', 'command_contracts']) {
+      const values = environment[section];
+      if (!Object.isFrozen(values)) construction.sort(values, () => {
+        values.sort((a, b) => {
+          const left = valueCid(a), right = valueCid(b);
+          return left < right ? -1 : left > right ? 1 : 0;
+        });
+        Object.freeze(values);return Object.freeze({});
+      });
+    }
+    construction.seal(environment);
   }
-  const environment = {...body,
-    schema_snapshots: byCid(declared.evidence_schemas),
-    connector_capabilities: byCid(declared.evidence_capabilities),
-    source_views: byCid(declared.view_bodies),
-    contract_registry: byCid(declared.contracts),
-    connector_catalogs: [JSON.parse(declared.catalog)],
-    connector_manifest: {version: 'actql-connectors/0.1',
-      connectors: [JSON.parse(declared.manifest_entry)]},
-    ...(mappings.length === 0 ? {} : {mapping_contracts: byCid(mappings)}),
-    ...(commands.length === 0 ? {} : {command_contracts: byCid(commands)})};
-  const evidenceCid = valueCid(environment);
-  return Object.freeze({
-    wire: canonicalValueJson({...environment, evidence_bundle_cid: evidenceCid},
-      {dataKeys: true}),
-    evidenceCid});
+  const evidenceCid = construction === undefined ? valueCid(environment)
+    : construction.hash(environment, () => valueCid(environment));
+  const document = Object.freeze({...environment, evidence_bundle_cid: evidenceCid});
+  const encode = () => {
+    const result = Object.freeze({
+      wire: canonicalValueJson(document,
+        {dataKeys: true}),
+      evidenceCid});
+    retainOriginal?.(result, document, environment);
+    return result;
+  };
+  return construction === undefined ? encode() : construction.encode(document, encode);
 }
 
 // The selected Mapping of `resource`, generated by the common runtime from the
@@ -201,6 +229,7 @@ export async function installRowSourceAuthorization({accountConfiguration,
     return decision;
   };
   return Object.freeze({...gate, context, accountConfiguration,
+    accountConstruction: gateOptions.accountConstruction,
     issued: decision => issued.has(decision),
     authorize: async (...args) => own(await gate.authorize(...args)),
     resume: async (...args) => own(await gate.resume(...args))});
@@ -1404,6 +1433,82 @@ export async function openRowSourceCredentialSite({profile, principalId,
 // `physicalTarget(resource, fields)` the exact target an approval covers.
 // Standard installations may instead supply their frozen full target DATA
 // inventory. It has no authorization/current/physical cleanup methods.
+// The selected RowRun reserves the maximum page/codec overlap before it
+// starts. Emit synchronously after the last current/await fence into one owned
+// buffer; no object toJSON hook or provider getter participates in this codec.
+export function encodeTypedResponseJson(value, maxBytes) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > 2147483647) fail('InvalidKeyedResponseObservation');
+  const body = Buffer.allocUnsafe(maxBytes);
+  let position = 0, nodes = 0;
+  const byte = value => {
+    if (position === maxBytes) fail('InstalledRowPageLimit');
+    body[position++] = value;
+  };
+  const ascii = text => { for (let index = 0; index < text.length; index++) byte(text.charCodeAt(index)); };
+  const quoted = text => {
+    byte(34);
+    for (let index = 0; index < text.length; index++) {
+      let code = text.charCodeAt(index);
+      if (code === 34 || code === 92) { byte(92); byte(code); }
+      else if (code < 32) {
+        ascii('\\u00'); byte('0123456789abcdef'.charCodeAt(code >> 4)); byte('0123456789abcdef'.charCodeAt(code & 15));
+      } else if (code < 128) byte(code);
+      else if (code < 2048) { byte(192 | (code >> 6)); byte(128 | (code & 63)); }
+      else {
+        if (code >= 0xd800 && code <= 0xdbff && index + 1 < text.length) {
+          const next = text.charCodeAt(index + 1);
+          if (next >= 0xdc00 && next <= 0xdfff) { code = 0x10000 + ((code - 0xd800) << 10) + next - 0xdc00; index++; }
+        }
+        if (code >= 0xd800 && code <= 0xdfff) {
+          ascii('\\u');
+          for (let shift = 12; shift >= 0; shift -= 4) byte('0123456789abcdef'.charCodeAt((code >> shift) & 15));
+        } else if (code < 0x10000) {
+          byte(224 | (code >> 12)); byte(128 | ((code >> 6) & 63)); byte(128 | (code & 63));
+        } else {
+          byte(240 | (code >> 18)); byte(128 | ((code >> 12) & 63)); byte(128 | ((code >> 6) & 63)); byte(128 | (code & 63));
+        }
+      }
+    }
+    byte(34);
+  };
+  const emit = (item, depth) => {
+    if (++nodes > maxBytes || depth > 32) fail('InvalidKeyedResponseObservation');
+    if (typeof item === 'string') return quoted(item);
+    if (item === null) return ascii('null');
+    if (typeof item === 'boolean') return ascii(item ? 'true' : 'false');
+    if (typeof item === 'number' && Number.isFinite(item)) return ascii(String(item));
+    if (typeof item !== 'object' || nodeTypes.isProxy(item)) fail('InvalidKeyedResponseObservation');
+    const array = Array.isArray(item), prototype = Object.getPrototypeOf(item);
+    if (array ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) fail('InvalidKeyedResponseObservation');
+    byte(array ? 91 : 123);
+    if (array) {
+      if (item.length > maxBytes) fail('InstalledRowPageLimit');
+      for (let index = 0; index < item.length; index++) {
+        if (index) byte(44);
+        const field = Object.getOwnPropertyDescriptor(item, String(index));
+        if (field && !Object.hasOwn(field, 'value')) fail('InvalidKeyedResponseObservation');
+        emit(field === undefined ? null : field.value, depth + 1);
+      }
+    } else {
+      let first = true;
+      for (const key in item) {
+        const field = Object.getOwnPropertyDescriptor(item, key);
+        if (field === undefined) continue;
+        if (!Object.hasOwn(field, 'value')) fail('InvalidKeyedResponseObservation');
+        if (!first) byte(44); first = false;
+        quoted(key); byte(58); emit(field.value, depth + 1);
+      }
+    }
+    byte(array ? 93 : 125);
+  };
+  emit(value, 0);
+  // Never retain a tiny view of the maximum backing in a raw holder or
+  // decoder. The prepaid phase includes this exact owned copy beside it.
+  const exact = Buffer.allocUnsafeSlow(position);
+  exact.set(body.subarray(0, position));
+  return exact;
+}
+
 export async function createInstalledRowSource({moon, declaration, commands,
   declared, environmentWire, environment, sourceInitialization, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
@@ -1432,7 +1537,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
     }
     // Common preparation cleanup is part of the original Source lifecycle.
     // A provider's publication selection cannot hide an unentered read owner.
-    for (const name of ['retirePreparedSource', 'prepareRetained']) {
+    for (const name of ['retirePreparedSource', 'prepareRetained',
+      ...(environment === undefined ? [] : ['environmentOriginal'])]) {
       if (!selectedSurface.includes(name)) selectedSurface.push(name);
     }
   }
@@ -1594,7 +1700,18 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // explicit legacy constructors keep their original raw-wire entry law.
   let acquisitionContracts = retainedAcquisitionContracts
     ? prepareInstalledSourceAcquisitionContracts(sourceInitialization, queryContract, evidenceContract) : undefined;
-  const sourceRefs = new Set(declared.views.map(view => view.source_ref));
+  const constructReadMetadata = () => {
+    const sourceRefs = new Set();
+    const sourceReadAccesses = Object.freeze(declared.views.map(view => {
+      sourceRefs.add(view.source_ref);
+      return Object.freeze({authorization, connection: site.connection,
+        sourceRef: view.source_ref, resource: view.resource});
+    }));
+    return Object.freeze({sourceRefs, sourceReadAccesses});
+  };
+  const {sourceRefs, sourceReadAccesses} = sourceInitialization === undefined
+    ? constructReadMetadata()
+    : sourceInitialization.prepareReadMetadata(declared, constructReadMetadata);
   if (!['maxPages', 'maxPageBytes', 'maxPageRows', 'maxCaptureRows']
     .every(key => Number.isSafeInteger(limits?.[key]) && limits[key] > 0 &&
       limits[key] <= 2_147_483_647)) {
@@ -1689,7 +1806,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
     const capacity = checked(moon.clientProgramPrepareWholeSourceCapacity(
       preparedProgram, sourceSelection, declaration, installedContracts, originalReader?.capacity,
       limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
-      selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows));
+      selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows, limits.maxPages));
     return Object.freeze({capacity, wholeInput: true, transferBytes: maxTransferBytes,
       executionBytes: BigInt(limits.maxPageBytes)});
   }
@@ -1767,9 +1884,6 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // Read disclosure and held-Run authority are per declared view. The
   // acquisition access stays installation-scoped; its checked preparation
   // supplies the one exact view and read tuple before provider I/O.
-  const sourceReadAccesses = Object.freeze(declared.views.map(view =>
-    Object.freeze({authorization, connection: site.connection,
-      sourceRef: view.source_ref, resource: view.resource})));
   const ordinarySubject = prepared => {
     const subject = directReadIdentity === undefined
       ? cid({version: 'actql-row-source-acquisition-read/0.1',
@@ -2222,6 +2336,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       originalClosed = true;
     };
     let deadline;
+    let responsePageActive = false;
     const budgetAbort = new AbortController();
     signal = signal === undefined ? budgetAbort.signal : AbortSignal.any([signal, budgetAbort.signal]);
     try {
@@ -2278,9 +2393,15 @@ export async function createInstalledRowSource({moon, declaration, commands,
         fail('InstalledSourcePreparationMismatch');
       }
       const nonce = randomUUID();
+      const backingField = lookupPublication === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(lookupPublication, 'responseBackingReleased');
+      if (backingField !== undefined && (!Object.hasOwn(backingField, 'value') ||
+          typeof backingField.value !== 'function')) fail('ForeignOriginalKeyedRawResponse');
+      const responseBackingReleased = backingField === undefined ? undefined
+        : () => !responsePageActive && Reflect.apply(backingField.value, lookupPublication, []) === true;
       session = startInstalledRowRun({moon, acquisition, nonce, ledger,
-        keyed: true, originalKeyedRead, capacity: {transferBytes: keyedTransferBytes,
-          executionBytes: keyedExecutionBytes}});
+        keyed: true, originalKeyedRead, responseBackingReleased,
+        capacity: {transferBytes: keyedTransferBytes, executionBytes: keyedExecutionBytes}});
       const {run} = session;
       // Encode only under the common acquisition's workspace reservation.
       const requestWire = checked(
@@ -2402,14 +2523,38 @@ export async function createInstalledRowSource({moon, declaration, commands,
         // verification count is not a physical-byte observation or a grant.
         consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),
         // The Site must await admission before returning protocol completion.
-        consumePage: (rows, {charge} = {}) => {
-          const body = Buffer.from(JSON.stringify(rows), 'utf8');
+        consumePage: async (rows, {charge} = {}) => {
+          // The codec comes from the exact Request's installed execution
+          // original. A driver Bool or an earlier current decision cannot
+          // select raw evidence or replace its pending activation.
+          const identityResponse = lookupPublication !== undefined &&
+            moon.clientProgramKeyedSourceResponseEncoding(request) === 'typed_json_row_array';
+          if (identityResponse && (backingField === undefined || responsePageActive)) fail('ForeignOriginalKeyedRawResponse');
+          if (identityResponse) responsePageActive = true;
+          let body;
+          try {
+          if (identityResponse) {
+            await verifyRead(); signal?.throwIfAborted();
+            if (moon.clientProgramKeyedSourceResponseEncoding(request) !== 'typed_json_row_array') fail('ForeignOriginalKeyedRawResponse');
+          }
+          body = identityResponse ? encodeTypedResponseJson(rows, limits.maxPageBytes)
+            : Buffer.from(JSON.stringify(rows), 'utf8');
           const ticket = charge ?? checked(moon.clientProgramRowSourceChargePage(run, body));
           checked(moon.clientProgramKeyedResponseObserve(request,
             charge === undefined ? BigInt(body.byteLength) : 0n,
             BigInt(body.byteLength), observedMs()));
-          return session.consumeKeyedPage(body,
+          if (identityResponse) {
+            if (lookupActivation === undefined || lookupRaw !== undefined) fail('ForeignOriginalKeyedRawResponse');
+            lookupRaw = await lookupPublication.retainRawResponse(lookupOriginal,
+              request, lookupActivation, body);
+            await verifyRead(); signal?.throwIfAborted();
+          }
+          return await session.consumeKeyedPage(body,
             {charge: ticket, currentRead: verifyRead, signal});
+          } finally {
+            body = undefined;
+            if (identityResponse) responsePageActive = false;
+          }
         }});
       session.confirmTransportStopped();
       const capture = await session.capture({currentRead: verifyRead, signal});
@@ -2473,11 +2618,12 @@ export async function createInstalledRowSource({moon, declaration, commands,
   // This assembles a right Relation input; it is not Source/task evidence.
   async function openKeyedLookup({preparedProgram, preparedEffect,
     keyedAcquisition, left, ledger, signal, preparedKeyed, originalCapture, originalCaptures, managedRun,
-    keyedContent, publication,
-    sourceAccess: access = sourceAccess, maxWork = 1000000, quantum = 64}) {
+    keyedContent, publication, sourceLookup,
+    sourceAccess: access = sourceAccess, maxWork = 1000000, maxNodes = maxWork, quantum = 64}) {
     if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
     keyedContent = selectedKeyedContent(keyedContent);
     if (!Number.isSafeInteger(maxWork) || maxWork < 1 || maxWork > 2147483647 ||
+        !Number.isSafeInteger(maxNodes) || maxNodes < 1 || maxNodes > 2147483647 ||
         !Number.isSafeInteger(quantum) || quantum < 1 || quantum > 1024) {
       fail('InstalledKeyedLookupLimits');
     }
@@ -2491,8 +2637,15 @@ export async function createInstalledRowSource({moon, declaration, commands,
       fail('InstalledSourceProgramMismatch');
     }
     signal?.throwIfAborted();
-    const lookup = checked(moon.clientProgramKeyedLookupStart(left, ledger,
-      limits.maxPageBytes, maxWork));
+    const lookup = sourceLookup === undefined
+      ? checked(moon.clientProgramKeyedLookupStart(left, ledger, limits.maxPageBytes, maxWork))
+      : preparedEffect === undefined || managedRun === undefined
+        ? fail('InstalledSourceProgramMismatch')
+        : checked(moon.clientProgramInstalledEffectKeyedLookupOriginal(managedRun,
+          preparedEffect, sourceLookup));
+    if (sourceLookup !== undefined && moon.clientProgramKeyedLookupLeft(lookup) !== left) {
+      fail('InstalledSourceProgramMismatch');
+    }
     const children = [];
     const released = new Set();
     let pendingRecovery;
@@ -2540,22 +2693,25 @@ export async function createInstalledRowSource({moon, declaration, commands,
     const recovery = Object.freeze({close: stop, cleanup, cleanupPending: () => !closed});
     try {
       const publicationInput = preparedEffect !== undefined;
+      // Generic content_ref Sources use their actual Store/Row capture, not a
+      // Native declared-JSON activation, raw-response Journal or page history.
+      const nativePublication = publicationInput && publication?.protocol !== 'generic-source';
       const publicationDepth = (managedPageLimits ?? pageLimits)?.maxDepth ?? 32;
       if (publicationInput) {
-        if (typeof publication?.initialize !== 'function' || typeof publication?.activate !== 'function' ||
-            typeof publication?.retainRawResponse !== 'function' || typeof publication?.adopt !== 'function' ||
-            typeof publication?.finishInput !== 'function') {
+        if (typeof publication?.initialize !== 'function' || typeof publication?.finishInput !== 'function' ||
+            nativePublication && (typeof publication?.activate !== 'function' ||
+              typeof publication?.retainRawResponse !== 'function' || typeof publication?.adopt !== 'function')) {
           fail('OriginalKeyedLookupPublicationUnavailable');
         }
         publication.initialize(lookup);
       }
       // Prepare each original request once, then dispatch those SAME originals.
       // No response or Model read can precede the closed typed key inventory.
-      for (let phase = 0; phase < (publicationInput ? 2 : 1); phase++) {
+      for (let phase = 0; phase < (nativePublication ? 2 : 1); phase++) {
         for (let row = 0; row < rows; row++) {
           signal?.throwIfAborted();
           let request;
-          if (publicationInput && phase === 1) {
+          if (nativePublication && phase === 1) {
             const originalRow = checked(moon.clientProgramKeyedLookupNextPlannedRow(lookup));
             request = checked(moon.clientProgramKeyedLookupPlannedRequest(lookup, originalRow));
           } else {
@@ -2573,7 +2729,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
             }
             preparation = undefined;
           }
-          if (publicationInput && phase === 0) {
+          if (nativePublication && phase === 0) {
             checked(moon.clientProgramKeyedLookupRequestPlanRetain(lookup, request));
             continue;
           }
@@ -2588,7 +2744,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
           try {
             acquired = await openKeyed({preparedProgram, preparedEffect,
               keyedContent, managedRun,
-              lookupPublication: publicationInput ? publication : undefined, lookupOriginal: lookup,
+              lookupPublication: nativePublication ? publication : undefined, lookupOriginal: lookup,
               keyedAcquisition, request, ledger, signal, preparedKeyed, sourceAccess: access,
               capturedResourcePath: async (verifyRead, activeSignal) => {
                 let locator;
@@ -2640,9 +2796,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
             await yieldEventLoop();
           }
         }
-        if (publicationInput && phase === 0) {
+        if (nativePublication && phase === 0) {
           checked(moon.clientProgramKeyedLookupRequestPlanFinish(lookup,
-            limits.maxPageBytes, maxWork, publicationDepth));
+            limits.maxPageBytes, maxNodes, publicationDepth));
         }
       }
       for (const child of children) {
@@ -2654,7 +2810,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
         ? publication.finishInput(lookup)
         : checked(publicationInput
           ? moon.clientProgramKeyedLookupPublicationInput(lookup,
-            limits.maxPageBytes, maxWork, publicationDepth)
+            limits.maxPageBytes, maxNodes, publicationDepth)
           : moon.clientProgramKeyedLookupRead(lookup));
       return Object.freeze({capture: Object.freeze({
         read: () => closed ? fail('InstalledSourceClosed')
@@ -3091,11 +3247,13 @@ export async function createInstalledRowSource({moon, declaration, commands,
     supportsRetainedRelationOutput: true,
     connectorRegistration, connectorRevision,
     environmentWire,
+    ...(environment === undefined ? {} : {environmentOriginal: environment}),
     connectorBindings: Object.freeze([Object.freeze({connectorId,
       bindingCid: publicationBindingCid ?? bindingCid})]),
     ...(tableReadTargets === undefined ? {} : {tableReadTargets, declarationCatalogCid: declared.catalog_cid}),
     readAuthorization: Object.freeze({
       accountConfiguration: authorization.accountConfiguration,
+      accountConstruction: authorization.accountConstruction,
       context: authorization.context}),
     sourceAccess,
     sourceReadAccesses,
@@ -3103,7 +3261,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       ? {managedCaptureCapacity: managedProviderCaptureCapacity} : {}),
     ...(originalReader !== undefined || typeof prepareSourceRead === 'function'
       ? {managedWholeSourceCapacity} : {}),
-      managedEffectPlanSelection() {
+      managedEffectPlanSelection(selection) {
         // This entry selects the common original acquisition constructor.
         // A compatibility preparer/policy or earlier physical callback cannot
         // be replaced by that default merely because its column counts match.
@@ -3116,11 +3274,23 @@ export async function createInstalledRowSource({moon, declaration, commands,
         }
         if (originalReader !== undefined && (typeof providerSiteCurrent !== 'function' ||
             Reflect.apply(providerSiteCurrent, site, []) !== true)) fail('InstalledSourceReaderNotCurrent');
-        if (typeof moon.clientProgramInstalledRowInputPolicy !== 'function') fail('InstalledSourcePlanConstructorUnavailable');
         const selectedPageLimits = managedPageLimits ?? pageLimits;
-        const inputLimits = moon.clientProgramInstalledRowInputPolicy(
-          limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
-          selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows);
+        let inputLimits;
+        if (selection === undefined) {
+          if (typeof moon.clientProgramInstalledRowInputPolicy !== 'function') fail('InstalledSourcePlanConstructorUnavailable');
+          inputLimits = moon.clientProgramInstalledRowInputPolicy(
+            limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
+            selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows);
+        } else {
+          const prepared = Object.getOwnPropertyDescriptor(selection, 'preparedEffect');
+          if (!Object.isFrozen(selection) || prepared === undefined || !Object.hasOwn(prepared, 'value') ||
+              prepared.value === undefined || typeof moon.clientProgramInstalledEffectRowInputPolicy !== 'function') {
+            fail('InstalledSourcePlanConstructorUnavailable');
+          }
+          inputLimits = checked(moon.clientProgramInstalledEffectRowInputPolicy(
+            limits.maxPages, limits.maxCaptureRows, limits.maxPageBytes,
+            selectedPageLimits?.maxNodes ?? 400000, selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows));
+        }
         return Object.freeze({declaration, provider: originalReader?.capacity,
           inputLimits,
           transferBytes: maxTransferBytes, executionBytes: BigInt(limits.maxPageBytes)});
@@ -3160,11 +3330,19 @@ export async function createInstalledRowSource({moon, declaration, commands,
         executionBytes: BigInt(limits.maxPageBytes),
       });
     },
-    keyedLedgerCapacity(keyedAcquisition, {maxWork = 1000000} = {}) {
+    keyedLedgerCapacity(keyedAcquisition, {maxWork, originalWork} = {}) {
       if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
-      if (!Number.isSafeInteger(maxWork) || maxWork < 1 || maxWork > 2147483647) {
-        fail('InstalledKeyedLookupLimits');
+      for (const value of [maxWork, originalWork]) {
+        if (value !== undefined && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) {
+          fail('InstalledKeyedLookupLimits');
+        }
       }
+      // The original installed Plan supplies work, not a parser-node grant.
+      // An explicit tighter selection remains binding; standalone callers keep
+      // the existing default and node ceiling.
+      const maxNodes = maxWork ?? 1000000;
+      maxWork = originalWork === undefined ? maxNodes
+        : Math.min(maxWork ?? originalWork, originalWork);
       const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
       if (!Array.isArray(facts) || facts.length !== 6 ||
           !facts.every(text) || !sourceRefs.has(facts[0])) {
@@ -3173,7 +3351,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       const capacity = checked(moon.clientProgramKeyedRowPrepareCapacity(keyedAcquisition,
         declaration, limits.maxPageBytes, limits.maxPageBytes, maxWork));
       return Object.freeze({capacity, transferBytes: keyedTransferBytes,
-        executionBytes: keyedExecutionBytes, maxBytes: limits.maxPageBytes, maxWork});
+        executionBytes: keyedExecutionBytes, maxBytes: limits.maxPageBytes, maxWork, maxNodes});
     },
     prepare, prepareKeyed, verifyKeyedRead, keyedRecoveryBinding, open, openCapture, openKeyed, openKeyedLookup,
     close() {
@@ -3224,7 +3402,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
 
 
 export async function openInstalledRowSite({root, principalId, commonMoon,
-  installation, runtimeBundleCid, accountConfiguration, originalContext,
+  installation, runtimeBundleCid, accountConfiguration, originalContext, accountConstruction,
   connection, profile, resolveSecret, ca, responseHeaders = [],
   admitsApprovalTarget, admitsEffectTargetRead, runAcquisitionLimits,
   assertCurrent, receiver, configurationReader, prepareSecretMaterial, openCredentialJournal}) {
@@ -3266,7 +3444,7 @@ export async function openInstalledRowSite({root, principalId, commonMoon,
   try {
     authorization = await installRowSourceAuthorization({root, principalId,
       connectorRegistration: registration, accountConfiguration, originalContext,
-      gateOptions: {runtime: commonMoon}});
+      gateOptions: {runtime: commonMoon, accountConstruction}});
     current();
     if (prepareSecretMaterial !== undefined) {
       // Retain the returned original before inspecting methods/currentness.

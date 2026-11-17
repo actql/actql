@@ -50,6 +50,15 @@ pub fn pin_captured_effect_sources(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  pin_captured_effect_sources_with_ports(run, max_pins, local_ports)
+}
+
+///|
+fn pin_captured_effect_sources_with_ports(
+  run : CapturedEffectRunDAG,
+  max_pins : Int,
+  local_ports : Array[EffectDependencyPort],
+) -> Result[CapturedEffectInputs, RunIssue] {
   let requests : Array[(Int, @execution.ManagedResultOccurrence)] = []
   let sources : Array[CheckedEffectSourcePort?] = []
   let indexes : Map[String, Int] = Map([])
@@ -1107,4 +1116,11 @@ pub fn captured_effect_preview_member_count(
       @effect_binding.effect_program_run_preview_identity(value.preview),
     ),
   )
+}
+
+///|
+// Closed outer custody only. Physical producer/Source cleanup ACKs remain on
+// their original owners and are never inferred from body/graph DATA.
+pub fn captured_effect_inputs_closed(value : CapturedEffectInputs) -> Bool {
+  !value.live
 }

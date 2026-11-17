@@ -19,6 +19,7 @@ import {isEffectCaptureRecoveryRefusal} from './effect-run-recovery.mjs';
 import {assertEffectTargetReadBinding, isEffectTargetReadRefusal} from
   './effect-target-read-continuation.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {retainFirstAndLatestCleanupError} from '../host-common/managed-failure.mjs';
 import {runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from
   '../host-common/installed-checkpoint-codec-limits.mjs';
@@ -26,6 +27,75 @@ import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from
 const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
+
+// Only interrupted completion composes these two failures. Keep both exact
+// originals, including immutable objects and primitive rejection reasons.
+const failureData = (value, key) => {
+  try {
+    const field = Object.getOwnPropertyDescriptor(value, key);
+    return field && Object.hasOwn(field, 'value') ? field.value : undefined;
+  } catch { return undefined; }
+};
+function interruptedCompletionFailure(primary, completion) {
+  const code = failureData(primary, 'code');
+  const failure = Object.assign(new AggregateError([primary, completion],
+    'InstalledEffectCompletionFailed', {cause: primary}), {
+    code: typeof code === 'string' ? code : 'InstalledEffectCompletionFailed',
+    primaryFailure: primary, completionFailure: completion,
+  });
+  const reasons = [primary, completion];
+  if (reasons.some(value => failureData(value, 'outcome') === 'unknown')) failure.outcome = 'unknown';
+  if (reasons.some(value => failureData(value, 'uncertain') === true)) failure.uncertain = true;
+  const owners = [], seen = new Set(), errors = [];
+  const record = error => retainFirstAndLatestCleanupError(errors, error);
+  for (const reason of reasons) {
+    if (failureData(reason, 'cleanupPending') !== true) continue;
+    const handle = failureData(reason, 'cleanupHandle');
+    if (handle !== undefined && seen.has(handle)) continue;
+    seen.add(handle);
+    let status, retry;
+    try { status = handle?.status; retry = handle?.retry; }
+    catch (error) { record(error); }
+    owners.push({handle, status, retry, released: false});
+  }
+  if (owners.length === 0) return failure;
+  const status = () => {
+    for (const owner of owners) {
+      if (owner.released) continue;
+      try {
+        if (typeof owner.status !== 'function' || typeof owner.retry !== 'function') {
+          throw new Error('InstalledEffectCompletionCleanupOwnerMissing');
+        }
+        const state = Reflect.apply(owner.status, owner.handle, []);
+        if (Array.isArray(state?.errors)) {
+          for (const error of state.errors) record(error);
+        }
+        owner.released = state?.pending === false;
+      } catch (error) { record(error); }
+    }
+    return Object.freeze({pending: owners.some(owner => !owner.released),
+      errors: Object.freeze([...errors])});
+  };
+  failure.cleanupPending = true;
+  let flight;
+  failure.cleanupHandle = Object.freeze({status, retry() {
+    if (flight !== undefined) return flight;
+    flight = Promise.resolve().then(async () => {
+      status();
+      for (const owner of owners) {
+        if (owner.released || typeof owner.retry !== 'function') continue;
+        try { await Reflect.apply(owner.retry, owner.handle, []); }
+        catch (error) { record(error); }
+      }
+      const result = status();
+      failure.cleanupPending = result.pending;
+      failure.cleanupErrors = result.errors;
+      return result;
+    }).finally(() => {flight = undefined;});
+    return flight;
+  }});
+  return failure;
+}
 
 function ownedStage(stage, code) {
   if (stage === null || typeof stage !== 'object' ||
@@ -142,8 +212,22 @@ function authorization(facts, stage, beforeDefer) {
     reviewWire: facts.control.effectComputationPreviewWire(stage.preview),
     // Capture the same actual Preview, not its public CID or a restored DATA
     // substitute. The Checkpoint Owner supplies its original policy/claims.
-    projectReview: (policy, limits) =>
-      facts.control.projectEffectComputationReview(stage.preview, policy, limits),
+    projectReview: (policy, limits) => {
+      const input = stage.publication.contractLimits;
+      const args = [stage.preview, policy, limits, input];
+      const construction = facts.managedEffect?.controlConstruction;
+      if (construction === undefined) {
+        return facts.control.projectEffectComputationReview(...args);
+      }
+      // Reuse the SAME Run's fixed control frame for bounded preflight, then
+      // prepay the native parser/encoder peak before entering projection.
+      const capacity = construction(facts.control,
+        facts.control.effectComputationReviewConstructionCapacity,
+        [stage.preview, limits, input]);
+      if (capacity === undefined) fail('EffectReviewConstructionUnavailable');
+      return construction(facts.control,
+        facts.control.projectEffectComputationReview, args, capacity);
+    },
     continuationWire: continuation(facts, stage, false, requestedStop),
     ...(requestedStop === undefined ? {} : {requestedStop,
       assertRequestedStopCurrent: stage.assertRequestedStopCurrent ??
@@ -521,7 +605,7 @@ export function createInstalledEffectSite({environmentWire,
           if (isCompletedEffectfulPublicationCleanupFailure(options.publication, error)) throw error;
           try { result = await completeInterruptedEffectRun(options, false); }
           catch (completionError) {
-            if (completionError?.code === 'EffectRunNoAttemptedSend') {
+            if (failureData(completionError, 'code') === 'EffectRunNoAttemptedSend') {
               projectEffectPreflightFailure(facts.observation, facts.ref, effectApplyPreflightFailureObservation(error));
               if (terminalPreSendRefusal(error, options)) {
                 releaseMode = 'retire';
@@ -529,7 +613,7 @@ export function createInstalledEffectSite({environmentWire,
               }
               throw error;
             }
-            throw completionError;
+            throw interruptedCompletionFailure(error, completionError);
           }
         }
         projectEffectApplication(facts.observation, facts.ref, result);
@@ -731,7 +815,7 @@ export function createInstalledEffectSite({environmentWire,
           if (observing || isCompletedEffectfulPublicationCleanupFailure(options.publication, error)) throw error;
           try { result = await completeInterruptedEffectRun(options, true); }
           catch (completionError) {
-            if (completionError?.code === 'EffectRunNoAttemptedSend') {
+            if (failureData(completionError, 'code') === 'EffectRunNoAttemptedSend') {
               projectEffectPreflightFailure(facts.observation, facts.ref, effectApplyPreflightFailureObservation(error));
               if (terminalPreSendRefusal(error, options)) {
                 checkpointJournal.completeResume(claimed.claim,
@@ -741,7 +825,7 @@ export function createInstalledEffectSite({environmentWire,
               }
               throw error;
             }
-            throw completionError;
+            throw interruptedCompletionFailure(error, completionError);
           }
         }
         projectEffectApplication(facts.observation, facts.ref, result);

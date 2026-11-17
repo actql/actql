@@ -7,6 +7,74 @@ import {installModelProviders} from '../adapters/host-node/installed-model.mjs';
 import {bindInferOriginalReadRecipe} from '../adapters/host-node/infer-original-installation.mjs';
 import {prepareInstalledEffectManagedPlanRun} from '../adapters/host-node/installed-effect-managed-run.mjs';
 import {readInstalledModelExecution} from '../adapters/host-node/installed-model.mjs';
+import {effectBoundaryFailureData, effectCheckpointTerminalData} from
+  './fixtures/packed-infer-preparation-diagnostic.mjs';
+
+test('Effect baseline failure evidence retains only bounded original callback labels and tags', () => {
+  let reads = 0;
+  const privateGetter = {get() {reads++; throw new Error('private');}};
+  const cause = {$tag: 3, _0: {$tag: 8, _0: {$tag: 1}}};
+  Object.defineProperty(cause, 'message', privateGetter);
+  const data = effectBoundaryFailureData('effect_start_failed', {
+    code: 'MoonBitHostFailure', issueTag: 7, nestedIssueTag: 2, cause,
+    ref: 'private', body: 'private', toJSON() {assert.fail('No original serialization');},
+  });
+  assert.deepEqual(data, {event: 'effect_start_failed', code: 'MoonBitHostFailure',
+    issueTag: 7, nestedIssueTag: 2, causeTags: [3, 8, 1]});
+  assert(Object.isFrozen(data)); assert(Object.isFrozen(data.causeTags));
+  const accessor = {};
+  for (const key of ['code', 'primaryCode', 'issueTag', 'nestedIssueTag', 'cause']) {
+    Object.defineProperty(accessor, key, privateGetter);
+  }
+  assert.deepEqual(effectBoundaryFailureData('effect_start_failed', accessor),
+    {event: 'effect_start_failed'});
+  const proxy = new Proxy({}, {get() {reads++; throw new Error('private');},
+    getOwnPropertyDescriptor() {reads++; throw new Error('private');}});
+  assert.deepEqual(effectBoundaryFailureData('effect_start_failed', proxy),
+    {event: 'effect_start_failed'});
+  assert.deepEqual(effectBoundaryFailureData('effect_settlement_failed', {
+    code: 'sha256:' + 'a'.repeat(64), primaryCode: 'x'.repeat(97),
+    issueTag: -1, nestedIssueTag: 65536, cause: proxy,
+  }), {event: 'effect_settlement_failed'});
+  assert.deepEqual(effectBoundaryFailureData('effect_start_failed', {
+    code: 'CustomerRecord42', primaryCode: 'PrivateWorkspaceToken42', cause: {$tag: 3},
+  }), {event: 'effect_start_failed', causeTags: [3]},
+  'Plausible private code labels are omitted while original enum tags remain');
+  assert.deepEqual(effectBoundaryFailureData('effect_start_failed', {
+    code: 'ForeignInstalledSourceProducer', primaryCode: 'InvalidHostRuntimeResult',
+  }), {event: 'effect_start_failed', code: 'ForeignInstalledSourceProducer',
+    primaryCode: 'InvalidHostRuntimeResult'});
+  assert.equal(effectBoundaryFailureData('unrelated', proxy), undefined);
+  let chain;
+  for (let tag = 15; tag >= 0; tag--) chain = {$tag: tag, _0: chain};
+  assert.deepEqual(effectBoundaryFailureData('source_resume_failed', {cause: chain}).causeTags,
+    [0, 1, 2, 3, 4, 5, 6, 7]);
+  const cycle = {$tag: 4}; cycle._0 = cycle;
+  assert.deepEqual(effectBoundaryFailureData('effect_resume_failed', {cause: cycle}).causeTags, [4]);
+  assert.equal(reads, 0);
+});
+
+test('Effect capture terminal evidence preserves public failure without waiting or disclosing Run data', () => {
+  for (const status of ['failed', 'cancelled', 'needs_reconciliation', 'succeeded']) {
+    const data = effectCheckpointTerminalData({status,
+      terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message: 'private'},
+      run_id: 'private', input: 'private'});
+    assert.deepEqual(data, {status, terminalCode: 'ACTQL_E_UNPUBLISHED_RUN'});
+    assert(Object.isFrozen(data));
+  }
+  for (const status of ['preparing', 'running', 'resuming', 'waiting_checkpoint', 'unknown']) {
+    assert.equal(effectCheckpointTerminalData({status}), undefined);
+  }
+  let reads = 0;
+  const state = {status: 'failed', get terminal_error() {reads++; throw new Error('private');}};
+  assert.deepEqual(effectCheckpointTerminalData(state), {status: 'failed'});
+  assert.deepEqual(effectCheckpointTerminalData({status: 'failed',
+    terminal_error: {code: 'PrivateWorkspaceToken42'}}), {status: 'failed'},
+  'A plausible caller-selected terminal code is not diagnostic evidence');
+  const proxy = new Proxy({}, {getOwnPropertyDescriptor() {reads++; throw new Error('private');}});
+  assert.equal(effectCheckpointTerminalData(proxy), undefined);
+  assert.equal(reads, 0);
+});
 
 // Actual fixture and installed reader; constructor/reservation ports are
 // explicit controls, not a compiled ABI, Model grant or provider invocation.

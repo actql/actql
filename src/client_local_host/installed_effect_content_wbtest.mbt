@@ -274,8 +274,11 @@ test "one checked serialized row quotes Local STORE without bypassing the parent
   // Existing Common/Local/SQLite limits and the native-profile test envelope.
   // File transfer remains separate from this retained-memory requirement.
   let recipe = local_file_store_recipe_fixture().unwrap()
+  // The Local builder forwards the six capture roles. Its trailing owned
+  // grant/history constructor quotes are separate, not more capture roles.
   let capture = prepare_installed_effect_capture_recipe_extent(
-    "files.write.capture", recipe,
+    "files.write.capture",
+    Array::makei(6, index => recipe[index]),
   ).unwrap()
   let request_extent = prepare_installed_effect_operation_extent(
     "files.write.request",

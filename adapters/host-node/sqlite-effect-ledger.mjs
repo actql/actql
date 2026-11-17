@@ -128,13 +128,23 @@ export function openSqliteEffectLedger(root, {
   maxEntries = 100_000,
   maxEntryBytes = 1_048_576,
   maxResponseBytes = 1_000_000,
+  // Bound every response materialized by this connection, including write
+  // acknowledgements and exact retries. Unrelated durable history keeps the
+  // installation's maxResponseBytes policy.
+  maxReadResponseBytes = maxResponseBytes,
   maxStoredBytes = 134_217_728,
+  // The existing caller grows its active control before a whole, bounded
+  // original history materializes. This callback supplies no read authority.
+  beforeHistoryRead,
 } = {}) {
   if (typeof root !== 'string' || root.length === 0 ||
       !cid(authorityScopeCid) || !count(maxEntries) || maxEntries === 0 ||
       !count(maxEntryBytes) || maxEntryBytes === 0 ||
       !count(maxResponseBytes) || maxResponseBytes === 0 ||
-      !count(maxStoredBytes) || maxStoredBytes === 0) {
+      !count(maxReadResponseBytes) || maxReadResponseBytes === 0 ||
+      maxReadResponseBytes > maxResponseBytes ||
+      !count(maxStoredBytes) || maxStoredBytes === 0 ||
+      beforeHistoryRead !== undefined && typeof beforeHistoryRead !== 'function') {
     fail('InvalidEffectLedgerConfiguration');
   }
   mkdirSync(root, {recursive: true, mode: 0o700});
@@ -272,13 +282,6 @@ export function openSqliteEffectLedger(root, {
     if (closed) fail('EffectLedgerClosed');
     transaction.assertUsable();
   };
-  const readHead = database.prepare(`
-    SELECT CASE WHEN LENGTH(CAST(logical_request_scope_cid AS BLOB)) <= 142
-      THEN logical_request_scope_cid ELSE NULL END AS logical_request_scope_cid,
-      revision, CASE WHEN LENGTH(CAST(entry_cid AS BLOB)) <= 142
-      THEN entry_cid ELSE NULL END AS entry_cid
-    FROM effect_ledger_heads WHERE logical_item_locator_cid = ?
-  `);
   // Preserve the original UTF8 semantic byte check below. SQL first bounds
   // actual String backing: valid UTF8 input has <=B UTF16 units, so a UTF16
   // database may return <=2B native text bytes without rejecting valid ASCII.
@@ -286,63 +289,84 @@ export function openSqliteEffectLedger(root, {
   if (!['UTF-8', 'UTF-16le', 'UTF-16be'].includes(textEncoding)) {
     fail('EffectLedgerIntegrityFailed');
   }
-  const nativeTextBytes = BigInt(maxEntryBytes) * (textEncoding === 'UTF-8' ? 1n : 2n);
+  const nativeTextUnitBytes = textEncoding === 'UTF-8' ? 1n : 2n;
+  const nativeTextBytes = BigInt(maxEntryBytes) * nativeTextUnitBytes;
+  // These closed metadata fields are ASCII CIDs/digests after validation.
+  // Bound their actual native backing in the SAME SELECT first, so malformed
+  // text cannot allocate an unbounded String before the integrity check.
+  const fixedText = (column, units) => `CASE WHEN TYPEOF(${column}) = 'text'
+    AND LENGTH(CAST(${column} AS BLOB)) <= ${BigInt(units) * nativeTextUnitBytes}
+    THEN ${column} ELSE NULL END AS ${column}`;
+  const fixedInteger = (column, minimum, maximum = Number.MAX_SAFE_INTEGER) =>
+    `CASE WHEN TYPEOF(${column}) = 'integer' AND ${column} >= ${minimum}
+    AND ${column} <= ${maximum} THEN ${column} ELSE NULL END AS ${column}`;
+  const readHead = database.prepare(`
+    SELECT ${fixedText('logical_request_scope_cid', 71)},
+      ${fixedInteger('revision', 1)}, ${fixedText('entry_cid', 71)}
+    FROM effect_ledger_heads WHERE logical_item_locator_cid = ?
+  `);
   const boundedEntryJson = `CASE WHEN LENGTH(CAST(entry_json AS BLOB)) <= ${nativeTextBytes}
     THEN entry_json ELSE NULL END AS entry_json`;
   const boundedOutcomeJson = `CASE WHEN LENGTH(CAST(outcome_json AS BLOB)) <= ${nativeTextBytes}
     THEN outcome_json ELSE NULL END AS outcome_json`;
-  const boundedResponseBytes = `CASE WHEN LENGTH(response_bytes) <= ${maxResponseBytes}
+  // A receiver may admit less than the installation's durable response policy.
+  // Apply its bound in SQL before allocating the BLOB or the Buffer copy. Old
+  // unrelated rows retain their original storage quota and startup validation.
+  const boundedResponseBytes = `CASE WHEN TYPEOF(response_bytes) = 'blob'
+    AND LENGTH(response_bytes) <= ${maxReadResponseBytes}
     THEN response_bytes ELSE NULL END AS response_bytes`;
   const readEntry = database.prepare(`
-    SELECT logical_item_locator_cid, revision,
-      CASE WHEN LENGTH(CAST(entry_cid AS BLOB)) <= 142
-      THEN entry_cid ELSE NULL END AS entry_cid, ${boundedEntryJson},
-      CASE WHEN LENGTH(CAST(physical_sha256 AS BLOB)) <= 128
-      THEN physical_sha256 ELSE NULL END AS physical_sha256 FROM effect_ledger_entries
+    SELECT ${fixedText('logical_item_locator_cid', 71)}, ${fixedInteger('revision', 1)},
+      ${fixedText('entry_cid', 71)}, ${boundedEntryJson},
+      ${fixedText('physical_sha256', 64)} FROM effect_ledger_entries
     WHERE logical_item_locator_cid = ? AND revision = ?
   `);
   const readResponse = database.prepare(`
-    SELECT logical_item_locator_cid, dispatch_entry_cid,
-      logical_request_scope_cid, credential_use_cid, status_code,
-      ${boundedResponseBytes}, physical_sha256
+    SELECT ${fixedText('logical_item_locator_cid', 71)}, ${fixedText('dispatch_entry_cid', 71)},
+      ${fixedText('logical_request_scope_cid', 71)}, ${fixedText('credential_use_cid', 71)},
+      ${fixedInteger('status_code', 100, 599)},
+      ${boundedResponseBytes}, ${fixedText('physical_sha256', 64)}
     FROM effect_ledger_responses WHERE dispatch_entry_cid = ?
   `);
   const readResponseLocators = database.prepare(`
-    SELECT dispatch_entry_cid FROM effect_ledger_responses
+    SELECT ${fixedText('dispatch_entry_cid', 71)} FROM effect_ledger_responses
     WHERE logical_item_locator_cid = ? LIMIT 2
   `);
   const readDispatchEntry = database.prepare(`
-    SELECT logical_item_locator_cid FROM effect_ledger_entries
+    SELECT ${fixedText('logical_item_locator_cid', 71)} FROM effect_ledger_entries
     WHERE entry_cid = ?
   `);
   const readBatchMember = database.prepare(`
-    SELECT dispatch_entry_cid, batch_owner_cid, position,
-      logical_item_locator_cid FROM effect_ledger_batch_members
+    SELECT ${fixedText('dispatch_entry_cid', 71)}, ${fixedText('batch_owner_cid', 71)},
+      ${fixedInteger('position', 0)}, ${fixedText('logical_item_locator_cid', 71)}
+    FROM effect_ledger_batch_members
     WHERE dispatch_entry_cid = ?
   `);
   const readBatchLocators = database.prepare(`
-    SELECT dispatch_entry_cid FROM effect_ledger_batch_members
+    SELECT ${fixedText('dispatch_entry_cid', 71)} FROM effect_ledger_batch_members
     WHERE logical_item_locator_cid = ? LIMIT 2
   `);
   const readBatchResponse = database.prepare(`
-    SELECT batch_owner_cid, logical_request_scope_cid,
-      credential_use_cid, status_code, ${boundedResponseBytes}, member_count,
-      physical_sha256 FROM effect_ledger_batch_responses
+    SELECT ${fixedText('batch_owner_cid', 71)}, ${fixedText('logical_request_scope_cid', 71)},
+      ${fixedText('credential_use_cid', 71)}, ${fixedInteger('status_code', 100, 599)},
+      ${boundedResponseBytes}, ${fixedInteger('member_count', 1)},
+      ${fixedText('physical_sha256', 64)} FROM effect_ledger_batch_responses
     WHERE batch_owner_cid = ?
   `);
   const readBatchMembers = database.prepare(`
-    SELECT dispatch_entry_cid, batch_owner_cid, position,
-      logical_item_locator_cid FROM effect_ledger_batch_members
+    SELECT ${fixedText('dispatch_entry_cid', 71)}, ${fixedText('batch_owner_cid', 71)},
+      ${fixedInteger('position', 0)}, ${fixedText('logical_item_locator_cid', 71)}
+    FROM effect_ledger_batch_members
     WHERE batch_owner_cid = ? ORDER BY position ASC
   `);
   const readOutcome = database.prepare(`
-    SELECT dispatch_entry_cid, logical_item_locator_cid,
-      logical_request_scope_cid, response_physical_sha256,
-      outcome_cid, ${boundedOutcomeJson}, physical_sha256
+    SELECT ${fixedText('dispatch_entry_cid', 71)}, ${fixedText('logical_item_locator_cid', 71)},
+      ${fixedText('logical_request_scope_cid', 71)}, ${fixedText('response_physical_sha256', 64)},
+      ${fixedText('outcome_cid', 71)}, ${boundedOutcomeJson}, ${fixedText('physical_sha256', 64)}
     FROM effect_ledger_outcomes WHERE dispatch_entry_cid = ?
   `);
   const readOutcomeLocators = database.prepare(`
-    SELECT dispatch_entry_cid FROM effect_ledger_outcomes
+    SELECT ${fixedText('dispatch_entry_cid', 71)} FROM effect_ledger_outcomes
     WHERE logical_item_locator_cid = ? LIMIT 2
   `);
   const materialize = (row, scopeCid) => {
@@ -390,7 +414,7 @@ export function openSqliteEffectLedger(root, {
         !count(row.status_code) || row.status_code < 100 ||
         row.status_code > 599 ||
         !(row.response_bytes instanceof Uint8Array) ||
-        row.response_bytes.byteLength > maxResponseBytes ||
+        row.response_bytes.byteLength > maxReadResponseBytes ||
         responseDigest(row) !== row.physical_sha256 ||
         readDispatchEntry.get(row.dispatch_entry_cid)
           ?.logical_item_locator_cid !== row.logical_item_locator_cid) {
@@ -420,7 +444,7 @@ export function openSqliteEffectLedger(root, {
         !count(row.status_code) || row.status_code < 100 ||
         row.status_code > 599 ||
         !(row.response_bytes instanceof Uint8Array) ||
-        row.response_bytes.byteLength > maxResponseBytes ||
+        row.response_bytes.byteLength > maxReadResponseBytes ||
         !count(row.member_count) || row.member_count === 0 ||
         row.member_count !== members.length ||
         row.batch_owner_cid !== members[0].dispatch_entry_cid ||
@@ -455,27 +479,37 @@ export function openSqliteEffectLedger(root, {
     verifiedBatchResponses.set(verified, currentDataVersion());
     return verified;
   };
-  const response = dispatchEntryCid => {
+  const response = (dispatchEntryCid, singleOnly = false) => {
     active();
-    if (!cid(dispatchEntryCid)) fail('InvalidEffectDispatchEntry');
+    if (!cid(dispatchEntryCid) || typeof singleOnly !== 'boolean') fail('InvalidEffectDispatchEntry');
     const single = materializeResponse(readResponse.get(dispatchEntryCid));
-    const batch = materializeBatchResponse(dispatchEntryCid);
-    if (single !== undefined && batch !== undefined) {
-      fail('EffectLedgerIntegrityFailed');
+    // A selected one-row constructor can inspect bounded batch presence, but
+    // cannot materialize a foreign batch's unbounded member array. Collision
+    // and wrong-kind refusals require no batch response or member inventory.
+    const member = readBatchMember.get(dispatchEntryCid);
+    if (member !== undefined) {
+      if (single !== undefined || !cid(member.dispatch_entry_cid) ||
+          !cid(member.batch_owner_cid) || !cid(member.logical_item_locator_cid) ||
+          !count(member.position)) fail('EffectLedgerIntegrityFailed');
+      if (singleOnly) fail('EffectResponseKindMismatch');
     }
-    return single ?? batch;
+    if (single !== undefined || member === undefined) return single;
+    const batch = materializeBatchResponse(dispatchEntryCid);
+    return batch;
   };
   const uniqueLocatorDispatch = (locatorCid, singles, batches) => {
     const rows = [...singles.all(locatorCid), ...batches.all(locatorCid)];
-    if (rows.length > 1) fail('EffectLedgerIntegrityFailed');
+    if (rows.length > 1 || rows.length === 1 && !cid(rows[0].dispatch_entry_cid)) {
+      fail('EffectLedgerIntegrityFailed');
+    }
     return rows[0]?.dispatch_entry_cid;
   };
-  const responseForLocator = locatorCid => {
+  const responseForLocator = (locatorCid, singleOnly = false) => {
     active();
-    if (!cid(locatorCid)) fail('InvalidEffectItemLocator');
+    if (!cid(locatorCid) || typeof singleOnly !== 'boolean') fail('InvalidEffectItemLocator');
     const dispatchCid = uniqueLocatorDispatch(locatorCid,
       readResponseLocators, readBatchLocators);
-    return dispatchCid === undefined ? undefined : response(dispatchCid);
+    return dispatchCid === undefined ? undefined : response(dispatchCid, singleOnly);
   };
   const materializeOutcome = (row, observed) => {
     if (row === undefined) return undefined;
@@ -507,12 +541,12 @@ export function openSqliteEffectLedger(root, {
       outcomeJson: row.outcome_json,
     });
   };
-  const outcome = dispatchEntryCid => {
+  const outcome = (dispatchEntryCid, singleOnly = false) => {
     active();
-    if (!cid(dispatchEntryCid)) fail('InvalidEffectDispatchEntry');
+    if (!cid(dispatchEntryCid) || typeof singleOnly !== 'boolean') fail('InvalidEffectDispatchEntry');
     const row = readOutcome.get(dispatchEntryCid);
     return row === undefined ? undefined :
-      materializeOutcome(row, response(dispatchEntryCid));
+      materializeOutcome(row, response(dispatchEntryCid, singleOnly));
   };
   return Object.freeze({
     current,
@@ -545,45 +579,49 @@ export function openSqliteEffectLedger(root, {
     },
     responseForLocator,
     outcome,
-    outcomeForLocator(locatorCid, batchEvidence) {
+    outcomeForLocator(locatorCid, batchEvidence, singleOnly = false) {
       active();
-      if (!cid(locatorCid)) fail('InvalidEffectItemLocator');
+      if (!cid(locatorCid) || typeof singleOnly !== 'boolean') fail('InvalidEffectItemLocator');
       if (batchEvidence !== undefined &&
           !verifiedBatchResponses.has(batchEvidence)) {
         fail('EffectPhysicalResponseNotOwned');
       }
+      if (singleOnly && batchEvidence !== undefined) fail('EffectResponseKindMismatch');
       const rows = readOutcomeLocators.all(locatorCid);
-      if (rows.length > 1) fail('EffectLedgerIntegrityFailed');
+      if (rows.length > 1 || rows.length === 1 && !cid(rows[0].dispatch_entry_cid)) {
+        fail('EffectLedgerIntegrityFailed');
+      }
       if (rows.length === 0) return undefined;
       const dispatchEntryCid = rows[0].dispatch_entry_cid;
       const reused = batchEvidence !== undefined &&
         verifiedBatchResponses.get(batchEvidence) === currentDataVersion();
-      const observed = reused ? batchEvidence : response(dispatchEntryCid);
+      const observed = reused ? batchEvidence : response(dispatchEntryCid, singleOnly);
       return materializeOutcome(readOutcome.get(dispatchEntryCid), observed);
     },
     // This is physical custody, not semantic outcome admission. The common
     // MoonBit issuer must bind and classify the stored response before use.
     recordOutcome({logicalRequestScopeCid, logicalItemLocatorCid,
       dispatchEntryCid, responsePhysicalSha256, outcomeCid, outcomeJson,
-      batchEvidence}) {
+      batchEvidence, singleOnly = false}) {
       active();
       if (!cid(logicalRequestScopeCid) ||
           !cid(logicalItemLocatorCid) || !cid(dispatchEntryCid) ||
           !sha256Hex(responsePhysicalSha256) || !cid(outcomeCid) ||
           typeof outcomeJson !== 'string' ||
-          Buffer.byteLength(outcomeJson) > maxEntryBytes) {
+          Buffer.byteLength(outcomeJson) > maxEntryBytes || typeof singleOnly !== 'boolean') {
         fail('InvalidEffectPhysicalOutcome');
       }
       if (batchEvidence !== undefined &&
           !verifiedBatchResponses.has(batchEvidence)) {
         fail('EffectPhysicalResponseNotOwned');
       }
+      if (singleOnly && batchEvidence !== undefined) fail('EffectResponseKindMismatch');
       return transaction.run(() => {
         // A write through another connection invalidates the short-lived
         // verified view. Re-read and re-hash before accepting its custody.
         const reused = batchEvidence !== undefined &&
           verifiedBatchResponses.get(batchEvidence) === currentDataVersion();
-        const observed = reused ? batchEvidence : response(dispatchEntryCid);
+        const observed = reused ? batchEvidence : response(dispatchEntryCid, singleOnly);
         if (batchEvidence !== undefined &&
             (!batchEvidence.batchMembers.some(member =>
               member.dispatchEntryCid === dispatchEntryCid &&
@@ -602,7 +640,7 @@ export function openSqliteEffectLedger(root, {
           fail('EffectPhysicalResponseNotOwned');
         }
         const existing = batchEvidence === undefined
-          ? outcome(dispatchEntryCid)
+          ? outcome(dispatchEntryCid, singleOnly)
           : materializeOutcome(readOutcome.get(dispatchEntryCid), observed);
         if (existing !== undefined) {
           if (existing.outcomeCid !== outcomeCid ||
@@ -644,7 +682,7 @@ export function openSqliteEffectLedger(root, {
         }
         usage.add(1, 0, outcomeJson);
         return Object.freeze({outcome: batchEvidence === undefined
-          ? outcome(dispatchEntryCid)
+          ? outcome(dispatchEntryCid, singleOnly)
           : materializeOutcome(readOutcome.get(dispatchEntryCid), observed),
           created: true});
       });
@@ -657,7 +695,8 @@ export function openSqliteEffectLedger(root, {
           !cid(credentialUseCid) || !count(statusCode) ||
           statusCode < 100 || statusCode > 599 ||
           !(responseBytes instanceof Uint8Array) ||
-          responseBytes.byteLength > maxResponseBytes) {
+          responseBytes.byteLength > maxResponseBytes ||
+          responseBytes.byteLength > maxReadResponseBytes) {
         fail('InvalidEffectPhysicalResponse');
       }
       return transaction.run(() => {
@@ -678,6 +717,11 @@ export function openSqliteEffectLedger(root, {
         }
         const head = readHead.get(logicalItemLocatorCid);
         const dispatchEntry = readDispatchEntry.get(dispatchEntryCid);
+        if (head !== undefined && (!cid(head.logical_request_scope_cid) ||
+            !cid(head.entry_cid) || !count(head.revision) || head.revision === 0) ||
+            dispatchEntry !== undefined && !cid(dispatchEntry.logical_item_locator_cid)) {
+          fail('EffectLedgerIntegrityFailed');
+        }
         if (head?.logical_request_scope_cid !== logicalRequestScopeCid ||
             dispatchEntry?.logical_item_locator_cid !==
               logicalItemLocatorCid) {
@@ -723,6 +767,7 @@ export function openSqliteEffectLedger(root, {
           !count(statusCode) || statusCode < 100 || statusCode > 599 ||
           !(responseBytes instanceof Uint8Array) ||
           responseBytes.byteLength > maxResponseBytes ||
+          responseBytes.byteLength > maxReadResponseBytes ||
           !Array.isArray(members) || members.length === 0 ||
           members.length > maxEntries) {
         fail('InvalidEffectPhysicalBatchResponse');
@@ -1092,21 +1137,50 @@ export function openSqliteEffectLedger(root, {
           maxRevisions > maxEntries) {
         fail('InvalidEffectLedgerHistory');
       }
-      const head = readHead.get(locatorCid);
-      if (head === undefined) return Object.freeze([]);
-      if (head.revision > maxRevisions) {
-        fail('EffectLedgerHistoryLimitExceeded');
-      }
-      const rows = database.prepare(`
-        SELECT logical_item_locator_cid, revision, entry_cid, ${boundedEntryJson},
-          physical_sha256 FROM effect_ledger_entries
-        WHERE logical_item_locator_cid = ? ORDER BY revision ASC
-      `).all(locatorCid);
-      if (rows.length !== head.revision) fail('EffectLedgerIntegrityFailed');
-      return Object.freeze(rows.map((row, index) => {
-        if (row.revision !== index + 1) fail('EffectLedgerIntegrityFailed');
-        return materialize(row, head.logical_request_scope_cid);
-      }));
+      return transaction.run(() => {
+        const head = readHead.get(locatorCid);
+        if (head === undefined) return Object.freeze([]);
+        if (!cid(head.logical_request_scope_cid) || !cid(head.entry_cid) ||
+            !count(head.revision) || head.revision === 0) fail('EffectLedgerIntegrityFailed');
+        if (head.revision > maxRevisions) fail('EffectLedgerHistoryLimitExceeded');
+        // TOTAL cannot overflow SQLite's signed integer accumulator. All terms
+        // are nonnegative integers: a total within the safe range is exact,
+        // and only that case is cast back to INTEGER for native marshalling.
+        const geometry = database.prepare(`
+          SELECT CASE WHEN entries <= 9007199254740991 THEN entries ELSE NULL END AS entries,
+            CASE WHEN valid_entries = entries AND wire_bytes <= 9007199254740991
+              THEN CAST(wire_bytes AS INTEGER) ELSE NULL END AS wire_bytes
+          FROM (
+            SELECT COUNT(*) AS entries, COUNT(wire_bytes) AS valid_entries,
+              TOTAL(wire_bytes) AS wire_bytes
+            FROM (
+              SELECT CASE WHEN TYPEOF(entry_json) = 'text'
+                AND LENGTH(CAST(entry_json AS BLOB)) <= ${nativeTextBytes}
+                THEN LENGTH(CAST(entry_json AS BLOB)) ELSE NULL END AS wire_bytes
+              FROM effect_ledger_entries WHERE logical_item_locator_cid = ?
+              ORDER BY revision ASC LIMIT ?
+            )
+          )
+        `).get(locatorCid, BigInt(maxEntries) + 1n);
+        if (!count(geometry.entries) || !count(geometry.wire_bytes) ||
+            geometry.entries !== head.revision) fail('EffectLedgerIntegrityFailed');
+        const wireUnits = geometry.wire_bytes / Number(nativeTextUnitBytes);
+        if (!count(wireUnits)) fail('EffectLedgerIntegrityFailed');
+        if (beforeHistoryRead?.(geometry.entries, wireUnits) !== undefined) {
+          fail('InvalidEffectLedgerHistory');
+        }
+        const rows = database.prepare(`
+          SELECT ${fixedText('logical_item_locator_cid', 71)}, ${fixedInteger('revision', 1)},
+            ${fixedText('entry_cid', 71)}, ${boundedEntryJson}, ${fixedText('physical_sha256', 64)}
+          FROM effect_ledger_entries WHERE logical_item_locator_cid = ?
+          ORDER BY revision ASC LIMIT ?
+        `).all(locatorCid, BigInt(maxEntries) + 1n);
+        if (rows.length !== head.revision) fail('EffectLedgerIntegrityFailed');
+        return Object.freeze(rows.map((row, index) => {
+          if (row.revision !== index + 1) fail('EffectLedgerIntegrityFailed');
+          return materialize(row, head.logical_request_scope_cid);
+        }));
+      });
     },
     close() {
       closed = true;

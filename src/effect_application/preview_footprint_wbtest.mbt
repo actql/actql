@@ -84,6 +84,44 @@ fn preview_footprint_test_wire(effects : String) -> String {
 }
 
 ///|
+test "admitted Preview footprint accepts finite caller ceilings while preserving actual inventory guards" {
+  let run = preview_footprint_test_cid("a")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let scope = prepare_logical_request_scope(run, "footprint-ceiling", 32).unwrap()
+  let (wire, _) = preview_apply_test_wire(scope, "halt")
+  let preview = @publication.admit_effect_preview_identity(
+    wire, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  for ceiling in [100000, 1000000] {
+    assert_true(
+      check_admitted_effect_preview_footprint_conflicts(
+        preview, 1, ceiling, 10000,
+      )
+      is Ok(_),
+    )
+  }
+  assert_true(
+    check_admitted_effect_preview_footprint_conflicts(preview, 1, 0, 10000)
+    is Err(CapacityExceeded),
+  )
+  assert_true(
+    check_admitted_effect_preview_footprint_conflicts(preview, 1, 1000000, 1)
+    is Err(CapacityExceeded),
+  )
+  assert_true(
+    @publication.admit_effect_preview_identity(
+      wire,
+      preview_footprint_test_cid("b"),
+      authoring,
+      8192,
+      256,
+      12,
+    )
+    is Err(@publication.RunBindingMismatch),
+  )
+}
+
+///|
 test "Preview-derived footprint check sees every Effect Set member" {
   let first = preview_footprint_test_member(
     "first",

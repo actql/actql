@@ -14,6 +14,26 @@ export class RunPublicationError extends Error {
   }
 }
 
+// The original cold capture Read funds these synchronous Common validators.
+// This carrier grants no permission and never spans asynchronous Store I/O.
+function invokeEffectfulPublication(original) {
+  return Reflect.apply(original.method, this, original.args);
+}
+export function constructEffectfulPublication(resources, captured, receiver, method, args, additionalContracts) {
+  const full = resources?.constructCaptured;
+  const publication = resources?.constructCapturedForPublication;
+  if (typeof full !== 'function' ||
+      typeof method !== 'function' || !Array.isArray(args)) {
+    throw new TypeError('InvalidEffectfulPublicationConstruction');
+  }
+  if (typeof publication === 'function') {
+    return Reflect.apply(publication, resources,
+      [captured, receiver, method, args, additionalContracts]);
+  }
+  return Reflect.apply(full, resources,
+    [captured, receiver, invokeEffectfulPublication, {method, args}]);
+}
+
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const fail = (code, cause) => { throw new RunPublicationError(code, cause); };
 const exactKeys = (value, keys) => value !== null &&
@@ -277,10 +297,12 @@ async function validateExistingCommit(
         index,
         limits,
       )
-    : control.effectfulCommitValid(
-      effectful.chain, effectful.preview, effectful.receipts,
-      storedRequest, storedAttempt, index, limits,
-    ));
+    : effectful.preparation.recoveryResources === undefined
+      ? control.effectfulCommitValid(effectful.chain, effectful.preview, effectful.receipts,
+        storedRequest, storedAttempt, index, limits)
+      : constructEffectfulPublication(effectful.preparation.recoveryResources, effectful.chain.capturedRun,
+        control, control.effectfulCommitValid, [effectful.chain, effectful.preview, effectful.receipts,
+          storedRequest, storedAttempt, index, limits]));
   if (valid !== true) {
     fail('RunPublicationCommitConflict');
   }
@@ -974,11 +996,10 @@ export async function publishEffectFreeRun(options) {
 // response and issue the complete set through the common MoonBit owner.
 // This boundary only sequences final publication and never sends an Effect.
 export async function publishEffectfulRun(options) {
-  if (!exactKeys(options, [
-    'store', 'control', 'chain', 'preview', 'ledger', 'issuedSet',
-    'effectSources', 'sourceArtifacts', 'request', 'attempt', 'limits',
-    'now', 'signal',
-  ])) fail('InvalidEffectfulRunPublicationOptions');
+  const keys = ['store', 'control', 'chain', 'preview', 'ledger', 'issuedSet',
+    'effectSources', 'sourceArtifacts', 'request', 'attempt', 'limits', 'now', 'signal'];
+  if (options != null && Object.hasOwn(options, 'recoveryResources')) keys.push('recoveryResources');
+  if (!exactKeys(options, keys)) fail('InvalidEffectfulRunPublicationOptions');
   const {store, control, chain, preview, ledger, issuedSet, effectSources,
     sourceArtifacts, limits} = options;
   if (!chain || !Array.isArray(chain.definitions) ||
@@ -1005,9 +1026,10 @@ export async function publishEffectfulRun(options) {
   if (disposition === 1) fail('EffectfulRunNeedsReconciliation');
   if (disposition === 2) fail('EffectfulRunFailed');
   if (disposition !== 0) fail('InvalidEffectSetRunDisposition');
-  const issuedFinal = control.issueEffectfulFinalRunReceipt(
-    chain, preview, issuedWires, limits,
-  );
+  const issuedFinal = options.recoveryResources === undefined
+    ? control.issueEffectfulFinalRunReceipt(chain, preview, issuedWires, limits)
+    : constructEffectfulPublication(options.recoveryResources, chain.capturedRun,
+      control, control.issueEffectfulFinalRunReceipt, [chain, preview, issuedWires, limits], sourceArtifacts);
   const receipts = Object.freeze({...issuedWires,
     finalWire: issuedFinal.wire});
   const setReceipt = control.admit(
@@ -1054,6 +1076,8 @@ export async function publishEffectfulRun(options) {
   const privateBinding = control.effectPrivateEvidenceBinding(
     preview, store.storeAuthorityCid,
   );
+  const preparation = {chain, preview, receipts, privateBinding, effectSources};
+  if (options.recoveryResources !== undefined) preparation.recoveryResources = options.recoveryResources;
   const effectful = Object.freeze({
     chain, preview, receipts,
     contracts: Object.freeze([
@@ -1061,9 +1085,7 @@ export async function publishEffectfulRun(options) {
       ...admittedSourceArtifacts,
     ]),
     sourceSchemaCids: Object.freeze(sourceSchemaCids),
-    preparation: Object.freeze({
-      chain, preview, receipts, privateBinding, effectSources,
-    }),
+    preparation: Object.freeze(preparation),
   });
   return publishRun({
     store, control, evidence, request: options.request,

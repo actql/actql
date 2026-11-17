@@ -1039,3 +1039,19 @@ pub fn completed_relation_export_original_source(
     None
   }
 }
+
+///|
+/// SAME traversal's scalar geometry. Unlike the public measurement copy this
+/// borrows no mutable arrays and allocates no per-column projection to quote.
+pub fn completed_relation_export_scalar_geometry(
+  value : CompletedRelationExportReceipt,
+) -> (Int, Int, Int, Int, Int) {
+  let (_, bytes, nodes, _) = output_stream_identity(value.rows.content)
+  (
+    value.measurement.row_count,
+    bytes,
+    nodes,
+    value.rows.content.depth,
+    value.fields.length(),
+  )
+}

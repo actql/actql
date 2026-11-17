@@ -200,6 +200,7 @@ pub fn advance_checked_emission(
     raise @encode.ClosedWriter
   }
   errdefer cancel_checked_emission(cursor)
+  @encode.construction_work_step(cursor.writer, 1)
   if cursor.key is Some(key) {
     if @encode.advance_ordered_key(key) {
       cursor.key = None
@@ -369,7 +370,11 @@ pub fn advance_checked_emission(
             }
           _ => ()
         }
-        members.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
+        if @encode.construction_work_active(writer) {
+          @encode.sort_construction_fields(members, writer)
+        } else {
+          members.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
+        }
         // At most six fixed vocabulary members; never the object's fields.
         push_emission(cursor, End)
         push_emission(cursor, Members(members, 0))

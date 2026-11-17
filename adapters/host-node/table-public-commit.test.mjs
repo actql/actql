@@ -88,16 +88,101 @@ function commits(catalog, busyTimeout = 0) {
   }
   finally { database.close(); }
 }
-function readerProgram(id = 'read-committed-table') {
+function readerProgram(id = 'read-committed-table', selectedResource = resource, textField = 'tag') {
+  const fields = textField === null ? ['id'] : ['id', textField];
   return {version: 'actql/0.1', id, stages: [
-    {id: 'read', inputs: {input: {connector: 'table', resource}},
-      steps: [{filter: 'id >= 0', as: 'kept'}, {select: ['id', 'tag'], as: 'output'}],
-      results: {rows: {from: 'output', fields: ['id', 'tag']}}},
+    {id: 'read', inputs: {input: {connector: 'table', resource: selectedResource}},
+      steps: [{filter: 'id >= 0', as: 'kept'}, {select: fields, as: 'output'}],
+      results: {rows: {from: 'output', fields}}},
     {id: 'compute', inputs: {input: {result: {stage: 'read', result: 'rows'}}},
       steps: [{derive: {doubled: 'id * 2'}, as: 'output'}],
-      results: {rows: {from: 'output', fields: ['id', 'tag', 'doubled']}}}],
+      results: {rows: {from: 'output', fields: [...fields, 'doubled']}}}],
     results: {answer: {from: {stage: 'compute', result: 'rows'}}}};
 }
+
+test('Table public129 Source views read real rows and retain SAME Saved after cold first-close', async t => {
+  const f = await tablePhysicalFixture(t);
+  // One actual fixture generation, shared by129 independently named views.
+  // This setup is not an ordinary Effect/approval acceptance claim.
+  const rows = [{id: 7, p: 'actual-source'}, {id: 9, p: null}];
+  const written = await f.bridge.execute(f.prepare(f.operation(), rows),
+    {useCid: 'sha256:' + '7'.repeat(64)});
+  const receipt = JSON.parse(written.observation.body).result;
+  assert.equal(receipt.row_count, rows.length);
+  const selector = {catalog_identity_cid: f.catalog.catalogCid, namespace: ['test'],
+    table_name: 'rows', table_uuid: receipt.table_uuid, schema_cid: f.mapping.schema_cid};
+  const resources = Array.from({length: 129}, (_, index) => `rows_${index}`);
+  const configuration = JSON.parse(account());
+  configuration.entries.find(entry => entry.entry_id === 'read').resource = {any_of: [...resources].sort()};
+  const accountConfiguration = canonicalJson(configuration);
+  const sourceProfilePath = join(f.root, 'source129.json');
+  await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-local-table-source/0.1',
+    connectorId: 'table', connection,
+    python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
+    catalog: f.catalog, accountConfigurationWire: accountConfiguration,
+    targets: resources.map(resource => ({resource, selector, schemaWire: f.schemaWire})),
+    limits: {maxPages: 3, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16}}));
+  const keys = generateKeyPairSync('ed25519'), observations = [];
+  const options = {mode: 'local', owner: 'local', durability: 'durable', installation: {
+    directory: join(f.root, 'source129-host'), sourceProfilePath, authorization: {
+      accountConfiguration, observe: undefined,
+      reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
+        publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+      hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
+    }}};
+  let client;
+  try { client = await connectEmbeddedLocal(options); }
+  catch (cause) {
+    try {
+      // Report only bounded own scalar diagnostic fields, never Source bodies,
+      // credentials, arbitrary thrown properties or filesystem paths.
+      const scalar = value => typeof value === 'number' || typeof value === 'boolean' ? value
+        : typeof value === 'string' ? value.match(/^(?:[A-Za-z][A-Za-z0-9_]{0,95}(?=\(|$)|[0-9]{1,20}$)/u)?.[0] : undefined;
+      const diagnostic = (value, depth = 0) => {
+        if (value === null || typeof value !== 'object' || depth > 4) return scalar(value);
+        const result = {};
+        for (const key of ['name', 'message', 'code', 'kind', 'phase', 'installedSourcePhase',
+          'installedSourceIssueTag', 'installedSourceResourceIssue', 'issue',
+          'installedSourceRetainedBytes', 'installedSourceExecutionBytes',
+          '_0', '_1', '_2', '$tag', 'tag', 'cause', 'primaryFailure', 'cleanupPending']) {
+          const field = Object.getOwnPropertyDescriptor(value, key);
+          if (!field || !Object.hasOwn(field, 'value')) continue;
+          const observed = key === 'cause' || key === 'primaryFailure' || key === '_0' || key === '_1' || key === '_2'
+            ? diagnostic(field.value, depth + 1) : scalar(field.value);
+          if (observed !== undefined) result[key] = observed;
+        }
+        return result;
+      };
+      t.diagnostic('Table Source inventory initial connect: ' + JSON.stringify(diagnostic(cause)));
+    } catch { /* Diagnostic observation never replaces the original failure. */ }
+    throw cause;
+  }
+  let ref, savedRows;
+  // The fixture schema declares p Conditional. Publish guaranteed id and its
+  // computed value while retaining the original 129-view Source inventory.
+  const expected = rows.map(({id}) => ({id, doubled: id * 2}));
+  try {
+    const run = await client.startSource(JSON.stringify(readerProgram('source-range-129', resources.at(-1), null)),
+      {format: 'json'});
+    ref = run.ref;
+    assert.equal((await terminal(run, observations, t)).status, 'succeeded');
+    savedRows = plain(await run.result('answer').all());
+    assert.deepEqual(multiset(savedRows), multiset(expected));
+    await client.close();
+    client = undefined;
+  } finally { if (client !== undefined) await client.close(); }
+  const committedBefore = commits(f.catalog).length;
+  const input = join(f.root, 'source129-saved.json');
+  await writeFile(input, JSON.stringify({options, ref, savedResult: {name: 'answer', rows: savedRows}}));
+  const cold = await promisify(execFile)(process.execPath,
+    [fileURLToPath(new URL('./fixtures/table-text-restart.mjs', import.meta.url)), input],
+    {env: process.env, timeout: 30000, maxBuffer: 4 * 1024 * 1024});
+  const observed = JSON.parse(cold.stdout.trim());
+  assert.equal(observed.status, 'succeeded');
+  assert.equal(observed.firstCloseReturned, true);
+  assert.deepEqual(observed.savedResult, {name: 'answer', rows: savedRows});
+  assert.equal(commits(f.catalog).length, committedBefore, 'Saved read never replaces the physical Table');
+});
 async function waiting(run, observations, t) {
   const signal = AbortSignal.timeout(30000);
   for (;;) {

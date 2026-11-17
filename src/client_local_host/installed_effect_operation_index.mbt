@@ -41,6 +41,9 @@ impl Hash for ClientEffectOperationCoordinate with fn hash_combine(self, hasher)
 priv enum ClientEffectControlConstructorFrame {
   Fixed(Int64, ClientInstalledEffectOperationBorrow?)
   Ledger(Int64)
+  // Sequential history arrays end inside the same outer constructor. Keep
+  // their largest actual peak separately from the coheld original base.
+  LedgerHistory(Int64, Int64)
 }
 
 ///|
@@ -59,8 +62,26 @@ priv struct ClientEffectOperationControls {
   mut ledger_codec_active : Bool
   mut ledger_codec_workspace : Int64
   mut ledger_codec_retained : Int64
+  // Returned native constructor DATA remains charged through caller adoption
+  // and failure. Only this existing control owner's retirement returns it.
+  mut native_output_retained : Int64
   // Runtime inventory belongs to this Run, never the reusable immutable Plan.
   mut captured_rows : Int?
   // One same-Run Preview input; its existing producer retains wire storage.
   mut host_input : (String, @execution.ExecutionCapacity)?
+  // Dependency DATA remains with this SAME control reservation. The input
+  // pin is an original generation identity, not a second reader or owner.
+  dependency_static : Map[
+    String,
+    (@checked.CheckedLocalDependencyBody, @encode.EncodingConstructionGeometry),
+  ]
+  mut dependency_group : (Int, Int)?
+  mut dependency_inventory : @publication.CapturedEffectDependencyInventory?
+  mut dependency_inventory_geometry : @encode.EncodingConstructionGeometry?
+  mut dependency_work : @resources.PreparationPhaseWorkContinuation64?
+  mut dependency_capture_slots : Int?
+  mut dependency_capture : @publication.CapturedRunIssuancePreparation?
+  mut dependency_started : Bool
+  mut dependency_inputs : @strategy.CapturedEffectInputs?
+  mut dependency_capacity : @execution.ExecutionCapacity?
 }

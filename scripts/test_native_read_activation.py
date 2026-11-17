@@ -56,7 +56,7 @@ class ReadActivationCustody(unittest.TestCase):
         # It does not admit any Request/control/managed constructor capacity.
         definitions = ['MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC',
             'ACTQL_SCOPED_READ_ALLOCATOR', 'ACTQL_SCOPED_READ_PROVIDER',
-            'ACTQL_READ_SEARCH_WORK',
+            'ACTQL_READ_SEARCH_WORK', 'ACTQL_READ_PROCESS_OBSERVATION',
             'OWNED_SOURCE=' + json.dumps(str(stage / 'owned_capacity.c'))]
         if linux:
             definitions += ['_GNU_SOURCE', 'ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN',
@@ -98,6 +98,9 @@ class ReadActivationCustody(unittest.TestCase):
         record = json.loads(result.stdout.strip().splitlines()[-1])
         self.assertEqual(record['passed'], expected)
         self.assertEqual(record['failed'], 0)
+
+    def test_same_entry_process_queries_preserve_original_allocation_and_cleanup(self):
+        self.execute('managed-process-observations', 1)
 
     def test_ordinary_activation_failure_lost_ack_and_partial_cleanup(self):
         self.execute('read-activation', 3)

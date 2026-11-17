@@ -353,26 +353,71 @@ test "captured Common tail finalization exhaustion cannot retry or release Sourc
 }
 
 ///|
-test "captured Common tail preserves adaptive selection failure and stops before Compute" {
+test "captured Common prepared tail needs no further planning but the actual selector still refuses exhaustion" {
   let value = captured_tasks_fixture()
   let limits = @resources.ledger_admission_limits(value.ledger)
   let used = @resources.ledger_usage(value.ledger).planning_work
   @resources.charge_planning(value.ledger, limits.planning_work - used).unwrap()
-  guard execute_captured_local_tasks_guarded(
-      value.setup,
-      value.capture,
-      value.requirements,
-      64,
-      100000,
-      () => true,
-    )
-    is Err(failure) else {
-    fail("exhausted original planning work cannot select another candidate")
-  }
-  assert_true(local_values_execution_failure_issue(failure) is Estimate(_))
-  assert_true(retry_local_values_execution_failure_cleanup(failure))
-  assert_eq(@resources.ledger_usage(value.ledger).attempts, 1)
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(value.setup),
+  )
+  assert_true(
+    physical_equal(
+      @strategy.captured_dag_graph(run),
+      @publication_host.prepared_client_graph(value.prepared),
+    ),
+  )
+  let before = @resources.ledger_usage(value.ledger)
+  let current_calls = Ref(0)
+  let execution = execute_captured_local_tasks_guarded(
+    value.setup,
+    value.capture,
+    value.requirements,
+    64,
+    100000,
+    () => {
+      current_calls.val += 1
+      true
+    },
+  ).unwrap()
+  assert_eq(execution.rows().unwrap(), ["{\"id\":2}"])
+  assert_true(current_calls.val > 0)
+  assert_eq(
+    @resources.ledger_usage(value.ledger).planning_work,
+    limits.planning_work,
+  )
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts + 2)
+  assert_true(@strategy.captured_task_completed(run, 1))
+  assert_true(@strategy.captured_task_completed(run, 2))
+  assert_true(execution.close())
+  assert_true(execution.close())
+  let after = @resources.ledger_usage(value.ledger)
+  assert_eq(after.planning_work, limits.planning_work)
+  assert_eq(after.held_bytes, before.held_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_true(@row_source_host.row_capture_source(value.capture) is Ok(_))
   captured_tasks_close_source(value)
+  // A caller that really requests another adaptive selection must still pay
+  // for it. Exercise that boundary directly rather than adding a redundant
+  // estimator to the already prepared managed continuation above.
+  let selector = captured_tasks_fixture()
+  let limits = @resources.ledger_admission_limits(selector.ledger)
+  let used = @resources.ledger_usage(selector.ledger).planning_work
+  @resources.charge_planning(selector.ledger, limits.planning_work - used).unwrap()
+  let runtime = @builtin.configured_host_runtime(selector.setup)
+  let before = @resources.ledger_usage(selector.ledger)
+  assert_true(
+    @host_driver.refresh_compute_host(runtime)
+    is Err(@host_driver.Resources(@resources.PlanningLimit)),
+  )
+  assert_true(
+    @host_driver.refresh_compute_host(runtime)
+    is Err(@host_driver.Resources(@resources.PlanningLimit)),
+  )
+  assert_eq(@resources.ledger_usage(selector.ledger), before)
+  assert_eq(before.attempts, 1)
+  assert_true(@row_source_host.row_capture_source(selector.capture) is Ok(_))
+  captured_tasks_close_source(selector)
 }
 
 ///|

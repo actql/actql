@@ -7,6 +7,266 @@ import {parse} from 'acorn';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
 import {fileURLToPath} from 'node:url';
+import {installNodeClientDispatchOwner as installActualDispatchOwner} from './client-dispatch-owner.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {types as nodeTypes} from 'node:util';
+import {CapturedRunPublicationError} from './entry.mjs';
+
+// This boundary uses the actual owner and Result guard, not a copied catch.
+async function observeActualDispatchFailure(failure, {afterInstall, observerThrows = false, closeFailure} = {}) {
+  const records = [], stopped = [];
+  let closes = 0, cleanups = 0;
+  const owner = installActualDispatchOwner({observed(name, detail) {
+    if (name === 'dispatch_failed') records.push(detail);
+    if (observerThrows) throw new Error('OptionalObserverRefusal');
+  }});
+  afterInstall?.();
+  const physical = {async close() {closes++; if (closeFailure !== undefined) throw closeFailure;}, cleanup() {cleanups++; return true;},
+    cleanupPending: () => false};
+  const ref = {runDefinitionCid: 'actual-dispatch-diagnostic'};
+  const operation = owner.track(ref, {run({beginPhysicalWork, retainExecution}) {
+    beginPhysicalWork(); retainExecution(physical); throw failure;
+  }, observeStopped: outcome => stopped.push(outcome)});
+  await assert.rejects(operation, actual => actual === failure);
+  await owner.drain();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(closes, 1);
+  assert.equal(cleanups, 1);
+  assert.deepEqual(stopped, [null]);
+  assert.equal(owner.operation(ref), undefined);
+  assert.equal(records.length, 1);
+  return records[0];
+}
+
+function fieldlessFailure(issue) {
+  try { checked({$tag: 0, _0: issue}); }
+  catch (error) { return error; }
+  assert.fail('Expected the actual Result guard to reject');
+}
+
+function fieldlessLedgerFailure(issue) {
+  return fieldlessFailure({$tag: 10, _0: issue});
+}
+
+test('dispatch top issue forwards fieldless tags through the actual owner', async () => {
+  for (const issue of [0, 1, 6, 65535]) {
+    const detail = await observeActualDispatchFailure(fieldlessFailure(issue));
+    assert.equal(detail.issueTag, issue);
+    assert.equal(detail.nestedIssueTag, undefined);
+    assert.equal(detail.primaryCode, 'MoonBitHostFailure');
+    assert.equal(Object.hasOwn(detail, 'cause'), false);
+  }
+});
+
+test('dispatch top issue omits malformed primitive tags and preserves boxed tags', async () => {
+  for (const issue of [-1, 65536, 1.5, NaN, Infinity, -Infinity, '6', null, undefined, true, 6n, {}]) {
+    const detail = await observeActualDispatchFailure(fieldlessFailure(issue));
+    assert.equal(detail.issueTag, undefined);
+    assert.equal(Object.hasOwn(JSON.parse(JSON.stringify(detail)), 'issueTag'), false);
+  }
+  const detail = await observeActualDispatchFailure(fieldlessFailure({$tag: 6}));
+  assert.equal(detail.issueTag, 6);
+});
+
+test('dispatch top issue preserves wrapped primary failure ahead of later cleanup failure', async () => {
+  const primary = fieldlessFailure(0), cleanup = fieldlessFailure(6);
+  const failure = new CapturedRunPublicationError(primary, undefined);
+  const detail = await observeActualDispatchFailure(failure, {closeFailure: cleanup, observerThrows: true});
+  assert.equal(detail.code, 'CapturedRunPublicationFailed');
+  assert.equal(detail.primaryCode, 'MoonBitHostFailure');
+  assert.equal(detail.issueTag, 0);
+  assert.equal(detail.nestedIssueTag, undefined);
+});
+
+test('dispatch nested issue forwards fieldless Ledger tags through the actual owner', async () => {
+  // Pinned LedgerIssue variants: PlanningLimit1, RetentionLimit5, ExecutionLimit6.
+  for (const issue of [1, 5, 6, 0, 65535]) {
+    const failure = fieldlessLedgerFailure(issue);
+    const detail = await observeActualDispatchFailure(failure);
+    assert.equal(detail.issueTag, 10);
+    assert.equal(detail.nestedIssueTag, issue);
+    assert.equal(detail.primaryCode, 'MoonBitHostFailure');
+    assert.equal(Object.hasOwn(detail, 'cause'), false);
+  }
+});
+
+test('dispatch nested issue omits malformed primitive tags and preserves boxed tags', async () => {
+  for (const issue of [-1, 65536, 1.5, NaN, Infinity, -Infinity, '5', null, undefined, true, 5n, {}]) {
+    const detail = await observeActualDispatchFailure(fieldlessLedgerFailure(issue));
+    assert.equal(detail.issueTag, 10);
+    assert.equal(detail.nestedIssueTag, undefined);
+    assert.equal(Object.hasOwn(JSON.parse(JSON.stringify(detail)), 'nestedIssueTag'), false);
+  }
+  const detail = await observeActualDispatchFailure(fieldlessLedgerFailure({$tag: 6}));
+  assert.equal(detail.nestedIssueTag, 6);
+});
+
+test('dispatch nested issue preserves wrapped primary failure ahead of later cleanup failure', async () => {
+  const primary = fieldlessLedgerFailure(5), cleanup = fieldlessLedgerFailure(6);
+  const failure = new CapturedRunPublicationError(primary, undefined);
+  const detail = await observeActualDispatchFailure(failure, {closeFailure: cleanup, observerThrows: true});
+  assert.equal(detail.code, 'CapturedRunPublicationFailed');
+  assert.equal(detail.primaryCode, 'MoonBitHostFailure');
+  assert.equal(detail.issueTag, 10);
+  assert.equal(detail.nestedIssueTag, 5);
+});
+
+async function observeActualStartDispatchFailure(failure) {
+  const records = [], stopped = [];
+  let closes = 0, cleanups = 0;
+  const ref = {runDefinitionCid: 'actual-start-fieldless-diagnostic'};
+  const definition = {wire: 'same-original-definition'};
+  const row = {cancellationRequested: false, revision: 1, runDefinition: definition};
+  const owner = installActualDispatchOwner({moon: {},
+    observed(name, detail) {if (name === 'dispatch_failed') records.push(detail);},
+    control: {runDefinitionRunId: () => 'same-run', runCancellationConfirmed: () => false},
+    journal: {reservePhysicalStart: () => true, lookupRunDefinition: () => row,
+      lookupReconciliationState: () => undefined, markPhysicalClose: (...args) => stopped.push(args)},
+    store: {confirmCommittedIndex: async () => undefined},
+    startRun: async () => ({kind: 'reserved', ref}), hostConnection: () => true,
+    planFor: () => ({kind: 'infer', runDefinition: definition}),
+    runInfer: async ({retainExecution}) => {
+      retainExecution({async close() {closes++;}, cleanup() {cleanups++; return true;},
+        cleanupPending: () => false});
+      throw failure;
+    }});
+  assert.equal(await owner.start({preparedProgram: {}, principalId: 'owner', connection: {},
+    requestId: 'same-request'}, {}, {ref, runDefinition: definition,
+    dispatchReserved: false, cancellationRequested: false}, {}), 'started');
+  await owner.drain();
+  assert.equal(records.length, 1);
+  assert.equal(records[0].primaryCode, 'MoonBitHostFailure');
+  assert.equal(closes, 1); assert.equal(cleanups, 1); assert.equal(stopped.length, 1);
+  assert.equal(owner.operation(ref), undefined);
+  return records[0];
+}
+
+test('dispatch nested issue forwards the fieldless cause from the configured start owner', async () => {
+  const detail = await observeActualStartDispatchFailure(fieldlessLedgerFailure(6));
+  assert.equal(detail.issueTag, 10);
+  assert.equal(detail.nestedIssueTag, 6);
+});
+
+test('dispatch top issue forwards fieldless tags from the configured start owner', async () => {
+  for (const issue of [0, 1, 6]) {
+    const detail = await observeActualStartDispatchFailure(fieldlessFailure(issue));
+    assert.equal(detail.issueTag, issue);
+    assert.equal(detail.nestedIssueTag, undefined);
+  }
+});
+
+test('dispatch code-site diagnostic preserves the actual Result failure and physical cleanup', async () => {
+  let failure;
+  try { checked({$tag: 0, _0: {$tag: 4, _0: {$tag: 4}}}); }
+  catch (error) { failure = error; }
+  const detail = await observeActualDispatchFailure(failure, {observerThrows: true});
+  assert.equal(detail.code, 'MoonBitHostFailure');
+  assert.equal(detail.issueTag, 4);
+  assert.equal(detail.nestedIssueTag, 4);
+  assert.equal(detail.primaryDiagnostic.phase, 'dispatch');
+  assert.equal(detail.primaryDiagnostic.kind, 'code_site');
+  assert.match(detail.primaryDiagnostic.message, /^adapters\/host-common\/runtime-result\.mjs:\d+:\d+/u);
+  assert.equal(Object.isFrozen(detail.primaryDiagnostic), true);
+  assert.deepEqual(Object.keys(detail.primaryDiagnostic).sort(), ['kind', 'message', 'phase']);
+  assert.equal(detail.primaryDiagnostic.message.includes('MoonBitHostFailure'), false);
+  assert.equal(detail.primaryDiagnostic.message.includes('file://'), false);
+  assert.equal(detail.primaryDiagnostic.message.includes(process.cwd()), false);
+});
+
+test('dispatch code-site diagnostic prefers the original typed phase', async () => {
+  const failure = Object.assign(new Error('private message'), {code: 'MoonBitHostFailure',
+    primaryDiagnostic: Object.freeze({code: 'MoonBitHostFailure',
+      phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 17})});
+  const detail = await observeActualDispatchFailure(failure);
+  assert.deepEqual(detail.primaryDiagnostic, failure.primaryDiagnostic);
+});
+
+test('dispatch code-site diagnostic locates plain native failures with their own bounded static code', async () => {
+  for (const code of ['StaticPreparationUnavailable', 'OriginalEffectContentUnavailable']) {
+    const failure = Object.assign(new Error(code), {code});
+    const detail = await observeActualDispatchFailure(failure);
+    assert.equal(detail.code, code);
+    assert.equal(detail.primaryCode, code);
+    assert.equal(detail.primaryDiagnostic.phase, 'dispatch');
+    assert.equal(detail.primaryDiagnostic.kind, 'code_site');
+    assert.match(detail.primaryDiagnostic.message,
+      /^adapters\/host-node\/client-dispatch-observation\.test\.mjs:\d+:\d+/u);
+    assert.equal(detail.primaryDiagnostic.message.includes(code), false);
+    assert.equal(detail.primaryDiagnostic.message.includes(process.cwd()), false);
+    assert.equal(detail.primaryDiagnostic.message.includes('file://'), false);
+  }
+});
+
+test('dispatch code-site diagnostic refuses unsafe codes and arbitrary or inherited messages', async () => {
+  const code = 'StaticPreparationUnavailable';
+  const samples = [
+    Object.assign(new Error('private payload'), {code}),
+    ...['', 'x'.repeat(97), 'Bad Code', 'Bad\nCode', 'Bad/Code', '非公開'].map(value =>
+      Object.assign(new Error(value), {code: value})),
+    Object.assign(new Error(code), {code: 7}),
+    new Error(code),
+  ];
+  const inherited = Object.assign(new Error(code), {code});
+  delete inherited.message;
+  samples.push(inherited);
+  for (const failure of samples) {
+    const detail = await observeActualDispatchFailure(failure);
+    assert.equal(detail.primaryDiagnostic, undefined);
+  }
+});
+
+test('dispatch code-site diagnostic never invokes overridden or inherited stack getters', async () => {
+  let reads = 0;
+  for (const missing of [false, true]) {
+    const failure = Object.assign(new Error('MoonBitHostFailure'), {code: 'MoonBitHostFailure'});
+    if (missing) delete failure.stack;
+    else Object.defineProperty(failure, 'stack', {get() {reads++; throw new Error('UntrustedStack');}});
+    const detail = await observeActualDispatchFailure(failure);
+    assert.equal(detail.primaryDiagnostic, undefined);
+  }
+  assert.equal(reads, 0);
+});
+
+test('dispatch code-site diagnostic skips a changed stack formatter without invoking it', async () => {
+  const original = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace');
+  const failure = Object.assign(new Error('MoonBitHostFailure'), {code: 'MoonBitHostFailure'});
+  let calls = 0;
+  try {
+    const detail = await observeActualDispatchFailure(failure, {afterInstall() {
+      Object.defineProperty(Error, 'prepareStackTrace', {configurable: true, writable: true,
+        value() {calls++; throw new Error('UntrustedFormatter');}});
+    }});
+    assert.equal(detail.primaryDiagnostic, undefined);
+    assert.equal(calls, 0);
+  } finally {
+    if (original === undefined) delete Error.prepareStackTrace;
+    else Object.defineProperty(Error, 'prepareStackTrace', original);
+  }
+});
+
+test('dispatch code-site diagnostic rejects proxy and Error-prototype DATA before prototype inspection', async () => {
+  let ownKeys = 0, prototypeReads = 0, stackReads = 0;
+  const native = Object.assign(new Error('MoonBitHostFailure'), {code: 'MoonBitHostFailure'});
+  const proxy = new Proxy(native, {ownKeys() {ownKeys++; return Reflect.ownKeys(native);}});
+  const fake = Object.assign(Object.create(Error.prototype), {message: 'MoonBitHostFailure',
+    code: 'MoonBitHostFailure'});
+  Object.defineProperty(fake, 'stack', {get() {stackReads++; throw new Error('UntrustedStack');}});
+  const getPrototypeOf = Object.getPrototypeOf;
+  try {
+    // Existing instanceof handling can use [[GetPrototypeOf]] internally.
+    // Count only the explicit reflection performed by the optional locator.
+    Object.getPrototypeOf = value => {
+      if (value === proxy || value === fake) prototypeReads++;
+      return getPrototypeOf(value);
+    };
+    for (const failure of [proxy, fake]) {
+      assert.equal((await observeActualDispatchFailure(failure)).primaryDiagnostic, undefined);
+    }
+  } finally { Object.getPrototypeOf = getPrototypeOf; }
+  assert.equal(prototypeReads, 0);
+  assert.equal(ownKeys, 0);
+  assert.equal(stackReads, 0);
+});
 
 const commonRuntimePath=process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME ??
   fileURLToPath(new URL(
@@ -28,9 +288,9 @@ const declarations = ast.body.flatMap(node => {
 });
 const installNodeClientDispatchOwner = compileFunction(
   declarations.join('\n') + '\nreturn installNodeClientDispatchOwner;',
-  ['diagnosticObserver', 'CapturedRunPublicationError', 'runtimeTag', 'runPublishedCapturedStrategy'])(
+  ['diagnosticObserver', 'CapturedRunPublicationError', 'runtimeTag', 'runPublishedCapturedStrategy', 'nodeTypes'])(
   diagnosticObserver, class ExplicitPublicationError extends Error {}, () => undefined,
-  () => assert.fail('No fixture Relation execution'));
+  () => assert.fail('No fixture Relation execution'), nodeTypes);
 const observation = retained => ({emit() {}, retainOperation(promise) {retained.push(promise);}});
 
 // This distinct component uses the selected original Common namespace and real
@@ -670,9 +930,13 @@ test('required installed preparation forwards only its same funded callback with
 test('dispatch final usage observes the same ledger only after original preparation retirement', () => {
   const install = ast.body.find(node => node.type === 'ExportNamedDeclaration' &&
     node.declaration?.id?.name === 'installNodeClientDispatchOwner').declaration;
-  const declaration = install.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'retire');
+  const declarations = ['retirementReady', 'retire'].map(name => {
+    const declaration = install.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+    assert(declaration, `Missing original retirement declaration: ${name}`);
+    return source.slice(declaration.start, declaration.end);
+  }).join('\n');
   const entries = new Map(), events = [], ledger = {retained: 7}, ref = {runDefinitionCid: 'original-retirement'};
-  const retire = compileFunction(source.slice(declaration.start, declaration.end) + '\nreturn retire;',
+  const retire = compileFunction(declarations + '\nreturn retire;',
     ['entries','keyOf','diagnostic','resourceUsage'])(entries, value => value.runDefinitionCid,
     (name, detail) => events.push({name, detail}), value => {
       assert.equal(value, ledger); return {reservedRetentionBytes: String(value.retained)};
@@ -693,7 +957,7 @@ test('dispatch final usage observes the same ledger only after original preparat
   for (const failureAt of ['usage', 'observer']) {
     const retained = new Map(), selected = {ref, acquisitionLedger: ledger, settled: true};
     retained.set(ref.runDefinitionCid, selected);
-    const observeRetirement = compileFunction(source.slice(declaration.start, declaration.end) + '\nreturn retire;',
+    const observeRetirement = compileFunction(declarations + '\nreturn retire;',
       ['entries','keyOf','diagnostic','resourceUsage'])(retained, value => value.runDefinitionCid,
       () => {throw new Error('ObserverUnavailable');}, () => {
         if (failureAt === 'usage') throw new Error('ObservationUnavailable');

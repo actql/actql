@@ -6,6 +6,12 @@ import { readFileSync } from 'node:fs';
 import { modelExecution, modelObservationUnits, bindings, pauseBindings, pauseFixture, pausePremises, pauseGuarantees, executedPauseCoverage, stopBindings, stopFixture, stopPremises, stopGuarantees, executedStopCoverage, checkBindings, executedCoverage, fixture, graph, premises, snapshot, validate } from './evidence.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const clone = value => structuredClone(value);
+function replaceReviewed(source, from, to, message) {
+  const matches = typeof from === 'string' ? source.split(from).length - 1
+    : [...source.matchAll(new RegExp(from.source, 'gu'))].length;
+  assert.equal(matches, 1, message);
+  return source.replace(from, to);
+}
 function evidence(target = 'js') {
   const source = snapshot(root), artifact = { 'test.js': 'digest' };
   const runs = { lean: { command: [process.execPath, 'proofs/relation-chain/check.mjs'],
@@ -297,7 +303,10 @@ for (const [label, from, to] of [
   ['physical stop guard omitted', 'state.current is Some(active) && managed_provider_stopped(active)', 'state.current is Some(active)'],
   ['execution retained after successful cleanup', 'state.children = []\n      state.reclaiming = false', 'state.reclaiming = false'],
   ['parent cleanup pending custody lost', 'Ok(false) => return Ok(false)', 'Ok(false) => ()'],
-  ['prefix replaced by unconditional full eligibility', 'let cleanup_index = Ref(-1)\n  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)', 'let cleanup_index = Ref(-1)\n  let reclaimed_prefix = count'],
+  ['prefix replaced by unconditional full eligibility', /let reclaimed_prefix = relation_chain_reclaimed_prefix\(\s*sequence,\s*execution,\s*measurement,\s*family,?\s*\)/u, 'let reclaimed_prefix = count'],
+  ['prefix uses foreign execution limits', /let reclaimed_prefix = relation_chain_reclaimed_prefix\(\s*sequence,\s*execution,/u, 'let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence, other_execution,'],
+  ['prefix uses foreign measurement', /let reclaimed_prefix = relation_chain_reclaimed_prefix\(\s*sequence,\s*execution,\s*measurement,/u, 'let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence, execution, other_measurement,'],
+  ['prefix uses foreign family', /let reclaimed_prefix = relation_chain_reclaimed_prefix\(\s*sequence,\s*execution,\s*measurement,\s*family,/u, 'let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence, execution, measurement, other_family,'],
   ['last eligible intermediate child excluded', 'let reclaims_scratch = state.position <= reclaimed_prefix', 'let reclaims_scratch = state.position < reclaimed_prefix'],
   ['family suffix admitted to retirement', 'let reclaims_scratch = state.position <= reclaimed_prefix', 'let reclaims_scratch = true'],
   ['accepted output saved at the next position', 'state.completed[state.position] = Some(output)\n            state.position += 1', 'state.position += 1\n            state.completed[state.position] = Some(output)'],
@@ -310,15 +319,15 @@ for (const [label, from, to] of [
 ]) test(`reviewed retirement source rejects ${label}`, () => {
   const requested = retirementBindings(), path = requested[0].provider;
   const source = readFileSync(root + path, 'utf8');
-  assert.equal(source.split(from).length, 2, 'Missing uniquely reviewed route');
+  const changed = replaceReviewed(source, from, to, 'Missing uniquely reviewed route');
   assert.throws(() => checkBindings(root, requested, {
-    read: p => p === path ? source.replace(from, to) : readFileSync(root + p, 'utf8'),
+    read: p => p === path ? changed : readFileSync(root + p, 'utf8'),
   }), /guard|retirement|custody/);
 });
 
 for (const [label, from, to] of [
   ['mixed chain relabeled as all eligible', 'assert_false(relation_chain_reclaims_completed_scratch(sequence))', 'assert_true(relation_chain_reclaims_completed_scratch(sequence))'],
-  ['audited prefix boundary ignored', 'assert_eq(relation_chain_reclaimed_prefix(sequence), 1)', 'assert_eq(relation_chain_reclaimed_prefix(sequence), 0)'],
+  ['audited prefix boundary ignored', /assert_eq\(\s*relation_chain_reclaimed_prefix\(\s*sequence,\s*chain_lifetime_limits\(\),\s*chain_lifetime_measurement\(\),\s*\[\],?\s*\),\s*1,?\s*\)/u, 'assert_eq(relation_chain_reclaimed_prefix(sequence, chain_lifetime_limits(), chain_lifetime_measurement(), []), 0)'],
   ['conservative suffix execution dropped', 'assert_eq(state.children.length(), count - 1)', 'assert_eq(state.children.length(), 0)'],
   ['parent cleanup success ACK omitted', 'assert_true(cleanup_managed_provider(active).unwrap())', 'assert_false(cleanup_managed_provider(active).unwrap())'],
   ['original completed output lost after cleanup', 'assert_true(@execution.completed_output_available(source))', 'assert_false(@execution.completed_output_available(source))'],
@@ -329,8 +338,9 @@ for (const [label, from, to] of [
   const next = source.indexOf('\ntest "', start + 1);
   const end = next < 0 ? source.length : next;
   const original = source.slice(start, end);
-  assert(start >= 0 && original.split(from).length === 2, 'Missing uniquely reviewed counterexample');
-  const changed = source.slice(0, start) + original.replace(from, to) + source.slice(end);
+  assert(start >= 0, 'Missing reviewed counterexample');
+  const changed = source.slice(0, start) + replaceReviewed(original, from, to,
+    'Missing uniquely reviewed counterexample') + source.slice(end);
   assert.throws(() => checkBindings(root, requested, {
     read: p => p === path ? changed : readFileSync(root + p, 'utf8'),
   }), /conservative retirement scope/);

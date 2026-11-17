@@ -9,7 +9,7 @@ import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {nativeCoreCCachePin} from './native-core-c-compiler.mjs';
-import {gateJobs, gateJobRequired, selectTargets} from './ci-targets.mjs';
+import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets.mjs';
 import {validateGroups} from './ci-native-background-groups.mjs';
 import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import {nativeCoreLinuxCommonPartitions} from './test-native-core-linux-common.mjs';
@@ -19,23 +19,23 @@ const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', impor
 const original = JSON.parse(readFileSync(new URL('./fixtures/ci-native-obligations.json', import.meta.url), 'utf8'));
 const background = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url)));
 
-test('scarce Mac admission waits for lint and the original JS row while Native Mac remains early', () => {
+test('Darwin Core starts from selected targets while Python retains its original lint and JS boundary', () => {
   const js = workflow.jobs['core-js'], common = workflow.jobs['core-common'], darwin = workflow.jobs['core-darwin'];
   assert(js, 'The existing JS row needs its own status boundary');
   assert.deepEqual(js.needs, ['select-targets']);
   assert.deepEqual(js.strategy.matrix, {target: ['js'], partition: ['1/4']});
   assert.equal(js.name, common.name);
   assert.equal(js.steps, common.steps); assert.equal(js.steps, darwin.steps);
-  assert.equal(darwin.strategy['max-parallel'], 3);
-  assert.deepEqual(darwin.strategy.matrix.partition.slice(0, 2), ['scoped', 'source']);
-  for (const job of [darwin, workflow.jobs['python-wheels']])
-    assert.deepEqual(job.needs, ['select-targets', 'lint', 'core-js']);
+  assert.equal(darwin.strategy['max-parallel'], 5);
+  assert.deepEqual(darwin.strategy.matrix.partition.slice(0, 3), ['scoped-runtime', 'scoped-review', 'source']);
+  assert.deepEqual(darwin.needs, ['select-targets']);
+  assert.deepEqual(workflow.jobs['python-wheels'].needs, ['select-targets', 'lint', 'core-js']);
   assert.deepEqual(workflow.jobs['native-macos-workloads'].needs, ['select-targets']);
-  const evaluate = (job, targets, lint, result, stopped = false, profile = 'full') =>
+  const evaluate = (job, targets, lint, result, stopped = false, profile = 'full', selection = {result: 'success'}) =>
     runInNewContext(job.if.slice(3, -2).replaceAll('needs.select-targets', "needs['select-targets']")
       .replaceAll('needs.core-js', "needs['core-js']"), {
       github: {event: {repository: {visibility: 'public', private: false}}}, inputs: {},
-      needs: {'select-targets': {outputs: {profile, targets: JSON.stringify(targets), python_wheels: 'true'}},
+      needs: {'select-targets': {...selection, outputs: {profile, targets: JSON.stringify(targets), python_wheels: 'true'}},
         lint: {result: lint}, 'core-js': {result}},
       toJSON: JSON.stringify, fromJSON: JSON.parse, contains: (values, value) => values.includes(value),
       always: () => true, cancelled: () => stopped,
@@ -49,17 +49,24 @@ test('scarce Mac admission waits for lint and the original JS row while Native M
     const expected = [
       ...(targets.includes('js') ? [{target: 'js', partition: '1/4'}] : []),
       ...(targets.includes('wasm') ? [{target: 'wasm', partition: '1/4'}] : []),
-      ...(targets.includes('native') ? [...nativeCoreLinuxCommonPartitions, '1/2', '2/2', 'source', 'scoped']
+      ...(targets.includes('native') ? [...nativeCoreLinuxCommonPartitions, '1/2', '2/2', 'source', 'scoped-runtime', 'scoped-review']
         .map(partition => ({target: 'native', partition})) : []),
     ];
     assert.deepEqual(actual.map(row => JSON.stringify(row)).sort(), expected.map(row => JSON.stringify(row)).sort());
     for (const lint of ['success', 'failure', 'cancelled', 'skipped', undefined])
       for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) for (const stopped of [false, true]) {
         const admitted = !stopped && lint === 'success' && result === (targets.includes('js') ? 'success' : 'skipped');
-        assert.equal(evaluate(darwin, targets, lint, result, stopped), admitted && targets.includes('native'));
+        assert.equal(evaluate(darwin, targets, lint, result, stopped), !stopped && targets.includes('native'));
         assert.equal(evaluate(workflow.jobs['python-wheels'], targets, lint, result, stopped), admitted);
       }
   }
+  for (const selection of ['failure', 'cancelled', 'skipped', undefined]) {
+    assert.equal(evaluate(darwin, ['js', 'wasm', 'native'], undefined, undefined, false, 'full', {result: selection}), false);
+  }
+  for (const profile of ['draft', 'draft-focused', 'focused-tests', 'maintenance', '']) {
+    assert.equal(evaluate(darwin, ['native'], undefined, undefined, false, profile), false);
+  }
+  assert(!darwin.if.includes('needs.lint') && !darwin.if.includes('needs.core-js'));
   // Targeted Draft wheel acceptance does not select full Core. Its absent JS
   // row is legitimate only when the original full-only predicate omits it.
   for (const profile of ['draft', 'draft-focused']) for (const lint of ['success', 'failure', 'cancelled', 'skipped', undefined])
@@ -78,25 +85,25 @@ test('Core runner split caps only Darwin and retains the complete original matri
   assert.equal(common['runs-on'], 'ubuntu-24.04');
   assert.equal(common.strategy['max-parallel'], undefined);
   assert.equal(darwin['runs-on'], 'macos-15');
-  assert.equal(darwin.strategy['max-parallel'], 3);
+  assert.equal(darwin.strategy['max-parallel'], 5);
   assert.deepEqual({...darwin.strategy.matrix, partition: [...darwin.strategy.matrix.partition].sort()},
     {target: ['native'], partition: [...nativeCoreCiPartitions].sort()});
   assert.deepEqual(darwin.strategy.matrix.partition,
-    ['scoped', 'source', '1/2', '2/2']);
+    ['scoped-runtime', 'scoped-review', 'source', '1/2', '2/2']);
   assert.equal(common.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(common.strategy.matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   const rows = job => ['js', 'wasm', 'native'].flatMap(target => job.strategy.matrix.partition.map(partition => ({target, partition})))
     .filter(row => !job.strategy.matrix.exclude.some(x => x.target === row.target && x.partition === row.partition));
   const selected = [{target: 'js', partition: '1/4'}, ...rows(common), ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))];
-  assert.equal(selected.length, 14);
-  assert.equal(new Set(selected.map(row => JSON.stringify(row))).size, 14);
+  assert.equal(selected.length, 15);
+  assert.equal(new Set(selected.map(row => JSON.stringify(row))).size, 15);
   assert.deepEqual(selected, [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
     ...nativeCoreLinuxCommonPartitions.map(partition => ({target: 'native', partition})),
     ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))]);
   assert.equal(common.steps, darwin.steps, 'One YAML-anchored step owner preserves all original commands and environments');
   assert.deepEqual(js.needs, ['select-targets']);
   assert.deepEqual(common.needs, ['select-targets']);
-  assert.deepEqual(darwin.needs, ['select-targets', 'lint', 'core-js']);
+  assert.deepEqual(darwin.needs, ['select-targets']);
   for (const job of [js, common, darwin]) {
     assert.equal(job.strategy['fail-fast'], false);
     assert.equal(job['timeout-minutes'], "${{ matrix.target == 'native' && 90 || 30 }}");
@@ -128,6 +135,25 @@ test('Core runner aggregate requires every selected matrix and refuses missing f
   }
   for (const targets of ['', '[]', 'null', '["other"]', '["native","native"]', 'invalid'])
     assert.notEqual(run({CORE_TARGETS: targets, JS_RESULT: 'success', COMMON_RESULT: 'success', DARWIN_RESULT: 'success'}).status, 0);
+  // Early execution changes no final prerequisite or accepted result.
+  const final = workflow.jobs.check;
+  for (const name of ['select-targets', 'preflight', 'lint', 'core', 'spec']) assert(final.needs.includes(name));
+  assert(final.if.includes('always()'));
+  assert.equal(final['continue-on-error'], undefined);
+  assert(final.steps.some(step => step.run?.includes('node scripts/ci-targets.mjs gate')));
+  const selection = selectTargets(['.github/workflows/ci.yml']);
+  const sourceRevision = 'b'.repeat(40), plan = {sourceRevision, selection};
+  const context = {sourceRevision, event: 'pull_request'};
+  const results = Object.fromEntries(gateJobs.map(name => [name,
+    {result: gateJobRequired(selection, name) ? 'success' : 'skipped'}]));
+  assert.doesNotThrow(() => verifyGate(plan, results, context));
+  for (const name of ['preflight', 'lint', 'core', 'spec']) {
+    for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+      assert.throws(() => verifyGate(plan, {...results, [name]: {result}}, context));
+    }
+    const missing = {...results}; delete missing[name];
+    assert.throws(() => verifyGate(plan, missing, context));
+  }
 });
 
 test('normal Native object caching selects ordinary and Scoped jobs and retains their complete Core command', () => {
@@ -144,8 +170,8 @@ test('normal Native object caching selects ordinary and Scoped jobs and retains 
       contains: (values, value) => values.includes(value), fromJSON: JSON.parse,
     });
   for (const target of ['js', 'wasm', 'native'])
-    for (const partition of ['1/2', '2/2', 'source', 'scoped'])
-      assert.equal(evaluate(target, partition), target === 'native' && ['1/2', '2/2', 'scoped'].includes(partition));
+    for (const partition of ['1/2', '2/2', 'source', 'scoped-runtime', 'scoped-review'])
+      assert.equal(evaluate(target, partition), target === 'native' && ['1/2', '2/2', 'scoped-review', 'scoped-runtime'].includes(partition));
   const action = 'actions/cache/';
   const pin = '@caa296126883cff596d87d8935842f9db880ef25';
   assert.equal(restore.uses, action + 'restore' + pin);
@@ -230,7 +256,7 @@ test('actual Native cache preparation admits only selected halves and Scoped whi
       matrix: {target: 'native', partition}, fromJSON: JSON.parse,
       contains: (values, value) => values.includes(value),
     }));
-  assert.deepEqual([...selected].sort(), ['1/2', '2/2', 'scoped']);
+  assert.deepEqual([...selected].sort(), ['1/2', '2/2', 'scoped-review', 'scoped-runtime']);
   assert.deepEqual(parts.filter(partition => !selected.includes(partition)), ['source'],
     'Only the explicitly uncached Source profile may omit this actual entry');
   const prefixes = new Set();
@@ -240,9 +266,9 @@ test('actual Native cache preparation admits only selected halves and Scoped whi
     assert.match(actual.output, /^key-prefix=ordinary-c-v1-darwin-arm64-fixture-image-[a-f0-9]{64}-/u);
     assert(actual.output.endsWith(`-${partition}-\n`)); prefixes.add(actual.output);
     assert(actual.environment.includes(`ACTQL_TEST_NATIVE_CORE_CCACHE=${actual.executable}\n`));
-    assert.equal(actual.environment.includes('ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT='), partition === 'scoped');
+    assert.equal(actual.environment.includes('ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT='), ['scoped-runtime', 'scoped-review'].includes(partition));
   }
-  assert.equal(prefixes.size, 3, 'Each actual partition retains an independent source/profile cache key');
+  assert.equal(prefixes.size, 4, 'Each actual partition retains an independent source/profile cache key');
   for (const partition of ['1/4', '4/4', '0/2', '3/2', '1/8', 'linux-common-1/8', 'source', 'http', 'scoped-copy', '', undefined]) {
     const actual = invoke(partition);
     assert.equal(actual.error?.code, 'ERR_ASSERTION', String(partition));
@@ -451,7 +477,7 @@ test('local Native route retains every original case serially with one preparati
     output.indexOf('== native: Test packed Output report custody and ACK crash boundaries\n'));
 });
 
-test('required lint directly selects Native preparation controls and only macOS opts into isolated construction overlap',()=>{
+test('required lint directly selects Native preparation controls and both workload runners use isolated construction overlap',()=>{
   const required=workflow.jobs.lint.steps.filter(step=>step.name==='Test Native preparation originals and bounded compiler orchestration');
   assert.equal(required.length,1);assert.equal(required[0].if,undefined,'Drafts require these source/port controls too');
   assert.equal(required[0].run,'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs scripts/native-http-phases.test.mjs');
@@ -466,7 +492,9 @@ test('required lint directly selects Native preparation controls and only macOS 
   assert.equal(workflow.jobs['core-darwin']['runs-on'],'macos-15');
   const prepare=family=>workflow.jobs[family+'-workloads'].steps.find(step=>step.id==='native-preparation');
   assert(prepare('native-macos').run.endsWith('--resident-seconds 1200 --lanes 2'));
-  assert(!prepare('native').run.includes('--lanes'));
+  assert(prepare('native').run.endsWith('--http-jobs 2 --lanes 2'));
+  assert.equal(workflow.jobs['native-workloads']['runs-on'], 'ubuntu-24.04');
+  assert.equal(workflow.jobs['native-workloads']['timeout-minutes'], 110);
   for(const family of ['native','native-macos'])assert.equal(prepare(family)['timeout-minutes'],family==='native'?65:70);
   const cli=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
   const awaited=cli.indexOf('?await prepareNativeParallel('),ready=cli.indexOf("writeFileSync(join(destination,'preparation.json')");

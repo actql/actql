@@ -173,38 +173,20 @@ fn local_common_normalization_catalog_cid() -> String {
 fn local_common_normalization_journal_body(
   inventory : @checked.LocalCommonNormalizationInventory,
   max_wire_bytes : Int,
+  max_nodes? : Int = 32,
+  max_depth? : Int = 8,
+  selected_wire_ceiling? : Int = 1024,
 ) -> Result[String, ClientLocalNormalizationIssue] {
   try {
-    let writer = @encode.writer(max_wire_bytes, 32, 8)
-    @encode.begin_object(writer)
-    @encode.key(writer, "entries")
-    @encode.begin_array(writer)
-    for index in 0..<@checked.local_common_normalization_entry_count(inventory) {
-      guard @checked.local_common_normalization_entry_at(inventory, index)
-        is Some((path, rule, authored, canonical)) else {
-        return Err(ForeignPreparation)
-      }
-      @encode.begin_object(writer)
-      @encode.key(writer, "authored")
-      @encode.string_value(writer, authored)
-      @encode.key(writer, "canonical")
-      @encode.string_value(writer, canonical)
-      @encode.key(writer, "path")
-      @encode.string_value(writer, path)
-      @encode.key(writer, "rule")
-      @encode.string_value(writer, rule)
-      @encode.end_object(writer)
+    let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+    match emit_local_common_normalization_journal(inventory, writer) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
     }
-    @encode.end_array(writer)
-    @encode.key(writer, "rule_catalog_cid")
-    @encode.string_value(writer, local_common_normalization_catalog_cid())
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-normalization-journal/0.1")
-    @encode.end_object(writer)
     Ok(@encode.finish(writer))
   } catch {
     _ =>
-      if max_wire_bytes < 1024 {
+      if max_wire_bytes < selected_wire_ceiling {
         Err(CommonInventory(BudgetExceeded))
       } else {
         Err(Evidence(@publication.RunEvidenceEncoding))
@@ -226,47 +208,16 @@ pub fn issue_prepared_client_local_normalization(
       Err(issue) => return Err(issue)
     }
   }
-  let inventory = match
-    @checked.local_program_common_normalization_inventory(
-      @strategy.graph_program(owner.graph),
-      10000,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(CommonInventory(issue))
+  let (prepared, _) = observe_prepare_client_local_normalization(owner, {
+    max_work: 10000,
+    max_wire_bytes: 1024,
+    max_nodes: 32,
+    max_depth: 8,
+  })
+  match prepared {
+    Err(issue) => Err(issue)
+    Ok(original) => finish_prepared_client_local_normalization(original)
   }
-  // Reserve the encoding/writer/hash share before doing that work, rather than
-  // constructing an over-budget journal and discovering exhaustion afterward.
-  let emission_bytes = (
-      10000 - @checked.local_common_normalization_inventory_work(inventory)
-    ) /
-    4
-  let max_wire_bytes = if emission_bytes < 1024 { emission_bytes } else { 1024 }
-  let wire = match
-    local_common_normalization_journal_body(inventory, max_wire_bytes) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  // Account for bounded UTF8 encoding, journal writing and hashing under the
-  // same audit ceiling, before caching or issuing any evidence.
-  let bytes = @utf8.encode(wire).length()
-  if bytes >
-    (10000 - @checked.local_common_normalization_inventory_work(inventory)) / 4 {
-    return Err(CommonInventory(BudgetExceeded))
-  }
-  let evidence = match
-    @publication.seal_run_evidence_value(
-      "normalization_journal", wire, 1024, 32, 8,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Evidence(issue))
-  }
-  let issued : ClientLocalNormalization = {
-    preparation: owner,
-    audit: Common(inventory),
-    evidence,
-  }
-  owner.local_normalization = Some(issued)
-  Ok(issued)
 }
 
 ///|
@@ -337,4 +288,42 @@ fn local_decimal_sum_catalog_cid() -> String {
 ///|
 fn local_unary_timestamp_catalog_cid() -> String {
   "sha256:3c378529adb7b274f8f8293184087641f95e9f421c4315034e77c02a383b2dc1"
+}
+
+///|
+fn emit_local_common_normalization_journal(
+  inventory : @checked.LocalCommonNormalizationInventory,
+  writer : @encode.Writer,
+  identity? : String? = None,
+) -> Result[Unit, ClientLocalNormalizationIssue] raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "entries")
+  @encode.begin_array(writer)
+  for index in 0..<@checked.local_common_normalization_entry_count(inventory) {
+    guard @checked.local_common_normalization_entry_at(inventory, index)
+      is Some((path, rule, authored, canonical)) else {
+      return Err(ForeignPreparation)
+    }
+    @encode.begin_object(writer)
+    @encode.key(writer, "authored")
+    @encode.string_value(writer, authored)
+    @encode.key(writer, "canonical")
+    @encode.string_value(writer, canonical)
+    @encode.key(writer, "path")
+    @encode.string_value(writer, path)
+    @encode.key(writer, "rule")
+    @encode.string_value(writer, rule)
+    @encode.end_object(writer)
+  }
+  @encode.end_array(writer)
+  if identity is Some(cid) {
+    @encode.key(writer, "journal_cid")
+    @encode.string_value(writer, cid)
+  }
+  @encode.key(writer, "rule_catalog_cid")
+  @encode.string_value(writer, local_common_normalization_catalog_cid())
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-normalization-journal/0.1")
+  @encode.end_object(writer)
+  Ok(())
 }

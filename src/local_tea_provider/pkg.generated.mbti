@@ -14,11 +14,11 @@ pub fn calendar_bucket_provider(@managed_record_storage.Limits, @execution_relat
 
 pub fn calendar_series_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
 
-pub fn interval_join_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
+pub fn interval_join_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity, bounded_constructor? : Bool) -> @local.ManagedProvider
 
-pub fn provider(@managed_record_storage.Limits, Int64, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
+pub fn provider(@managed_record_storage.Limits, Int64, @execution_relation.ExecutionCapacity, bounded_constructor? : Bool) -> @local.ManagedProvider
 
-pub fn sequence_match_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
+pub fn sequence_match_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity, bounded_constructor? : Bool) -> @local.ManagedProvider
 
 pub fn time_series_provider(@managed_record_storage.Limits, @execution_relation.ExecutionCapacity) -> @local.ManagedProvider
 

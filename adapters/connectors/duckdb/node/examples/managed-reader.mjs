@@ -4,7 +4,7 @@ import {serveManagedExecution} from '../../../../host-node/worker-channel.mjs';
 import {emptyProcessUsage} from '../../../../host-node/process-accounting.mjs';
 import {checked} from '../../../../host-common/runtime-result.mjs';
 import {snapshotCompletionTask} from '../../../../host-node/completion-record.mjs';
-import {prepareProcessReadmission} from '../../../../host-node/process-readmission.mjs';
+import {prepareProcessReadmission, processReadmissionControlBytes} from '../../../../host-node/process-readmission.mjs';
 import {consumeDelegatedFile} from '../../../../store-local/delegated-reader.mjs';
 import {createMoonBitRetainedRowFrames} from '../../../../store-local/moonbit-row-frames.mjs';
 import {registerRetainedInput, consumeRetainedInput} from '../../../../store-local/representations.mjs';
@@ -51,7 +51,7 @@ async function readContent(input, signal, context, progress) {
     // subsequent access free. They are serial and share bounded scratch only.
     reservation = checked(budget.processReadReserve(ledger,
       BigInt(handoff.descriptor.bytes) * (consumerRequest ? 2n : 1n),
-      policy.scratchBytes));
+      policy.scratchBytes + processReadmissionControlBytes()));
     progress.stage = 'content-contract';
     reading = plan.contentRead(input.task, handoff.descriptor);
     admission = prepareProcessReadmission(plan.completionPreparation(input.task), taskIdentity,

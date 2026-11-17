@@ -92,6 +92,10 @@ const foreignLibraryConfigurations = Object.freeze({
 // revision still applies to every unchanged entry.
 export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
+  // Exact ordinary constructor imports; target/file/formatter options unchanged.
+  // See docs/reviews/2026-11-15-account-construction-import-review.json.
+  'src/canonical_json/moon.pkg': Object.freeze({digest: '46df3ca77a7499c858f5288453b15ad04b9d910e69b3978bda2340624e770436', rule: 'literal-target-selectors-with-bound-source-membership', revision: '05d5612068646662ebfeba489b8df50d03322291'}),
+  'src/execution_authorization/moon.pkg': Object.freeze({digest: '628b93c8c76191c2af413b5f0dac4f395ff02b3c506c0b1d5daf2a40719e5697', rule: 'literal-target-selectors-with-bound-source-membership', revision: '05d5612068646662ebfeba489b8df50d03322291'}),
   // The HTTP-header/native-control/discarded-projection/Definition and
   // empty-header regressions are JS-only. Removing
   // their selectors restores the reviewed scope-import descriptor exactly;
@@ -103,18 +107,37 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-12-session-local-host-js-selector-review.md.
   // One further literal JS-only File task-boundary selector; imports unchanged.
   // See docs/reviews/2026-11-13-session-file-task-boundary-selector-review.md.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: 'c0e298e3407e0d4b966926b7e4054d269a86c74e18ddd5552d5d119370b79695', rule: 'literal-target-selectors-with-bound-source-membership', revision: '58ebdec4d074bc3d1f70779eca237f904fa2a47e'}),
+  // One literal JS-only direct UNION Request selector; imports unchanged.
+  // See docs/reviews/2026-11-14-session-direct-union-selector-review.md.
+  // One further literal JS-only HTTP Request input selector; imports unchanged.
+  // See docs/reviews/2026-11-14-session-http-input-selector-review.md.
+  // Six exact JS fixture selectors for original capture, Catalog, normalization
+  // and publication binding; removing them restores the complete 45906 input.
+  // One further literal JS-only original Result wire-geometry fixture; the
+  // complete prior six-selector descriptor and its history stay retained.
+  // One literal JS-only genuine dependency boundary fixture; removing it
+  // restores the complete seven-selector descriptor, with all history retained.
+  // One further literal JS-only original keyed Effect Request fixture; its
+  // complete eight-selector preimage and every earlier review remain retained.
+  // Same imports and target policy; one result-publication-work JS selector.
+  // Prior descriptors remain at 4d25879b4f9443cfc73758b948fc472401a5a96e
+  // and 776746d359ec107cf3172d90016d07e009384fc9.
+  // Four literal JS fixture selectors; imports/options and all earlier predicates unchanged.
+  // See docs/reviews/2026-11-17-session-local-text-publication-selector-review.json.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: 'b0d5e68d9e82221e6ae49e364de6175ca92377e8227443eafa84149e5ee25b23', rule: 'literal-target-selectors-with-bound-source-membership', revision: '942da5f7cff320f37489be12498fee6f742c40c3'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   'src/execution_relation/moon.pkg': Object.freeze({digest: '2a223e06a52cbb8c01280e9d5c5132485434728f59271ff02900f74ea582d079', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6813ab0330a17f99c8eef5c9f4a70480ecc7e96c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/physical_resources/moon.pkg': Object.freeze({digest: '508d45513dd76478ece212cd3e9a2da45aa93f2e100d99c44076a31afa46be23', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'bf198225499436c26be2f7d763582b0efaeeae2b'}),
   'src/platform_native/bounded_files/moon.pkg': Object.freeze({digest: '9dcccf37816250ccb794c1467658f3cd4c2ff239ed752b36e59ef167a40553a5', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/filesystem/moon.pkg': Object.freeze({digest: 'ccbef60792340068be1ef431d1f8a7336a842dcd1021a84a816c3582a7c6b08b', rule: 'literal-native-options-with-bound-source-membership'}),
-  'src/platform_native/http_client/moon.pkg': Object.freeze({digest: '67cf437063d4a099acc9d33736d48fb3cfbff4cd4efa3235dc0239121ee6455e', rule: 'literal-native-options-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
-  'src/platform_native/publication_store/moon.pkg': Object.freeze({digest: 'cd70efa7cfa79c9a765b602ed3550ba518ab66ad6bd3ec7766f00e9e4301818b', rule: 'literal-native-options-with-bound-source-membership', revision: '5c1a8935e03bfaf9bb95d04e0f6d6d5bb03d82df'}),
+  'src/platform_native/http_client/moon.pkg': Object.freeze({digest: '67cf437063d4a099acc9d33736d48fb3cfbff4cd4efa3235dc0239121ee6455e', rule: 'literal-native-options-with-bound-source-membership', revision: '14050e0d50b79a01dc07e52024b8ada85ab14203'}),
+  // One literal Native-only publication-constructor selector; imports/options unchanged.
+  // See docs/reviews/2026-11-17-session-native-publication-constructor-selector-review.json.
+  'src/platform_native/publication_store/moon.pkg': Object.freeze({digest: 'e58d91de882c517bf24b92c07e74e53086b49efd192b0ddc818dfbfa5142fff5', rule: 'literal-native-options-with-bound-source-membership', revision: '6b1733e430d8b7b126c9ec4a3189fcc697cdb6ce'}),
   'src/platform_native/remote_client/moon.pkg': Object.freeze({digest: '2d564b643659ca806c35da2414f432b52292fa8c79a94cffc0706191ae156832', rule: 'literal-native-options-with-bound-source-membership', revision: 'deea413fba8b255cf5be7300d94eccd883b5b5eb'}),
   'src/platform_native/remote_journal/moon.pkg': Object.freeze({digest: '89432a0cc007a76c3af8f2311c98f1838e13e74976bb7d28240a9704830aa60b', rule: 'literal-native-options-with-bound-source-membership'}),
-  'src/platform_native/remote_standard_host/moon.pkg': Object.freeze({digest: '01ae0816929d7ae3037f46906d63f999bca640fa20d12433e478c41475229886', rule: 'literal-target-selectors-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
+  'src/platform_native/remote_standard_host/moon.pkg': Object.freeze({digest: '01ae0816929d7ae3037f46906d63f999bca640fa20d12433e478c41475229886', rule: 'literal-target-selectors-with-bound-source-membership', revision: '14050e0d50b79a01dc07e52024b8ada85ab14203'}),
   'src/platform_native/result_access/moon.pkg': Object.freeze({digest: '3857eed803af513e307d4f6a8f3450edbed4f94e830e38af3b3a88ab5d448697', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/runtime_bundle/moon.pkg': Object.freeze({digest: '1d8c003fea820e24835d1b6539d0e42e5908103e8d776a7c91b525b64dee02e4', rule: 'literal-native-options-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),
   'src/platform_native/signature/moon.pkg': Object.freeze({digest: '0d1a2b5edbd15f8f19232819cdf6e7947ce3d5c53491b25397e61c51ba25f872', rule: 'literal-native-options-with-bound-source-membership', revision: 'f86f409e62d39511380497cb0fe5639d5259f191'}),

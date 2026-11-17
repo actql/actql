@@ -200,8 +200,7 @@ test "fixed Request control envelope preserves original upper bound through the 
   // The explicit source-free work selection adds its Some/header, scalar
   // and two references (1H/2R/1W =40 bytes), not payload capacity.
   // This fixed control belongs to the original parent before domain growth.
-  assert_eq(
-    10736L +
+  let expected_control = 10736L +
     16L * 2L +
     8L * 2L +
     8L * 2L +
@@ -211,18 +210,48 @@ test "fixed Request control envelope preserves original upper bound through the 
     8L * 4L +
     16L +
     8L * 2L +
-    8L,
-    10944L,
-  )
+    8L +
+    // Four generated-Query limit records: 4H/11R/14W, independently
+    // counted from their declared fields before construction.
+    16L * 4L +
+    8L * 11L +
+    8L * 14L +
+    // Source/Compile/Structure common selection records: 3H/6R/13W.
+    16L * 3L +
+    8L * 6L +
+    8L * 13L +
+    // Original optional lexical-work Some and holder reference: 1H/1R/1W.
+    16L +
+    8L +
+    8L +
+    // Coheld shared post-lowering selected-limit return: 1H/1R.
+    16L +
+    8L +
+    // Existing HTTP Request raw record/Some, baseline and policy: 3H/4R/7W.
+    16L * 3L +
+    8L * 4L +
+    8L * 7L +
+    // Same Request normalization-original reference; no extra control owner.
+    8L +
+    // Prepared-original method capture: proxy1H/3R, pair2H/2R/2W,
+    // three growing backings3R each, and one retained key/value2R.
+    16L * 3L +
+    8L * 16L +
+    8L * 2L +
+    // Nine family fields; Interval/Sequence/Ranking each own one Some and
+    // one scalar closure. Events' closure also borrows its record policy.
+    16L * 8L +
+    8L * 14L +
+    8L * 4L
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,
     ),
-    Some(10944L),
+    Some(expected_control),
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((15040L, 0L)),
+    Some((expected_control + 4096L, 0L)),
   )
   let growth = @resources.preparation_inventory_growth_entry_construction()
   assert_eq(
@@ -260,7 +289,10 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   ).unwrap()
   let reservation = owner.capacity
   let before = @resources.ledger_usage(owner.ledger)
-  assert_eq(before.reserved_retention_bytes, 15040L)
+  let selected_control = client_request_preparation_control_capacity(
+    client_local_resource_policy(),
+  ).unwrap()
+  assert_eq(before.reserved_retention_bytes, selected_control.0)
   reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let small = @resources.ledger_usage(owner.ledger)
   reserve_request_snapshot(owner, input, 256L, 32L).unwrap()
@@ -277,7 +309,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((15040L, 0L)),
+    Some(selected_control),
   )
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)

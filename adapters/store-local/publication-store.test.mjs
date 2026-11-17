@@ -689,6 +689,7 @@ async function prepareCommit(
   retentionPolicyCid = cids.policy,
   preparedSchema = false,
   nativeProgress = false,
+  payloadWire = 'fixture durable Result payload',
 ) {
   await store.putPublicationContract(
     'run_invocation', wire(invocationValue),
@@ -698,7 +699,7 @@ async function prepareCommit(
       resultSchemaWire, cids.schema, request.run_definition_cid,
     )
     : await store.putSemantic(resultSchemaWire, cids.schema);
-  const payload = Buffer.from('fixture durable Result payload', 'utf8');
+  const payload = Buffer.from(payloadWire, 'utf8');
   const writer = store.createPreparedObjectWriter(payload.byteLength);
   await writer.append(payload);
   const physical = await writer.seal(digest(payload));
@@ -11209,4 +11210,53 @@ test('unknown original close fences only its Store allocation until process reco
   await reopened.putBytes(Buffer.from(resultSchemaWire));
   assert.equal(reopened.status().storedBytes, 5 + Buffer.byteLength(resultSchemaWire));
   await reopened.close();
+});
+
+
+test('actual physical Result reader grows its original READ parent before raw row allocation beyond legacy caps', async t => {
+  const {runtimeCore} = await import('../host-common/runtime-core.mjs');
+  const {createLocalResultReadWorkspace} = await import('../host-node/local-result-read-workspace.mjs');
+  const raw = await import(process.env.ACTQL_RESULT_READ_COMMON_MODULE ?? new URL(
+    '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
+  const control = runtimeCore(raw).publicationControl;
+  const {store} = await fixture(t, {capacityBytes: 16 * 1024 * 1024,
+    maxObjectBytes: 8 * 1024 * 1024});
+  const invocationValue = invocation(), request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const row = '{"answer":"' + 'x'.repeat(1048600) + '"}';
+  const payload = '[' + row + ']';
+  const prepared = await prepareCommit(store, request, attempt, invocationValue,
+    cids.policy, false, false, payload);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity]});
+  await commitFixtureIndex(store, wire(entry), prepared.required, prepared.evidence);
+  const read = {}, workspace = createLocalResultReadWorkspace({runtime: raw,
+    requestMemory: Object.freeze({retainedBytes: 536870912, executionBytes: 536870912}), assertCurrent() {}});
+  workspace.begin(read, control);
+  // The existing Store fixture owns publication contract/metadata admission;
+  // it is not an actual Core commit-chain or installed Host qualification.
+  // Only raw framing/row backing below uses the actual SAME Core READ parent.
+  let metadataObservations = 0;
+  const demand = Object.assign(bytes => {assert(Number.isSafeInteger(bytes)); metadataObservations++;}, {
+    retain(slot, original) {assert(Number.isSafeInteger(slot)); assert.equal(typeof original.wire, 'string');},
+    data(slot, nodes, units) {assert([slot, nodes, units].every(Number.isSafeInteger));},
+    release(slot) {assert(Number.isSafeInteger(slot));},
+    finish() {},
+  });
+  const frames = {maxRowBytes: 19000000, maxDepth: 64, maxFrameBytes: 65536};
+  let failure, growth = 0, count = 0;
+  try {
+    await store.withCommittedResultRows(indexKeyFor(request), request.inventory[0].result_definition_cid,
+      () => true, frames, async (metadata, readRows) => {
+        workspace.prepare(read, metadata, {maxWireBytes: 8 * 1024 * 1024, maxNodes: 4096}, frames);
+        await readRows(actual => {assert.equal(actual, row); count++;}, needed => {
+          growth++; return workspace.row(read, needed).units;
+        });
+      }, control, undefined, demand);
+  } catch (cause) {failure = cause; throw cause;}
+  finally {workspace.close(read, failure);}
+  assert.equal(count, 1); assert(growth > 1);
+  assert.deepEqual(await workspace.closeAll(), {pending: false});
+  assert(metadataObservations > 0);
+  await store.close(); assert.equal(store.status().closed, true);
 });

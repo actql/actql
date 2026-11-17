@@ -1356,7 +1356,9 @@ test('an interrupted captured Run keeps transferred custody after repeated recei
   const run = await client.startSource(x.program,
     {format: 'json', submissionRef: client.newSubmission({nonce: 'captured-interrupted-receipt'})});
   await waitFor(() => state.failure !== undefined);
-  assert.equal(state.failure, primary);
+  assert.equal(state.failure.primaryFailure.code, 'ECONNRESET');
+  assert.equal(state.failure.cause, state.failure.primaryFailure);
+  assert.equal(state.failure.completionFailure, primary);
   assert.equal(state.refusals, 0);
   assert.equal(state.reads, 1);
   assert.equal(state.custody.cleanupPending(), true);

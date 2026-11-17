@@ -228,6 +228,13 @@ fn contract_spec(name : String) -> ContractSpec? {
         identity: "transport_cid",
         fields: [],
       })
+    "installed_row_source_read" =>
+      Some({
+        name,
+        version: "actql-installed-row-source-read/0.1",
+        identity: "transport_cid",
+        fields: [],
+      })
     "request_key_set" =>
       Some({
         name,

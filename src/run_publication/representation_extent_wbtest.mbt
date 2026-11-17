@@ -77,3 +77,57 @@ test "Publication representation extent measures original admitted contract with
     is Err(InvalidLimits),
   )
 }
+
+///|
+test "dependency retained extent includes reference backing and measured option without changing its original" {
+  let original = issue_single_source_acquisition_scope(
+    relation_fixture_cid("1"),
+    relation_fixture_cid("2"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  let (bytes, nodes, depth) = publication_contract_wire_usage(original).unwrap()
+  let measured = capture_publication_effect_dependency_body(
+    "acquisition_scope", original, bytes, nodes, depth,
+  ).unwrap()
+  let strict = admit_publication_effect_dependency_body(
+    "acquisition_scope",
+    original.wire,
+    bytes,
+    nodes,
+    depth,
+  ).unwrap()
+  assert_eq(captured_effect_dependency_body_wire_usage(strict), None)
+  let (tree, controls, text) = captured_effect_dependency_body_representation_extent(
+    strict, 1000, 32, 10000,
+  ).unwrap()
+  let (same_tree, measured_controls, same_text) = captured_effect_dependency_body_representation_extent(
+    measured, 1000, 32, 10000,
+  ).unwrap()
+  assert_eq(tree.nodes, nodes.to_int64())
+  assert_eq(same_tree.nodes, tree.nodes)
+  assert_eq(same_text, text)
+  assert_eq(
+    (
+      measured_controls.record_headers - controls.record_headers,
+      measured_controls.reference_slots - controls.reference_slots,
+      measured_controls.scalar_words - controls.scalar_words,
+    ),
+    (2L, 1L, 4L),
+  )
+  assert_true(
+    controls.reference_slots >=
+    strict.node.references.capacity().to_int64() + 11L,
+  )
+  assert_eq(strict.wire, original.wire)
+  assert_eq(strict.node.identity, original.identity)
+  assert_true(
+    captured_effect_dependency_body_representation_extent(strict, 1, 32, 10000)
+    is Err(Encoding),
+  )
+  assert_true(
+    captured_effect_dependency_body_representation_extent(strict, 1000, 32, 1)
+    is Err(Encoding),
+  )
+}

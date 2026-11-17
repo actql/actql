@@ -28,6 +28,10 @@ pub(all) enum ClientValuesRunMaterialsIssue {
   /// The rebuilt Run is not the Run the dispatch names.
   MaterialsRunMismatch
   MaterialsBinding(ClientValuesRunBindingIssue)
+  /// The same Local preparation refused the next codec constructor.
+  MaterialsConstructionRefused(String)
+  /// A funded original projection failed at this exact encoding boundary.
+  MaterialsEncoding(String, @encode.EncodeFailure)
 }
 
 ///|
@@ -182,16 +186,24 @@ fn encode_client_run_materials_body(
   infer_inputs_wire? : String? = None,
   infer_native_read_profile? : String? = None,
   source_free_policy_input? : (String, String)? = None,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
 ) -> Result[String, ClientValuesRunMaterialsIssue] {
   if (infer_input is Some(_) && infer_inputs_wire is Some(_)) ||
     (infer_native_read_profile is Some(_) && infer_input is None) {
     return Err(MaterialsMalformed)
   }
   // This is a read-only projection of an already admitted definition. It does
-  // not reissue it (nor extend its original lifetime).
+  // not reissue it (nor extend its original lifetime). A selected Local owner
+  // also pays for this unchanged parser before its allocation.
+  let definition_wire = @publication.publication_contract_json(definition)
+  if !client_effect_material_read_funded(
+      "run_definition_read", definition_wire, 10000, 100, before_body,
+    ) {
+    return Err(MaterialsConstructionRefused("run_definition_read"))
+  }
   let parsed = match
     @source.parse_json_bytes(
-      @utf8.encode(@publication.publication_contract_json(definition)),
+      @utf8.encode(definition_wire),
       { max_input_bytes: 100000, max_nodes: 10000, max_depth: 100, },
       source_path="Owned Run Definition",
     ) {
@@ -246,8 +258,51 @@ fn encode_client_run_materials_body(
     ("valid_until", text("valid_until")),
     ("version", Some("actql-remote-run-materials/0.1")),
   ]
-  let writer = @encode.writer(@remote.REMOTE_RUN_MATERIALS_MAX_BYTES, 32, 2) catch {
-    _ => return Err(MaterialsMalformed)
+  let max_bytes = match before_body {
+    None => @remote.REMOTE_RUN_MATERIALS_MAX_BYTES
+    Some(fund) => {
+      let extra = [
+        request_wire, normalization_wire, target_selections_wire, infer_inputs_wire,
+        infer_native_read_profile,
+      ]
+      let mut units = 0L
+      for name in client_run_materials_fields {
+        units += name.length().to_int64() + 2L
+      }
+      for (_, value) in fields {
+        if value is Some(value) {
+          units += value.length().to_int64()
+        }
+      }
+      for value in extra {
+        if value is Some(value) {
+          units += value.length().to_int64()
+        }
+      }
+      for value in [infer_input, source_free_policy_input] {
+        if value is Some((cid, wire)) {
+          units += cid.length().to_int64() + wire.length().to_int64()
+        }
+      }
+      guard @execution.checked_preparation_add_product(2L, units, 6L)
+        is Some(bound) &&
+        bound < 2147483647L else {
+        return Err(MaterialsConstructionRefused("run_materials"))
+      }
+      if !fund("run_materials", bound.to_int(), 32, 2) {
+        return Err(MaterialsConstructionRefused("run_materials"))
+      }
+      bound.to_int()
+    }
+  }
+  let writer = @encode.writer(max_bytes, 32, 2) catch {
+    issue =>
+      return Err(
+        match before_body {
+          None => MaterialsMalformed
+          Some(_) => MaterialsEncoding("run_materials", issue)
+        },
+      )
   }
   try {
     @encode.begin_object(writer)
@@ -299,7 +354,13 @@ fn encode_client_run_materials_body(
     @encode.end_object(writer)
     Ok(@encode.finish(writer))
   } catch {
-    _ => Err(MaterialsMalformed)
+    issue =>
+      Err(
+        match before_body {
+          None => MaterialsMalformed
+          Some(_) => MaterialsEncoding("run_materials", issue)
+        },
+      )
   }
 }
 
@@ -329,15 +390,26 @@ fn read_client_run_materials_body(
   expressions : @context.ExpressionProfiles,
   operations : @context.PureOperationProfiles,
   numeric_profile_cid? : String? = None,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
+  original_environment? : @checked.CheckEnvironment? = None,
 ) -> Result[ClientRunMaterialsBody, ClientValuesRunMaterialsIssue] {
+  let max_bytes = match before_body {
+    None => @remote.REMOTE_RUN_MATERIALS_MAX_BYTES
+    Some(fund) => {
+      let bytes = match @scalar.admit_utf8_length(materials, 2147483646) {
+        Ok(bytes) => bytes
+        Err(_) => return Err(MaterialsMalformed)
+      }
+      if !fund("run_materials_read", bytes, 32, 2) {
+        return Err(MaterialsConstructionRefused("run_materials_read"))
+      }
+      bytes
+    }
+  }
   let parsed = match
     @source.parse_json_bytes(
       @utf8.encode(materials),
-      {
-        max_input_bytes: @remote.REMOTE_RUN_MATERIALS_MAX_BYTES,
-        max_nodes: 32,
-        max_depth: 2,
-      },
+      { max_input_bytes: max_bytes, max_nodes: 32, max_depth: 2, },
       source_path="Run Materials",
     ) {
     Ok(value) => value
@@ -347,8 +419,8 @@ fn read_client_run_materials_body(
     @decode.admit(parsed, {
       max_nodes: 32,
       max_depth: 2,
-      max_string_bytes: @remote.REMOTE_RUN_MATERIALS_MAX_BYTES,
-      max_total_string_bytes: @remote.REMOTE_RUN_MATERIALS_MAX_BYTES,
+      max_string_bytes: max_bytes,
+      max_total_string_bytes: max_bytes,
     }) {
     Ok(value) => value
     Err(_) => return Err(MaterialsMalformed)
@@ -388,10 +460,30 @@ fn read_client_run_materials_body(
   let parameters = match parameters_wire {
     None => None
     Some(body) => {
+      let (parameter_bytes, parameter_nodes) = match before_body {
+        None => (65536, 8192)
+        Some(fund) => {
+          let bytes = match @scalar.admit_utf8_length(body, 2147483646) {
+            Ok(value) => value
+            Err(_) => return Err(MaterialsParameters)
+          }
+          // A JSON value needs at least one input byte. The same Local
+          // holding pays for this duplicate tree BEFORE UTF8/parser admission.
+          let nodes = Int::max(1, bytes)
+          if !fund("parameters_read", bytes, nodes, 64) {
+            return Err(MaterialsConstructionRefused("parameters_read"))
+          }
+          (bytes, nodes)
+        }
+      }
       let node = match
         @source.parse_json_bytes(
           @utf8.encode(body),
-          { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
+          {
+            max_input_bytes: parameter_bytes,
+            max_nodes: parameter_nodes,
+            max_depth: 64,
+          },
           source_path="Run Materials Parameters",
         ) {
         Ok(value) => value
@@ -399,25 +491,68 @@ fn read_client_run_materials_body(
       }
       match
         @decode.admit(node, {
-          max_nodes: 8192,
+          max_nodes: parameter_nodes,
           max_depth: 64,
-          max_string_bytes: 65536,
-          max_total_string_bytes: 65536,
+          max_string_bytes: parameter_bytes,
+          max_total_string_bytes: parameter_bytes,
         }) {
         Ok(value) => Some(value)
         Err(_) => return Err(MaterialsParameters)
       }
     }
   }
-  guard admit_client_check_environment(
-      environment_wire,
-      environment_cid,
-      expressions,
-      operations,
-      numeric_profile_cid~,
-    )
-    is Some(environment) else {
-    return Err(MaterialsEnvironment)
+  let environment = match original_environment {
+    Some(original) => {
+      guard before_body is Some(fund) &&
+        environment_cid == @checked.checking_environment_cid(original) else {
+        return Err(MaterialsEnvironment)
+      }
+      let wire = @checked.checking_environment_wire(original)
+      let canonical = match
+        client_effect_funded_material_input(
+          "environment",
+          @environment.emission_geometry(wire),
+          writer => @environment.emit(wire, writer),
+          fund,
+        ) {
+        Ok(value) => value
+        Err(Input(issue)) => return Err(issue)
+        Err(_) => return Err(MaterialsEnvironment)
+      }
+      // The trusted Local caller proved this exact configured wrapper before
+      // entry. Core separately binds its nominal wire/tasks/profiles and ALL
+      // canonical bytes; a CID or saved boolean cannot select this branch.
+      if canonical != environment_wire {
+        return Err(MaterialsEnvironment)
+      }
+      original
+    }
+    None => {
+      if before_body is Some(fund) {
+        let bytes = match
+          @scalar.admit_utf8_length(environment_wire, 2147483646) {
+          Ok(value) => value
+          Err(_) => return Err(MaterialsEnvironment)
+        }
+        // Match the intrinsic bounds of admit_client_check_environment_wire;
+        // retain the outer tree and any earlier parameter tree in the SAME owner.
+        if !fund("environment_read", bytes, Int::max(1, bytes), 64) {
+          return Err(MaterialsConstructionRefused("environment_read"))
+        }
+      }
+      guard admit_client_check_environment(
+          environment_wire,
+          environment_cid,
+          expressions,
+          operations,
+          numeric_profile_cid~,
+        )
+        is Some(environment) else {
+        return Err(MaterialsEnvironment)
+      }
+
+      environment
+    }
   }
   let request_wire = match @decode.lookup(object, "client_request_identity") {
     None => None

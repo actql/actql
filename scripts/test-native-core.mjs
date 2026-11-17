@@ -13,9 +13,9 @@ import {nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-p
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import {nativeProjectConfigurationFixture, nativeProjectContentCaseFixture} from './native-project-configuration-fixture.mjs';
-import {nativeCoreTestSelection, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
+import {selectNativeCoreTestProfiles, nativeCoreScopedAllocationProfile, nativeCoreScopedBackingPages,
   nativeCoreScopedTestEnvironment,
-  nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCorePartitionProfiles, nativeCoreCheckpointRequired,
+  nativeRelationWorkTestFile, nativeRelationCaptureTestFiles, nativeCoreCheckpointRequired,
   nativeProjectMockContentTestFile, nativeRelationTargetIOTestFile, nativeRelationTargetIOLineageTestFile,
   nativeClientFileResponseTestFile} from './native-core-test-selection.mjs';
 import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
@@ -61,7 +61,7 @@ const executionPackages = platformPackages ? (linuxCommonImporters
 const partition = process.env.ACTQL_TEST_NATIVE_CORE_PARTITION;
 if (linuxCommonImporters && !/^[1-8]\/8$/u.test(partition ?? '')) throw new Error('One original Linux eight-way partition required');
 if (!linuxCommonImporters && partition?.endsWith('/8')) throw new Error('Eight-way partitions require the Linux importer scope');
-const scopedSoftwareRoot = full && partition === 'scoped'
+const scopedSoftwareRoot = full && ['scoped', 'scoped-runtime', 'scoped-review'].includes(partition)
   ? process.env.ACTQL_TEST_NATIVE_CORE_SCOPED_SOFTWARE_ROOT : undefined;
 if (scopedSoftwareRoot !== undefined && (process.env.GITHUB_ACTIONS !== 'true' ||
     process.env.ACTQL_TEST_NATIVE_CORE_CCACHE === undefined ||
@@ -85,22 +85,11 @@ const compilerEnvironment = {...process.env, ACTQL_TEST_NATIVE_CORE_PARTITION: u
     ['RESOLUTION', 'VERIFIED'].map(kind => [`ACTQL_TEST_CLIENT_FILE_RECEIPT_${mode}_${kind}_WIRE`, undefined])))};
 // Keep the original full classification and fixture/budget decisions. These
 // compiler-selected directories omit only packages with no Native test cases.
-const selection = full ? nativeCoreTestSelection(root, args,
+const {selection, partitionInfo} = full ? selectNativeCoreTestProfiles(root, args,
   // One absolute metadata-preparation envelope covers four dry-run plans and
   // all original driver generations. It grants no extra test or C-build time.
-  {env: compilerEnvironment, partitionProfiles: true,
-    ordinaryPartitions: linuxCommonImporters ? 8 : partition?.endsWith('/4') ? 4 : Boolean(partition) && !['http', 'source', 'scoped'].includes(partition),
-    // Physical jobs retain their complete profile even when an ordinary PR
-    // closure has no member in it. An empty job cannot establish execution.
-    timeoutMs: 5 * 60_000,
-    allowNestedFileInputs: platformPackages !== undefined,
-    executionPackages: platformPackages ? executionPackages :
-      ['http', 'source', 'scoped'].includes(partition) ? undefined : executionPackages}) : undefined;
-if (platformPackages && selection.executionScope?.mode !== 'subset') {
-  throw new Error('Native platform scope must retain its exact compiler-owned package/file scope');
-}
-if (linuxCommonImporters && selection.profiles.http.cases + selection.profiles.source.cases + selection.profiles.scoped.cases !== 0)
-  throw new Error('Linux common/importers cannot adopt an unrelated physical fixture');
+  {env: compilerEnvironment, platformScope,
+    partition, platformPackages, executionPackages}) : {};
 if (platformPackages) console.log('Native Core platform scope: ' + JSON.stringify({
   mode: platformScope, graphSha256: platformPackages.graphSha256,
   commonPackages: platformPackages.common.length, importerPackages: platformPackages.importers.length,
@@ -108,13 +97,7 @@ if (platformPackages) console.log('Native Core platform scope: ' + JSON.stringif
   originalCases: selection.executionScope.originalCases, selectedCases: selection.cases,
 }));
 if (selection?.executionScope) console.log('Native Core dependency scope: ' + JSON.stringify(selection.executionScope));
-if (selection && partition) {
-  const originalCases = selection.profiles.ordinary.cases;
-  selection.profiles = nativeCorePartitionProfiles(selection.profiles, partition,
-    {hostedDarwin: platformScope === 'darwin-differences'});
-  console.log('Native Core ordinary partition: ' + JSON.stringify({partition,
-    originalCases, selectedCases: selection.profiles.ordinary.cases}));
-}
+if (partitionInfo) console.log('Native Core ordinary partition: ' + JSON.stringify(partitionInfo));
 if (selection) console.log('Native test selection: ' + JSON.stringify({cases: selection.cases,
   packages: selection.packages, prunedDrivers: selection.prunedDrivers,
   ...(selection.benchmarkDeclarations ? {benchmarkDeclarations: selection.benchmarkDeclarations} : {}),

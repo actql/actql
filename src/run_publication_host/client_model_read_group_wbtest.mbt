@@ -7,6 +7,7 @@ fn client_model_read_group_fixture() -> (
   @resources.OriginalLedgerIdentity,
 ) raise {
   let prepared = client_two_independent_infer_test_program()
+  assert_eq(prepared_client_composed_infer_count(prepared), Some(2))
   let bounds = run_materials_limits()
   let plans = prepared_client_composed_infer_occurrences(prepared)
     .unwrap()

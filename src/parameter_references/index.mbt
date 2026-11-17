@@ -242,6 +242,7 @@ pub fn emit_references(
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_array(output)
   for r in index.entries {
+    @encode.construction_work_step(output, 1)
     @encode.begin_object(output)
     @encode.key(output, "name")
     @encode.string_value(output, r.name)
@@ -261,6 +262,7 @@ pub fn emit_used_declarations(
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(output)
   for i in index.used {
+    @encode.construction_work_step(output, 1)
     let d = @parameter.declaration_at(index.declarations, i).unwrap()
     @encode.key(output, d.name)
     @parameter.emit_declaration(d, output)

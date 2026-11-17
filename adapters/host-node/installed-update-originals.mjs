@@ -2,7 +2,7 @@
 // bytes live in their existing request and Checkpoint custody; they never
 // resolve aliases, issue permissions or establish another recovery authority.
 import {checked} from '../host-common/runtime-result.mjs';
-import {installedRowEffectUpdateObservation,
+import {collectInstalledRowEffectUpdateObservations,
   installedRowEffectDescriptors} from
   './installed-row-effect.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
@@ -17,7 +17,11 @@ const fail = () => { throw refusedEffectPreparation(Object.assign(
   new Error('InstalledEffectOriginalSelectionChanged'), {code: 'InstalledEffectOriginalSelectionChanged'})); };
 
 export function installUpdateTargetOriginals({moon, control, installedEffect, limits,
-  features = [false, true, true, true, true, false, false]}) {
+  features = [false, true, true, true, true, false, false], issueMaterials, admitMaterials}) {
+  if (issueMaterials !== undefined && typeof issueMaterials !== 'function' ||
+      admitMaterials !== undefined && typeof admitMaterials !== 'function') {
+    throw new TypeError('InvalidEffectOriginalMaterialsInstallation');
+  }
   const compilations = new WeakMap();
   const admitWithCompilation = Object.getOwnPropertyDescriptor(moon,
     'clientProgramAdmitEffectRunMaterialsWithCompilation')?.value;
@@ -28,19 +32,12 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     const originals = new Map();
     const observations = new Map();
     const installationData = new Map();
-    for (const selection of selections) {
-      // The opaque Common selection already fixes its installed Owner. Look
-      // up that actual private owner, then let Common check its original
-      // UPDATE/DELETE/STORE purpose and Mapping against current observations.
-      // Reconstructing every selection as an UPDATE loses STORE's Command.
-      const observation = installedRowEffectUpdateObservation(
-        installedEffect?.effects ?? [installedEffect], selection.installation_owner_cid);
-      if (observation === undefined) fail();
-      const {installation: original, installationData: data, ...currentFacts} = observation;
-      originals.set(original.cid, original);
-      observations.set(original.cid, data === undefined ? {installation: original, ...currentFacts} : currentFacts);
-      if (data !== undefined) installationData.set(original.cid, data);
-    }
+    // Every opaque selection keeps its original UPDATE/DELETE/STORE purpose
+    // and Mapping. Share only this call's physical owner DATA projection;
+    // Common below still checks the complete original selection each time.
+    if (!collectInstalledRowEffectUpdateObservations(
+      installedEffect?.effects ?? [installedEffect], selections,
+      originals, observations, installationData)) fail();
     if (installationData.size === observations.size) {
       assertUpdateTargetSelectionCurrentData(selections, [...observations.values()], [...installationData.values()]);
     } else {
@@ -76,7 +73,9 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     const installations = current(selections);
     const compiled = control.admit('compiled_plan',
       moon.clientProgramEffectCompilationCompiledPlanWire(compilation), limits);
-    const original = {preparedWire: checked(moon.clientProgramIssueEffectPreparedOriginal(compilation)),
+    const original = {preparedWire: issueMaterials === undefined || reserveOriginal === undefined
+      ? checked(moon.clientProgramIssueEffectPreparedOriginal(compilation))
+      : issueMaterials({prepared, compilation}),
       compiledPlanCid: compiled.identity, installations: Object.freeze(installations)};
     reserveOriginal?.(prepared, original.preparedWire, original.installations);
     if (!updateTargetPreparedOriginalShape(original, moon)) fail();
@@ -93,28 +92,32 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
     compilations.set(prepared, compilation);
     return Object.freeze({prepared, compilation, ...bound});
   };
-  const restoreEffectMaterials = (wire, runDefinition, identity, originalCompilation) => {
+  const restoreEffectMaterials = (wire, runDefinition, identity, originalCompilation, originalPrepared) => {
     if (originalCompilation !== undefined &&
         (typeof admitWithCompilation !== 'function' || identity === undefined)) fail();
     // The caller already retains/funds this nominal compiler. Bind saved full
     // materials to it instead of parsing/checking/compiling the Program again.
     // A wire-only cold caller keeps the existing restoration route until its
     // SAME Request owner supplies the actual compiler, never a data flag.
-    const restored = checked(originalCompilation === undefined
-      ? moon.clientProgramAdmitEffectRunMaterials(wire, runDefinition.identity, ...features, identity ?? null)
-      : Reflect.apply(admitWithCompilation, moon,
-        [wire, runDefinition.identity, originalCompilation, identity, ...features]));
+    if (originalCompilation !== undefined && admitMaterials !== undefined && originalPrepared === undefined) fail();
+    const restored = originalCompilation !== undefined && admitMaterials !== undefined
+      ? admitMaterials({wire, runDefinitionCid: runDefinition.identity, compilation: originalCompilation,
+        identity, prepared: originalPrepared, features})
+      : checked(originalCompilation === undefined
+        ? moon.clientProgramAdmitEffectRunMaterials(wire, runDefinition.identity, ...features, identity ?? null)
+        : Reflect.apply(admitWithCompilation, moon,
+          [wire, runDefinition.identity, originalCompilation, identity, ...features]));
     const prepared = moon.clientProgramEffectRunMaterialsPrepared(restored);
     const compilation = moon.clientProgramEffectRunMaterialsCompilation(restored);
     const allowed = moon.clientProgramEffectRunMaterialsAllowed(restored);
     const definition = moon.clientProgramEffectRunMaterialsDefinition(restored);
     return Object.freeze({materials: restored, prepared, compilation, allowed, definition});
   };
-  const restoreRun = (original, runDefinition, identity, originalCompilation) => {
+  const restoreRun = (original, runDefinition, identity, originalCompilation, originalPrepared) => {
     if (!updateTargetRunOriginalShape(original, undefined, moon)) fail();
     const expectedSelectionCid = runUpdateSelectionCid(runDefinition, moon);
     if (expectedSelectionCid === undefined) fail();
-    const restored = restoreEffectMaterials(original.materialsWire, runDefinition, identity, originalCompilation);
+    const restored = restoreEffectMaterials(original.materialsWire, runDefinition, identity, originalCompilation, originalPrepared);
     const {prepared, compilation, definition} = restored;
     // Retain the existing whole Run/material binding admission as well as the
     // nominal selection/preparation projection. No replacement Run is issued.
@@ -154,9 +157,10 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       });
       assertUpdateTargetSelectionMembersCurrent(selections, members, prepared);
     },
-    captureEffectMaterials({allowed, definition, identity}) {
-      return checked(moon.clientProgramIssuePreparedEffectRunMaterials(
-        allowed, definition, identity ?? null));
+    captureEffectMaterials({prepared, allowed, definition, identity}) {
+      return issueMaterials === undefined
+        ? checked(moon.clientProgramIssuePreparedEffectRunMaterials(allowed, definition, identity ?? null))
+        : issueMaterials({prepared, allowed, definition, identity});
     },
     compilationFor: prepared => compilations.get(prepared),
     // A captured target-read continuation already has this admitted pair on
@@ -172,14 +176,24 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       current(selections);
       return selections;
     },
-    captureRun({prepared, allowed, definition, identity}, reserveOriginal) {
+    captureRun({prepared, allowed, definition, identity, compilation, runDefinition}, reserveOriginal) {
       const selections = selectionsOf(prepared);
       if (selections === undefined) return undefined;
       if (!updateTargetSelectionMatchesRun(selections, prepared, definition)) fail();
-      const original = {materialsWire: checked(moon.clientProgramIssuePreparedEffectRunMaterials(
-        allowed, definition, identity ?? null)), installations: Object.freeze(current(selections))};
+      const materialsWire = issueMaterials === undefined
+        ? checked(moon.clientProgramIssuePreparedEffectRunMaterials(allowed, definition, identity ?? null))
+        : issueMaterials({prepared, allowed, definition, identity});
+      const original = {materialsWire, installations: Object.freeze(current(selections))};
       reserveOriginal?.(prepared, original.materialsWire, original.installations);
       if (!updateTargetRunOriginalShape(original, undefined, moon)) fail();
+      if (admitMaterials !== undefined) {
+        // Move the one required wire-to-typed admission before adoption.
+        // The live Run later reuses this exact result and retains all of its
+        // independent current selection and installation checks.
+        if (compilation === undefined || runDefinition === undefined) fail();
+        const restored = restoreEffectMaterials(materialsWire, runDefinition, identity, compilation, prepared);
+        if (restored.prepared !== prepared || restored.compilation !== compilation) fail();
+      }
       return Object.freeze(original);
     },
     validateRun({prepared, compilation, evidence, runDefinition, identity}) {
@@ -190,7 +204,7 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
       if (selections === undefined || original === undefined ||
           expectedSelectionCid !== updateTargetSelectionsCid(selections, moon) ||
           !updateTargetRunOriginalShape(original, evidence, moon)) fail();
-      const restored = restoreRun(original, runDefinition, identity, compilation);
+      const restored = restoreRun(original, runDefinition, identity, compilation, prepared);
       // Core bound the complete saved material to this exact compiler. Keep
       // that SAME returned pair; encoding both preparations and checking the
       // same installation again would repeat this boundary's existing work.

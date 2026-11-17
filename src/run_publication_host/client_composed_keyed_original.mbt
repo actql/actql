@@ -2,10 +2,9 @@
 // Borrowed originals of the existing prefix/lookup. The prefix reservation,
 // captured Sources and Model Scope keep their original cleanup duties.
 priv struct ClientComposedKeyedOriginal {
-  scope : ClientModelReadScope
+  origin : ClientComposedKeyedOrigin
   compiled : ClientCompiledRun
   definition : @publication.PublicationContract
-  plan : ClientInferPlanGraph
   keyed : ClientKeyedAcquisition
   sources : Array[@query.CapturedInputSource]
   captures : @row_host.RowCapturedInputs
@@ -407,6 +406,19 @@ fn client_keyed_left_source_matches(
   if client_keyed_left_single_source_matches(left, source) {
     return true
   }
+  if left.composed is Some(original) &&
+    original.origin is SourceEffectOrigin(parent) {
+    // A Source-only Effect retains both the captured listing and its same
+    // composed Effect binding. Neither a Model prefix nor another listing
+    // can replace the original Source/keyed tuple used by this file locator.
+    return left.source is Some(bound) &&
+      physical_equal(bound, source) &&
+      original.sources is [same] &&
+      physical_equal(same, source) &&
+      physical_equal(original.keyed, left.acquisition) &&
+      physical_equal(parent.keyed, left.acquisition) &&
+      client_keyed_left_available(left)
+  }
   left.source is None &&
   left.composed is Some(original) &&
   original.sources.any(value => physical_equal(value, source)) &&
@@ -611,11 +623,16 @@ pub fn borrow_client_original_composed_keyed_input_captures(
 fn client_composed_keyed_original_current(
   value : ClientComposedKeyedOriginal,
 ) -> Bool {
+  if value.origin is SourceEffectOrigin(_) {
+    return client_effect_keyed_composed_original_current(value)
+  }
+  let scope = client_composed_keyed_original_model_scope(value).unwrap()
+  let plan = client_composed_keyed_original_model_plan(value).unwrap()
   client_model_origin_matches(
-    value.scope.origin,
+    scope.origin,
     value.compiled,
     value.definition,
-    value.plan,
+    plan,
   ) &&
   client_composed_keyed_original_prefix_available(value) &&
   client_composed_keyed_original_output(value) is Some(_) &&
@@ -623,8 +640,8 @@ fn client_composed_keyed_original_current(
   .map(host => {
     client_composed_keyed_host_inputs_match(
       host,
-      value.plan,
-      value.scope.ledger,
+      plan,
+      scope.ledger,
       value.sources,
       value.host_sources,
       value.inputs,
@@ -638,21 +655,18 @@ fn client_composed_keyed_original_current(
       producers.all(producer => {
         client_composed_keyed_producer_output(
           producer,
-          value.scope,
+          scope,
           value.compiled,
           value.definition,
-          value.plan,
+          plan,
           value.keyed,
           value.sources,
         )
         is Some(_)
       })
   }) &&
-  @row_host.row_captured_inputs_borrowed_available(
-    value.captures,
-    value.scope.ledger,
-  ) &&
-  @resources.original_ledger_inventory_available(value.scope.identity)
+  @row_host.row_captured_inputs_borrowed_available(value.captures, scope.ledger) &&
+  @resources.original_ledger_inventory_available(scope.identity)
 }
 
 ///|
@@ -661,6 +675,11 @@ fn client_keyed_left_available(left : ClientKeyedLeftRead) -> Bool {
   (match (left.source, left.composed) {
     (Some(_), None) => true
     (None, Some(original)) => client_composed_keyed_original_current(original)
+    (Some(source), Some(original)) =>
+      original.origin is SourceEffectOrigin(_) &&
+      original.sources is [same] &&
+      physical_equal(source, same) &&
+      client_composed_keyed_original_current(original)
     _ => false
   })
 }
@@ -688,7 +707,7 @@ pub fn start_client_original_composed_keyed_lookup_input(
   // retained Scope Ledger and preserves every consumed attempt on failure.
   start_client_keyed_lookup_input_owned(
     left,
-    original.scope.ledger,
+    client_composed_keyed_original_ledger(original),
     max_bytes,
     max_work,
     None,
@@ -707,9 +726,10 @@ pub fn client_composed_keyed_lookup_matches_model_parent(
   lookup.left.composed is Some(original) &&
   physical_equal(original.compiled, compiled) &&
   physical_equal(original.definition, definition) &&
-  physical_equal(original.plan, plan) &&
+  client_composed_keyed_original_model_plan(original) is Some(model_plan) &&
+  physical_equal(model_plan, plan) &&
   physical_equal(lookup.ledger, ledger) &&
-  physical_equal(original.scope.ledger, ledger) &&
+  physical_equal(client_composed_keyed_original_ledger(original), ledger) &&
   physical_equal(original.keyed, lookup.left.acquisition) &&
   !lookup.closed &&
   client_composed_keyed_original_current(original)
@@ -742,7 +762,7 @@ pub fn client_composed_keyed_request_matches_model_parent(
   @row_host.row_captured_inputs_borrowed_available(original.captures, ledger) &&
   client_composed_keyed_original_prefix_available(original) &&
   @resources.original_borrowed_reservation_available(
-    original.scope.identity,
+    client_composed_keyed_original_identity(original),
     ledger,
     lookup.reservation,
   )
@@ -803,8 +823,12 @@ pub fn client_composed_keyed_lookup_sources_match(
   guard lookup.left.source is None &&
     lookup.left.composed is Some(original) &&
     physical_equal(original.keyed, lookup.left.acquisition) &&
-    physical_equal(lookup.ledger, original.scope.ledger) &&
-    client_infer_occurrence_matches_plan(occurrence, original.plan) &&
+    physical_equal(
+      lookup.ledger,
+      client_composed_keyed_original_ledger(original),
+    ) &&
+    client_composed_keyed_original_model_plan(original) is Some(original_plan) &&
+    client_infer_occurrence_matches_plan(occurrence, original_plan) &&
     sources.length() == original.sources.length() &&
     client_composed_keyed_original_current(original) else {
     return false
@@ -833,17 +857,21 @@ fn client_composed_keyed_retained_observation_sources_match(
     lookup.left.composed is Some(original) &&
     original.host is Some(host) &&
     physical_equal(original.keyed, lookup.left.acquisition) &&
-    physical_equal(lookup.ledger, original.scope.ledger) &&
-    client_infer_occurrence_matches_plan(occurrence, original.plan) &&
+    physical_equal(
+      lookup.ledger,
+      client_composed_keyed_original_ledger(original),
+    ) &&
+    client_composed_keyed_original_model_plan(original) is Some(original_plan) &&
+    client_infer_occurrence_matches_plan(occurrence, original_plan) &&
     sources.length() == original.sources.length() &&
     lookup.identity is Some(_) &&
     lookup.holding is Some(holding) &&
     !@resources.reservation_open(lookup.reservation) &&
     client_composed_keyed_retained_scope_current(
-      original.scope,
+      client_composed_keyed_original_model_scope(original).unwrap(),
       original.compiled,
       original.definition,
-      original.plan,
+      client_composed_keyed_original_model_plan(original).unwrap(),
       lookup.ledger,
       holding,
     ) else {
@@ -856,7 +884,7 @@ fn client_composed_keyed_retained_observation_sources_match(
   }
   if !client_composed_keyed_host_source_inventory_match(
       host,
-      original.plan,
+      client_composed_keyed_original_model_plan(original).unwrap(),
       lookup.ledger,
       sources,
       original.host_sources,
@@ -869,10 +897,10 @@ fn client_composed_keyed_retained_observation_sources_match(
   lookup.left.lookup_issue is None &&
   lookup.holding.map(actual => physical_equal(actual, holding)).unwrap_or(false) &&
   client_composed_keyed_retained_scope_current(
-    original.scope,
+    client_composed_keyed_original_model_scope(original).unwrap(),
     original.compiled,
     original.definition,
-    original.plan,
+    client_composed_keyed_original_model_plan(original).unwrap(),
     lookup.ledger,
     holding,
   )
@@ -909,7 +937,8 @@ fn client_composed_keyed_lookup_has_source_producer(
   // the Source callbacks checks the whole live lookup once. Do not repeat that
   // callbackful whole-inventory check for every source in this same walk.
   guard lookup.left.composed is Some(original) &&
-    client_infer_occurrence_matches_plan(occurrence, original.plan) &&
+    client_composed_keyed_original_model_plan(original) is Some(original_plan) &&
+    client_infer_occurrence_matches_plan(occurrence, original_plan) &&
     sources.length() == original.sources.length() else {
     return false
   }
@@ -917,7 +946,10 @@ fn client_composed_keyed_lookup_has_source_producer(
     guard sources.get(slot) is Some(source) &&
       original.sources.get(slot) is Some(actual) &&
       physical_equal(source, actual) &&
-      select_client_direct_acquisition_occurrences(original.plan.owner, 1000000)
+      select_client_direct_acquisition_occurrences(
+        client_composed_keyed_original_program(original),
+        1000000,
+      )
       is Ok(direct) &&
       client_direct_acquisition_occurrence_at(direct, slot)
       is Some((_, _, task)) else {
@@ -941,10 +973,10 @@ fn client_composed_keyed_lookup_has_source_producer(
   }
   client_composed_keyed_producer_output(
     producer,
-    original.scope,
+    client_composed_keyed_original_model_scope(original).unwrap(),
     original.compiled,
     original.definition,
-    original.plan,
+    client_composed_keyed_original_model_plan(original).unwrap(),
     original.keyed,
     sources,
   )
@@ -985,7 +1017,8 @@ pub fn client_composed_keyed_lookup_result_input_matches(
     original.direct_output is Some(_) &&
     original.completed is None &&
     original.inputs.length() == 1 &&
-    client_infer_occurrence_matches_plan(occurrence, original.plan) else {
+    client_composed_keyed_original_model_plan(original) is Some(original_plan) &&
+    client_infer_occurrence_matches_plan(occurrence, original_plan) else {
     return false
   }
   @execution.producer_read_same_binding(read, original.inputs[0].2)
@@ -1004,7 +1037,8 @@ pub fn client_composed_keyed_lookup_source_read_matches(
   guard !lookup.closed &&
     lookup.left.lookup_issue is None &&
     lookup.left.composed is Some(original) &&
-    client_infer_occurrence_matches_plan(occurrence, original.plan) &&
+    client_composed_keyed_original_model_plan(original) is Some(original_plan) &&
+    client_infer_occurrence_matches_plan(occurrence, original_plan) &&
     original.sources.get(slot) is Some(source) else {
     return false
   }
@@ -1014,10 +1048,10 @@ pub fn client_composed_keyed_lookup_source_read_matches(
     Some(producer) =>
       client_composed_keyed_producer_output(
         producer,
-        original.scope,
+        client_composed_keyed_original_model_scope(original).unwrap(),
         original.compiled,
         original.definition,
-        original.plan,
+        client_composed_keyed_original_model_plan(original).unwrap(),
         original.keyed,
         original.sources,
       )
@@ -1045,7 +1079,8 @@ pub fn client_composed_keyed_lookup_source_supplied_read_matches(
   guard !lookup.closed &&
     lookup.left.lookup_issue is None &&
     lookup.left.composed is Some(original) &&
-    client_infer_occurrence_matches_plan(occurrence, original.plan) &&
+    client_composed_keyed_original_model_plan(original) is Some(original_plan) &&
+    client_infer_occurrence_matches_plan(occurrence, original_plan) &&
     original.sources.get(slot) is Some(source) &&
     client_composed_keyed_indexed_producer(original.producers, slot) is None &&
     @query.captured_source_original_input_read(source) is Some(expected) &&
@@ -1096,10 +1131,10 @@ pub fn client_composed_keyed_lookup_source_results(
       for producer in producers {
         guard client_composed_keyed_producer_output(
             producer,
-            original.scope,
+            client_composed_keyed_original_model_scope(original).unwrap(),
             original.compiled,
             original.definition,
-            original.plan,
+            client_composed_keyed_original_model_plan(original).unwrap(),
             original.keyed,
             original.sources,
           )
@@ -1425,10 +1460,9 @@ pub fn prepare_client_original_composed_keyed_left(
     Err(issue) => return Err(Read(issue))
   }
   let original = {
-    scope,
+    origin: ModelOrigin(scope, plan),
     compiled,
     definition,
-    plan,
     keyed,
     sources: sources.copy(),
     captures,
@@ -1562,18 +1596,25 @@ pub fn client_composed_keyed_lookup_matches_host(
 fn client_composed_keyed_original_prefix_available(
   original : ClientComposedKeyedOriginal,
 ) -> Bool {
+  if original.origin is SourceEffectOrigin(bound) {
+    return original.prefix is None &&
+      original.completed is None &&
+      client_effect_keyed_original_available(bound)
+  }
   match original.prefix {
     Some(prefix) =>
       @resources.original_borrowed_reservation_available(
-        original.scope.identity,
-        original.scope.ledger,
+        client_composed_keyed_original_identity(original),
+        client_composed_keyed_original_ledger(original),
         prefix,
       )
     None =>
       original.host is Some(_) &&
       original.direct_output is Some(_) &&
       original.completed is None &&
-      @resources.original_ledger_inventory_available(original.scope.identity)
+      @resources.original_ledger_inventory_available(
+        client_composed_keyed_original_identity(original),
+      )
   }
 }
 
@@ -1583,6 +1624,16 @@ fn client_composed_keyed_original_prefix_available(
 fn client_composed_keyed_original_output(
   original : ClientComposedKeyedOriginal,
 ) -> @execution.CompletedOutput? {
+  if original.origin is SourceEffectOrigin(_) {
+    guard original.direct_output is Some(output) &&
+      original.inputs is [(_, _, read)] &&
+      original.sources is [source] &&
+      @query.captured_source_matches_segment_input(source, read) &&
+      @execution.producer_read_matches_completed_output(read, output) else {
+      return None
+    }
+    return Some(output)
+  }
   match (original.completed, original.direct_output) {
     (Some(completed), None) =>
       @execution.completed_segment_inputs_output(
@@ -1595,8 +1646,8 @@ fn client_composed_keyed_original_output(
         original.inputs.length() == 1 &&
         client_composed_keyed_host_inputs_match(
           host,
-          original.plan,
-          original.scope.ledger,
+          client_composed_keyed_original_model_plan(original).unwrap(),
+          client_composed_keyed_original_ledger(original),
           original.sources,
           original.host_sources,
           original.inputs,
@@ -1704,10 +1755,9 @@ pub fn prepare_client_original_composed_keyed_host_input_left(
     return Err(ForeignLeft)
   }
   let original : ClientComposedKeyedOriginal = {
-    scope,
+    origin: ModelOrigin(scope, plan),
     compiled,
     definition,
-    plan,
     keyed,
     sources,
     captures,

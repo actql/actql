@@ -43,7 +43,7 @@ fn client_effect_local_artifact_inputs(
 }
 
 ///|
-fn client_effect_local_artifact_matches_inputs(
+pub fn client_effect_local_artifact_matches_inputs(
   artifact : ClientEffectLocalResultArtifact,
   inputs : @strategy.CapturedEffectInputs,
 ) -> Bool {
@@ -55,7 +55,7 @@ fn client_effect_local_artifact_matches_inputs(
 }
 
 ///|
-fn client_effect_local_artifact_matches_computation(
+pub fn client_effect_local_artifact_matches_computation(
   artifact : ClientEffectLocalResultArtifact,
   owner : PreparedClientEffectComputation,
 ) -> Bool {
@@ -71,7 +71,7 @@ fn client_effect_local_artifact_matches_computation(
 }
 
 ///|
-fn client_effect_local_artifact_run_definition_cid(
+pub fn client_effect_local_artifact_run_definition_cid(
   artifact : ClientEffectLocalResultArtifact,
 ) -> String? {
   client_effect_local_custody_run_definition_cid(artifact.custody)

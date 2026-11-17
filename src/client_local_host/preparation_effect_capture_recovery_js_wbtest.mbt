@@ -276,7 +276,6 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
   // The original retained output still prevents parent retirement. A later
   // SAME-extent read must fund its full workspace on the SAME original first.
   assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
-  begin_installed_effect_capture_recovery(recovery).unwrap()
   let before_repeat = @resources.ledger_usage(ledger)
   let free = @resources.ledger_limits(ledger).execution_bytes -
     before_repeat.reserved_execution_bytes
@@ -293,6 +292,8 @@ test "live capture reserves and returns actual SAME adopted Effect Ledger withou
   assert_eq(@resources.ledger_usage(ledger), pressured)
   assert_true(physical_equal(recovery.material.unwrap(), material))
   @resources.settle_capacity(ledger, pressure).unwrap()
+  begin_installed_effect_capture_recovery(recovery).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), held)
   reserve_installed_effect_capture_recovery(recovery, 128).unwrap()
   assert_eq(@resources.ledger_usage(ledger), held)
   complete_installed_effect_capture_recovery(recovery).unwrap()

@@ -356,10 +356,10 @@ function completionProgram(id,kind='values',duplicates='all') {
 }
 
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
-  valueContract={type:'number',nullable:true},producerTask=1){
+  valueContract={type:'number',nullable:true},producerTask=1,successWaitMs=45_000){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
     const reached=Promise.withResolvers(),release=Promise.withResolvers();
-    let client, cancelling=false, dispatches=0, advances=0, completions=0;
+    let client, cancelling=false, dispatches=0, advances=0, completions=0, primaryFailure;
     t.after(async()=>{release.resolve();await client?.close();
       await rm(directory,{recursive:true,force:true});});
     const keys=generateKeyPairSync('ed25519');
@@ -372,7 +372,7 @@ async function verifyRetainedNames(t,label,makeProgram,rows=expected,
         hostKey:{keyId:'host',privateKey:keys.privateKey.export({type:'pkcs8',format:'pem'})},
         reviewers:[{keyId:'reviewer',reviewerId:'reviewer',principalId:userInfo().username,
           publicKey:keys.publicKey.export({type:'spki',format:'pem'})}],
-        observe(name,detail){if(name==='computed'){
+        observe(name,detail){if(name==='dispatch_failed')primaryFailure={code:detail.code,issueTag:detail.issueTag,nestedIssueTag:detail.nestedIssueTag};if(name==='computed'){
           completions++;
           assert.ok(detail.outputRepresentations.some(entry=>entry.representation==='retained-file'));
           if(cancelling)reached.reject(new Error('property finished before progress barrier'));}},
@@ -393,8 +393,8 @@ async function verifyRetainedNames(t,label,makeProgram,rows=expected,
     } catch(error) {
       assert.fail(`Public preparation failed: ${JSON.stringify(error.cause, null, 2)}`);
     }
-    const status=await run.wait({signal:AbortSignal.timeout(45_000)});
-    assert.equal(status.status,'succeeded',JSON.stringify(status));
+    const status=await run.wait({signal:AbortSignal.timeout(successWaitMs)});
+    assert.equal(status.status,'succeeded',JSON.stringify({status,primaryFailure}));
     assert.deepEqual(Object.keys(status.result_availability).sort(),names.toSorted());
     for(const name of names)assert.deepEqual(await run.result(name).all(),rows);
     assert.deepEqual((await run.result('published').describe()).columns,
@@ -435,8 +435,9 @@ test('public retained raw Text Object children preserve data and post-progress c
 test('public retained raw Text array aggregation preserves data and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'text-array',textArrayProgram,textArrayExpected,textArrayContract));
 test('public retained string aggregation preserves delimiters data and post-progress custody',
-  {timeout:90_000},t=>verifyRetainedNames(t,'text-string',textStringProgram,textStringExpected,
-    {type:'string',nullable:true}));
+  // Functional publication watchdog; cancellation keeps its separate 15s limits.
+  {timeout:150_000},t=>verifyRetainedNames(t,'text-string',textStringProgram,textStringExpected,
+    {type:'string',nullable:true},1,90_000));
 test('public retained wide indexed snapshots preserve rows and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'wide-snapshot',wideSnapshotProgram,
     [{id:1,value:1},{id:2,value:2}],{type:'number',nullable:false},0));

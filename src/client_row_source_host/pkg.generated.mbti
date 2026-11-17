@@ -91,6 +91,8 @@ pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issu
 
 pub fn bind_declared_file_read_profile(RowDeclaration, String, RowDeclaration, String, DeclaredFileReadFields) -> Result[RowDeclaration, RowMappingIssue]
 
+pub fn bind_installed_row_read_profile(RowDeclaration, String) -> Result[RowDeclaration, RowMappingIssue]
+
 pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]
 
 pub fn borrow_row_captured_input_originals(Array[RowCapturedInput], @physical_resources.Ledger, Int) -> RowCapturedInputs?
@@ -139,6 +141,8 @@ pub fn close_row_run(RowRun) -> Unit
 
 pub fn complete_keyed_row_read(RowSourceRead) -> Result[@execution_relation.CapturedRows, RowSourceIssue]
 
+pub fn complete_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]
+
 pub fn consume_row_run_observation_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]
 
 pub fn consume_row_run_response_charge(RowRun, RowPageCharge) -> Result[Unit, RowHostIssue]
@@ -172,6 +176,8 @@ pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowD
 pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]
 
 pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]
+
+pub fn installed_row_read_profile_construction_inventory(RowDeclaration) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]
 
@@ -331,6 +337,8 @@ pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.Exec
 
 pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]
 
+pub fn row_acquisition_max_rows(RowAcquisition) -> Int
+
 pub fn row_acquisition_provider_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
 
 pub fn row_acquisition_request_wire(RowAcquisition) -> Result[String, RowHostIssue]
@@ -340,6 +348,8 @@ pub fn row_acquisition_requirement(RowAcquisition) -> @query_planning.QueryRequi
 pub fn row_acquisition_retained_capacity(RowAcquisition) -> Int64
 
 pub fn row_capture_input(RowSourceCapture) -> RowCapturedInput?
+
+pub fn row_capture_original_borrowed_requirement(RowSourceCapture, @physical_resources.Ledger) -> @query_planning.QueryRequirement?
 
 pub fn row_capture_original_prefix_requirement(RowSourceCapture, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> @query_planning.QueryRequirement?
 
@@ -368,6 +378,8 @@ pub fn row_captured_inputs_live(RowCapturedInputs, @physical_resources.Ledger) -
 pub fn row_captured_inputs_source_at(RowCapturedInputs, Int) -> @execution_query.CapturedInputSource?
 
 pub fn row_captured_inputs_source_original_at(RowCapturedInputs, Int) -> @sourceview_resolution.SourceAcquisition?
+
+pub fn row_captured_inputs_source_same_original(RowCapturedInputs, Int, @execution_query.CapturedInputSource) -> Bool
 
 pub fn row_captures_original_keyed_child_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, prefix? : @physical_resources.Reservation?) -> Bool
 

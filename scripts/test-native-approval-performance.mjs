@@ -10,13 +10,14 @@ import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
-import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalPhases} from './native-approval-performance.mjs';
+import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalPhases, assertNativeApprovalAcceptanceBinding} from './native-approval-performance.mjs';
 
 const {values} = parseArgs({options: {normal: {type: 'string'}, output: {type: 'string'},
-  runner: {type: 'string'}, diagnostic: {type: 'boolean', default: false}}});
+  runner: {type: 'string'}, binding: {type: 'string'}, diagnostic: {type: 'boolean', default: false}}});
 assert(values.normal && values.output && values.runner,
   'usage: test-native-approval-performance.mjs --normal <fixed-RC> --output <new-report> --runner <fixed-runner> [--diagnostic]');
 assert(values.runner.length <= 128 && !/[\r\n\0]/u.test(values.runner));
+if (values.binding) assertNativeApprovalAcceptanceBinding(JSON.parse(readFileSync(values.binding, 'utf8')));
 const root = fileURLToPath(new URL('../', import.meta.url));
 const directory = realpathSync(resolve(values.normal));
 const manifest = await verifyNativeCliRelease(directory), source = checkoutState(root);

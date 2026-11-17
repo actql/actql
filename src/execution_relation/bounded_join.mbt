@@ -208,14 +208,24 @@ fn bounded_join_step(
 ) -> @bounded.KernelStep[CompletedOutput, BoundedJoinIssue] {
   let mut used = 0
   let mut progress = 0
+  let mut text_current = false
   while used < quantum {
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !bounded_binding_input_available(state.left) ||
-      !bounded_binding_input_available(state.right) {
+    let input_text = state.phase is ChargeInput &&
+      state.input_scan.frames.last() is Some(ScanText(_, _))
+    // Only consecutive immutable text units have no external callback. The
+    // marker is local to this resume; every other frame, cell or phase fences
+    // the original inputs again before it can call an owner or read new data.
+    if (!text_current || !input_text) &&
+      (
+        !bounded_binding_input_available(state.left) ||
+        !bounded_binding_input_available(state.right)
+      ) {
       return bounded_join_failure(InvalidExecution, progress, used)
     }
+    text_current = input_text
     match state.phase {
       PrepareCompletionPort => {
         guard state.port_preparation is Some(cursor) else {
@@ -589,6 +599,13 @@ fn bounded_join_step(
       Terminal => return bounded_join_failure(InvalidExecution, progress, used)
     }
   }
+  if text_current &&
+    (
+      !bounded_binding_input_available(state.left) ||
+      !bounded_binding_input_available(state.right)
+    ) {
+    return bounded_join_failure(InvalidExecution, progress, used)
+  }
   @bounded.Continue(progress, used)
 }
 
@@ -666,11 +683,31 @@ pub fn start_bounded_join(
     return Err(Rows(RowLimit))
   }
   let workspace = row_workspace(max_entries)
-  if !reserve_slots(workspace, 2) {
+  // Existing key/order roots plus the optional immutable source reference.
+  if !reserve_slots(workspace, 3) {
     return Err(Rows(RowLimit))
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
   let reversed = @lower.inner_join_kind(profile) == @join.Right
+  let keys = []
+  let text_source = match
+    prepare_bounded_comparison_text_source(
+      if reversed {
+        right
+      } else {
+        left
+      },
+      if reversed {
+        left
+      } else {
+        right
+      },
+      keys,
+      workspace,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Rows(ordering_row_issue(issue)))
+  }
   let pairs : BoundedJoinPairs = {
     reversed,
     left: if reversed {
@@ -687,8 +724,9 @@ pub fn start_bounded_join(
     control,
     workspace,
     engine,
-    keys: [],
+    keys,
     orders: [],
+    text_source,
     comparison: {
       left: 0,
       right: 0,
@@ -697,7 +735,7 @@ pub fn start_bounded_join(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
-      tree: None,
+      tree: NoRowComparison,
     },
     phase: ValidateSide,
     on_left: true,
@@ -831,15 +869,18 @@ pub fn advance_bounded_join(
       Ok(BoundedJoinContinue(progress~, work~))
     }
     Ok(@bounded.Completed(output, progress~, work~)) => {
+      reset_bounded_row_comparison(value.state.pairs.comparison)
       value.token = None
       value.accepted.val = true
       Ok(BoundedJoinComplete(output, progress~, work~))
     }
     Ok(@bounded.FailedWith(issue, progress~, work~)) => {
+      reset_bounded_row_comparison(value.state.pairs.comparison)
       value.token = None
       Ok(BoundedJoinFailed(issue, progress~, work~))
     }
     Ok(@bounded.StoppedWith(reason, progress~, work~)) => {
+      reset_bounded_row_comparison(value.state.pairs.comparison)
       value.token = None
       Ok(BoundedJoinStopped(reason, progress~, work~))
     }

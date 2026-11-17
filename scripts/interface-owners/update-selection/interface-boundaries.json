@@ -75,11 +75,6 @@
           "async": false
         },
         {
-          "name": "invalid/invalid",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "issueUpdateTargetInstallation",
           "parameters": [
             "moon",
@@ -176,7 +171,6 @@
             "createUpdateTargetOriginalShapeControl",
             "createUpdateTargetOriginalShapeControl/createUpdateTargetOriginalShapeControl",
             "installationsShape",
-            "invalid/invalid",
             "issueUpdateTargetInstallation",
             "issueUpdateTargetInstallationData",
             "originalUpdateTargetSelectionsCid",
@@ -334,29 +328,6 @@
       ],
       "operations": [
         {
-          "name": "encode",
-          "parameters": [
-            "value",
-            "maximum"
-          ],
-          "async": false
-        },
-        {
-          "name": "encode/copy/copy",
-          "parameters": [
-            "value",
-            "depth"
-          ],
-          "async": false
-        },
-        {
-          "name": "encode/text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "encodeUpdateTargetData",
           "parameters": [
             "value"
@@ -378,9 +349,6 @@
         {
           "operations": [
             "<module>",
-            "encode",
-            "encode/copy/copy",
-            "encode/text/text",
             "encodeUpdateTargetData",
             "encodeUpdateTargetOriginalData"
           ],
@@ -538,16 +506,11 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "fce1fe37f2f0531777d9ffea00a590bd7564bf1d80d26cfbcdb8c0b9cb3c863f",
+      "sha256": "6d0490c61f85fdb1d79b3f2062b63321b56a0223991350a8a905957586766f0b",
       "exports": [
         "installUpdateTargetOriginals"
       ],
       "operations": [
-        {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
         {
           "name": "installUpdateTargetOriginals",
           "parameters": [
@@ -555,15 +518,9 @@
             "control",
             "installedEffect",
             "limits",
-            "features"
-          ],
-          "async": false
-        },
-        {
-          "name": "installUpdateTargetOriginals/bind/bind",
-          "parameters": [
-            "selections",
-            "installations"
+            "features",
+            "issueMaterials",
+            "admitMaterials"
           ],
           "async": false
         },
@@ -594,13 +551,6 @@
           "async": false
         },
         {
-          "name": "installUpdateTargetOriginals/current/current",
-          "parameters": [
-            "selections"
-          ],
-          "async": false
-        },
-        {
           "name": "installUpdateTargetOriginals/current/current/current",
           "parameters": [
             "a",
@@ -611,6 +561,7 @@
         {
           "name": "installUpdateTargetOriginals/init:captureEffectMaterials/init:captureEffectMaterials",
           "parameters": [
+            "prepared",
             "allowed",
             "definition",
             "identity"
@@ -624,6 +575,8 @@
             "allowed",
             "definition",
             "identity",
+            "compilation",
+            "runDefinition",
             "reserveOriginal"
           ],
           "async": false
@@ -709,7 +662,8 @@
             "wire",
             "runDefinition",
             "identity",
-            "originalCompilation"
+            "originalCompilation",
+            "originalPrepared"
           ],
           "async": false
         },
@@ -726,15 +680,8 @@
             "original",
             "runDefinition",
             "identity",
-            "originalCompilation"
-          ],
-          "async": false
-        },
-        {
-          "name": "installUpdateTargetOriginals/same/same",
-          "parameters": [
-            "left",
-            "right"
+            "originalCompilation",
+            "originalPrepared"
           ],
           "async": false
         },
@@ -753,14 +700,11 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "installUpdateTargetOriginals",
-            "installUpdateTargetOriginals/bind/bind",
             "installUpdateTargetOriginals/bind/bind/assertUpdateSelectionCurrent/assertUpdateSelectionCurrent",
             "installUpdateTargetOriginals/bind/bind/assertUpdateSelectionCurrent/assertUpdateSelectionCurrent/assertUpdateSelectionCurrent",
             "installUpdateTargetOriginals/bind/bind/bind",
             "installUpdateTargetOriginals/bind/bind/installationData/installationData",
-            "installUpdateTargetOriginals/current/current",
             "installUpdateTargetOriginals/current/current/current",
             "installUpdateTargetOriginals/init:captureEffectMaterials/init:captureEffectMaterials",
             "installUpdateTargetOriginals/init:captureRun/init:captureRun",
@@ -775,7 +719,6 @@
             "installUpdateTargetOriginals/restoreEffectMaterials/restoreEffectMaterials",
             "installUpdateTargetOriginals/restorePrepared/restorePrepared",
             "installUpdateTargetOriginals/restoreRun/restoreRun",
-            "installUpdateTargetOriginals/same/same",
             "installUpdateTargetOriginals/selectionsOf/selectionsOf"
           ],
           "exports": [
@@ -996,6 +939,10 @@
               {
                 "path": "adapters/host-node/installed-update-targets.test.mjs",
                 "anchor": "test('same physical current uses real typed installation DATA without transporting its immutable wire again', async t => {"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "target material inverse is admitted once before the original Request is adopted"
               }
             ]
           }

@@ -384,6 +384,7 @@ pub fn client_program_request_preparation_issue_code(
         EffectRejected(Preparation(issue)),
       )
     Err(Preparation(ProgramCheck(Check(issue))))
+    | Err(Preparation(ProgramCheck(EffectInput(Computation(issue)))))
     | Err(Preparation(ProgramCheck(Catalog(Check(issue)))))
     | Err(
       Preparation(
@@ -4288,14 +4289,104 @@ pub fn client_program_project_effect_review(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preview_max_bytes : Int?,
+  preview_max_nodes : Int?,
+  preview_max_depth : Int?,
 ) -> Result[
   @publication.RunEvidenceValue,
   @publication.EffectReviewProjectionIssue,
 ] {
   @publication.project_effect_review_projection(
-    original, preview_wire, authority_scope_cid, approval_claims, redaction_policy_cid,
-    max_bytes, max_nodes, max_depth,
+    original,
+    preview_wire,
+    authority_scope_cid,
+    approval_claims,
+    redaction_policy_cid,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    preview_limits=Some(
+      (
+        preview_max_bytes.unwrap_or(max_bytes),
+        preview_max_nodes.unwrap_or(max_nodes),
+        preview_max_depth.unwrap_or(max_depth),
+      ),
+    ),
   )
+}
+
+///|
+/// The SAME installed control funds fixed preflight controls before this call
+/// and the returned scratch before invoking the strict projection constructor.
+#export_name("clientProgramEffectReviewConstructionCapacity")
+pub fn client_program_effect_review_construction_capacity(
+  preview_wire : String,
+  preview_bytes : Int,
+  preview_nodes : Int,
+  preview_depth : Int,
+  review_bytes : Int,
+  review_nodes : Int,
+  review_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  effect_review_inventory_capacity(
+    @publication.effect_review_projection_construction_inventory(
+      preview_wire, preview_bytes, preview_nodes, preview_depth, review_bytes, review_nodes,
+      review_depth,
+    ),
+  )
+}
+
+///|
+/// The trusted Host forwards identity and wire from ONE private admitted
+/// Preview key. Arbitrary/raw wires retain the general constructor entrance.
+#export_name("clientProgramEffectReviewOriginalConstructionCapacity")
+pub fn client_program_effect_review_original_construction_capacity(
+  original : @publication.EffectPreviewIdentity,
+  preview_wire : String,
+  preview_bytes : Int,
+  preview_nodes : Int,
+  preview_depth : Int,
+  review_bytes : Int,
+  review_nodes : Int,
+  review_depth : Int,
+) -> @execution.ExecutionCapacity? {
+  effect_review_inventory_capacity(
+    @publication.effect_review_original_construction_inventory(
+      original, preview_wire, preview_bytes, preview_nodes, preview_depth, review_bytes,
+      review_nodes, review_depth,
+    ),
+  )
+}
+
+///|
+fn effect_review_inventory_capacity(
+  inventory : (
+    @publication.EffectPreviewIdentityConstructionInventory,
+    @publication.EffectPreviewIdentityConstructionInventory,
+  )?,
+) -> @execution.ExecutionCapacity? {
+  guard inventory is Some((returned, peak)) &&
+    @execution.preparation_representation_cost({
+      record_headers: returned.record_headers,
+      reference_slots: returned.reference_slots,
+      scalar_words: returned.scalar_words,
+      owned_utf16_units: returned.owned_utf16_units,
+      owned_wire_bytes: returned.owned_wire_bytes,
+    })
+    is Some(retained) &&
+    @execution.preparation_representation_cost({
+      record_headers: peak.record_headers,
+      reference_slots: peak.reference_slots,
+      scalar_words: peak.scalar_words,
+      owned_utf16_units: peak.owned_utf16_units,
+      owned_wire_bytes: peak.owned_wire_bytes,
+    })
+    is Some(bytes) &&
+    @execution.checked_preparation_add_product(retained, bytes, 1L)
+    is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution)
 }
 
 ///|
@@ -5869,11 +5960,131 @@ pub fn client_program_author_effect_preview(
     Ok(value) => value
     Err(issue) => return Err(Preview(issue))
   }
+  finish_client_program_effect_preview_keys(
+    semantic_wire, identity, expected_run_identity_cid, expected_authoring_context_cid,
+    request_scope, max_wire_bytes, max_nodes, max_depth, max_members, max_rows, max_key_bytes,
+    max_key_nodes, max_key_depth,
+  )
+}
+
+///|
+pub(all) enum ClientInstalledEffectPreviewKeyIssue {
+  Author(ClientEffectPreviewAuthorIssue)
+  Managed(@client_local_host.ClientInstalledManagedRunIssue)
+  Recovery(@effect.EffectPreviewRecoveryKeysIssue)
+}
+
+///|
+/// Same semantic authoring, with the actual managed owner backing new command
+/// correlation Strings before their first construction. No callback or scalar
+/// allowance crosses this boundary.
+#export_name("clientProgramAuthorInstalledEffectPreview")
+pub fn client_program_author_installed_effect_preview(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  template_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  request_scope : @effect.LogicalRequestScope,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_members : Int,
+  max_rows : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[
+  (String, Array[Array[@effect.EffectDispatchKey]]),
+  ClientInstalledEffectPreviewKeyIssue,
+] {
+  let (semantic, preview) = match
+    @publication.author_effect_preview_semantic_wire(
+      template_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Err(issue) => return Err(Author(Preview(issue)))
+    Ok(value) => value
+  }
+  match
+    @client_local_host.retain_installed_effect_dispatch_key_construction(
+      owner, prepared, request, plan, allowed, definition, invocation, preview, request_scope,
+      max_key_bytes, max_key_nodes, max_key_depth,
+    ) {
+    Err(issue) => return Err(Managed(issue))
+    Ok(_) => ()
+  }
+  finish_client_program_effect_preview_keys(
+    semantic, preview, expected_run_identity_cid, expected_authoring_context_cid,
+    request_scope, max_wire_bytes, max_nodes, max_depth, max_members, max_rows, max_key_bytes,
+    max_key_nodes, max_key_depth,
+  ).map_err(issue => Author(issue))
+}
+
+///|
+#export_name("clientProgramInstalledEffectRecoveredPreviewKeys")
+pub fn client_program_installed_effect_recovered_preview_keys(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+  scope : @effect.LogicalRequestScope,
+  max_members : Int,
+  max_rows : Int,
+  max_work : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[
+  Array[Array[@effect.EffectDispatchKey]],
+  ClientInstalledEffectPreviewKeyIssue,
+] {
+  match
+    @client_local_host.retain_installed_effect_dispatch_key_construction(
+      owner, prepared, request, plan, allowed, definition, invocation, preview, scope,
+      max_key_bytes, max_key_nodes, max_key_depth,
+    ) {
+    Err(issue) => return Err(Managed(issue))
+    Ok(_) => ()
+  }
+  @effect.recover_effect_preview_apply_keys(
+    preview, scope, max_members, max_rows, max_work, max_key_bytes, max_key_nodes,
+    max_key_depth,
+  ).map_err(issue => Recovery(issue))
+}
+
+///|
+fn finish_client_program_effect_preview_keys(
+  semantic_wire : String,
+  identity : @publication.EffectPreviewIdentity,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  request_scope : @effect.LogicalRequestScope,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_members : Int,
+  max_rows : Int,
+  max_key_bytes : Int,
+  max_key_nodes : Int,
+  max_key_depth : Int,
+) -> Result[
+  (String, Array[Array[@effect.EffectDispatchKey]]),
+  ClientEffectPreviewAuthorIssue,
+] {
   let count = @publication.effect_preview_member_count(identity)
   if max_members < 1 || max_rows < 0 || count > max_members {
     return Err(CapacityExceeded)
   }
-  let preview_cid = @publication.effect_preview_semantic_identity(identity)
   let keys : Array[Array[@effect.EffectDispatchKey]] = []
   let key_cids : Array[Array[String]] = []
   let mut remaining = max_rows
@@ -5888,12 +6099,9 @@ pub fn client_program_author_effect_preview(
     let member_keys : Array[@effect.EffectDispatchKey] = []
     let member_key_cids : Array[String] = []
     for row_index in 0..<row_count {
-      let correlation = @publication.effect_preview_row_correlation_wire(
-        identity, member_index, row_index,
-      ).unwrap()
       let key = match
-        @effect.prepare_effect_dispatch_key(
-          request_scope, preview_cid, correlation, max_key_bytes, max_key_nodes,
+        @effect.prepare_effect_preview_row_dispatch_key(
+          identity, request_scope, member_index, row_index, max_key_bytes, max_key_nodes,
           max_key_depth,
         ) {
         Ok(value) => value
@@ -9308,4 +9516,25 @@ pub fn client_program_effect_compilation_infer_originals(
       )
     })
   })
+}
+
+///|
+/// Borrow the already funded key cohort for this admitted Preview's claims.
+/// This returns locator DATA, never a physical dispatch permission.
+#export_name("clientProgramEffectRecoveryBindingsFromKeys")
+pub fn client_program_effect_recovery_bindings_from_keys(
+  preview : @publication.EffectPreviewIdentity,
+  scope : @effect.LogicalRequestScope,
+  program_id : String,
+  node_id : String,
+  keys : Array[Array[@effect.EffectDispatchKey]],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[
+  Array[Array[@effect.EffectRecoveryBinding]],
+  @effect.EffectRecoveredClaimIssue,
+] {
+  @effect.prepare_effect_recovery_bindings_from_keys(
+    preview, scope, program_id, node_id, keys, max_rows, max_work,
+  )
 }

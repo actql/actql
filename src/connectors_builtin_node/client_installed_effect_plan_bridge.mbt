@@ -660,6 +660,7 @@ pub fn client_program_installed_local_file_store_recipe_capacities(
   native_depth : Int,
   content_read_window_bytes : Int,
   control_wire_bytes : Int?,
+  control_response_bytes : Int?,
 ) -> Result[
   Array[@execution.ExecutionCapacity],
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -684,6 +685,7 @@ pub fn client_program_installed_local_file_store_recipe_capacities(
     native_depth,
     content_read_window_bytes,
     control_wire_bytes~,
+    control_response_bytes~,
   )
 }
 

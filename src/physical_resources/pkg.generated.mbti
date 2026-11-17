@@ -82,6 +82,8 @@ pub fn[I, P] begin_preparation_phase_work_continuation64(PreparationCapacity[I, 
 
 pub fn[P, E] begin_prepared_run_operation_construction(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
 
+pub fn[P] begin_prepared_run_publication_work(PreparedRunAdmission[P], P, Ledger, Int64) -> Result[PreparationPhaseWorkContinuation64, ImportedChildLedgerIssue]
+
 pub fn begin_shared_capacity_growth(SharedCapacity, SharedAllocation, Int64, Int64) -> Result[SharedCapacityGrowth, LedgerIssue]
 
 pub fn bind_platform_vm_capacity(Int64, Ledger, SharedCapacity) -> Result[PlatformVMCapacity, ImportedChildLedgerIssue]
@@ -206,7 +208,11 @@ pub fn[T] close_model_io_admission(ModelIoAdmission[T], T) -> Result[Bool, Model
 
 pub fn close_platform_vm_working_capacity_after_cleanup(PlatformVMWorkingCapacity) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn close_preparation_account_read(PreparationAccountRead, Bool) -> Result[Bool, PreparationCapacityIssue]
+
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
+
+pub fn complete_account_read_construction(PreparationAccountRead) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[P, C] complete_backed_execution_window_after_acquisition(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], SharedCapacityGrowth, Int64) -> Result[Unit, BackedExecutionIssue]
 
@@ -275,6 +281,8 @@ pub fn grow_capacity_reservation(Ledger, CapacityReservation, Int64, Int64) -> R
 pub fn grow_execution_reservation_capacity(Ledger, Reservation, Int64, Int64) -> Result[Unit, LedgerIssue]
 
 pub fn[T] grow_funded_read_consumer_capacity(FundedReadConsumer[T], T, Int64, Int64) -> Result[Unit, OriginalReadIssue]
+
+pub fn[T] grow_funded_read_consumer_span(FundedReadConsumer[T], T, Int64, Int64) -> Result[(Int64, Int64), OriginalReadIssue]
 
 pub fn[T] grow_funded_read_preparing_capacity(FundedReadConsumer[T], T, Int64, Int64) -> Result[Unit, OriginalReadIssue]
 
@@ -356,6 +364,8 @@ pub fn[P] node_prepared_run_admission(NodeManagedRunAdmission[P]) -> PreparedRun
 
 pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : Int64?, duration_ms? : Int64?) -> Result[Unit, LedgerIssue]
 
+pub fn original_borrowed_captured_allocation_available(Ledger, Reservation, Holding) -> Bool
+
 pub fn original_borrowed_captured_inputs_available(Ledger, Array[(Reservation, Holding)]) -> Bool
 
 pub fn original_borrowed_reservation_available(OriginalLedgerIdentity, Ledger, Reservation) -> Bool
@@ -432,6 +442,8 @@ pub fn[T] park_original_resource_consumer(FundedReadConsumer[T], T) -> Result[Or
 
 pub fn[T] park_original_resource_consumer_for_state_write(FundedReadConsumer[T], T) -> Result[OriginalResourcePark[T], OriginalReadIssue]
 
+pub fn preparation_account_read_control_slots() -> (Int64, Int64, Int64)
+
 pub fn[P] preparation_body_borrow_reserved_extents(PreparationBodyBorrow[P]) -> Result[(Int64, Int64), PreparationCapacityIssue]
 
 pub fn[P] preparation_body_borrow_value(PreparationBodyBorrow[P]) -> P?
@@ -465,6 +477,10 @@ pub fn preparation_phase_work_construction_inventory() -> PreparationWorkConstru
 pub fn preparation_phase_work_continuation64_construction_inventory() -> PreparationWorkConstructionInventory
 
 pub fn preparation_phase_work_continuation64_retained_inventory() -> PreparationWorkConstructionInventory
+
+pub fn[I, P] prepare_account_read(PreparationCapacity[I, P], I, Int64) -> Result[PreparationAccountRead, PreparationCapacityIssue]
+
+pub fn prepare_account_read_construction(PreparationAccountRead, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[P, C, I] prepare_backed_initialization_admission(BackedExecutionLiveProjection[P, C, I], I, acquire_window? : ((Int64, Int64) -> Result[Unit, LedgerIssue])?) -> Result[BackedInitializationAdmission[I], ImportedChildLedgerIssue]
 
@@ -502,6 +518,8 @@ pub fn quantity_usage(Ledger) -> QuantityUsage
 
 pub fn[P, C, R] read_backed_original_child_window_bytes(BackedExecutionLiveProjection[P, C, R], R) -> Result[Int64, BackedExecutionIssue]
 
+pub fn[I, P] reconcile_current_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
+
 pub fn reconcile_unborrowed_shared_allocation_after_cleanup(SharedCapacity, SharedAllocation, Int64, Int64) -> Result[Unit, LedgerIssue]
 
 pub fn[I, P] reconcile_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
@@ -523,6 +541,8 @@ pub fn release_shared_capacity(SharedAllocation) -> Result[Unit, LedgerIssue]
 pub fn[T] relocate_funded_read_consumer_cleanup_state(FundedReadConsumer[T], T) -> Result[Unit, OriginalReadIssue]
 
 pub fn relocate_imported_child_cleanup_usage(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn remaining_preparation_phase_work_continuation64(PreparationPhaseWorkContinuation64) -> Result[Int64, PreparationWorkIssue]
 
 pub fn[P, C] report_backed_execution_delegation(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], LedgerUsage) -> Result[Unit, BackedExecutionIssue]
 
@@ -723,6 +743,10 @@ pub fn[I, P] transfer_preparation_capacity_to_run(PreparationCapacity[I, P], I, 
 pub fn[I, P] transfer_preparation_retirement_to_run(PreparationCapacity[I, P], I, P, Ledger) -> Result[PreparationRetirement, PreparationCapacityIssue]
 
 pub fn unresolved_backed_execution_data(UnresolvedBackedExecutionOriginal) -> BackedExecutionOriginalData
+
+pub fn[P, R, E] with_prepared_run_operation_control_publication_work(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], CapacityReservation, () -> Bool, PreparationPhaseWorkContinuation64, ((Int) -> Result[Unit, LedgerIssue]) -> Result[R, NodeManagedRunOperationIssue[E]]) -> Result[R, NodeManagedRunOperationIssue[E]]
+
+pub fn[P, R, E] with_prepared_run_operation_control_work(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], CapacityReservation, () -> Bool, ((Int) -> Result[Unit, LedgerIssue]) -> Result[R, NodeManagedRunOperationIssue[E]]) -> Result[R, NodeManagedRunOperationIssue[E]]
 
 pub fn write_ledger_continuation_state(LedgerContinuationState, @encode_core.Writer) -> Result[Unit, LedgerContinuationIssue]
 
@@ -1113,6 +1137,8 @@ type PlatformVMCapacity
 
 type PlatformVMWorkingCapacity
 
+type PreparationAccountRead
+
 type PreparationBodyBorrow[P]
 
 type PreparationCapacity[I, P]
@@ -1221,6 +1247,8 @@ pub(all) enum PreparationWorkPhase {
   PublicationProof
   RequestValuePolicyCheck
   RequestPolicySubjectPreparation
+  HttpInputPreflight
+  NormalizationAudit
 } derive(Eq, @debug.Debug)
 
 type PreparedRunAdmission[P]

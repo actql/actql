@@ -76,3 +76,51 @@ test "captured recursive rows retain existing trees and fund nested writer key o
     is None,
   )
 }
+
+///|
+test "Effect capture shares typed bodies while pricing original member sorting" {
+  let plain = publication_capture_constructor_layout(1000, 100, 8, 2, 2, 1, 0).unwrap()
+  let effect = publication_capture_constructor_layout(
+    1000,
+    100,
+    8,
+    2,
+    2,
+    1,
+    0,
+    effect_members=9,
+  ).unwrap()
+  // The new original members add the real singleton-ID/sort inventory, not
+  // another CanonicalValue tree or held copy of an existing dependency body.
+  assert_true(plain.retained == effect.retained)
+  assert_true(
+    @execution.preparation_representation_cost(effect.temporary).unwrap() >
+    @execution.preparation_representation_cost(plain.temporary).unwrap(),
+  )
+  assert_true(
+    publication_capture_constructor_layout(
+      1000,
+      100,
+      8,
+      2,
+      2,
+      1,
+      0,
+      effect_members=-1,
+    )
+    is None,
+  )
+  assert_true(
+    publication_capture_constructor_layout(
+      1000,
+      100,
+      8,
+      2,
+      2,
+      1,
+      0,
+      effect_members=2147483647,
+    )
+    is None,
+  )
+}

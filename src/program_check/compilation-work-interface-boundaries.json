@@ -1,0 +1,108 @@
+{
+  "qualification": "Existing compiler limit projection and identity logical work owners; source correspondence only, not allocation or ordinary artifact acceptance",
+  "declarations": [
+    {
+      "module": "src/program_check/compile_limits.mbt",
+      "sha256": "c1db42bfbeb195445059a65f04d0916c1bf847932c7eb36068f864f984dc9f51",
+      "exports": [],
+      "operations": [
+        {
+          "name": "compilation_artifact_pass_work_limit",
+          "declaration": "compilation_artifact_pass_work_limit ( limits : CompileLimits ) - > Int ?"
+        },
+        {
+          "name": "compile_limits_valid",
+          "declaration": "compile_limits_valid ( limits : CompileLimits ) - > Bool"
+        },
+        {
+          "name": "compile_source_limits",
+          "declaration": "compile_source_limits ( limits : CompileLimits ) - > SourceLimits"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Program checker compile configuration and original aggregate artifact accounting",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "compilation_artifact_pass_work_limit",
+            "compile_limits_valid",
+            "compile_source_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "#### Default checking artifact work"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "#### Default checking artifact work"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "#### Default checking artifact work"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "#### Default checking artifact work"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "#### Default checking artifact work"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "#### Default checking artifact work"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "#### Default checking artifact work"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "#### Default checking artifact work"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "#### Default checking artifact work"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "#### Default checking artifact work"
+              },
+              {
+                "path": "src/program_check/compile_limits_wbtest.mbt",
+                "anchor": "artifact work ceiling funds actual original Host wire projection and keeps one-short refusal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_direct_union_js_wbtest.mbt",
+                "anchor": "ordinary checking artifact work uses its same finite codec inventory rather than Stage groups"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

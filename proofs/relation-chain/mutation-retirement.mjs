@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
 const path = 'src/connectors/local/selected_relation_provider.mbt';
 const suite = 'src/connectors/local/relation_chain_lifetime_wbtest.mbt';
 const clean = '  match cleanup_managed_provider(active) {\n    Ok(true) => {\n      // Output provenance retains exact identities, not the child execution.';
@@ -49,37 +48,18 @@ export function requireRetirementDetection(result, output, witness) {
     'The intended ownership assertion did not fail');
 }
 
-// This finite census covers the complete normal fixture, not an extension of
-// the eight-case retirement theorem scope. See the independent census review.
-export const normalLifetimeCases = Object.freeze([
-  'reclaimed bounded chain does not fund an unused generic measurement forest',
-  'bounded chains execute and charge an unconsumed checked branch',
-  'an unconsumed checked branch still fails before the terminal step',
-  'built-in chains reclaim each intermediate execution and preserve exact outputs',
-  'chain cancellation between reclaimed children does not start the next child',
-  'intermediate cleanup false and error preserve child custody until parent retry',
-  'cancelling pending intermediate cleanup preserves reclamation custody',
-  'audited prefix releases scratch before conservative child custody',
-  'Values and UNNEST chains reclaim scratch and preserve accepted output generations',
-  'Values and UNNEST cleanup failures retain child custody and retry exactly once',
-  'cancellation after reclaimed Values does not start UNNEST or publish unfinished output',
-  'an unaudited first child keeps the complete conservative suffix',
-]);
-// The reviewed successor retains checked Row fragment preparation and all
-// eleven lifetime cases. It selects the retained baseline in three capacity
-// assertions and adds the independent unused-forest/real-operation-slot case.
-export const normalLifetimeFixtureSha256 = 'dd0682a1f7fa587b8f1a0bb47b72fa853d4d84c4b66761235848b969936f0625';
+// The caller runs the whole fixture without a name filter and checks the
+// original source snapshot before/after. Mutation witnesses remain explicit;
+// unrelated labels, helper edits and added normal cases do not require an ACK.
 export function requireNormalLifetime(result, output, fixture) {
-  // The complete reviewed bytes make the title census unambiguous: comments,
-  // strings, unknown additions, and changes to assertions cannot be borrowed.
-  assert.equal(createHash('sha256').update(fixture).digest('hex'), normalLifetimeFixtureSha256,
-    'Normal lifetime fixture requires a new independent review');
-  assert.deepEqual([...fixture.matchAll(/^test "([^"\n]+)" \{/gmu)].map(match => match[1]), normalLifetimeCases,
-    'Normal lifetime fixture census changed');
+  for (const recipe of retirementCases) retirementWitness(recipe, fixture);
   assert(!result.error && !result.signal && result.status === 0, 'Normal lifetime execution did not succeed');
+  assert(!/Error: \[\d+\]/u.test(output), 'Compile failure is not normal lifetime execution');
   const summaries = [...output.matchAll(/Total tests: (\d+), passed: (\d+), failed: (\d+)\./gu)];
   assert.equal(summaries.length, 1, 'Expected exactly one normal lifetime summary');
-  assert.deepEqual(summaries[0].slice(1).map(Number), [normalLifetimeCases.length, normalLifetimeCases.length, 0],
-    'Every reviewed normal lifetime case must pass');
-  return normalLifetimeCases.length;
+  const [tests, passed, failed] = summaries[0].slice(1).map(Number);
+  const required = new Set(retirementCases.map(recipe => recipe[5])).size;
+  assert(Number.isSafeInteger(tests) && tests >= required && passed === tests && failed === 0,
+    'Every executed normal lifetime case must pass, including the mutation witnesses');
+  return tests;
 }

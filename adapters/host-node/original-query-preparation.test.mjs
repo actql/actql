@@ -81,10 +81,29 @@ test('Source preparation never falls back after an unavailable or rejected origi
 for (const matches of [false, true]) {
   test(`Actual acquired Effect caller checks the same Run before Source preparation (${matches})`, async () => {
     const owner = {}, prepared = {}, queryTimePreparation = {}, requestIdentity = {};
+    const managedRun = {}, plan = {}, selection = {}, requirement = {};
     const stop = new Error('OriginalSourcePreparationReached');
     let custody, prepares = 0, opens = 0, checkedRun = 0;
     const moon = {
-      clientProgramEffectAcquisitionCount: () => 1,
+      clientProgramEffectAcquisitionCount: actual => {assert.strictEqual(actual, prepared); return 1;},
+      clientProgramInstalledEffectManagedOperationPlan(parent, actual, request) {
+        assert.strictEqual(this, moon); assert.strictEqual(parent, managedRun);
+        assert.strictEqual(actual, prepared); assert.strictEqual(request, requestIdentity); return ok(plan);
+      },
+      clientProgramInstalledEffectManagedHostOpen() {assert.fail('Source must reach its original prepare boundary first');},
+      clientProgramInstalledEffectManagedPlanSourceCoordinates(actual, program, request) {
+        assert.strictEqual(actual, plan); assert.strictEqual(program, prepared);
+        assert.strictEqual(request, requestIdentity); return ok([[0, 0, 0, 0]]);
+      },
+      clientProgramSelectInstalledEffectSourceInput(program, request, stage, input) {
+        assert.strictEqual(program, prepared); assert.strictEqual(request, requestIdentity);
+        assert.equal(stage, 0); assert.equal(input, 0); return ok(selection);
+      },
+      clientProgramSelectedSourceInputKind(actual) {assert.strictEqual(actual, selection); return 'query';},
+      clientProgramSelectedSourceInputRef(actual) {assert.strictEqual(actual, selection); return 'original-source';},
+      clientProgramInstalledEffectManagedPlanSource(actual, task) {
+        assert.strictEqual(actual, plan); assert.equal(task, 0); return ok({_0: {}, _1: requirement});
+      },
       clientProgramEffectRunQueryTimeMatches(...args) {
         assert.strictEqual(args[0], owner);
         assert.strictEqual(args[1], queryTimePreparation);
@@ -94,9 +113,9 @@ for (const matches of [false, true]) {
       clientProgramOpenLocalEffectHostAtQueryTime() { assert.fail('No captured source yet'); },
       clientProgramEffectPrepareQueryAcquisitionAtQueryTime: () => ok({}),
       clientProgramEffectPrepareLocalQueryRequirementAtQueryTime: () => ok({}),
-      clientProgramQueryRequirementSourceRef: () => 'original-source',
+      clientProgramQueryRequirementSourceRef: actual => {assert.strictEqual(actual, requirement); return 'original-source';},
     };
-    await assert.rejects(openAcquiredEffectComputation({moon, owner,
+    await assert.rejects(openAcquiredEffectComputation({moon, owner, managedRun,
       acquired: {prepared, queryTimePreparation, requestIdentity},
       retainComputationOwner(value) { custody = value; },
       sourceProfile: {

@@ -119,8 +119,18 @@ fn[I] request_program_plan_quote(
     return Err(ForeignOriginal)
   }
   if owner.phase == ProgramCompiled {
+    guard owner.compiled_program is Some(program) else {
+      return Err(WrongPhase)
+    }
     let (r, e) = match
-      original_request_plan_construction_quote(capacity, input, data) {
+      original_request_plan_construction_quote(
+        capacity,
+        input,
+        data,
+        tasks=@strategy.graph_task_count(
+          @publication_host.prepared_client_graph(program),
+        ),
+      ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
@@ -135,6 +145,15 @@ fn[I] request_program_plan_quote(
       is Some(r) &&
       @execution.checked_preparation_add_product(e, selector_execution, 1L)
       is Some(e) else {
+      return Err(Policy)
+    }
+    guard @publication_host.prepared_client_composed_infer_count(
+        owner.compiled_program.unwrap(),
+      )
+      is Some(model_count) &&
+      installed_model_selection_layout(model_count) is Some((model_r, model_e)) &&
+      @execution.checked_preparation_add_product(r, model_r, 1L) is Some(r) &&
+      @execution.checked_preparation_add_product(e, model_e, 1L) is Some(e) else {
       return Err(Policy)
     }
     // The shared Compute constructor now retains its original tail execution
@@ -418,6 +437,23 @@ pub suberror ClientRequestProgramPlanIssue {
   ModelSource(@row_source_host.RowHostIssue)
   ContentQuery(ClientLocalQueryIssue)
   ContentSource(@row_source_host.RowHostIssue)
+  EffectMaterials(@publication_host.ClientEffectRunMaterialsIssue)
+}
+
+///|
+/// Read the original pre-admission compiler budget cause only. This callback-
+/// free diagnostic does not admit input, currentness, a Run or physical cleanup.
+/// All other original causes remain unclassified at this projection.
+pub fn request_program_plan_issue_is_sequence_limit(
+  issue : ClientRequestProgramPlanIssue,
+) -> Bool {
+  match issue {
+    Installed(Sequence(SequenceLimit))
+    | Construction(Graph(Fragment(AoA(Pipeline(Sequence(SequenceLimit))))))
+    | Construction(TaskGraph(Fragment(Pipeline(Sequence(SequenceLimit))))) =>
+      true
+    _ => false
+  }
 }
 
 ///|
@@ -882,7 +918,9 @@ fn[I] prepare_request_compilation_owned(
   let limits = compilation_limits
   let domain = owner.program_domain_compilation_inputs
   let continuation_phase = match domain {
-    Some(RequestEffectCaptureRecovery(_, _))
+    Some(RequestEffectCaptureRecovery(_, _, _))
+    | Some(RequestEffectKeyedGraphConstruction(_, _, _, _))
+    | Some(RequestEffectKeyedGraph(_, _, _, _))
     | Some(RequestModelRecovery(_, _))
     | Some(RequestSerializationGraph(_, _, _, _))
     | Some(RequestModelGraphConstruction(_, _, _, _))
@@ -916,7 +954,9 @@ fn[I] prepare_request_compilation_owned(
           // not codec headroom, fixed call wrappers or its nested helpers.
           let units = match
             (match domain {
-              Some(RequestEffectCaptureRecovery(_, _))
+              Some(RequestEffectCaptureRecovery(_, _, _))
+              | Some(RequestEffectKeyedGraphConstruction(_, _, _, _))
+              | Some(RequestEffectKeyedGraph(_, _, _, _))
               | Some(RequestModelRecovery(_, _))
               | Some(RequestSerializationGraph(_, _, _, _))
               | Some(RequestModelGraphConstruction(_, _, _, _))
@@ -973,7 +1013,9 @@ fn[I] prepare_request_compilation_owned(
       }
       match
         (match domain {
-          Some(RequestEffectCaptureRecovery(_, _))
+          Some(RequestEffectCaptureRecovery(_, _, _))
+          | Some(RequestEffectKeyedGraphConstruction(_, _, _, _))
+          | Some(RequestEffectKeyedGraph(_, _, _, _))
           | Some(RequestModelRecovery(_, _))
           | Some(RequestSerializationGraph(_, _, _, _))
           | Some(RequestModelGraphConstruction(_, _, _, _))
@@ -1082,7 +1124,9 @@ fn[I] prepare_request_compilation_owned(
     @publication_host.ClientRunCompilation,
     ClientRequestProgramPlanIssue,
   ] = match domain {
-    Some(RequestEffectCaptureRecovery(_, _))
+    Some(RequestEffectCaptureRecovery(_, _, _))
+    | Some(RequestEffectKeyedGraphConstruction(_, _, _, _))
+    | Some(RequestEffectKeyedGraph(_, _, _, _))
     | Some(RequestModelRecovery(_, _))
     | Some(RequestSerializationGraph(_, _, _, _))
     | Some(RequestModelGraphConstruction(_, _, _, _))
@@ -1357,6 +1401,7 @@ pub fn[I] begin_request_program_managed_run(
       // The Run has retained its original cleanup custody and body holders.
       // No callback occurs while cutting this consumed parent's heavy aliases.
       owner.program_capacity = None
+      owner.program_normalization = None
       owner.compiled_program = None
       owner.program_data = None
       owner.program_plan_quote = None
@@ -1394,10 +1439,12 @@ fn[I, P] original_request_plan_construction_quote(
   capacity : @resources.PreparationCapacity[I, P],
   input : I,
   data : @checked.ParsedCheckDataEstimate,
+  tasks? : Int = 0,
 ) -> Result[(Int64, Int64), ClientRequestPreparationIssue] {
   guard program_check_data_extent_cost(data) is Some(bytes) &&
     client_local_value_node_proof_retained_bytes() is Some(proof_retained) &&
-    client_local_value_node_proof_scratch_bytes() is Some(proof_scratch) else {
+    client_local_value_node_proof_scratch_bytes() is Some(proof_scratch) &&
+    @local.local_module_provider_field_inventory(tasks) is Some(providers) else {
     return Err(Policy)
   }
   let (r, e) = match
@@ -1408,6 +1455,18 @@ fn[I, P] original_request_plan_construction_quote(
   guard @execution.checked_preparation_add_product(bytes, proof_retained, 1L)
     is Some(retained) &&
     @execution.checked_preparation_add_product(retained, proof_scratch, 1L)
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(
+      retained,
+      providers.retained_bytes,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      execution,
+      providers.execution_bytes,
+      1L,
+    )
     is Some(execution) &&
     @execution.checked_preparation_add_product(r, retained, 1L) is Some(r) &&
     @execution.checked_preparation_add_product(e, execution, 1L) is Some(e) else {

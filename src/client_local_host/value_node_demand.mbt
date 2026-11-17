@@ -27,7 +27,9 @@ fn client_local_value_node_proof_scratch_bytes() -> Int64? {
   guard @execution.preparation_representation_cost({
       record_headers: 4L * levels + 5L * slots + 7L,
       reference_slots: 10L * levels + 10L * slots + 17L,
-      scalar_words: 14L * levels + 8L * slots + 18L,
+      // Original inventory accumulator, callee flat-kind accumulator and
+      // the coheld returned schema tuple each add one Boolean word.
+      scalar_words: 14L * levels + 8L * slots + 18L + 3L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -47,7 +49,8 @@ fn client_local_value_node_proof_retained_bytes() -> Int64? {
     // Two original coheld optional weighted scalars plus the independent
     // immutable Carrier-mode bit; retain both existing proof inventories.
     reference_slots: 5L,
-    scalar_words: 7L,
+    // The same original schema inventory retains its flat-JSON-leaf bit.
+    scalar_words: 8L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
@@ -125,7 +128,7 @@ fn client_local_json_schema_nodes(
   max_work : Int,
   depth : Int,
   content? : (@contract.Contract, Int)? = None,
-) -> (Int64, Int)? {
+) -> (Int64, Int, Bool)? {
   // The outer inventory already charged every root field. Only additional
   // nested contracts spend its remaining work; this is not Ledger work or a
   // physical refund. Keep the old leaf proof's exact exhausted-work behavior.
@@ -135,9 +138,11 @@ fn client_local_json_schema_nodes(
   }
   let work = Ref(max_work + roots)
   let mut nodes = 1L
+  let mut flat = true
   for index in 0..<@schema.field_count(schema) {
     guard @schema.field_at(schema, index) is Some(field) else { return None }
     let original = @schema.field_contract(field)
+    flat = flat && @execution.json_leaf_representation_contract(original)
     let child = match content {
       Some((contract, nodes)) if physical_equal(original, contract) &&
         @schema.field_reference_name(field) == "content" &&
@@ -153,7 +158,7 @@ fn client_local_json_schema_nodes(
     }
     nodes += child
   }
-  Some((nodes, max_work - work.val))
+  Some((nodes, max_work - work.val, flat))
 }
 
 ///|

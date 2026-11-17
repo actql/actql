@@ -15,6 +15,8 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
 const activeOperations = new WeakMap();
 const originalOperations = new WeakSet();
+const materializationReceipts = new WeakMap();
+const originalCopyFunders = new WeakMap();
 const cleanedOriginalReads = new WeakSet();
 const isPromise = utilTypes.isPromise;
 const observePromise = Promise.prototype.then;
@@ -121,6 +123,48 @@ const codecInt = (value, positive = false) => Number.isSafeInteger(value) &&
 const codecLimits = (value, keys) => value !== null && typeof value === 'object' &&
   Object.keys(value).sort().join(',') === keys && Object.values(value).every(item => codecInt(item));
 
+// Only this module's actual original operation can grow/issue these receipts.
+// A count or a caller-created reserve method is neither a numeric original nor
+// evidence that the next constructor has been admitted on its SAME Ledger.
+export function fundInferCaptureInventory(operation, funding = operation) {
+  if (!originalOperations.has(operation) || !originalOperations.has(funding)) return undefined;
+  return funding.prepareOriginalCaptureInventory(operation);
+}
+export function fundedInferCaptureInventoryCount(receipt, operation) {
+  const original = materializationReceipts.get(receipt);
+  const funding = original?.funding.deref();
+  if (original?.kind !== 'capture' || original.operation.deref() !== operation ||
+      funding === undefined || !funding.originalMaterializationCurrent(operation, original.count)) return undefined;
+  return original.count;
+}
+export function fundedInferStoppedAttemptCount(operation) {
+  if (!originalOperations.has(operation)) return undefined;
+  const count = operation.fundedStoppedAttemptCount();
+  return codecInt(count) ? count : undefined;
+}
+export function fundInferEvidenceCopy(funding, operation, bundle, kind, retained, execution) {
+  if (!originalOperations.has(operation) || !originalOperations.has(funding)) return undefined;
+  return funding.prepareOriginalEvidenceCopy(operation, bundle, kind, retained, execution);
+}
+export function inferEvidenceCopyFunded(receipt, bundle, kind) {
+  const original = materializationReceipts.get(receipt), operation = original?.operation.deref();
+  const funding = original?.funding.deref();
+  return original !== undefined && original.kind === kind && original.bundle === bundle && operation !== undefined &&
+    funding !== undefined && funding.originalMaterializationCurrent(operation, original.count);
+}
+export function originalInferCopyFunding(funding, operation, callback) {
+  if (!originalOperations.has(operation) || !originalOperations.has(funding)) return callback;
+  const bound = (bundle, kind) => callback(bundle, kind);
+  originalCopyFunders.set(bound, {operation: new WeakRef(operation), funding: new WeakRef(funding)});
+  return bound;
+}
+export function inferCopyFundingOriginal(callback) {
+  const original = originalCopyFunders.get(callback);
+  const operation = original?.operation.deref(), funding = original?.funding.deref();
+  return operation !== undefined && funding !== undefined &&
+    originalOperations.has(operation) && originalOperations.has(funding);
+}
+
 // Publication metadata is issued by the same bounded common owner only after
 // every original Model component has completed. This does not advance calls.
 export function startCompleteInferObservation({moon, operations, ledger, maxSlots, maxWireBytes, maxWork,
@@ -218,6 +262,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let originalPublicationCapacity;
   let publicationBaseRetained, publicationBaseExecution;
   let publicationHeldRetained, publicationHeldExecution;
+  let publicationMaterializationRetained = 0n;
   let originalPublicationSelection;
   let originalPublicationReceiver;
   if (originalPreparation !== undefined) {
@@ -985,10 +1030,15 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       const input = moon.clientProgramInferPreparedInput(preparedCallSet);
       const artifact = moon.clientProgramInferPreparedInputArtifact(preparedCallSet);
       const ids = moon.clientProgramInferPreparedIdentities(preparedCallSet);
-      if (!Number.isSafeInteger(count) || count < 0 || count > 128 ||
+      // The original composed Read funded these actual reference wrappers
+      // and prepared its Scope snapshot before handing the Model off. Legacy
+      // explicit envelopes retain their separately qualified count ceiling.
+      const maxFacts = originalInputBodyRead === undefined ? 128 : 2147483647;
+      if (!Number.isSafeInteger(count) || count < 0 || count > maxFacts ||
           input === undefined || artifact === undefined || ids === undefined) {
         throw new Error('InferPreparedOwnerUnavailable');
       }
+      const callScopeSnapshotWire = checked(moon.clientProgramInferCallScopeSnapshot(active));
       const slotWires = Array.from({length: count}, (_, slot) => {
         const call = moon.clientProgramInferPreparedCallAt(preparedCallSet, slot);
         if (call === undefined) throw new Error('InferPreparedCallUnavailable');
@@ -999,7 +1049,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         slotWires: Object.freeze(slotWires), providerId: runtimeField(ids, 0),
         modelTaskCid: runtimeField(ids, 1), fixedRequestCid: runtimeField(ids, 2),
         unitId: moon.clientProgramInferCallScopeUnitId(active),
-        callScopeSnapshotWire: checked(moon.clientProgramInferCallScopeSnapshot(active))});
+        callScopeSnapshotWire});
     },
     bindModelScope: (control, plan, preparedCallSet, originals) =>
       control.bindCheckedClientInferModelScope(plan.compiled, active,
@@ -1148,8 +1198,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           execution > 9223372036854775807n - publicationBaseExecution) {
         throw new Error('InferOriginalPublicationCapacityUnavailable');
       }
-      const nextRetained = publicationBaseRetained + retained;
-      const nextExecution = publicationBaseExecution + execution;
+      const nextRetained = publicationBaseRetained + publicationMaterializationRetained + retained;
+      const nextExecution = publicationBaseExecution + publicationMaterializationRetained + execution;
+      if (nextRetained > 9223372036854775807n || nextExecution > 9223372036854775807n) {
+        throw new Error('InferOriginalPublicationCapacityUnavailable');
+      }
       if (nextRetained <= publicationHeldRetained && nextExecution <= publicationHeldExecution) return;
       checked(moon.clientProgramGrowOriginalInferPublicationCapacity(active,
         originalPublicationCapacity, nextRetained, nextExecution));
@@ -1158,6 +1211,45 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // Preserve a real grow even if its callback closed this original. No
       // following projection constructor may proceed after that transition.
       if (reclaimed || closing) throw new Error('InferOriginalPublicationCapacityUnavailable');
+    },
+    originalMaterializationCurrent(source, count) {
+      if (closing || reclaimed || originalPublicationCapacity === undefined || !originalOperations.has(source) ||
+          typeof moon.clientProgramOriginalInferCaptureInventoryCapacity !== 'function') return false;
+      const shape = checked(moon.clientProgramOriginalInferCaptureInventoryCapacity(
+        activeOperations.get(source), originalPublicationCapacity));
+      return runtimeField(shape, 0) === count;
+    },
+    prepareOriginalCaptureInventory(source) {
+      if (!originalOperations.has(source) || typeof moon.clientProgramOriginalInferCaptureInventoryCapacity !== 'function') return undefined;
+      operation.reserveOriginalPublicationCapacity();
+      const shape = checked(moon.clientProgramOriginalInferCaptureInventoryCapacity(
+        activeOperations.get(source), originalPublicationCapacity));
+      const count = runtimeField(shape, 0), r = runtimeField(shape, 1), e = runtimeField(shape, 2);
+      if (!codecInt(count) || typeof r !== 'bigint' || typeof e !== 'bigint' || r < 0n || e < r) {
+        throw new Error('InferOriginalPublicationCapacityUnavailable');
+      }
+      operation.growOriginalPublicationCapacity(r, e);
+      publicationMaterializationRetained += r;
+      if (!operation.originalMaterializationCurrent(source, count)) throw new Error('InferOriginalPublicationCapacityUnavailable');
+      const receipt = Object.freeze({});
+      materializationReceipts.set(receipt, {kind: 'capture', count,
+        operation: new WeakRef(source), funding: new WeakRef(operation)});
+      return receipt;
+    },
+    fundedStoppedAttemptCount() {
+      if (reclaimed || typeof moon.clientProgramInferFundedStoppedAttemptCount !== 'function') return undefined;
+      return moon.clientProgramInferFundedStoppedAttemptCount(active);
+    },
+    prepareOriginalEvidenceCopy(source, bundle, kind, retained, execution) {
+      if (!originalOperations.has(source) || !codecInt(bundle?.count, true) ||
+          !operation.originalMaterializationCurrent(source, bundle.count)) throw new Error('RequiredEvidenceUnavailable');
+      const demand = inferEvidenceCopyConstruction(moon, source, bundle, kind);
+      operation.growOriginalPublicationCapacity(retained + demand.retained, execution + demand.execution);
+      if (!operation.originalMaterializationCurrent(source, bundle.count)) throw new Error('RequiredEvidenceUnavailable');
+      const receipt = Object.freeze({});
+      materializationReceipts.set(receipt, {kind, bundle, count: bundle.count,
+        operation: new WeakRef(source), funding: new WeakRef(operation)});
+      return receipt;
     },
     publicationCapacityPending: () => originalPublicationCapacity !== undefined,
     releaseOriginalPublicationCapacity() {
@@ -1168,6 +1260,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         originalPublicationCapacity = undefined;
         publicationBaseRetained = publicationBaseExecution = undefined;
         publicationHeldRetained = publicationHeldExecution = undefined;
+        publicationMaterializationRetained = 0n;
       }
       return released;
     },
@@ -1236,8 +1329,23 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // owner before any fallible binding, without granting permission to run.
     retainOperation?.(operation);
     if (durableCalls) checked(moon.clientProgramRequireInferCallEntry(active));
-    if (restoredInput !== undefined) checked(moon.clientProgramRestrictInferSendSlots(active,
-      restoredInput.sendMask));
+    if (restoredInput !== undefined) {
+      let mask = restoredInput.sendMask;
+      if (typeof restoredInput.sendSlots === 'function') {
+        // The restored original input now exists on its SAME claimed Read.
+        // Admit the exact boolean arrays BEFORE invoking the existing journal
+        // read and map. No token/Task maximum or reserve-method presence funds it.
+        const count = originalConsumer !== undefined && originalInputBodyRead !== undefined &&
+          typeof moon.clientProgramPrepareOriginalRestoredInferSendMask === 'function'
+          ? checked(moon.clientProgramPrepareOriginalRestoredInferSendMask(active)) : undefined;
+        if (count !== undefined && !codecInt(count)) throw new Error('InferOriginalSendMaskUnavailable');
+        const slots = restoredInput.sendSlots();
+        if (!Array.isArray(slots) || count === undefined && slots.length > 128 ||
+            count !== undefined && slots.length !== count) throw new Error('InferOriginalSendMaskUnavailable');
+        mask = slots.map(slot => slot.state === 'Unsent');
+      }
+      checked(moon.clientProgramRestrictInferSendSlots(active, mask));
+    }
     if (quantityCapacity !== undefined) {
       const {limits, perAttempt} = quantityCapacity;
       checked(moon.clientProgramBindInferQuantityCapacity(active,
@@ -1553,4 +1661,57 @@ export async function withNodeInferResult({moon, binding, result, consume,
     signal?.removeEventListener('abort', cancel);
     if (!custodyTransferred) moon.clientProgramInferPublicationRelease(owner);
   }
+}
+
+
+// Share the actual geometry quote and original grow for Pure/Effect copies.
+// Required DATA/typed-input policies remain in the existing projection caller.
+export function originalInferEvidenceCopyFunding({moon, funding, operation, current,
+  retainedPrefix = () => 0n, executionPrefix = () => 0n, legacy = true}) {
+  if (!legacy && (!originalOperations.has(funding) || !originalOperations.has(operation) ||
+      typeof moon.clientProgramOriginalInferCaptureInventoryCapacity !== 'function')) return undefined;
+  return originalInferCopyFunding(funding, operation, (bundle, kind) => {
+    current();
+    // The genuine operation derives the SAME actual quote internally. Passing
+    // zero or a caller-picked scalar cannot issue an underfunded receipt.
+    const receipt = fundInferEvidenceCopy(funding, operation, bundle, kind,
+      retainedPrefix(), executionPrefix());
+    if (receipt === undefined && bundle.count <= 128) {
+      const demand = inferEvidenceCopyConstruction(moon, operation, bundle, kind);
+      funding.growOriginalPublicationCapacity(retainedPrefix() + demand.retained,
+        executionPrefix() + demand.execution);
+    }
+    current();
+    return receipt;
+  });
+}
+
+function inferEvidenceCopyConstruction(moon, operation, bundle, kind) {
+  const failure = code => {
+    const error = new Error(code);
+    if (kind === 'typed-input') error.code = code;
+    return error;
+  };
+  const usage = bundle.usage;
+  if (usage === undefined || !Number.isSafeInteger(bundle.count) || bundle.count < 1 || bundle.count > 2147483647 ||
+      runtimeField(usage, 0) !== Buffer.byteLength(bundle.wire)) {
+    throw failure('RequiredEvidenceUnavailable');
+  }
+  let retained = 0n, execution = 0n;
+  for (let slot = 0; slot < bundle.count; slot++) {
+    const logical = kind === 'typed-input' ? operation.evaluationInput(slot) : undefined;
+    const physical = kind === 'typed-input' ? undefined : operation.evaluationRequest(slot);
+    if (kind === 'typed-input' ? logical === undefined || logical.callWire !== bundle.calls[slot].callWire
+      : physical === undefined) throw failure('RequiredEvidenceUnavailable');
+    const request = kind === 'typed-input' ? logical.request : runtimeField(physical, 0);
+    const shape = checked(moon.clientProgramModelRequestInputFrameGeometry(request, 65536));
+    const text = bundle.calls[slot].callWire.length + (kind === 'typed-input' ? 0
+      : runtimeField(physical, 1).length + runtimeField(physical, 2).length);
+    if (!Number.isSafeInteger(text) || text > 2147483647) throw failure('EvaluationBudgetExceeded');
+    const capacity = checked(moon.clientProgramEffectModelEvidenceCopyCapacity(
+      runtimeField(usage, 0), runtimeField(usage, 1), runtimeField(usage, 2), shape, text, bundle.count));
+    const r = runtimeField(capacity, 0), e = runtimeField(capacity, 1);
+    retained = r > retained ? r : retained; execution = e > execution ? e : execution;
+  }
+  return {retained, execution};
 }

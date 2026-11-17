@@ -33,6 +33,7 @@ function fixture({required=true,legacy=false,race,commitFailure}={}) {
       const definition={run_id:runId,created_at:createdAt,valid_until:until};state.issued.push(definition);return ok(definition);},
     clientProgramEffectRunStartCurrent:()=>true,
     strategyPublicationContractJson:value=>JSON.stringify(value),
+    strategyPublicationContractIdentity:()=>cid,
     strategyRunEvidenceJson:()=>'{"original":true}',
     clientProgramAllowedEffectRunPrepared:()=>({}),
     clientProgramAllowedEffectRunAuthorization:()=>({}),
@@ -75,13 +76,13 @@ function fixture({required=true,legacy=false,race,commitFailure}={}) {
     reservePhysicalStart(){state.events.push('claim');state.claims++;return true;},
     originalSubmittedIntent:()=>undefined,
   };
-  const install=({prepareDefinition,requestIdentityFor}={})=>installNodeClientEffectRun({moon,publicationControl:control,journal,
-    prepareDefinition,requestIdentityFor,
-    authorizeRequest:async()=>policy,authorizeRunStart:async()=>true,
+  const install=({prepareDefinition,requestIdentityFor,authorizeRunStart=async()=>true,validateInstallation}={})=>installNodeClientEffectRun({moon,publicationControl:control,journal,
+    prepareDefinition,requestIdentityFor,validateInstallation,
+    authorizeRequest:async()=>policy,authorizeRunStart,
     now:()=> '2026-10-19T00:00:00.000Z',
     prepareExecution(facts){state.events.push('prepare');state.preparations.push(facts);return {};},
     execute:async facts=>{state.events.push('execute');state.executions.push(facts);return {};}});
-  return {state,request,moon,install,policy,ref,identity};
+  return {state,request,moon,install,policy,ref,identity,journal};
 }
 
 test('ordinary Effect admission and winning issuer consume one original Request identity', async () => {
@@ -279,4 +280,70 @@ test('cold Effect computation refuses cancellation reentered by its definition c
   const before = f.state.preparations.length;
   await assert.rejects(f.second.restoreComputation(f.handle), {code: 'ClientEffectRunDenied'});
   assert.equal(f.state.preparations.length, before);assert.equal(f.state.claims, 1);
+});
+
+
+// These cases use the actual installed Run adapter, with explicit journal/Core
+// ports. They qualify the selected original handoff, not an installed Host ACK.
+function keyedInitialTuple(f, options = {}) {
+  let original;
+  const run = f.install({...options, prepareDefinition(facts) {
+    original = Object.freeze({prepared: facts.prepared, identity: facts.identity,
+      compilation: facts.compilation, allowed: facts.allowed, definition: facts.definition,
+      queryTimePreparation: facts.queryTimePreparation, modelCompiled: facts.modelCompiled});
+    return original;
+  }});
+  return {run, original: () => original};
+}
+
+test('keyed initial tuple reaches the winning start without readmitting its immutable evidence', async () => {
+  const f = fixture(), k = keyedInitialTuple(f), handle = await k.run.accept(f.request);
+  f.moon.clientProgramAdmitAllowedEffectRun = () => {throw new Error('unexpected readmission');};
+  const result = await k.run.start(handle);
+  assert.equal(result.kind, 'started'); assert.equal(f.state.claims, 1);
+  assert.strictEqual(f.state.executions[0].allowed, k.original().allowed);
+  assert.strictEqual(f.state.executions[0].definition, k.original().definition);
+  assert.strictEqual(f.state.executions[0].queryTimePreparation, k.original().queryTimePreparation);
+  assert.equal(f.state.samples.length, 1);
+});
+
+test('keyed initial tuple refuses a different Journal winner before the physical claim', async () => {
+  const f = fixture({race: '2025-01-01T00:00:00.000Z'}), k = keyedInitialTuple(f);
+  const handle = await k.run.accept(f.request);
+  await assert.rejects(k.run.start(handle), {code: 'ClientEffectRunDenied'});
+  assert.equal(f.state.claims, 0); assert.equal(f.state.executions.length, 0);
+});
+
+test('keyed initial tuple checks complete prepared authorization and Definition bytes', async () => {
+  for (const field of ['prepared', 'authorization', 'definition']) {
+    const f = fixture(), k = keyedInitialTuple(f), handle = await k.run.accept(f.request);
+    if (field === 'definition') f.state.saved.runDefinition = {...f.state.saved.runDefinition, wire: '{"changed":true}'};
+    else f.state.saved.runAdmissionEvidence[field] = '{"changed":true}';
+    await assert.rejects(k.run.start(handle), {code: 'ClientEffectRunDenied'});
+    assert.equal(f.state.claims, 0); assert.equal(f.state.executions.length, 0);
+  }
+});
+
+test('keyed initial tuple does not bypass fresh current authorization', async () => {
+  const f = fixture(), k = keyedInitialTuple(f, {authorizeRunStart: async () => false});
+  const handle = await k.run.accept(f.request);
+  f.journal.reservePhysicalStart = (_identity, options) => {assert.equal(options.currentAuthorization, false); return false;};
+  await k.run.start(handle).catch(error => {assert.equal(error.code, 'ClientRunStartDenied');});
+  assert.equal(f.state.claims, 0); assert.equal(f.state.executions.length, 0);
+});
+
+test('keyed initial tuple retains the original clock refusal', async () => {
+  const f = fixture(), k = keyedInitialTuple(f), handle = await k.run.accept(f.request);
+  f.moon.clientProgramEffectRunStartCurrent = () => false;
+  f.journal.markPreDispatchFailure = () => {};
+  await assert.rejects(k.run.start(handle), {code: 'ClientEffectRunExpired'});
+  assert.equal(f.state.claims, 0); assert.equal(f.state.executions.length, 0);
+});
+
+test('keyed initial tuple still checks current installation before reading its retained originals', async () => {
+  const f = fixture(), failure = new Error('original installation retired'); let retired = false;
+  const k = keyedInitialTuple(f, {validateInstallation() {if (retired) throw failure;}});
+  const handle = await k.run.accept(f.request); retired = true;
+  await assert.rejects(k.run.start(handle), error => error === failure);
+  assert.equal(f.state.claims, 0); assert.equal(f.state.executions.length, 0);
 });

@@ -1,21 +1,23 @@
+import {fundedEffectModelGroupCount} from './installed-effect-managed-run.mjs';
 // Physical custody while one admitted Effect Run acquires its source and
 // computes. This does not retry acquisition, Compute, or an Effect dispatch.
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
-import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan, prepareAcquiredEffectSourceUnits,
+import {acquiredKeyedEffectPublicationPlan, acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan, prepareAcquiredEffectSourceUnits,
   acquiredInferEffectPublicationPlan, sourceFreeInferEffectPublicationPlan,
   sourceFreeContentEffectPublicationPlan, localContractLimits} from './local-values-plan.mjs';
 import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
-import {openNodeComposedInferProvider, startCompleteInferObservation} from './infer-operation.mjs';
+import {openNodeComposedInferProvider, startCompleteInferObservation,
+  fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding} from './infer-operation.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {ledgerUsageDiagnostic} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {preparePrivatePublicationHolding} from '../host-common/private-publication-holding.mjs';
-import {prepareAcquiredEffectKeyedPrefix} from './acquired-effect-keyed-prefix.mjs';
+import {prepareAcquiredEffectKeyedPrefix, prepareAcquiredEffectKeyedCapture} from './acquired-effect-keyed-prefix.mjs';
 import {projectInferEvidence} from './infer-evaluation-evidence.mjs';
 
 export async function openAcquiredEffectComputation({moon, owner, acquired, managedRun,
@@ -25,7 +27,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
   assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan,
   originalModelComponent, originalModelComponents, originalModelSelection, originalContent,
-  sourceSelection, sourceSelectionPlan, requestJournal, runRef}) {
+  sourceSelection, sourceSelectionPlan, sourceKeyedPreparation, requestJournal, runRef}) {
   const preparedOriginal = acquired.prepared, requestOriginal = acquired.requestIdentity;
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
@@ -250,6 +252,12 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       }
       if (keyedCleanup !== undefined &&
           (await keyedCleanup.cleanup() === false || keyedCleanup.cleanupPending() !== false)) return false;
+      // A failed startup can stop before its local runner returns operations.
+      // Closing only completed outputs does not retire that DAG's input
+      // consumers. All physical and component cleanup above acknowledged;
+      // let the SAME parent confirm retirement before any Source can close.
+      if (execution?.status === 'host-tasks-failed' && checked(
+        moon.clientProgramRetireInstalledEffectCapturedConsumers(managedRun)) !== true) return false;
       while (captures.length > 0) {
         await captures[0].close();
         captures.shift();
@@ -414,7 +422,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       if (modelToken !== undefined) {
         restoredModelInput = {
           token: modelToken, snapshot: modelToken.snapshot,
-          sendMask: modelController.state(modelRecord.inventory).slots.map(slot => slot.state === 'Unsent'),
+          sendSlots: () => modelController.state(modelRecord.inventory).slots,
           savedScope: modelController.savedScope(modelPlan, acquired.prepared, infer, modelToken),
         };
         current();
@@ -449,7 +457,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       modelPlan = plan;
       const restoredInput = restoredModelInput ?? (modelToken === undefined ? undefined : {
         token: modelToken, snapshot: modelToken.snapshot,
-        sendMask: modelController.state(modelRecord.inventory).slots.map(slot => slot.state === 'Unsent'),
+        sendSlots: () => modelController.state(modelRecord.inventory).slots,
         savedScope: modelController.savedScope(plan, acquired.prepared, infer, modelToken),
       });
       if (savedOriginal && multiple && checked(
@@ -478,9 +486,12 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
             faultInjection,
             publicationFor: ({issuance, modelEvidence}) =>
               sourceFree ? sourceFreeInferEffectPublicationPlan({acquired,
-                compiled, operation, issuance, modelEvidence}) :
+                compiled, operation, issuance, modelEvidence, managedRun,
+                sourcePlan: operationPlan, sourceHost: checkedHost}) :
               acquiredInferEffectPublicationPlan({acquired, sources: evidence,
                 compiled, operation, issuance, modelEvidence, sourcePlan: operationPlan, managedRun,
+                sourceHost: checkedHost,
+                deferCatalogs: managedRun !== undefined && operationPlan !== undefined,
                 keyedSource: keyedFamily?.evidence ?? restoredKeyedSource,
                 captureStartedAt, captureCompletedAt, signal})});
         },
@@ -537,7 +548,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         // This wire came from the same authenticated, current Source closure.
         // Admit its original sealed evidence into this control's nominal map;
         // it is not a newly issued observation or a second provider read.
-        const sourceEvidence = infer === undefined ? undefined : acquired.control.admitRunEvidence(
+        const sourceEvidence = infer === undefined && sourceKeyedPreparation === undefined
+          ? undefined : acquired.control.admitRunEvidence(
           'source_evidence', restored.sourceEvidenceWire, localContractLimits);
         current();
         evidence.push(sourceEvidence === undefined ? restored : {...restored, sourceEvidence});
@@ -573,7 +585,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         authorityScopeCid: acquired.authorityScopeCid,
         effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid};
       let sourceEvidence, sourceEvidenceWire;
-      if (infer === undefined) {
+      if (infer === undefined && sourceKeyedPreparation === undefined) {
         sourceEvidenceWire = await captured.issueSourceEvidence(sourceEvidenceOptions);
       } else {
         await captured.prepareSourceEvidenceOriginal(sourceEvidenceOptions);
@@ -595,11 +607,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     // Its original Content evidence must be issued by the selected component
     // before publication is prepared; never fill that inventory with [] or
     // claim a Source-only Invocation for the same checked Template.
-    let publicationPlan = infer === undefined && serializations.length === 0 ? multiple
-      ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
-        captureStartedAt, captureCompletedAt, sourcePlan: operationPlan})
-      : acquiredEffectPublicationPlan({acquired, ...evidence[0],
-        captureStartedAt, captureCompletedAt, sourcePlan: operationPlan}) : undefined;
+    let publicationPlan;
     if (multiple && (pluralModels ? modelGroup !== undefined && !modelGroup.restored() :
         originalModelComponent !== undefined && modelToken === undefined && infer !== undefined)) {
       const member = pluralModels ? modelGroup.keyedMember() : undefined;
@@ -619,6 +627,18 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         }});
       current();
       if (keyedFamily !== undefined) captureCompletedAt = now();
+    } else if (infer === undefined && serializations.length === 0 &&
+        sourceKeyedPreparation !== undefined) {
+      keyedFamily = await prepareAcquiredEffectKeyedCapture({moon, acquired, managedRun,
+        sourcePreparation: sourceKeyedPreparation, captures, sources: evidence,
+        requestJournal, runRef, sourceProfile, ledger, contentRun, store, principalId,
+        signal, now, current,
+        retain(child) {
+          if (keyedCleanup !== undefined) throw new Error('InstalledComposedKeyedAlreadyRetained');
+          keyedCleanup = child;
+        }});
+      current();
+      captureCompletedAt = now();
     }
     async function handleModelPause(boundary) {
       current();
@@ -725,6 +745,26 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     // Without a returned Compute owner an exception cannot prove a stop.
     // Keep the responsibility rather than relabeling it as released.
     unresolved = true;
+    // The existing custody was retained before Host construction. Issue once
+    // on its actual DAG; an issuer failure keeps that same cleanup owner.
+    if (infer === undefined && serializations.length === 0) {
+      publicationPlan = keyedFamily?.sourceOriginal !== undefined
+        ? acquiredKeyedEffectPublicationPlan({acquired, sources: evidence, keyedFamily,
+          captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,
+          managedRun, sourceHost: checkedHost,
+          deferCatalogs: managedRun !== undefined && operationPlan !== undefined},
+          sourceKeyedPreparation.runDefinition)
+        : multiple
+        ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
+          captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,
+          managedRun, sourceHost: checkedHost,
+          deferCatalogs: managedRun !== undefined && operationPlan !== undefined})
+        : acquiredEffectPublicationPlan({acquired, ...evidence[0],
+          captureStartedAt, captureCompletedAt, sourcePlan: operationPlan,
+          managedRun, sourceHost: checkedHost,
+          deferCatalogs: managedRun !== undefined && operationPlan !== undefined});
+    }
+
     if (multiple || wholeInputs || contentFamily !== undefined) {
       const dag = moon.strategyHostRun(moon.clientProgramLocalEffectHostRuntime(checkedHost));
       for (const [task, captured] of captures.entries()) {
@@ -872,19 +912,24 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       const generation = contentFamily.generation();
       if (generation === undefined) throw new Error('InstalledContentGenerationEvidenceUnavailable');
       publicationPlan = sourceFree
-        ? sourceFreeContentEffectPublicationPlan({acquired,compiled:contentPlan.compiled,generation})
+        ? sourceFreeContentEffectPublicationPlan({acquired,compiled:contentPlan.compiled,generation,
+          managedRun, sourcePlan: operationPlan, sourceHost: checkedHost})
         : acquiredEffectPublicationPlan({acquired, ...evidence[0],
-          captureStartedAt, captureCompletedAt, content: {...contentPlan, generation}});
+          captureStartedAt, captureCompletedAt, content: {...contentPlan, generation},
+          managedRun, sourcePlan: operationPlan, sourceHost: checkedHost,
+          deferCatalogs: managedRun !== undefined && operationPlan !== undefined});
     }
     if (publicationPlan === undefined) {
       throw new Error('InstalledContentGenerationEvidenceUnavailable');
     }
     current();
-    return Object.freeze({execution, checkedHost, publicationPlan,
-      // The original family owns both the issued Reference and its Store
-      // bytes through approval. Do not reconstruct a consumer from saved CIDs.
-      ...(contentFamily === undefined ? {} : {contentOwner: contentFamily}),
-      cleanupOwner: custody});
+    const result = {execution, checkedHost, publicationPlan, cleanupOwner: custody};
+    // The serialization family keeps priority. A Source-only keyed frame owns
+    // its original Reference/Store bytes even when there is no such family.
+    // Both are borrowed from their retained cleanup owner, never rebuilt CIDs.
+    const contentOwner = contentFamily ?? keyedFamily?.contentOwner;
+    if (contentOwner !== undefined) result.contentOwner = contentOwner;
+    return Object.freeze(result);
   } finally {
     settled = true;
   }
@@ -927,7 +972,8 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
   modelController, submission, existingModel, modelClaim, parentResume, modelJournalPort,
   sourceContinuation, faultInjection, current, sourcePlan, managedRun, originalHost}) {
   const selected = infer.components, originals = originalPreparation?.components;
-  if (!Array.isArray(selected) || selected.length < 2 || selected.length > 128 ||
+  if (!Array.isArray(selected) || selected.length < 2 ||
+      selected.length > 128 && fundedEffectModelGroupCount(originalPreparation) !== selected.length ||
       !Object.isFrozen(selected) || !Array.isArray(originalModelComponents) ||
       originalModelComponents.length !== selected.length ||
       !Array.isArray(originalModelSelection?.components) ||
@@ -967,9 +1013,12 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
     child.completed = true;
     if (children.some(member => !member.completed)) return true;
     let calls = 0;
+    let allFunded = true;
     for (const member of children) {
       const count = member.capture.completedCallCount();
-      if (!Number.isSafeInteger(count) || count < 0 || count > 128 - calls) {
+      allFunded &&= fundedInferCaptureInventoryCount(member.capture.completedInventoryReceipt?.(), member.operation) === count;
+      if (!Number.isSafeInteger(count) || count < 0 || count > 2147483645 - calls ||
+          (!allFunded && count > 128 - calls)) {
         throw new Error('InstalledComposedInferOriginalObservationUnavailable');
       }
       calls += count;
@@ -1067,41 +1116,9 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
             captureOwner: child.capture, continuation: child.continuation,
             current: publicationCurrent,
             authorityScopeCid: acquired.authorityScopeCid,
-            copyFunding(bundle, kind) {
-              publicationCurrent();
-              const failure = code => {
-                const error = new Error(code);
-                if (kind === 'typed-input') error.code = code;
-                return error;
-              };
-              const usage = bundle.usage;
-              if (usage === undefined || !Number.isSafeInteger(bundle.count) || bundle.count < 1 || bundle.count > 128 ||
-                  runtimeField(usage, 0) !== Buffer.byteLength(bundle.wire)) {
-                throw failure('RequiredEvidenceUnavailable');
-              }
-              let retained = 0n, execution = 0n;
-              for (let slot = 0; slot < bundle.count; slot++) {
-                const logical = kind === 'typed-input' ? child.operation.evaluationInput(slot) : undefined;
-                const physical = kind === 'typed-input' ? undefined : child.operation.evaluationRequest(slot);
-                if (kind === 'typed-input' ? logical === undefined || logical.callWire !== bundle.calls[slot].callWire
-                  : physical === undefined) throw failure('RequiredEvidenceUnavailable');
-                const request = kind === 'typed-input' ? logical.request : runtimeField(physical, 0);
-                const shape = checked(moon.clientProgramModelRequestInputFrameGeometry(request, 65536));
-                const text = bundle.calls[slot].callWire.length + (kind === 'typed-input' ? 0
-                  : runtimeField(physical, 1).length + runtimeField(physical, 2).length);
-                if (!Number.isSafeInteger(text) || text > 2147483647) throw failure('EvaluationBudgetExceeded');
-                const capacity = checked(moon.clientProgramEffectModelEvidenceCopyCapacity(
-                  runtimeField(usage, 0), runtimeField(usage, 1), runtimeField(usage, 2), shape, text, bundle.count));
-                const r = runtimeField(capacity, 0), e = runtimeField(capacity, 1);
-                retained = r > retained ? r : retained; execution = e > execution ? e : execution;
-              }
-              // Still-live Unit metadata remains in the base. Sequential
-              // copies reuse this original owner's high-water window, not a
-              // retained sum of ended scratch. No consumed work is refunded.
-              publicationOwner.growOriginalPublicationCapacity(
-                earlyIdentityRetained + retained, earlyIdentityExecution + execution);
-              publicationCurrent();
-            },
+            copyFunding: originalInferEvidenceCopyFunding({moon, funding: publicationOwner, operation: child.operation,
+              current: publicationCurrent, retainedPrefix: () => earlyIdentityRetained,
+              executionPrefix: () => earlyIdentityExecution}),
             retainCopy(copy) {
               if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained');
               child.copy = copy;
@@ -1113,7 +1130,9 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         acquired, sources: evidence, compiled: plan.compiled,
         operation: children[0].operation, operations: children.map(child => child.operation), issuance,
         modelEvidence: children.flatMap(child => child.capture.modelEvidence()), keyedSource: keyedFamily?.evidence ?? restoredKeyed,
-        captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceUnitsOriginal, signal, fundingOperation: publicationOwner, current: publicationCurrent,
+        captureStartedAt, captureCompletedAt, sourcePlan, managedRun, sourceHost: originalHost?.(),
+        sourceUnitsOriginal, deferCatalogs: managedRun !== undefined && sourcePlan !== undefined,
+        signal, fundingOperation: publicationOwner, current: publicationCurrent,
         retainBinding(binding) {publicationBindings.push(binding);}});
       publicationCurrent();
       for (const original of [publication.observation, publication.invocation]) {
@@ -1243,7 +1262,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
         if (savedSources === undefined) savedSources = snapshot.sourceContinuation;
         else if (canonicalJson(savedSources) !== canonicalJson(snapshot.sourceContinuation)) throw new Error('ModelSourceClosureMismatch');
         child.restoredInput = {token: child.token, snapshot,
-          sendMask: modelController.state(child.record.inventory).slots.map(slot => slot.state === 'Unsent'),
+          sendSlots: () => modelController.state(child.record.inventory).slots,
           savedScope: modelController.savedScope(plan, acquired.prepared, child.selection, child.token)};
       }
       if (matched.size !== records.length) throw new Error('ModelResumeForeignInventory');
@@ -1263,7 +1282,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
       try {
         publicationCurrent();
         if (captures.length > 1) sourceUnitsOriginal = prepareAcquiredEffectSourceUnits({acquired,
-          sources: evidence, sourcePlan, managedRun,
+          sources: evidence, sourcePlan, managedRun, deferCatalogs: managedRun !== undefined && sourcePlan !== undefined,
           modelUnits: children.map(child => runtimeField(moon.clientProgramInferOccurrenceCoordinates(child.selection.occurrence), 1))});
         publicationCurrent();
       } catch (cause) {
@@ -1343,7 +1362,7 @@ function acquiredEffectModelGroup({moon, acquired, infer, originalModelComponent
                     sourcePlan, acquired.requestIdentity, producer.output, plan.compiled, plan.runDefinition,
                     producer.selection.graph, unit, sourceUnitsOriginal.retention, catalogs,
                     publicationOwner, localContractLimits, entry.results, publicationCurrent,
-                    earlyIdentityRetained, earlyIdentityExecution);
+                    earlyIdentityRetained, earlyIdentityExecution, true);
                   earlyIdentityRetained += entry.results.identityRetainedBytes;
                   earlyIdentityExecution += entry.results.identityExecutionBytes;
                 }

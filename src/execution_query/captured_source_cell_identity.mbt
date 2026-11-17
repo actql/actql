@@ -14,7 +14,8 @@ struct CapturedSourceCellIdentityScan {
 
 ///|
 // This wrapper, restricted output, optional exact input read, returned identity,
-// body tuple/Some, two removable original aliases and Result carrier coexist
+// body tuple/Some, measured-facts record/Some, two removable original aliases
+// and Result carrier coexist
 // at the original transfer. Source,
 // schema/Values and immutable body strings are borrowed from the one
 // paid scan; its own quote already includes their complete construction peak.
@@ -31,6 +32,10 @@ fn source_cell_identity_capacity(
     is Some(controls) else {
     return None
   }
+  // Both the original inventory and the added facts are covered before
+  // construction by the same caller reservation; no unnamed slack.
+  let facts = captured_source_relation_dependency_usage_capacity()
+  let controls = controls + @execution.execution_capacity_retained_bytes(facts)
   let r = @execution.execution_capacity_retained_bytes(scan)
   let e = @execution.execution_capacity_execution_bytes(scan)
   if r > 9223372036854775807L - controls || e > 9223372036854775807L - controls {
@@ -135,7 +140,19 @@ pub fn advance_captured_source_cell_identity(
   if value.closed || value.advancing {
     return Err(Unavailable)
   }
-  guard value.scan is Some(scan) else { return Err(Unavailable) }
+  guard value.scan is Some(scan) &&
+    captured_source_cell_identity_next_capacity(value) is Some(required) else {
+    return Err(Unavailable)
+  }
+  // The wrapper's own returned identity/facts must be covered too, not just
+  // the underlying encoder frame. Yield before either constructor on short
+  // backing; this quantity check is never an allocation or grant.
+  if @execution.execution_capacity_retained_bytes(construction_capacity) <
+    @execution.execution_capacity_retained_bytes(required) ||
+    @execution.execution_capacity_execution_bytes(construction_capacity) <
+    @execution.execution_capacity_execution_bytes(required) {
+    return Ok((false, 0))
+  }
   value.advancing = true
   let result = @execution.advance_completed_relation_identity_scan(
     scan,
@@ -206,8 +223,12 @@ pub fn finish_captured_source_cell_identity(
   let schema = @execution.relation_schema_wire(schema_identity)
   // The SAME receipt already measured both exact canonical preimages. Do not
   // encode/count the retained strings again to apply this byte refusal bound.
-  let body_bytes = @execution.logical_relation_usage(logical_identity).0
-  let schema_bytes = @execution.relation_schema_usage(schema_identity).0
+  let (body_bytes, logical_nodes, _) = @execution.logical_relation_usage(
+    logical_identity,
+  )
+  let (schema_bytes, schema_nodes, _) = @execution.relation_schema_usage(
+    schema_identity,
+  )
   if body_bytes > value.body_limit ||
     schema_bytes > value.body_limit - body_bytes {
     return Err(DependencyBodyLimit)
@@ -217,7 +238,13 @@ pub fn finish_captured_source_cell_identity(
     logical_relation_cid: @execution.logical_relation_cid(logical_identity),
     schema_cid: @execution.relation_schema_cid(schema_identity),
     row_count: @execution.completed_relation_export_measurement(receipt).row_count,
-    dependency_bodies: Some((body, schema)),
+    dependency_bodies: Some({
+      bodies: Some((body, schema)),
+      logical_bytes: body_bytes,
+      logical_nodes,
+      schema_bytes,
+      schema_nodes,
+    }),
   }
   // Cancellation cuts the scan's aliases, never the returned identity or the
   // original Source/Read. No physical capacity is released by this operation.

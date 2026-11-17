@@ -33,6 +33,8 @@ fn request_effect_model_plan_fixture(
   current? : () -> Bool = () => true,
   model_initial? : Bool = true,
   configure_quantities? : Bool = true,
+  catalog_registry_count? : Int = 0,
+  selected_planning_work? : Int? = None,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -42,7 +44,9 @@ fn request_effect_model_plan_fixture(
     @publication_host.PreparedClientEffectComputation,
   ],
 ) raise {
-  let (environment, document) = effect_model_plan_source()
+  let (environment, document) = effect_model_plan_source(
+    catalog_registry_count~,
+  )
   let ordinary = client_local_preparation_initial_limits(
     client_local_resource_policy(),
   ).unwrap()
@@ -52,6 +56,12 @@ fn request_effect_model_plan_fixture(
     @resources.add_ledger_limits(ordinary, effect_model_plan_limits).unwrap()
   } else {
     ordinary
+  }
+  // Only explicit component callers select another finite test policy, before
+  // the original Ledger exists. Ordinary and registration129 defaults stay.
+  let initial_limits = match selected_planning_work {
+    None => initial_limits
+    Some(work) => { ..initial_limits, planning_work: work, }
   }
   let (parent, child, _, input) = registration_parent_fixture(
     current~,

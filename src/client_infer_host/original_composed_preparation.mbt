@@ -40,6 +40,14 @@ pub fn start_original_composed(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  let identity_body = match
+    prepare_original_infer_identity_body(
+      input_body_read, consumer, compiled, definition, plan, read_retained_bytes,
+      read_execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
   // Any input refusal leaves this already-entered consumer with its existing
   // read/Scope cleanup owner. Never claim again or fall back to unowned start.
   start_composed(
@@ -61,17 +69,8 @@ pub fn start_original_composed(
       model_execution_bytes,
       shared_mock=true,
     )
-    if input_body_read is Some(read) {
-      // DATA continuation only. The same entered consumer authenticates this
-      // exact original Read again at its first actual construction boundary.
-      active.identity_body = Some({
-        read,
-        base_retained: read_retained_bytes,
-        base_execution: read_execution_bytes,
-        retained: read_retained_bytes,
-        execution: read_execution_bytes,
-      })
-    }
+    active.identity_body = identity_body
+
     active
   })
 }
@@ -117,9 +116,27 @@ pub fn start_original_restored_composed(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  let identity_body = match
+    prepare_original_infer_identity_body(
+      input_body_read, consumer, compiled, definition, plan, read_retained_bytes,
+      read_execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
   // The existing retained-input owner checks binding, descriptor, rows and
   // current custody. Failure keeps the same entered consumer for cleanup.
-  start_restored_composed_input(
+  let original_read = identity_body.map(body => {
+    (
+      input_body_read.unwrap(),
+      consumer,
+      compiled,
+      definition,
+      plan,
+      Ref((body.retained, body.execution)),
+    )
+  })
+  let started = start_restored_composed_input(
     occurrence,
     plan,
     prefix,
@@ -132,7 +149,14 @@ pub fn start_original_restored_composed(
     limits,
     saved_scope=Some(saved_scope),
     reference_issuer?,
-  ).map(active => {
+    original_read~,
+  )
+  // A failed constructor still leaves its actual Resource growth retained.
+  if identity_body is Some(body) && original_read is Some((_, _, _, _, _, held)) {
+    body.retained = held.val.0
+    body.execution = held.val.1
+  }
+  started.map(active => {
     retain_original_model_preparation(
       active,
       compiled,
@@ -142,18 +166,8 @@ pub fn start_original_restored_composed(
       model_execution_bytes,
       shared_mock=true,
     )
-    if input_body_read is Some(read) {
-      // Retain body bytes in the SAME first input identity scan. The existing
-      // grow authenticates this Read and entered consumer before construction;
-      // restoring a scope cannot replace that ownership or issue a new Read.
-      active.identity_body = Some({
-        read,
-        base_retained: read_retained_bytes,
-        base_execution: read_execution_bytes,
-        retained: read_retained_bytes,
-        execution: read_execution_bytes,
-      })
-    }
+    active.identity_body = identity_body
+
     active
   })
 }

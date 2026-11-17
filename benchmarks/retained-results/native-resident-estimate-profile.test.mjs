@@ -6,6 +6,7 @@ import {retainedCase, workloads} from './fixtures.mjs';
 import {admitNativeOwnerObservations} from './native-owner-observations.mjs';
 import {admitNativePhysicalPhases} from './native-physical-phases.mjs';
 import {nativeCostObservation} from './native-cost-observation.mjs';
+import {managedCaseLedgerLimits} from './managed-configuration.mjs';
 import {nativeResidentCalibrationBasis, deriveNativeResidentRates,
   admitNativeResidentEstimateProfile} from './native-resident-estimate-profile.mjs';
 
@@ -128,6 +129,30 @@ test('admit complete realization-bound training and independently fixed duration
   assert.deepEqual(result.residentEstimates, {preparationMilliseconds: '1', cleanupMilliseconds: '1',
     taskMilliseconds: ['4', '4', '4'], importMilliseconds: ['1', '1', null, null]});
   assert.deepEqual(result.selected, ['local', 'local', 'local']);
+});
+
+test('offline profile re-admission binds observed Run limits to each original case policy', () => {
+  const value = example();
+  for (const item of [...value.profile.observations, value.profile.ordinary]) {
+    const observation = item.observation;
+    const fixture = observation.case === trainingFixture.id ? trainingFixture : targetFixture;
+    const limit = managedCaseLedgerLimits(fixture).retained_bytes;
+    for (const owner of observation.ownerCorrespondence.observations.owners) {
+      owner.retentionLimitBytes = Number(limit);
+    }
+    observation.result.usage.peak_retention_bytes = 144;
+    observation.ownerCorrespondence = admitNativeOwnerObservations(
+      observation.ownerCorrespondence.observations, observation.taskHoldings,
+      observation.ownerCorrespondence.observations.choices.map(choice => choice.name),
+      observation.result.usage, limit);
+  }
+  bind(value.profile);
+  assert.deepEqual(admitNativeResidentEstimateProfile(value).selected, ['local', 'local', 'local']);
+  for (const owner of value.profile.observations[0].observation.ownerCorrespondence.observations.owners) {
+    owner.retentionLimitBytes *= 2;
+  }
+  bind(value.profile);
+  assert.throws(() => admitNativeResidentEstimateProfile(value), /NativeRunRetentionLimitMismatch/);
 });
 for (const [name, mutate, issue] of [
   ['another revision', value => {value.profile.revision = 'c'.repeat(40);}, /NativeResidentProfileMismatch:revision/],

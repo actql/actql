@@ -217,7 +217,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,1074 @@
+@@ -0,0 +1,1084 @@
 +/* Derived selected-runtime read allocator, included once by the ORIGINAL
 + * owned_capacity.c. Selection still requires its source-bound recipe and
 + * original physical supplier. This is physical provenance
@@ -340,7 +340,9 @@
 +static _Thread_local actql_read_context *read_current;
 +static _Thread_local size_t read_depth;
 +
-+static bool lock_read_contexts(void) {
++/* Return only this entry's actual PID while the same index lock is held.
++ * No caller may retain it across unlock, callback or another C entry. */
++static bool lock_read_contexts_observe_process(pid_t *observed) {
 +    pid_t process = getpid();
 +    pid_t origin = atomic_load_explicit(&read_process, memory_order_acquire);
 +    if (origin == 0) {
@@ -352,7 +354,12 @@
 +    if (origin != process) return false;
 +    while (atomic_flag_test_and_set_explicit(&read_context_lock,
 +                                            memory_order_acquire)) {}
++    *observed = process;
 +    return true;
++}
++static bool lock_read_contexts(void) {
++    pid_t observed;
++    return lock_read_contexts_observe_process(&observed);
 +}
 +static void unlock_read_contexts(void) {
 +    atomic_flag_clear_explicit(&read_context_lock, memory_order_release);
@@ -802,9 +809,9 @@
 +/* Caller holds both original locks and has classified the containing page.
 + * Free follows original provenance after leave; current TLS is not reassigned. */
 +static int release_read_heap_locked(actql_owned_capacity *lease, size_t index,
-+    void *pointer, enum read_allocation_family family) {
++    void *pointer, enum read_allocation_family family, pid_t process) {
 +    struct extent *extent = owned_extent(lease, index);
-+    if (extent->retired || extent->read_process != getpid()) return ACTQL_OWNED_INVALID;
++    if (extent->retired || extent->read_process != process) return ACTQL_OWNED_INVALID;
 +    void *page = owned_page_address(lease, index);
 +    for (struct read_heap_block *block = read_heap_first(page); block;
 +         block = read_heap_next(page, owned_extent(lease, index)->pages * lease->page_size, block)) {
@@ -888,7 +895,9 @@
 +    }
 +    /* Closing cannot begin during an active ordinary frame. A closing active
 +     * frame can therefore only be the original cleanup entry above. */
-+    if (known_read_context(context) && prepared_current && read_depth != 0 &&
++    /* The index lock has remained held since the same context check above;
++     * no callback or index mutation intervenes. Dynamic current checks remain. */
++    if (known && prepared_current && read_depth != 0 &&
 +        context->active != 0 && actql_native_owned_current() == context->lease &&
 +        (read_allocation_observation.status = (family == READ_PRIVATE_C ||
 +            (family == READ_MANAGED && bytes <= context->lease->page_size / 2))
@@ -961,8 +970,9 @@
 +        return known_stock_file(pointer) ? 1 : ACTQL_OWNED_INVALID;
 +#endif
 +    }
-+    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
-+    if (read_process != 0 && read_process != getpid()) {
++    pid_t process;
++    if (!lock_read_contexts_observe_process(&process)) return ACTQL_OWNED_INVALID;
++    if (read_process != 0 && read_process != process) {
 +        unlock_read_contexts();
 +        return ACTQL_OWNED_INVALID;
 +    }
@@ -985,14 +995,14 @@
 +        if (owned_extent(lease, start)->read_heap) {
 +            bool original = owned_extent(lease, start)->read_context == context;
 +            if (original && family != READ_FILE)
-+                status = release_read_heap_locked(lease, start, pointer, family);
++                status = release_read_heap_locked(lease, start, pointer, family, process);
 +            unlock_capacity(lease);
 +            if (original) break;
 +            continue;
 +        }
 +        bool selected = family != READ_PRIVATE_C && allocation_start(lease, pointer, &start) &&
 +            owned_extent(lease, start)->read_context == context &&
-+            owned_extent(lease, start)->read_process == getpid() && !owned_extent(lease, start)->read_released;
++            owned_extent(lease, start)->read_process == process && !owned_extent(lease, start)->read_released;
 +        if (selected) owned_extent(lease, start)->read_released = true;
 +        unlock_capacity(lease);
 +        if (!selected) continue;

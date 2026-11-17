@@ -916,6 +916,8 @@ fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise 
     }
     Err(Preparation(_)) => fail("Original100000 module Preparation")
     Err(Installed(_)) => fail("Original100000 module Installed")
+    Err(EffectMaterials(_)) =>
+      fail("Original100000 module: unexpected Effect materials codec")
     Err(Construction(issue)) => {
       let detail = match issue {
         @publication_host.InvalidLimits => "InvalidLimits"

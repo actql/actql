@@ -198,8 +198,12 @@ the original insertion, deletion or wire mutation; they do not create another
 authority or accounting Ledger. Formal intent retirement still increments the
 existing retired counter, and retained count plus retired count must equal
 original issued count. Restart retention remains distinct and cannot refund an
-issued link. Existing record and byte quotas, target identity, current
-authorization and transaction outcomes are unchanged.
+issued link. Existing record quotas, target identity, current authorization
+and transaction outcomes are unchanged. Intent and restart wire bytes share
+the same selected durable/inspection byte parent before either native INSERT;
+their sum cannot exceed the smaller existing database and inspection limit.
+There is no separate 64 MiB allowance per retained purpose. Explicit inspection,
+physical database, SQL operand and safe-integer ABI limits remain enforced.
 
 The same Journal also maintains retained request and cancellation row counts.
 Their insert/delete triggers run inside the original acceptance/cancellation
@@ -218,7 +222,11 @@ tables, triggers and singleton rows; it is not a public wire version. No
 subsequent filesystem marker is needed to complete that adoption. Complete
 metadata from the prior two-step format preserves its already derived intent
 and restart usage without reaggregating those bodies or changing issuance or
-retirement. The additive request/cancellation-count extension counts only each
+retirement. The private v2-to-v3 change replaces only the two derived counter
+tables and their triggers in the same transaction, preserving exact count,
+bytes and revision, all original histories and existing request/cancel indices.
+It refuses a smaller selected parent before DDL; an interrupted migration rolls
+back under the same original Journal cleanup owner. The additive request/cancellation-count extension counts only each
 original issued prefix once, with one lookahead row to detect lost coverage,
 and commits both new singleton tables/triggers and its private header in the
 same transaction. It adds no per-Run durable transition. An
@@ -1547,6 +1555,13 @@ mock Provider does not fund its requests, Entry, quantity, output, invocation or
 transport; those remain separately admitted Model duties.
 
 ### Values compilation component reuse
+
+The same finite Values policy row representation is validated at original
+issuance and retained Journal admission/cold lookup. The selected original
+policy wire and CID remain bound to the prepared and authorization facts and
+the same Run context; a fixed Journal-only row ceiling must not replace that
+original selection. This representation check grants no rows or memory, and
+checked Program limits still refuse an insufficient selected ceiling.
 
 A single source-free Values compilation constructs its checked graph, AoA
 identity, fragment, bound template and executable Plan once. Private compiler

@@ -22,13 +22,14 @@ pub(all) struct StaticPlanValidationConstruction {
 // generated graph must be a backward DAG; a changed/unsupported graph fails
 // closed rather than retaining an obsolete profile. This executes once with
 // the module's original generated schema, not over each caller's document.
-fn static_plan_validation_schema_profile(index : Int) -> (Int, Bool)? {
+fn static_plan_validation_schema_profile(index : Int) -> (Int, Bool, Bool)? {
   let nodes = protocol_schema_nodes()
   if index < 0 || index >= nodes.length() {
     return None
   }
   let mut pending = 1
   let mut unique = false
+  let mut timestamp = false
   let child = (target : Int) => {
     if target < 0 || target >= index {
       return None
@@ -44,9 +45,12 @@ fn static_plan_validation_schema_profile(index : Int) -> (Int, Bool)? {
     | StringCeilingRule(_)
     | ObjectCeilingRule(_) => ()
     StringRule(_, _, pattern, _) =>
-      // CID and unsigned-decimal predicates use indexed scalar walks. Do not
-      // silently include a future pattern that allocates a character array.
-      if pattern != 0 && pattern != 1 && pattern != 8 {
+      // CID/decimal and path-prefix predicates are indexed scalar walks. Timestamp pattern2
+      // owns the SAME fixed17-index Array in valid_timestamp; it is quoted
+      // separately below, rather than pretending all patterns allocate alike.
+      if pattern == 2 {
+        timestamp = true
+      } else if pattern != 0 && pattern != 1 && pattern != 5 && pattern != 8 {
         return None
       }
     ArrayRule(item, _, distinct, _) => {
@@ -56,60 +60,78 @@ fn static_plan_validation_schema_profile(index : Int) -> (Int, Bool)? {
         (item < 0 || item >= index || !(nodes[item] is StringRule(_, _, _, _))) {
         return None
       }
-      guard child(item) is Some((depth, nested)) else { return None }
+      guard child(item) is Some((depth, nested, nested_timestamp)) else {
+        return None
+      }
       pending = depth + 1
       unique = distinct || nested
+      timestamp = timestamp || nested_timestamp
     }
     ContainsRule(item) | NotRule(item) => {
-      guard child(item) is Some((depth, nested)) else { return None }
+      guard child(item) is Some((depth, nested, nested_timestamp)) else {
+        return None
+      }
       pending = depth + 1
       unique = nested
+      timestamp = timestamp || nested_timestamp
     }
     TupleRule(items) | OneOfRule(items) | AnyOfRule(items) | AllOfRule(items) =>
       for item in items {
-        guard child(item) is Some((depth, nested)) else { return None }
+        guard child(item) is Some((depth, nested, nested_timestamp)) else {
+          return None
+        }
         pending = Int::max(pending, depth + 1)
         unique = unique || nested
+        timestamp = timestamp || nested_timestamp
       }
     ConditionalRule(condition, yes, no) =>
       for item in [condition, yes, no] {
-        guard child(item) is Some((depth, nested)) else { return None }
+        guard child(item) is Some((depth, nested, nested_timestamp)) else {
+          return None
+        }
         pending = Int::max(pending, depth + 1)
         unique = unique || nested
+        timestamp = timestamp || nested_timestamp
       }
     ObjectRule(properties, _, additional, _, _, pattern) => {
-      if pattern != 0 && pattern != 1 && pattern != 8 {
+      if pattern != 0 && pattern != 1 && pattern != 5 && pattern != 8 {
         return None
       }
       for (_, item) in properties {
-        guard child(item) is Some((depth, nested)) else { return None }
+        guard child(item) is Some((depth, nested, nested_timestamp)) else {
+          return None
+        }
         pending = Int::max(pending, depth + 1)
         unique = unique || nested
+        timestamp = timestamp || nested_timestamp
       }
       if additional >= 0 {
-        guard child(additional) is Some((depth, nested)) else { return None }
+        guard child(additional) is Some((depth, nested, nested_timestamp)) else {
+          return None
+        }
         pending = Int::max(pending, depth + 1)
         unique = unique || nested
+        timestamp = timestamp || nested_timestamp
       }
     }
   }
-  Some((pending, unique))
+  Some((pending, unique, timestamp))
 }
 
 ///|
 fn static_plan_validation_profile(
   name : String,
   complete : Bool,
-) -> (Int, Bool)? {
+) -> (Int, Bool, Bool)? {
   generated_protocol_schema_root(name, complete).bind(
     static_plan_validation_schema_profile,
   )
 }
 
 ///|
-// Generated rule tables are already module-retained. These seven small
+// Generated rule tables are already module-retained. These small
 // profiles likewise precede Native request scopes and contain no user data.
-let static_plan_validation_profiles : Array[(String, Bool, (Int, Bool)?)] = [
+let static_plan_validation_profiles : Array[(String, Bool, (Int, Bool, Bool)?)] = [
   (
     "logical_step_key",
     false,
@@ -133,13 +155,28 @@ let static_plan_validation_profiles : Array[(String, Bool, (Int, Bool)?)] = [
   ("logical_map", false, static_plan_validation_profile("logical_map", false)),
   ("logical_map", true, static_plan_validation_profile("logical_map", true)),
   ("plan_view", true, static_plan_validation_profile("plan_view", true)),
+  (
+    "prepared_invocation",
+    true,
+    static_plan_validation_profile("prepared_invocation", true),
+  ),
+  (
+    "run_authorization",
+    true,
+    static_plan_validation_profile("run_authorization", true),
+  ),
+  (
+    "normalization_journal",
+    true,
+    static_plan_validation_profile("normalization_journal", true),
+  ),
 ]
 
 ///|
 fn static_plan_validation_selected_profile(
   name : String,
   complete : Bool,
-) -> (Int, Bool)? {
+) -> (Int, Bool, Bool)? {
   for (selected, full, profile) in static_plan_validation_profiles {
     if selected == name && full == complete {
       return profile
@@ -159,7 +196,7 @@ fn static_plan_validation_construction(
   item_depth : Int,
 ) -> StaticPlanValidationConstruction? {
   guard static_plan_validation_selected_profile(name, complete)
-    is Some((pending, unique)) else {
+    is Some((pending, unique, timestamp)) else {
     return None
   }
   if unique_items < 0 ||
@@ -193,8 +230,18 @@ fn static_plan_validation_construction(
       record_words: 6L + 3L * frames + 7L,
       reference_arrays: 1L + (if unique { 2L } else { 0L }),
       reference_items: pending.to_int64() + 2L * items,
-      scalar_arrays: 0L,
-      scalar_items: 0L,
+      // valid_timestamp's 17 fixed Int indexes coexist with this cursor;
+      // no input-dependent character array or owned text is constructed.
+      scalar_arrays: if timestamp {
+        1L
+      } else {
+        0L
+      },
+      scalar_items: if timestamp {
+        17L
+      } else {
+        0L
+      },
       maps: 0L,
       map_entries: 0L,
     })

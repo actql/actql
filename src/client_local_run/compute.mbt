@@ -296,11 +296,8 @@ pub fn start_local_compute_task(
     Err(issue) => return Err(issue)
   }
   let run = local_compute_run(host)
-  match
-    @driver.refresh_compute_host(@builtin.configured_host_runtime(host.setup)) {
-    Ok(_) => ()
-    Err(issue) => return Err(Estimate(issue))
-  }
+  // This activation prepares a managed request below. Legacy materializing
+  // search belongs to the separate prepare-next-task dispatch boundary.
   guard @strategy.next_captured_task(run) is Some(task) else { return Ok(None) }
   let obligations = match
     @strategy.captured_next_managed_obligations(

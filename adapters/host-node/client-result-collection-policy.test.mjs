@@ -67,8 +67,8 @@ test('collection negotiation borrows the same Task policy and narrows byte ceili
   const standard = negotiated();
   assert.equal(standard.maxRows, 2097152);
   assert.equal(standard.maxRetainedValueBytes, 536870912);
-  assert.equal(standard.maxReadWireBytes, 10 * 1024 * 1024);
-  assert.equal(standard.maxRowWireBytes, 1024 * 1024);
+  assert.equal(standard.maxReadWireBytes, 2147483646);
+  assert.equal(standard.maxRowWireBytes, 2147483646);
   assert.equal(standard.maxBatchRows, 1000);
   const small = negotiated({retained: 8192n, rows: 32, transfer: 4096n});
   assert.equal(small.maxRows, 32); assert.equal(small.maxRetainedValueBytes, 8192);
@@ -116,7 +116,7 @@ test('collection preserves wire, per-row decoded and raw-before-validator byte p
   const wire = delivered(3);
   await assert.rejects(wire.result.all({maxWireBytes: 20}), {code: 'ResultWireLimit'}); closed(wire);
   const huge = delivered(1, {row: () => ({cells: new Array(20000).fill(0)})});
-  await assert.rejects(huge.result.all(), {code: 'ResultRowRetainedLimit'}); closed(huge);
+  await assert.rejects(huge.result.all({maxRowRetainedValueBytes: 1024 * 1024}), {code: 'ResultRowRetainedLimit'}); closed(huge);
   let validated = 0;
   const raw = delivered(2, {row: () => ({text: 'x'.repeat(300)})});
   const schema = {'~standard': {version: 1, vendor: 'test', validate(value) {
@@ -148,4 +148,14 @@ test('collection policy keeps early break and cancel on the same original reader
   }}};
   await assert.rejects(g.result.all(schema, {signal: controller.signal}));
   assert.equal(g.stats.pulled, 1); closed(g);
+});
+
+
+test('same negotiated parent permits a Result beyond legacy total and row wire caps while explicit narrowing still refuses', async () => {
+  const text = 'x'.repeat(11 * 1024 * 1024);
+  const f = delivered(1, {row: () => ({text})});
+  assert.deepEqual(await f.result.all(), [{text}]); closed(f);
+  const narrow = delivered(1, {row: () => ({text})});
+  await assert.rejects(narrow.result.all({maxWireBytes: 10 * 1024 * 1024}), {code: 'ResultWireLimit'});
+  closed(narrow);
 });

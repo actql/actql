@@ -96,10 +96,11 @@ export function createIcebergPhysicalBridge({python, run, catalog,
   const runtime = new URL(python.href), worker = new URL(entry.href);
   const configuration = () => ({runtime, entry: worker, run, frames, maxRequests: 1,
     graceMs: 100, startupMs: 5000});
-  const preflight = (command, payload) => snapshot({protocol: 'actql-local-execution/0.1',
+  const requestFrame = (command, payload) => ({protocol: 'actql-local-execution/0.1',
     session: '00000000-0000-0000-0000-000000000000', run,
     kind: 'execute', sequence: 1, body: {catalog: config, command, payload}});
-  const invoke = async (command, payload, signal, stopped, beforeBodyAllocation, bodyReceived) => {
+  const preflight = (command, payload) => snapshot(requestFrame(command, payload));
+  const invoke = async (command, payload, signal, stopped, beforeBodyAllocation, bodyReceived, bodySnapshot) => {
     assertImplementation();
     let channel, error, launchSelected = false;
     // A bounded physical I/O wait does not certify cancellation/noncommit.
@@ -107,7 +108,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     const deadline = AbortSignal.timeout(60000);
     const cancellation = signal === undefined ? deadline : AbortSignal.any([signal, deadline]);
     try {
-      const prepared = prepareManagedExecution({...configuration(), beforeBodyAllocation, bodyReceived});
+      const prepared = prepareManagedExecution({...configuration(), beforeBodyAllocation, bodyReceived, bodySnapshot});
       cancellation.throwIfAborted();
       launchSelected = true;
       channel = await startManagedExecution(prepared, cancellation);
@@ -160,6 +161,15 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       validateIcebergReadSelector(payload.selector, config.catalogCid);
       Object.freeze(payload.selector.namespace);
       return Object.freeze(payload.selector);
+    },
+    inspectReadSelectorConstruction(selector, inspect) {
+      assertImplementation();
+      if (typeof inspect !== 'function') fail('InvalidTableReadConstructionInspection');
+      // The installed Source owner funds this inspection before entry. Use
+      // the SAME selector and first outbound preflight frame, not the full
+      // installation's unrelated targets or a guessed numerical allowance.
+      const payload = {selector: bridge.checkReadSelector(selector)};
+      return inspect(requestFrame('resolve_generation', payload));
     },
     prepareWrite({operation, mapping, rows, reservation, schemaWire, beforeBodyAllocation, bodyReceived}) {
       assertImplementation();
@@ -221,15 +231,15 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       // the same transaction before deleting only this operation's staged files.
       return invoke('cleanup', {operation: owned.payload.operation}, signal, undefined, owned.beforeBodyAllocation, owned.bodyReceived);
     },
-    async read(receipt, mapping, signal, beforeBodyAllocation, bodyReceived) {
+    async read(receipt, mapping, signal, beforeBodyAllocation, bodyReceived, bodySnapshot) {
       const payload = snapshot({receipt, mapping});
       preflight('read', payload);
-      return invoke('read', payload, signal, undefined, beforeBodyAllocation, bodyReceived);
+      return invoke('read', payload, signal, undefined, beforeBodyAllocation, bodyReceived, bodySnapshot);
     },
-    async resolveGeneration(selector, signal, beforeBodyAllocation, bodyReceived) {
+    async resolveGeneration(selector, signal, beforeBodyAllocation, bodyReceived, bodySnapshot) {
       const payload = {selector: bridge.checkReadSelector(selector)};
       preflight('resolve_generation', payload);
-      return invoke('resolve_generation', payload, signal, undefined, beforeBodyAllocation, bodyReceived);
+      return invoke('resolve_generation', payload, signal, undefined, beforeBodyAllocation, bodyReceived, bodySnapshot);
     },
     status(prepared) {
       const owned = own(prepared);

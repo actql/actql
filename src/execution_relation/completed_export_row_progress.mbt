@@ -353,8 +353,39 @@ fn advance_completed_export_row_frame(
 }
 
 ///|
-/// A poll yields within a row, not only between rows. Provisional bytes stay
-/// private until the complete row can be returned to the existing Store owner.
+// The SAME row measurement already retained every cell's wire maximum. Only
+// the physical payload writer needs draining; the logical hash stays continuous.
+// Typed Text/key/reference cursors use their existing closed transition bound.
+fn completed_export_payload_fragment_bound(
+  stream : CompletedOutputExport,
+  cursor : CompletedExportRowProgress,
+) -> Int {
+  match cursor.phase {
+    EmitColumn(false) =>
+      if cursor.column == stream.order.columns.length() {
+        1 // closing object
+      } else {
+        let name = stream.order.columns[cursor.column].0
+        // A short ordered key plus the possible opening Text quote. Long
+        // keys retain their existing incremental cursor instead.
+        6 * Int::min(64, name.length()) + 5
+      }
+    EmitKey(_, false) => @admitted.wire_emit_fragment_byte_bound()
+    EmitCell(wire, false) =>
+      match wire.cursor {
+        CapturedWire(_) | TextWire(_) =>
+          @admitted.wire_emit_fragment_byte_bound()
+        ScalarWire(_, _) => stream.column_max_value_bytes[cursor.column]
+      }
+    _ => 0
+  }
+}
+
+///|
+/// A poll yields within a row, not only between rows. The ordinary row reader
+/// returns complete rows. Physical batches may drain a provisional row across
+/// frames; only the final receipt establishes identity. Caller-owned prepaid
+/// backing and an optional numerical grow callback retain their own duties.
 /// Traversal steps do not replace or double-charge logical value work.
 pub fn advance_completed_output_export(
   stream : CompletedOutputExport,
@@ -445,7 +476,7 @@ pub fn advance_completed_output_export(
         // Cell bytes were measured by this same traversal. The existing key
         // escape bound covers this row, never the configured future frame.
         let next = Int64::min(
-          stream.max_batch_bytes.to_int64(),
+          2147483647L,
           pending.to_int64() + cursor.full_wire_bound.to_int64(),
         ).to_int()
         let funded = match reserve(next) {
@@ -468,6 +499,24 @@ pub fn advance_completed_output_export(
             return Ok({ batch: Some(part), complete: false, steps: step, })
           }
           return Err(Admission(CaptureLimit))
+        }
+      }
+      if batch && cursor.full_wire_bound > stream.max_batch_bytes {
+        let pending = @encode.observed_writer_usage(stream.writer).0 -
+          stream.drained_bytes
+        // Physical fragments keep the SAME bounded writer whether its caller
+        // prepaid export backing or supplied the original growth callback.
+        // The callback, when present, has already funded this measured row.
+        // Drain before the next bounded emission without changing either
+        // funding path or entering Resource admission for every fragment.
+        if pending > 0 &&
+          completed_export_payload_fragment_bound(stream, cursor) >
+          stream.max_batch_bytes - pending {
+          let part = @encode.drain_hash_output(stream.writer) catch {
+            issue => return Err(Wire(Encoding(issue)))
+          }
+          stream.drained_bytes = @encode.observed_writer_usage(stream.writer).0
+          return Ok({ batch: Some(part), complete: false, steps: step, })
         }
       }
       // Record entry before a frame can fail and clear its private cursor.

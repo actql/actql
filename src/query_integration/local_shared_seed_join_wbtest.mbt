@@ -34,7 +34,8 @@ test "product retained shared seed JOIN executes once per task and releases cust
   let ledger = @strategy.captured_dag_ledger(run)
   assert_eq(@strategy.graph_task_count(graph), 10)
   assert_eq(@strategy.captured_compute_first_task(run), 0)
-  assert_true(@strategy.captured_dag_strategy(run) is Some(_))
+  // Actual tasks select on the same Run when their live inputs are ready.
+  assert_true(@strategy.captured_dag_strategy(run) is None)
   assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
   let sources = [[], [0], [1], [2], [3], [2], [5], [4, 6], [7], [8]]
   let operations : Array[@local_driver.LocalManagedDispatchOperations[Int]] = []

@@ -5578,33 +5578,10 @@
       ],
       "operations": [
         {
-          "name": "boundedText/boundedText",
-          "parameters": [
-            "value",
-            "maximum"
-          ],
-          "async": false
-        },
-        {
           "name": "clientWorkspaceMatches/clientWorkspaceMatches",
           "parameters": [
             "connection",
             "authenticatedWorkspaceId"
-          ],
-          "async": false
-        },
-        {
-          "name": "exact/exact",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "freezeCapturedRequest",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -5616,49 +5593,11 @@
           "async": false
         },
         {
-          "name": "jsonObject/jsonObject",
-          "parameters": [
-            "text"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownerIdentity/ownerIdentity",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareClientHostRequest",
           "parameters": [
             "operation",
             "original",
             "retainSnapshot"
-          ],
-          "async": false
-        },
-        {
-          "name": "restartMatches",
-          "parameters": [
-            "actual",
-            "expected"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameCancellationRef/sameCancellationRef",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameRunRef/sameRunRef",
-          "parameters": [
-            "left",
-            "right"
           ],
           "async": false
         },
@@ -5681,15 +5620,6 @@
           "name": "sameSubmissionRef/sameSubmissionRef",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "shape/shape",
-          "parameters": [
-            "value",
-            "required",
-            "optional"
           ],
           "async": false
         },
@@ -5723,35 +5653,10 @@
           "async": false
         },
         {
-          "name": "snapshotRequest",
-          "parameters": [
-            "value",
-            "numberError",
-            "observe"
-          ],
-          "async": false
-        },
-        {
           "name": "snapshotRequest/document/document",
           "parameters": [
             "key",
             "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "submissionFactsMatch",
-          "parameters": [
-            "value",
-            "expected",
-            "intentCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "utf8Bytes/utf8Bytes",
-          "parameters": [
-            "text"
           ],
           "async": false
         },
@@ -5944,13 +5849,6 @@
           "name": "validOwnerObservations/validOwnerObservations#3",
           "parameters": [
             "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "validProgramInput",
-          "parameters": [
-            "body"
           ],
           "async": false
         },
@@ -6188,9 +6086,7 @@
       "owner": "E / existing registered Client-Host, protocol, interactive-control and publication wire Owners",
       "contracts": [
         {
-          "operations": [
-            "boundedText/boundedText"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -6398,9 +6294,7 @@
           }
         },
         {
-          "operations": [
-            "exact/exact"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -6608,9 +6502,7 @@
           }
         },
         {
-          "operations": [
-            "jsonObject/jsonObject"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -6712,9 +6604,7 @@
           }
         },
         {
-          "operations": [
-            "ownerIdentity/ownerIdentity"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -6817,7 +6707,6 @@
         },
         {
           "operations": [
-            "freezeCapturedRequest",
             "prepareClientHostRequest"
           ],
           "exports": [
@@ -6975,9 +6864,7 @@
           }
         },
         {
-          "operations": [
-            "restartMatches"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -7079,9 +6966,7 @@
           }
         },
         {
-          "operations": [
-            "sameCancellationRef/sameCancellationRef"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -7184,7 +7069,6 @@
         },
         {
           "operations": [
-            "sameRunRef/sameRunRef",
             "sameRunRef/sameRunRef/sameRunRef"
           ],
           "exports": [],
@@ -7396,7 +7280,6 @@
         },
         {
           "operations": [
-            "shape/shape",
             "shape/shape/shape",
             "shape/shape/shape#2"
           ],
@@ -7730,7 +7613,6 @@
         },
         {
           "operations": [
-            "snapshotRequest",
             "snapshotRequest/document/document"
           ],
           "exports": [],
@@ -7842,9 +7724,7 @@
           }
         },
         {
-          "operations": [
-            "submissionFactsMatch"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -7946,9 +7826,7 @@
           }
         },
         {
-          "operations": [
-            "utf8Bytes/utf8Bytes"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -9376,9 +9254,7 @@
           }
         },
         {
-          "operations": [
-            "validProgramInput"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [

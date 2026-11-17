@@ -1,3 +1,4 @@
+import {registerInstalledEffectDependencyOriginal,retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 // Pure composition inside the existing installed Effect owner. Original
 // Core extents/Plan are DATA until the SAME Request completes and adopts them.
 import {types as nodeTypes} from 'node:util';
@@ -296,6 +297,8 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(Object.hasOwn(recipe, 'captureConstruction') ? ['captureConstruction'] : []),
     ...(Object.hasOwn(recipe, 'recoveryConstruction') ? ['recoveryConstruction'] : []),
     ...(Object.hasOwn(recipe, 'footprintConstruction') ? ['footprintConstruction'] : []),
+    ...(Object.hasOwn(recipe, 'grantConstruction') ? ['grantConstruction'] : []),
+    ...(Object.hasOwn(recipe, 'projectConstruction') ? ['projectConstruction'] : []),
     ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : []),
     ...(Object.hasOwn(recipe, 'ownedReadOperations') ? ['ownedReadOperations'] : []),
     ...(Object.hasOwn(recipe, 'physicalWrite') ? ['physicalWrite'] : [])]);
@@ -319,25 +322,38 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       nodeTypes.isProxy(controlsPerRow))) fail('InvalidInstalledEffectPlanRecipe');
   let savedControlCodec;
   if (fields.savedControlCodec !== undefined) {
-    const codec = own(fields.savedControlCodec.value, ['maxEntryBytes', 'fallbackCapacity']);
-    const maxEntryBytes = codec.maxEntryBytes.value, fallbackCapacity = codec.fallbackCapacity.value;
-    if (controlsPerRow === undefined || !Number.isSafeInteger(maxEntryBytes) || maxEntryBytes < 1 ||
-        maxEntryBytes > effectLedgerImplementationBounds.maxEntryBytes || fallbackCapacity === null ||
-        typeof fallbackCapacity !== 'object' || nodeTypes.isProxy(fallbackCapacity)) {
+    const value = fields.savedControlCodec.value;
+    if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) {
       fail('InvalidInstalledEffectPlanRecipe');
     }
-    savedControlCodec = Object.freeze({maxEntryBytes, fallbackCapacity});
+    const codec = own(value, ['maxEntryBytes', 'fallbackCapacity',
+      ...(Object.hasOwn(value, 'maxResponseBytes') ? ['maxResponseBytes'] : [])]);
+    const maxEntryBytes = codec.maxEntryBytes.value, fallbackCapacity = codec.fallbackCapacity.value;
+    const maxResponseBytes = codec.maxResponseBytes?.value;
+    if (controlsPerRow === undefined || !Number.isSafeInteger(maxEntryBytes) || maxEntryBytes < 1 ||
+        maxEntryBytes > effectLedgerImplementationBounds.maxEntryBytes || fallbackCapacity === null ||
+        typeof fallbackCapacity !== 'object' || nodeTypes.isProxy(fallbackCapacity) ||
+        (codec.maxResponseBytes !== undefined && (!Number.isSafeInteger(maxResponseBytes) || maxResponseBytes < 1 ||
+          maxResponseBytes > effectLedgerImplementationBounds.maxResponseBytes))) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    savedControlCodec = Object.freeze({maxEntryBytes, fallbackCapacity,
+      ...(maxResponseBytes === undefined ? {} : {maxResponseBytes})});
   }
   if (memberOperations.length + rowOperations.length === 0 ||
       memberOperations.length + rowOperations.length > maxOperations) fail('InvalidInstalledEffectPlanRecipe');
   let requestConstruction;
   if (fields.requestConstruction !== undefined) {
-    const selected = own(fields.requestConstruction.value, ['operationIndex']);
+    const selected = own(fields.requestConstruction.value, ['operationIndex',
+      ...(Object.hasOwn(fields.requestConstruction.value, 'inputExtent') ? ['inputExtent'] : [])]);
     const operationIndex = selected.operationIndex.value;
     if (!Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= rowOperations.length) {
       fail('InvalidInstalledEffectPlanRecipe');
     }
-    requestConstruction = Object.freeze({operationIndex});
+    const inputExtent = selected.inputExtent?.value;
+    if (inputExtent !== undefined && (typeof inputExtent !== 'function' || nodeTypes.isProxy(inputExtent) ||
+        nodeTypes.isAsyncFunction(inputExtent))) fail('InvalidInstalledEffectPlanRecipe');
+    requestConstruction = Object.freeze({operationIndex, ...(inputExtent === undefined ? {} : {inputExtent})});
   }
   let requestFinalization;
   if (fields.requestFinalization !== undefined) {
@@ -365,6 +381,19 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   const captureConstruction = memberConstruction('captureConstruction');
   const recoveryConstruction = memberConstruction('recoveryConstruction');
   const footprintConstruction = memberConstruction('footprintConstruction');
+  const ownedConstruction = name => {
+    if (fields[name] === undefined) return undefined;
+    const selected = own(fields[name].value, ['receiver', 'method', 'capacity']);
+    const receiver = selected.receiver.value, method = selected.method.value, capacity = selected.capacity.value;
+    if (receiver === null || typeof receiver !== 'object' || nodeTypes.isProxy(receiver) ||
+        typeof method !== 'function' || nodeTypes.isProxy(method) || nodeTypes.isAsyncFunction(method) ||
+        capacity === null || typeof capacity !== 'object' || nodeTypes.isProxy(capacity)) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    return Object.freeze({receiver, method, capacity});
+  };
+  const grantConstruction = ownedConstruction('grantConstruction');
+  const projectConstruction = ownedConstruction('projectConstruction');
   if (footprintConstruction !== undefined && (footprintConstruction.inputExtent !== undefined ||
       footprintConstruction.operationIndex === captureConstruction?.operationIndex ||
       footprintConstruction.operationIndex === recoveryConstruction?.operationIndex ||
@@ -472,6 +501,8 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(captureConstruction === undefined ? {} : {captureConstruction}),
     ...(recoveryConstruction === undefined ? {} : {recoveryConstruction}),
     ...(footprintConstruction === undefined ? {} : {footprintConstruction}),
+    ...(grantConstruction === undefined ? {} : {grantConstruction}),
+    ...(projectConstruction === undefined ? {} : {projectConstruction}),
     ...(credentialOperations === undefined ? {} : {credentialOperations}),
     ...(physicalWrite === undefined ? {} : {physicalWrite})});
 }
@@ -670,8 +701,15 @@ export function prepareInstalledEffectRequestChild(options) {
   return prepareInstalledEffectConstructorChild(options);
 }
 
-// Only the retained owned-child wrapper above can join asynchronous physical
-// preparation. An arbitrary constructor Promise keeps the strict refusal below.
+// This installing-code capture constructor joins its actual original task.
+// The enclosing capture retainer already owns every nested request child and
+// retires their aliases before this same operation backing can be returned.
+export function prepareInstalledEffectCaptureChild(options) {
+  return prepareInstalledEffectConstructorChild(options, true);
+}
+
+// Only the two closed retained wrappers can join an original native Promise.
+// An arbitrary constructor Promise keeps the strict refusal below.
 function prepareInstalledEffectConstructorChild({run, memberIndex, rowIndex,
   operationIndex, operation, perRow = true, construct: originalConstruct, inputExtent: originalInputExtent, requestsRetired}, ownedChild = false, ownedOutputWire) {
   if (run === undefined || typeof perRow !== 'boolean' || typeof originalConstruct !== 'function' ||
@@ -1102,24 +1140,30 @@ export function prepareInstalledEffectControlConstruction(run) {
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run ?? {};
   const begin = runtime?.clientProgramInstalledEffectOperationControlConstructionBegin;
   const nativeBegin = runtime?.clientProgramInstalledEffectOperationNativeConstructionBegin;
+  const receiptBegin = runtime?.clientProgramInstalledEffectOperationMemberReceiptConstructionBegin;
   const complete = runtime?.clientProgramInstalledEffectOperationControlConstructionComplete;
   const grantBegin = runtime?.clientProgramInstalledEffectOperationGrantConstructionBegin;
   const requestProjectionBegin = runtime?.clientProgramInstalledEffectOperationRequestProjectionBegin;
   const footprintBegin = runtime?.clientProgramInstalledEffectOperationFootprintConstructionBegin;
   const ledgerOpenBegin = runtime?.clientProgramInstalledEffectOperationLedgerOpenBegin;
   const ledgerFamilyBegin = runtime?.clientProgramInstalledEffectOperationLedgerFamilyBegin;
+  const ledgerRowBegin = runtime?.clientProgramInstalledEffectOperationLedgerRowBegin;
+  const ledgerHistoryGrow = runtime?.clientProgramInstalledEffectOperationLedgerHistoryGrow;
   const beginInput = runtime?.clientProgramInstalledEffectOperationControlInputBegin;
   const codecBegin = runtime?.clientProgramInstalledEffectOperationLedgerCodecBegin;
+  const receiptCodecBegin = runtime?.clientProgramInstalledEffectOperationReceiptCodecBegin;
   const codecComplete = runtime?.clientProgramInstalledEffectOperationLedgerCodecComplete;
   const hasHostInput = runtime?.clientProgramInstalledEffectManagedPlanHasHostInput;
   const retainInventory = runtime?.clientProgramInstalledEffectCapturedInputInventoryRetain;
   const shape = runtime?.clientProgramInstalledEffectManagedPlanShape;
+  const keyAuthor = runtime?.clientProgramAuthorInstalledEffectPreview;
+  const keyRecovery = runtime?.clientProgramInstalledEffectRecoveredPreviewKeys;
   const parseJson = JSON.parse;
   const jsonReceiver = JSON;
   if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
     fail('InstalledEffectControlRuntimeUnavailable');
   }
-  let working = false, codecWorking = false, failed = false, retired = false, primary, pending, work;
+  let working = false, codecWorking = false, historyWorking = false, failed = false, retired = false, primary, pending, work;
   let previewInputWire, previewInput;
   const sameRecord = () => !run.closed && run.runtime === runtime && run.value === parent &&
     run.prepared === prepared && run.request === request && run.operationPlan === plan &&
@@ -1144,7 +1188,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     Reflect.apply(nativePromiseThen, joined, [settled, settled]);
     fail('InvalidInstalledEffectControlConstruction');
   };
-  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot, ledgerFamily, nativeConstruction) => {
+  const invoke = (receiver, method, args, inputWire, grant = false, requestProjection, footprintProjection, ledgerRoot, ledgerFamily, nativeConstruction, memberReceipt = false, ledgerRow) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
@@ -1152,13 +1196,21 @@ export function prepareInstalledEffectControlConstruction(run) {
     if (nativeConstruction !== undefined && (nativeConstruction === null || typeof nativeConstruction !== 'object' || nodeTypes.isProxy(nativeConstruction))) {
       fail('InvalidInstalledEffectControlConstruction');
     }
-    if (nativeConstruction !== undefined && typeof nativeBegin !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
-    // Only the captured Core getter and its exact immutable Plan are metadata.
-    // Inspect DATA descriptors without executing argument getters or Proxy traps.
-    const metadata = nativeConstruction === undefined && ledgerFamily === undefined && ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime && method === shape &&
+    if (typeof memberReceipt !== 'boolean' || memberReceipt && nativeConstruction === undefined) fail('InvalidInstalledEffectControlConstruction');
+    if (nativeConstruction !== undefined && typeof (memberReceipt ? receiptBegin : nativeBegin) !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    // These exact installing Core entrances own their Resource cut: the
+    // borrowed Plan getter, or a key constructor that grows this SAME parent
+    // before allocation. No arbitrary callback or Host count selects it.
+    const metadata = nativeConstruction === undefined && ledgerRow === undefined && ledgerFamily === undefined && ledgerRoot === undefined && !grant && requestProjection === undefined && footprintProjection === undefined && inputWire === undefined && receiver === runtime &&
       !nodeTypes.isProxy(method) && !nodeTypes.isProxy(args) &&
-      Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
-      Object.getOwnPropertyDescriptor(args, '0')?.value === plan;
+      (method === shape && Object.getOwnPropertyDescriptor(args, 'length')?.value === 1 &&
+        Object.getOwnPropertyDescriptor(args, '0')?.value === plan ||
+       (method === keyAuthor && Object.getOwnPropertyDescriptor(args, 'length')?.value === 19 ||
+        method === keyRecovery && Object.getOwnPropertyDescriptor(args, 'length')?.value === 15) &&
+        Object.getOwnPropertyDescriptor(args, '0')?.value === parent &&
+        Object.getOwnPropertyDescriptor(args, '1')?.value === prepared &&
+        Object.getOwnPropertyDescriptor(args, '2')?.value === request &&
+        Object.getOwnPropertyDescriptor(args, '3')?.value === plan);
     const observePlan = () => {
       const current = Reflect.apply(readPlan, runtime, [parent, prepared, request]);
       retainInvalid(current);
@@ -1173,14 +1225,16 @@ export function prepareInstalledEffectControlConstruction(run) {
     try {
       originalRecord();
       if (metadata) observePlan();
-      else checked(Reflect.apply(nativeConstruction !== undefined ? nativeBegin :
+      else checked(Reflect.apply(nativeConstruction !== undefined ? memberReceipt ? receiptBegin : nativeBegin :
+        ledgerRow !== undefined && ledgerRowBegin !== undefined ? ledgerRowBegin :
         ledgerFamily !== undefined && ledgerFamilyBegin !== undefined ? ledgerFamilyBegin :
         ledgerRoot !== undefined && ledgerOpenBegin !== undefined ? ledgerOpenBegin :
         footprintProjection !== undefined && footprintBegin !== undefined ? footprintBegin :
         requestProjection !== undefined && requestProjectionBegin !== undefined ? requestProjectionBegin :
         grant && grantBegin !== undefined ? grantBegin :
         inputWire === undefined ? begin : beginInput, runtime,
-        [parent, prepared, request, plan, ...(ledgerFamily !== undefined && ledgerFamilyBegin !== undefined
+        [parent, prepared, request, plan, ...(ledgerRow !== undefined && ledgerRowBegin !== undefined
+          ? ledgerRow : ledgerFamily !== undefined && ledgerFamilyBegin !== undefined
           ? ledgerFamily : ledgerRoot !== undefined && ledgerOpenBegin !== undefined
           ? [ledgerRoot] : footprintProjection !== undefined && footprintBegin !== undefined
           ? footprintProjection : requestProjection !== undefined && requestProjectionBegin !== undefined
@@ -1188,10 +1242,14 @@ export function prepareInstalledEffectControlConstruction(run) {
           ...(nativeConstruction === undefined ? [] : [nativeConstruction])]));
       originalRecord();
       invoking = true;
-      const value = Reflect.apply(method, receiver, metadata ? [plan] : args);
+      const value = Reflect.apply(method, receiver, metadata && method === shape ? [plan] : args);
       invoking = false;
       if (failed) throw primary;
       retainInvalid(value);
+      // These closed key entrances return Core Results. Preserve an actual
+      // resource/semantic refusal before another current callback can replace
+      // its cause; a later call cannot reconstruct the failed key cohort.
+      if (metadata && method !== shape) checked(value);
       originalRecord();
       if (metadata) observePlan();
       else checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
@@ -1233,8 +1291,8 @@ export function prepareInstalledEffectControlConstruction(run) {
   };
   // The installing constructor owns this optional opaque Common quote. No
   // Host scalar pricing or provider-runtime opaque value crosses the seam.
-  work = (receiver, method, args, nativeConstruction) =>
-    invoke(receiver, method, args, undefined, false, undefined, undefined, undefined, undefined, nativeConstruction);
+  work = (receiver, method, args, nativeConstruction, memberReceipt = false) =>
+    invoke(receiver, method, args, undefined, false, undefined, undefined, undefined, undefined, nativeConstruction, memberReceipt);
   // Installing Site issuers alone use this fixed Core constructor family.
   // Legacy runtimes keep the complete generic frame; JS quotes no quantities.
   const grant = (receiver, method, args) => invoke(receiver, method, args, undefined, true);
@@ -1271,11 +1329,37 @@ export function prepareInstalledEffectControlConstruction(run) {
   const ledgerFamily = (receiver, method, args, counts, entries, bytes, nodes, depth) =>
     invoke(receiver, method, args, undefined, false, undefined, undefined,
       undefined, [counts, entries, bytes, nodes, depth]);
+  const ledgerRow = (receiver, method, args, kind, bytes, nodes, depth, responseBytes) => {
+    if (!['entry', 'response', 'receipt', 'quantity'].includes(kind) ||
+        ![bytes, nodes, depth, responseBytes].every(value => Number.isSafeInteger(value) && value > 0)) {
+      fail('InvalidInstalledEffectControlConstruction');
+    }
+    return invoke(receiver, method, args, undefined, false, undefined, undefined,
+      undefined, undefined, undefined, false, [kind, bytes, nodes, depth, responseBytes]);
+  };
+  // The original SQLite history reader invokes this before materializing its
+  // same-transaction rows. It extends the active frame, never another owner.
+  const ledgerHistory = (count, wireUnits) => {
+    if (retired) fail('InstalledEffectControlConstructionRetired');
+    if (failed) throw primary;
+    if (!working || !run.selecting || codecWorking || historyWorking) fail('InstalledEffectControlConstructionPending');
+    if (!Number.isSafeInteger(count) || count < 0 || count > 2147483647 || !Number.isSafeInteger(wireUnits) || wireUnits < 0 ||
+        typeof ledgerHistoryGrow !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    historyWorking = true;
+    try {
+      originalRecord();
+      checked(Reflect.apply(ledgerHistoryGrow, runtime, [parent, prepared, request, plan, count, BigInt(wireUnits)]));
+      originalRecord();
+    } catch (cause) {
+      failed = true; primary = cause;
+      throw cause;
+    } finally { historyWorking = false; }
+  };
   // Only the original Ledger invokes this nested synchronous seam. The outer
   // control frame retains every output. The selected Ledger family adds its
   // coheld snapshot/array demand; generic frames retain the full family floor.
   // No Preview one-use identity or physical occurrence is reused.
-  const ledgerCodec = (receiver, method, args, wire, nodes = 512, depth = 16) => {
+  const ledgerCodec = (receiver, method, args, wire, nodes = 512, depth = 16, receiptWire) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (!working || !run.selecting || codecWorking) fail('InstalledEffectControlConstructionPending');
@@ -1283,13 +1367,15 @@ export function prepareInstalledEffectControlConstruction(run) {
         wire !== undefined && typeof wire !== 'string' ||
         !Number.isSafeInteger(nodes) || nodes < 1 || nodes > 4096 ||
         !Number.isSafeInteger(depth) || depth < 1 || depth > 32 ||
-        typeof codecBegin !== 'function' || typeof codecComplete !== 'function') {
+        receiptWire !== undefined && (typeof receiptWire !== 'boolean' || typeof wire !== 'string') ||
+        typeof (receiptWire === undefined ? codecBegin : receiptCodecBegin) !== 'function' || typeof codecComplete !== 'function') {
       fail('InstalledEffectControlRuntimeUnavailable');
     }
     codecWorking = true;
     try {
       originalRecord();
-      checked(Reflect.apply(codecBegin, runtime, [parent, prepared, request, plan, wire, nodes, depth]));
+      checked(Reflect.apply(receiptWire === undefined ? codecBegin : receiptCodecBegin, runtime,
+        [parent, prepared, request, plan, wire, nodes, depth, ...(receiptWire === undefined ? [] : [receiptWire])]));
       originalRecord();
       const value = Reflect.apply(method, receiver, args);
       if (failed) throw primary;
@@ -1302,6 +1388,10 @@ export function prepareInstalledEffectControlConstruction(run) {
       failed = true; primary = cause;
       throw cause;
     } finally { codecWorking = false; }
+  };
+  const receiptCodec = (receiver, method, args, wire, nodes, depth, receiptWire) => {
+    if (typeof receiptWire !== 'boolean') fail('InstalledEffectControlRuntimeUnavailable');
+    return ledgerCodec(receiver, method, args, wire, nodes, depth, receiptWire);
   };
   const parsePreview = (wire, borrowOriginal = false) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
@@ -1408,10 +1498,15 @@ export function prepareInstalledEffectControlConstruction(run) {
     // Core control backing. A retained Error may itself keep a heavy prefix.
     primary = undefined;
     previewInputWire = previewInput = undefined;
+    retireInstalledEffectDependencyOriginal(work);
     retired = true;
     return true;
   };
+  registerInstalledEffectDependencyOriginal(work,{runtime,parent,prepared,request,plan,current:originalRecord});
   return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec, grant, requestProjection, footprint, ledgerOpen, ledgerFamily,
+    ...(typeof ledgerRowBegin === 'function' ? {ledgerRow} : {}),
+    ...(typeof ledgerHistoryGrow === 'function' ? {ledgerHistory} : {}),
+    ...(typeof receiptCodecBegin === 'function' ? {receiptCodec} : {}),
     retainInputs, retainRecoveredInputs}));
 }
 
@@ -1420,7 +1515,14 @@ export function installedEffectSavedControlEntryLimit(recipes) {
   return Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxEntryBytes ??
     effectLedgerImplementationBounds.maxEntryBytes));
 }
-export function installedEffectRecipeForControlEntryLimit(recipe, maxEntryBytes) {
-  return recipe?.savedControlCodec !== undefined && maxEntryBytes > recipe.savedControlCodec.maxEntryBytes
+export function installedEffectSavedControlResponseLimit(recipes) {
+  return Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxResponseBytes ??
+    effectLedgerImplementationBounds.maxResponseBytes));
+}
+export function installedEffectRecipeForControlEntryLimit(recipe, maxEntryBytes,
+  maxResponseBytes = effectLedgerImplementationBounds.maxResponseBytes) {
+  const codec = recipe?.savedControlCodec;
+  return codec !== undefined && (maxEntryBytes > codec.maxEntryBytes ||
+    maxResponseBytes > (codec.maxResponseBytes ?? effectLedgerImplementationBounds.maxResponseBytes))
     ? Object.freeze({...recipe, controlsPerRow: recipe.savedControlCodec.fallbackCapacity}) : recipe;
 }

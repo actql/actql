@@ -119,7 +119,7 @@ fn binary_input_scan_text(
   scan : BoundedBinaryInputScan,
   text : String,
   index : Int,
-) -> Result[Unit, BinaryInputScanIssue] {
+) -> Result[Int, BinaryInputScanIssue] {
   if index >= text.length() {
     return Err(InputUnavailable)
   }
@@ -149,10 +149,7 @@ fn binary_input_scan_text(
   scan.budget.text += width
   scan.budget.work += width
   let next = index + (if width == 4 { 2 } else { 1 })
-  if next < text.length() && !binary_input_push(scan, ScanText(text, next)) {
-    return Err(WorkspaceLimit)
-  }
-  Ok(())
+  Ok(next)
 }
 
 ///|
@@ -274,7 +271,11 @@ fn binary_input_scan_frame(
     ScanText(text, index) =>
       match binary_input_scan_text(scan, text, index) {
         Err(issue) => return Err(issue)
-        Ok(_) => ()
+        Ok(next) =>
+          if next < text.length() &&
+            !binary_input_push(scan, ScanText(text, next)) {
+            return Err(WorkspaceLimit)
+          }
       }
   }
   Ok(())
@@ -291,6 +292,25 @@ fn advance_binary_input_scan(
   }
   if !spend_control(scan.control, 1) {
     return Err(ControlLimit)
+  }
+  if scan.frames.last() is Some(ScanText(text, index)) {
+    // Advance this already-owned immutable text cursor in its existing slot.
+    // No release/re-reserve or workspace-growth callback occurs between units.
+    match binary_input_scan_text(scan, text, index) {
+      Err(issue) => {
+        scan.frames.pop() |> ignore
+        release_slots(scan.workspace, 1)
+        return Err(issue)
+      }
+      Ok(next) =>
+        if next < text.length() {
+          scan.frames[scan.frames.length() - 1] = ScanText(text, next)
+        } else {
+          scan.frames.pop() |> ignore
+          release_slots(scan.workspace, 1)
+        }
+    }
+    return Ok(false)
   }
   if scan.frames.pop() is Some(frame) {
     release_slots(scan.workspace, 1)

@@ -11,6 +11,9 @@ struct NormalizedPublicModelTask {
   provider : String
   task_wire : String
   task_cid : String
+  task_bytes : Int
+  task_nodes : Int
+  task_depth : Int
   prompt_wire : String
   prompt_cid : String
   work : Int
@@ -258,7 +261,9 @@ fn normalize_public_model_task_selected(
       writer,
       budget,
     )
-    let task_wire = @encode.finish(writer)
+    let (task_wire, task_bytes, task_nodes, task_depth) = @encode.finish_text_usage(
+      writer,
+    )
     Ok({
       declaration,
       mock_profile,
@@ -268,6 +273,9 @@ fn normalize_public_model_task_selected(
       provider,
       task_wire,
       task_cid,
+      task_bytes,
+      task_nodes,
+      task_depth,
       prompt_wire,
       prompt_cid,
       work: budget.work,

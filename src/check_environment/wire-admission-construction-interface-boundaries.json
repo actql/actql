@@ -118,7 +118,7 @@
     },
     {
       "module": "src/check_environment/model_task_construction.mbt",
-      "sha256": "6c3979f4436de2b746c8a7f1b3e472ab641d937292896af54a747c3654fbeee2",
+      "sha256": "fc42113950029722de2bbeaaabf31442751643e446018682008626f80a32c28b",
       "operations": [
         {
           "name": "empty_model_tasks_construction_extent",
@@ -131,6 +131,14 @@
         {
           "name": "empty_model_tasks_retained_units",
           "declaration": "empty_model_tasks_retained_units ( ) - > @ shape . CollectionConstructionExtent"
+        },
+        {
+          "name": "model_tasks_admission_construction_extent",
+          "declaration": "model_tasks_admission_construction_extent ( original : WireEnvironment , ) - > RegistryConstructionExtent ?"
+        },
+        {
+          "name": "original_model_tasks_admission_limits",
+          "declaration": "original_model_tasks_admission_limits ( original : WireEnvironment , ) - > ModelTaskLimits ?"
         }
       ],
       "exports": [],
@@ -208,12 +216,93 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "model_tasks_admission_construction_extent",
+            "original_model_tasks_admission_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "src/check_environment/model_task_construction.mbt",
+                "anchor": "pub fn empty_model_tasks_construction_extent("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/run_publication_host/client_environment.mbt",
-      "sha256": "b0952081a74afa18b5407beafc437c4e8622e567bbf0c638723185d521a82702",
+      "sha256": "d1c5c671cdc80bbfbfd39a91ea6f3305bb1677d06e9fcf6e1894215080ad894c",
       "operations": [
         {
           "name": "admit_client_check_environment",
@@ -222,6 +311,10 @@
         {
           "name": "admit_client_check_environment_from_wire",
           "declaration": "admit_client_check_environment_from_wire ( wire : @ environment . WireEnvironment , expressions : @ context . ExpressionProfiles , operations : @ context . PureOperationProfiles , numeric_profile ? : @ numeric . Profile ?"
+        },
+        {
+          "name": "admit_client_check_environment_from_wire_with_numeric_profile_cid",
+          "declaration": "admit_client_check_environment_from_wire_with_numeric_profile_cid ( wire : @ environment . WireEnvironment , expressions : @ context . ExpressionProfiles , operations : @ context . PureOperationProfiles , numeric_profile_cid : String , graph ? : Bool"
         },
         {
           "name": "admit_client_check_environment_wire",
@@ -300,6 +393,86 @@
               {
                 "path": "src/check_environment/wire-admission-construction-interface.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "admit_client_check_environment_from_wire_with_numeric_profile_cid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "src/run_publication_host/client_environment.mbt",
+                "anchor": "pub fn admit_client_check_environment("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
               }
             ]
           }
@@ -393,7 +566,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_check_environment_construction_bridge.mbt",
-      "sha256": "6c07a542e86acfcf7496abd8e7842fbfa972d80357eab4e34102333354f73386",
+      "sha256": "4781aae7b9c9cb1d5e322d9e3a26bd02ef3e73f34089b7b03dc906437d8a7d8b",
       "operations": [
         {
           "name": "client_check_environment_add_extent",
@@ -410,6 +583,18 @@
         {
           "name": "client_program_check_environment_from_wire_construction_capacity",
           "declaration": "client_program_check_environment_from_wire_construction_capacity ( original : @ check_environment . WireEnvironment , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_check_environment_from_wire_with_graph_profile",
+          "declaration": "client_program_check_environment_from_wire_with_graph_profile ( original : @ check_environment . WireEnvironment , text_time : Bool , veca : Bool , rela : Bool , sga : Bool , tea : Bool , calendar : Bool , text_rank : Bool , numeric_profile_cid : String , graph_law_cid : String , ) - > @ program_check . CheckEnvironment ?"
+        },
+        {
+          "name": "client_program_check_environment_model_from_wire_construction_capacity",
+          "declaration": "client_program_check_environment_model_from_wire_construction_capacity ( original : @ check_environment . WireEnvironment , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_check_environment_model_from_wire_with_graph_profile",
+          "declaration": "client_program_check_environment_model_from_wire_with_graph_profile ( original : @ check_environment . WireEnvironment , text_time : Bool , veca : Bool , rela : Bool , sga : Bool , tea : Bool , calendar : Bool , text_rank : Bool , numeric_profile_cid : String , graph_law_cid : String , ) - > @ program_check . CheckEnvironment ?"
         },
         {
           "name": "client_program_check_environment_wire_construction_capacity",
@@ -433,7 +618,8 @@
             "client_program_check_environment_from_wire",
             "client_program_check_environment_from_wire_construction_capacity",
             "client_program_check_environment_wire_construction_capacity",
-            "client_program_read_check_environment_wire"
+            "client_program_read_check_environment_wire",
+            "client_program_check_environment_from_wire_with_graph_profile"
           ],
           "exports": [],
           "attributes": {
@@ -498,12 +684,93 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_check_environment_model_from_wire_construction_capacity",
+            "client_program_check_environment_model_from_wire_with_graph_profile"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_check_environment_construction_bridge.mbt",
+                "anchor": "fn client_check_environment_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node_rela/client_check_environment_construction_bridge.mbt",
-      "sha256": "8265ef379b151be442f3738aac6bd525cfc468a5e3917f00df2079195cfe03fe",
+      "sha256": "0583d0c18040520770acd79908b96bcab10e173d842fbc11c4444929dee834f4",
       "operations": [
         {
           "name": "client_check_environment_add_extent",
@@ -520,6 +787,18 @@
         {
           "name": "client_program_check_environment_from_wire_construction_capacity",
           "declaration": "client_program_check_environment_from_wire_construction_capacity ( original : @ check_environment . WireEnvironment , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_check_environment_from_wire_with_graph_profile",
+          "declaration": "client_program_check_environment_from_wire_with_graph_profile ( original : @ check_environment . WireEnvironment , text_time : Bool , veca : Bool , rela : Bool , sga : Bool , tea : Bool , calendar : Bool , text_rank : Bool , numeric_profile_cid : String , graph_law_cid : String , ) - > @ program_check . CheckEnvironment ?"
+        },
+        {
+          "name": "client_program_check_environment_model_from_wire_construction_capacity",
+          "declaration": "client_program_check_environment_model_from_wire_construction_capacity ( original : @ check_environment . WireEnvironment , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_check_environment_model_from_wire_with_graph_profile",
+          "declaration": "client_program_check_environment_model_from_wire_with_graph_profile ( original : @ check_environment . WireEnvironment , text_time : Bool , veca : Bool , rela : Bool , sga : Bool , tea : Bool , calendar : Bool , text_rank : Bool , numeric_profile_cid : String , graph_law_cid : String , ) - > @ program_check . CheckEnvironment ?"
         },
         {
           "name": "client_program_check_environment_wire_construction_capacity",
@@ -543,7 +822,8 @@
             "client_program_check_environment_from_wire",
             "client_program_check_environment_from_wire_construction_capacity",
             "client_program_check_environment_wire_construction_capacity",
-            "client_program_read_check_environment_wire"
+            "client_program_read_check_environment_wire",
+            "client_program_check_environment_from_wire_with_graph_profile"
           ],
           "exports": [],
           "attributes": {
@@ -605,6 +885,620 @@
               {
                 "path": "src/check_environment/wire-admission-construction-interface.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_check_environment_model_from_wire_construction_capacity",
+            "client_program_check_environment_model_from_wire_with_graph_profile"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "src/connectors_builtin_node_rela/client_check_environment_construction_bridge.mbt",
+                "anchor": "fn client_check_environment_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/check_environment/public_model_task_construction.mbt",
+      "sha256": "01461e83d6c2acb48f20b802913710f1245a439d5dc8b054cb36bf3ce5c1dc90",
+      "exports": [],
+      "operations": [
+        {
+          "name": "model_task_contract_construction",
+          "declaration": "model_task_contract_construction ( limits : ModelTaskLimits , ) - > RegistryConstructionExtent ?"
+        },
+        {
+          "name": "model_task_contract_read_bounds",
+          "declaration": "model_task_contract_read_bounds ( nodes : Int , depth : Int , text : Int , ) - > @ value_contract . ReadConstructionInventory ?"
+        },
+        {
+          "name": "model_task_decode_construction",
+          "declaration": "model_task_decode_construction ( nodes : Int , depth : Int , ) - > RegistryConstructionExtent ?"
+        },
+        {
+          "name": "normalized_public_model_task_retained_extent",
+          "declaration": "normalized_public_model_task_retained_extent ( value : NormalizedPublicModelTask , ) - > RegistryConstructionExtent"
+        },
+        {
+          "name": "public_model_task_declaration_retained_extent",
+          "declaration": "public_model_task_declaration_retained_extent ( value : PublicModelTaskDeclaration , ) - > RegistryConstructionExtent ?"
+        },
+        {
+          "name": "public_model_task_document_construction_extent",
+          "declaration": "public_model_task_document_construction_extent ( wire : String , format : String , limits : ModelTaskLimits , ) - > RegistryConstructionExtent ?"
+        },
+        {
+          "name": "public_model_task_normalization_construction_extent",
+          "declaration": "public_model_task_normalization_construction_extent ( original : PublicModelTaskDeclaration , limits : ModelTaskLimits , ) - > RegistryConstructionExtent ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common public Task schema/normalization and full CheckEnvironment construction owners on same installation material",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "model_task_contract_construction",
+            "model_task_contract_read_bounds",
+            "model_task_decode_construction",
+            "normalized_public_model_task_retained_extent",
+            "public_model_task_declaration_retained_extent",
+            "public_model_task_document_construction_extent",
+            "public_model_task_normalization_construction_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "src/check_environment/public_model_task_construction.mbt",
+                "anchor": "pub fn public_model_task_document_construction_extent("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/check_environment/public_model_task_environment_construction.mbt",
+      "sha256": "4b475373596cf3712dfa38e9ad0b141c3571cf231a650a1009c3f90be9785eea",
+      "exports": [],
+      "operations": [
+        {
+          "name": "public_model_task_environment_construction_extent",
+          "declaration": "public_model_task_environment_construction_extent ( base_bytes : Int , base_nodes : Int , base_depth : Int , base_members : Int , base_tasks : Int , tasks : Array [ NormalizedPublicModelTask ] , ) - > RegistryConstructionExtent ?"
+        },
+        {
+          "name": "public_model_task_environment_limits",
+          "declaration": "public_model_task_environment_limits ( base_bytes : Int , base_nodes : Int , base_depth : Int , base_members : Int , base_tasks : Int , tasks : Array [ NormalizedPublicModelTask ] , ) - > ModelTaskLimits ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common public Task schema/normalization and full CheckEnvironment construction owners on same installation material",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "public_model_task_environment_construction_extent",
+            "public_model_task_environment_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "src/check_environment/public_model_task_environment_construction.mbt",
+                "anchor": "pub fn public_model_task_environment_limits("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_model_task_construction_bridge.mbt",
+      "sha256": "4deebae5f8e88c9dc354192a379aefe2ddbdfe2436d313a06a8b81da377b260b",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_accumulate_model_task_construction_capacity",
+          "declaration": "client_program_accumulate_model_task_construction_capacity ( previous : @ execution . ExecutionCapacity ? , current : @ execution . ExecutionCapacity ? , ) - > Result [ @ execution . ExecutionCapacity ? , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_model_provider_defaults_read_construction_capacity",
+          "declaration": "client_program_model_provider_defaults_read_construction_capacity ( provider : String , installation : String , contract : String , configuration : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_members : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_model_provider_defaults_resolution_capacities",
+          "declaration": "client_program_model_provider_defaults_resolution_capacities ( original : @ publication_host . ClientModelProviderDefaults , tokens : Int64 ? , ) - > Array [ @ execution . ExecutionCapacity ? ]"
+        },
+        {
+          "name": "client_program_model_provider_defaults_retained_capacity",
+          "declaration": "client_program_model_provider_defaults_retained_capacity ( original : @ publication_host . ClientModelProviderDefaults , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_project_model_task_selection_construction_capacity",
+          "declaration": "client_program_project_model_task_selection_construction_capacity ( registry : @ publication_host . ClientProjectModelRegistry , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_project_model_task_selection_retained_capacity",
+          "declaration": "client_program_project_model_task_selection_retained_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_public_model_task_environment_construction_capacity",
+          "declaration": "client_program_public_model_task_environment_construction_capacity ( bytes : Int , nodes : Int , depth : Int , members : Int , existing_tasks : Int , tasks : Array [ @ check_environment . NormalizedPublicModelTask ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_public_model_task_environment_limits",
+          "declaration": "client_program_public_model_task_environment_limits ( bytes : Int , nodes : Int , depth : Int , members : Int , existing_tasks : Int , tasks : Array [ @ check_environment . NormalizedPublicModelTask ] , ) - > Array [ Int ] ?"
+        },
+        {
+          "name": "client_program_public_model_task_normalization_construction_capacity",
+          "declaration": "client_program_public_model_task_normalization_construction_capacity ( original : @ check_environment . PublicModelTaskDeclaration , defaults : @ publication_host . ClientModelProviderDefaults , max_bytes : Int , max_nodes : Int , max_depth : Int , max_members : Int , contract_nodes : Int , contract_depth : Int , contract_text : Int , max_work : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_public_model_task_normalized_retained_capacity",
+          "declaration": "client_program_public_model_task_normalized_retained_capacity ( original : @ check_environment . NormalizedPublicModelTask , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_public_model_task_read_construction_capacity",
+          "declaration": "client_program_public_model_task_read_construction_capacity ( wire : String , format : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_members : Int , contract_nodes : Int , contract_depth : Int , contract_text : Int , max_work : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_public_model_task_retained_capacity",
+          "declaration": "client_program_public_model_task_retained_capacity ( original : @ check_environment . PublicModelTaskDeclaration , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "role": "generated-binding",
+      "owner": "Existing Common populated Task constructor bridge and canonical RelA mirror; empty-only proof remains separate",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_accumulate_model_task_construction_capacity",
+            "client_program_model_provider_defaults_read_construction_capacity",
+            "client_program_model_provider_defaults_resolution_capacities",
+            "client_program_model_provider_defaults_retained_capacity",
+            "client_program_project_model_task_selection_construction_capacity",
+            "client_program_project_model_task_selection_retained_capacity",
+            "client_program_public_model_task_environment_construction_capacity",
+            "client_program_public_model_task_environment_limits",
+            "client_program_public_model_task_normalization_construction_capacity",
+            "client_program_public_model_task_normalized_retained_capacity",
+            "client_program_public_model_task_read_construction_capacity",
+            "client_program_public_model_task_retained_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_model_task_construction_bridge.mbt",
+                "anchor": "pub fn client_program_public_model_task_read_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_model_task_construction_bridge.mbt",
+      "sha256": "86c86a5d4905a4c6ec861422d8ef2e7a2b19ee297e3aa682a8476604f16122e3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_accumulate_model_task_construction_capacity",
+          "declaration": "client_program_accumulate_model_task_construction_capacity ( previous : @ execution . ExecutionCapacity ? , current : @ execution . ExecutionCapacity ? , ) - > Result [ @ execution . ExecutionCapacity ? , @ resources . PreparationCapacityIssue ]"
+        },
+        {
+          "name": "client_program_model_provider_defaults_read_construction_capacity",
+          "declaration": "client_program_model_provider_defaults_read_construction_capacity ( provider : String , installation : String , contract : String , configuration : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_members : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_model_provider_defaults_resolution_capacities",
+          "declaration": "client_program_model_provider_defaults_resolution_capacities ( original : @ publication_host . ClientModelProviderDefaults , tokens : Int64 ? , ) - > Array [ @ execution . ExecutionCapacity ? ]"
+        },
+        {
+          "name": "client_program_model_provider_defaults_retained_capacity",
+          "declaration": "client_program_model_provider_defaults_retained_capacity ( original : @ publication_host . ClientModelProviderDefaults , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_project_model_task_selection_construction_capacity",
+          "declaration": "client_program_project_model_task_selection_construction_capacity ( registry : @ publication_host . ClientProjectModelRegistry , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_project_model_task_selection_retained_capacity",
+          "declaration": "client_program_project_model_task_selection_retained_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_public_model_task_environment_construction_capacity",
+          "declaration": "client_program_public_model_task_environment_construction_capacity ( bytes : Int , nodes : Int , depth : Int , members : Int , existing_tasks : Int , tasks : Array [ @ check_environment . NormalizedPublicModelTask ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_public_model_task_environment_limits",
+          "declaration": "client_program_public_model_task_environment_limits ( bytes : Int , nodes : Int , depth : Int , members : Int , existing_tasks : Int , tasks : Array [ @ check_environment . NormalizedPublicModelTask ] , ) - > Array [ Int ] ?"
+        },
+        {
+          "name": "client_program_public_model_task_normalization_construction_capacity",
+          "declaration": "client_program_public_model_task_normalization_construction_capacity ( original : @ check_environment . PublicModelTaskDeclaration , defaults : @ publication_host . ClientModelProviderDefaults , max_bytes : Int , max_nodes : Int , max_depth : Int , max_members : Int , contract_nodes : Int , contract_depth : Int , contract_text : Int , max_work : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_public_model_task_normalized_retained_capacity",
+          "declaration": "client_program_public_model_task_normalized_retained_capacity ( original : @ check_environment . NormalizedPublicModelTask , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_public_model_task_read_construction_capacity",
+          "declaration": "client_program_public_model_task_read_construction_capacity ( wire : String , format : String , max_bytes : Int , max_nodes : Int , max_depth : Int , max_members : Int , contract_nodes : Int , contract_depth : Int , contract_text : Int , max_work : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_public_model_task_retained_capacity",
+          "declaration": "client_program_public_model_task_retained_capacity ( original : @ check_environment . PublicModelTaskDeclaration , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "role": "generated-binding",
+      "owner": "Existing Common populated Task constructor bridge and canonical RelA mirror; empty-only proof remains separate",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_accumulate_model_task_construction_capacity",
+            "client_program_model_provider_defaults_read_construction_capacity",
+            "client_program_model_provider_defaults_resolution_capacities",
+            "client_program_model_provider_defaults_retained_capacity",
+            "client_program_project_model_task_selection_construction_capacity",
+            "client_program_project_model_task_selection_retained_capacity",
+            "client_program_public_model_task_environment_construction_capacity",
+            "client_program_public_model_task_environment_limits",
+            "client_program_public_model_task_normalization_construction_capacity",
+            "client_program_public_model_task_normalized_retained_capacity",
+            "client_program_public_model_task_read_construction_capacity",
+            "client_program_public_model_task_retained_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated inputs and outputs:"
+              },
+              {
+                "path": "src/connectors_builtin_node_rela/client_model_task_construction_bridge.mbt",
+                "anchor": "pub fn client_program_public_model_task_read_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Populated extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual same-parent loader registers 129 original Tasks once and funds complete nonempty final admission'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-task-funding.actual.test.mjs",
+                "anchor": "test('actual explicit maxTasks128 refuses 129 before acquiring or decoding a Task'"
+              },
+              {
+                "path": "src/check_environment/public_model_task_registry_demand_wbtest.mbt",
+                "anchor": "test \"public Task final constructor follows actual ordered member usage for 129 tasks\""
               }
             ]
           }

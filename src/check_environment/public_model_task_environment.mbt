@@ -73,8 +73,34 @@ pub fn project_public_model_task_environment(
     tasks.length() > limits.bodies.max_members - environment.members {
     return Err({ kind: TaskLimit, source: Some(root), })
   }
+  // The original writer already observed each final member's UTF8 bytes,
+  // value nodes and depth. Fold only those scalar cells; do not emit, parse,
+  // normalize or validate an earlier Task again to quote this final writer.
+  // Keeping the original base includes its existing array and CID spelling.
+  let mut output_bytes = environment.bytes.to_int64()
+  let mut output_nodes = environment.nodes.to_int64()
+  let mut output_depth = @decode.admission_usage(environment.root).depth
+  for task in tasks {
+    output_bytes += task.task_bytes.to_int64() + 1L
+    output_nodes += task.task_nodes.to_int64()
+    output_depth = Int::max(output_depth, task.task_depth + 2)
+  }
+  if output_bytes > limits.bodies.max_bytes.to_int64() ||
+    output_nodes > limits.bodies.max_nodes.to_int64() ||
+    output_depth > limits.bodies.max_depth {
+    return Err({ kind: BodyLimit, source: Some(root), })
+  }
+  let selected = {
+    ..limits,
+    bodies: {
+      ..limits.bodies,
+      max_bytes: output_bytes.to_int(),
+      max_nodes: output_nodes.to_int(),
+      max_depth: output_depth,
+    },
+  }
   let budget : ModelTaskBudget = {
-    limits,
+    limits: selected,
     work: 0,
     contract_nodes: 0,
     contract_text: 0,
@@ -90,7 +116,7 @@ pub fn project_public_model_task_environment(
       // The complete member hash is distinct from its Task self-identity.
       // Reserve before UTF8 allocation/hash; the original material is not
       // decoded or reconstructed by a Host-side JSON implementation.
-      model_task_charge(budget, limits.bodies.max_bytes, root)
+      model_task_charge(budget, task.task_bytes, root)
       match @scalar.admit_utf8_length(task.task_wire, limits.bodies.max_bytes) {
         Ok(_) => ()
         Err(_) => model_task_fail(BodyLimit, root)
@@ -117,8 +143,8 @@ pub fn project_public_model_task_environment(
     }
     let writer = public_task_emission_writer(budget, root)
     emit_public_task_environment(environment, entries, None, writer, budget)
-    let preimage = @encode.finish(writer)
-    model_task_charge(budget, limits.bodies.max_bytes, root)
+    let (preimage, preimage_bytes, _, _) = @encode.finish_text_usage(writer)
+    model_task_charge(budget, preimage_bytes, root)
     let identity = "sha256:" + @sha.hex(@utf8.encode(preimage))
     let writer = public_task_emission_writer(budget, root)
     emit_public_task_environment(

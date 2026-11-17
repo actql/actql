@@ -3,7 +3,7 @@
 /// New values cannot acquire completion authority without the exact source and
 /// successful verification of its whole ordered canonical identity.
 struct CompletedOutputImport {
-  source : CompletedOutput
+  mut source : CompletedOutput
   admitted : AdmittedOutput
   stream : AdmittedOutputStream
   mut open : Bool
@@ -100,17 +100,26 @@ pub fn prepare_completed_output_import(
     Ok(admitted) => admitted
     Err(issue) => return Err(Admission(issue))
   }
+  // This consumer discards canonical text. Use the existing hash-only sink
+  // so a physical output batch is not a hidden logical row-size limit.
+  // Value admission and the full ordered canonical identity remain unchanged.
   let stream = match
-    prepare_admitted_output_stream(
+    prepare_admitted_stream(
       receipt.owner,
       receipt.target,
       max_rows,
       values,
       wire,
       max_batch_bytes,
+      false,
     ) {
     Ok(stream) => stream
     Err(issue) => return Err(Encoding(issue))
+  }
+  // Keep the original zero-batch refusal after the same admission/wire checks.
+  // Actual input framing still owns and enforces its positive physical window.
+  if max_batch_bytes == 0 {
+    return Err(Encoding(Wire(Encoding(@encode.OutputLimit))))
   }
   admitted.buffer.deferred_reclamation = deferred_reclamation
   stream.buffer.deferred_reclamation = deferred_reclamation
@@ -273,12 +282,66 @@ pub fn finish_completed_output_import(
     ),
   }
   value.completed = true
-  Ok({
+  let output : CompletedOutput = {
     completion,
     target: original.target,
     table: Some(table),
     representation: None,
-  })
+  }
+  // The original source is needed only through identity verification above.
+  // Reuse its existing slot after handoff; no second standing output/Some is
+  // added to importers at other Host/Native entrances. Snapshot old-reference
+  // custody remains separately held by that original snapshot owner.
+  value.source = output
+  Ok(output)
+}
+
+///|
+// These dense scalar admissions retain no parser Cursor or callback. Text
+// admission stores the SAME decoded String; receiving DATA already covers it.
+fn completed_import_plain_scalar_schema(schema : @schema.Schema) -> Bool {
+  if !@schema.all_fields_required(schema) {
+    return false
+  }
+  for index in 0..<@schema.field_count(schema) {
+    match @schema.field_at(schema, index).unwrap().contract.shape {
+      @contract.Text(_) | @contract.Number | @contract.Boolean => ()
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
+/// Pure constructor-overlap DATA from THIS successful conversion. This does
+/// not release capacity or acknowledge physical framing/Store cleanup. Only
+/// the enclosing original snapshot may reuse its prepaid parser text term
+/// after its separate framing, body and reference cleanup has really finished.
+pub fn completed_output_import_shared_scalar_text_bytes(
+  value : CompletedOutputImport,
+  output : CompletedOutput,
+) -> Int64? {
+  if !value.completed ||
+    value.open ||
+    value.reading ||
+    !physical_equal(value.source, output) ||
+    !completed_import_plain_scalar_schema(value.admitted.buffer.schema) {
+    return None
+  }
+  value.reading = true
+  let available = completed_output_available(output)
+  value.reading = false
+  if !available ||
+    value.open ||
+    !value.completed ||
+    !physical_equal(value.source, output) {
+    return None
+  }
+  checked_preparation_add_product(
+    0L,
+    value.admitted.buffer.budget.text.to_int64(),
+    8L,
+  )
 }
 
 ///|

@@ -19,9 +19,10 @@ let node_closed_carrier_demand_environment : String =
   #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:65b8e4316a5fdf0a0e8d67a38d8d676e915653929bfe1ecdc64d823d177c9261","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_construction_edges":1000,"max_graph_construction_input_rows":1000,"max_graph_construction_nodes":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"},"text_time_evaluation":{"max_input_codepoints":4096,"max_input_utf8_bytes":16384,"max_output_bytes":1048576,"max_pattern_bytes":4096,"max_replacements":4096,"version":"actql-text-time-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
 
 ///|
-// Real installed Node provider factory and final configured task fold. No
-// transport, Account, native Run or physical backing is supplied by this test.
-test "closed Carrier Node factory retains actual simultaneous envelopes within original Resource policy" {
+// Real installed Node provider factory and final configured task fold. The
+// full-future quote is DATA, not an initial reservation or runtime acceptance.
+// No transport, Account, native Run or physical backing is supplied here.
+test "closed Carrier Node factory keeps full quotes distinct from finite runtime policy" {
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
     node_closed_carrier_demand_environment,
@@ -50,6 +51,20 @@ test "closed Carrier Node factory retains actual simultaneous envelopes within o
       @publication_host.client_standard_program_preparation_limits(),
     ).unwrap()
     assert_eq(client_program_task_count(prepared), tasks)
+    // Runtime demand keeps the same finite policy and admits each actual
+    // provider/import/output before construction on its original Ledger.
+    // It does not promise that every full future envelope can coexist.
+    let runtime = @client_local_host.prepare_source_free_runtime_requirements(
+      prepared,
+      contracts,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap()
+    let maximum = runtime.maximum_limits()
+    assert_eq(maximum.retained_bytes, 536870912L)
+    assert_eq(maximum.execution_bytes, 536870912L)
+    assert_true(runtime.simultaneous_limits() is None)
     let configured = client_program_prepare_installed_managed_source_free_with_contracts(
       prepared,
       contracts,
@@ -61,9 +76,26 @@ test "closed Carrier Node factory retains actual simultaneous envelopes within o
     let limits = @client_local_host.prepared_installed_managed_source_free_requirements(
       configured,
     )
-    assert_true(limits[3] <= 536870912L)
-    assert_true(limits[4] <= 536870912L)
-    assert_true(limits[5] <= 536870912L)
+    // The configured legacy quote still includes all original task envelopes
+    // and cumulative import maxima, including unstarted future storage. A
+    // value above the runtime policy is not proof of required startup memory.
+    // Shared Local inventory tests check the exact complete-envelope sum.
+    assert_eq(limits.length(), 6)
+    assert_eq(limits[0], maximum.planning_work.to_int64())
+    assert_eq(limits[1], maximum.attempts.to_int64())
+    assert_eq(limits[2], maximum.holdings.to_int64())
+    assert_true(limits[3] >= maximum.transfer_bytes)
+    assert_true(limits[4] > 0L && limits[5] > 0L)
+    assert_eq(runtime.maximum_limits(), maximum)
+    assert_true(
+      runtime.matches(
+        prepared,
+        contracts,
+        assets.values,
+        Some(assets.fragment),
+        assets.ordered,
+      ),
+    )
     println(
       "CONFIGURED_CARRIER \{family} tasks=\{tasks} transfer=\{limits[3]} retained=\{limits[4]} execution=\{limits[5]}",
     )

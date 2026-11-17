@@ -4,19 +4,21 @@
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 
-export function installHttpRequestPreparation(preparation, registry, originals) {
+export function installHttpRequestPreparation(preparation, registry, originals, {rawInput = false} = {}) {
   const manager = preparation.requestPreparation();
   const {host, installation, generation} = originals;
-  return (operation, request) => {
+  const prepare = (operation, request, raw) => {
     let settled;
     const pending = new Promise(resolve => {settled = resolve;});
     registry.retainRequest(host, installation, generation, request, pending);
-    let receipt, body = request, finished = false;
+    let receipt = raw?.receipt, body = request, finished = false;
     const finish = terminal => {
       if (finished) return;
       try {
+        if (raw !== undefined) raw.ending = true;
         if (receipt !== undefined) manager.finishSourceProducer(receipt, terminal);
         finished = true;
+        if (raw !== undefined) raw.finished = true;
       } catch (cause) {
         // The same manager/initial control retains failed producer cleanup.
         // Preserve a primary dispatch failure instead of replacing it with
@@ -27,7 +29,9 @@ export function installHttpRequestPreparation(preparation, registry, originals) 
     try {
       if (operation !== 'connect') preparation.beforeResultPublicationOperation(operation);
       if (['plan', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation)) {
-        receipt = manager.beforeSourceSnapshot(request.kind, request.input, request, request.connection);
+        if (raw === undefined) {
+          receipt = manager.beforeSourceSnapshot(request.kind, request.input, request, request.connection);
+        } else manager.bindHttpRequestKind(receipt, request.kind, request.connection);
         body = manager.captureSourceSnapshot(receipt, request, snapshotClientRequest);
         manager.assertSourceSnapshotCurrent(receipt);
         freezeInput(body);
@@ -49,4 +53,49 @@ export function installHttpRequestPreparation(preparation, registry, originals) 
       throw cause;
     }
   };
+  if (!rawInput) return prepare;
+  const before = manager.beforeHttpRequestBody, reserve = manager.reserveHttpRequestBody;
+  const json = manager.prepareHttpRequestJson, bind = manager.bindHttpRequestKind;
+  if ([before, reserve, json, bind].some(method => typeof method !== 'function')) {
+    throw new TypeError('InvalidClientHostPreparation');
+  }
+  Object.defineProperty(prepare, 'beforeBody', {value(operation, wireLimit) {
+    const raw = {receipt: Reflect.apply(before, manager, []),
+      finished: false, ending: false, prepared: false, jsonReady: false};
+    const active = () => {
+      if (raw.finished || raw.ending || raw.prepared) throw new Error('InvalidClientHostPreparation');
+    };
+    return Object.freeze({
+      beforeRead(bytes, chunks, quantum) {
+        active();
+        if (raw.jsonReady) throw new Error('InvalidClientHostPreparation');
+        Reflect.apply(reserve, manager, [raw.receipt, bytes, chunks, quantum, wireLimit]);
+      },
+      beforeJson(wire) {
+        active();
+        if (raw.jsonReady) throw new Error('InvalidClientHostPreparation');
+        Reflect.apply(json, manager, [raw.receipt, wire]);
+        raw.jsonReady = true;
+      },
+      prepareRequest(request) {
+        active();
+        if (!raw.jsonReady) throw new Error('InvalidClientHostPreparation');
+        raw.prepared = true;
+        return prepare(operation, request, raw);
+      },
+      finish(terminal) {
+        if (raw.finished || raw.ending) return;
+        raw.ending = true;
+        // A failed original remains in the manager's producer inventory.
+        // This call returns no acknowledgement for an external stream owner.
+        try {
+          Reflect.apply(manager.finishSourceProducer, manager, [raw.receipt, terminal]);
+          raw.finished = true;
+        } catch (cause) {
+          if (terminal !== 'failed') throw cause;
+        }
+      },
+    });
+  }});
+  return Object.freeze(prepare);
 }

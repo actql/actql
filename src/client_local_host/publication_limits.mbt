@@ -19,6 +19,7 @@ fn client_local_result_publication_plan(
   graph : @strategy.CheckedDAG,
   rows : Int,
   envelope : ClientLocalResultEnvelope?,
+  execution_work : Int,
 ) -> ClientLocalResultPublicationPlan {
   let schema_limits : @execution.RelationSchemaIdentityLimits = {
     max_fields: envelope.map(value => value.fields).unwrap_or(100),
@@ -30,12 +31,13 @@ fn client_local_result_publication_plan(
     rows,
     envelope,
     // Unordered Result view construction still initializes each row index.
-    // Ordered comparison keeps its independent finite phase guard; metadata
-    // entry capacity is a different unit and cannot replace this work budget.
+    // Ordered comparisons use the SAME selected finite execution-work policy.
+    // The publication continuation still meters actual progress cumulatively;
+    // this phase ceiling is not an additional Resource grant.
     order_work: if envelope is Some(value) && value.order_terms == 0 {
-      rows
+      Int::min(rows, execution_work)
     } else {
-      10000
+      execution_work
     },
     wire_bytes: client_local_result_scalar_wire_bytes(graph, rows),
     schema_bytes: client_local_result_schema_bytes(graph, schema_limits).unwrap_or(

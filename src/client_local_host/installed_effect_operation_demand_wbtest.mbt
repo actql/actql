@@ -82,12 +82,17 @@ fn effect_plan_fixture_failure(
 fn effect_operation_plan_inputs(
   rows? : String = "[{\"id\":1}]",
   suffix? : Bool = false,
+  selected_environment? : @checked.CheckEnvironment? = None,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
   ClientInstalledSequenceContracts,
 ) {
-  let prepared = installed_effect_managed_fixture(rows~, suffix~)
+  let prepared = installed_effect_managed_fixture(
+    rows~,
+    suffix~,
+    selected_environment~,
+  )
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
@@ -270,10 +275,15 @@ fn effect_operation_source_plan_fixture(
   source_declaration? : @row_source_host.RowDeclaration? = None,
   whole_policy? : @row_source_host.RowInputLimits? = None,
   host_listing_items? : Int? = None,
+  host_artifact_bytes? : Int? = None,
+  whole_policy_for? : ((@publication_host.PreparedClientEffectComputation) -> @row_source_host.RowInputLimits)? = None,
   query_time_for? : ((
     @publication_host.PreparedClientEffectComputation,
     @publication_host.ClientRequestIdentity,
   ) -> @publication_host.ClientQueryTimePreparation)? = None,
+  document_for? : ((String) -> String)? = None,
+  prepare_original? : ((String, @checked.CheckEnvironment) -> @publication_host.PreparedClientEffectComputation)? = None,
+  runtime_admission? : Bool = false,
 ) -> ClientInstalledEffectManagedPlan raise {
   let fields : Array[@row_source_host.RowField] = [
     { name: "id", value_type: "number", nullable: false, },
@@ -305,6 +315,13 @@ fn effect_operation_source_plan_fixture(
   let parsed = @json.parse(source_query_original_environment)
   guard parsed is Object(base) else { fail("fixture Environment object") }
   base.remove("evidence_bundle_cid")
+  if host_artifact_bytes is Some(maximum) {
+    guard base["host_policy_profile"] is Object(profile) &&
+      profile["capacity"] is Object(capacity) else {
+      fail("fixture original Host artifact policy")
+    }
+    capacity["max_artifact_bytes"] = Json::number(maximum.to_double())
+  }
   if host_listing_items is Some(maximum) {
     guard base["host_policy_profile"] is Object(profile) &&
       profile["capacity"] is Object(capacity) else {
@@ -441,33 +458,42 @@ fn effect_operation_source_plan_fixture(
       .to_array()
       .join("\"resource\":\"r\",\"request\":" + original + "}")
   }
-  let prepared = match
-    @publication_host.prepare_client_effect_computation(
-      document,
-      Json,
-      environment,
-      None,
-      [],
-      @publication_host.client_standard_effect_computation_limits(),
-    ) {
-    Ok(value) => value
-    Err(Syntax(_)) => fail("fixture Source Effect Syntax")
-    Err(Candidate(@checked.Computation(cause))) =>
-      fail(
-        "fixture Source Effect Computation: " +
-        effect_plan_fixture_failure(cause),
-      )
-    Err(Candidate(@checked.Headers(_))) => fail("fixture Source Effect Headers")
-    Err(Candidate(_)) => fail("fixture Source Effect Candidate")
-    Err(Mapping(_)) => fail("fixture Source Effect Mapping")
-    Err(Static(_)) => fail("fixture Source Effect Static")
-    Err(Stage(_)) => fail("fixture Source Effect Stage")
-    Err(Graph(_)) => fail("fixture Source Effect Graph")
-    Err(TargetSelection(_)) => fail("fixture Source Effect TargetSelection")
-    Err(RequestValuePolicies(_)) =>
-      fail("fixture Source Effect RequestValuePolicies")
-    Err(RequestValuePolicyConstruction) =>
-      fail("fixture Source Effect RequestValuePolicyConstruction")
+  let document = match document_for {
+    None => document
+    Some(transform) => transform(document)
+  }
+  let prepared = match prepare_original {
+    Some(prepare) => prepare(document, environment)
+    None =>
+      match
+        @publication_host.prepare_client_effect_computation(
+          document,
+          Json,
+          environment,
+          None,
+          [],
+          @publication_host.client_standard_effect_computation_limits(),
+        ) {
+        Ok(value) => value
+        Err(Syntax(_)) => fail("fixture Source Effect Syntax")
+        Err(Candidate(@checked.Computation(cause))) =>
+          fail(
+            "fixture Source Effect Computation: " +
+            effect_plan_fixture_failure(cause),
+          )
+        Err(Candidate(@checked.Headers(_))) =>
+          fail("fixture Source Effect Headers")
+        Err(Candidate(_)) => fail("fixture Source Effect Candidate")
+        Err(Mapping(_)) => fail("fixture Source Effect Mapping")
+        Err(Static(_)) => fail("fixture Source Effect Static")
+        Err(Stage(_)) => fail("fixture Source Effect Stage")
+        Err(Graph(_)) => fail("fixture Source Effect Graph")
+        Err(TargetSelection(_)) => fail("fixture Source Effect TargetSelection")
+        Err(RequestValuePolicies(_)) =>
+          fail("fixture Source Effect RequestValuePolicies")
+        Err(RequestValuePolicyConstruction) =>
+          fail("fixture Source Effect RequestValuePolicyConstruction")
+      }
   }
   let request = @publication_host.prepare_client_effect_request_identity(
     prepared,
@@ -533,9 +559,11 @@ fn effect_operation_source_plan_fixture(
     [demand]
   }
   if whole_inputs {
-    let policy = whole_policy.unwrap_or(
-      installed_row_input_policy(3, 2048, 1000, 20, 3),
-    )
+    let policy = match whole_policy_for {
+      Some(select) => select(prepared)
+      None =>
+        whole_policy.unwrap_or(installed_row_input_policy(3, 2048, 1000, 20, 3))
+    }
     let whole_plan = prepare_installed_effect_managed_source_plan(
       prepared,
       request,
@@ -561,6 +589,7 @@ fn effect_operation_source_plan_fixture(
       None,
       demands,
       provider_factory=_ => [],
+      runtime_admission~,
     )
     return match whole_plan {
       Ok(value) => value
@@ -571,35 +600,45 @@ fn effect_operation_source_plan_fixture(
       Err(_) => fail("WholeEffectPlan.Other")
     }
   }
-  prepare_installed_effect_managed_plan(
-    prepared,
-    request,
-    if additional_source {
-      [declaration, declaration]
-    } else {
-      [declaration]
-    },
-    original_row_query_contract_fixture,
-    original_row_evidence_contract_fixture,
-    if additional_source {
-      [1024L, 1024L]
-    } else {
-      [1024L]
-    },
-    if additional_source {
-      [2048L, 2048L]
-    } else {
-      [2048L]
-    },
-    contracts,
-    source_query_original_values,
-    Some(source_query_original_fragment),
-    None,
-    demands,
-    query_time=query_time_for.map(make => make(prepared, request)),
-    source_providers=provider.map(value => [value]),
-    provider_factory=_ => [],
-  ).unwrap()
+  match
+    prepare_installed_effect_managed_plan(
+      prepared,
+      request,
+      if additional_source {
+        [declaration, declaration]
+      } else {
+        [declaration]
+      },
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      if additional_source {
+        [1024L, 1024L]
+      } else {
+        [1024L]
+      },
+      if additional_source {
+        [2048L, 2048L]
+      } else {
+        [2048L]
+      },
+      contracts,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      demands,
+      query_time=query_time_for.map(make => make(prepared, request)),
+      source_providers=provider.map(value => [value]),
+      provider_factory=_ => [],
+      runtime_admission~,
+    ) {
+    Ok(value) => value
+    Err(ForeignOriginal) => fail("SourceEffectPlan.ForeignOriginal")
+    Err(Unsupported) => fail("SourceEffectPlan.Unsupported")
+    Err(InsufficientCapacity) => fail("SourceEffectPlan.InsufficientCapacity")
+    Err(Sequence(SequenceLimit)) => fail("SourceEffectPlan.SequenceLimit")
+    Err(Sequence(_)) => fail("SourceEffectPlan.SequenceOther")
+    Err(_) => fail("SourceEffectPlan.Other")
+  }
 }
 
 ///|

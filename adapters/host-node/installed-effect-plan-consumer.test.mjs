@@ -15,6 +15,9 @@ import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-bind
 import {checkedRequestSnapshotPreparation, requestProgramCapacityRefusal}
   from './client-program-preparation.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
+import {installNodeClientEffectRun} from './client-effect-run.mjs';
+import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import {checked as checkedRuntime} from '../host-common/runtime-result.mjs';
 import {retainUpdateTargetSelection, originalUpdateTargetSelectionsCid, updateTargetSelectionMatchesRun}
   from './update-target-original-shape.mjs';
 
@@ -560,25 +563,28 @@ const recoveryNode = recoveryRowNodes.find(node => node.type === 'FunctionDeclar
 const recoveryRouteNode = recoveryRowNodes.find(node => node.id.name === 'physicalRoute').init;
 const recoveryEntriesNode = recoveryRowNodes.find(node => node.id.name === 'prepareRecoveredEntries').init;
 const recoveryRunLimitsNode = recoveryRowNodes.find(node => node.id.name === 'runLimits').init;
+const recoveryKeysSource = retainedRequestSourceMember('../host-common/runtime-core.mjs', 'recoverInstalledEffectPreviewKeys');
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
   const prepared = {}, request = {}, value = {}, operationPlan = {}, preview = {}, computation = {}, storedResults = {},
-    definition = {identity: 'original-definition'};
+    definition = {identity: 'original-definition'}, compilation = {}, allowed = {}, invocation = {}, invocationOriginal = {}, requestScope = {};
   const events = [], child = {}, originalCurrent = {}, current = {}, entry = {request: {}}, member = {memberIndex: 0};
+  const keyWire = '"original-row"', keys = Object.freeze([Object.freeze([Object.freeze({correlationWire: keyWire})])]);
   const body = {invocation_cid: 'original-invocation', run_identity_cid: 'original-run',
-    authoring_context: {authoring_context_cid: 'original-authoring'}, effects: [{capability_evidence_cid: 'original-capability', changes: [{}]}]};
+    authoring_context: {authoring_context_cid: 'original-authoring'}, effects: [{capability_evidence_cid: 'original-capability', changes: [{target_row_identity: 'original-row'}]}]};
   const owner = {managedPlanRecipe: {credentialOperations: [{}],
     captureConstruction: {operationIndex: 0}, recoveryConstruction: {operationIndex: 1},
     memberOperations: [{operation: 'capture'}, {operation: 'recovery-input'}]}, owned: {}};
-  const run = {prepared, request, value, operationPlan, definitionOriginal: {definition}, closed: false, controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args)};
-  const previewWire = JSON.stringify(body), token = {}, protocol = {retains: 0, constructions: 0, retired: false};
+  const run = {prepared, request, value, operationPlan, definitionOriginal: {definition, compilation, allowed}, closed: false, controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args)};
+  const previewWire = JSON.stringify(body), token = {}, protocol = {retains: 0, constructions: 0, keys: 0, retired: false};
   let constructing = false;
   run.controlConstruction.parsePreview = (wire, retain) => {
     assert.equal(wire, previewWire); assert.equal(retain, true); return body;
   };
-  run.controlConstruction.retainRecoveredInputs = (control, allowed, originalDefinition, invocation, originalPreview) => {
+  run.controlConstruction.retainRecoveredInputs = (control, allowed, originalDefinition, originalInvocation, originalPreview) => {
     assert.strictEqual(originalDefinition, definition);
     assert.strictEqual(allowed, run.definitionOriginal.allowed);
+    assert.strictEqual(originalInvocation, invocation);
     assert.strictEqual(originalPreview, preview);
     assert.equal(protocol.retains, 0, 'inventory precedes recovered request retention');
   };
@@ -595,6 +601,18 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     clientProgramInstalledEffectManagedOperationPlan(parent, p, identity) {
       assert.strictEqual(this, moon); assert.strictEqual(parent, value);
       assert.strictEqual(p, prepared); assert.strictEqual(identity, request); return ok(operationPlan);
+    },
+    clientProgramInstalledEffectRecoveredPreviewKeys(parent, p, identity, plan,
+      originalAllowed, originalDefinition, originalInvocation, admitted, scope, ...limits) {
+      assert.strictEqual(this, moon); assert.strictEqual(parent, value); assert.strictEqual(p, prepared);
+      assert.strictEqual(identity, request); assert.strictEqual(plan, operationPlan);
+      assert.strictEqual(originalAllowed, allowed); assert.strictEqual(originalDefinition, definition);
+      assert.strictEqual(originalInvocation, invocationOriginal); assert.strictEqual(admitted, originalCurrent);
+      assert.strictEqual(scope, requestScope); assert.deepEqual(limits, [1, 1, 1, 4096, 64, 8]);
+      assert.equal(protocol.keys++, 0, 'the same original funds recovered keys once before opening its Ledger');
+      assert.equal(protocol.retains, 0); assert.equal(closed, false);
+      assert.equal(keys[0][0].correlationWire, JSON.stringify(body.effects[0].changes[0].target_row_identity));
+      return ok(keys);
     },
     clientProgramInstalledEffectOperationConstructionRetain(parent, p, identity, plan, index, perRow, slot, row, operation) {
       assert.strictEqual(this, moon); assert.strictEqual(parent, value); assert.strictEqual(p, prepared);
@@ -626,16 +644,30 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
   const control = {effectComputationPreviewWire: () => previewWire,
     effectComputationPreviewLedgerIdentity: () => originalCurrent,
     effectComputationPreviewSemanticCid: () => 'original-preview'};
-  const limits = {preview: {}, key: {}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
+  // Execute the real Common wrapper with explicit native ports. The fixture's
+  // key DATA tests forwarding, not Common admission or physical authority.
+  control.recoverInstalledEffectPreviewKeys = new Function('moon', 'checked', 'computationPreviewTokens', 'token',
+    'return ({' + recoveryKeysSource + '}).recoverInstalledEffectPreviewKeys;')(
+    moon, checked, new WeakMap([[preview, originalCurrent]]), original => {
+      assert.strictEqual(original, invocation); return invocationOriginal;
+    });
+  const limits = {preview: {}, key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
   const limitPorts = {limits, moon, readManagedShape: moon.clientProgramInstalledEffectManagedPlanShape,
     owners: [owner], fail, runtimeField};
   const runLimits = new Function(...Object.keys(limitPorts), 'return (' +
     recoveryRowSource.slice(recoveryRunLimitsNode.start, recoveryRunLimitsNode.end) + ');')(...Object.values(limitPorts));
   const ports = {moon, localContractLimits: {}, singular: undefined, ROUTING_VERSION: 'original-version',
     text: value => typeof value === 'string' && value.length > 0, selectionChanged: () => assert.fail('No target selection'),
-    recoveredMembers: () => [member], bindRunResources() {}, selectionFence: () => () => {},
+    recoveredMembers: () => [member], ownerOf, bindRunResources() {}, selectionFence: () => () => {},
     memberDispatch: () => 'original-dispatch', limits, runLimits,
-    effect: {recoveredPreviewKeys: () => [], admitPreviewIdentity: () => ({})},
+    effect: {recoveredPreviewKeys(admitted, scope) {
+      assert.equal(managed, false); assert.strictEqual(admitted, originalCurrent); assert.strictEqual(scope, requestScope); return keys;
+    }, admitPreviewIdentity(wire, runIdentity, authoring, scope, recoveredKeys) {
+      assert.equal(wire, previewWire); assert.equal(runIdentity, body.run_identity_cid);
+      assert.equal(authoring, body.authoring_context.authoring_context_cid);
+      assert.strictEqual(scope, requestScope); assert.strictEqual(recoveredKeys, keys);
+      return {};
+    }},
     openLedger() {events.push('ledger-open'); return ledger;},
     admitCapability: () => ({identity: 'original-capability'}), orderedSourceIndexes: () => [0],
     physicalRoute(options) {routeOptions = options; return realRoute(options);},
@@ -675,8 +707,8 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     recoveryRowSource.slice(recoveryEntriesNode.start, recoveryEntriesNode.end) + ');')(...Object.values(entryPorts));
   const prepare = new Function(...Object.keys(ports), 'return ' +
     recoveryRowSource.slice(recoveryNode.start, recoveryNode.end))(...Object.values(ports));
-  const facts = {moon, control, store: {}, recovered: {prepared, runDefinition: definition, requestIdentity: request, requestScope: {},
-    computation: {computation, preview, storedResults}}, continuation: {version: 'original-version',
+  const facts = {moon, control, store: {}, recovered: {prepared, runDefinition: definition, requestIdentity: request, requestScope,
+    computation: {computation, preview, storedResults, invocation}}, continuation: {version: 'original-version',
     program_id: 'original-program', stage_id: 'original-stage', members: [{dispatch_request_cid: 'original-dispatch'}]},
     managedEffect: managed ? run : undefined, retainRecoveryOwner(value) {retained = value; if (closeDuringRetain) void value.cleanup();}};
   return {facts, run, child, events, entry, current, ledger, protocol, get owner() {return retained;},
@@ -843,7 +875,7 @@ function installedOriginalCompilerFixture({available = true, refusal, forbidProj
     assert.deepEqual(flags, [false, true, true, true, true, false, false]);
     calls.push('same-original'); if (refusal !== undefined) throw refusal; return ok(materials);
   };
-  const ports = {moon, features: [false, true, true, true, true, false, false], checked, fail,
+  const ports = {moon, admitMaterials: undefined, features: [false, true, true, true, true, false, false], checked, fail,
     runUpdateSelectionCid: () => 'original-selection', updateTargetRunOriginalShape: () => true,
     // The actual conversion creates distinct DATA arrays borrowing the SAME
     // opaque selection. Equal wrapper identity must never stand in for it.
@@ -906,98 +938,73 @@ test('bound original Effect validation rejects a foreign Prepared despite equal 
   assert.equal(f.counts.bindings, 1);
 });
 
-// The existing embedded Host closure is extracted unchanged. Journal, codec
-// and current/resource services are explicit ports, not ordinary admission.
-function installedCaptureOriginalFixture({marked = true, live = true, bound = false, stop = true} = {}) {
-  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
-  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  let entry;
-  (function visit(node) {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
-        node.declarations[0].id.name === 'recoverEffectCapture') {assert.equal(entry, undefined); entry = node;}
-    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
-    else if (child && typeof child === 'object') visit(child);
-  })(ast);
-  assert(entry);
-  const compilation = {}, requestIdentity = {}, runDefinition = {identity: 'original-run'}, ref = {runDefinitionCid: 'original-run'};
-  const managed = live ? {definitionOriginal: {compilation}} : undefined, calls = [];
-  const original = {}, allowed = {}, preparedEvidence = {}, authorizationEvidence = {};
-  const evidence = {effectOriginalRunWire: 'original-wire', prepared: preparedEvidence, authorization: authorizationEvidence,
-    ...(marked ? {updateTargetRunOriginal: original} : {})};
-  const saved = {runDefinition, runAdmissionEvidence: evidence};
-  const restored = {materials: {}, allowed};
-  const moon = {clientSubmittedIntentRequestsCommitStop: () => stop,
-    strategyRunEvidenceJson: value => value,
-    clientProgramAllowedEffectRunPrepared: value => value === allowed ? preparedEvidence : undefined,
-    clientProgramAllowedEffectRunAuthorization: value => value === allowed ? authorizationEvidence : undefined,
-    strategyPublicationContractIdentity: value => value === definition ? runDefinition.identity : undefined,
-    clientRequestRelation: (left, right) => left === requestIdentity && right === requestIdentity ? 1 : 0};
+// Execute the existing retained Run owner with explicit Journal/Core ports.
+// This checks original handoff and refusal, not Common admission or provider I/O.
+function retainedRunPreparationFixture({marked = true} = {}) {
+  const prepared = {}, compilation = {}, allowed = {}, definition = {}, identity = {};
+  const original = {}, materials = {}, calls = [];
+  const runDefinition = {identity: 'original-run'}, ref = {runDefinitionCid: runDefinition.identity};
+  const preparedEvidence = 'original-prepared', authorizationEvidence = 'original-authorization';
+  const evidence = {prepared: preparedEvidence, authorization: authorizationEvidence,
+    ...(marked ? {updateTargetRunOriginal: original} : {effectOriginalRunWire: 'original-wire'})};
+  const restored = {prepared, compilation, allowed, definition, materials,
+    assertUpdateSelectionCurrent() {calls.push('selection-current');}};
   const intent = {intent: {}, assertCurrent() {calls.push('intent-current');}};
-  const prepared = {}, definition = {};
-  if (managed !== undefined) {managed.prepared = prepared; Object.assign(managed.definitionOriginal,
-    {prepared, identity: requestIdentity, allowed, definition});}
-  const boundOriginal = {prepared, compilation, allowed, definition, runDefinition, identity: requestIdentity,
-    materials: restored.materials, originalSubmittedIntent: intent};
-  const ports = {moon, control: {}, namespaceId: 'scope', authorityScopeCid: 'authority', principalId: 'principal',
-    localContractLimits: {}, journal: {
-      lookupRunDefinition: () => ({requestId: 'original-request'}),
-      originalSubmittedIntent(value) {assert.strictEqual(value, requestIdentity); return intent;}},
-    store: {}, updateTargetOriginals: {
-      restoreRun(value, definition, request, compiler) {
-        assert.strictEqual(value, original); assert.strictEqual(definition, runDefinition);
-        assert.strictEqual(request, requestIdentity); assert.strictEqual(compiler, live ? compilation : undefined);
-        calls.push('target-original'); return restored;
-      }, restoreEffectMaterials(wire, definition, request, compiler) {
-        assert.equal(wire, 'original-wire'); assert.strictEqual(definition, runDefinition);
-        assert.strictEqual(request, requestIdentity); assert.strictEqual(compiler, live ? compilation : undefined);
-        calls.push('stop-original'); return restored;
-      }},
-    clientOperationError: code => Object.assign(new Error(code), {code}),
-    preparation: {}, hostConnection: () => true, storeAuthorityCid: 'store',
-    recoverAdmittedEffectRun(options) {return options.restoreOriginal(saved, requestIdentity);}};
-  const recover = new Function(...Object.keys(ports), source.slice(entry.start, entry.end) + ';return recoverEffectCapture;')(...Object.values(ports));
-  return {recover: () => recover(ref, undefined, managed, undefined, bound ? boundOriginal : undefined), managed, calls, restored, boundOriginal};
+  const unused = () => assert.fail('Restoration must not authorize, start, compile or execute another Run');
+  const moon = {clientProgramEffectCompilationIssueCode: unused,
+    clientProgramEffectTargetSelections: unused, clientProgramEffectTargetSelectionOriginal: unused,
+    clientProgramEffectRunStartCurrent: unused, clientRunStartAction: unused,
+    clientRequestAuthorityScopeCid: unused, clientRequestCallerId: unused,
+    clientSubmittedIntentEffectCompatible: (actual, owner) => actual === intent.intent && owner === prepared,
+    clientProgramCompileLocalEffects: unused,
+    clientProgramAllowedEffectRunPrepared: value => value === allowed ? preparedEvidence : 'foreign',
+    clientProgramAllowedEffectRunAuthorization: value => value === allowed ? authorizationEvidence : 'foreign',
+    strategyRunEvidenceJson: value => value};
+  const restore = (value, run, request, compiler, owner) => {
+    assert.strictEqual(value, marked ? original : 'original-wire');
+    assert.strictEqual(run, runDefinition); assert.strictEqual(request, identity);
+    assert.strictEqual(compiler, compilation); assert.strictEqual(owner, prepared);
+    calls.push(marked ? 'target-original' : 'material-original'); return restored;
+  };
+  const owner = installNodeClientEffectRun({moon, publicationControl: {admit: unused},
+    journal: {lookupDefinition: unused, reserveDispatch: unused, reservePhysicalStart: unused,
+      originalSubmittedIntent: unused,
+      resolveDefinition(actual, scope) {assert.strictEqual(actual, identity);
+        assert.deepEqual(scope, {namespaceId: 'scope'}); return {ref, runDefinition, runAdmissionEvidence: evidence};}},
+    authorizeRequest: unused, authorizeRunStart: unused, execute: unused,
+    updateTargetOriginals: {compilationFor(actual) {assert.strictEqual(actual, prepared); return compilation;},
+      restoreRun: restore, restoreEffectMaterials: restore},
+    prepareDefinition(facts) {assert.strictEqual(facts.prepared, prepared);
+      assert.strictEqual(facts.compilation, compilation); assert.strictEqual(facts.allowed, allowed);
+      assert.strictEqual(facts.definition, definition); calls.push('prepare-original');}});
+  return {owner, prepared, compilation, allowed, definition, identity, restored, calls, intent,
+    recover: () => owner.restoreRetainedPreparation({prepared, identity, namespaceId: 'scope', ref,
+      originalSubmittedIntent: intent})};
 }
 
-test('existing live capture recovery forwards its same retained compiler for target and stopped originals', () => {
+test('retained Effect restoration forwards its same compiler and Prepared to either original inverse', async () => {
   for (const marked of [true, false]) {
-    const f = installedCaptureOriginalFixture({marked});
-    assert.strictEqual(f.recover().allowed, f.restored.allowed);
-    assert.deepEqual(f.calls, [marked ? 'target-original' : 'stop-original', 'intent-current']);
+    const f = retainedRunPreparationFixture({marked}), recovered = await f.recover();
+    for (const key of ['prepared', 'compilation', 'allowed', 'definition', 'materials'])
+      assert.strictEqual(recovered[key], f.restored[key]);
+    assert.deepEqual(f.calls, ['intent-current', marked ? 'target-original' : 'material-original',
+      'prepare-original', 'intent-current', 'selection-current']);
   }
 });
 
-test('existing capture recovery rejects missing live compiler instead of selecting wire-only restoration', () => {
-  const f = installedCaptureOriginalFixture();
-  delete f.managed.definitionOriginal.compilation;
-  assert.throws(f.recover, {code: 'ForeignInstalledEffectManagedRun'});
+test('retained Effect restoration refuses foreign material originals before preparing another Plan', async () => {
+  for (const key of ['prepared', 'compilation', 'allowed']) {
+    const f = retainedRunPreparationFixture(); f.restored[key] = {};
+    await assert.rejects(f.recover(), {code: 'ClientEffectRunDenied'});
+    assert.deepEqual(f.calls, ['intent-current', 'target-original']);
+  }
+});
+
+test('retained Effect restoration keeps original current refusal and never enters its inverse', async () => {
+  const f = retainedRunPreparationFixture(), primary = new Error('original current refusal');
+  f.intent.assertCurrent = () => {throw primary;};
+  await assert.rejects(f.recover(), error => error === primary);
   assert.deepEqual(f.calls, []);
-});
-
-test('independent cold capture original keeps its explicit wire-only qualification', () => {
-  const f = installedCaptureOriginalFixture({live: false});
-  assert.strictEqual(f.recover().allowed, f.restored.allowed);
-  assert.deepEqual(f.calls, ['target-original', 'intent-current']);
-});
-
-test('ordinary hot Effect recovery borrows its same admitted tuple without a second material decoder', () => {
-  const f = installedCaptureOriginalFixture({marked: false, stop: false});
-  const result = f.recover();
-  assert.strictEqual(result.allowed, f.managed.definitionOriginal.allowed);
-  assert.strictEqual(result.prepared, f.managed.prepared);
-  assert.strictEqual(result.compilation, f.managed.definitionOriginal.compilation);
-  assert.strictEqual(result.definition, f.managed.definitionOriginal.definition);
-  assert.deepEqual(f.calls, ['intent-current']);
-});
-
-test('ordinary hot Effect recovery refuses foreign original fields before Store recovery', () => {
-  for (const field of ['prepared', 'identity', 'allowed', 'definition']) {
-    const f = installedCaptureOriginalFixture({marked: false, stop: false});
-    f.managed.definitionOriginal[field] = {};
-    assert.throws(f.recover, {code: 'EffectRecoveryOriginalSelectionUnavailable'});
-    assert.deepEqual(f.calls, []);
-  }
 });
 
 function retainedRequestSourceMember(path, name, kind = 'Property') {
@@ -1390,17 +1397,46 @@ function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
       assert.strictEqual(reserve, reserveOriginal);
       assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.allowed, allowed);
       assert.strictEqual(facts.definition, definition); assert.strictEqual(facts.identity, identity);
+      assert.strictEqual(facts.compilation, compilation); assert.strictEqual(facts.runDefinition, runDefinition);
       calls.push('capture-target'); return target ? targetOriginal : undefined;
     }, captureEffectMaterials(facts) {
       assert.strictEqual(facts.allowed, allowed); assert.strictEqual(facts.definition, definition);
       assert.strictEqual(facts.identity, identity); calls.push('capture-full-original'); return wire;
-    }}, prepareDefinition(facts) {
+    }, compilationFor(value) {assert.strictEqual(value, prepared);return compilation;}}, prepareDefinition(facts) {
       assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.compilation, compilation);
       assert.strictEqual(facts.identity, identity); calls.push('same-parent-constructor');
     }};
-  const body = retainedRequestSourceMember('./client-effect-run.mjs', 'issueDefinition');
-  const owner = new Function(...Object.keys(ports), 'return ({' + body + '});')(...Object.values(ports));
-  return {issue: () => owner.issueDefinition(), wire, targetOriginal, runDefinition, calls};
+  const unused = () => assert.fail('Definition acceptance must not dispatch physical work');
+  Object.assign(moon, {
+    clientProgramEffectCompilationIssueCode: () => undefined,
+    clientProgramCompileLocalEffects(value) {assert.strictEqual(value, prepared);return ok(compilation);},
+    clientProgramEffectTargetSelections: unused, clientProgramEffectTargetSelectionOriginal: unused,
+    clientRunStartAction: unused, clientRequestAuthorityScopeCid: unused, clientRequestCallerId: unused,
+    clientSubmittedIntent: () => 'original-intent',
+    clientSubmittedIntentEffectCompatible: (intent, value) => intent === 'original-intent' && value === prepared,
+    clientSubmittedIntentRequestsCommitStop: () => stop,
+  });
+  let issued;
+  const journal = {
+    reservePhysicalStart: unused, originalSubmittedIntent: unused,
+    lookupDefinition: unused, reserveDispatch: unused,
+    lookupSubmittedIntent: submission => ({requestId: 'original-request', intentCid: submission.intentCid,
+      intentWire: 'original-intent-wire'}),
+    async admitOrLookupDefinition(original, {issueDefinition}) {
+      assert.strictEqual(original, identity);
+      issued = await issueDefinition();
+      return {ref: {runDefinitionCid: runDefinition.identity}, revision: 1, durability: 'fixture'};
+    },
+  };
+  const owner = installNodeClientEffectRun({...ports, publicationControl: ports.control, journal,
+    authorizeRequest: async facts => {assert.strictEqual(facts.prepared, prepared);return ports.policy;},
+    authorizeRunStart: unused, execute: unused, requestIdentityFor: () => identity});
+  return {async issue() {
+    await owner.accept({prepared, authorityScopeCid: 'original-authority', requestId: 'original-request',
+      namespaceId: 'original-scope', principalId: 'owner', connection: {},
+      ...(stop ? {submission: {intentCid: 'original-intent-cid'}} : {})});
+    return issued;
+  }, wire, targetOriginal, runDefinition, calls};
 }
 
 test('ordinary Effect approval retains full original materials without an explicit commit stop', async () => {
@@ -1449,51 +1485,28 @@ test('existing whole Effect resume forwards the same restored Plan before recove
   assert.deepEqual(calls, ['prepare', 'resume', 'same-parent-capture']);
 });
 
-test('existing Effect resume diagnostics preserve the original refusal without completing or retrying its Run', async () => {
-  for (const boundary of ['continuation', 'managed-preparation']) {
-    const cause = Object.assign(new Error('original managed preparation refusal'), {code: 'MoonBitHostFailure'});
-    const key = 'original-run', view = {kind: 'effect_set', prepareAttemptId: null,
-      runDefinitionCid: key, runId: 'original-id', checkpointCid: 'original-checkpoint'};
-    const observations = [], flights = new Map(); let starts = 0;
-    const ports = {effectRun: {}, checkpoints: {journal: {
-      listRunCheckpoints: () => [view], getRunState: () => ({status: 'resuming'}),
-      currentResume: () => ({state: 'claimed'}),
-    }, async effectContinuation() {if (boundary === 'continuation') throw cause; return {};},
-    sweep() {assert.fail('A refused resuming Run cannot be restarted by diagnostic delivery');}},
-    retireIncompleteEffects: async () => {}, cancelEffectContinuation: async () => false,
-    effectResumeFlights: flights, namespaceId: 'namespace', authorityScopeCid: 'authority',
-    journal: {lookupRunDefinition: () => ({runDefinition: {identity: key}})},
-    moon: {}, control: {}, store: {}, principalId: 'principal', runContent: {}, storeAuthorityCid: 'store',
-    effectInstallation: {}, observation: undefined,
-    async restoreEffectManagedPreparation() {throw cause;},
-    dispatchOwner: {operation: () => undefined, track(ref, options) {
-      assert.equal(ref.runDefinitionCid, key); starts++; return options.run({});
-    }}, diagnostic(event, detail) {observations.push({event, detail});}};
-    const source = 'const ' + retainedRequestSourceMember('./embedded-local.mjs', 'sweepEffectRuns', 'VariableDeclarator') + ';return sweepEffectRuns;';
-    const sweep = new Function(...Object.keys(ports), source)(...Object.values(ports));
-    assert.equal(await sweep(), true);
-    await new Promise(setImmediate);
-    assert.equal(observations.length, 1);
-    assert.equal(observations[0].event, 'effect_resume_failed');
-    assert.equal(observations[0].detail.code, cause.code);
-    assert.strictEqual(observations[0].detail.cause, cause);
-    assert.equal(starts, boundary === 'continuation' ? 0 : 1);
-    assert.equal(flights.size, 0, 'Only the settled local flight is removed; the durable Run stays resuming');
-  }
-});
-
-test('bound recovery original is carried once without a second material codec or compiler', () => {
-  const f = installedCaptureOriginalFixture({bound: true});
-  assert.strictEqual(f.recover(), f.boundOriginal);
-  assert.deepEqual(f.calls, ['intent-current']);
-});
-
-test('bound recovery original cannot replace the same managed Request or compiler', () => {
-  for (const field of ['identity', 'compilation']) {
-    const f = installedCaptureOriginalFixture({bound: true}); f.boundOriginal[field] = {};
-    assert.throws(f.recover, {code: 'EffectRecoveryOriginalSelectionUnavailable'});
-    assert.deepEqual(f.calls, []);
-  }
+test('actual retained restoration diagnostics preserve typed refusal without retrying its Run', async () => {
+  const f = retainedRunPreparationFixture(), observations = [];
+  let cause;
+  try {checkedRuntime({$tag: 0, _0: {$tag: 10, _0: 6}});} catch (error) {cause = error;}
+  assert.equal(cause.code, 'MoonBitHostFailure');
+  f.intent.assertCurrent = () => {throw cause;};
+  const dispatcher = installNodeClientDispatchOwner({observed(event, detail) {
+    if (event === 'dispatch_failed') observations.push(detail);
+  }});
+  const ref = {runDefinitionCid: 'original-run'}; let starts = 0;
+  const stopped = [];
+  const operation = dispatcher.track(ref, {run() {starts++; return f.recover();},
+    observeStopped: value => stopped.push(value)});
+  await assert.rejects(operation, error => error === cause);
+  await dispatcher.drain();
+  assert.equal(starts, 1); assert.deepEqual(f.calls, []);
+  assert.equal(observations.length, 1);
+  assert.equal(observations[0].primaryCode, cause.code);
+  assert.equal(observations[0].issueTag, 10);
+  assert.equal(observations[0].nestedIssueTag, 6);
+  assert.equal(dispatcher.operation(ref), undefined);
+  assert.deepEqual(stopped, [], 'restoration refused before any physical work was admitted');
 });
 
 test('retained Plan lookup keeps partial failure and fences original retirement without a new selection', () => {
@@ -1705,4 +1718,59 @@ test('cold Model Effect resume refuses a different original Run before capture o
   assert(!f.calls.includes('fresh-funded-capture')); assert(!f.calls.includes('execute-original'));
   assert.equal(f.calls.at(-1), 'finish-failed');
   assert.strictEqual(f.snapshot.updateTargetPreparedOriginal, f.savedOriginal);
+});
+
+test('target material inverse is admitted once before the original Request is adopted', () => {
+  const prepared={},compilation={},allowed={},definition={},identity={},runDefinition={identity:'same-run'};
+  const events=[],installations=Object.freeze([{cid:'same-installation',wire:'same-installation-wire'}]);
+  const ports={moon:{},checked,issueMaterials(facts){
+    assert.strictEqual(facts.prepared,prepared);assert.strictEqual(facts.allowed,allowed);events.push('issue');return 'full-materials';
+  },admitMaterials(){assert.fail('Only the existing inverse helper calls this port');},
+  selectionsOf:value=>{assert.strictEqual(value,prepared);return [];},
+  updateTargetSelectionMatchesRun:(selections,p,d)=>p===prepared&&d===definition,
+  current:()=>installations,updateTargetRunOriginalShape:()=>true,
+  restoreEffectMaterials(wire,run,request,c,p){
+    assert.deepEqual([wire,run,request,c,p],['full-materials',runDefinition,identity,compilation,prepared]);
+    events.push('inverse');return {prepared,compilation};
+  },fail:()=>assert.fail('Original capture must remain valid')};
+  const body=retainedRequestSourceMember('./installed-update-originals.mjs','captureRun');
+  const owner=new Function(...Object.keys(ports),'return ({'+body+'});')(...Object.values(ports));
+  const actual=owner.captureRun({prepared,allowed,definition,identity,compilation,runDefinition},
+    (p,wire,installed)=>{assert.strictEqual(p,prepared);assert.equal(wire,'full-materials');assert.strictEqual(installed,installations);events.push('reserve');});
+  events.push('adopt');
+  assert.equal(actual.materialsWire,'full-materials');assert(Object.isFrozen(actual));
+  assert.deepEqual(events,['issue','reserve','inverse','adopt']);
+});
+
+
+test('ordinary material inverse receives the same installed text-time and calendar selections', async () => {
+  const {installUpdateTargetOriginals}=await import('./installed-update-originals.mjs');
+  const source=readFileSync(new URL('./embedded-local.mjs',import.meta.url),'utf8');
+  const calls=[];
+  (function walk(node){
+    if(!node||typeof node!=='object')return;
+    if(node.type==='CallExpression'&&node.callee.type==='Identifier'&&node.callee.name==='installUpdateTargetOriginals')calls.push(node);
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);
+  })(parse(source,{ecmaVersion:'latest',sourceType:'module'}));
+  assert.equal(calls.length,1);
+  const expression=source.slice(calls[0].arguments[0].start,calls[0].arguments[0].end);
+  for(const textTimeEnabled of [false,true])for(const calendarArtifact of [undefined,{}]){
+    const prepared={},compilation={},allowed={},definition={},identity={},materials={},seen=[];
+    const moon={
+      clientProgramEffectRunMaterialsPrepared:value=>{assert.strictEqual(value,materials);return prepared;},
+      clientProgramEffectRunMaterialsCompilation:value=>{assert.strictEqual(value,materials);return compilation;},
+      clientProgramEffectRunMaterialsAllowed:()=>allowed,clientProgramEffectRunMaterialsDefinition:()=>definition,
+      clientProgramAdmitEffectRunMaterialsWithCompilation(){assert.fail('No generic or wire-only fallback');}
+    };
+    const preparation={admitManagedEffectMaterials(runtime,p,wire,run,c,request,features){
+      assert.strictEqual(runtime,moon);assert.strictEqual(p,prepared);assert.strictEqual(c,compilation);
+      assert.strictEqual(request,identity);assert.equal(wire,'same-wire');assert.equal(run,'same-run');
+      seen.push(features);return materials;
+    }};
+    const ports={moon,control:{},installedEffect:{},localContractLimits:{},textTimeEnabled,calendarArtifact,preparation};
+    const options=new Function(...Object.keys(ports),'return ('+expression+');')(...Object.values(ports));
+    const owner=installUpdateTargetOriginals(options);
+    assert.strictEqual(owner.restoreEffectMaterials('same-wire',{identity:'same-run'},identity,compilation,prepared).materials,materials);
+    assert.deepEqual(seen,[[textTimeEnabled,true,true,true,true,calendarArtifact!==undefined,false]]);
+  }
 });

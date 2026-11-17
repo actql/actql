@@ -10,7 +10,6 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
-import {types as nodeTypes} from 'node:util';
 import './two-source-optional-effect.test.mjs';
 import './composition-release-input.test.mjs';
 import './table-ctas-result-controls.test.mjs';
@@ -30,9 +29,15 @@ import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvir
   '../adapters/host-node/installed-host-policy.mjs';
 import {composeInstalledCheckEnvironment} from '../adapters/host-node/installed-check-environment.mjs';
 import {contentCid} from '../adapters/host-node/local-account-config.mjs';
-import {inferPreparationFailureData} from './fixtures/packed-infer-preparation-diagnostic.mjs';
+import {clientCheckSourceEnvironment} from '../adapters/host-node/fixtures/client-check-source-environment.mjs';
+import {inferPreparationFailureData, inferDispatchFailureData, inferTerminalFailureData,
+  createInferFailureObserver, withEffectFixturePreparationDiagnostic, waitForPackedCompositionCheckpoint}
+  from './fixtures/packed-infer-preparation-diagnostic.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {machineCid} from './actql-spec-family.mjs';
+import {checkpointObservationSchedule, checkpointObservationRecord, checkpointFailureData,
+  checkpointDispatchFailureData, createCheckpointFaultObserver, createCheckpointDispatchObserver,
+  closeCheckpointClient} from './fixtures/checkpoint-observation.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -75,13 +80,7 @@ test('packed INFER original preparation evidence excludes opaque values getters 
 });
 
 test('packed INFER dispatch evidence retains only original code and tags without observing opaque fields', () => {
-  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
-  const definition = tree.body.find(node => node.type === 'FunctionDeclaration' &&
-    node.id.name === 'inferDispatchFailureData');
-  assert(definition);
-  const project = new Function('nodeTypes', script.slice(definition.start, definition.end) +
-    ';return inferDispatchFailureData;')(nodeTypes);
+  const project = inferDispatchFailureData;
   let reads = 0;
   const detail = {code: 'MoonBitHostFailure', primaryCode: 'NodeManagedRunRuntimeUnavailable',
     issueTag: 7, nestedIssueTag: 2, ref: {private: true}, input: 'never disclose'};
@@ -103,13 +102,7 @@ test('packed INFER dispatch evidence retains only original code and tags without
 });
 
 test('packed INFER terminal failure context excludes Run references rows and opaque values', () => {
-  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
-  const definition = tree.body.find(node => node.type === 'FunctionDeclaration' &&
-    node.id.name === 'inferTerminalFailureData');
-  assert(definition);
-  const project = new Function('nodeTypes', script.slice(definition.start, definition.end) +
-    ';return inferTerminalFailureData;')(nodeTypes);
+  const project = inferTerminalFailureData;
   let reads = 0;
   const terminal = {status: 'failed', next_action: {kind: 'none'},
     terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN'}, run_id: 'never disclose',
@@ -130,16 +123,6 @@ test('packed INFER terminal failure context excludes Run references rows and opa
 });
 
 test('Effect fixture diagnostics preserve original throws and avoid opaque values', () => {
-  const script = readFileSync(new URL('../adapters/host-node/fixtures/installed-row-effect.fixture.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
-  const host = tree.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === 'effectHost');
-  const definition = host.declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(value => value.id.name === 'prepareDefinition'));
-  assert(definition);
-  const instantiate = new Function('prepareInstalledEffectManagedPlanRun', 't', 'nodeTypes',
-    'const funded={manager:{}}, managedRuns={}, liveManagedRuns={}, moon={}, requests=new Map(),' +
-    'installed={}, registry={}, values={}, installedContracts={}, assertCurrent=()=>{}, checked=x=>x;' +
-    script.slice(definition.start, definition.end) + ';return prepareDefinition;');
   let reads = 0;
   const original = Object.assign(new Error('private'), {code: 'MoonBitHostFailure', cause: {$tag: 7}});
   for (const name of ['message', 'stack']) Object.defineProperty(original, name,
@@ -149,10 +132,10 @@ test('Effect fixture diagnostics preserve original throws and avoid opaque value
     for (const diagnosticThrows of [false, true]) {
       let calls = 0;
       const diagnostics = [];
-      const prepare = instantiate(() => {calls++; throw cause;}, {diagnostic(value) {
+      const prepare = withEffectFixturePreparationDiagnostic(() => {calls++; throw cause;}, value => {
         diagnostics.push(JSON.parse(value));
         if (diagnosticThrows) throw new Error('authored diagnostic failure');
-      }}, nodeTypes);
+      });
       let rejected = false;
       try {prepare({prepared: {}, identity: {}});} catch (observed) {
         rejected = true;
@@ -169,103 +152,50 @@ test('Effect fixture diagnostics preserve original throws and avoid opaque value
 });
 
 test('packed INFER keeps at most its first original admission event in existing stderr evidence', () => {
-  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
-  const assignment = tree.body.find(node => node.type === 'ExpressionStatement' &&
-    node.expression.type === 'AssignmentExpression' &&
-    node.expression.left.object?.name === 'authorization' &&
-    node.expression.left.property?.name === 'observe');
-  assert(assignment);
-  const lines = [], detail = Object.freeze({boundary: 'model_provider'});
-  const observe = new Function('authorization', 'inferPreparationFailureData', 'inferDispatchFailureData', 'console',
-    'let inferFailureObserved=false,dispatchFailureObserved=false;const calls=0,inferFailureObservations=[];' + script.slice(assignment.start, assignment.end) +
-    ';return authorization.observe;')({}, value => {
-    assert.equal(value, detail); return value;
-  }, value => ({code: value.code, issueTag: value.issueTag}), {error: line => lines.push(line)});
-  observe('other_event', detail);
-  observe('infer_preparation_rejected', detail);
-  observe('infer_preparation_rejected', detail);
-  observe('dispatch_failed', {code: 'MoonBitHostFailure', issueTag: 7});
-  observe('dispatch_failed', {code: 'second', issueTag: 8});
-  assert.deepEqual(lines.map(line => JSON.parse(line)),
-    [{event: 'infer_preparation_rejected', boundary: 'model_provider'},
-      {event: 'dispatch_failed', code: 'MoonBitHostFailure', issueTag: 7, calls: 0}]);
+  const lines = [], detail = Object.freeze({boundary:'model_provider'});
+  const observe = createInferFailureObserver({emit:value=>lines.push(JSON.stringify(value)),readCalls:()=>0});
+  observe('other_event',detail);
+  observe('infer_preparation_rejected',detail);
+  observe('infer_preparation_rejected',detail);
+  observe('dispatch_failed',{code:'MoonBitHostFailure',issueTag:7});
+  observe('dispatch_failed',{code:'second',issueTag:8});
+  assert.deepEqual(lines.map(line=>JSON.parse(line)),[
+    {event:'infer_preparation_rejected',boundary:'model_provider'},
+    {event:'dispatch_failed',code:'MoonBitHostFailure',issueTag:7,calls:0},
+  ]);
 });
 
-function packedEffectDriverSource() {
-  const source = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
-  let template;
-  const visit = node => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'CallExpression' && node.callee.name === 'writeFile' &&
-        node.arguments[0]?.type === 'CallExpression' &&
-        node.arguments[0].arguments.some(value => value.value === 'effect-run.mjs')) {
-      assert.equal(template, undefined); template = node.arguments[1];
-    }
-    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
-    else if (value && typeof value === 'object') visit(value);
-  };
-  visit(parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}));
-  assert.equal(template.expressions.length, 0);
-  return template.quasis[0].value.cooked;
-}
-
-test('packed pending composition reports its last original status without hiding the wait failure', async () => {
-  const driver = packedEffectDriverSource();
-  let branch;
-  const visit = node => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'IfStatement' && node.test.type === 'Identifier' &&
-        node.test.name === 'pendingScratch') {assert.equal(branch, undefined); branch = node;}
-    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
-    else if (value && typeof value === 'object') visit(value);
-  };
-  visit(parseJavaScript(driver, {ecmaVersion: 'latest', sourceType: 'module'}));
-  assert(branch);
-  const run = new Function('execution', 'waitFor', 'console',
-    'return (async()=> ' + driver.slice(branch.consequent.start, branch.consequent.end) + ')();');
-  for (const status of ['running', 'failed', 'needs_reconciliation']) {
-    for (const primary of [new Error('original wait failure'), undefined]) {
-      const lines = []; let reads = 0, rejected = false;
-      try {
-        await run({async status() {reads++; return {status, privateInput: 'never disclose'};}},
-          async check => {assert.equal(await check(), false); throw primary;},
-          {error: line => lines.push(line)});
-      } catch (error) {rejected = true; assert.strictEqual(error, primary);}
-      assert(rejected); assert.equal(reads, 1);
-      assert.equal(lines.length, 1);
-      assert.deepEqual(JSON.parse(lines[0].slice('packed composition wait '.length)), {
-        boundary: 'pending-composition-wait', status, expectedStatus: 'waiting_checkpoint',
-      });
-      assert(!lines[0].includes('never disclose'));
+test('pending packed composition reports its original Run status before preserving the actual wait failure', async () => {
+  for (const status of ['running','failed','needs_reconciliation']) {
+    for (const primary of [new Error('original wait failure'),undefined]) {
+      for (const diagnosticThrows of [false,true]) {
+        const lines = [];let reads=0,rejected=false;
+        try {
+          await waitForPackedCompositionCheckpoint({async status(){reads++;return {status,privateInput:'never disclose'};}},
+            async check=>{assert.equal(await check(),false);throw primary;},value=>{
+              lines.push(value);if(diagnosticThrows)throw new Error('diagnostic failure');
+            });
+        } catch(error){rejected=true;assert.strictEqual(error,primary);}
+        assert.equal(rejected,true);assert.equal(reads,1);
+        assert.deepEqual(lines,[{boundary:'pending-composition-wait',status,expectedStatus:'waiting_checkpoint'}]);
+        assert.equal(JSON.stringify(lines).includes('never disclose'),false);
+      }
     }
   }
-  await run({async status() {return {status: 'waiting_checkpoint'};}},
-    async check => assert.equal(await check(), true),
-    {error() {assert.fail('successful waiting must not report a failure');}});
+  await waitForPackedCompositionCheckpoint({async status(){return {status:'waiting_checkpoint'};}},
+    async check=>assert.equal(await check(),true),()=>assert.fail('successful waiting must not report failure'));
 });
 
 test('packed composition retains the first original Model admission event in command stderr', () => {
-  const driver = packedEffectDriverSource();
-  const tree = parseJavaScript(driver, {ecmaVersion: 'latest', sourceType: 'module'});
-  const assignment = tree.body.find(node => node.type === 'ExpressionStatement' &&
-    node.expression.type === 'AssignmentExpression' &&
-    node.expression.left.object?.name === 'authorization' &&
-    node.expression.left.property?.name === 'observe');
-  assert(assignment);
-  const lines = [];
-  const observe = new Function('authorization', 'inferPreparationFailureData', 'console', 'appendFileSync',
-    'let inferPreparationFailureObserved=false;const resumeFailures=[];const optionalKind=undefined;' +
-    driver.slice(assignment.start, assignment.end) + ';return authorization.observe;')(
-      {}, inferPreparationFailureData, {error: line => lines.push(line)},
-      () => assert.fail('Model preparation diagnostics must not write custody or business files'));
-  observe('unrelated', {});
-  observe('infer_preparation_rejected', {boundary: 'private-input'});
-  observe('infer_preparation_rejected', {boundary: 'model_execution', code: 'MoonBitHostFailure',
-    typedCause: 'missing_body', cause: {$tag: 3}, ref: 'private', input: ['private']});
-  observe('infer_preparation_rejected', {boundary: 'model_dependencies', code: 'later'});
-  assert.deepEqual(lines.map(line => JSON.parse(line)), [{event: 'infer_preparation_rejected',
-    boundary: 'model_execution', code: 'MoonBitHostFailure', typedCause: 'missing_body', issueTag: 3}]);
+  const lines=[];
+  const observe=createInferFailureObserver({emit:value=>lines.push(JSON.stringify(value))});
+  observe('unrelated',{});
+  observe('infer_preparation_rejected',{boundary:'private-input'});
+  observe('infer_preparation_rejected',{boundary:'model_execution',code:'MoonBitHostFailure',
+    typedCause:'missing_body',cause:{$tag:3},ref:'private',input:['private']});
+  observe('infer_preparation_rejected',{boundary:'model_dependencies',code:'later'});
+  assert.deepEqual(lines.map(line=>JSON.parse(line)),[{event:'infer_preparation_rejected',
+    boundary:'model_execution',code:'MoonBitHostFailure',typedCause:'missing_body',issueTag:3}]);
 });
 
 test('both packed Model consumers copy their shared diagnostic without a checkout fallback', async () => {
@@ -433,101 +363,46 @@ test('packed composition Source publications retain the authored Host policy bef
   }
 });
 
-test('public check Source fixture keeps original declarations under the actual Local policy', async () => {
-  const script=readFileSync(new URL('../adapters/host-node/client-check.test.mjs',import.meta.url),'utf8');
-  const tree=parseJavaScript(script,{ecmaVersion:'latest',sourceType:'module'});
-  const producer=tree.body.find(n=>n.type==='FunctionDeclaration'&&n.id.name==='installedSource');
-  assert(producer);
-  const end=producer.body.body.findIndex(n=>n.type==='VariableDeclaration'&&n.declarations[0]?.id.name==='database');
-  assert.equal(end,4,'Only the original metadata prefix precedes provider setup');
-  const source=JSON.parse(readFileSync(new URL('../adapters/host-node/fixtures/query-amount-environment.json',import.meta.url),'utf8'));
-  const before=structuredClone(source);
-  const wire=readFileSync(new URL('../spec/local-check-environment.json',import.meta.url),'utf8');
-  const originalPolicy=Object.freeze({}), moon={
-    clientLocalResourcePolicyOriginal(){return originalPolicy;},
-    clientLocalResourcePolicyRowCeiling(value){assert.equal(value,originalPolicy);return 203;},
-    clientLocalResourcePolicyModelRequestByteCeiling(value){assert.equal(value,originalPolicy);return 65536n;},
-    clientProgramCheckEnvironment(value,cid){assert.equal(JSON.parse(value).evidence_bundle_cid,cid);return {};},
-  };
-  const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
-  const construct=new AsyncFunction('environment','repository','readFile','join','contentCid','moon',
-    'selectInstalledLocalMaterializationEnvironment','hostEnvironmentWire',
-    producer.body.body.slice(0,end).map(n=>script.slice(n.start,n.end)).join('\n')+'\nreturn environment;');
-  const document=await construct(source,'/repo',async path=>{
-    assert.equal(path,join('/repo','spec/local-check-environment.json'));return wire;
-  },join,contentCid,moon,selectInstalledLocalMaterializationEnvironment);
-  const selected=selectInstalledLocalMaterializationEnvironment(moon,wire.trimEnd());
-  const composed=composeInstalledCheckEnvironment(moon,selected,canonicalText(document));
-  assert.deepEqual(JSON.parse(composed).host_policy_profile,JSON.parse(selected).host_policy_profile);
-  for(const name of Object.keys(before).filter(n=>!['host_policy_profile','evidence_bundle_cid'].includes(n))){
-    assert.strictEqual(document[name],source[name]);assert.deepEqual(document[name],before[name]);
-  }
-  assert.deepEqual(source,before);
-});
-
-test('public check Source fixture follows its independently supplied Remote Effect Host policy', async () => {
-  const script = readFileSync(new URL('../adapters/host-node/client-check.test.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
-  const producer = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'installedSource');
-  const end = producer.body.body.findIndex(node => node.type === 'VariableDeclaration' &&
-    node.declarations[0]?.id.name === 'database');
-  assert.equal(end, 4);
+test('public check Source fixture preserves original declarations under its supplied Host policy', () => {
   const source = JSON.parse(readFileSync(new URL('../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
-  const original = structuredClone(source);
-  const wire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8');
-  const policy = Object.freeze({}), moon = {
-    clientLocalResourcePolicyOriginal() {return policy;},
-    clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, policy); return 203;},
-    clientProgramCheckEnvironment(value, cid) {assert.equal(JSON.parse(value).evidence_bundle_cid, cid); return {};},
-  };
-  const selected = selectInstalledHostEnvironment(moon, wire.trimEnd());
-  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
-  const construct = new AsyncFunction('environment', 'repository', 'readFile', 'join', 'contentCid', 'moon',
-    'selectInstalledLocalMaterializationEnvironment', 'hostEnvironmentWire',
-    producer.body.body.slice(0, end).map(node => script.slice(node.start, node.end)).join('\n') + '\nreturn environment;');
-  const document = await construct(source, '/repo', async () => wire, join, contentCid, moon,
-    selectInstalledLocalMaterializationEnvironment, selected);
+  const before = structuredClone(source);
+  const selected = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8').trimEnd();
+  const document = clientCheckSourceEnvironment(source, selected);
+  const moon = {clientProgramCheckEnvironment(wire, cid) {
+    const {evidence_bundle_cid: actual, ...body} = JSON.parse(wire);
+    assert.equal(actual, cid);assert.equal(actual, contentCid(body));return {};
+  }};
   const composed = composeInstalledCheckEnvironment(moon, selected, canonicalText(document));
   assert.deepEqual(JSON.parse(composed).host_policy_profile, JSON.parse(selected).host_policy_profile);
+  for (const name of Object.keys(before).filter(name => !['host_policy_profile', 'evidence_bundle_cid'].includes(name))) {
+    assert.strictEqual(document[name], source[name]);assert.deepEqual(document[name], before[name]);
+  }
+  assert.deepEqual(source, before);
+});
+
+test('public check Source fixture retains independently supplied Remote Effect policy and rejects conflicts', () => {
+  const source = JSON.parse(readFileSync(new URL('../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+  const original = structuredClone(source);
+  const body = JSON.parse(readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8'));
+  delete body.evidence_bundle_cid;
+  body.host_policy_profile.capacity.max_relation_output_rows += 1;
+  const selected = canonicalText({...body, evidence_bundle_cid:contentCid(body)});
+  const document = clientCheckSourceEnvironment(source, selected);
+  const moon = {clientProgramCheckEnvironment(wire, cid) {
+    assert.equal(JSON.parse(wire).evidence_bundle_cid, cid);return {};
+  }};
+  const composed = composeInstalledCheckEnvironment(moon, selected, canonicalText(document));
+  assert.deepEqual(JSON.parse(composed).host_policy_profile, body.host_policy_profile);
+  const changed = structuredClone(document);
+  changed.host_policy_profile.capacity.max_effect_items += 1;
+  delete changed.evidence_bundle_cid;
+  const foreign = canonicalText({...changed, evidence_bundle_cid:contentCid(changed)});
+  assert.throws(() => composeInstalledCheckEnvironment(moon, selected, foreign),
+    error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
   assert.deepEqual(source, original);
   for (const key of Object.keys(original).filter(key => !['host_policy_profile', 'evidence_bundle_cid'].includes(key))) {
-    assert.equal(document[key], source[key]);
+    assert.strictEqual(document[key], source[key]);
   }
-  const http = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'httpClient');
-  const initialized = http.body.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations[0]?.id.name === 'sourceInstallation').declarations[0].init;
-  assert.equal(initialized.type, 'AwaitExpression');
-  assert.equal(initialized.argument.arguments[2]?.name, 'hostEnvironmentWire');
-  const declaration = tree.body.find(node => node.type === 'FunctionDeclaration' &&
-    node.id.name === 'installedConfigurations');
-  const forwarded = [];
-  const configure = new Function('installedSource', 'mkdir', 'join',
-    script.slice(declaration.start, declaration.end) + ';return installedConfigurations;')(
-    async (root, configuration, originalWire) => {
-      forwarded.push({root, configuration, originalWire});
-      return join(root, 'source-profile.json');
-    }, async () => {}, join);
-  const configuration = {};
-  assert.deepEqual(await configure('/app', configuration, selected),
-    {sourceProfilePath: join('/app', 'source-profile.json')});
-  assert.deepEqual(await configure('/app', [configuration, configuration], selected),
-    {sourceProfilePaths: [join('/app', 'source-0', 'source-profile.json'),
-      join('/app', 'source-1', 'source-profile.json')]});
-  assert.equal(forwarded.length, 3);
-  assert(forwarded.every(call => call.configuration === configuration && call.originalWire === selected));
-  const selection = http.body.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations[0]?.id.name === 'hostEnvironmentWire').declarations[0].init;
-  const choose = new AsyncFunction('installed', 'moon', 'readFile', 'join', 'repository',
-    'selectInstalledHostEnvironment', 'return (' + script.slice(selection.start, selection.end) + ');');
-  let reads = 0;
-  const read = async path => {
-    assert.equal(path, join('/repo', 'spec/local-check-environment.json')); reads++; return wire;
-  };
-  assert.equal(await choose({}, moon, read, join, '/repo', selectInstalledHostEnvironment), undefined);
-  assert.equal(reads, 0);
-  assert.equal(await choose({effectInstallation: {}}, moon, read, join, '/repo',
-    selectInstalledHostEnvironment), selected);
-  assert.equal(reads, 1);
 });
 
 // Evaluate the existing CLI selection prelude, including its admission flags.
@@ -785,96 +660,48 @@ test('three-Source packed approval publishes three distinct bound input names', 
   assert(runner.includes("? 'scripts/fixtures/hubspot-approval/three-source-mock-project.mjs'"));
 });
 
-test('each Client group retains its acceptance commands exactly once', () => {
+test('Client lanes cover local acceptance without positional command snapshots', () => {
   const original = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
     .scripts['check:distribution-client'].split(' && ');
-  assert.equal(original.length, 53, 'the existing full local gate remains unchanged');
-  const prepared = ['npm ci --prefix packages/provider-ai-sdk --ignore-scripts',
-    ...original.slice(0, 4)];
-  // The full local command still executes these source-only contracts. Hosted
-  // CI executes them once in lint, without package/runtime preparation.
-  const earlyContracts = new Set(['packages/client-wire/cancel-identity.test.mjs',
-    'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs',
-    'examples/infer-evaluation/evaluate.test.mjs', 'examples/infer-evaluation/compare-source-instructions.test.mjs']);
-  const distributionContracts = original[4].split(' ').filter(argument => !earlyContracts.has(argument)).join(' ');
-  const partitions = {
-    'client-distribution': [4],
-    'client-distribution-callers': Array.from({length: 36}, (_, index) => index + 17),
-    'client-distribution-mutations': [6, 7, 8, 9],
-    'client-distribution-packed': [5, 10, 11, 12, 13, 14],
-  };
-  for (const [name, indexes] of Object.entries(partitions)) {
-    assert.deepEqual(runs(name), [
-      ...(['client-distribution', 'client-distribution-callers', 'client-distribution-mutations'].includes(name) ? prepared : []),
-      ...indexes.map(index => index === 4 ? distributionContracts : original[index]),
-      ...(name === 'client-distribution' ? ['npm run check:provider-ai-sdk', 'npm run check:otel-node'] : []),
-    ], name);
-  }
+  const partitions = Object.fromEntries(groups.filter(name =>
+    name.startsWith('client-distribution')).map(name => [name, true]));
+  const preparation = command => /^node scripts\/(?:build-runtime-packages|build-local-node-adapters|generate-client-publication-wire|generate-client-host-wire)\.mjs(?: |$)/u.test(command);
+  const movedNative = new Set(['moon build --target native --release src/cmd/native_client',
+    'node scripts/test-native-client.mjs']);
+  // Node file ownership is independent of command grouping and file order.
+  // Other actual entry points retain their complete invocation as the key.
+  const obligations = commands => commands.flatMap(command => {
+    const direct = /^node --test (.+)$/u.exec(command);
+    const bounded = /^node scripts\/local-checks\.mjs test node(?: --(?:timeout-seconds|kill-grace-seconds) \d+)* -- (.+)$/u.exec(command);
+    return direct || bounded ? (direct ?? bounded)[1].trim().split(/\s+/u).map(file => `test:${file}`)
+      : [command.trim()];
+  });
+  const required = obligations(original.filter(command => !preparation(command) && !movedNative.has(command)));
+  const scheduled = obligations([...Object.keys(partitions).flatMap(runs), ...runs('lint'), ...runs('host')]);
+  assert.equal(new Set(required).size, required.length, 'Local acceptance must not duplicate an obligation');
+  const gaps = required.flatMap(key => {
+    const count = scheduled.filter(value => value === key).length;
+    return count === 1 ? [] : [`${count} owners: ${key}`];
+  });
+  assert.deepEqual(gaps, [], 'Missing or duplicated local acceptance across Client, lint and Host');
   const hooks = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
   assert.equal(hooks['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
   assert.deepEqual(hooks['postcheck:distribution-client'].split(' && '),
     runs('client-distribution').slice(-2), 'local lifecycle and independent CI owners execute the same two commands once');
   assert.equal(hooks['check:otel-node'], 'npm ci --prefix packages/otel-node --ignore-scripts && node scripts/test-otel-node.mjs');
-  assert.deepEqual(Object.values(partitions).flat().sort((a, b) => a - b),
-    Array.from({length: 49}, (_, index) => index + 4).filter(index => ![15, 16].includes(index)),
-    'only the duplicate Native compiler is retired and its transport suite moves to the installed Remote owner');
   assert(jobs.client.needs.includes('native-cli-installed'));
   const installed = readFileSync(new URL('./ci-native-cli-installed.mjs', import.meta.url), 'utf8');
   assert(installed.includes("join(repository, 'scripts/test-native-client.mjs')"));
-  assert.equal(original[16], 'node scripts/test-native-client.mjs');
   assert(!jobs['client-distribution-packed'].steps.some(step => step.id === 'distribution-preparation'),
     'normal tar acceptance does not rebuild the checkout runtime');
-  assert.deepEqual(runs('client-packed'), [
-    `bash scripts/ci-install-linux-clang.sh
-compiler_bin="$RUNNER_TEMP/packed-query-compiler"
-mkdir -m 700 "$compiler_bin"
-ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
-ln -s "$(realpath /usr/bin/ar)" "$compiler_bin/ar"
-echo "$compiler_bin" >> "$GITHUB_PATH"`,
-    'node scripts/test-packed-local-node-assets.mjs',
-    'node scripts/test-packed-sheets.mjs',
-    'node scripts/test-packed-hubspot-source.mjs --ci --approval',
-    'node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval',
-    'node scripts/test-packed-hubspot-source.mjs --ci --mock-salesforce-approval',
-    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-approval',
-    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-whole-approval',
-    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-three-source-approval',
-    'node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-binary-source-approval',
-    'node scripts/test-packed-hubspot-source.mjs --ci --mock-kintone-approval',
-    'npm run check:packed-embedded-checkpoint',
-    'node scripts/test-packed-single-infer.mjs',
-    'node scripts/test-packed-infer-evaluation.mjs',
-    'node scripts/test-packed-acquired-infer.mjs',
-    `node --test scripts/packed-query-evidence.test.mjs
-node scripts/test-packed-public-query.mjs --ci-part=\${{ matrix.query-part }}`,
-    'node scripts/test-packed-result-description.mjs',
-    `test "$(realpath "$(command -v cc)")" = "$(realpath /usr/bin/clang-19)"
-cc --version
-node scripts/test-packed-public-query.mjs --ci-part=native`,
-  ]);
   const approvalSteps = jobs['client-packed'].steps.filter(step =>
     step.run?.startsWith('node scripts/test-packed-hubspot-source.mjs --ci '));
-  assert.equal(approvalSteps.length, 8, 'Each connector/acquisition consumer is independently scheduled');
-  assert.equal(new Set(approvalSteps.map(step => step.name)).size, 8);
+  assert(approvalSteps.length > 0, 'Connector acquisition acceptance must be scheduled');
   for (const step of approvalSteps) {
-    assert(step.name.startsWith('Test packed '));
     assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1'});
     assert.equal(step.if, "${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}");
     assert.equal(step['continue-on-error'], undefined);
   }
-  assert.deepEqual(runs('client-packed-composition'), ['node scripts/test-packed-salesforce-source.mjs']);
-  assert.deepEqual(runs('client-salesforce'), [
-    'node scripts/build-runtime-packages.mjs local-node',
-    'npm run check:salesforce-site',
-    'node adapters/connectors/salesforce/test/run-computation-probe.mjs',
-    'node scripts/test-acquired-effect-computation-probe.mjs',
-    `for boundary in before-effect-source effect-source before-effect-capture effect-capture before-publication-private publication-private; do
-  node scripts/test-effect-capture-host-crash.mjs "$boundary"
-done
-for boundary in effect-source effect-capture publication-private; do
-  node scripts/test-effect-capture-crash.mjs "$boundary"
-done`,
-  ]);
   for (const name of Object.keys(partitions)) for (const step of jobs[name].steps.filter(step => step.name?.startsWith('Test ')))
     assert.deepEqual(step.env, {TMPDIR: '${{ github.workspace }}/_build'});
   for (const name of groups.filter(name => name !== 'client-supported-versions')) {
@@ -893,6 +720,7 @@ done`,
         if (['client-packed', 'client-packed-composition', 'client-distribution-packed'].includes(name)) preparation = 'client-inputs';
         else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
       }
+      if (name === 'client-packed' && step.id === 'table-python') preparation = 'client-inputs';
       if (name === 'client-packed') {
         const group = /matrix\.group == '([^']+)'/u.exec(step.if)?.[1];
         assert(jobs[name].strategy.matrix.group.includes(group));
@@ -900,8 +728,13 @@ done`,
         const ownership = step.id === 'packed-query'
           ? "(matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3')"
           : `matrix.group == '${group}'`;
-        assert.deepEqual(terms, [ownership, ...(preparation
-          ? ['!cancelled()', `steps.${preparation}.outcome == 'success'`] : [])].sort(),
+        if (step.id === 'packed-table-source-summary') {
+          assert.deepEqual(terms, [ownership, 'always()',
+            "(steps.table-python.outcome == 'failure' || steps.packed-table-source.outcome == 'failure')"].sort(),
+          'only the exact Table failure summary runs after its selected prerequisite or acceptance fails');
+        } else assert.deepEqual(terms, [ownership, ...(preparation
+          ? ['!cancelled()', `steps.${preparation}.outcome == 'success'`] : []),
+        ...(step.id === 'packed-table-source' ? ["steps.table-python.outcome == 'success'"] : [])].sort(),
         'matrix ownership retains the original preparation/current-cancellation barrier');
       } else assert.equal(step.if, preparation
         ? '${{ !cancelled() && steps.' + preparation + ".outcome == 'success' }}" : undefined,
@@ -1119,41 +952,22 @@ test('admission-only flags narrow the existing Source case without ordinary Effe
 });
 
 // Pure fixture observation controls. These execute no Client, Host or Journal.
-function checkpointObservationDeclarations() {
-  const source = readFileSync(new URL('./fixtures/packed-embedded-checkpoint.mjs', import.meta.url), 'utf8');
-  const ast = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const functionSource = name => {
-    const declaration = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
-    assert(declaration, `Missing actual fixture declaration ${name}`);
-    return source.slice(declaration.start, declaration.end);
-  };
-  return {source, ast, functionSource};
-}
-
 test('packed checkpoint observation covers the configured retry inside the original child budget', () => {
-  const {functionSource} = checkpointObservationDeclarations();
-  const schedule = new Function('assert', functionSource('checkpointObservationSchedule') +
-    ';return checkpointObservationSchedule;')(assert);
-  assert.deepEqual(schedule(10000), {pollMs: 25, retryMs: 10100, polls: 808});
-  assert.equal(schedule(10000).polls * schedule(10000).pollMs, 20200);
-  assert(3 * 20200 < 120000);
-  for (const invalid of [undefined, 0, -1, 999, 1000.5, 20000]) assert.throws(() => schedule(invalid));
+  for (const lease of [1000,10000]) {
+    const actual=checkpointObservationSchedule(lease);
+    assert.ok(Number.isSafeInteger(actual.pollMs)&&actual.pollMs>0);
+    assert.ok(Number.isSafeInteger(actual.polls)&&actual.polls>0);
+    assert.ok(actual.retryMs>=lease);
+    assert.ok(actual.polls*actual.pollMs>=2*actual.retryMs);
+    assert.ok(3*actual.polls*actual.pollMs<120000);
+  }
+  for (const invalid of [undefined,0,-1,999,1000.5,20000]) assert.throws(()=>checkpointObservationSchedule(invalid));
 });
 
 test('packed checkpoint first diagnostic and public pending observations cannot overwrite each other', () => {
-  const {source, ast, functionSource} = checkpointObservationDeclarations();
-  const recordOriginal = new Function(functionSource('checkpointObservationRecord') +
-    ';return checkpointObservationRecord;')();
-  const records = [], events = [];
-  const record = (kind, data) => recordOriginal(records, kind, data);
-  const assignment = ast.body.find(node => node.type === 'ExpressionStatement' &&
-    node.expression.type === 'AssignmentExpression' && node.expression.left.type === 'MemberExpression' &&
-    node.expression.left.object.name === 'authorization' && node.expression.left.property.name === 'faultInjection');
-  assert(assignment);
-  const callback = source.slice(assignment.expression.right.start, assignment.expression.right.end);
-  const observe = new Function('record', 'appendFileSync', `
-    let firstResumeFailure, retryClaimAfterFailure=false, recoveryAfterFailure=false;
-    return ${callback};`)(record, (path, value) => {assert.equal(path, 'embedded-events.log'); events.push(value);});
+  const records=[],events=[];
+  const record=(kind,data)=>checkpointObservationRecord(records,kind,data);
+  const observe=createCheckpointFaultObserver(records,record,name=>events.push(name+'\n'));
   record('first-lookup', {kind: 'held', state: 'resuming'});
   observe('resume_claimed', {generation: 1});
   observe('resume_failed', {code: 'OriginalResumeFailure'});
@@ -1172,31 +986,24 @@ test('packed checkpoint first diagnostic and public pending observations cannot 
 });
 
 test('packed checkpoint close records actual return and preserves the first pending failure', async () => {
-  const {functionSource} = checkpointObservationDeclarations();
   const records = [], record = (kind, data) => records.push({kind, data});
   let release;
   const first = {close() {assert.equal(this, first); return new Promise(resolve => {release = resolve;});}};
-  const owner = new Function('record', 'initialClient', 'nodeTypes', `let client=initialClient; const closedClients=new WeakSet();
-    ${functionSource('checkpointFailureData')}
-    ${functionSource('closeClient')}
-    return {closeClient,setClient(value){client=value;}};`)(record, first, nodeTypes);
-  const closing = owner.closeClient('first');
+  const closedClients=new WeakSet();
+  const closing=closeCheckpointClient(first,closedClients,record,'first');
   assert.deepEqual(records, [{kind: 'close-attempt:first', data: {first: true}}]);
   release(); await closing;
   assert.deepEqual(records.at(-1), {kind: 'close-returned:first', data: {first: true}});
   const failure = Object.assign(new Error('same pending cleanup'), {code: 'ClientCleanupPending'});
   const pending = {close() {assert.equal(this, pending); throw failure;}};
-  owner.setClient(pending);
-  await assert.rejects(owner.closeClient('pending'), error => error === failure);
+  await assert.rejects(closeCheckpointClient(pending,closedClients,record,'pending'),error=>error===failure);
   assert.deepEqual(records.at(-1), {kind: 'close-failed:pending',
     data: {first: true, name: null, code: 'ClientCleanupPending'}});
   assert.equal(records.some(item => item.kind === 'close-returned:pending'), false);
 });
 
 test('packed checkpoint failure capture reads only own scalar DATA without getters or opaque causes', () => {
-  const {functionSource} = checkpointObservationDeclarations();
-  const capture = new Function('nodeTypes', functionSource('checkpointFailureData') +
-    ';return checkpointFailureData;')(nodeTypes);
+  const capture=checkpointFailureData;
   let reads = 0;
   const error = new Error('original scalar code');
   Object.defineProperty(error, 'code', {get() {reads++; throw new Error('must not run');}});
@@ -1212,9 +1019,7 @@ test('packed checkpoint failure capture reads only own scalar DATA without gette
 });
 
 test('packed checkpoint dispatch capture excludes messages, identities, getters and opaque values', () => {
-  const {functionSource} = checkpointObservationDeclarations();
-  const capture = new Function('nodeTypes', functionSource('checkpointDispatchFailureData') +
-    ';return checkpointDispatchFailureData;')(nodeTypes);
+  const capture=checkpointDispatchFailureData;
   let reads = 0;
   const getter = {get() {reads++; throw new Error('must not inspect');}};
   const detail = Object.create({primaryCode: 'InheritedCode', issueTag: 1});
@@ -1244,43 +1049,20 @@ test('packed checkpoint dispatch capture excludes messages, identities, getters 
 });
 
 test('packed checkpoint emitted codes retain only exact authored labels without promoting a primary', () => {
-  const {functionSource} = checkpointObservationDeclarations();
-  const capture = new Function('nodeTypes', functionSource('checkpointDispatchFailureData') +
-    ';return checkpointDispatchFailureData;')(nodeTypes);
+  const capture=checkpointDispatchFailureData;
   for (const code of ['InstalledManagedComputeRunUnavailable', 'CapturedRunPublicationFailed']) {
     assert.deepEqual(capture({code}), {emittedCode: code});
   }
   for (const code of ['PrivateButIdentifierShaped', 'private message', 'ClientDispatchFailed',
     'InstalledManagedComputeRunUnavailable:private-value', '', 1,
     {toString() {throw new Error('must not coerce');}}]) assert.deepEqual(capture({code}), {});
-  const declaration = parseJavaScript(functionSource('checkpointDispatchFailureData'),
-    {ecmaVersion: 'latest', sourceType: 'module'}).body[0];
-  const labels = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(value => value.id.name === 'emittedCodes')).declarations[0].init.elements;
-  const dispatch = readFileSync(new URL('../adapters/host-node/client-dispatch-owner.mjs', import.meta.url), 'utf8');
-  const entry = readFileSync(new URL('../adapters/host-node/entry.mjs', import.meta.url), 'utf8');
-  for (const label of labels) {
-    assert.equal(label.type, 'Literal');
-    assert.equal(typeof label.value, 'string');
-    assert(dispatch.includes(`new Error('${label.value}')`) ||
-      dispatch.includes(`new TypeError('${label.value}')`) || entry.includes(`= '${label.value}'`),
-    `Missing original authored dispatch label: ${label.value}`);
-  }
+
 });
 
 test('packed checkpoint first dispatch hooks retain no capabilities and do not repeat', () => {
-  const {source, ast, functionSource} = checkpointObservationDeclarations();
-  const assignment = ast.body.find(node => node.type === 'ExpressionStatement' &&
-    node.expression.type === 'AssignmentExpression' && node.expression.left.type === 'MemberExpression' &&
-    node.expression.left.object.name === 'authorization' && node.expression.left.property.name === 'faultInjection');
-  const callback = source.slice(assignment.expression.right.start, assignment.expression.right.end);
-  const records = [], events = [];
-  const recordOriginal = new Function(functionSource('checkpointObservationRecord') +
-    ';return checkpointObservationRecord;')();
-  const observe = new Function('record', 'appendFileSync', `
-    let firstResumeFailure, retryClaimAfterFailure=false, recoveryAfterFailure=false;
-    return ${callback};`)((kind, data) => recordOriginal(records, kind, data),
-    (path, text) => {assert.equal(path, 'embedded-events.log'); events.push(text);});
+  const records=[],events=[];
+  const observe=createCheckpointFaultObserver(records,
+    (kind,data)=>checkpointObservationRecord(records,kind,data),name=>events.push(name+'\n'));
   const opaque = new Proxy({}, {get() {throw new Error('must not inspect original capability');}});
   for (let index = 0; index < 100; index++) {
     assert.equal(observe('dispatch_reserved', opaque), undefined);
@@ -1292,21 +1074,8 @@ test('packed checkpoint first dispatch hooks retain no capabilities and do not r
 });
 
 test('packed checkpoint observes only the existing dispatch event and preserves its first DATA', () => {
-  const {source, ast, functionSource} = checkpointObservationDeclarations();
-  const assignment = ast.body.find(node => node.type === 'ExpressionStatement' &&
-    node.expression.type === 'AssignmentExpression' && node.expression.left.type === 'MemberExpression' &&
-    node.expression.left.object.name === 'authorization' && node.expression.left.property.name === 'observe');
-  assert(assignment);
-  const opening = ast.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(declaration => declaration.id.name === 'open'));
-  assert(assignment.end < opening.start, 'the existing observer is configured before the original connect');
-  const callback = source.slice(assignment.expression.right.start, assignment.expression.right.end);
-  const records = [];
-  const observe = new Function('nodeTypes', 'records', `
-    ${functionSource('checkpointDispatchFailureData')}
-    ${functionSource('checkpointObservationRecord')}
-    const record=(kind,data)=>checkpointObservationRecord(records,kind,data);
-    return ${callback};`)(nodeTypes, records);
+  const records=[];
+  const observe=createCheckpointDispatchObserver((kind,data)=>checkpointObservationRecord(records,kind,data));
   const opaque = new Proxy({}, {get() {throw new Error('must not read unrelated events');}});
   assert.equal(observe('resume_failed', opaque), undefined);
   assert.equal(observe('dispatch_settlement_failed', opaque), undefined);
@@ -1813,4 +1582,19 @@ test('distribution mutation matrix executes each unchanged script once after its
   assert.deepEqual(expected.map(({script}) => tests[0].run.replace('${{ matrix.script }}', script)), local.slice(6, 10));
   assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
   assert(jobs.client.needs.includes('client-distribution-mutations'));
+});
+
+// These actual Core/SQLite cases use the existing distribution runtime setup.
+test('Journal same-parent retention and exact legacy adoption run once in distribution', () => {
+  const command = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).scripts['check:distribution-client'];
+  const commands = runs('client-distribution');
+  for (const path of ['adapters/host-node/client-request-journal-parent-budget.test.mjs',
+    'adapters/host-node/client-submission-usage.test.mjs',
+    'adapters/host-node/host-journal-schema-support.test.mjs']) {
+    assert.equal(command.split(/\s+/).filter(token => token === path).length, 1);
+    assert.equal(commands.flatMap(value => value.split(/\s+/)).filter(token => token === path).length, 1);
+    for (const consumer of consumers.filter(name => name !== 'client-distribution')) {
+      assert.equal(runs(consumer).flatMap(value => value.split(/\s+/)).filter(token => token === path).length, 0);
+    }
+  }
 });

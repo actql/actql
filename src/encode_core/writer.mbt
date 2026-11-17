@@ -24,10 +24,16 @@ priv enum OutputSink {
   TextOutput(StringBuilder)
   MeasureOutput
   GeometryOutput(ConstructionGeometryState)
+  // Only the closed managed dependency measurer uses this sink. Its keys
+  // must already be in canonical order; the existing ordered lane verifies
+  // uniqueness without an input-sized key Map. It retains no output text.
+  WorkGeometryOutput(ConstructionGeometryState, (Int) -> Bool, Bool)
+  WorkTextOutput(StringBuilder, (Int) -> Bool)
   HashOutput(@sha256.Hasher)
   BufferedHashOutput(BufferedHash)
   BufferedTextOutput(BufferedText)
   CompareOutput(ComparedText)
+  WorkCompareOutput(ComparedText, (Int) -> Bool)
 }
 
 ///|
@@ -274,7 +280,7 @@ pub fn cancel_writer(w : Writer) -> Unit {
   }
   w.frames.clear()
   match w.output {
-    TextOutput(text) => text.reset()
+    TextOutput(text) | WorkTextOutput(text, _) => text.reset()
     BufferedHashOutput(buffer) => {
       buffer.text.reset()
       buffer.bytes = 0
@@ -283,8 +289,11 @@ pub fn cancel_writer(w : Writer) -> Unit {
       buffer.text = StringBuilder()
       buffer.bytes = 0
     }
-    CompareOutput(output) => output.expected = ""
-    MeasureOutput | GeometryOutput(_) | HashOutput(_) => ()
+    CompareOutput(output) | WorkCompareOutput(output, _) => output.expected = ""
+    MeasureOutput
+    | GeometryOutput(_)
+    | WorkGeometryOutput(_, _, _)
+    | HashOutput(_) => ()
   }
 }
 
@@ -383,9 +392,10 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
   reserve_buffer(w, text.length())
   w.remaining_bytes -= text.length()
   match w.output {
-    TextOutput(output) => output.write_string(text)
-    MeasureOutput | GeometryOutput(_) => ()
-    CompareOutput(output) => compare_range(output, text, 0, text.length())
+    TextOutput(output) | WorkTextOutput(output, _) => output.write_string(text)
+    MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _, _) => ()
+    CompareOutput(output) | WorkCompareOutput(output, _) =>
+      compare_range(output, text, 0, text.length())
     BufferedTextOutput(buffer) => buffer.text.write_string(text)
     HashOutput(h) => hash_ascii_range(w, h, text, 0, text.length())
     BufferedHashOutput(buffer) => {
@@ -481,9 +491,10 @@ fn quoted_contents(
         reserve_buffer(w, bytes)
         w.remaining_bytes -= bytes
         match w.output {
-          TextOutput(output) => output.write_char(scalar.unsafe_to_char())
-          MeasureOutput | GeometryOutput(_) => ()
-          CompareOutput(output) =>
+          TextOutput(output) | WorkTextOutput(output, _) =>
+            output.write_char(scalar.unsafe_to_char())
+          MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _, _) => ()
+          CompareOutput(output) | WorkCompareOutput(output, _) =>
             if scalar < 65536 {
               compare_unit(output, scalar)
             } else {
@@ -535,9 +546,10 @@ fn ascii_span(
   reserve_buffer(w, size)
   w.remaining_bytes -= size
   match w.output {
-    MeasureOutput | GeometryOutput(_) => ()
-    CompareOutput(output) => compare_range(output, text, start, end)
-    TextOutput(output) =>
+    MeasureOutput | GeometryOutput(_) | WorkGeometryOutput(_, _, _) => ()
+    CompareOutput(output) | WorkCompareOutput(output, _) =>
+      compare_range(output, text, start, end)
+    TextOutput(output) | WorkTextOutput(output, _) =>
       output.write_view(text.view(start_offset=start, end_offset=end))
     BufferedTextOutput(buffer) =>
       buffer.text.write_view(text.view(start_offset=start, end_offset=end))
@@ -552,6 +564,7 @@ fn ascii_span(
 ///|
 fn value_start(w : Writer) -> Unit raise EncodeFailure {
   idle(w)
+  construction_work_step(w, 1)
   if w.remaining_nodes <= 0 {
     fail(w, OutputLimit)
   }
@@ -595,6 +608,9 @@ pub fn bool_value(w : Writer, value : Bool) -> Unit raise EncodeFailure {
 /// Finite binary64 spelling only; NaN, infinities and negative zero are rejected.
 pub fn number_value(w : Writer, value : Double) -> Unit raise EncodeFailure {
   active(w)
+  // Same pinned <=25-unit binary64 decimal spelling as the existing writer
+  // construction inventory, before to_string performs that bounded work.
+  construction_work_step(w, 25)
   if value.is_nan() ||
     value.is_inf() ||
     value.reinterpret_as_uint64() == 0x8000000000000000UL {
@@ -615,6 +631,7 @@ pub fn decimal_number_value(
 ) -> Unit raise EncodeFailure {
   active(w)
   let size = text.length()
+  construction_work_step(w, size)
   let start = if size > 0 && text[0] == '-' { 1 } else { 0 }
   let mut index = start
   let mut nonzero = false
@@ -650,6 +667,7 @@ pub fn decimal_number_value(
 /// Escapes without normalization. Unpaired UTF-16 surrogates are rejected.
 pub fn string_value(w : Writer, value : String) -> Unit raise EncodeFailure {
   value_start(w)
+  construction_work_step(w, value.length())
   quoted(w, value)
 }
 
@@ -687,6 +705,7 @@ pub fn start_prefixed_string_value(
     fail(w, OutputLimit)
   }
   value_start(w)
+  construction_work_step(w, prefix.length() + text.length())
   ascii(w, "\"")
   w.string_active = true
   { writer: w, prefix, text, position: 0, done: false, }
@@ -703,6 +722,9 @@ pub fn advance_string_value(
   }
   let w = cursor.writer
   active(w)
+  // The String span was charged at start, but its synchronous view may have
+  // expired before this resumed chunk. Zero validates the view without work.
+  construction_work_step(w, 0)
   if !w.string_active {
     fail(w, InvalidStructure)
   }
@@ -755,7 +777,12 @@ pub fn begin_object(w : Writer) -> Unit raise EncodeFailure {
     fail(w, OutputLimit)
   }
   ascii(w, "{")
-  w.frames.push(ObjectKey(true, Map([])))
+  match w.output {
+    WorkGeometryOutput(_, _, _)
+    | WorkTextOutput(_, _)
+    | WorkCompareOutput(_, _) => w.frames.push(OrderedObjectKey(None, 0))
+    _ => w.frames.push(ObjectKey(true, Map([])))
+  }
   observe_construction_container(w, object=true)
   w.peak_depth = w.peak_depth.max(w.frames.length())
 }
@@ -799,9 +826,27 @@ pub fn start_ordered_key(
   if name.length() > w.remaining_bytes {
     fail(w, OutputLimit)
   }
+  // One bounded ordering pass and one quoting pass over the borrowed name.
+  // Charge before either scan, including a later duplicate/order refusal.
+  construction_work_step(w, name.length())
+  if !construction_census_mode(w) {
+    construction_work_step(w, name.length())
+  }
+  construction_work_step(w, 1)
   w.string_active = true
   observe_construction_field(w)
-  { writer: w, text: name, previous, position: 0, phase: 0, done: false, }
+  {
+    writer: w,
+    text: name,
+    previous,
+    position: 0,
+    phase: if construction_census_mode(w) {
+      1
+    } else {
+      0
+    },
+    done: false,
+  }
 }
 
 ///|
@@ -815,6 +860,7 @@ pub fn advance_ordered_key(
   }
   let w = cursor.writer
   active(w)
+  construction_work_step(w, 0)
   if !w.string_active {
     fail(w, InvalidStructure)
   }
@@ -898,6 +944,10 @@ pub fn ordered_key(w : Writer, name : String) -> Unit raise EncodeFailure {
 ///|
 pub fn key(w : Writer, name : String) -> Unit raise EncodeFailure {
   idle(w)
+  if construction_work_active(w) {
+    ordered_key(w, name)
+    return
+  }
   if w.frames.is_empty() {
     fail(w, InvalidStructure)
   }
@@ -933,6 +983,7 @@ pub fn key(w : Writer, name : String) -> Unit raise EncodeFailure {
 ///|
 pub fn end_array(w : Writer) -> Unit raise EncodeFailure {
   idle(w)
+  construction_work_step(w, 1)
   match w.frames.last() {
     Some(ArrayItems(_)) => {
       // Native pop retains its backing slot. Retire the payload before the
@@ -953,6 +1004,7 @@ pub fn end_array(w : Writer) -> Unit raise EncodeFailure {
 ///|
 pub fn end_object(w : Writer) -> Unit raise EncodeFailure {
   idle(w)
+  construction_work_step(w, 1)
   match w.frames.last() {
     Some(ObjectKey(_, _)) | Some(OrderedObjectKey(_, _)) => {
       let fields = match w.frames[w.frames.length() - 1] {
@@ -987,7 +1039,12 @@ pub fn finish_text_usage(
   w : Writer,
 ) -> (String, Int, Int, Int) raise EncodeFailure {
   active(w)
-  guard w.output is TextOutput(output) else { fail(w, InvalidStructure) }
+  construction_work_step(w, 1)
+  construction_work_step(w, w.max_bytes - w.remaining_bytes)
+  let output = match w.output {
+    TextOutput(output) | WorkTextOutput(output, _) => output
+    _ => fail(w, InvalidStructure)
+  }
   finish_state(w)
   (
     output.to_string(),
@@ -1011,7 +1068,9 @@ pub fn finish_measurement_usage(
   w : Writer,
 ) -> (Int, Int, Int) raise EncodeFailure {
   active(w)
-  guard w.output is MeasureOutput || w.output is GeometryOutput(_) else {
+  guard w.output is MeasureOutput ||
+    w.output is GeometryOutput(_) ||
+    w.output is WorkGeometryOutput(_, _, _) else {
     fail(w, InvalidStructure)
   }
   finish_state(w)
@@ -1029,7 +1088,11 @@ pub fn finish_comparison_usage(
   w : Writer,
 ) -> (Bool, Int, Int, Int) raise EncodeFailure {
   active(w)
-  guard w.output is CompareOutput(output) else { fail(w, InvalidStructure) }
+  construction_work_step(w, 1)
+  let output = match w.output {
+    CompareOutput(output) | WorkCompareOutput(output, _) => output
+    _ => fail(w, InvalidStructure)
+  }
   finish_state(w)
   let equal = output.equal && output.offset == output.expected.length()
   output.expected = ""
@@ -1096,8 +1159,11 @@ pub fn finish_hash_metrics(
     TextOutput(_)
     | MeasureOutput
     | GeometryOutput(_)
+    | WorkGeometryOutput(_, _, _)
+    | WorkTextOutput(_, _)
     | BufferedTextOutput(_)
-    | CompareOutput(_) => fail(w, InvalidStructure)
+    | CompareOutput(_)
+    | WorkCompareOutput(_, _) => fail(w, InvalidStructure)
   }
   finish_state(w)
   let hex = @sha256.finish_hex(h) catch {

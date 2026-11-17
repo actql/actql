@@ -3,8 +3,8 @@
 The `nativeApprovalTarget` profile in `scripts/operation-performance.mjs` applies
 only to the existing small `deal-review-mock` and `churn-risk-mock` workflows.
 Each template needs 30 completed, independently verified approvals on one fixed
-runner and one immutable Native cohort. The target is approval p95 <= 4000 ms
-and maximum <= 5000 ms, with zero functional failures or timeouts. This does
+runner and one immutable Native cohort. The target is approval p95 <= 2000 ms
+and maximum <= 3000 ms, with zero functional failures or timeouts. This does
 not change the portable SQL profiles or turn a command timeout into acceptance.
 
 The timer begins immediately before the public `approve --wait --json` process
@@ -16,7 +16,7 @@ fresh private installation/state; it never replays a failed business state.
 
 The required ordinary Linux Local producer already executes both installed Mock
 workflows. Its ordinary consumer now checks each complete approval process
-against the same maximum of 5000 ms as the formal profile, using the existing
+against the same maximum of 3000 ms as the formal profile, using the existing
 monotonic `wallNs` observation.
 Missing, invalid, failed or duplicate observations cannot pass. This is a
 two-fixture maximum-only smoke check; it supplies no p95 or formal acceptance.
@@ -26,7 +26,7 @@ before a slow verdict exits nonzero. The existing 120-second command timeout
 and cleanup behavior remain unchanged.
 
 Resource-enabled formal collection retains every slow sample for its own
-30-per-template, 4000/5000 ms assessment. It does not use the ordinary smoke
+30-per-template, 2000/3000 ms assessment. It does not use the ordinary smoke
 cutoff. This smoke check needs no timing baseline and adds no workflow runs.
 The separate Health Quick comparison remains warning-only for latency; adopting
 a reviewed comparable Quick baseline alone does not turn its timing warnings

@@ -40,6 +40,7 @@ fn bounded_append_fixture(
   selected? : Bool = false,
   left_live? : Ref[Bool]? = None,
   reserve? : ((Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
+  ceiling? : Int64? = None,
 ) -> (
   @bounded.Control,
   Result[BoundedAppendExecution, BoundedAppendIssue],
@@ -106,6 +107,11 @@ fn bounded_append_fixture(
   } else {
     generated
   }
+  let generated = match ceiling {
+    Some(value) =>
+      constrain_generated_expansion_output(generated, 0, value).unwrap()
+    None => generated
+  }
   let generated = match reserve {
     Some(reserve) =>
       bind_generated_workspace_growth(
@@ -153,6 +159,31 @@ fn bounded_append_fixture(
     name_bytes,
   )
   (control, execution, [left, right])
+}
+
+///|
+test "bounded append enforces its exact output ceiling before constructing rows" {
+  let (_, short, inputs) = bounded_append_fixture(ceiling=Some(2L))
+  assert_true(short is Err(Rows(RowLimit)))
+  for input in inputs {
+    assert_true(producer_read_available(input))
+  }
+  let (_, exact, _) = bounded_append_fixture(ceiling=Some(3L))
+  let execution = exact.unwrap()
+  let mut complete = false
+  for _ in 0..<1000 {
+    match advance_bounded_append(execution, 1).unwrap() {
+      BoundedAppendContinue(..) => ()
+      BoundedAppendComplete(output, ..) => {
+        assert_eq(completed_row_count(output), 3)
+        complete = true
+        break
+      }
+      _ => fail("exact checked Append ceiling refused")
+    }
+  }
+  assert_true(complete)
+  assert_true(cleanup_bounded_append(execution).unwrap())
 }
 
 ///|

@@ -273,6 +273,7 @@ export async function releasePreparedResults(exported, primary, control) {
 async function exportCompletedRunResultSet({
   execution, store, control, runDefinition, invocation, results,
   outputLimits, contractLimits, signal,
+  resultProgress,
 }, exported, publicationResource) {
   validateExecution(execution);
   if (!Array.isArray(results) ||
@@ -297,6 +298,7 @@ async function exportCompletedRunResultSet({
       retention: result.retention,
       evidenceContext: result.evidenceContext,
       transformation: result.transformation,
+      resultProgress,
     }, signal, publicationResource);
     const expected = execution.publicationInventory.occurrences[index];
     if (stored?.occurrence?.name !== expected.name ||
@@ -354,7 +356,7 @@ export async function storeCompletedRunResultSet(options) {
 // coordinates cannot relabel a foreign Run or a different exported payload.
 export function retainCompletedEffectDependencyPayloads({
   execution, store, storedResults, control, runDefinition, dependencies,
-  dependencyInventoryWire,
+  dependencyInventoryWire, dependencyConstruction,
 }) {
   const owner = completedResultOwners.get(storedResults);
   if (owner === undefined || owner.execution !== execution || owner.store !== store ||
@@ -394,6 +396,7 @@ export function retainCompletedEffectDependencyPayloads({
   // with its caller; successful adoption uses the existing cleanup retry path.
   owner.effectDependencyPayloads = Object.freeze(adopted);
   owner.effectDependencyInventoryWire = dependencyInventoryWire;
+  owner.effectDependencyConstruction = dependencyConstruction;
   return Object.freeze(adopted.map(value => value.binding));
 }
 
@@ -681,6 +684,7 @@ export async function issueCompletedEffectfulComputationEvidence(options) {
     effectSources: ownedHoldings.map(value => value.source),
     localEffectSources: ownedHoldings.map(value => value.localEvidence),
     dependencyInventoryWire: owner.effectDependencyInventoryWire,
+    dependencyConstruction: owner.effectDependencyConstruction,
   }, preview, plans, contractLimits, signal);
   const dependencyBindings = control.capturedEffectDependencyPayloadBindings(
     capturedRun, (owner.effectDependencyPayloads ?? []).map(value => ({
@@ -919,15 +923,18 @@ async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
     artifacts: body.artifacts.map(wire => admit('result_artifact', wire)),
     manifest: admit('result_manifest', body.manifest),
     computationReceipt: admit('run_receipt', body.computation_receipt),
-    capturedRun: admit('captured_run', body.captured_run),
+    capturedRun: recoveryResources?.admitCapturedRun?.(body.captured_run) ?? admit('captured_run', body.captured_run),
   };
   const preview = control.admitEffectComputationPreview(body.preview, run,
     control.admitRunEvidence('authoring_context', body.authoring_context,
       contractLimits), contractLimits);
   const previewBinding = control.effectPrivateEvidenceBinding(preview,
     store.storeAuthorityCid);
+  // This selects immutable DATA routing only. The prepared branch validates
+  // the SAME complete chain inside its one Source projection call below.
+  const preparedRoute = control.hasPreparedCapturedEffectRun?.(chain.capturedRun) === true;
   if (chain.capturedRun.identity !== record.manifest_cid ||
-      !control.effectfulComputationEvidenceChainValid(chain, preview,
+      !preparedRoute && !control.effectfulComputationEvidenceChainValid(chain, preview,
         contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureChain');
   }
@@ -947,15 +954,20 @@ async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
     return Object.freeze({memberIndex: item.member_index, artifact,
       ...(schema === undefined ? {} : {schema: Object.freeze({...schema})})});
   });
-  if (!control.capturedEffectSourceInventoryFromCaptureValid(preview,
+  const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory(
+    chain, preview, sources, store.storeAuthorityCid, contractLimits) : undefined;
+  if (preparedRoute && (!Array.isArray(preparedSources) || preparedSources.length !== sources.length)) {
+    fail('InvalidCompletedEffectfulCaptureSource');
+  }
+  if (preparedSources === undefined && !control.capturedEffectSourceInventoryFromCaptureValid(preview,
     sources, chain.invocation, chain.capturedRun, store.storeAuthorityCid,
     contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureSource');
   }
-  const sourceCids = sources.map(({memberIndex, artifact}) => {
-    const source = control.admitCapturedEffectSourceFromCapture(preview,
+  const sourceCids = sources.map(({memberIndex, artifact}, index) => {
+    const source = preparedSources === undefined ? control.admitCapturedEffectSourceFromCapture(preview,
       memberIndex, chain.invocation, artifact, chain.capturedRun,
-      store.storeAuthorityCid, contractLimits);
+      store.storeAuthorityCid, contractLimits) : preparedSources[index];
     return control.capturedEffectSourceHoldingCid(source);
   });
   // Validate every remaining record before starting deletion. Missing
@@ -1014,8 +1026,8 @@ async function prepareCompletedEffectfulCaptureRetirement(store, control, run,
 // encrypted capture record is only a source of bytes; MoonBit re-admits and
 // validates the exact computation chain before any owner is reconstructed.
 export async function recoverCompletedEffectfulComputation(options, recoveryResources) {
-  return withCaptureRecoveryResources(recoveryResources, beforeRead =>
-    recoverCompletedEffectfulComputationOwned(options, beforeRead, recoveryResources));
+  return withCaptureRecoveryResources(recoveryResources, (beforeRead, extent) =>
+    recoverCompletedEffectfulComputationOwned(options, beforeRead, recoveryResources, extent));
 }
 
 // The fixed Host supplies the SAME already admitted Request/Run reservation.
@@ -1023,7 +1035,7 @@ export async function recoverCompletedEffectfulComputation(options, recoveryReso
 // successful returned schema/material owners and any failed physical child
 // remain backed until their original caller's actual retirement continuation.
 async function withCaptureRecoveryResources(resources, consume) {
-  if (resources === undefined) return consume(undefined);
+  if (resources === undefined) return consume(undefined, undefined);
   if (!['begin', 'reserve', 'finish', 'retainCleanup'].every(name => typeof resources?.[name] === 'function')) {
     fail('InvalidCompletedEffectfulRecoveryResources');
   }
@@ -1031,7 +1043,21 @@ async function withCaptureRecoveryResources(resources, consume) {
   Reflect.apply(begin, resources, []);
   let failed = true, cause;
   try {
-    const value = await consume(bytes => Reflect.apply(reserve, resources, [bytes]));
+    // This cell records only the SAME acquired outer Store extent after its
+    // original parent has admitted the reservation. Inner metadata never
+    // supplies this constructor bound or changes the selected resource budget.
+    const extent = {bytes: undefined};
+    const beforeRead = bytes => {
+      // Preserve the Store's synchronous-void reservation contract.
+      const result = Reflect.apply(reserve, resources, [bytes]);
+      if (result !== undefined) return result;
+      extent.bytes = bytes;
+    };
+    if (typeof resources.reserveEnvelope === 'function') {
+      Object.defineProperty(beforeRead, 'reserveEnvelope', {value: wire =>
+        Reflect.apply(resources.reserveEnvelope, resources, [wire])});
+    }
+    const value = await consume(beforeRead, extent);
     failed = false;
     return value;
   } catch (error) {
@@ -1042,7 +1068,7 @@ async function withCaptureRecoveryResources(resources, consume) {
   }
 }
 
-async function recoverCompletedEffectfulComputationOwned(options, beforeRead, recoveryResources) {
+async function recoverCompletedEffectfulComputationOwned(options, beforeRead, recoveryResources, extent) {
   if (!exactKeys(options, [
     'store', 'control', 'runDefinition', 'contractLimits',
   ])) fail('InvalidCompletedEffectfulRecoveryOptions');
@@ -1087,7 +1113,7 @@ async function recoverCompletedEffectfulComputationOwned(options, beforeRead, re
         if (consuming) fail('InvalidCompletedEffectfulCaptureRecord');
         consuming = true;
         return recoverCompletedEffectfulPlaintext(store, control, contractLimits, admittedRun,
-          captureHoldingCid, recordHoldingCid, record, read, recoveryResources);
+          captureHoldingCid, recordHoldingCid, record, read, recoveryResources, extent);
       }, beforeRead);
     if (!consuming) fail('InvalidCompletedEffectfulCaptureRecord');
     return recovered;
@@ -1102,7 +1128,18 @@ async function recoverCompletedEffectfulComputationOwned(options, beforeRead, re
 // One trusted consumer of the same temporary decrypted backing. The Store's
 // original reader spans the complete typed/schema construction and its awaits.
 async function recoverCompletedEffectfulPlaintext(store, control, contractLimits,
-  admittedRun, captureHoldingCid, recordHoldingCid, record, read, recoveryResources) {
+  admittedRun, captureHoldingCid, recordHoldingCid, record, read, recoveryResources, extent) {
+  if (extent !== undefined) {
+    // The acquired original must agree with the inspected immutable holding.
+    // This bounded inverse never needs to emit a metadata wire larger than
+    // the original outer record that contains it. Preserve a smaller policy.
+    const bytes = extent.bytes;
+    if (!Number.isSafeInteger(bytes) || bytes < 1 ||
+        bytes !== record.objects[0].byte_count ||
+        !Number.isSafeInteger(contractLimits?.maxWireBytes) || contractLimits.maxWireBytes < 1) {
+      fail('InvalidCompletedEffectfulCaptureRecord');
+    }
+  }
   let captured, captureRecordWire;
   try {
     captureRecordWire = read.releaseBytes();
@@ -1110,6 +1147,16 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
     fail('InvalidCompletedEffectfulCaptureRecord', error);
   }
   recoveryResources?.reserveDecoded?.(captureRecordWire);
+  if (extent !== undefined) {
+    // This is the SAME authenticated plaintext returned by the acquired Store
+    // read, not inner metadata or a caller-supplied extent. Core funded its
+    // UTF8 selector scan before returning from reserveDecoded. Keep a smaller
+    // original semantic policy, and retain the encrypted envelope separately.
+    const plaintextBytes = Buffer.byteLength(captureRecordWire, 'utf8');
+    if (plaintextBytes > extent.bytes) fail('InvalidCompletedEffectfulCaptureRecord');
+    contractLimits = Object.freeze({maxWireBytes: Math.min(contractLimits.maxWireBytes, plaintextBytes),
+      maxNodes: contractLimits.maxNodes, maxDepth: contractLimits.maxDepth});
+  }
   try {captured = JSON.parse(captureRecordWire);}
   catch (error) {fail('InvalidCompletedEffectfulCaptureRecord', error);}
   if (!exactKeys(captured, [
@@ -1150,7 +1197,7 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
   const manifest = admit('result_manifest', captured.manifest);
   const computationReceipt = admit('run_receipt',
     captured.computation_receipt);
-  const capturedRun = admit('captured_run', captured.captured_run);
+  const capturedRun = recoveryResources?.admitCapturedRun?.(captured.captured_run) ?? admit('captured_run', captured.captured_run);
   if (capturedRun.identity !== record.manifest_cid) {
     fail('InvalidCompletedEffectfulCaptureRecord');
   }
@@ -1158,10 +1205,12 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
     captured.authoring_context, contractLimits);
   const preview = control.admitEffectComputationPreview(
     captured.preview, admittedRun, authoringContext, contractLimits);
-  if (!control.effectfulComputationEvidenceChainValid({
+  const chain = {
     runDefinition: admittedRun, invocation, definitions, artifacts,
     manifest, computationReceipt, capturedRun,
-  }, preview, contractLimits)) {
+  };
+  const preparedRoute = control.hasPreparedCapturedEffectRun?.(capturedRun) === true;
+  if (!preparedRoute && !control.effectfulComputationEvidenceChainValid(chain, preview, contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureChain');
   }
   const sourceInventory = captured.effect_source_artifacts.map(item => {
@@ -1202,17 +1251,22 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
       kind: item.kind, observationCid: item.observation_cid,
       wire: item.wire});
   });
-  if (!control.capturedEffectSourceInventoryFromCaptureValid(
+  const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory(
+    chain, preview, sourceInventory, store.storeAuthorityCid, contractLimits) : undefined;
+  if (preparedRoute && (!Array.isArray(preparedSources) || preparedSources.length !== sourceInventory.length)) {
+    fail('InvalidCompletedEffectfulCaptureSource');
+  }
+  if (preparedSources === undefined && !control.capturedEffectSourceInventoryFromCaptureValid(
     preview, sourceInventory, invocation, capturedRun,
     store.storeAuthorityCid, contractLimits)) {
     fail('InvalidCompletedEffectfulCaptureSource');
   }
   const sourceHoldings = [];
-  for (const {memberIndex, artifact} of sourceInventory) {
-    const source = control.admitCapturedEffectSourceFromCapture(
+  for (const [index, {memberIndex, artifact}] of sourceInventory.entries()) {
+    const source = preparedSources === undefined ? control.admitCapturedEffectSourceFromCapture(
       preview, memberIndex, invocation, artifact, capturedRun,
       store.storeAuthorityCid, contractLimits,
-    );
+    ) : preparedSources[index];
     const holdingCid = control.capturedEffectSourceHoldingCid(source);
     const holding = await store.inspectPhysicalHolding(holdingCid);
     if (holding?.namespace !== 'effect-source' ||
@@ -1315,7 +1369,7 @@ async function recoverCompletedEffectfulPlaintext(store, control, contractLimits
   completedEffectfulOwners.set(computation, Object.freeze({
     execution: null, store, storedResults, control, preview,
     runDefinition: admittedRun, invocation, captureHolding,
-    effectSourceHoldings: Object.freeze(sourceHoldings),
+    effectSourceHoldings: Object.freeze(sourceHoldings), recoveryResources,
   }));
   if (recoveryResources !== undefined) {
     recoveryResources.retainCleanup(async () => {
@@ -1519,10 +1573,11 @@ export async function publishCompletedEffectfulRun(options) {
   let publication;
   try {
     await privateOwner.commit();
-    publication = await publishEffectfulRun({
-      store, control, ...inventory, ledger, issuedSet,
-      request, attempt, limits: contractLimits, now, signal,
-    });
+    const publicationOptions = {store, control, ...inventory, ledger, issuedSet,
+      request, attempt, limits: contractLimits, now, signal};
+    const resources = completedEffectfulOwners.get(computation).recoveryResources;
+    if (resources !== undefined) publicationOptions.recoveryResources = resources;
+    publication = await publishEffectfulRun(publicationOptions);
   } catch (error) {
     // Preserve the exact original, including any same-Store cleanup receiver,
     // before an outer caller can attempt interrupted Effect completion.

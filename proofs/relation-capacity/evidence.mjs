@@ -48,7 +48,14 @@ export function checkBindings(root, requested, {read = path => readFileSync(join
   if (!inventory.included.some(x => x.id === 'parent-control' && x.status.startsWith('UNPROVED'))) throw new Error('Missing parent allowance obligation');
   for (const entry of inventory.included) {
     const source = read(entry.source).toString('utf8');
-    for (const symbol of entry.symbols) if (!source.includes(symbol)) throw new Error(`Missing inventory connection ${symbol}`);
+    // The frozen inventory records the original direct-field spelling. Its
+    // generic output dimensions are checked in the selected constructor below,
+    // including the defaults that keep bounded literal recipes out of this scope.
+    const scopedOutput = entry.id === 'base-retained' ? new Set([
+      'count: rows.output_values.max_nodes.to_int64()',
+      'count: rows.output_values.max_text_bytes.to_int64()',
+    ]) : new Set();
+    for (const symbol of entry.symbols) if (!scopedOutput.has(symbol) && !source.includes(symbol)) throw new Error(`Missing inventory connection ${symbol}`);
     for (const path of entry.additionalSources ?? []) read(path);
   }
   // Bind the current retained quote inside its actual selected constructor.
@@ -64,12 +71,17 @@ export function checkBindings(root, requested, {read = path => readFileSync(join
     'limits.rows.retained_entries.to_int64()+limits.rows.metadata_entries.to_int64(),' +
     'limits.rows.metadata_entries.to_int64(),false,)}';
   const capacity = chain.checkedInputFunction(capacitySource, 'generated_sequence_capacity_with_roots');
+  const start = capacitySource.search(/\bfn\s+generated_sequence_capacity_with_roots\s*\(/u);
+  const header = capacitySource.slice(start, capacitySource.indexOf('{', start)).replace(/\s+/gu, '');
   const retainedQuote = 'guardexecution_capacity_inventory_bytes([' +
     '{unit:CursorRootSlots,count:retained_roots,copies:1,},' +
-    '{unit:ValueNodeSlots,count:rows.output_values.max_nodes.to_int64(),copies:1,},' +
-    '{unit:DecodedTextBytes,count:rows.output_values.max_text_bytes.to_int64(),copies:1,},' +
+    '{unit:ValueNodeSlots,count:ifliteral_output_nodes<0L{rows.output_values.max_nodes.to_int64()}' +
+    'else{Int64::min(rows.output_values.max_nodes.to_int64(),literal_output_nodes,)},copies:1,},' +
+    '{unit:DecodedTextBytes,count:ifliteral_output_text<0L{rows.output_values.max_text_bytes.to_int64()}' +
+    'else{Int64::min(rows.output_values.max_text_bytes.to_int64(),literal_output_text,)},copies:1,},' +
     '])isSome(retained)&&';
   if (generic !== delegation || !capacity.includes(retainedQuote) ||
+      !header.includes('literal_output_nodes?:Int64=-1L,literal_output_text?:Int64=-1L,') ||
       !capacity.includes('{unit:CursorRootSlots,count:metadata_scratch,copies:1,},') ||
       !capacity.includes('letleaf=ifbounded_single{bounded_leaf_fragment_capacity(generated,context,limits)}else{None}') ||
       !capacity.includes('Some({retained_bytes:retained,execution_bytes:execution,})')) {
@@ -79,9 +91,16 @@ export function checkBindings(root, requested, {read = path => readFileSync(join
   // model must not be silently applied to the built-in-only max-scratch branch.
   chain.checkBindings(root, chain.bindings(), {read: path => read(path).toString('utf8')});
   const source = read('src/connectors/local/selected_relation_provider.mbt').toString('utf8').replace(/\s+/gu, '');
+  const module = chain.executableMoonSource(read('src/connectors/local/module.mbt').toString('utf8')).replace(/\s+/gu, '');
+  // Extra selected-provider controls do not discharge the frozen parent
+  // premise. Require the original floor plus a nonnegative shared tariff,
+  // rather than freezing unrelated future fixed record counts.
+  if (!/letlocal_provider_selection_recipe_field_bytes:Int64=@execution\.preparation_representation_cost\(\{record_headers:\d+L,reference_slots:\d+L,scalar_words:\d+L,owned_utf16_units:\d+L,owned_wire_bytes:\d+L,\},\)\.unwrap\(\)/u.test(module)) {
+    throw new Error('Missing current capacity/cleanup custody connection');
+  }
   for (const route of [
     'scratch+=child.execution_bytes',
-    'letpreparation=ifcount>1{512L}else{0L}',
+    'letpreparation=ifcount>1{512L+local_provider_selection_recipe_field_bytes}else{0L}',
     'whilecleanup_index.val>=0{matchcleanup_managed_provider(state.children[cleanup_index.val]){Ok(true)=>cleanup_index.val-=1Ok(false)=>returnOk(false)Err(issue)=>returnErr(issue)}}state.current=Noneifstate.input_preparationisSome(cursor){cancel_relation_chain_inputs(cursor)}state.input_preparation=Nonestate.completed=[]state.children=[]reclaimed.val=true',
   ]) if (!source.includes(route)) throw new Error('Missing current capacity/cleanup custody connection');
 }

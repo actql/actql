@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRetainedRowFrames } from './row-frames.mjs';
+import {createMoonBitRetainedRowFrames} from './moonbit-row-frames.mjs';
 
 const limits = { maxBytes: 4096, maxRows: 10, maxRowBytes: 1024, maxDepth: 10, maxFrameBytes: 4096 };
 
@@ -82,4 +83,41 @@ test('awaited row acceptance provides backpressure and cancellation cannot finis
   await assert.rejects(work);
   assert.equal(calls, 1);
   assert.throws(() => parser.finish(), { code: 'RowFramesClosed' });
+});
+
+
+test('explicit finite row policy above legacy sixteen MiB initializes only actual payload backing', async () => {
+  const rows = [];
+  const parser = createRetainedRowFrames({maxBytes: 4, maxRows: 1,
+    maxRowBytes: 16777217, maxFrameBytes: 16777217, maxDepth: 8}, row => rows.push(row));
+  await parser.feed(new TextEncoder().encode('[{}]'));
+  assert.deepEqual(parser.finish(), {bytes: 4, rows: 1});
+  assert.deepEqual(rows, ['{}']);
+});
+
+test('retained MoonBit frame boundary refuses values outside original signed Int ABI before Core', () => {
+  let calls = 0;
+  const moon = {retainedFramesPrepare() {calls++; return {};},
+    retainedFramesFeed() {}, retainedFramesFinish() {}, retainedFramesCancel() {}};
+  const valid = {maxBytes: 128, maxRows: 1, maxRowBytes: 64, maxDepth: 8, maxFrameBytes: 32};
+  for (const key of Object.keys(valid)) {
+    for (const value of [-1, 2147483648, Number.MAX_SAFE_INTEGER, 1.5, NaN]) {
+      assert.throws(() => createMoonBitRetainedRowFrames(moon, {...valid, [key]: value}, () => {}),
+        {name: 'TypeError', message: 'InvalidRetainedRowFrames'});
+    }
+  }
+  assert.equal(calls, 0);
+});
+
+test('retained MoonBit frame boundary forwards an explicit larger row with the same bounded chunk', () => {
+  const original = Object.freeze({});
+  const calls = [];
+  const moon = {retainedFramesPrepare(...args) {calls.push(args); return {$tag: 1, _0: original};},
+    retainedFramesFeed() {}, retainedFramesFinish() {},
+    retainedFramesCancel(value) {assert.equal(value, original);}};
+  const frames = createMoonBitRetainedRowFrames(moon,
+    {maxBytes: 16777230, maxRows: 1, maxRowBytes: 16777228, maxDepth: 8, maxFrameBytes: 65536}, () => {});
+  assert.deepEqual(calls, [[16777230, 1, 16777228, 8, 65536]]);
+  assert.equal(frames.cancel(), true);
+  assert.equal(frames.cancel(), false);
 });

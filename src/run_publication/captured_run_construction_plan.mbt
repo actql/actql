@@ -11,6 +11,7 @@ priv struct CapturedRunConstructionExtent {
   total_fields : Int
   max_fields : Int
   models : Int
+  source_work : Int64
 }
 
 ///|
@@ -102,7 +103,12 @@ pub fn start_planned_captured_run(
 ) -> CapturedRunIssuancePreparation? {
   guard original.inputs is Some(inputs) else { return None }
   original.inputs = None
-  Some(start_captured_computation_preparation(inputs, original.max_workspace))
+  let issuer = start_captured_computation_preparation(
+    inputs,
+    original.max_workspace,
+  )
+  issuer.source_work = original.extent.source_work
+  Some(issuer)
 }
 
 ///|

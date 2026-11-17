@@ -74,7 +74,11 @@ export function projectOwnerSourceUpdates(root, options, declarations) {
   const removed = execFileSync('git', ['diff', '--no-renames', '--name-only', '-z',
     '--diff-filter=D', base, source, '--', ...paths], {cwd: root, maxBuffer: 16 * 1024 * 1024})
     .toString('utf8').split('\0').filter(path => path && ownerSourcePath(path, commands));
-  const updates = projection.modules.flatMap(actual => {
+  const updates = projection.modules.flatMap(projected => {
+    const original = previous.get(projected.module);
+    const actual = original && original.role !== 'generated-binding' && !projected.compilerFields?.length
+      ? {...projected, operations: projected.operations.filter(value => !projected.privateOperations?.includes(value.name))}
+      : projected;
     const old = previous.get(actual.module);
     const fields = ['sha256', 'exports', 'operations', 'imports', 'compilerFields', 'unresolvedSyntax'];
     const mechanicalFields = fields.filter(key => key in actual && !isDeepStrictEqual(old?.[key], actual[key]));

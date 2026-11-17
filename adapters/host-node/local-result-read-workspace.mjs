@@ -4,13 +4,17 @@ import {physicalContentReadWindowBytes} from '../store-local/publication-store.m
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {ResultDeliveryError} from '../host-common/result-delivery.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {setImmediate as yieldRead} from 'node:timers/promises';
 
 // The installed Result owner supplies the original runtime/policy. A READ is
 // one existing Request admission, independent of its retired producing Run.
 // These instance-local limits are not a separately reserved Host RAM pool.
 export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {
   const reserve = runtime.clientProgramReserveRequestResultRead;
-  const grow = runtime.clientProgramGrowRequestResultReadRow;
+  const grow = runtime.clientProgramGrowRequestResultReadFrame;
+  const beginWire = runtime.clientProgramBeginRequestResultReadWire;
+  const beginRow = runtime.clientProgramBeginRequestResultReadWireRow;
+  const advanceRow = runtime.clientProgramAdvanceRequestResultReadWireRow;
   const metadata = runtime.clientProgramReserveRequestResultMetadata;
   const retainData = runtime.clientProgramRetainRequestResultMetadataData;
   const releaseMetadata = runtime.clientProgramReleaseRequestResultMetadata;
@@ -26,7 +30,7 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
     {code: 'ForeignResultReadWorkspace'});};
   const original = request => reads.get(request) ?? unavailable();
   const pending = entry => {
-    if (entry.active) return true;
+    if (entry.active || entry.prepared === 'scanning') return true;
     if (entry.unknownPhysical) return true;
     return entry.physical.some(child => {
       try {return Reflect.apply(child.status, child.receiver, []).pending !== false;}
@@ -59,7 +63,7 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
   return Object.freeze({
     begin(request, control) {
       if (closing || reads.has(request)) unavailable();
-      if ([reserve, grow, metadata, retainData, releaseMetadata, finishMetadata, reconcileSerializer].some(method => typeof method !== 'function')) {
+      if ([reserve, grow, beginWire, beginRow, advanceRow, metadata, retainData, releaseMetadata, finishMetadata, reconcileSerializer].some(method => typeof method !== 'function')) {
         throw Object.assign(new Error('ResultReadCapacityUnavailable'), {code: 'ResultReadCapacityUnavailable'});
       }
       assertCurrent();
@@ -113,7 +117,9 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       if (!entry.active || entry.prepared) unavailable();
       assertCurrent();
       const payload = metadata.payloadBytes;
-      if (!Number.isSafeInteger(payload) || payload < 0) unavailable();
+      const rows = metadata.rowCount;
+      if (!Number.isSafeInteger(payload) || payload < 0 ||
+          !Number.isSafeInteger(rows) || rows < 0 || rows > 2147483647) unavailable();
       const maxRow = Math.max(1, Math.min(frames.maxRowBytes, payload));
       const frame = Math.max(1, Math.min(frames.maxFrameBytes, payload));
       let schemaUnits = metadata.resultSchemaWire.length;
@@ -124,21 +130,26 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       const window = checked(Reflect.apply(reserve, runtime,
         [entry.state.parent, request, maxRow, frame, schemaUnits, limits.maxNodes, desired]));
       if (!Number.isSafeInteger(window) || window < 1 || window > desired) unavailable();
+      checked(Reflect.apply(beginWire, runtime, [entry.state.parent, request, BigInt(payload), rows]));
       entry.prepared = true;
       entry.window = window;
       return window;
     },
     serializer(request, value) {
       const entry = original(request);
-      if (!entry.active || !entry.prepared) unavailable();
+      if (!entry.active || entry.prepared !== true) unavailable();
       checked(Reflect.apply(reconcileSerializer, runtime, [entry.state.parent, request, value]));
     },
-    row(request, units) {
+    row(request, value) {
       const entry = original(request);
-      if (!entry.active || !entry.prepared || !Number.isSafeInteger(units) || units < 0) unavailable();
+      if (!entry.active || entry.prepared !== true) unavailable();
+      if (typeof value === 'string') return prepareWireRow(entry, value);
+      const units = value;
+      if (!Number.isSafeInteger(units) || units < 0) unavailable();
       // Pure local counters consume an already acquired window. Core/current
       // is crossed only at a new geometric high-water constructor boundary.
       if (units <= entry.rowUnits) return {units: entry.rowUnits, window: entry.window};
+      assertCurrent();
       const admitted = checked(Reflect.apply(grow, runtime,
         [entry.state.parent, request, units]));
       const high = runtimeField(admitted, 0), window = runtimeField(admitted, 1);
@@ -183,4 +194,31 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       return Object.freeze({pending: reads.size !== 0});
     },
   });
+
+  async function prepareWireRow(entry, wire) {
+    if (wire.length > entry.rowUnits) unavailable();
+    entry.prepared = 'scanning';
+    try {
+      assertCurrent();
+      checked(Reflect.apply(beginRow, runtime, [entry.state.parent, entry.request, wire]));
+      while (true) {
+        if (!entry.active) unavailable();
+        assertCurrent();
+        const result = checked(Reflect.apply(advanceRow, runtime,
+          [entry.state.parent, entry.request, 4096]));
+        const ready = runtimeField(result, 0);
+        if (ready !== true && ready !== false) unavailable();
+        if (ready) {
+          const high = runtimeField(result, 1), window = runtimeField(result, 2);
+          if (!Number.isSafeInteger(high) || high < wire.length || high !== entry.rowUnits ||
+              !Number.isSafeInteger(window) || window < 1 || window > entry.window) unavailable();
+          entry.window = window;
+          return {units: high, window};
+        }
+        // The same cursor/work receipt survives this yield. A new complete raw
+        // row cannot replace it; cancellation/current is checked before polling.
+        await yieldRead();
+      }
+    } finally { entry.prepared = true; }
+  }
 }

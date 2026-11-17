@@ -272,6 +272,68 @@ fn grow_row_run_response_capacity_at_phase(
 }
 
 ///|
+/// Drop only a completed physical reply constructor's workspace. The SAME
+/// reader has returned from its original process close and keeps all measured
+/// reply snapshots in capacity. Preserve every nonprovider receiver remainder,
+/// current fence, original page ticket and physical cleanup duty unchanged.
+pub fn complete_row_run_response_construction_capacity(
+  value : RowRunResponseBorrow,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, RowHostIssue] {
+  match check_row_run_response_borrow_current(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard value.cleanup_state is Bound &&
+    value.run.physical is Some(physical) &&
+    physical.provider_capacity is Some(previous) else {
+    return Err(InvalidState)
+  }
+  let expected_charge = value.run.page_charge
+  if expected_charge is Some(charge) && charge.consumed {
+    return Err(InvalidState)
+  }
+  let previous_r = @execution.execution_capacity_retained_bytes(previous)
+  let previous_e = @execution.execution_capacity_execution_bytes(previous)
+  let next_r = @execution.execution_capacity_retained_bytes(capacity)
+  let next_e = @execution.execution_capacity_execution_bytes(capacity)
+  let (retained, execution) = match
+    @resources.reservation_capacity_amounts(
+      physical.ledger,
+      physical.reservation,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  if next_r > previous_r ||
+    next_e > previous_e ||
+    retained < previous_r ||
+    execution < previous_e {
+    return Err(Physical(InvalidCharge))
+  }
+  value.cleanup_state = GrowingWorkspace
+  let result = @resources.reduce_execution_reservation_capacity(
+    physical.ledger,
+    physical.reservation,
+    retained - previous_r + next_r,
+    execution - previous_e + next_e,
+  )
+  value.cleanup_state = Bound
+  match result {
+    Err(issue) => return Err(Physical(issue))
+    Ok(_) => physical.provider_capacity = Some(capacity)
+  }
+  // A successful return is monotonic even if its current callback cancelled.
+  match (expected_charge, value.run.page_charge) {
+    (None, None) => ()
+    (Some(original), Some(current)) if physical_equal(original, current) &&
+      !original.consumed => ()
+    _ => return Err(InvalidState)
+  }
+  check_row_run_response_borrow_current(value)
+}
+
+///|
 // Completed nonlisting captures keep their Source, evidence and original
 // cleanup observer. Keyed and listing lifetimes do not use this cut.
 fn row_response_workspace_capture_current(value : RowRunResponseBorrow) -> Bool {

@@ -5,6 +5,8 @@
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {aliasRequestGeometry} from './source-alias-request.mjs';
+import {installedCheckpointBindingCanonicalConstructionGeometry}
+  from './installed-check-environment-construction.mjs';
 
 const invalid = () => {throw new TypeError('InvalidSourceAliasConstruction');};
 const stage = (retained, workspace, bounds) => ({
@@ -20,7 +22,6 @@ const ownMethod = (owner, name) => {
       types.isProxy(field.value) || types.isAsyncFunction(field.value)) invalid();
   return field.value;
 };
-
 // Capture originals before the profile read awaits. A quote never creates a
 // reader, changes its material, or grants a caller a construction capability.
 export function captureSourceAliasConstruction(configurationReader, moon) {
@@ -38,6 +39,38 @@ export function captureSourceAliasConstruction(configurationReader, moon) {
     });
     return Reflect.apply(prepare, configurationReader, [projection]);
   };
+}
+
+// The array and closed-member Set remain with this same initial Source
+// material through bundle close. Keep one complete close-error array beside
+// them; the fixed Host serializes its existing cleanup flight.
+export function sourceMemberCollectionConstructionGeometry(count) {
+  if (typeof count !== 'bigint' || count < 0n) invalid();
+  return stage({nodes: 3n * count + 6n, text: 0n, wire: 0n},
+    {nodes: 0n, text: 0n, wire: 0n}, {memberCount: count});
+}
+
+// Individual Sources retain their original read-access checks. This separate
+// synchronous aggregate check owns only its Set and one returned record.
+export function sourceReferenceCollectionConstructionGeometry(count) {
+  if (typeof count !== 'bigint' || count < 0n) invalid();
+  return stage({nodes: 1n, text: 0n, wire: 0n},
+    {nodes: count + 1n, text: 0n, wire: 0n}, {referenceCount: count});
+}
+
+// Retain the unique connector Map and final exported array. Each comparison
+// may overlap one current Map-values array; duplicate declarations still
+// contribute to the complete observed upper extent, not a numeric ceiling.
+export function sourceBindingCollectionConstructionGeometry(count) {
+  if (typeof count !== 'bigint' || count < 0n) invalid();
+  return stage({nodes: 3n * count + 2n, text: 0n, wire: 0n},
+    {nodes: count + 1n, text: 0n, wire: 0n}, {bindingCount: count});
+}
+
+export function sourceRegistrationRangeConstructionGeometry(paths, sources) {
+  if (typeof paths !== 'bigint' || paths < 0n || typeof sources !== 'bigint' || sources < 0n) invalid();
+  return stage({nodes: 4n * sources + 3n, text: 0n, wire: 0n},
+    {nodes: 3n * paths + 2n * sources + 6n, text: 0n, wire: 0n}, {registrationCount: sources});
 }
 
 // Only an already owned immutable DATA graph may cross the quote callback.
@@ -58,6 +91,9 @@ function jsonStringBytes(value) {
 }
 
 export function sourceAliasDataGeometry(value) {
+  if (value !== null && typeof value === 'object') {
+    if (types.isProxy(value) || !Object.isFrozen(value)) invalid();
+  }
   let nodes = 0n, entries = 0n, units = 0n, weighted = 0n, depth = 0n, jsonBytes = 0n;
   const ancestors = [];
   function visit(item, level) {
@@ -102,16 +138,13 @@ export function sourceAliasDataGeometry(value) {
     ancestors.pop();
   }
   visit(value, 0n);
-  return {nodes, entries, units, weighted, depth, jsonBytes};
+  const result = Object.freeze({nodes, entries, units, weighted, depth, jsonBytes});
+  return result;
 }
 
 const aliasIdentityDomain = 'actql-installed-query-alias-generation/0.1';
-export function sourceAliasIdentityConstructionGeometry(aliases) {
-  if (!Array.isArray(aliases)) invalid();
-  const input = sourceAliasDataGeometry(aliases);
+function canonicalSourceConstructionWorkspace(input) {
   const {nodes: n, entries: e, units: u, weighted, depth} = input;
-  const count = BigInt(aliases.length);
-  const identityWireUnits = 6n * u + 25n * n + BigInt(aliasIdentityDomain.length) + 7n;
   // Keep the existing provider identity vectors. A profile containing aliases
   // also canonicalizes them before the separate exact-DATA row preimage. NFC
   // can expand one UTF16 unit to at most three in canonical decomposition;
@@ -123,19 +156,97 @@ export function sourceAliasIdentityConstructionGeometry(aliases) {
   const entryArrays = n + e, originalPairs = e, filtered = n + e;
   const normalizedPairs = e, replacementArrays = n + e, sort = e;
   const children = n + e, frames = n;
-  const identityRows = 1n + count + count + 5n * count;
-  const identityEnvelope = 3n, serializerFrames = n, hashControls = 4n;
-  return stage({nodes: 2n, text: 2n * 71n, wire: 0n}, {
+  const serializerFrames = n, hashControls = 4n;
+  return {
     nodes: entryArrays + originalPairs + filtered + normalizedPairs + replacementArrays +
-      sort + children + frames + identityRows + identityEnvelope + serializerFrames + hashControls,
-    // Canonical normalization, recursive child/join/wrapper Strings, both
-    // final preimages/builders, digest hex/prefix and decimal length prefixes.
+      sort + children + frames + serializerFrames + hashControls,
+    // Canonical normalization, recursive child/join/wrapper Strings, final
+    // preimage/builders, digest hex/prefix and decimal length prefixes.
     text: 2n * (3n * u + 3n * recursiveUnits + 2n * canonicalOutputUnits +
-      2n * identityWireUnits + 64n + 71n + 40n),
-    // UTF8 input backing plus SHA256 state/block/digest. Existing provider
-    // metadata outside the alias subtree remains its original reader's duty.
-    wire: 3n * (canonicalOutputUnits + identityWireUnits) + 128n,
-  }, {input, identityWireUnits, canonicalOutputUnits});
+      64n + 71n + 40n),
+    wire: 3n * canonicalOutputUnits + 128n,
+    canonicalOutputUnits,
+  };
+}
+
+export function sourceNamespaceConstructionGeometry(range, aliases, name, environmentCid, selector = false) {
+  const headerKeys = 'version' + (selector ? 'namespace' : 'name') + 'environmentCid' + 'registrations';
+  const version = selector ? 'actql-source-selector-namespace/0.1' : 'actql-source-namespace/0.1';
+  const headerValues = BigInt(version.length + name.length + environmentCid.length);
+  const input = {nodes: 5n, entries: 4n + BigInt(range.length),
+    units: BigInt(headerKeys.length) + headerValues,
+    weighted: BigInt(headerKeys.length) + 2n * headerValues, depth: 1n};
+  let aliasCount = 0n;
+  for (const item of range) {
+    const facts = item.facts;
+    const value = sourceAliasDataGeometry(facts);
+    aliasCount += BigInt(facts.aliases.length);
+    // Alias identity rows only remove object keys and borrow the same request
+    // tree. Two copies cover its namespace preimage and equality comparison.
+    const copies = selector ? 1n : 2n;
+    input.nodes += copies * value.nodes; input.entries += copies * value.entries;
+    input.units += copies * value.units;
+    input.weighted += copies * (value.weighted + 2n * value.units);
+    input.depth = input.depth > value.depth + 2n ? input.depth : value.depth + 2n;
+  }
+  if (selector) {
+    // Selector identities replace the aliases field by the actual admitted
+    // Environment CID; reserve its existing textual codec before that read.
+    const extra = BigInt(range.length) * BigInt('environmentCid'.length + 71);
+    input.units += extra; input.weighted += 4n * extra;
+  } else {
+    const compared = sourceAliasDataGeometry(aliases);
+    input.nodes += compared.nodes; input.entries += compared.entries;
+    input.units += compared.units; input.weighted += compared.weighted + 2n * compared.units;
+    input.depth = input.depth > compared.depth + 2n ? input.depth : compared.depth + 2n;
+    aliasCount += BigInt(aliases.length);
+  }
+  const canonical = canonicalSourceConstructionWorkspace(input);
+  const count = BigInt(range.length);
+  return stage({nodes: selector ? 6n * count + 6n : aliasCount + 5n, text: 71n, wire: 0n},
+    {nodes: canonical.nodes + 10n * count + 15n * aliasCount + 10n,
+      text: canonical.text, wire: canonical.wire}, {registrationCount: count});
+}
+
+export function sourceAliasIdentityConstructionGeometry(aliases) {
+  if (!Array.isArray(aliases)) invalid();
+  const input = sourceAliasDataGeometry(aliases);
+  const count = BigInt(aliases.length);
+  const identityWireUnits = 6n * input.units + 25n * input.nodes + BigInt(aliasIdentityDomain.length) + 7n;
+  const canonical = canonicalSourceConstructionWorkspace(input);
+  const identityRows = 1n + count + count + 5n * count, identityEnvelope = 3n;
+  return stage({nodes: 2n, text: 2n * 71n, wire: 0n}, {
+    nodes: canonical.nodes + identityRows + identityEnvelope,
+    text: canonical.text + 4n * identityWireUnits,
+    wire: canonical.wire + 3n * identityWireUnits,
+  }, {input, identityWireUnits, canonicalOutputUnits: canonical.canonicalOutputUnits});
+}
+
+// Same Source material, before completion: prepare the actual configurations,
+// gate slots and authorization-binding rows that Checkpoints consume later.
+// The two CIDs per binding have their existing SHA256 textual extent (71),
+// never a grant or an invented CID value. Account admission still issues them.
+export function sourceCheckpointInventoryConstructionGeometry(count, sourceRefUnits, sourceRefShape) {
+  if (typeof count !== 'bigint' || count < 0n ||
+      typeof sourceRefUnits !== 'bigint' || sourceRefUnits < 0n) invalid();
+  const keyUnits = BigInt('source_ref'.length + 'configuration_cid'.length + 'context_cid'.length);
+  const outerKey = BigInt('source_authorization_bindings'.length);
+  const leafUnits = sourceRefUnits + 2n * 71n * count;
+  const canonical = sourceRefShape === undefined ? canonicalSourceConstructionWorkspace({nodes: 4n * count + 2n,
+    entries: 4n * count + 1n, units: leafUnits + keyUnits * count + outerKey,
+    weighted: 4n * leafUnits + 3n * keyUnits * count + outerKey, depth: 3n})
+    : installedCheckpointBindingCanonicalConstructionGeometry(count,
+      sourceRefShape.output, sourceRefShape.normalized);
+  // Five arrays, three fixed-width records per Source, result and borrow
+  // record. The current connection Set/sort and later validation/sort occupy
+  // separate phases under this same complete retained envelope.
+  // Keep future validation array/Set, binding sort and canonical/hash overlap
+  // in the retained reservation: Source completion precedes Checkpoint setup.
+  // This debt stays until the actual Checkpoint -> Source close order retires
+  // the same material; there is no post-completion growth or new Resource.
+  return stage({nodes: 17n * count + 15n + 3n * count + 3n + canonical.nodes,
+    text: canonical.text, wire: canonical.wire},
+  {nodes: 0n, text: 0n, wire: 0n}, {sourceCount: count});
 }
 
 // Validate borrowed metadata without invoking getters, proxies, toJSON or

@@ -143,6 +143,44 @@ pub fn installed_row_input_policy(
 }
 
 ///|
+/// Bound complete input by the trusted Source installation's selected page
+/// envelope. The Host's output-artifact ceiling is a different semantic scope.
+/// These are maximum DATA sizes, not initial demand or a Resource grant: every
+/// actual page and retained input still grows the SAME Request reservation.
+/// Explicit RowInputLimits callers keep their independently selected bounds.
+pub fn installed_source_row_input_policy(
+  max_pages : Int,
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> Result[@row_source_host.RowInputLimits, ClientInstalledManagedRunIssue] {
+  if max_pages <= 0 || max_page_bytes <= 0 {
+    return Err(Unsupported)
+  }
+  guard @execution.checked_preparation_add_product(
+      0L,
+      max_pages.to_int64(),
+      max_page_bytes.to_int64(),
+    )
+    is Some(aggregate) else {
+    return Err(Unsupported)
+  }
+  // Complete row/identity codecs use Int byte counts. A larger service envelope
+  // does not make small actual inputs invalid and does not change that ABI.
+  let bytes = Int64::min(aggregate, 2147483647L).to_int()
+  let original = installed_row_input_policy(
+    max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+  )
+  Ok({
+    ..original,
+    retention: { ..original.retention, max_text_bytes: bytes, },
+    wire: { ..original.wire, max_bytes: bytes, },
+  })
+}
+
+///|
 /// Derive this actual input inside the Request's already admitted Plan phase.
 /// The same installed contracts and bound sequence are consumed, not emitted
 /// and readmitted. Source declaration lifetime stays with initial material.

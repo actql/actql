@@ -9,6 +9,7 @@ priv struct NativeLocalJournalOriginalResources {
   // Live metadata belongs to this actual Read, not a short-lived query router.
   // A returned selection may survive multiple callbacks and SQL phase changes.
   mut metadata_retained : Int64
+  mut account_construction_issue : NativeLocalAdoptionIssue?
   mut active_phase : @arena.InstalledArenaLocalHostPhase?
   mut interrupted : Bool
   // One existing original flight, retained through a failed switch.
@@ -30,6 +31,7 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
   max_records : Int,
   max_snapshot_bytes : Int64,
   max_retained_intent_bytes? : Int64 = 67108864L,
+  metadata_retained? : Int64 = 0L,
 ) -> NativeLocalJournalCapture {
   {
     session,
@@ -38,7 +40,10 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
       host,
       pair,
       read,
-      metadata_retained: 0L,
+      // Same caller's already held Account/settings prefix, not a grant.
+      // Failed retained children stay in this amount until original cleanup.
+      metadata_retained,
+      account_construction_issue: None,
       active_phase: None,
       interrupted: false,
       store_operation: None,
@@ -85,6 +90,7 @@ pub fn prepare_native_local_initial_journal_capture_with_original_resources(
   max_records : Int,
   max_snapshot_bytes : Int64,
   max_retained_intent_bytes? : Int64 = 67108864L,
+  metadata_retained? : Int64 = 0L,
 ) -> NativeLocalJournalCapture {
   let capture = prepare_native_local_journal_capture_with_original_resources(
     session,
@@ -96,6 +102,7 @@ pub fn prepare_native_local_initial_journal_capture_with_original_resources(
     max_records,
     max_snapshot_bytes,
     max_retained_intent_bytes~,
+    metadata_retained~,
   )
   { ..capture, initial_signing: Some((material, policy)), }
 }
@@ -111,6 +118,9 @@ fn[T] NativeLocalJournalOriginalResources::stage(
     return Err(OriginalResourceScopePending)
   }
   if !cleanup {
+    if self.account_construction_issue is Some(issue) {
+      return Err(issue)
+    }
     match
       self.host.require_local_host_consuming_read_current(self.pair, self.read) {
       Err(issue) => return Err(OriginalResources(issue))
@@ -129,7 +139,11 @@ fn[T] NativeLocalJournalOriginalResources::stage(
     }
     Ok(_) => self.active_phase = Some(phase)
   }
-  let result = operation()
+  let observed = operation()
+  let result = match self.account_construction_issue {
+    Some(issue) if !cleanup => Err(issue)
+    _ => observed
+  }
   if self.interrupted {
     return match result {
       Err(issue) => Err(issue)
@@ -250,7 +264,12 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
         Ok(_) => ()
       }
       let (ownership, body) = match
-        self.session.prepare_journal_file(self.crypto) {
+        self.session.prepare_journal_file(
+          self.crypto,
+          construction=Some(value => {
+            original.prepare_account_construction(value)
+          }),
+        ) {
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
@@ -443,7 +462,9 @@ fn NativeLocalJournalOriginalResources::check_journal_current(
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-      host.check_binding_read_original()
+      host.check_binding_read_original(
+        construction=Some(value => self.prepare_account_construction(value)),
+      )
     }) {
     Err(issue) => return Err(issue)
     Ok(_) => ()

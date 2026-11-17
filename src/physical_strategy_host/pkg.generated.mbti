@@ -151,6 +151,10 @@ pub fn captured_effect_command_key_validation_matches(CapturedEffectCommandKeyVa
 
 pub fn captured_effect_command_requires_input_key(CapturedEffectInputs, Int, Int) -> Result[Bool, CapturedEffectCommandKeyIssue]
 
+pub fn captured_effect_dependency_port_census_geometry(CapturedEffectDependencyPortCensus) -> (Int, Int, Int, Int, Int64)
+
+pub fn captured_effect_dependency_unit_count(CapturedEffectRunDAG) -> Int
+
 pub fn captured_effect_input_at(CapturedEffectInputs, Int) -> CapturedEffectInput?
 
 pub fn captured_effect_input_borrow(CapturedEffectInput) -> CapturedAnyResultBorrow
@@ -173,6 +177,8 @@ pub fn captured_effect_input_task(CapturedEffectInput) -> Int
 
 pub fn captured_effect_inputs_acquired_source_matches(CapturedEffectInputs, Int, @execution_query.CapturedSourceRelationIdentity) -> Bool
 
+pub fn captured_effect_inputs_closed(CapturedEffectInputs) -> Bool
+
 pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
 
 pub fn captured_effect_inputs_match_captured_run(CapturedEffectInputs, CapturedDAG) -> Bool
@@ -191,7 +197,11 @@ pub fn captured_effect_inputs_share_view(CapturedEffectInputs, Int, Int) -> Bool
 
 pub fn captured_effect_inputs_shared_capacity_current(CapturedEffectInputs, @physical_resources.SharedCapacity) -> Bool
 
+pub fn captured_effect_keyed_completed_input_matches(CapturedEffectRunDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> Bool
+
 pub fn captured_effect_keyed_prefix_input_matches(CapturedEffectRunDAG, Int, Int, Int, @execution_relation.ProducerRead) -> Bool
+
+pub fn captured_effect_keyed_supplied_input_matches(CapturedDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> Bool
 
 pub fn captured_effect_local_result_at(CapturedEffectInputs, Int) -> CapturedEffectLocalResult?
 
@@ -361,6 +371,8 @@ pub fn captured_result_output_set_pin_at(CapturedResultOutputSet, Int) -> Captur
 
 pub fn captured_root_statistics(CapturedDAG) -> @execution_query.CapturedSourceStatistics?
 
+pub fn captured_source_input_original_matches(CapturedDAG, Int, Int, @execution_query.CapturedInputSource) -> Bool
+
 pub fn captured_supplied_task_input(CapturedDAG, Int, input_index? : Int) -> Result[@execution_relation.SuppliedRelationRead, RunIssue]
 
 pub fn captured_table_input_borrow_available(CapturedTableInputBorrow) -> Bool
@@ -399,7 +411,7 @@ pub fn captured_task_asof_search_count(CapturedDAG, Int) -> Int?
 
 pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
-pub fn captured_task_input(CapturedDAG, Int, Int, Int, input_index? : Int) -> Result[@execution_relation.ProducerRead, RunIssue]
+pub fn captured_task_input(CapturedDAG, Int, Int, Int, input_index? : Int, data_index? : Int) -> Result[@execution_relation.ProducerRead, RunIssue]
 
 pub fn captured_task_interval_search_at(CapturedDAG, Int, Int) -> (Int, Int64)?
 
@@ -418,6 +430,8 @@ pub fn captured_task_retirement_pending(CapturedDAG) -> Bool
 pub fn captured_task_source_matches(CapturedDAG, Int, @execution_query.CapturedInputSource) -> Bool
 
 pub fn captured_task_target(CapturedDAG, Int) -> @pipeline_typing.Target?
+
+pub fn census_captured_effect_dependency_ports(CapturedEffectRunDAG, Int, Int, (Int) -> Bool) -> Result[CapturedEffectDependencyPortCensus, RunIssue]
 
 pub fn charge_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -641,6 +655,8 @@ pub fn next_dependency_ready_task(@physical_strategy.CheckedDAG, (Int) -> Bool, 
 
 pub fn open_captured_dag(@physical_strategy.CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows], supplied_reads? : Array[(Int, Int, @execution_relation.SuppliedRelationRead)]) -> Result[CapturedDAG, RunIssue]
 
+pub fn open_captured_effect_keyed_source_run_dag(@physical_strategy.CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, Int, @execution_relation.SuppliedRelationRead) -> Result[CapturedEffectRunDAG, RunIssue]
+
 pub fn open_captured_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn open_multi_captured_dag(@physical_strategy.CheckedDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
@@ -692,6 +708,8 @@ pub fn pin_captured_result_output_set(CapturedDAG, Array[(Int, @execution_relati
 pub fn pin_captured_table_input_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedTableInputOccurrence)], Int) -> Result[CapturedTableInputOutputSet, RunIssue]
 
 pub fn pin_captured_task_output(CapturedDAG, Int, @pipeline_typing.Target, Int) -> Result[CapturedOutputPin, RunIssue]
+
+pub fn pin_censused_captured_effect_sources(CapturedEffectDependencyPortCensus, Int?) -> Result[CapturedEffectInputs, RunIssue]
 
 pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
 
@@ -871,6 +889,8 @@ pub fn retain_captured_effect_local_unit_result_pending_inputs(CapturedEffectLoc
 
 pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding, release_confirmed? : () -> Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn retain_materializing_task_execution_capacity(CapturedDAG, TaskExecution) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn retain_task_execution_allocation(CapturedDAG, TaskExecution, Int64) -> Result[TaskRetainedAllocation, @physical_resources.LedgerIssue]
 
 pub fn retained_task_projection_consumer(@physical_strategy.RetainedTaskProjection) -> Int
@@ -884,6 +904,8 @@ pub fn retained_task_projection_reference(@physical_strategy.RetainedTaskProject
 pub fn retained_task_projection_target(@physical_strategy.RetainedTaskProjection) -> @pipeline_typing.Target
 
 pub fn retire_captured_effect_checked_proposal_row(CapturedEffectCheckedProposalRow) -> Unit
+
+pub fn retire_captured_task_consumers(CapturedDAG) -> Bool
 
 pub fn retire_captured_task_outputs(CapturedDAG) -> Bool
 
@@ -1087,6 +1109,8 @@ pub(all) enum CapturedEffectCurrentBindingIssue {
   ForeignCapability(Int)
   ForeignAuthority(Int)
 } derive(@debug.Debug)
+
+type CapturedEffectDependencyPortCensus
 
 pub(all) enum CapturedEffectGuardIssue {
   InvalidLimits

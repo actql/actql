@@ -34,7 +34,55 @@ pub fn prepare_effect_recovery_bindings(
   max_rows : Int,
   max_work : Int,
 ) -> Result[Array[Array[EffectRecoveryBinding]], EffectRecoveredClaimIssue] {
+  prepare_effect_recovery_bindings_internal(
+    preview,
+    scope,
+    program_id,
+    node_id,
+    None,
+    max_rows,
+    max_work,
+  )
+}
+
+///|
+/// Borrow the already funded original keys for this exact admitted Preview.
+/// Current authorization and physical claim-head observation remain separate.
+pub fn prepare_effect_recovery_bindings_from_keys(
+  preview : @publication.EffectPreviewIdentity,
+  scope : LogicalRequestScope,
+  program_id : String,
+  node_id : String,
+  keys : Array[Array[EffectDispatchKey]],
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Array[Array[EffectRecoveryBinding]], EffectRecoveredClaimIssue] {
+  prepare_effect_recovery_bindings_internal(
+    preview,
+    scope,
+    program_id,
+    node_id,
+    Some(keys),
+    max_rows,
+    max_work,
+  )
+}
+
+///|
+fn prepare_effect_recovery_bindings_internal(
+  preview : @publication.EffectPreviewIdentity,
+  scope : LogicalRequestScope,
+  program_id : String,
+  node_id : String,
+  original_keys : Array[Array[EffectDispatchKey]]?,
+  max_rows : Int,
+  max_work : Int,
+) -> Result[Array[Array[EffectRecoveryBinding]], EffectRecoveredClaimIssue] {
   if max_rows < 1 || max_work < 1 {
+    return Err(InvalidLimits)
+  }
+  if original_keys is Some(keys) &&
+    keys.length() != @publication.effect_preview_member_count(preview) {
     return Err(InvalidLimits)
   }
   let preview_cid = @publication.effect_preview_semantic_identity(preview)
@@ -58,6 +106,9 @@ pub fn prepare_effect_recovery_bindings(
       return Err(InvalidLimits)
     }
     total_rows += row_count
+    if original_keys is Some(keys) && keys[member_index].length() != row_count {
+      return Err(InvalidLimits)
+    }
     let effect_bytes = @utf8.encode(effect_id).length()
     let mut name_bytes = program_bytes
     if node_bytes > name_bytes {
@@ -75,21 +126,51 @@ pub fn prepare_effect_recovery_bindings(
       guard @publication.effect_preview_ordered_row_correlation_wire(
           preview, member_index, row_index,
         )
-        is Some(correlation) &&
+        is Some(original_correlation) &&
         @publication.effect_preview_ordered_row_identity(
           preview, member_index, row_index,
         )
         is Some(row_cid) else {
         return Err(ForeignPreviewRow(member_index, row_index))
       }
-      let item_bytes = @utf8.encode(correlation).length()
-      let key = match
-        prepare_effect_dispatch_key(
-          scope, preview_cid, correlation, item_bytes, 1000, 32,
-        ) {
-        Ok(value) => value
-        Err(_) => return Err(ForeignPreviewRow(member_index, row_index))
+      let key = match original_keys {
+        Some(keys) => {
+          // The admitted Preview retains this exact row-CID index Map. Borrow
+          // its existing physical key, preserving the independent row order.
+          guard @publication.effect_preview_row_index(
+              preview, member_index, row_cid,
+            )
+            is Some(index) &&
+            keys[member_index].get(index) is Some(key) else {
+            return Err(ForeignPreviewRow(member_index, row_index))
+          }
+          key
+        }
+        None => {
+          let multirow_command = effect_kind == "command" && row_count > 1
+          let key_bytes = if multirow_command {
+            73
+          } else {
+            @utf8.encode(original_correlation).length()
+          }
+          match
+            prepare_effect_verified_row_dispatch_key(
+              scope,
+              preview_cid,
+              row_cid,
+              Some(original_correlation),
+              multirow_command,
+              key_bytes,
+              1000,
+              32,
+            ) {
+            Ok(value) => value
+            Err(_) => return Err(ForeignPreviewRow(member_index, row_index))
+          }
+        }
       }
+      let correlation = effect_dispatch_key_correlation_wire(key)
+      let item_bytes = @utf8.encode(correlation).length()
       let locator = match
         prepare_logical_item_locator(
           scope, program_id, node_id, effect_id, correlation, name_bytes, item_bytes,

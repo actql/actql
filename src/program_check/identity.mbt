@@ -18,6 +18,7 @@ fn emit_cids(
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_array(writer)
   for value in values {
+    @encode.construction_work_step(writer, 1)
     @encode.string_value(writer, value)
   }
   @encode.end_array(writer)

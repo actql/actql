@@ -1066,8 +1066,8 @@ fn commit_new_effect_free_run_native(
   committed_at : String,
   capture? : @local.ClientProgramCapture? = None,
 ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] {
-  let index = match
-    issuance_result(
+  let issued = match capture {
+    None =>
       @publication.issue_public_index_entry(
         evidence.run_definition,
         evidence.invocation,
@@ -1081,8 +1081,28 @@ fn commit_new_effect_free_run_native(
         service.max_wire_bytes,
         service.max_nodes,
         service.max_depth,
-      ),
-    ) {
+      )
+    Some(_) =>
+      match
+        service.store.issue_public_index_entry_in_original_read(
+          evidence.run_definition,
+          evidence.invocation,
+          evidence.manifest,
+          evidence.receipt,
+          evidence.captured_run,
+          evidence.bindings,
+          request,
+          attempt,
+          committed_at,
+          service.max_wire_bytes,
+          service.max_nodes,
+          service.max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Store(issue))
+      }
+  }
+  let index = match issuance_result(issued) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

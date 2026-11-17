@@ -5,6 +5,14 @@
 struct ManagedProvider {
   accepts : (@execution.GeneratedSequence) -> Bool
   capacity : (@execution.GeneratedSequence) -> @execution.ExecutionCapacity?
+  // A fixed family constructor may quote its actual bounded Relation recipe.
+  // Accepted output survives scratch cleanup; the common owner still waits
+  // for the same child's stop and physical cleanup acknowledgement.
+  bounded_relation_capacity : ((
+    @execution.GeneratedSequence,
+    @execution.SequenceExecutionLimits,
+    @execution.FixedInputGuardMeasureLimits,
+  ) -> @execution.ExecutionCapacity?)?
   start : (
     @execution.GeneratedSequence,
     Array[ManagedProviderInput],
@@ -170,24 +178,28 @@ pub fn managed_provider(
     Int,
     @execution.SequenceExecutionLimits,
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],
+  bounded_relation_capacity? : ((
+    @execution.GeneratedSequence,
+    @execution.SequenceExecutionLimits,
+    @execution.FixedInputGuardMeasureLimits,
+  ) -> @execution.ExecutionCapacity?)? = None,
 ) -> ManagedProvider {
-  managed_provider_with_inputs(accepts, capacity, (
-    sequence,
-    inputs,
-    rows,
-    bytes,
-    execution,
-  ) => {
-    let relations = []
-    for input in inputs {
-      match input {
-        RelationInput(value) => relations.push(value)
-        SuppliedRelationInput(_) | CarrierInput(_) =>
-          return Err(@connector.Execution(@execution.InputSet))
+  managed_provider_with_inputs(
+    accepts,
+    capacity,
+    (sequence, inputs, rows, bytes, execution) => {
+      let relations = []
+      for input in inputs {
+        match input {
+          RelationInput(value) => relations.push(value)
+          SuppliedRelationInput(_) | CarrierInput(_) =>
+            return Err(@connector.Execution(@execution.InputSet))
+        }
       }
-    }
-    start(sequence, relations, rows, bytes, execution)
-  })
+      start(sequence, relations, rows, bytes, execution)
+    },
+    bounded_relation_capacity~,
+  )
 }
 
 ///|
@@ -203,10 +215,16 @@ pub fn managed_provider_with_inputs(
     Int,
     @execution.SequenceExecutionLimits,
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],
+  bounded_relation_capacity? : ((
+    @execution.GeneratedSequence,
+    @execution.SequenceExecutionLimits,
+    @execution.FixedInputGuardMeasureLimits,
+  ) -> @execution.ExecutionCapacity?)? = None,
 ) -> ManagedProvider {
   {
     accepts,
     capacity,
+    bounded_relation_capacity,
     start,
     start_numeric: None,
     infer_relation_prefix: None,
@@ -232,6 +250,7 @@ pub fn managed_provider_with_numeric(
   {
     accepts,
     capacity,
+    bounded_relation_capacity: None,
     start: (sequence, inputs, rows, bytes, execution) => {
       start(sequence, inputs, rows, bytes, execution, None)
     },
@@ -306,6 +325,55 @@ pub fn managed_provider_capacity(
   sequence : @execution.GeneratedSequence,
 ) -> @execution.ExecutionCapacity? {
   (provider.capacity)(sequence)
+}
+
+///|
+/// The same checked family constructor's Relation recipe for these actual
+/// execution/measurement bounds. No missing or unsupported recipe is inferred
+/// from an operation name. Its output holding stays fully prepaid by the old
+/// family capacity, and neither resource dimension may exceed that ceiling.
+pub fn managed_provider_bounded_relation_capacity(
+  provider : ManagedProvider,
+  sequence : @execution.GeneratedSequence,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> @execution.ExecutionCapacity? {
+  guard provider.bounded_relation_capacity is Some(quote) &&
+    managed_provider_accepts(provider, sequence) &&
+    (provider.capacity)(sequence) is Some(original) &&
+    quote(sequence, execution, measurement) is Some(selected) &&
+    selected.retained_bytes <= original.retained_bytes &&
+    @execution.checked_preparation_add_product(
+      selected.execution_bytes,
+      original.retained_bytes - selected.retained_bytes,
+      1L,
+    )
+    is Some(execution_bytes) &&
+    execution_bytes <= original.execution_bytes else {
+    return None
+  }
+  // The selected recipe already includes its R alongside private workspace.
+  // Replacing that R with the larger standing holding must keep ALL scratch.
+  @execution.execution_capacity(original.retained_bytes, execution_bytes)
+}
+
+///|
+/// Select only a fixed constructor's actual bounded quote. Existing injected
+/// providers, unsupported shapes and old two-argument callers retain their
+/// original complete capacity and conservative lifecycle.
+pub fn managed_provider_capacity_for_execution(
+  provider : ManagedProvider,
+  sequence : @execution.GeneratedSequence,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> @execution.ExecutionCapacity? {
+  match
+    managed_provider_bounded_relation_capacity(
+      provider, sequence, execution, measurement,
+    ) {
+    Some(value) => Some(value)
+    None => managed_provider_capacity(provider, sequence)
+  }
 }
 
 ///|
@@ -488,4 +556,19 @@ pub fn managed_provider_retained_completion(
 ) -> Bool {
   (execution.stopped)() &&
   execution.retained_completion.map(check => check()).unwrap_or(false)
+}
+
+///|
+/// A fixed constructor may expose its stopped private reclamation cursor on
+/// the SAME execution. This is neither a cleanup ACK nor a new work owner.
+pub fn managed_provider_execution_with_cleanup_continuation(
+  advance : (Int) -> Result[ManagedProviderPoll, @connector.FixedComputeIssue],
+  cancel : () -> Bool,
+  stopped : () -> Bool,
+  cleanup : () -> Result[Bool, @connector.FixedComputeIssue],
+  continuation : () -> Int64,
+) -> ManagedProviderExecution {
+  let owner = managed_provider_execution(advance, cancel, stopped, cleanup)
+  owner.cleanup_continuation = Some(continuation)
+  owner
 }

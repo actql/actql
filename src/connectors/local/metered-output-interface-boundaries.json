@@ -1,0 +1,1225 @@
+{
+  "qualification": "Existing Local constructor, shared representation and original dispatch owners; not a new execution or allocation framework",
+  "declarations": [
+    {
+      "module": "src/connectors/local/driver/preparation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "fe1f8bb85956d369df6ca4a1ebf29ee0f0139fcb717f4b362fb3cbcbbd4de6ee",
+      "role": "physical-io",
+      "owner": "Existing Local dispatch preparation and original Run binding; pure quotations do not grant physical resources",
+      "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bind_local_dispatch_original",
+          "declaration": "bind_local_dispatch_original ( driver : @ host . DispatchDriver , original : LocalDispatchPreparation , freeze_policy : Bool , captured_effect ? : @ strategy . CapturedEffectRunDAG ?"
+        },
+        {
+          "name": "bind_local_dispatch_plan",
+          "declaration": "bind_local_dispatch_plan ( driver : @ host . DispatchDriver , original : LocalDispatchPreparation , ) - > Result [ LocalDispatchModule , LocalDispatchIssue ]"
+        },
+        {
+          "name": "bind_local_effect_dispatch_plan",
+          "declaration": "bind_local_effect_dispatch_plan ( driver : @ host . DispatchDriver , original : LocalDispatchPreparation , captured : @ strategy . CapturedEffectRunDAG , ) - > Result [ LocalDispatchModule , LocalDispatchIssue ]"
+        },
+        {
+          "name": "local_dispatch_copy_capacity",
+          "declaration": "local_dispatch_copy_capacity ( base : @ execution . ExecutionCapacity , metadata_bytes : Int64 , imported : Int64 , exported : Int64 , wire_bytes : Int64 , copies : Int , alongside : Bool , ) - > @ strategy . PhysicalEnvelope ?"
+        },
+        {
+          "name": "local_dispatch_original_preparation",
+          "declaration": "local_dispatch_original_preparation ( installed : LocalDispatchModule , ) - > LocalDispatchPreparation ?"
+        },
+        {
+          "name": "local_dispatch_preparation_input_scan_work",
+          "declaration": "local_dispatch_preparation_input_scan_work ( original : LocalDispatchPreparation , task : Int , ) - > Int ?"
+        },
+        {
+          "name": "local_dispatch_preparation_policies",
+          "declaration": "local_dispatch_preparation_policies ( original : LocalDispatchPreparation , inputs : ( @ local . LocalImportLimits , Int64 ? ) ? , metadata : LocalManagedMetadataLimits ? , output : ( @ local . LocalExportLimits , Int64 ? ) ? , ) - > LocalDispatchPreparation"
+        },
+        {
+          "name": "local_dispatch_preparation_retained_bytes",
+          "declaration": "local_dispatch_preparation_retained_bytes ( original : LocalDispatchPreparation , ) - > Int64 ?"
+        },
+        {
+          "name": "local_dispatch_preparation_task_capacity",
+          "declaration": "local_dispatch_preparation_task_capacity ( original : LocalDispatchPreparation , task : Int , ) - > @ strategy . PhysicalEnvelope ?"
+        },
+        {
+          "name": "local_dispatch_preparation_transfer_bytes",
+          "declaration": "local_dispatch_preparation_transfer_bytes ( original : LocalDispatchPreparation , ) - > Int64 ?"
+        },
+        {
+          "name": "local_retained_input_metadata",
+          "declaration": "local_retained_input_metadata ( limits : @ local . LocalImportLimits , milliseconds : Int64 ? , metadata : LocalManagedMetadataLimits ? , ) - > LocalManagedMetadataLimits ?"
+        },
+        {
+          "name": "local_retained_output_policy_valid",
+          "declaration": "local_retained_output_policy_valid ( limits : @ local . LocalExportLimits , milliseconds : Int64 ? , ) - > Bool"
+        },
+        {
+          "name": "prepare_local_dispatch_plan",
+          "declaration": "prepare_local_dispatch_plan ( graph : @ strategy . CheckedDAG , registry : @ connector . CapabilityRegistry , registration : @ connector . CapabilityRegistration , sequences : Array [ @ execution . GeneratedSequence ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , max_work : Int , managed_capacity ? : @ connector . FixedComputeCapacity , managed_providers ? : Array [ @ local . ManagedProvider ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind_local_dispatch_original",
+            "bind_local_dispatch_plan",
+            "bind_local_effect_dispatch_plan",
+            "local_dispatch_copy_capacity",
+            "local_dispatch_original_preparation",
+            "local_dispatch_preparation_policies",
+            "local_dispatch_preparation_retained_bytes",
+            "local_dispatch_preparation_task_capacity",
+            "local_dispatch_preparation_transfer_bytes",
+            "local_retained_input_metadata",
+            "local_retained_output_policy_valid",
+            "prepare_local_dispatch_plan",
+            "local_dispatch_preparation_input_scan_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "pub fn prepare_local_dispatch_plan("
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "test \"original managed repeated Text"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "pub fn prepare_local_dispatch_plan("
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "test \"original managed repeated Text"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "pub fn prepare_local_dispatch_plan("
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "test \"original managed repeated Text"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "pub fn prepare_local_dispatch_plan("
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "test \"original managed repeated Text"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "pub fn prepare_local_dispatch_plan("
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "test \"original managed repeated Text"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "pub fn prepare_local_dispatch_plan("
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "test \"original managed repeated Text"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "pub fn prepare_local_dispatch_plan("
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "test \"original managed repeated Text"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "pub fn prepare_local_dispatch_plan("
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "test \"original managed repeated Text"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Logical rows and physical windows"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "pub fn prepare_local_dispatch_plan("
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "test \"original managed repeated Text"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "pub fn prepare_local_dispatch_plan("
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "test \"original managed repeated Text"
+              },
+              {
+                "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
+                "anchor": "original many small Text rows cross sixteen MiB total on the same finite owner"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/local/module.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "635a1f354bf9670d055cab2d33354bad2277a8cba42f9fd2f59e39c4063698e7",
+      "role": "connector-semantics",
+      "owner": "Existing installed Local module, exact default bounded constructors and injected provider selection",
+      "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[E]prepare_local_module_materializing_compute",
+          "declaration": "[ E ] prepare_local_module_materializing_compute ( installed : LocalComputeModule , slot : Int , request : @ connector . FixedComputeRequest , imports : LocalImportLimits , issue : ( LocalMaterializingIssue ) - > E , join_output_ceiling : ( Int , Int64 ) ? , output_limits ? : LocalExportLimits ?"
+        },
+        {
+          "name": "[T]prepare_local_module_managed_compute",
+          "declaration": "[ T ] prepare_local_module_managed_compute ( installed : LocalComputeModule , slot : Int , request : @ connector . ManagedFixedComputeRequest [ T ] , interval_search_ceilings ? : Array [ ( Int , Int64 ) ]"
+        },
+        {
+          "name": "[T]prepare_local_module_managed_compute_with_estimates",
+          "declaration": "[ T ] prepare_local_module_managed_compute_with_estimates ( installed : LocalComputeModule , slot : Int , request : @ connector . ManagedFixedComputeRequest [ T ] , estimates : Array [ @ cost . SerialEstimateLine ] , interval_search_ceilings ? : Array [ ( Int , Int64 ) ]"
+        },
+        {
+          "name": "local_bounded_binary_relation_step",
+          "declaration": "local_bounded_binary_relation_step ( installed : LocalComputeModule , slot : Int , required_step : Int , operation : LocalBinaryRelationOperation , ) - > Bool"
+        },
+        {
+          "name": "local_bounded_relation_check",
+          "declaration": "local_bounded_relation_check ( installed : LocalComputeModule , slot : Int , required_step : Int , check : LocalBoundedRelationCheck , ) - > Bool"
+        },
+        {
+          "name": "local_bounded_relation_provider",
+          "declaration": "local_bounded_relation_provider ( execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , sequence : @ execution . GeneratedSequence , family ? : Array [ ManagedProvider ]"
+        },
+        {
+          "name": "local_default_managed_provider",
+          "declaration": "local_default_managed_provider ( family : Array [ ManagedProvider ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , sequence : @ execution . GeneratedSequence , ) - > ManagedProvider ?"
+        },
+        {
+          "name": "local_managed_provider_for",
+          "declaration": "local_managed_provider_for ( family : Array [ ManagedProvider ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , sequence : @ execution . GeneratedSequence , ) - > ManagedProvider ?"
+        },
+        {
+          "name": "local_module_bounded_append_obligation",
+          "declaration": "local_module_bounded_append_obligation ( installed : LocalComputeModule , slot : Int , step : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_cross_join_obligation",
+          "declaration": "local_module_bounded_cross_join_obligation ( installed : LocalComputeModule , slot : Int , step : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_family_relation_obligation",
+          "declaration": "local_module_bounded_family_relation_obligation ( installed : LocalComputeModule , slot : Int , step : Int , matches : ( @ execution . GeneratedSequence ) - > Bool , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_nearest_obligation",
+          "declaration": "local_module_bounded_nearest_obligation ( installed : LocalComputeModule , slot : Int , step : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_nest_obligation",
+          "declaration": "local_module_bounded_nest_obligation ( installed : LocalComputeModule , slot : Int , step : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_ranking_obligation",
+          "declaration": "local_module_bounded_ranking_obligation ( installed : LocalComputeModule , slot : Int , step : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_relation_obligation",
+          "declaration": "local_module_bounded_relation_obligation ( installed : LocalComputeModule , slot : Int , step : Int , check : LocalBoundedRelationCheck , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_session_relation_obligation",
+          "declaration": "local_module_bounded_session_relation_obligation ( installed : LocalComputeModule , slot : Int , step : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_set_obligation",
+          "declaration": "local_module_bounded_set_obligation ( installed : LocalComputeModule , slot : Int , step : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_temporal_relation_obligation",
+          "declaration": "local_module_bounded_temporal_relation_obligation ( installed : LocalComputeModule , slot : Int , step : Int , check : LocalBoundedTemporalRelationCheck , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_values_obligation",
+          "declaration": "local_module_bounded_values_obligation ( installed : LocalComputeModule , slot : Int , step : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_bounded_values_publication",
+          "declaration": "local_module_bounded_values_publication ( installed : LocalComputeModule , slot : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_candidate",
+          "declaration": "local_module_candidate ( installed : LocalComputeModule , slot : Int , request : @ connector . FixedComputeRequest , ) - > Result [ ( @ connector . PreparedCompute [ @ execution . GeneratedSequence ] , @ connector . FixedComputeChoice , ) , LocalModuleIssue , ]"
+        },
+        {
+          "name": "local_module_capacity",
+          "declaration": "local_module_capacity ( installed : LocalComputeModule , slot : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "local_module_capacity_for_sequence",
+          "declaration": "local_module_capacity_for_sequence ( installed : LocalComputeModule , slot : Int , sequence : @ execution . GeneratedSequence , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "local_module_container_inventory",
+          "declaration": "local_module_container_inventory ( slots : Int , installed_providers : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "local_module_default_output_start_capacity",
+          "declaration": "local_module_default_output_start_capacity ( installed : LocalComputeModule , slot : Int , sequence : @ execution . GeneratedSequence , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "local_module_execution_limits",
+          "declaration": "local_module_execution_limits ( installed : LocalComputeModule , ) - > @ execution . SequenceExecutionLimits"
+        },
+        {
+          "name": "local_module_managed_capacity",
+          "declaration": "local_module_managed_capacity ( installed : LocalComputeModule , ) - > @ connector . FixedComputeCapacity"
+        },
+        {
+          "name": "local_module_managed_provider",
+          "declaration": "local_module_managed_provider ( installed : LocalComputeModule , slot : Int , sequence : @ execution . GeneratedSequence , ) - > ManagedProvider ?"
+        },
+        {
+          "name": "local_module_managed_sequence_supported",
+          "declaration": "local_module_managed_sequence_supported ( installed : LocalComputeModule , slot : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_materializing_start_capacity",
+          "declaration": "local_module_materializing_start_capacity ( installed : LocalComputeModule , slot : Int , ) - > ( @ execution . ExecutionCapacity , Bool ? ) ?"
+        },
+        {
+          "name": "local_module_max_work",
+          "declaration": "local_module_max_work ( installed : LocalComputeModule ) - > Int"
+        },
+        {
+          "name": "local_module_measurement_limits",
+          "declaration": "local_module_measurement_limits ( installed : LocalComputeModule , ) - > @ execution . FixedInputGuardMeasureLimits"
+        },
+        {
+          "name": "local_module_metered_output_start_capacity",
+          "declaration": "local_module_metered_output_start_capacity ( installed : LocalComputeModule , slot : Int , sequence : @ execution . GeneratedSequence , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "local_module_original_occurrence",
+          "declaration": "local_module_original_occurrence ( installed : LocalComputeModule , slot : Int , sequence : @ execution . GeneratedSequence , ) - > Bool"
+        },
+        {
+          "name": "local_module_provider_field_inventory",
+          "declaration": "local_module_provider_field_inventory ( tasks : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "local_module_relation_obligation_segment",
+          "declaration": "local_module_relation_obligation_segment ( installed : LocalComputeModule , slot : Int , step : Int , ) - > ( @ execution . GeneratedSequence , @ execution . SequenceExecutionLimits , @ execution . FixedInputGuardMeasureLimits , Array [ ManagedProvider ] , ) ?"
+        },
+        {
+          "name": "local_module_sequence_contains_carrier_step",
+          "declaration": "local_module_sequence_contains_carrier_step ( installed : LocalComputeModule , slot : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_sequence_has_carrier_input",
+          "declaration": "local_module_sequence_has_carrier_input ( installed : LocalComputeModule , slot : Int , ) - > Bool"
+        },
+        {
+          "name": "local_module_sequence_outputs_carrier",
+          "declaration": "local_module_sequence_outputs_carrier ( installed : LocalComputeModule , slot : Int , ) - > Bool"
+        },
+        {
+          "name": "local_sequence_contains_exact_step",
+          "declaration": "local_sequence_contains_exact_step ( sequence : @ execution . GeneratedSequence , step : Int , ) - > Bool"
+        },
+        {
+          "name": "prepare_local_compute_module",
+          "declaration": "prepare_local_compute_module ( registry : @ connector . CapabilityRegistry , registration : @ connector . CapabilityRegistration , sequences : Array [ @ execution . GeneratedSequence ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , max_work : Int , max_sequences : Int , managed_capacity ? : @ connector . FixedComputeCapacity , managed_providers ? : Array [ ManagedProvider ]"
+        },
+        {
+          "name": "prepare_local_module_compute",
+          "declaration": "prepare_local_module_compute ( installed : LocalComputeModule , slot : Int , request : @ connector . FixedComputeRequest , join_output_ceiling : ( Int , Int64 ) ? , join_output_ceilings ? : Array [ ( Int , Int64 ) ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[E]prepare_local_module_materializing_compute",
+            "[T]prepare_local_module_managed_compute",
+            "[T]prepare_local_module_managed_compute_with_estimates",
+            "local_bounded_binary_relation_step",
+            "local_bounded_relation_check",
+            "local_bounded_relation_provider",
+            "local_default_managed_provider",
+            "local_managed_provider_for",
+            "local_module_bounded_append_obligation",
+            "local_module_bounded_cross_join_obligation",
+            "local_module_bounded_family_relation_obligation",
+            "local_module_bounded_nearest_obligation",
+            "local_module_bounded_nest_obligation",
+            "local_module_bounded_ranking_obligation",
+            "local_module_bounded_relation_obligation",
+            "local_module_bounded_session_relation_obligation",
+            "local_module_bounded_set_obligation",
+            "local_module_bounded_temporal_relation_obligation",
+            "local_module_bounded_values_obligation",
+            "local_module_bounded_values_publication",
+            "local_module_candidate",
+            "local_module_capacity",
+            "local_module_capacity_for_sequence",
+            "local_module_container_inventory",
+            "local_module_execution_limits",
+            "local_module_managed_capacity",
+            "local_module_managed_provider",
+            "local_module_managed_sequence_supported",
+            "local_module_max_work",
+            "local_module_measurement_limits",
+            "local_module_metered_output_start_capacity",
+            "local_module_original_occurrence",
+            "local_module_relation_obligation_segment",
+            "local_module_sequence_contains_carrier_step",
+            "local_module_sequence_has_carrier_input",
+            "local_module_sequence_outputs_carrier",
+            "local_sequence_contains_exact_step",
+            "prepare_local_compute_module",
+            "prepare_local_module_compute",
+            "local_module_default_output_start_capacity",
+            "local_module_materializing_start_capacity",
+            "local_module_provider_field_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_output_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton SnapshotMap"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_output_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_output_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton SnapshotMap"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_output_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_output_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton SnapshotMap"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_output_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton SnapshotMap"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_output_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton SnapshotMap"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_output_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_output_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_output_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/metered_output_start_wbtest.mbt",
+                "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing output keeps only its same physically funded retention through completion\""
+              },
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing growth keeps the original current callback and cancellation prefix\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/execution_relation/execution_capacity.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "1ae16a47ab22dc2004406b5d0e92e28bbf034d4c98bd4220d18e875141d08f3d",
+      "role": "common-semantics",
+      "owner": "Existing generated sequence capacity, shared representation contract and checked arithmetic",
+      "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bounded_count_group_borrows_input",
+          "declaration": "bounded_count_group_borrows_input ( kernel : @ lower . PreparedKernel ) - > Bool"
+        },
+        {
+          "name": "bounded_immediate_binding_schema",
+          "declaration": "bounded_immediate_binding_schema ( schema : @ schema . Schema ) - > Bool"
+        },
+        {
+          "name": "bounded_join_borrows_input",
+          "declaration": "bounded_join_borrows_input ( kernel : @ lower . PreparedJoinKernel ) - > Bool"
+        },
+        {
+          "name": "bounded_number_group_borrows_input",
+          "declaration": "bounded_number_group_borrows_input ( kernel : @ lower . PreparedKernel , ) - > Bool"
+        },
+        {
+          "name": "bounded_number_group_scalar_schema",
+          "declaration": "bounded_number_group_scalar_schema ( schema : @ schema . Schema ) - > Bool"
+        },
+        {
+          "name": "capacity_uses_fragment_step",
+          "declaration": "capacity_uses_fragment_step ( generated : GeneratedSequence , step : Int , ) - > Bool"
+        },
+        {
+          "name": "execution_capacity",
+          "declaration": "execution_capacity ( retained_bytes : Int64 , execution_bytes : Int64 , ) - > ExecutionCapacity ?"
+        },
+        {
+          "name": "execution_capacity_execution_bytes",
+          "declaration": "execution_capacity_execution_bytes ( value : ExecutionCapacity ) - > Int64"
+        },
+        {
+          "name": "execution_capacity_node_bytes",
+          "declaration": "execution_capacity_node_bytes ( ) - > Int64"
+        },
+        {
+          "name": "execution_capacity_retained_bytes",
+          "declaration": "execution_capacity_retained_bytes ( value : ExecutionCapacity ) - > Int64"
+        },
+        {
+          "name": "generated_bounded_sequence_capacity",
+          "declaration": "generated_bounded_sequence_capacity ( generated : GeneratedSequence , limits : SequenceExecutionLimits , measurement : FixedInputGuardMeasureLimits , ) - > ExecutionCapacity ?"
+        },
+        {
+          "name": "generated_sequence_capacity",
+          "declaration": "generated_sequence_capacity ( generated : GeneratedSequence , limits : SequenceExecutionLimits , measurement : FixedInputGuardMeasureLimits , ) - > ExecutionCapacity ?"
+        },
+        {
+          "name": "generated_sequence_capacity_with_roots",
+          "declaration": "generated_sequence_capacity_with_roots ( generated : GeneratedSequence , limits : SequenceExecutionLimits , measurement : FixedInputGuardMeasureLimits , retained_roots : Int64 , metadata_scratch : Int64 , bounded_single : Bool , borrowed_input_values ? : Bool"
+        },
+        {
+          "name": "json_leaf_representation_contract",
+          "declaration": "json_leaf_representation_contract ( contract : @ contract . Contract ) - > Bool"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bounded_count_group_borrows_input",
+            "bounded_immediate_binding_schema",
+            "bounded_join_borrows_input",
+            "capacity_uses_fragment_step",
+            "execution_capacity",
+            "execution_capacity_execution_bytes",
+            "execution_capacity_node_bytes",
+            "execution_capacity_retained_bytes",
+            "generated_bounded_sequence_capacity",
+            "generated_sequence_capacity",
+            "generated_sequence_capacity_with_roots",
+            "json_leaf_representation_contract",
+            "bounded_number_group_borrows_input",
+            "bounded_number_group_scalar_schema"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "pub fn generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"one original primitive Values"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "pub fn generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"one original primitive Values"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "pub fn generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"one original primitive Values"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "pub fn generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"one original primitive Values"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "pub fn generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"one original primitive Values"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "pub fn generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"one original primitive Values"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "pub fn generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"one original primitive Values"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "pub fn generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"one original primitive Values"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "pub fn generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"one original primitive Values"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/execution_capacity.mbt",
+                "anchor": "pub fn generated_bounded_sequence_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"one original primitive Values"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/execution_relation/interval_capacity.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "dc7d7b66ba586f06da365083e186abbf48a4c07de3d25a5874b96ec49c489bc9",
+      "role": "common-semantics",
+      "owner": "Existing generated sequence capacity, shared representation contract and checked arithmetic",
+      "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bounded_interval_scalar_schema",
+          "declaration": "bounded_interval_scalar_schema ( schema : @ schema . Schema ) - > Bool"
+        },
+        {
+          "name": "generated_bounded_interval_capacity",
+          "declaration": "generated_bounded_interval_capacity ( generated : GeneratedSequence , limits : SequenceExecutionLimits , measurement : FixedInputGuardMeasureLimits , workspace_slots : Int , ) - > ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bounded_interval_scalar_schema",
+            "generated_bounded_interval_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/execution_relation/interval_capacity.mbt",
+                "anchor": "pub fn generated_bounded_interval_capacity("
+              },
+              {
+                "path": "src/execution_relation/execution_capacity_wbtest.mbt",
+                "anchor": "test \"bounded Interval quotes full output with actual workspace and borrowed flat inputs\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/local/materializing_transport.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "35506c2b58f82c4a4633d1dd0f49e1b846caeade2c598568b76a624e7f3a74ac",
+      "role": "connector-semantics",
+      "owner": "Existing Local materializing transport and same-task reservation; quantities do not grant read, write or cleanup authority",
+      "referenceQualification": "Original constructor, monotonic same-task funding and focused resource/caller evidence; no physical or normal-package acceptance claim",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_import_next_retention_extent",
+          "declaration": "local_import_next_retention_extent ( limits : LocalImportLimits , rows : Int64 , nodes : Int64 , text : Int64 , wire_bytes : Int64 , ) - > ( Int64 , Int64 , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "local_import_start_retention_capacity",
+          "declaration": "local_import_start_retention_capacity ( limits : LocalImportLimits , ) - > Int64 ?"
+        },
+        {
+          "name": "local_materializing_export_start_capacity",
+          "declaration": "local_materializing_export_start_capacity ( limits : LocalExportLimits , ) - > Int64 ?"
+        },
+        {
+          "name": "local_materializing_import_start_capacity",
+          "declaration": "local_materializing_import_start_capacity ( limits : LocalImportLimits , ) - > Int64 ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_import_next_retention_extent",
+            "local_import_start_retention_capacity",
+            "local_materializing_export_start_capacity",
+            "local_materializing_import_start_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/local/materializing_transport.mbt",
+                "anchor": "pub fn local_import_next_retention_extent("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport.mbt",
+                "anchor": "pub fn local_materializing_export_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
+              },
+              {
+                "path": "src/physical_strategy_host/task_execution.mbt",
+                "anchor": "pub fn retain_materializing_task_execution_capacity("
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing output keeps only its same physically funded retention through completion\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_strategy_host/task_execution.mbt",
+                "anchor": "pub fn retain_materializing_task_execution_capacity("
+              },
+              {
+                "path": "src/physical_strategy_host/task_execution.mbt",
+                "anchor": "pub fn grow_task_execution_workspace("
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing output keeps only its same physically funded retention through completion\""
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_strategy_host/task_execution.mbt",
+                "anchor": "pub fn grow_task_execution_workspace("
+              },
+              {
+                "path": "src/connectors/local/export.mbt",
+                "anchor": "pub fn advance_local_output_export("
+              },
+              {
+                "path": "src/execution_relation/completed_export_growth_wbtest.mbt",
+                "anchor": "test \"physical batch growth callback cannot keep revoked or closed original usable\""
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_strategy_host/task_execution.mbt",
+                "anchor": "pub fn grow_task_execution_workspace("
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"refused materializing growth cannot become retained output or erase its initial prefix\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing growth keeps the original current callback and cancellation prefix\""
+              },
+              {
+                "path": "src/execution_relation/completed_export_growth_wbtest.mbt",
+                "anchor": "test \"physical batch growth callback cannot keep revoked or closed original usable\""
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/local/materializing_transport.mbt",
+                "anchor": "pub fn local_materializing_import_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport.mbt",
+                "anchor": "pub fn local_materializing_export_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"refused materializing growth cannot become retained output or erase its initial prefix\""
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Separate units"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_materializing_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/local/materializing_transport_wbtest.mbt",
+                "anchor": "test \"materializing transport starts independently of unallocated future wire storage\""
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing output keeps only its same physically funded retention through completion\""
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"refused materializing growth cannot become retained output or erase its initial prefix\""
+              },
+              {
+                "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
+                "anchor": "test \"materializing growth keeps the original current callback and cancellation prefix\""
+              },
+              {
+                "path": "src/execution_relation/completed_export_growth_wbtest.mbt",
+                "anchor": "test \"physical batch growth callback cannot keep revoked or closed original usable\""
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

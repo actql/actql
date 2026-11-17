@@ -24,6 +24,11 @@ const choice=nodes.filter(node=>node.type==='VariableDeclarator'&&node.id.name==
 assert.equal(choice.length,1);
 const choose=new Function('hostLookupExecutionPolicy','preparation','moon',
   'return '+source.slice(choice[0].init.start,choice[0].init.end));
+const environmentChoice=nodes.filter(node=>node.type==='VariableDeclarator'&&node.id.name==='selectBaseEnvironment');
+assert.equal(environmentChoice.length,1);
+const chooseEnvironment=new Function('mode','effectInstallation','selectedSourcePaths','selectedEffectPaths',
+  'selectInstalledHostEnvironment','selectInstalledLocalMaterializationEnvironment',
+  'return '+source.slice(environmentChoice[0].init.start,environmentChoice[0].init.end));
 const earlyEnvironment=nodes.filter(node=>node.type==='VariableDeclarator'&&node.id.name==='baseEnvironmentWire'&&
   node.init?.type==='CallExpression'&&node.init.callee.name==='selectInstalledLocalMaterializationEnvironment');
 assert.equal(earlyEnvironment.length,1);
@@ -44,6 +49,19 @@ function hostProjection({moon,projectSourcePreparation,mockPreparation,sourceMan
       localResourceLookupExecutionPolicy,LOCAL_FILES_DEFAULT_LIMITS);
 }
 const limits={maxFiles:1000,maxPages:64,maxPageBytes:1048576,maxDurationMs:30000};
+
+test('independently published Source and Effect profiles keep their declared Host policy',()=>{
+  for(const mode of ['local','remote']){
+    for(const [sources,effects] of [[['source.json'],[]],[[],['effect.json']],[['source.json'],['effect.json']]]){
+      assert.strictEqual(chooseEnvironment(mode,undefined,sources,effects,
+        selectInstalledHostEnvironment,selectInstalledLocalMaterializationEnvironment),selectInstalledHostEnvironment);
+    }
+    assert.strictEqual(chooseEnvironment(mode,undefined,[],[],
+      selectInstalledHostEnvironment,selectInstalledLocalMaterializationEnvironment),selectInstalledLocalMaterializationEnvironment);
+  }
+  assert.strictEqual(chooseEnvironment('remote',{},[],[],
+    selectInstalledHostEnvironment,selectInstalledLocalMaterializationEnvironment),selectInstalledHostEnvironment);
+});
 
 test('ordinary Local finite lookup policy covers declared keys and pages without claiming capacity or retries',()=>{
   const value=localFilesLookupExecutionPolicy([limits]);

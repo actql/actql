@@ -4,6 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding} from './infer-operation.mjs';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 
 function beforeInstallation({failClose = false, retainedBytes = 0n, abort = false} = {}) {
@@ -237,7 +238,7 @@ async function composedPublicationHandoff({complete = true, preflight = false} =
     assert.strictEqual(definition, plan.runDefinition); return name;
   };
   const run = composedSourceFunction('./installed-composed-infer-run.mjs', 'runInstalledComposedInfers', {
-    runtimeField: (value, index) => value[index], checked: value => value,
+    runtimeField: (value, index) => value[index], checked: value => value, fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding,
     withLocalExecutionPauseHandler: value => value,
     runCapturedStrategy() {assert.fail('intermediate Model driver cannot request public checked Result mode');},
     async runCapturedInternalStrategy(actual, options, signal, observer, cleanup) {
@@ -472,7 +473,7 @@ for (const units of [[0, 0], [0, 0, 2]]) {
 // A final Model observation does not erase an upstream Unit's original Source
 // context. These explicit ports exercise the actual consumer, not a provider.
 test('combined upstream Source Unit publication remains available when later Models exist', () => {
-  const managedRun = {}, sourcePlan = {}, unitInputs = {}, retention = {wire: '{}'}, combined = {catalogBodies: []};
+  const managedRun = {}, sourcePlan = {}, sourceHost = {}, issuedModel = {}, unitInputs = {}, retention = {wire: '{}'}, combined = {catalogBodies: []};
   const sources = [0, 1].map(slot => ({captured: {inputKind: 'whole-input',
     occurrence: {stage: 0}, identity: {slot}, capture: {source: () => ({slot})}, logicalInput: {}},
     sourceEvidence: {slot}}));
@@ -485,7 +486,14 @@ test('combined upstream Source Unit publication remains available when later Mod
     clientProgramCapturedSourceSchemaCid: () => 'original-schema',
     clientProgramCapturedSourceDependencyBodies: identity => ['rows-' + identity.slot, 'schema'],
     clientProgramEffectPublicationPolicyBodies: () => ({ok: []})};
-  acquired.control = {checkedClientEffectInferInvocation() {calls.push('complete-model'); return {
+  acquired.control = {bindCheckedInstalledEffectModelInvocation(parent, prepared, request, plan, host,
+      compilation, admission, definition, issued) {
+      assert.strictEqual(parent, managedRun); assert.strictEqual(prepared, acquired.prepared);
+      assert.strictEqual(request, acquired.requestIdentity); assert.strictEqual(plan, sourcePlan); assert.strictEqual(host, sourceHost);
+      assert.strictEqual(compilation, acquired.compilation); assert.strictEqual(admission, acquired.admission);
+      assert.strictEqual(definition, acquired.definition); assert.strictEqual(issued, issuedModel);
+      calls.push('complete-model'); return {observation: {}, invocation: {}, owner: {}};
+    }, checkedClientEffectInferInvocation() {calls.push('complete-model'); return {
     observation: {}, invocation: {}, owner: {}};},
     issueCheckedInstalledEffectDirectSourcesInvocation() {assert.fail('no Source-only whole-Run observation');},
     prepareCheckedInstalledEffectSourceUnits(plan, prepared, request, compilation, admission, definition, actual, evidence) {
@@ -502,7 +510,7 @@ test('combined upstream Source Unit publication remains available when later Mod
     limits: {}, runtimeField: (value, index) => value[index], runtimeOptionalField: (value, index) => value[index],
     checked: value => value.ok, buildLocalPublicationPlan: () => ({plan: {}, retention, retentionDependencies: []}),
   });
-  const plan = run({acquired, sources, sourcePlan, managedRun, issuedModel: {}, modelOriginals: [model]});
+  const plan = run({acquired, sources, sourcePlan, managedRun, sourceHost, issuedModel, modelOriginals: [model]});
   assert.deepEqual(calls, ['complete-model', 'original-source-units', 'combined-0']);
   assert.strictEqual(plan.localEvidenceContext.acquiredEvidenceByUnit[0], combined);
   assert.strictEqual(plan.localEvidenceContext.modelOriginalByUnit[1], model);
@@ -513,7 +521,7 @@ test('combined upstream Source Unit publication remains available when later Mod
 
 
 test('upstream Source Unit preparation retains original bodies before Models and final publication reuses them', () => {
-  const managedRun = {}, sourcePlan = {}, request = {}, inputs = {}, retention = {wire: '{}'}, combined = {catalogBodies: []};
+  const managedRun = {}, sourcePlan = {}, sourceHost = {}, issuedModel = {}, request = {}, inputs = {}, retention = {wire: '{}'}, combined = {catalogBodies: []};
   const sources = [0, 1].map(slot => ({captured: {inputKind: 'whole-input', occurrence: {stage: 0},
     identity: {slot}, capture: {source: () => ({slot})}, logicalInput: {}}, sourceEvidence: {slot}}));
   const calls = [];
@@ -538,7 +546,15 @@ test('upstream Source Unit preparation retains original bodies before Models and
       assert.strictEqual(actualInputs, inputs); assert.equal(unit, 0); assert.strictEqual(policy, retention);
       calls.push('before-model-unit'); return combined;
     },
-    checkedClientEffectInferInvocation() {calls.push('completed-models'); return {observation: {}, invocation: {}, owner: {}};},
+    checkedClientEffectInferInvocation() {assert.fail('managed Model cannot use unbound issuer');},
+    bindCheckedInstalledEffectModelInvocation(parent, prepared, actualRequest, plan, host,
+      compilation, admission, definition, issued) {
+      assert.strictEqual(parent, managedRun); assert.strictEqual(prepared, acquired.prepared);
+      assert.strictEqual(actualRequest, request); assert.strictEqual(plan, sourcePlan); assert.strictEqual(host, sourceHost);
+      assert.strictEqual(compilation, acquired.compilation); assert.strictEqual(admission, acquired.admission);
+      assert.strictEqual(definition, acquired.definition); assert.strictEqual(issued, issuedModel);
+      calls.push('completed-models'); return {observation: {}, invocation: {}, owner: {}};
+    },
   };
   const issueRetention = composedSourceFunction('./local-values-plan.mjs', 'issueLocalResultRetention', {
     retentionDependencies: [{cid: 'retention'}, {cid: 'metadata'}, {cid: 'clock'}], limits: {},
@@ -553,12 +569,12 @@ test('upstream Source Unit preparation retains original bodies before Models and
     limits: {}, runtimeField: (value, index) => value[index], runtimeOptionalField: (value, index) => value[index], checked: value => value.ok,
     buildLocalPublicationPlan(options) {assert.strictEqual(options.originalRetention, retention); return {plan: {}, retention, retentionDependencies: []};},
   });
-  const final = publish({acquired, sources, sourcePlan, managedRun, sourceUnitsOriginal: original,
-    issuedModel: {}, modelOriginals: [{unit: 1}, {unit: 2}]});
+  const final = publish({acquired, sources, sourcePlan, managedRun, sourceHost, sourceUnitsOriginal: original,
+    issuedModel, modelOriginals: [{unit: 1}, {unit: 2}]});
   assert.strictEqual(final.localEvidenceContext.acquiredEvidenceByUnit[0], combined);
   assert.deepEqual(calls, ['retention', 'source-inputs', 'before-model-unit', 'completed-models']);
-  assert.throws(() => publish({acquired, sources: sources.slice(), sourcePlan, managedRun, sourceUnitsOriginal: original,
-    issuedModel: {}, modelOriginals: [{unit: 1}, {unit: 2}]}), /ForeignEffectSourceUnitOriginal/u);
+  assert.throws(() => publish({acquired, sources: sources.slice(), sourcePlan, managedRun, sourceHost, sourceUnitsOriginal: original,
+    issuedModel, modelOriginals: [{unit: 1}, {unit: 2}]}), /ForeignEffectSourceUnitOriginal/u);
 });
 
 function originalRuntimeControlMethod(name, ports) {

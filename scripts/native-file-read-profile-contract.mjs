@@ -31,18 +31,36 @@ export const declaredFileReadProfileSchema = () => fileReadProfileSchema('declar
 export const verifyNativeFileReadProfile = (write = false) => verifyFileReadProfile('native', write);
 export const verifyDeclaredFileReadProfile = (write = false) => verifyFileReadProfile('declared', write);
 
+export const installedRowSourceReadProfileSchema = () => ({
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  $id: 'https://smooth.dev/schemas/actql-installed-row-source-read-0.1.json',
+  ...closed({version: {const: 'actql-installed-row-source-read/0.1'},
+    source_view_contract_cid: cid, request_schema_cid: cid, response_schema_cid: cid,
+    response_encoding: {const: 'typed_json_row_array'}, transport_cid: cid}),
+});
+export const verifyInstalledRowSourceReadProfile = (write = false) => verifyReadProfile({
+  name: 'installed_row_source_read', version: 'actql-installed-row-source-read/0.1',
+  schema: installedRowSourceReadProfileSchema(), marker: 'INSTALLED_ROW_SOURCE_READ_PROFILE_MACHINE_PIN',
+  selection: 'Original installed RowSource typed row-array reader; same SourceView, request and response schema; not a file UTF8 projection or physical byte authority',
+}, write);
+
 function verifyFileReadProfile(implementation, write) {
   const name = `${implementation}_file_content_read`;
   const version = `actql-${implementation}-file-content-read/0.1`;
-  const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
-  const lookup = JSON.parse(readFileSync(lookupPath, 'utf8'));
-  const schema = fileReadProfileSchema(implementation);
-  const pin = machineCid(schema);
-  const binding = {path: registryPath, pointer: `/schemas/${name}`,
-    self_field: 'transport_cid', schema_cid: pin,
+  return verifyReadProfile({name, version, schema: fileReadProfileSchema(implementation),
+    marker: `${implementation.toUpperCase()}_FILE_READ_PROFILE_MACHINE_PIN`,
     selection: implementation === 'native'
       ? 'Native declared-file keyed Content reader; same SourceView, physical provider and projection; not HTTP or query Source evidence'
-      : 'Installed Node declared-file keyed Content reader; same SourceView, physical provider and projection; not Native or query Source evidence'};
+      : 'Installed Node declared-file keyed Content reader; same SourceView, physical provider and projection; not Native or query Source evidence',
+  }, write);
+}
+
+function verifyReadProfile({name, version, schema, marker, selection}, write) {
+  const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
+  const lookup = JSON.parse(readFileSync(lookupPath, 'utf8'));
+  const pin = machineCid(schema);
+  const binding = {path: registryPath, pointer: `/schemas/${name}`,
+    self_field: 'transport_cid', schema_cid: pin, selection};
   if (write) {
     registry.schemas[name] = schema;
     registry.schema_cids[name] = pin;
@@ -68,10 +86,10 @@ function verifyFileReadProfile(implementation, write) {
     else owner.machine_contracts.push({path: registryPath, pointer, cid: pin,
       version: 'actql-production-profile-schema-registry/0.1'});
     let text = readFileSync(owner.path, 'utf8');
-    const marker = `../../../${registryPath}#${pointer} ${pin}`;
-    text = text.replace(`${implementation.toUpperCase()}_FILE_READ_PROFILE_MACHINE_PIN`, marker);
+    const referenceText = `../../../${registryPath}#${pointer} ${pin}`;
+    text = text.replace(marker, referenceText);
     if (previousPin) text = text.replace(
-      `../../../${registryPath}#${pointer} ${previousPin}`, marker);
+      `../../../${registryPath}#${pointer} ${previousPin}`, referenceText);
     writeFileSync(owner.path, text);
     for (const item of family.documents) {
       let document = readFileSync(item.path, 'utf8');
@@ -109,5 +127,6 @@ function verifyFileReadProfile(implementation, write) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log(JSON.stringify({native_file_read_profile:
     verifyNativeFileReadProfile(process.argv.includes('--write')).cid,
-    declared_file_read_profile: verifyDeclaredFileReadProfile(process.argv.includes('--write')).cid}));
+    declared_file_read_profile: verifyDeclaredFileReadProfile(process.argv.includes('--write')).cid,
+    installed_row_source_read_profile: verifyInstalledRowSourceReadProfile(process.argv.includes('--write')).cid}));
 }

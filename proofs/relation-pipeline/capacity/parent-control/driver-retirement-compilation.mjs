@@ -98,7 +98,17 @@ export function omitUnselectedTests(source) {
       }
       assert.equal(d, 0, 'Unterminated test declaration');
       const end = ts[close - 1].end;
-      omitted.push({begin: t.begin, end, digest: hash(source.slice(t.begin, end))});
+      // A compiler-selected test's attribute belongs to that same omitted
+      // test, not to the next retained helper. Accept only the closed literal
+      // target form immediately adjacent to this test; declaration attributes,
+      // expressions and foreign helpers remain unsupported below.
+      let begin=t.begin;
+      const attribute=ts.slice(Math.max(0,i-7),i);
+      if(attribute.map(token=>token.value).join(' ')==='# cfg ( target = literal )' &&
+        /^#cfg\(\s*target\s*=\s*"(?:js|wasm|native)"\s*\)\s*$/u.test(source.slice(attribute[0].begin,t.begin))) {
+        begin=attribute[0].begin;
+      }
+      omitted.push({begin, end, digest: hash(source.slice(begin, end))});
       i = close - 1;
     } else {
       if (t.value === '{') depth++;

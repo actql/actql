@@ -3,11 +3,13 @@
 import {spawnSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
-import {join, relative, resolve} from 'node:path';
-import {fileURLToPath, pathToFileURL} from 'node:url';
+import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {checkoutState, packClientPackages, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
+import {packedFixtureSupport, packedReadOpeningFixtureInputs, rewritePackedFixtureSource}
+  from './packed-fixture-support.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const cancellationOnly = process.argv.slice(2).includes('--cancellation-only');
@@ -55,93 +57,12 @@ run('npm', ['install', '--ignore-scripts', '--no-save', '--no-audit', '--no-fund
 const installedHost = join(root, 'node_modules/@actql/local-node');
 const fixtureDirectory = join(root, 'adapters/host-node');
 await mkdir(fixtureDirectory, {recursive: true});
-const support = [
-  'adapters/host-node/client-read-opening.test.mjs',
-  'adapters/host-node/client-read-opening.fixture.mjs',
-  'adapters/host-node/funded-client-preparation.fixture.mjs',
-  'adapters/host-node/client-read-opening-restart.fixture.mjs',
-  'adapters/host-node/client-read-run-capacity.test.mjs',
-  'adapters/host-node/client-read-run-capacity.fixture.mjs',
-  'adapters/host-node/fixtures/read-121.program.json',
-  'adapters/host-node/fixtures/read-121.expected.json',
-  'adapters/host-node/client-values-row-limit.test.mjs',
-  'adapters/host-node/client-values-row-limit.fixture.mjs',
-  'adapters/host-node/client-cancellation-public.test.mjs',
-  'adapters/host-node/client-cancellation-attempt-installed.test.mjs',
-  'adapters/host-node/client-cancellation-public.fixture.mjs',
-  'adapters/host-node/client-submission-custody-public.test.mjs',
-  'adapters/host-node/client-submission-custody-public.fixture.mjs',
-  'adapters/host-node/submission-epoch-public.test.mjs',
-  'adapters/host-node/client-effect-uncertainty.test.mjs',
-  'adapters/host-node/client-owner-observations-public.test.mjs',
-  'adapters/host-node/client-effect-cancellation-public.test.mjs',
-  'adapters/connectors/salesforce/test/read-compute-effect.fixture.mjs',
-  'adapters/connectors/salesforce/test/read-compute-effect.embedded-child.mjs',
-  'adapters/connectors/salesforce/test/salesforce-effect-site.fixture.mjs',
-  'scripts/fixtures/client-effect-uncertainty.child.mjs',
-  'scripts/fixtures/client-effect-cancellation.child.mjs',
-  'adapters/site-node/https-exchange-fixture.mjs',
-  'scripts/owned-scratch.mjs',
-  'packages/sdk/fixtures/values.json',
-  'packages/sdk/fixtures/values.environment.json',
-];
+const support = packedFixtureSupport(repository, packedReadOpeningFixtureInputs);
 for (const path of support) {
   const output = join(root, path);
   await mkdir(join(output, '..'), {recursive: true});
   let text = await readFile(join(repository, path), 'utf8');
-  if (path.endsWith('.mjs') && path !== 'scripts/owned-scratch.mjs') {
-    text = text.replace(
-      "import {openInstalledRemoteHttpHost, publishInstalledEffect} from\n  '../../../host-node/embedded-local.mjs';",
-      "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';\n" +
-      "import {publishEffect as publishInstalledEffect} from '@actql/local-node';");
-    text = text.replace(/import \{connectEmbeddedLocal\} from ['"](?:\.\.\/)+(?:adapters\/)?host-node\/embedded-local\.mjs['"];/gu,
-      "import {connect as connectEmbeddedLocal} from '@actql/local-node';");
-    if (path === 'scripts/fixtures/client-effect-cancellation.child.mjs') {
-      text = text.replace(
-        "import {openInstalledRemoteHttpHost} from '../../adapters/host-node/embedded-local.mjs';",
-        "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
-    }
-    if (path === 'adapters/host-node/client-owner-observations-public.test.mjs' ||
-        path === 'adapters/host-node/client-values-row-limit.test.mjs' ||
-        path === 'adapters/host-node/client-values-row-limit.fixture.mjs' ||
-        path === 'adapters/host-node/client-cancellation-public.fixture.mjs' ||
-        path === 'adapters/host-node/submission-epoch-public.test.mjs') {
-      text = text.replace(
-        "import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';",
-        "import {connect as connectEmbeddedLocal} from '@actql/local-node';\n" +
-        "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
-      text = text.replace(
-        "import {connectEmbeddedLocal,openInstalledRemoteHttpHost} from './embedded-local.mjs';",
-        "import {connect as connectEmbeddedLocal} from '@actql/local-node';\n" +
-        "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
-    }
-    text = text.replace(/from\s+(['"])([^'"]+)\1/gu, (original, quote, specifier) => {
-      if (specifier.startsWith('node:') || specifier.startsWith('@actql/')) return original;
-      const target = relative(repository, resolve(repository, path, '..', specifier));
-      if (support.includes(target)) return original;
-      if (target === 'packages/node/index.mjs') return `from ${quote}@actql/node${quote}`;
-      if (target === 'packages/local-node/http-host.mjs') return `from ${quote}@actql/local-node/http-host${quote}`;
-      if (target === 'packages/client-wire/index.mjs') return `from ${quote}@actql/client-wire${quote}`;
-      if (target === 'packages/sdk/index.mjs') return `from ${quote}@actql/sdk${quote}`;
-      if (target === 'packages/sdk/host-port.mjs') return `from ${quote}@actql/sdk/host-port${quote}`;
-      if (target === 'packages/sdk/internal/private-source-preparation.mjs') {
-        return `from ${quote}@actql/sdk/_internal/source-preparation${quote}`;
-      }
-      if (target === '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js') {
-        return `from ${quote}@actql/local-node/runtime${quote}`;
-      }
-      if (target === '_build/js/release/build/connectors/salesforce/host_node/host_node.js') {
-        return `from ${quote}${pathToFileURL(join(installedHost, target)).href}${quote}`;
-      }
-      if (!target.startsWith('adapters/')) throw new Error(`Unpackaged fixture import: ${target}`);
-      return `from ${quote}${pathToFileURL(join(installedHost, target)).href}${quote}`;
-    }).replace(/new URL\('((?:\.\.\/)+spec\/[^']+)', import.meta.url\)/gu,
-      (_original, specifier) => `new URL(${JSON.stringify(pathToFileURL(join(installedHost,
-        relative(repository, resolve(repository, path, '..', specifier)))).href)})`);
-    text = text.replace(/new URL\(\s*'\.\.\/\.\.\/\.\.\/\.\.\/_build\/js\/release\/build\/connectors_builtin_node\/' \+\s*'connectors_builtin_node\.js', import\.meta\.url\)/gu,
-      `new URL(${JSON.stringify(pathToFileURL(join(installedHost,
-        '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')).href)})`);
-  }
+  text = rewritePackedFixtureSource(text, {repository, path, support, installedHost});
   await writeFile(output, text);
 }
 const custodyInputs = join(root, 'submission-custody-inputs.json');

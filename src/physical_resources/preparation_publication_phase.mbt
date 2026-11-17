@@ -38,7 +38,10 @@ fn[I, P] reserve_original_preparation_running_phase(
   }
   if owner.phase != Run ||
     owner.borrowers <= 0 ||
-    owner.active_phase_work is Some(_) {
+    (
+      owner.active_phase_work is Some(_) &&
+      !preparation_run_publication_work_returned(owner)
+    ) {
     return Err(WorkActive)
   }
   let token = owner.reservation.reservation

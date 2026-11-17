@@ -53,18 +53,62 @@ test "Table body inventory uses actual announced bytes before snapshot limits an
 ///|
 test "Table initial reader reuses common controls original profile stages and separate output constructors" {
   // Existing common fixed envelope48H202R20W=2544. Table selected frame
-  //23H64R9W=952 includes the early-retire closure and original handle slot;
+  //30H72R24W=1248 includes completed-snapshot controls, the early-retire
+  // closure and original handle slot;
   // original live-reader Set11H29R34W=680. The SAME shared
   // constructor/quotation workspace is1432+688=2120. Three original outbound
   // profile stages retain23 each; these are independent authored quantities.
   let profile = @execution.execution_capacity(17L, 23L).unwrap()
   let initial = installed_table_source_reader_capacity(2, profile).unwrap()
-  assert_eq(@execution.execution_capacity_retained_bytes(initial), 4245L)
-  assert_eq(@execution.execution_capacity_execution_bytes(initial), 6365L)
+  assert_eq(@execution.execution_capacity_retained_bytes(initial), 4541L)
+  assert_eq(@execution.execution_capacity_execution_bytes(initial), 6661L)
   assert_true(installed_table_source_reader_capacity(0, profile) is None)
   let body = installed_table_source_serialization_capacity(profile, 4).unwrap()
   // 130 UTF16 units and two130-byte Buffers +3H2R2W=600, before stringify.
   assert_eq(@execution.execution_capacity_retained_bytes(body), 617L)
   assert_eq(@execution.execution_capacity_execution_bytes(body), 623L)
   assert_true(installed_table_source_serialization_capacity(profile, 0) is None)
+}
+
+///|
+test "completed Table snapshots retain actual native structure and release no physical original" {
+  let initial = @execution.execution_capacity(17L, 23L).unwrap()
+  // One original {rows:[{text:"abc"}]} reply: object2/array1, field2,
+  // values4, key/value UTF16 units4+4+3=11. No sender maxNodes is data.
+  let completed = installed_table_source_completed_capacity(
+    initial, 4, 2, 2, 1, 11,
+  ).unwrap()
+  let announced = installed_table_source_body_capacity(initial, 1000, 32).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(completed) <
+    @execution.execution_capacity_retained_bytes(announced),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(completed) <
+    @execution.execution_capacity_execution_bytes(announced),
+  )
+  // The full original construction remains mandatory BEFORE the body exists.
+  let required_r = @execution.execution_capacity_retained_bytes(announced)
+  let required_e = @execution.execution_capacity_execution_bytes(announced)
+  for shortage in 0..<2 {
+    let ledger = @resources.create_ledger({
+      planning_work: 0,
+      attempts: 1,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: required_r,
+      execution_bytes: required_e - shortage.to_int64(),
+    }).unwrap()
+    let result = @resources.reserve_attempt(ledger, 0L, required_r, required_e)
+    if shortage == 0 {
+      @resources.settle_reservation(ledger, result.unwrap()).unwrap()
+      assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+    } else {
+      assert_true(result is Err(@resources.ExecutionLimit))
+      assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+    }
+  }
+  assert_true(
+    installed_table_source_completed_capacity(initial, 0, 0, 0, 0, 0) is None,
+  )
 }

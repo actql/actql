@@ -1,11 +1,92 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {sourceJsonWireGeometry, sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry,
   sourceAuthoredViewConstructionGeometry, sourceEnvironmentCompositionGeometry} from './installed-source-construction-geometry.mjs';
 import {rowSourceCheckEnvironment} from './installed-row-source.mjs';
+import {installedEnvironmentDataWriterConstructionGeometry,
+  installedEnvironmentMemberSortConstructionGeometry, installedCanonicalTextConstructionShape,
+  installedCheckpointBindingCanonicalConstructionGeometry} from './installed-check-environment-construction.mjs';
+import {canonicalJson as localCanonicalJson} from './local-account-config.mjs';
+import {sourceCheckpointInventoryConstructionGeometry} from './source-alias-construction.mjs';
 
 const count = value => value !== null && typeof value === 'object'
   ? 1n + Object.values(value).reduce((n, child) => n + count(child), 0n) : 1n;
+const freeze = value => {
+  if (value !== null && typeof value === 'object') {
+    for (const child of Object.values(value)) freeze(child);
+    Object.freeze(value);
+  }
+  return value;
+};
+
+test('Checkpoint canonical inventory observes immutable scalar spelling before its future binding body', () => {
+  const cid = 'sha256:' + 'a'.repeat(64);
+  for (const refs of [[], ['connector://table/rows_128#records'],
+    ['connector://x/e\u0301日本語😀#records', 'connector://x/\\"\n#records'],
+    Array.from({length:129}, (_,index) => `connector://table/rows_${index}#records`)]) {
+    const text = {output:0n, normalized:0n};
+    for (const ref of refs) {
+      const shape = installedCanonicalTextConstructionShape(ref);
+      assert.ok(shape.output >= BigInt(JSON.stringify(ref.normalize('NFC')).length));
+      text.output += shape.output; text.normalized += shape.normalized;
+    }
+    // Independent complete future member shape. These are fixture CIDs, not
+    // values issued or substituted by the production construction quote.
+    const body = {source_authorization_bindings: refs.map(source_ref => ({source_ref,
+      configuration_cid:cid, context_cid:cid}))};
+    const wire = localCanonicalJson(body), n = BigInt(refs.length);
+    const quote = installedCheckpointBindingCanonicalConstructionGeometry(n,text.output,text.normalized);
+    assert.ok(quote.text >= 2n * BigInt(wire.length));
+    assert.ok(quote.wire >= BigInt(Buffer.byteLength(wire)));
+    assert.ok(quote.nodes >= count(body));
+    const all = sourceCheckpointInventoryConstructionGeometry(n,
+      refs.reduce((sum,ref)=>sum+BigInt(ref.length),0n),text);
+    assert.equal(all.retained.text,quote.text,'future canonical/hash workspace stays charged through real close');
+    assert.equal(all.workspace.text,0n,'this is not a premature scratch-release claim');
+    assert.equal(all.bounds.sourceCount,n);
+    if (refs.length === 129) {
+      // Python standard json.dumps(sort_keys=True,separators=(',',':')),
+      // independently authored ASCII vector, not a product-derived golden.
+      assert.equal(Buffer.byteLength(wire),30111);
+      assert.equal(quote.wire,90461n,'exact ASCII canonical output plus existing hash buffer allowance');
+      assert.equal(createHash('sha256').update(wire).digest('hex'),
+        '3887c06c2c1b450b29e9c150d199b6aa68e374f271e3c9c891c9cddf205f2992');
+      const sorted = localCanonicalJson({source_authorization_bindings:
+        [...body.source_authorization_bindings].sort((a,b)=>a.source_ref < b.source_ref ? -1 : 1)});
+      assert.equal(Buffer.byteLength(sorted),30111);
+      assert.equal(createHash('sha256').update(sorted).digest('hex'),
+        'cab5fe0222844c56f254005406d71c2de67a00bedef1ccd16377364ff329966f');
+    }
+  }
+  assert.throws(()=>installedCheckpointBindingCanonicalConstructionGeometry(1n,1n,0n));
+});
+
+test('staged Environment writer keeps legacy CID sorting and complete original bytes', () => {
+  const base = JSON.stringify({version: 'actql-check-environment/0.1',
+    evidence_bundle_cid: 'old', connector_catalogs: [], schema_snapshots: [],
+    connector_capabilities: [], mapping_contracts: [], command_contracts: []});
+  const values = [JSON.stringify({id: 'z', value: 'e\u0301日本語😀'}),
+    JSON.stringify({id: 'a', value: ['\\"\n', 1.25, false]})];
+  const declared = {evidence_schemas: values, evidence_capabilities: values,
+    view_bodies: values, contracts: values, command_bodies: values,
+    catalog: values[0], manifest_entry: values[1]};
+  const legacy = rowSourceCheckEnvironment(base, declared, values), phases = [];
+  const invoke = (name, quote, project) => {
+    assert.ok(quote.retained.nodes >= 0n && quote.workspace.nodes >= 0n);
+    phases.push(name);return project();
+  };
+  const staged = rowSourceCheckEnvironment(base, declared, values, undefined, {
+    freeze,
+    parse: project => invoke('parse', sourceEnvironmentConstructionGeometry(base, declared, values).parsed, project),
+    sort: (members, project) => invoke('sort', installedEnvironmentMemberSortConstructionGeometry(members), project),
+    seal: freeze,
+    hash: (body, project) => invoke('hash', installedEnvironmentDataWriterConstructionGeometry(body, true), project),
+    encode: (document, project) => invoke('encode', installedEnvironmentDataWriterConstructionGeometry(document), project),
+  });
+  assert.deepEqual(staged, legacy);
+  assert.deepEqual(phases, ['parse', ...Array(6).fill('sort'), 'hash', 'encode']);
+});
 
 test('wire geometry bounds actual JSON value occurrences including escaped detached syntax', () => {
   const samples = ['null', '0', '-1.7976931348623157e+308', '5e-324', '9007199254740991', 'true', '""', '[]', '{}', '[0,{},[null,false]]',

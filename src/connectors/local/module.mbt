@@ -9,11 +9,19 @@ struct LocalComputeModule {
   selected_providers : Array[ManagedProvider?]
   selected_capacities : Array[@execution.ExecutionCapacity?]
   // Original constructor selection only, not permission or runtime liveness.
-  selected_default : Array[Bool]
+  selected_default : Array[LocalDefaultConstructor]
   managed_capacity : @connector.FixedComputeCapacity
   execution : @execution.SequenceExecutionLimits
   measurement : @execution.FixedInputGuardMeasureLimits
   max_work : Int
+}
+
+///|
+// Original selected constructor DATA. The same module owns the computed
+// startup quote; none of these states supplies permission or liveness.
+priv enum LocalDefaultConstructor {
+  Injected
+  OriginalDefault(@execution.ExecutionCapacity?)
 }
 
 ///|
@@ -25,7 +33,7 @@ pub fn local_module_container_inventory(
   slots : Int,
   installed_providers : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard @execution.checked_preparation_add_product(10L, slots.to_int64(), 3L)
+  guard @execution.checked_preparation_add_product(10L, slots.to_int64(), 6L)
     is Some(references) &&
     @execution.checked_preparation_add_product(
       references,
@@ -36,13 +44,62 @@ pub fn local_module_container_inventory(
     return None
   }
   Some({
-    record_headers: 10L,
+    // One original selection carrier, its optional startup value and the
+    // retained two-word capacity per slot, alongside all five old containers.
+    record_headers: 10L + 3L * slots.to_int64(),
     reference_slots: references,
-    scalar_words: 8L + slots.to_int64(),
+    scalar_words: 8L + 3L * slots.to_int64(),
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
 }
+
+///|
+/// The added immutable recipe reference on each possible standing task
+/// provider. Original task count bounds the selected defaults; installed
+/// family fields and their two receipt closures are fixed Host controls.
+/// Selection may cohold the eleven existing alternative provider records and
+/// two complete capacity/Some pairs while the bounded result is merged.
+/// This is constructor DATA on the same Plan, not another provider allowance.
+pub fn local_module_provider_field_inventory(
+  tasks : Int,
+) -> @execution.ExecutionCapacity? {
+  guard tasks >= 0 &&
+    @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: tasks.to_int64(),
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      retained,
+      if tasks > 0 {
+        local_provider_selection_recipe_field_bytes
+      } else {
+        0L
+      },
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution)
+}
+
+///|
+// Eleven added provider fields plus the callback/merged capacity results:
+// each result is a two-word capacity record and its Some (2H/1R/2W).
+// Runtime row chains reserve this transient peak once, not once per child.
+let local_provider_selection_recipe_field_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 4L,
+    reference_slots: 13L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
 
 ///|
 pub(all) enum LocalModuleIssue {
@@ -88,7 +145,10 @@ pub fn prepare_local_compute_module(
     original_sequences.length(),
     None,
   )
-  let selected_default = Array::make(original_sequences.length(), false)
+  let selected_default : Array[LocalDefaultConstructor] = Array::make(
+    original_sequences.length(),
+    Injected,
+  )
   for slot, sequence in original_sequences {
     let mut selected : ManagedProvider? = None
     for provider in original_providers {
@@ -102,14 +162,17 @@ pub fn prepare_local_compute_module(
     let selected = match selected {
       Some(_) => selected
       None => {
-        selected_default[slot] = true
+        selected_default[slot] = OriginalDefault(None)
         local_default_managed_provider(
           original_providers, execution, measurement, sequence,
         )
       }
     }
     let capacity = match selected {
-      Some(provider) => managed_provider_capacity(provider, sequence)
+      Some(provider) =>
+        managed_provider_capacity_for_execution(
+          provider, sequence, execution, measurement,
+        )
       None =>
         @execution.generated_sequence_capacity(sequence, execution, measurement)
     }
@@ -119,7 +182,7 @@ pub fn prepare_local_compute_module(
     selected_providers[slot] = selected
     selected_capacities[slot] = capacity
   }
-  Ok({
+  let installed : LocalComputeModule = {
     registry,
     registration,
     sequences: original_sequences,
@@ -136,7 +199,18 @@ pub fn prepare_local_compute_module(
     execution,
     measurement,
     max_work,
-  })
+  }
+  // No module handle has escaped. Default constructor quotation is pure and
+  // has no external provider/current/IO callback; preserve its result once before the
+  // original module reaches dispatch preparation or a Run.
+  for slot, sequence in original_sequences {
+    if selected_default[slot] is OriginalDefault(_) {
+      selected_default[slot] = OriginalDefault(
+        local_module_default_output_start_capacity(installed, slot, sequence),
+      )
+    }
+  }
+  Ok(installed)
 }
 
 ///|
@@ -285,7 +359,13 @@ pub fn local_module_capacity_for_sequence(
   }
   guard local_module_managed_provider(installed, slot, sequence)
     is Some(provider) &&
-    managed_provider_capacity(provider, sequence) is Some(required) &&
+    managed_provider_capacity_for_execution(
+      provider,
+      sequence,
+      installed.execution,
+      installed.measurement,
+    )
+    is Some(required) &&
     required.retained_bytes <= admitted.retained_bytes &&
     required.execution_bytes <= admitted.execution_bytes else {
     return None
@@ -294,8 +374,8 @@ pub fn local_module_capacity_for_sequence(
 }
 
 ///|
-/// Startup DATA for exact built-in rows/Append, primitive Set/Join and checked
-/// row/CROSS JOIN/immediate JOIN chains. The unchanged
+/// Startup DATA for exact built-in Values/rows/Append, primitive Set/Join and
+/// checked bounded row/CROSS JOIN/immediate JOIN chains. The unchanged
 /// full capacity remains the fallback and semantic bound. Persistent output
 /// DATA is charged by the same task before each buffer commit; all fixed
 /// child metadata, input/measurement/traversal and one live child scratch
@@ -305,24 +385,50 @@ pub fn local_module_metered_output_start_capacity(
   slot : Int,
   sequence : @execution.GeneratedSequence,
 ) -> @execution.ExecutionCapacity? {
+  guard installed.sequences.get(slot) is Some(original) else { return None }
+  if physical_equal(sequence, original) {
+    return match installed.selected_default.get(slot) {
+      Some(OriginalDefault(startup)) => startup
+      _ => None
+    }
+  }
+  // A genuinely different checked refinement has different constructor
+  // demand. It still passes the old same-owner/full-envelope proof below;
+  // equal coordinates cannot read another original's retained quote.
+  local_module_default_output_start_capacity(installed, slot, sequence)
+}
+
+///|
+fn local_module_default_output_start_capacity(
+  installed : LocalComputeModule,
+  slot : Int,
+  sequence : @execution.GeneratedSequence,
+) -> @execution.ExecutionCapacity? {
   let count = @execution.generated_sequence_step_count(sequence)
-  guard installed.selected_default.get(slot) == Some(true) &&
+  guard installed.selected_default.get(slot) is Some(OriginalDefault(_)) &&
     count > 0 &&
-    // Only the existing bounded row, Append and primitive Set/Join singletons attach their
-    // output budget to this same sequence's before-commit growth owner.
+    // Only these existing bounded singletons attach their output budget to
+    // this same sequence's before-commit growth owner.
     // Other single-step families keep their original full envelope.
     (
       count > 1 ||
       @execution.generated_sequence_step_at(sequence, 0)
       is Some(
-        @lower.RowStep(_)
+        @lower.ValuesStep(_)
+        | @lower.RowStep(_)
         | @lower.AppendStep(_)
         | @lower.SetStep(_)
         | @lower.JoinStep(_)
         | @lower.CrossJoinStep(_)
       )
     ) &&
-    relation_chain_reclaimed_prefix(sequence) == count &&
+    relation_chain_reclaimed_prefix(
+      sequence,
+      installed.execution,
+      installed.measurement,
+      installed.managed_providers,
+    ) ==
+    count &&
     local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) else {
     return None
   }
@@ -414,25 +520,47 @@ pub fn local_module_metered_output_start_capacity(
   // Only this built-in row chain gets a constructor-local startup baseline.
   // Each child borrows immutable input backing, attaches output to the same
   // task growth owner, and confirms scratch cleanup before its successor.
-  // Unrelated chains and constructed binding outputs keep the generic floor.
+  // Other chains keep their generic floor. Constructed row outputs retain
+  // their full final-output holding when DATA retention is not deferred.
   let mut unnest_chain = count > 1
   let mut has_unnest = false
+  let mut required_row_chain = count > 1
+  let unpivot_chain = selected_literal_unpivot_chain(sequence)
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
-      Some(@lower.RowStep(kernel)) =>
+      Some(@lower.RowStep(kernel)) => {
+        if (
+            !selected_binding_rows_supported(kernel) &&
+            !@execution.bounded_number_group_borrows_input(kernel) &&
+            !@execution.bounded_string_group_borrows_input(kernel) &&
+            !(@execution.bounded_analytic_borrows_input(kernel) &&
+            @execution.bounded_analytic_staged_text_capacity(
+              kernel,
+              installed.execution,
+            )
+            is Some(_))
+          ) ||
+          !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
+          !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
+          required_row_chain = false
+        }
         if @lower.kernel_unnest(kernel) is Some(_) {
           has_unnest = true
         } else if !selected_binding_rows_supported(kernel) {
           unnest_chain = false
         }
-      _ => unnest_chain = false
+      }
+      _ => {
+        unnest_chain = false
+        required_row_chain = false
+      }
     }
   }
   unnest_chain = unnest_chain && has_unnest
   // This built-in window chain constructs no legacy sequence table. Keep
-  // complete child input, measurement and aggregate scratch, plus every
-  // retained completion, while the existing chain confirms cleanup before
-  // its next child. Text/nullable DATA retains its original full envelope.
+  // complete bounded child scratch, while the existing chain confirms cleanup
+  // before its next child. Each accepted completion grows on the same task
+  // before row transfer; carried cells retain their original input owner.
   let mut window_chain = count > 1
   let mut has_window = false
   for index in 0..<count {
@@ -447,30 +575,69 @@ pub fn local_module_metered_output_start_capacity(
     }
   }
   window_chain = window_chain && has_window
-  // The same bounded INNER JOIN chain can merge its original branch outputs
-  // with Append. Every child detaches accepted output and confirms scratch
-  // cleanup before its successor; no legacy sequence table is constructed.
-  let mut join_chain = count > 1
-  let mut has_join = false
+  // Append borrows both original inputs in this reclaimed bounded chain.
+  // A JOIN is not a prerequisite; if present, retain its original carried-
+  // value constructor proof as well. Every child confirms scratch cleanup
+  // before its successor; no legacy sequence table is constructed.
+  let mut append_chain = count > 1
   for index in 0..<count {
     if @execution.generated_sequence_step_at(sequence, index)
       is Some(@lower.JoinStep(kernel)) {
-      has_join = true
       if !selected_join_borrows_carried_values(kernel) {
-        join_chain = false
+        append_chain = false
       }
     }
   }
-  join_chain = join_chain && has_join
+  let mut bounded_family_chain = false
   let mut metered_retention = true
   for index in 0..<count {
     match @execution.generated_sequence_step_at(sequence, index) {
-      Some(@lower.WindowStep(_)) if window_chain => metered_retention = false
+      Some(@lower.WindowStep(_)) if window_chain => ()
       Some(@lower.RowStep(kernel)) if window_chain &&
-        @lower.kernel_body(kernel) is @lower.Groups(_) =>
-        metered_retention = false
+        @lower.kernel_body(kernel) is @lower.Groups(_) => {
+        // Scalar window reductions use the bounded borrowed-cell recipe.
+        // Dynamic arguments and filters retain their complete Fragment
+        // context, maps and pending rows in operation workspace; persistent
+        // output grows before CommitOutput appends the original checked row.
+        let direct = @lower.kernel_group(kernel)
+          .map(group => {
+            let mut direct = @lower.group_is_window(group)
+            for aggregate in 0..<@lower.group_aggregate_count(group) {
+              let aggregate = @lower.group_aggregate_at(group, aggregate).unwrap()
+              match @lower.group_aggregate_argument(aggregate) {
+                @lower.AggregateExpression(expression) =>
+                  match @lower.expression_contract(expression).shape {
+                    @contract.Number | @contract.Boolean => ()
+                    // A scalar result such as COUNT can still consume a
+                    // newly constructed Text or collection argument.
+                    _ => direct = false
+                  }
+                _ => ()
+              }
+              if @lower.group_aggregate_filter(aggregate) is Some(filter) &&
+                !(@lower.expression_contract(filter).shape is @contract.Boolean) {
+                direct = false
+              }
+              // A newly built text/collection aggregate needs its own full
+              // construction backing before the row's persistent-output grow.
+              match @lower.group_aggregate_result(aggregate).shape {
+                @contract.Number | @contract.Boolean => ()
+                _ => direct = false
+              }
+            }
+            direct
+          })
+          .unwrap_or(false)
+        if !direct {
+          metered_retention = false
+        }
+      }
+      // The bounded Values child retains its original complete literal
+      // recipe below. Its same row-charge owner funds accepted output before
+      // transfer; a Values seed does not construct a legacy sequence table.
+      Some(@lower.ValuesStep(_)) => ()
       Some(@lower.CrossJoinStep(_)) => ()
-      Some(@lower.AppendStep(_)) if count == 1 || join_chain =>
+      Some(@lower.AppendStep(_)) if count == 1 || append_chain =>
         if count > 1 {
           let prepared = @lower.bound_preparation(
             @execution.generated_sequence_owner(sequence),
@@ -509,7 +676,8 @@ pub fn local_module_metered_output_start_capacity(
       Some(@lower.JoinStep(kernel)) =>
         // The same bounded JOIN child funds every complete output row before
         // commit, including inside a reclaimed Relation chain. Admit only
-        // required immediate input/output cells here; other joined DATA keeps
+        // required scalar input/output cells here. Text requires the same
+        // INNER JOIN borrowed-cell/charged-comparison proof; other DATA keeps
         // its full prepaid lifecycle. This changes no comparison or row bound.
         if count > 1 {
           let prepared = @lower.bound_preparation(
@@ -536,16 +704,24 @@ pub fn local_module_metered_output_start_capacity(
             for field in 0..<@schema.field_count(schema) {
               match @schema.field_at(schema, field).unwrap().contract.shape {
                 @contract.Number | @contract.Boolean => ()
+                @contract.Text(_) => if !append_chain { return None }
                 _ => return None
               }
             }
           }
         }
-      Some(@lower.RowStep(kernel)) if count == 1 &&
-        @lower.kernel_pivot(kernel) is Some(_) => {
+      // The same bounded Number group also runs as a reclaimed chain child.
+      // It borrows input cells and funds pending rows in its complete child
+      // workspace; this existing chain confirms cleanup before its successor.
+      Some(@lower.RowStep(kernel)) if @execution.bounded_number_group_borrows_input(
+          kernel,
+        ) => ()
+      Some(@lower.RowStep(kernel)) if @lower.kernel_pivot(kernel) is Some(pivot) => {
         // The existing bounded group/PIVOT child reads original scalar
-        // cells, retaining the text axis and aggregate workspace. Preserve
-        // FULL output backing before any aggregate row is constructed.
+        // cells, retaining the text axis and aggregate workspace. Scalar
+        // pending rows use workspace; complete output grows before transfer.
+        // Reclaimed chains stop and clean this same child before its
+        // successor; they construct no legacy sequence table.
         let input = @lower.kernel_input_schema(kernel)
         let output = @lower.kernel_output_schema(kernel)
         if !@schema.all_fields_required(input) ||
@@ -561,36 +737,49 @@ pub fn local_module_metered_output_start_capacity(
         for field in 0..<@schema.field_count(output) {
           match @schema.field_at(output, field).unwrap().contract.shape {
             @contract.Number | @contract.Boolean => ()
+            // Canonical schema order need not put index keys first. Match
+            // the checked field identity, not its position in that schema.
+            @contract.Text(_) => {
+              let name = @schema.field_at(output, field).unwrap().name
+              let mut index_key = false
+              for index in 0..<@lower.pivot_index_count(pivot) {
+                if @lower.pivot_index_at(pivot, index) == Some(name) {
+                  index_key = true
+                }
+              }
+              if !index_key {
+                return None
+              }
+            }
             _ => return None
           }
         }
-        metered_retention = false
       }
-      Some(@lower.RowStep(kernel)) if count == 1 &&
-        @lower.kernel_unpivot_outputs(kernel) is Some(_) => {
+      Some(@lower.RowStep(kernel)) if (count == 1 || unpivot_chain) &&
+        @lower.kernel_unpivot_outputs(kernel) is Some(_) =>
         // This bounded constructor borrows original admitted cells, including
         // Text/Array/Object backing, and prepared column labels. Its stepped
         // contract recheck returns the SAME immutable value, not a copied
-        // forest. Preserve all input/decode/traversal scratch and the FULL
-        // retained output, while the existing row-charge owner funds transfer.
+        // forest. Preserve all independent traversal scratch, while the same
+        // row-charge owner funds complete output before transfer.
         if !@schema.all_fields_required(@lower.kernel_input_schema(kernel)) ||
           !@schema.all_fields_required(@lower.kernel_output_schema(kernel)) {
           return None
         }
-        metered_retention = false
-      }
       Some(@lower.RowStep(kernel)) if count == 1 &&
         @lower.kernel_analytic(kernel) is Some(analytic) => {
         // The existing bounded analytic child funds its accepted buffer row
         // before transfer. Keep all ordering/input/evaluation scratch prepaid;
-        // only immediate ROW_NUMBER DATA uses this original growth owner.
+        // immediate ROW_NUMBER DATA keeps its existing growth owner. Other
+        // qualified analytics retain complete staged and returned output DATA.
         if @lower.analytic_call_count(analytic) < 1 {
           return None
         }
+        let mut immediate = true
         for index in 0..<@lower.analytic_call_count(analytic) {
           let call = @lower.analytic_call_at(analytic, index).unwrap()
           if !(@lower.analytic_call_function(call) is @lower.PreparedRowNumber) {
-            return None
+            immediate = false
           }
         }
         for
@@ -599,16 +788,42 @@ pub fn local_module_metered_output_start_capacity(
             @lower.kernel_output_schema(kernel),
           ] {
           if !@schema.all_fields_required(schema) {
-            return None
+            immediate = false
           }
           for field in 0..<@schema.field_count(schema) {
             match @schema.field_at(schema, field).unwrap().contract.shape {
               @contract.Number | @contract.Boolean => ()
-              _ => return None
+              _ => immediate = false
             }
           }
         }
+        if !immediate {
+          if !@execution.bounded_analytic_borrows_input(kernel) ||
+            @execution.bounded_analytic_staged_text_capacity(
+              kernel,
+              installed.execution,
+            )
+            is None {
+            return None
+          }
+          // All staged frame Text and the complete returned DATA remain
+          // prepaid; only the actual bounded constructor replaces the absent
+          // input forest/measurement body. Ranking's old immediate path stays.
+          metered_retention = false
+        }
       }
+      Some(@lower.RowStep(kernel)) if count > 1 &&
+        required_row_chain &&
+        (
+          @execution.bounded_string_group_borrows_input(kernel) ||
+          @execution.bounded_analytic_borrows_input(kernel)
+        ) =>
+        // Ordered StringAgg and qualified analytics retain complete returned
+        // output DATA. Analytic frame Text is independently prepaid before
+        // output admission; their current builder and all operation/Fragment
+        // storage remain in the bounded constructor quote. Keep full R while
+        // this original ACK-qualified chain replaces the absent legacy table.
+        metered_retention = false
       Some(@lower.RowStep(kernel)) if @lower.kernel_count_group(kernel)
         is Some(group) => {
         // Bounded COUNT now shares this task's before-commit output funding.
@@ -647,18 +862,22 @@ pub fn local_module_metered_output_start_capacity(
           | @lower.AssertAll(_)
           | @lower.AssertUnique(_) => ()
           @lower.DistinctRows => {
-            // The bounded comparator keeps original immediate cells and row
-            // indices. CommitOutputRow funds each accepted output on this
-            // same attachment; recursive/text/presence shapes keep the full
-            // retained envelope and their original constructor recipe.
+            // The bounded comparator keeps original scalar cells, including
+            // immutable Text and NULL, while its original input roots live.
+            // CommitOutputRow funds complete output before persistent transfer
+            // on this same attachment. Recursive/reference/optional presence
+            // keeps the full retained envelope and original constructor recipe.
             let input = @lower.kernel_input_schema(kernel)
             let output = @lower.kernel_output_schema(kernel)
             let mut immediate = @schema.all_fields_required(input) &&
               @schema.all_fields_required(output)
-            for field in 0..<@schema.field_count(input) {
-              match @schema.field_at(input, field).unwrap().contract.shape {
-                @contract.Number | @contract.Boolean => ()
-                _ => immediate = false
+            for port in 0..<2 {
+              let schema = if port == 0 { input } else { output }
+              for field in 0..<@schema.field_count(schema) {
+                match @schema.field_at(schema, field).unwrap().contract.shape {
+                  @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+                  _ => immediate = false
+                }
               }
             }
             if !immediate {
@@ -697,8 +916,10 @@ pub fn local_module_metered_output_start_capacity(
               })
               .unwrap_or(false)
             let input = @lower.kernel_input_schema(kernel)
-            let mut funded_snapshot = count == 1 &&
-              @lower.kernel_body(kernel) is @lower.SnapshotMap(_) &&
+            let mut funded_snapshot = (
+                @lower.kernel_body(kernel) is @lower.SnapshotMap(_) ||
+                @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
+              ) &&
               @lower.kernel_bindings(kernel) is Some(_) &&
               @schema.all_fields_required(input)
             for field in 0..<@schema.field_count(input) {
@@ -716,15 +937,37 @@ pub fn local_module_metered_output_start_capacity(
             // the still-live input or admitted preparation. This is not a
             // general constructed-output recipe: retain the full scratch and
             // use the same before-commit persistent-output growth owner.
-            let borrowed_bindings = (count == 1 || unnest_chain) &&
-              @schema.all_fields_required(input) &&
+            let borrowed_bindings = @schema.all_fields_required(input) &&
               selected_binding_outputs_borrowed(kernel)
             if !primitive && !funded_snapshot && !borrowed_bindings {
               metered_retention = false
             }
           }
         }
-      _ => return None
+      _ => {
+        guard @execution.generated_sequence_step_index_at(sequence, index)
+          is Some(step) &&
+          @execution.select_generated_sequence_step(sequence, step)
+          is Some(selected) &&
+          bounded_relation_step_provider(
+            selected,
+            installed.execution,
+            installed.measurement,
+            family=installed.managed_providers,
+          )
+          is Some(provider) &&
+          managed_provider_bounded_relation_capacity(
+            provider,
+            selected,
+            installed.execution,
+            installed.measurement,
+          )
+          is Some(_) else {
+          return None
+        }
+        bounded_family_chain = true
+        metered_retention = false
+      }
     }
     let schema = @execution.generated_sequence_step_index_at(sequence, index).bind(step => {
         @lower.preparation_schema_at(
@@ -758,7 +1001,7 @@ pub fn local_module_metered_output_start_capacity(
   }
   // These default singleton constructors retain the SAME admitted output row,
   // not an input forest, measurement wire body or second output forest. Its
-  // complete original retained envelope pays that row even before transfer.
+  // same before-commit owner pays that row before transfer.
   // Keep the bounded constructor's real maps/row arrays/cursors/frames/depth
   // and every fragment allowance alongside it. The generic provider bound
   // remains unchanged; an injected provider never enters this recipe.
@@ -769,10 +1012,10 @@ pub fn local_module_metered_output_start_capacity(
       @lower.kernel_unpivot_outputs(kernel) is Some(_) ||
       @lower.kernel_pivot(kernel) is Some(_)
     ) {
-    // These are separate retained/workspace dimensions. The existing driver
-    // adds retained backing alongside workspace exactly once; do not subtract
-    // retention from the workspace quote. Preserve the common capacity
-    // owner's existing execution >= retention floor as well.
+    // Constructor DATA grows before append; keep fixed output metadata and
+    // all independent workspace. The driver adds those retained metadata
+    // bytes alongside workspace, then the same attachment reserves each
+    // actual complete row in both dimensions before transfer.
     guard base.execution_bytes >= data &&
       full.retained_bytes >= base.retained_bytes &&
       @execution.execution_capacity_inventory_add(
@@ -782,17 +1025,31 @@ pub fn local_module_metered_output_start_capacity(
         1,
       )
       is Some(scratch) &&
-      Int64::max(full.retained_bytes, scratch) <= full.execution_bytes else {
+      full.retained_bytes >= data &&
+      Int64::max(full.retained_bytes - data, scratch) <= full.execution_bytes else {
       return None
     }
     return @execution.execution_capacity(
-      full.retained_bytes,
-      Int64::max(full.retained_bytes, scratch),
+      full.retained_bytes - data,
+      Int64::max(full.retained_bytes - data, scratch),
     )
   }
   let mut fixed = 0L
-  let constructor_chain = ((unnest_chain || join_chain) && metered_retention) ||
-    window_chain
+  let mut coheld_prefix_peak = 0L
+  // Every selected child above is the same bounded before-commit constructor.
+  // Its chain retires child scratch before the next child. No legacy generic
+  // sequence table is built; keep every child's full scratch and fixed roots,
+  // while actual output DATA grows on the original shared attachment.
+  // The same bounded row children retire scratch before their successor even
+  // when they construct Text and keep the full final-output holding prepaid.
+  // Retained-output deferral is independent: preserve full R when it is false,
+  // while the shared attachment still funds all live intermediate DATA in E.
+  let constructor_chain = (count > 1 && metered_retention) ||
+    window_chain ||
+    required_row_chain ||
+    unpivot_chain ||
+    selected_literal_binding_chain(sequence) ||
+    bounded_family_chain
   let mut scratch = if constructor_chain {
     0L
   } else {
@@ -807,22 +1064,77 @@ pub fn local_module_metered_output_start_capacity(
         selected,
         installed.execution,
         installed.measurement,
-        family=[],
+        family=installed.managed_providers,
       )
-      is Some(provider) &&
-      managed_provider_capacity(provider, selected) is Some(child) &&
-      child.retained_bytes >= data &&
-      child.execution_bytes >= data &&
+      is Some(provider) else {
+      return None
+    }
+    let bounded = managed_provider_bounded_relation_capacity(
+      provider,
+      selected,
+      installed.execution,
+      installed.measurement,
+    )
+    let child = match bounded {
+      Some(value) => value
+      None =>
+        match managed_provider_capacity(provider, selected) {
+          Some(value) => value
+          None => return None
+        }
+    }
+    // A literal Values child may already quote less DATA than the general
+    // output allowance. Preserve its WHOLE original recipe; subtract no
+    // hypothetical maximum from its fixed metadata or real input storage.
+    let deferred_data = match
+      @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.ValuesStep(_)) => {
+        let prepared = @lower.bound_preparation(
+          @execution.generated_sequence_owner(sequence),
+        )
+        match @lower.node_at(prepared, step) {
+          // Literal admission may already have selected a smaller exact
+          // constructor. Keep that complete quote. Parameter Values retain
+          // the original general DATA envelope, which this same before-row
+          // charge replaces with actual retained output on the Task.
+          Some(node) if @lower.node_values_literal_text_bytes(node) is Some(_) =>
+            0L
+          _ => data
+        }
+      }
+      // A bounded family receipt retains its whole output holding. It has
+      // no before-commit DATA attachment; do not subtract a policy maximum.
+      _ => if bounded is Some(_) { 0L } else { data }
+    }
+    guard child.retained_bytes >= deferred_data &&
+      child.execution_bytes >= deferred_data &&
       @execution.checked_preparation_add_product(
         fixed,
-        child.retained_bytes - data,
+        child.retained_bytes - deferred_data,
         1L,
       )
       is Some(next) else {
       return None
     }
+    // Before this child starts, only previous completed outputs exist.
+    // Its complete E already coholds its own full R and private workspace.
+    guard @execution.checked_preparation_add_product(
+        fixed,
+        child.execution_bytes - deferred_data,
+        1L,
+      )
+      is Some(peak) else {
+      return None
+    }
+    coheld_prefix_peak = Int64::max(coheld_prefix_peak, peak)
     fixed = next
-    scratch = Int64::max(scratch, child.execution_bytes - data)
+    scratch = Int64::max(scratch, child.execution_bytes - deferred_data)
+  }
+  if bounded_family_chain {
+    // Only an actual same-profile receipt and the ACK-qualified whole prefix
+    // select this serial composition. Preserve every accepted output at end.
+    fixed = Int64::max(fixed, coheld_prefix_peak)
+    scratch = 0L
   }
   if constructor_chain {
     // The legacy sequence table is never constructed by this path. Retain
@@ -834,6 +1146,10 @@ pub fn local_module_metered_output_start_capacity(
         512L,
         count.to_int64(),
         256L,
+      )
+      is Some(handles) &&
+      @execution.checked_preparation_add_product(
+        handles, local_provider_selection_recipe_field_bytes, 1L,
       )
       is Some(handles) &&
       @execution.checked_preparation_add_product(fixed, handles, 1L)
@@ -1640,7 +1956,8 @@ pub fn[E] prepare_local_module_materializing_compute(
     Ok(value) => value
     Err(error) => return Err(error)
   }
-  prepare_local_materializing_execution(
+  let startup = local_module_materializing_start_capacity(installed, slot)
+  prepare_local_materializing_execution_with_startup(
     choice,
     candidate,
     installed.execution,
@@ -1659,7 +1976,70 @@ pub fn[E] prepare_local_module_materializing_compute(
     analytic_envelopes~,
     family_providers=installed.managed_providers,
     provider_capacity=Some(installed.managed_capacity),
+    startup~,
   ).map_err(error => Materializing(error))
+}
+
+///|
+/// Local transport funds each actual prefix independently of the provider.
+/// Only the original default constructor receives the optional before-commit
+/// output recipe; all injected/unknown providers keep their entire full quote.
+pub fn local_module_materializing_start_capacity(
+  installed : LocalComputeModule,
+  slot : Int,
+) -> (@execution.ExecutionCapacity, Bool?)? {
+  guard installed.sequences.get(slot) is Some(sequence) &&
+    local_module_capacity(installed, slot) is Some(full) else {
+    return None
+  }
+  let quoted = local_module_metered_output_start_capacity(
+    installed, slot, sequence,
+  )
+  let startup = match quoted {
+    Some(value) if value.retained_bytes <= full.retained_bytes &&
+      value.execution_bytes <= full.execution_bytes &&
+      (
+        value.retained_bytes < full.retained_bytes ||
+        value.execution_bytes < full.execution_bytes
+      ) => Some(value)
+    _ => None
+  }
+  // The importer and file writer are this module's own constructors even
+  // when computation is an injected family. Keep that provider's ENTIRE
+  // original quote and do not attach a provider output-growth capability.
+  let base = startup.unwrap_or(full)
+  // Standing growth: the copied GeneratedSequence (22 borrowed references),
+  // WorkspaceGrowth and its option/counter, reserve closures, typed failure
+  // Ref and same-task completion closure. The transport link adds seven
+  // peak/reentry/cumulative Refs, the summed-growth and importer/exporter
+  // callbacks and their options. Include old/new Result/Some and quantity
+  // carriers at the refusal/current fence. Per-port/export state is quoted
+  // separately before those original transfer closures are constructed.
+  guard @execution.preparation_representation_cost({
+      record_headers: 43L,
+      reference_slots: 84L,
+      scalar_words: 49L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(
+      base.retained_bytes,
+      controls,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      base.execution_bytes,
+      controls,
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution).map(capacity => {
+    (capacity, startup.map(value => value.retained_bytes < full.retained_bytes))
+  })
 }
 
 ///|

@@ -144,7 +144,7 @@
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c59cca443da1861a3b3cd2defa103ff62c730c73e01c0bb4934d1b77679ad4f9",
+      "sha256": "608013c89a6fde30b56c1baefda9603760f5e419fb5b123c1f4f892e01bc2afd",
       "role": "common-semantics",
       "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
       "exports": [],

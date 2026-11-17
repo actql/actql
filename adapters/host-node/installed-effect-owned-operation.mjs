@@ -15,6 +15,7 @@ export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowI
   const borrow = runtime?.clientProgramInstalledEffectOperationBorrow;
   const start = runtime?.clientProgramInstalledEffectOperationStart;
   const charge = runtime?.clientProgramInstalledEffectOperationCharge;
+  const complete = runtime?.clientProgramInstalledEffectOwnedPhysicalOperationComplete;
   const retire = runtime?.clientProgramInstalledEffectOperationRetire;
   if (![select, physical, transfer, borrow, start, charge, retire, readPlan]
       .every(method => typeof method === 'function')) fail('InstalledEffectOperationRuntimeUnavailable');
@@ -34,7 +35,7 @@ export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowI
   }
   let token = checked(Reflect.apply(borrow, runtime,
     [parent, prepared, request, plan, memberIndex, true, operationIndex, rowIndex, operation]));
-  let attempted = false, preparing = false, stopping = false, retired = false, started = false;
+  let attempted = false, preparing = false, stopping = false, releasing = false, retired = false, started = false;
   let child, status, accountingFailed = false;
   const retainPhysicalChild = original => {
     current();
@@ -64,17 +65,22 @@ export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowI
   const release = () => {
     if (retired) return true;
     stopping = true;
-    if (preparing || accountingFailed) return false;
-    if (child !== undefined) {
-      // A failed getter can be retried only on this same retained original.
-      if (status === undefined) status = child.status;
-      if (typeof status !== 'function') fail('InvalidInstalledEffectPhysicalChild');
-      if (Reflect.apply(status, child, [])?.pending !== false) return false;
+    if (preparing || accountingFailed || releasing) return false;
+    releasing = true;
+    try {
+      if (child !== undefined) {
+        // A failed getter can be retried only on this same retained original.
+        if (status === undefined) status = child.status;
+        if (typeof status !== 'function') fail('InvalidInstalledEffectPhysicalChild');
+        if (Reflect.apply(status, child, [])?.pending !== false) return false;
+      }
+      if (requestsRetired() !== true) return false;
+      child = status = invoke = undefined;
+      if (checked(Reflect.apply(retire, runtime, [token, true])) !== true) return false;
+      token = undefined; retired = true; return true;
+    } finally {
+      releasing = false;
     }
-    if (requestsRetired() !== true) return false;
-    child = status = invoke = undefined;
-    if (checked(Reflect.apply(retire, runtime, [token, true])) !== true) return false;
-    token = undefined; retired = true; return true;
   };
   return Object.freeze({
     async prepare() {
@@ -85,6 +91,17 @@ export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowI
         const result = await invoke(Object.freeze({retainPhysicalChild, chargeBytes}));
         current();
         if (!started) fail('InstalledEffectPhysicalChildUnavailable');
+        if (typeof complete === 'function' && !stopping && !accountingFailed) {
+          // The same writer has already performed its own close. Return only
+          // ended workspace; keep its object, output and request aliases until
+          // the original release path can retire the full reservation.
+          const pending = Reflect.apply(status, child, [])?.pending;
+          current();
+          if (pending === false && !stopping && !accountingFailed) {
+            checked(Reflect.apply(complete, runtime, [token]));
+            current();
+          }
+        }
         return result;
       } finally {preparing = false;}
     },

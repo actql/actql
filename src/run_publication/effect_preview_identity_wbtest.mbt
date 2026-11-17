@@ -132,6 +132,46 @@ test "Command Preview retains its closed ResourceRef target through readmission"
     wire, run, authoring, 8192, 512, 16,
   ).unwrap()
   assert_eq(effect_preview_row_correlation_wire(readmitted, 0, 0), Some(target))
+  // Two commands may address the same collection with distinct arguments.
+  // Their complete intended values, rather than the shared target alone,
+  // must identify both rows through semantic authoring and readmission.
+  let parsed = parse_effect_preview_shape(draft, 16384, 1024, 16).unwrap()
+  let effects = @json.object_field(parsed, "effects").unwrap()
+  let effect = @json.array_values(
+      match effects {
+        @json.Array(value) => value
+        _ => abort("Expected fixture effects")
+      },
+    )[0]
+  let changes = @json.object_field(effect, "changes").unwrap()
+  let change = @json.array_values(
+      match changes {
+        @json.Array(value) => value
+        _ => abort("Expected fixture changes")
+      },
+    )[0]
+  let first = @json.stringify_value(change, 16384, 1024, 16) catch {
+    _ => abort("Expected fixture row")
+  }
+  let second = first.replace_all(old="After", new="Other")
+  let pair = draft
+    .replace_all(
+      old="\"changes\":[" + first + "]",
+      new="\"changes\":[" + first + "," + second + "]",
+    )
+    .replace_all(old="\"count\":1", new="\"count\":2")
+    .replace_all(old="\"max_items\":1", new="\"max_items\":2")
+  let rows = derive_effect_preview_row_identities(pair, 16384, 1024, 16).unwrap()
+  assert_eq(rows[0].length(), 2)
+  assert_true(rows[0][0] != rows[0][1])
+  let (pair_wire, pair_identity) = author_effect_preview_semantic_wire(
+    pair, run, authoring, 16384, 1024, 16,
+  ).unwrap()
+  assert_eq(effect_preview_row_count(pair_identity, 0), Some(2))
+  let pair_read = admit_effect_preview_identity(
+    pair_wire, run, authoring, 16384, 1024, 16,
+  ).unwrap()
+  assert_eq(effect_preview_row_count(pair_read, 0), Some(2))
   // Neither enum spelling is Command DATA; absence is not Account allow.
   for approval in ["none", "required"] {
     let invalid = draft.replace_all(

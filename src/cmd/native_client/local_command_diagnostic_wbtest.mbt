@@ -33,6 +33,62 @@ fn command_diagnostic_fixture(
 }
 
 ///|
+test "runtime requirements diagnostics preserve actual phase and proven dimension" {
+  let cases : Array[
+    (@local_values.ClientLocalRequirementsIssue, String, String),
+  ] = [
+    (
+      SequencePreparation(Sequence(SequenceLimit)),
+      "ACTQL_E_PREPARATION_LIMIT",
+      "step bound",
+    ),
+    (
+      SequencePreparation(Sequence(InvalidSequenceLimits)),
+      "ACTQL_E_CONFIGURATION_INVALID",
+      "selected limits",
+    ),
+    (
+      SequencePreparation(Unsupported),
+      "ACTQL_E_PREPARATION_FAILED",
+      "Runtime sequence",
+    ),
+    (MissingDataEdge, "ACTQL_E_PREPARATION_FAILED", "input-port inventory"),
+    (
+      ModelOccurrencesUnavailable,
+      "ACTQL_E_PREPARATION_FAILED",
+      "input-port inventory",
+    ),
+    (InputPortCountLimit, "ACTQL_E_PREPARATION_LIMIT", "input-port count"),
+    (
+      CapacityQuoteUnavailable,
+      "ACTQL_E_PREPARATION_FAILED",
+      "no budget dimension",
+    ),
+  ]
+  for (issue, expected_code, expected_dimension) in cases {
+    local_command_diagnostic_reset()
+    let stopped = try {
+      local_stop_runtime_requirements(issue)
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_eq(stopped, "LocalPreparationNotReady")
+    let (code, message) = local_command_primary_diagnostic(stopped)
+    assert_eq(code, expected_code)
+    assert_true(message.contains(expected_dimension))
+    let wire = local_command_diagnostic_text(code, message, true)
+    guard @json.parse(wire) is Object(fields) else {
+      fail("closed diagnostic required")
+    }
+    assert_eq(fields.length(), 2)
+    assert_false(wire.contains("SequencePreparation"))
+    assert_false(wire.contains("run_id"))
+  }
+  local_command_diagnostic_reset()
+}
+
+///|
 test "Pre-Run diagnostic preserves original wrong-type parameter classification without its value" {
   local_command_diagnostic_reset()
   let original = match

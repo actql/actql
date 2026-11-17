@@ -352,6 +352,41 @@ pub fn restore_client_source_capture(
   custody_available : () -> Bool,
   reference_issuer? : @admitted.ReferenceIssuer,
 ) -> Result[ClientSourceCapture, ClientSourceCaptureIssue] {
+  let prepared = match
+    prepare_client_source_readmission(
+      requirement, saved_requirement_cid, expected_binding, saved_binding, descriptor_wire,
+      supplied_rows, custody_available,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  restore_client_source_capture_prepared(
+    requirement,
+    prepared,
+    supplied_rows,
+    custody_available,
+    reference_issuer?,
+  )
+}
+
+///|
+priv struct ClientSourceReadmissionPreparation {
+  query : @query.QuerySequence
+  preparation : @execution.CompletionPreparation
+  descriptor : @execution.RetainedCompletionDescriptor
+  facts : @execution.RetainedReadmissionFacts
+}
+
+///|
+fn prepare_client_source_readmission(
+  requirement : @planning.QueryRequirement,
+  saved_requirement_cid : String,
+  expected_binding : String,
+  saved_binding : String,
+  descriptor_wire : String,
+  supplied_rows : Array[String],
+  custody_available : () -> Bool,
+) -> Result[ClientSourceReadmissionPreparation, ClientSourceCaptureIssue] {
   let descriptor = match
     read_client_source_capture_descriptor(descriptor_wire) {
     Ok(value) => value
@@ -368,16 +403,39 @@ pub fn restore_client_source_capture(
   if !custody_available() {
     return Err(CustodyUnavailable)
   }
-  guard query_source_capture_schema_columns(requirement) is Some(columns) else {
-    return Err(BindingMismatch)
-  }
-  let rows = supplied_rows.copy()
   let query = @planning.query_material_owner(
     @planning.query_requirement_material(requirement),
   )
   let preparation = @execution.generated_completion_preparation(
     @query.query_generated_sequence(query),
   )
+  let facts = match
+    @execution.prepare_retained_readmission_facts(
+      preparation,
+      descriptor,
+      supplied_rows.length(),
+      { producer_inputs: None, schema_columns: None, name_bytes: Some(10000), },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Readmission(issue))
+  }
+  Ok({ query, preparation, descriptor, facts, })
+}
+
+///|
+fn restore_client_source_capture_prepared(
+  requirement : @planning.QueryRequirement,
+  prepared : ClientSourceReadmissionPreparation,
+  supplied_rows : Array[String],
+  custody_available : () -> Bool,
+  reference_issuer? : @admitted.ReferenceIssuer,
+) -> Result[ClientSourceCapture, ClientSourceCaptureIssue] {
+  let { query, preparation, descriptor, facts, } = prepared
+  if supplied_rows.length() != @execution.retained_readmission_rows(facts) {
+    return Err(BindingMismatch)
+  }
+  let columns = @execution.retained_readmission_schema_columns(facts)
+  let rows = supplied_rows.copy()
   let reader = match
     @execution.prepare_retained_content_read(
       preparation,
@@ -421,8 +479,7 @@ pub fn restore_client_source_capture(
     @execution.prepare_trusted_retained_readmission(
       preparation,
       descriptor,
-      Int::max(100, columns),
-      10000,
+      facts,
       fn(proof : @execution.AdmittedOutputStreamReceipt) {
         if available() &&
           physical_equal(proof, receipt) &&
@@ -553,30 +610,89 @@ pub fn restore_accounted_client_source_capture(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
+  let metadata = source_capture_restoration_capacity(
+    descriptor_wire,
+    [],
+    None,
+    input_columns=0,
+    original_capacity=(0L, 0L),
+  )
+  guard metadata is Some(metadata) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_retained_bytes(metadata),
+      @execution.retained_readmission_facts_control_bytes() +
+      source_readmission_header_return_bytes,
+      1L,
+    )
+    is Some(metadata_retained) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(metadata),
+      @execution.retained_readmission_facts_control_bytes() +
+      source_readmission_header_return_bytes,
+      1L,
+    )
+    is Some(metadata_execution) else {
+    @resources.settle_capacity(ledger, quote_reservation) |> ignore
+    return Err(Physical(InvalidCharge))
+  }
+  match
+    @resources.grow_capacity_reservation(
+      ledger,
+      quote_reservation,
+      metadata_retained,
+      Int64::max(source_capture_restore_quote_bytes, metadata_execution),
+    ) {
+    Err(issue) => {
+      @resources.settle_capacity(ledger, quote_reservation) |> ignore
+      return Err(Physical(issue))
+    }
+    Ok(_) => ()
+  }
+  let prepared = match
+    prepare_client_source_readmission(
+      requirement, saved_requirement_cid, expected_binding, saved_binding, descriptor_wire,
+      rows, custody_available,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      @resources.settle_capacity(ledger, quote_reservation) |> ignore
+      return Err(issue)
+    }
+  }
+  // The pure header constructor returned. Parser/normalizer scratch did not
+  // escape; this SAME quote token retains every returned descriptor/fact/CID.
+  match
+    @resources.shrink_capacity_reservation(
+      ledger, quote_reservation, source_readmission_header_retained_bytes, source_readmission_header_quote_execution,
+    ) {
+    Err(issue) => {
+      @resources.settle_capacity(ledger, quote_reservation) |> ignore
+      return Err(Physical(issue))
+    }
+    Ok(_) => ()
+  }
   let original_capacity = match original_input {
     None => Some((0L, 0L))
     Some(_) => @row_source_host.row_original_input_query_capacity(requirement)
   }
   let sized = original_capacity.bind(original_capacity => {
-    query_source_capture_schema_columns(requirement).bind(columns => {
-      source_capture_restoration_capacity(
-        descriptor_wire,
-        rows,
-        original_input,
-        input_columns=columns,
-        original_capacity~,
-      )
-    })
+    source_capture_restoration_capacity(
+      descriptor_wire,
+      rows,
+      original_input,
+      input_columns=@execution.retained_readmission_schema_columns(
+        prepared.facts,
+      ),
+      original_capacity~,
+      metadata_facts=Some(prepared.facts),
+    )
   })
-  // Only the returned two-scalar quote remains after sizing. Its caller's
-  // original closed control frame precedes the represented-body reservation.
-  match @resources.settle_capacity(ledger, quote_reservation) {
-    Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
-  }
   let restoring = match sized {
     Some(value) => value
-    None => return Err(Physical(InvalidCharge))
+    None => {
+      @resources.settle_capacity(ledger, quote_reservation) |> ignore
+      return Err(Physical(InvalidCharge))
+    }
   }
   let retained = @execution.execution_capacity_retained_bytes(restoring)
   let execution = @execution.execution_capacity_execution_bytes(restoring)
@@ -591,15 +707,22 @@ pub fn restore_accounted_client_source_capture(
       quantities=@resources.quantity_neutral_amounts(ledger),
     ) {
     Ok(value) => value
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => {
+      @resources.settle_capacity(ledger, quote_reservation) |> ignore
+      return Err(Physical(issue))
+    }
+  }
+  match @resources.settle_capacity(ledger, quote_reservation) {
+    Err(issue) => {
+      @resources.settle_reservation(ledger, reservation) |> ignore
+      return Err(Physical(issue))
+    }
+    Ok(_) => ()
   }
   let capture = match
-    restore_client_source_capture(
+    restore_client_source_capture_prepared(
       requirement,
-      saved_requirement_cid,
-      expected_binding,
-      saved_binding,
-      descriptor_wire,
+      prepared,
       rows,
       custody_available,
       reference_issuer?,

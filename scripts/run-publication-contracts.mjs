@@ -676,7 +676,10 @@ export function correctedContracts(registry, cli) {
     type: 'object', additionalProperties: clone(cid),
   };
   effectContext.properties.effect_dependency_inventory = {
-    type: 'array', maxItems: 4096,
+    // The original Capture/Read admits the complete inventory under its own
+    // finite byte/node/entry/work envelope. A second content-schema cardinality
+    // cap must not reject that already funded original during sealing.
+    type: 'array',
     items: {type: 'object', additionalProperties: false,
       required: ['kind', 'cid', 'body'],
       properties: {kind: {type: 'string', enum: [
@@ -700,6 +703,7 @@ export function correctedContracts(registry, cli) {
         'native_file_lookup_call_slot', 'native_file_lookup_activation',
         'native_file_lookup_raw_response', 'native_file_lookup_attempt_event',
         'native_file_lookup_adoption',
+        'installed_row_source_read',
       ]}, cid: clone(cid), body: {type: 'object'}}},
   };
   for (const [name, schema] of Object.entries(next.artifact_schemas)) {

@@ -203,13 +203,53 @@ pub fn admit_client_effect_run_materials(
     Unit,
     ClientEffectRunMaterialsIssue,
   ])? = None,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
+  original_environment? : @checked.CheckEnvironment? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
+  if original_environment is Some(environment) {
+    guard original_compilation is Some(original) && before_body is Some(_) else {
+      return Err(Input(MaterialsEnvironment))
+    }
+    let checked = @strategy.graph_program(original.compiled.owner.graph)
+    let profile = @checked.checking_environment_profile_selection(environment)
+    let operations_original = @context.program_sources_operations(
+      @context.program_identity_sources(@checked.source_identity(checked)),
+    )
+    let same_tasks = match
+      (
+        @checked.checking_environment_model_tasks(environment),
+        @checked.checked_model_tasks(checked),
+      ) {
+      (None, None) => true
+      (Some(left), Some(right)) => physical_equal(left, right)
+      _ => false
+    }
+    if !physical_equal(
+        @checked.checking_environment_wire(environment),
+        @checked.effect_program_static_environment(original.owner.candidate),
+      ) ||
+      !same_tasks ||
+      profile.expressions != @checked.selected_expression_profiles(checked) ||
+      profile.operations !=
+      @context.operation_profiles_declared(operations_original) ||
+      profile.graph != @context.operation_profiles_graph(operations_original) ||
+      profile.expressions != expressions ||
+      profile.operations != operations ||
+      (
+        numeric_profile_cid is Some(cid) &&
+        profile.numeric_profile_cid != Some(cid)
+      ) {
+      return Err(Input(MaterialsEnvironment))
+    }
+  }
   let body = match
     read_client_run_materials_body(
       materials,
       expressions,
       operations,
       numeric_profile_cid~,
+      before_body~,
+      original_environment~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -367,6 +407,11 @@ pub fn admit_client_effect_run_materials(
             }
         }
       }
+      if !client_effect_material_read_funded(
+          "normalization_read", wire, 32, 8, before_body,
+        ) {
+        return Err(Input(MaterialsConstructionRefused("normalization_read")))
+      }
       let journal = match
         admit_completion_free_material_journal(wire, inventory) {
         Ok(value) => value
@@ -433,6 +478,20 @@ pub fn admit_client_effect_run_materials(
       }
   }
   let evidence = fn(name : String, wire : String) {
+    let purpose = name + "_read"
+    if !client_effect_material_read_funded(
+        purpose,
+        wire,
+        limits.max_evidence_nodes,
+        limits.max_evidence_depth,
+        before_body,
+      ) {
+      return Err(
+        ClientEffectRunMaterialsIssue::Input(
+          MaterialsConstructionRefused(purpose),
+        ),
+      )
+    }
     @publication.admit_run_evidence_value(
       name,
       wire,
@@ -478,6 +537,11 @@ pub fn admit_client_effect_run_materials(
   let request = match body.request_wire {
     None => None
     Some(wire) => {
+      if !client_effect_material_read_funded(
+          "request_read", wire, 32, 2, before_body,
+        ) {
+        return Err(Input(MaterialsConstructionRefused("request_read")))
+      }
       let value = match admit_client_request_identity_record_wire(wire) {
         Ok(value) => value
         Err(issue) => return Err(Request(issue))
@@ -527,6 +591,7 @@ pub fn admit_client_effect_run_materials(
         run_definition,
         body.request_wire,
         body.normalization_wire,
+        before_body~,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)

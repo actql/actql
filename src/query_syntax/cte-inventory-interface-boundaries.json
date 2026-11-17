@@ -1,0 +1,653 @@
+{
+  "qualification": "Existing Query syntax parser and original managed Request limits; source references only, no normal execution or resource grant",
+  "declarations": [
+    {
+      "module": "src/query_syntax/query.mbt",
+      "sha256": "44232b78b542b261cff2ad1c6691a2f8909c2803a6c2c4bd045bf61b91cc5c0a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "ascii_upper",
+          "declaration": "ascii_upper ( value : String ) - > String"
+        },
+        {
+          "name": "bound_source",
+          "declaration": "bound_source ( query : Query ) - > NamePart ?"
+        },
+        {
+          "name": "copy_aggregate_call",
+          "declaration": "copy_aggregate_call ( call : AggregateCall ) - > AggregateCall"
+        },
+        {
+          "name": "copy_analytic_call",
+          "declaration": "copy_analytic_call ( call : AnalyticCall ) - > AnalyticCall"
+        },
+        {
+          "name": "copy_projections",
+          "declaration": "copy_projections ( projections : Array [ Projection ] ) - > Array [ Projection ]"
+        },
+        {
+          "name": "effect_result_continuation",
+          "declaration": "effect_result_continuation ( query : Query , input : NamePart , has_postlude ? : Bool"
+        },
+        {
+          "name": "final_operation_at",
+          "declaration": "final_operation_at ( query : Query , index : Int ) - > QueryOperation ?"
+        },
+        {
+          "name": "final_operation_count",
+          "declaration": "final_operation_count ( query : Query ) - > Int"
+        },
+        {
+          "name": "graph_query",
+          "declaration": "graph_query ( query : Query ) - > GraphQuery ?"
+        },
+        {
+          "name": "is_source_free_scalar_projection",
+          "declaration": "is_source_free_scalar_projection ( query : Query ) - > Bool"
+        },
+        {
+          "name": "is_standalone_reference_projection",
+          "declaration": "is_standalone_reference_projection ( query : Query ) - > Bool"
+        },
+        {
+          "name": "join_part_at",
+          "declaration": "join_part_at ( query : Query , index : Int ) - > JoinPart ?"
+        },
+        {
+          "name": "join_part_count",
+          "declaration": "join_part_count ( query : Query ) - > Int"
+        },
+        {
+          "name": "operation_at",
+          "declaration": "operation_at ( query : Query , index : Int ) - > QueryOperation ?"
+        },
+        {
+          "name": "operation_count",
+          "declaration": "operation_count ( query : Query ) - > Int"
+        },
+        {
+          "name": "parse_query",
+          "declaration": "parse_query ( text : String , limits : QueryLimits , source_path ? : String"
+        },
+        {
+          "name": "parse_query_tokens",
+          "declaration": "parse_query_tokens ( source : Tokens , limits : QueryLimits , observe_work ? : ( ( Int ) - > Unit ) ?"
+        },
+        {
+          "name": "parse_relation_path",
+          "declaration": "parse_relation_path ( text : String , limits : LexicalLimits , source_path ? : String"
+        },
+        {
+          "name": "pipe_join_head",
+          "declaration": "pipe_join_head ( token : Token ) - > Bool"
+        },
+        {
+          "name": "positional_output",
+          "declaration": "positional_output ( query : Query ) - > Bool"
+        },
+        {
+          "name": "query_aggregate_function_name",
+          "declaration": "query_aggregate_function_name ( name : String ) - > Bool"
+        },
+        {
+          "name": "query_binding_at",
+          "declaration": "query_binding_at ( query : Query , index : Int ) - > QueryBinding ?"
+        },
+        {
+          "name": "query_binding_count",
+          "declaration": "query_binding_count ( query : Query ) - > Int"
+        },
+        {
+          "name": "query_document",
+          "declaration": "query_document ( query : Query ) - > @ origin . Document"
+        },
+        {
+          "name": "query_head",
+          "declaration": "query_head ( first : Token ) - > Bool"
+        },
+        {
+          "name": "query_source",
+          "declaration": "query_source ( query : Query ) - > Tokens"
+        },
+        {
+          "name": "query_work",
+          "declaration": "query_work ( query : Query ) - > Int"
+        },
+        {
+          "name": "QueryParser::advance",
+          "declaration": "QueryParser : : advance ( self : QueryParser ) - > Token raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::aggregate",
+          "declaration": "QueryParser : : aggregate ( self : QueryParser , calls ? : Array [ ( NamePart , AggregateCall ) ] ?"
+        },
+        {
+          "name": "QueryParser::aggregate_expression",
+          "declaration": "QueryParser : : aggregate_expression ( self : QueryParser , prefix : String , stop_before_star ? : Bool"
+        },
+        {
+          "name": "QueryParser::aggregate_head",
+          "declaration": "QueryParser : : aggregate_head ( self : QueryParser ) - > Bool"
+        },
+        {
+          "name": "QueryParser::aggregate_order_term",
+          "declaration": "QueryParser : : aggregate_order_term ( self : QueryParser , item : PipeAggregateOrder , offset : Int , ) - > SortTerm raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::bind_query",
+          "declaration": "QueryParser : : bind_query ( self : QueryParser , inner : Query , carry_ranges ? : Bool"
+        },
+        {
+          "name": "QueryParser::binding_name_matches",
+          "declaration": "QueryParser : : binding_name_matches ( self : QueryParser , left : NamePart , right : NamePart , ) - > Bool raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::correlated_unnest",
+          "declaration": "QueryParser : : correlated_unnest ( self : QueryParser , operations : Array [ QueryOperation ] , ) - > Unit raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::effect_is_store",
+          "declaration": "QueryParser : : effect_is_store ( self : QueryParser ) - > Bool"
+        },
+        {
+          "name": "QueryParser::end",
+          "declaration": "QueryParser : : end ( self : QueryParser ) - > Unit raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::expression",
+          "declaration": "QueryParser : : expression ( self : QueryParser , stop_before_star ? : Bool"
+        },
+        {
+          "name": "QueryParser::frame_boundary",
+          "declaration": "QueryParser : : frame_boundary ( self : QueryParser , ) - > FrameBoundary raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::fresh_producer",
+          "declaration": "QueryParser : : fresh_producer ( self : QueryParser , prefix : String , ) - > NamePart raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::group_keys",
+          "declaration": "QueryParser : : group_keys ( self : QueryParser , names ? : Array [ NamePart ? ] ?"
+        },
+        {
+          "name": "QueryParser::has",
+          "declaration": "QueryParser : : has ( self : QueryParser , expected : String ) - > Bool"
+        },
+        {
+          "name": "QueryParser::infer_clause",
+          "declaration": "QueryParser : : infer_clause ( self : QueryParser , ) - > InferClause raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::initial_from",
+          "declaration": "QueryParser : : initial_from ( self : QueryParser , allow_graph_marker ? : Bool"
+        },
+        {
+          "name": "QueryParser::join_bound",
+          "declaration": "QueryParser : : join_bound ( self : QueryParser ) - > Int64 ? raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::join_part",
+          "declaration": "QueryParser : : join_part ( self : QueryParser , ) - > ( JoinPart , Array [ QueryBinding ] ) raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::keep_clause",
+          "declaration": "QueryParser : : keep_clause ( self : QueryParser , ) - > Array [ KeepItem ] raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::keyword",
+          "declaration": "QueryParser : : keyword ( self : QueryParser , expected : String , ) - > Unit raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::limit",
+          "declaration": "QueryParser : : limit ( self : QueryParser ) - > QueryOperation raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::limit_integer",
+          "declaration": "QueryParser : : limit_integer ( self : QueryParser , zero_allowed : Bool , ) - > QueryInteger raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::mark_positional_output",
+          "declaration": "QueryParser : : mark_positional_output ( self : QueryParser , query : Query , ) - > Query raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::name",
+          "declaration": "QueryParser : : name ( self : QueryParser ) - > NamePart raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::nearest_clause",
+          "declaration": "QueryParser : : nearest_clause ( self : QueryParser , ) - > NearestClause raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::nearest_keys",
+          "declaration": "QueryParser : : nearest_keys ( self : QueryParser , ) - > Array [ Array [ NamePart ] ] raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::node",
+          "declaration": "QueryParser : : node ( self : QueryParser ) - > Unit raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::optional_output_alias",
+          "declaration": "QueryParser : : optional_output_alias ( self : QueryParser , ) - > NamePart ? raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::optional_source_alias",
+          "declaration": "QueryParser : : optional_source_alias ( self : QueryParser , ) - > NamePart ? raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::order",
+          "declaration": "QueryParser : : order ( self : QueryParser , calls ? : Array [ ( NamePart , AggregateCall ) ] ?"
+        },
+        {
+          "name": "QueryParser::order_suffix",
+          "declaration": "QueryParser : : order_suffix ( self : QueryParser , ) - > ( String , String ) raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::over",
+          "declaration": "QueryParser : : over ( self : QueryParser , calls ? : Array [ ( NamePart , AggregateCall ) ] ?"
+        },
+        {
+          "name": "QueryParser::parenthesized",
+          "declaration": "QueryParser : : parenthesized ( self : QueryParser ) - > Query raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::path",
+          "declaration": "QueryParser : : path ( self : QueryParser ) - > Array [ NamePart ] raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::peek",
+          "declaration": "QueryParser : : peek ( self : QueryParser ) - > Token"
+        },
+        {
+          "name": "QueryParser::pipe",
+          "declaration": "QueryParser : : pipe ( self : QueryParser , context ? : QueryContext"
+        },
+        {
+          "name": "QueryParser::pipe_tail",
+          "declaration": "QueryParser : : pipe_tail ( self : QueryParser , input : Query , context ? : QueryContext"
+        },
+        {
+          "name": "QueryParser::projections",
+          "declaration": "QueryParser : : projections ( self : QueryParser , aggregate_expressions ? : Bool"
+        },
+        {
+          "name": "QueryParser::query",
+          "declaration": "QueryParser : : query ( self : QueryParser , context ? : QueryContext"
+        },
+        {
+          "name": "QueryParser::query_source",
+          "declaration": "QueryParser : : query_source ( self : QueryParser , ) - > ( Array [ NamePart ] , NamePart ? , Array [ QueryBinding ] , Bool , FileListSelector ? ) raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::range_star_receiver",
+          "declaration": "QueryParser : : range_star_receiver ( self : QueryParser , ) - > Expression ? raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::resolve_producer",
+          "declaration": "QueryParser : : resolve_producer ( self : QueryParser , relation : Array [ NamePart ] , ) - > Array [ NamePart ] raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::safe_integer",
+          "declaration": "QueryParser : : safe_integer ( self : QueryParser , zero_allowed : Bool , ) - > Int64 raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::safe_integer_text",
+          "declaration": "QueryParser : : safe_integer_text ( self : QueryParser , text : String , start : Int , zero_allowed : Bool , ) - > Int64 raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::set_column_list",
+          "declaration": "QueryParser : : set_column_list ( self : QueryParser , keyword ? : String"
+        },
+        {
+          "name": "QueryParser::set_name_matching",
+          "declaration": "QueryParser : : set_name_matching ( self : QueryParser , inner_prefix : Bool , ) - > ( Bool , Bool , Array [ NamePart ] ? ) raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::source_name",
+          "declaration": "QueryParser : : source_name ( self : QueryParser , ) - > ( Array [ NamePart ] , NamePart ? , Bool ) raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::spend",
+          "declaration": "QueryParser : : spend ( self : QueryParser , amount : Int , ) - > Unit raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::sql",
+          "declaration": "QueryParser : : sql ( self : QueryParser ) - > Query raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::sql_operand",
+          "declaration": "QueryParser : : sql_operand ( self : QueryParser , positional_output ? : Bool"
+        },
+        {
+          "name": "QueryParser::sql_term",
+          "declaration": "QueryParser : : sql_term ( self : QueryParser ) - > Query raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::star_projection",
+          "declaration": "QueryParser : : star_projection ( self : QueryParser , receiver : Expression ? , embedded : Array [ ( NamePart , AggregateCall ) ] , aggregate_expressions : Bool , windows : Array [ Projection ] , window_expressions : Bool , ) - > Projection raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::starts_correlated_unnest",
+          "declaration": "QueryParser : : starts_correlated_unnest ( self : QueryParser , lookahead_offset ? : Int"
+        },
+        {
+          "name": "QueryParser::starts_inner_set",
+          "declaration": "QueryParser : : starts_inner_set ( self : QueryParser ) - > Bool"
+        },
+        {
+          "name": "QueryParser::starts_join",
+          "declaration": "QueryParser : : starts_join ( self : QueryParser ) - > Bool"
+        },
+        {
+          "name": "QueryParser::store_effect_clause",
+          "declaration": "QueryParser : : store_effect_clause ( self : QueryParser , ) - > StoreEffectClause raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::symbol",
+          "declaration": "QueryParser : : symbol ( self : QueryParser , expected : Int , ) - > Unit raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::table_create_clause",
+          "declaration": "QueryParser : : table_create_clause ( self : QueryParser , name : NamePart ? , ) - > TableEffectClause raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::unnest_source",
+          "declaration": "QueryParser : : unnest_source ( self : QueryParser , ) - > QueryOperation raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::update_effect_clause",
+          "declaration": "QueryParser : : update_effect_clause ( self : QueryParser , ) - > UpdateEffectClause raise QueryAbort"
+        },
+        {
+          "name": "QueryParser::value_projection",
+          "declaration": "QueryParser : : value_projection ( self : QueryParser , embedded : Array [ ( NamePart , AggregateCall ) ] , aggregate_expressions ? : Bool"
+        },
+        {
+          "name": "relation",
+          "declaration": "relation ( query : Query ) - > Array [ NamePart ]"
+        },
+        {
+          "name": "relation_alias",
+          "declaration": "relation_alias ( query : Query ) - > NamePart ?"
+        },
+        {
+          "name": "same_binding_name",
+          "declaration": "same_binding_name ( left : NamePart , right : NamePart ) - > Bool"
+        },
+        {
+          "name": "same_relation_name",
+          "declaration": "same_relation_name ( left : NamePart , right : NamePart ) - > Bool"
+        },
+        {
+          "name": "same_set_column_list",
+          "declaration": "same_set_column_list ( left : Array [ NamePart ] ? , right : Array [ NamePart ] ? , ) - > Bool"
+        },
+        {
+          "name": "set_operator_token",
+          "declaration": "set_operator_token ( token : Token ) - > Bool"
+        },
+        {
+          "name": "set_part_at",
+          "declaration": "set_part_at ( query : Query , index : Int ) - > SetPart ?"
+        },
+        {
+          "name": "set_part_count",
+          "declaration": "set_part_count ( query : Query ) - > Int"
+        },
+        {
+          "name": "sql_head",
+          "declaration": "sql_head ( first : Token ) - > Bool"
+        },
+        {
+          "name": "standalone_projection_expression",
+          "declaration": "standalone_projection_expression ( query : Query ) - > Expression ?"
+        },
+        {
+          "name": "starts_query",
+          "declaration": "starts_query ( text : String , limits : LexicalLimits , source_path ? : String"
+        },
+        {
+          "name": "starts_sql",
+          "declaration": "starts_sql ( text : String , limits : LexicalLimits , source_path ? : String"
+        },
+        {
+          "name": "terminal_effect",
+          "declaration": "terminal_effect ( query : Query ) - > UpdateEffectClause ?"
+        },
+        {
+          "name": "terminal_store_effect",
+          "declaration": "terminal_store_effect ( query : Query ) - > StoreEffectClause ?"
+        },
+        {
+          "name": "terminal_table_effect",
+          "declaration": "terminal_table_effect ( query : Query ) - > TableEffectClause ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing bounded Query parser and original syntax-name/work owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "ascii_upper",
+            "bound_source",
+            "copy_aggregate_call",
+            "copy_analytic_call",
+            "copy_projections",
+            "effect_result_continuation",
+            "final_operation_at",
+            "final_operation_count",
+            "graph_query",
+            "is_source_free_scalar_projection",
+            "is_standalone_reference_projection",
+            "join_part_at",
+            "join_part_count",
+            "operation_at",
+            "operation_count",
+            "parse_query",
+            "parse_query_tokens",
+            "parse_relation_path",
+            "pipe_join_head",
+            "positional_output",
+            "query_aggregate_function_name",
+            "query_binding_at",
+            "query_binding_count",
+            "query_document",
+            "query_head",
+            "query_source",
+            "query_work",
+            "QueryParser::advance",
+            "QueryParser::aggregate",
+            "QueryParser::aggregate_expression",
+            "QueryParser::aggregate_head",
+            "QueryParser::aggregate_order_term",
+            "QueryParser::bind_query",
+            "QueryParser::binding_name_matches",
+            "QueryParser::correlated_unnest",
+            "QueryParser::effect_is_store",
+            "QueryParser::end",
+            "QueryParser::expression",
+            "QueryParser::frame_boundary",
+            "QueryParser::fresh_producer",
+            "QueryParser::group_keys",
+            "QueryParser::has",
+            "QueryParser::infer_clause",
+            "QueryParser::initial_from",
+            "QueryParser::join_bound",
+            "QueryParser::join_part",
+            "QueryParser::keep_clause",
+            "QueryParser::keyword",
+            "QueryParser::limit",
+            "QueryParser::limit_integer",
+            "QueryParser::mark_positional_output",
+            "QueryParser::name",
+            "QueryParser::nearest_clause",
+            "QueryParser::nearest_keys",
+            "QueryParser::node",
+            "QueryParser::optional_output_alias",
+            "QueryParser::optional_source_alias",
+            "QueryParser::order",
+            "QueryParser::order_suffix",
+            "QueryParser::over",
+            "QueryParser::parenthesized",
+            "QueryParser::path",
+            "QueryParser::peek",
+            "QueryParser::pipe",
+            "QueryParser::pipe_tail",
+            "QueryParser::projections",
+            "QueryParser::query",
+            "QueryParser::query_source",
+            "QueryParser::range_star_receiver",
+            "QueryParser::resolve_producer",
+            "QueryParser::safe_integer",
+            "QueryParser::safe_integer_text",
+            "QueryParser::set_column_list",
+            "QueryParser::set_name_matching",
+            "QueryParser::source_name",
+            "QueryParser::spend",
+            "QueryParser::sql",
+            "QueryParser::sql_operand",
+            "QueryParser::sql_term",
+            "QueryParser::star_projection",
+            "QueryParser::starts_correlated_unnest",
+            "QueryParser::starts_inner_set",
+            "QueryParser::starts_join",
+            "QueryParser::store_effect_clause",
+            "QueryParser::symbol",
+            "QueryParser::table_create_clause",
+            "QueryParser::unnest_source",
+            "QueryParser::update_effect_clause",
+            "QueryParser::value_projection",
+            "relation",
+            "relation_alias",
+            "same_binding_name",
+            "same_relation_name",
+            "same_set_column_list",
+            "set_operator_token",
+            "set_part_at",
+            "set_part_count",
+            "sql_head",
+            "standalone_projection_expression",
+            "starts_query",
+            "starts_sql",
+            "terminal_effect",
+            "terminal_store_effect",
+            "terminal_table_effect"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## Bounded Query parser"
+              },
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## CTE inventory and name work"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## Bounded Query parser"
+              },
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## CTE inventory and name work"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## Bounded Query parser"
+              },
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## CTE inventory and name work"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## Bounded Query parser"
+              },
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## CTE inventory and name work"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## Bounded Query parser"
+              },
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## CTE inventory and name work"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## Bounded Query parser"
+              },
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## CTE inventory and name work"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## Bounded Query parser"
+              },
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## CTE inventory and name work"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## Bounded Query parser"
+              },
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## CTE inventory and name work"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## Bounded Query parser"
+              },
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## CTE inventory and name work"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## Bounded Query parser"
+              },
+              {
+                "path": "docs/design/actsql-frontend.md",
+                "anchor": "## CTE inventory and name work"
+              },
+              {
+                "path": "src/query_syntax/cte_pipe_test.mbt",
+                "anchor": "CTE name processing spends the original parser work before folding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_direct_union_js_wbtest.mbt",
+                "anchor": "ordinary CTE count follows the same funded syntax inventory above the old separate ceiling"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

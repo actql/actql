@@ -619,16 +619,13 @@ fn capture_input_row_run(
       }
     }
     physical.holding = Some(holding)
-    // The same holding, reservation and cleanup observer retain the original
-    // input. Ordinary Host-backed input has completed its page construction
-    // and both validation cursors here; later consumers cannot resume it.
-    // Return ONLY that caller's construction scratch, not the retained input,
-    // provider backing or the remaining receiver/evidence workspace. The
-    // existing captured phase quote is an independent lower bound. Listing
-    // and supplementary provider lifetimes keep their original full envelope.
-    if physical.provider_capacity is None &&
-      preparation.file_listing is None &&
-      preparation.listing_rows is None {
+    // Keep the SAME admitted row arrays, decoded text, metadata and original
+    // observer in their holding. Parsing/validation/hash have now returned;
+    // RowWireIdentity retains only its original owner and scalar identity,
+    // not the full canonical wire allowance used before that construction.
+    // Provider snapshots and the page buffer stay funded until the existing
+    // bound reader confirms physical retirement.
+    if preparation.file_listing is None && preparation.listing_rows is None {
       guard run.input_progress is Some(progress) &&
         progress.preflight is None &&
         progress.parser is None &&
@@ -643,23 +640,27 @@ fn capture_input_row_run(
         physical_equal(actual, observation)) {
         return Err(Evidence(UnverifiedTransport))
       }
-      let (_, execution) = match
-        @resources.reservation_capacity_amounts(
-          physical.ledger,
-          physical.reservation,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(Physical(issue))
+      let (provider_r, provider_e, page) = match physical.provider_capacity {
+        Some(provider) =>
+          (
+            @execution.execution_capacity_retained_bytes(provider),
+            @execution.execution_capacity_execution_bytes(provider),
+            physical.execution_scratch,
+          )
+        None => (0L, 0L, 0L)
       }
-      if execution < physical.execution_scratch ||
-        execution - physical.execution_scratch < retained {
+      guard @execution.checked_preparation_add_product(provider_e, retained, 1L)
+        is Some(execution) &&
+        @execution.checked_preparation_add_product(execution, page, 1L)
+        is Some(execution) else {
         return Err(Physical(InvalidLimits))
       }
       match
-        @resources.reduce_execution_reservation(
+        @resources.reduce_execution_reservation_capacity(
           physical.ledger,
           physical.reservation,
-          execution - physical.execution_scratch,
+          provider_r,
+          execution,
         ) {
         Ok(_) => ()
         Err(issue) => return Err(Physical(issue))

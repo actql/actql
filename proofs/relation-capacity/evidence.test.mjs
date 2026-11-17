@@ -78,6 +78,7 @@ test('capacity observes its own 14 conditional laws, not a Session/chain summary
 });
 
 for (const [label, from, to] of [
+  ['preparation floor omitted', '512L + local_provider_selection_recipe_field_bytes', 'local_provider_selection_recipe_field_bytes'],
   ['completed output dropped on pending cleanup', 'Ok(false) => return Ok(false)', 'Ok(false) => { state.completed = []; return Ok(false) }'],
   ['metadata dropped on cleanup error', 'Err(issue) => return Err(issue)', 'Err(issue) => { state.input_preparation = None; return Err(issue) }'],
   ['cursor not cancelled before clear', 'cancel_relation_chain_inputs(cursor)', 'if false { cancel_relation_chain_inputs(cursor) }'],
@@ -104,6 +105,11 @@ test('current retained quote refuses substituted dimensions inside the real cons
     ['limits.rows.metadata_entries.to_int64(),\n    false,', 'limits.rows.metadata_entries.to_int64(),\n    true,'],
     ['rows.output_values.max_nodes.to_int64()', 'rows.input_values.max_nodes.to_int64()'],
     ['rows.output_values.max_text_bytes.to_int64()', 'rows.input_values.max_text_bytes.to_int64()'],
+    ['literal_output_nodes? : Int64 = -1L', 'literal_output_nodes? : Int64 = 0L'],
+    ['literal_output_text? : Int64 = -1L', 'literal_output_text? : Int64 = 0L'],
+    ['literal_output_nodes < 0L', 'literal_output_nodes <= 0L'],
+    ['literal_output_text < 0L', 'literal_output_text <= 0L'],
+    ['literal_output_nodes,', 'literal_output_text,'],
     ['retained_bytes: retained, execution_bytes: execution', 'retained_bytes: execution, execution_bytes: execution'],
   ]) {
     const changed = original.replace(from, to);

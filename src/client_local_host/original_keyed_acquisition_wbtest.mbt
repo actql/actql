@@ -22,6 +22,8 @@ fn original_keyed_environment_members(bodies : Array[String]) -> Json raise {
 fn original_keyed_declaration_environment(
   relation_versions? : Bool = false,
   file_request_fields? : Bool = false,
+  listing_maximum? : Int64 = 3L,
+  listing_bytes? : Int64 = 32768L,
 ) -> (@row_source_host.RowDeclaration, String) raise {
   let listing = "{\"media_type\":{\"nullable\":true,\"type\":\"string\"},\"modified_at\":{\"nullable\":true,\"type\":\"timestamp\"},\"name\":{\"nullable\":false,\"type\":\"string\"},\"path\":{\"nullable\":true,\"type\":\"string\"},\"resource\":{\"nullable\":false,\"resource_kind\":\"file\",\"type\":\"resource_ref\"},\"size_bytes\":{\"nullable\":true,\"type\":\"number\"},\"version\":{\"nullable\":false,\"type\":\"string\"}}"
   let content = "{\"content\":{\"media_type\":\"application/pdf\",\"nullable\":false,\"type\":\"content_ref\"},\"resource\":{\"nullable\":false,\"resource_kind\":\"file\",\"type\":\"resource_ref\"},\"version\":{\"nullable\":false,\"type\":\"string\"}}"
@@ -81,7 +83,13 @@ fn original_keyed_declaration_environment(
         "a".repeat(64) +
         "\",\"allow_unfiltered_listing\":true,\"kind\":\"file_listing\",\"listing_schema_contract_cid\":\"" +
         listing_schema +
-        "\",\"max_examined_items\":9,\"max_listing_bytes\":32768,\"max_listing_duration_ms\":10000,\"max_listing_items\":3,\"max_listing_pages\":4,\"max_request_attempts\":4,\"maximum_path_length\":64,\"selectable\":[\"paths\",\"glob\"],\"version\":\"actql-file-list/0.1\",\"version_capability\":{\"contract_cid\":\"sha256:" +
+        "\",\"max_examined_items\":" +
+        Int64::max(9L, listing_maximum).to_string() +
+        ",\"max_listing_bytes\":" +
+        listing_bytes.to_string() +
+        ",\"max_listing_duration_ms\":10000,\"max_listing_items\":" +
+        listing_maximum.to_string() +
+        ",\"max_listing_pages\":4,\"max_request_attempts\":4,\"maximum_path_length\":64,\"selectable\":[\"paths\",\"glob\"],\"version\":\"actql-file-list/0.1\",\"version_capability\":{\"contract_cid\":\"sha256:" +
         "b".repeat(64) +
         "\",\"required_nonnull\":true}}}",
       )
@@ -161,6 +169,8 @@ fn original_keyed_run_fixture(
   unknown_left_rows? : Bool = false,
   serialization_max_bytes? : Int = 4096,
   typed_content_input? : Bool = false,
+  listing_maximum? : Int64 = 3L,
+  listing_bytes? : Int64 = 32768L,
 ) -> (
   @row_source_host.RowDeclaration,
   @publication_host.PreparedClientProgram,
@@ -178,6 +188,8 @@ fn original_keyed_run_fixture(
   ).unwrap()
   let (declaration, environment) = original_keyed_declaration_environment(
     relation_versions~,
+    listing_maximum~,
+    listing_bytes~,
   )
   let document =
     #|{"version":"actql/0.1","id":"original-keyed-content","stages":[{"id":"capture","inputs":{"contents":{"connector":"content-fixture","resource":"contents"},"files":{"connector":"content-fixture","resource":"files","request":{"paths":["invoice.pdf"],"glob":null}}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"selected"},{"join":{"left":"selected","with":"contents","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"name":"left.name","content":"right.content"}},"as":"captured"},{"from":"captured","assert_rows":{"unique_by":["name"]}},{"serialize":{"format":"jsonl","fields":["name","content"],"order_by":[{"name":"asc"}],"name":"captured.jsonl","bounds":{"max_rows":3,"max_bytes":4096}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["name","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"capture","result":"rows"}}}}
@@ -546,6 +558,9 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
   let captured_usage = @resources.ledger_usage(ledger)
   assert_eq(captured_usage.attempts, 1)
   assert_eq(captured_usage.holdings, 1)
+  let (_, _, quoted_retained, quoted_execution) = @publication_host.client_keyed_lookup_capacity(
+    keyed, 64, 64,
+  ).unwrap()
   let lookup = start_client_original_keyed_lookup(
     scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096, 64, 64,
   ).unwrap()
@@ -555,18 +570,17 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     assembled_usage.reserved_attempts,
     captured_usage.reserved_attempts + 1,
   )
-  // Same constructor retains left receipt/identity, Source cache, start time,
-  // issuer and completion references plus one consumed-work word: 6*8 + 8.
-  // The central tariff is unchanged; later payloads are funded only on use.
-  // Preserve this capture's independently supplied retained3/execution2.
-  let original_identity_fields = 6L * 8L + 8L
+  // The caller must admit the selected lookup's complete initial quote,
+  // including its empty ordered key index. Payloads are still funded on use.
+  // Preserve this capture's independently supplied retained3/execution2;
+  // construction must neither replace nor duplicate that physical prefix.
   assert_eq(
     assembled_usage.reserved_retention_bytes,
-    4096L + original_identity_fields + 3L,
+    captured_usage.reserved_retention_bytes + quoted_retained,
   )
   assert_eq(
     assembled_usage.reserved_execution_bytes,
-    4096L + original_identity_fields + 2L,
+    captured_usage.reserved_execution_bytes + quoted_execution,
   )
   assert_eq(assembled_usage.holdings, 1)
   // Zero progress is neither cleanup acknowledgment nor permission to return

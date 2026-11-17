@@ -126,6 +126,36 @@ test('keyed inventory selects only the same actual issued Command Content origin
   f.scratch.passed();
 });
 
+test('keyed Content owner consumes its same retained original before request preparation completes', async t => {
+  const f = await fixture(t), chunks = [];
+  let consumed = 0, pending = false;
+  const host = await openContentCommandHost({scratch: f.scratch, generated: f.generated,
+    originalContentValue: f.issued(), keys: generateKeyPairSync('ed25519'), entrance: 'Local',
+    prepareContentChild(context) {
+      const borrow = context.originalContent('content');
+      return {async prepare() {
+        pending = true;
+        try {
+          assert.equal(borrow.current(), true);
+          await f.owner.consumeContent(borrow.binding, bytes => {
+            consumed++; chunks.push(Buffer.from(bytes));
+          });
+          assert.equal(borrow.current(), true);
+          return context.preparedRequest;
+        } finally {pending = false;}
+      }, async release() {return !pending;}, async retry() {return !pending;},
+      status: () => ({pending})};
+    }});
+  t.after(host.close);
+  const run = await host.client.start(host.fixture.program);
+  assert.equal((await run.wait({signal: AbortSignal.timeout(15000)})).status, 'waiting_checkpoint');
+  assert(consumed > 0);
+  assert.deepEqual(Buffer.concat(chunks), Buffer.from('id\n'));
+  assert.equal(pending, false);
+  assert.equal(f.generated.store.status().storedBytes, 3);
+  f.scratch.passed();
+});
+
 test('keyed inventory refuses an equal-wire reference from another actual issuance', async t => {
   const f = await fixture(t);
   const equalWire = await f.generated.issue();

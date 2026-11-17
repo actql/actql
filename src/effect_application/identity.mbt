@@ -181,6 +181,13 @@ pub fn prepare_effect_dispatch_key(
 }
 
 ///|
+/// Borrow the exact correlation already retained by this original key.
+/// This projection neither constructs a new key nor grants apply authority.
+pub fn effect_dispatch_key_correlation_wire(key : EffectDispatchKey) -> String {
+  key.row_or_item_key_wire
+}
+
+///|
 pub fn effect_dispatch_key_cid(key : EffectDispatchKey) -> String {
   key.cid
 }

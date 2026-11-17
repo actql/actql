@@ -245,3 +245,35 @@ test "ordinary narrow staged and ordinary wide receipts keep one original phase 
   assert_eq(finish_preparation_phase_work64(last), Ok(3L))
   assert_true(abort_preparation_capacity_after_cleanup(owner, input).unwrap())
 }
+
+///|
+test "remaining original publication work is a guarded observation without refill" {
+  let (ledger, input, owner) = original_continuous_work_capacity()
+  let work = begin_preparation_phase_work_continuation64(
+    owner,
+    input,
+    SemanticCheck,
+    3L,
+  ).unwrap()
+  assert_eq(remaining_preparation_phase_work_continuation64(work), Ok(3L))
+  spend_preparation_phase_work_continuation64(work, 2L).unwrap()
+  assert_eq(remaining_preparation_phase_work_continuation64(work), Ok(1L))
+  return_preparation_phase_work_continuation64(work).unwrap()
+  assert_eq(
+    remaining_preparation_phase_work_continuation64(work),
+    Err(WrongPhase),
+  )
+  resume_preparation_phase_work_continuation64(work).unwrap()
+  assert_eq(remaining_preparation_phase_work_continuation64(work), Ok(1L))
+  assert_eq(
+    spend_preparation_phase_work_continuation64(work, 2L),
+    Err(WorkLimit),
+  )
+  assert_eq(remaining_preparation_phase_work_continuation64(work), Ok(1L))
+  spend_preparation_phase_work_continuation64(work, 1L).unwrap()
+  assert_eq(remaining_preparation_phase_work_continuation64(work), Ok(0L))
+  assert_eq(finish_preparation_phase_work_continuation64(work), Ok(3L))
+  assert_eq(remaining_preparation_phase_work_continuation64(work), Err(Closed))
+  assert_true(abort_preparation_capacity_after_cleanup(owner, input).unwrap())
+  assert_eq(ledger_usage(ledger).live_reservations, 0)
+}

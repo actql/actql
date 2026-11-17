@@ -21,13 +21,14 @@
 /// The begin operation reserves this packet before later projection and
 /// reconciliation calls. That reservation does not retroactively supply the
 /// begin operation's own pre-resize frame or the backend's borrowed inputs.
-// Generic structural continuation adds386H118R818W, funded BEFORE its first
+// Generic structural continuation adds386H118R819W, funded BEFORE its first
 // descriptor/receipt/observer allocation. Conservative call-expanded families:
 // - original Program base quote182,55,382: unchanged152,28,322 plus
 //   the SAME one container quote30,26,60 and retained-original holder1R;
 // - aggregate +two canonical normalization descriptors/conversions14,2,56;
 // - three additional sum2/literal scopes60,15,120;
-// - original Resource work receipt/closures and slot12,16,18;
+// - original Resource work receipt/closures and slot12,16,19, including the
+//   same work state's run/construction discriminator;
 //   this also covers the shared explicit-wide state8,10,6; no second
 //   work engine, receipt overlap or future Catalog domain is added.
 // - same-index usage/bound/control projection10,2,20;

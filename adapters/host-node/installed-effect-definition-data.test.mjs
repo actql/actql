@@ -3,6 +3,9 @@ import {readFileSync} from 'node:fs';
 import {types as nodeTypes} from 'node:util';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {installedRowEffectConstructionLimits} from './installed-row-effect.mjs';
+import {captureInstalledEffectPlanRecipe} from './installed-effect-plan.mjs';
+import {localContractLimits} from './local-values-plan.mjs';
 
 // Actual private constructor/validator with explicit Row/current/resource and
 // I/O entry ports. This admits definition DATA only, never an opaque plan.
@@ -60,12 +63,16 @@ test('existing Row constructor retains the same definition before its first I/O 
   const cid = 'sha256:' + 'a'.repeat(64);
   let io = 0, owner;
   const create = new Function('ports', `
-    const {captureEffectResources,defaultLimits,checkDriver,profileOf,cidPattern,mkdir,createRowEffectStage}=ports;
+    const {captureEffectResources,installedRowEffectConstructionLimits,captureInstalledEffectPlanRecipe,
+      localContractLimits,nodeTypes,checkDriver,profileOf,cidPattern,mkdir,createRowEffectStage}=ports;
     const captureManagedPlanDefinition=ports.capture,fail=ports.fail,text=ports.text;
     const optionalFunction=value=>value===undefined||typeof value==='function';
+    ${['captureManagedPlanRecipes','captureManagedDriverConstruction','captureBeforeSendCheck',
+      'captureResponseConfirmation'].map(declaration).join('\n')}
     ${declaration('createInstalledRowEffect')}
     return createInstalledRowEffect;
-  `)({captureEffectResources: () => undefined, defaultLimits: {}, checkDriver: () => driver,
+  `)({captureEffectResources: () => undefined, installedRowEffectConstructionLimits,
+    captureInstalledEffectPlanRecipe, localContractLimits, nodeTypes, checkDriver: () => driver,
     profileOf: () => undefined, cidPattern: /^sha256:[0-9a-f]{64}$/u,
     async mkdir() {io++;}, createRowEffectStage(owners) {assert.equal(owners.length, 1);owner = owners[0];return owner;},
     capture, fail, text});

@@ -1,4 +1,15 @@
 ///|
+test "Project text payload quotes only observed transport and UTF8 coexistence" {
+  assert_eq(local_project_text_payload_extent(-1L), None)
+  assert_eq(local_project_text_payload_extent(2147483519L), None)
+  // Existing representation widths:8 record headers,16 references,16 words;
+  // one retained UTF16 String and the original quantum/copy/UTF8 scratch.
+  assert_eq(local_project_text_payload_extent(0L), Some((384L, 65920L)))
+  assert_eq(local_project_text_payload_extent(70000L), Some((140384L, 625920L)))
+  assert_true(local_project_text_payload_extent(2147483518L) is Some(_))
+}
+
+///|
 // Arithmetic-only operands, never an adopted profile or a physical supplier.
 // In particular even this complete declaration cannot acquire a platform
 // original, Host, domain, Library, permission or business Run.

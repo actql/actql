@@ -166,11 +166,13 @@ export function localResourceResultReadLimits(moon, requestMemory) {
       !Number.isSafeInteger(maxRows) || maxRows < 1 || maxRows > 2147483647) {
     fail('LocalResultReadPolicyProjection');
   }
-  const maxReadWireBytes = Math.min(10 * 1024 * 1024, Number(limits[3]));
+  // The existing parser uses one-based Core Int end coordinates, so its
+  // selected byte extent must be strictly below Int.max (source_value/input).
+  const maxReadWireBytes = Math.min(2147483646, Number(limits[3]));
   const maxRetainedValueBytes = Number(limits[4]);
   return Object.freeze({maxReadWireBytes,
-    maxRowWireBytes: Math.min(1024 * 1024, maxReadWireBytes),
-    maxRowRetainedValueBytes: Math.min(1024 * 1024, maxRetainedValueBytes),
+    maxRowWireBytes: Math.min(2147483647, maxReadWireBytes),
+    maxRowRetainedValueBytes: maxRetainedValueBytes,
     maxRetainedValueBytes, maxRows, maxBatchRows: 1000,
     maxBatchRetainedValueBytes: Math.min(10 * 1024 * 1024, maxRetainedValueBytes)});
 }
@@ -199,7 +201,7 @@ export function selectInstalledHostEnvironment(moon, baseWire, selection, lookup
 // Generic Hosts and independently installed Effect/streaming profiles retain
 // their original selector and policy identity.
 export function selectInstalledLocalMaterializationEnvironment(
-  moon, baseWire, selection, lookupSelection, requestMemory,
+  moon, baseWire, selection, lookupSelection, requestMemory, selectFinalGraphDefaults = false,
 ) {
   const explicit = snapshotHostCapacityPolicy(selection);
   const memory = snapshotRequestMemory(requestMemory);
@@ -211,7 +213,13 @@ export function selectInstalledLocalMaterializationEnvironment(
     fail('LocalResourcePolicyProjection');
   }
   const base = JSON.parse(baseWire).host_policy_profile.capacity;
-  const capacity = {...(explicit ?? base)};
+  // The no-Model/no-Calendar Host can select its same existing final defaults
+  // before Source constructors receive their base. Independent Model and
+  // Calendar documents keep their existing separate final admission route.
+  const capacity = {...(selectFinalGraphDefaults === true ? {
+    max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+    max_graph_construction_nodes: 1000} : {}),
+    ...(explicit ?? base)};
   if (explicit === undefined) {
     const modelRequestBytes = moon.clientLocalResourcePolicyModelRequestByteCeiling(original);
     if (typeof modelRequestBytes !== 'bigint' || modelRequestBytes < 1n ||

@@ -174,7 +174,8 @@ test('Salesforce managed recipes retain original native profiles and distinct me
   for (const [kind, recipe] of Object.entries(recipes)) {
     assert.strictEqual(recipe.controlsPerRow, capacities[4]);
     assert.equal(recipe.memberOperations.length, 5);
-    assert.deepEqual(recipe.recoveryConstruction, {operationIndex: 4, inputExtent: recipe.captureConstruction.inputExtent});
+    assert.equal(recipe.recoveryConstruction.operationIndex, 4);
+    assert.notStrictEqual(recipe.recoveryConstruction.inputExtent, recipe.captureConstruction.inputExtent);
     assert.strictEqual(recipe.memberOperations[4].extent, recipe.memberOperations[0].extent);
     assert.equal(recipe.rowOperations.length, kind === 'create' ? 2 : 5);
     const descriptions = recipe.credentialOperations.filter(entry => entry.phase.endsWith('-describe'));
@@ -198,6 +199,25 @@ test('Salesforce managed recipes retain original native profiles and distinct me
     }
     const write = recipe.credentialOperations.find(entry => entry.phase === 'write');
     assert.equal(write.perRow, true);assert.strictEqual(recipe.rowOperations[write.operationIndex].extent.capacity, capacities[3]);
+  }
+});
+
+test('Salesforce warm capture and requests use their own full original extents without parsing cold input', () => {
+  const f = managedRecipeFixture(), recipes = captureSalesforceEffectPlanRecipeBuilder(f.options)(f.options);
+  const proposals = Object.freeze([Object.freeze({changesWire: '{"Name":"same original row"}'})]);
+  for (const recipe of Object.values(recipes)) {
+    const before = f.calls.length, captureInputs = f.captureInputs.length;
+    const capture = recipe.captureConstruction.inputExtent(proposals);
+    const request = recipe.requestConstruction.inputExtent(proposals[0]);
+    assert.strictEqual(capture, recipe.memberOperations[0].extent.initial);
+    assert.strictEqual(request, recipe.rowOperations[0].extent.initial);
+    assert.strictEqual(request, recipe.rowOperations[0].extent.maximum,
+      'InputBegin has an explicit original maximum without changing the full request quantity');
+    assert.strictEqual(request.capacity, f.capacities[2]);
+    assert.equal(request.physical, false);
+    assert.equal(request.transferBytes, 0n);
+    assert.equal(f.calls.length, before, 'the already-priced original quantities are borrowed');
+    assert.equal(f.captureInputs.length, captureInputs, 'warm rows are not a recovered Preview or Catalog');
   }
 });
 

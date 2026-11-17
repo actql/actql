@@ -37,7 +37,7 @@ test "static plan validator profiles derive continuations from original schema D
     if name == "logical_step_key" || name == "logical_port_key" {
       assert_eq(fresh.unique_reference_items, 0L)
       assert_eq(fresh.unique_item_bytes, 0)
-    } else {
+    } else if name == "logical_map" || name == "plan_view" {
       assert_eq(fresh.unique_reference_items, 1L)
       assert_eq(fresh.unique_item_bytes, 0)
       assert_eq(fresh.unique_item_nodes, 0)
@@ -92,4 +92,61 @@ test "cold validation borrows unique StringRule items without serializer constru
   }
   assert_true(protocol_unique_array(@json.array_values(items), budget))
   assert_false(protocol_unique_string_array(@json.array_values(items), budget))
+}
+
+///|
+test "original Effect evidence validator profiles cover timestamp and path-prefix constructors" {
+  let cid = "sha256:" + "1".repeat(64)
+  let prepared = "{\"version\":\"actql-prepared-invocation/0.1\",\"invocation_template_cid\":\"" +
+    cid +
+    "\",\"compiled_plan_cid\":\"" +
+    cid +
+    "\",\"execution_context_cid\":\"" +
+    cid +
+    "\",\"host_policy_cid\":\"" +
+    cid +
+    "\",\"policy_decision\":\"allow\",\"expires_at\":\"2026-11-15T00:00:00.000Z\",\"execution_material\":{\"program\":{},\"parameter_values\":{},\"invocation_bindings\":{}},\"prepared_invocation_cid\":\"" +
+    cid +
+    "\"}"
+  let authorization = "{\"version\":\"actql-run-authorization/0.1\",\"prepared_invocation_cid\":\"" +
+    cid +
+    "\",\"execution_context_cid\":\"" +
+    cid +
+    "\",\"host_policy_cid\":\"" +
+    cid +
+    "\",\"decision\":\"allowed\",\"run_authorization_cid\":\"" +
+    cid +
+    "\"}"
+  let normalization = "{\"version\":\"actql-normalization-journal/0.1\",\"rule_catalog_cid\":\"" +
+    cid +
+    "\",\"entries\":[{\"path\":\"$.x\",\"rule\":\"normalize\",\"authored\":\"old\",\"canonical\":\"new\"}],\"journal_cid\":\"" +
+    cid +
+    "\"}"
+  for
+    (name, wire) in [
+      ("prepared_invocation", prepared),
+      ("run_authorization", authorization),
+      ("normalization_journal", normalization),
+    ] {
+    let value = parse_contract_wire(wire, 4096, 128, 8).unwrap()
+    let profile = cold_static_plan_validation_construction(
+      name, true, 128, 4096L, 4096, 128, 8,
+    ).unwrap()
+    let (peak, accepted) = validator_observed_pending(name, true, value)
+    assert_true(accepted, msg=name)
+    assert_true(peak.to_int64() <= profile.pending_reference_items, msg=name)
+    assert_eq(profile.unique_reference_items, 0L)
+    assert_eq(profile.owned_utf16_units, 0L)
+  }
+  guard static_plan_validation_selected_profile("prepared_invocation", true)
+    is Some((_, _, timestamp)) else {
+    fail("profile")
+  }
+  assert_true(timestamp)
+  guard static_plan_validation_selected_profile("normalization_journal", true)
+    is Some((_, unique, timestamp)) else {
+    fail("profile")
+  }
+  assert_false(unique)
+  assert_false(timestamp)
 }

@@ -12,6 +12,61 @@ test "unpivot chain reclaims scratch without invalidating expanded output" {
   let limits = chain_lifetime_limits()
   let measure = chain_lifetime_measurement()
   let count = @execution.generated_sequence_step_count(sequence)
+  assert_eq(count, 2)
+  assert_eq(
+    relation_chain_reclaimed_prefix(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      [],
+    ),
+    count,
+  )
+  // Both exact children have two output fields and one input occurrence.
+  // UNPIVOT borrows its selected cells/prepared label; SELECT forwards those
+  // same required cells. Their workspace cursors do not copy an input forest
+  // or construct the generic canonical measurement body.
+  let child_retained = @execution.execution_capacity_inventory_bytes([
+    { unit: @execution.CursorRootSlots, count: 3L, copies: 1, },
+    {
+      unit: @execution.ValueNodeSlots,
+      count: limits.rows.output_values.max_nodes.to_int64(),
+      copies: 1,
+    },
+    {
+      unit: @execution.DecodedTextBytes,
+      count: limits.rows.output_values.max_text_bytes.to_int64(),
+      copies: 1,
+    },
+  ]).unwrap()
+  let child_execution = @execution.execution_capacity_inventory_bytes([
+    {
+      unit: @execution.CursorRootSlots,
+      count: limits.rows.operation_entries.to_int64(),
+      copies: 1,
+    },
+    { unit: @execution.CursorRootSlots, count: 3L, copies: 1, },
+    {
+      unit: @execution.CursorRootSlots,
+      count: limits.max_frames.to_int64(),
+      copies: 1,
+    },
+    {
+      unit: @execution.ValueNodeSlots,
+      count: limits.rows.output_values.max_nodes.to_int64(),
+      copies: 1,
+    },
+    {
+      unit: @execution.CursorRootSlots,
+      count: measure.max_depth.to_int64(),
+      copies: 1,
+    },
+    {
+      unit: @execution.DecodedTextBytes,
+      count: limits.rows.output_values.max_text_bytes.to_int64(),
+      copies: 1,
+    },
+  ]).unwrap()
   let mut retained = 0L
   let mut peak = 0L
   let mut sum = 0L
@@ -19,17 +74,33 @@ test "unpivot chain reclaims scratch without invalidating expanded output" {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
     let child = chain_lifetime_child_capacity(selected, limits, measure)
+    assert_eq(child.retained_bytes, child_retained)
+    assert_eq(child.execution_bytes, child_execution)
     retained += child.retained_bytes
     peak = Int64::max(peak, child.execution_bytes)
     sum += child.execution_bytes
   }
   let base = @execution.generated_sequence_capacity(sequence, limits, measure).unwrap()
-  let handles = count.to_int64() * 256L + 512L
+  let handles = count.to_int64() * 256L +
+    512L +
+    @execution.preparation_representation_cost({
+      record_headers: 4L,
+      reference_slots: 13L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
   let capacity = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
+  // Accepted child outputs coexist, but the actual cleanup acknowledgement
+  // below ends each child's scratch before the next constructor starts. This
+  // chain never constructs the generic sequence table/measurement workspace;
+  // preserve its output-copy retention floor, not that unrelated scratch.
+  assert_eq(capacity.retained_bytes, base.retained_bytes)
   assert_eq(
     capacity.execution_bytes,
-    Int64::max(base.execution_bytes, retained + peak + handles),
+    Int64::max(base.retained_bytes, retained + peak + handles),
   )
+  assert_true(capacity.execution_bytes < base.execution_bytes)
   assert_true(capacity.execution_bytes < retained + sum + handles)
   let (active, state) = chain_lifetime_start(sequence, read)
   let cleanups = Array::make(count, 0)

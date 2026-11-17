@@ -335,6 +335,13 @@ pub fn usage(v : WireEnvironment) -> (Int, Int, Int) {
 }
 
 ///|
+/// Canonical bytes and nodes from the original admission hash, with its
+/// admitted container depth. This does not emit, inspect or admit the tree.
+pub fn emission_geometry(v : WireEnvironment) -> (Int, Int, Int) {
+  (v.bytes, v.nodes, @decode.admission_usage(v.root).depth)
+}
+
+///|
 pub fn host_policy(v : WireEnvironment) -> @decode.Cursor {
   v.policy
 }

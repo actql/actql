@@ -73,6 +73,25 @@ test('actual bundler resolution catches a forbidden unused Connector removed fro
     /Workers(Module|Dependency)Rejected/);
 });
 
+test('installed Effect original association has an exact import-free portable closure', async () => {
+  const original = 'adapters/host-common/installed-effect-dependency-original.mjs';
+  const result = await build({
+    absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)),
+    entryPoints: [original], bundle: true, platform: 'browser', format: 'esm',
+    metafile: true, write: false,
+  });
+  assert.deepEqual(Object.keys(result.metafile.inputs), [original]);
+  assert.deepEqual(result.metafile.inputs[original].imports, []);
+  for (const modules of [hostModules, conformanceModules, finiteRuntimeModules, finiteConformanceModules]) {
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+    const sibling = 'adapters/host-common/installed-effect-dependency-unreviewed.mjs';
+    assert.throws(() => checkWorkersArtifact(graph(sibling), 'export {};',
+      ['worker.mjs', ...modules]), /WorkersDependencyRejected/);
+    assert.throws(() => checkWorkersArtifact(graph('node:fs'), 'export {};',
+      ['worker.mjs', ...modules]), /WorkersDependencyRejected/);
+  }
+});
+
 test('task observation has an explicitly reviewed dependency-free Workers graph', async () => {
   const result = await build({
     absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)),
@@ -353,7 +372,8 @@ test('managed advance diagnostic has one exact reviewed pure Workers closure', a
   assert.equal(imports.length, 1);
   assert.equal(imports[0].source.value, '../host-common/compiler-binding.generated.mjs');
   assert.deepEqual(imports[0].specifiers.map(node => [node.imported.name, node.local.name]),
-    [['runtimeIsBoxedSome', 'runtimeIsBoxedSome'], ['runtimeField', 'runtimeField']]);
+    [['runtimeIsBoxedSome', 'runtimeIsBoxedSome'], ['runtimeField', 'runtimeField'],
+      ['runtimeOptionalField', 'runtimeOptionalField'], ['runtimeUnboxedReferenceOption', 'runtimeUnboxedReferenceOption']]);
   checkPureRuntime(source.slice(0, imports[0].start) + source.slice(imports[0].end));
   checkPureRuntime(readFileSync(new URL(binding, root), 'utf8'));
   const result = await build({absWorkingDir: fileURLToPath(root), entryPoints: [module],

@@ -284,19 +284,10 @@ fn managed_row_transfer_bytes(
 fn local_managed_import_start_bytes(
   limits : @local.LocalImportLimits,
 ) -> Int64? {
-  @local.local_import_retention_capacity({
-    max_rows: 0,
-    values: { ..limits.values, max_nodes: 0, max_text_bytes: 0, },
-    wire: { ..limits.wire, max_bytes: 0, max_nodes: 0, },
-    row: { ..limits.row, max_bytes: 1, max_nodes: 0, max_text_bytes: 0, },
-    max_batch_bytes: 1,
-  })
+  @local.local_import_start_retention_capacity(limits)
 }
 
 ///|
-// A complete incoming row wire bounds every newly decoded value node and
-// text byte, including columns outside the receiving projection. Each bridge
-// accumulates its own bound: equal producers never share a parsed copy.
 fn local_managed_import_next_extent(
   limits : @local.LocalImportLimits,
   rows : Int64,
@@ -304,59 +295,85 @@ fn local_managed_import_next_extent(
   text : Int64,
   wire_bytes : Int64,
 ) -> (Int64, Int64, Int64, Int64)? {
-  let max_rows = limits.max_rows.to_int64()
-  let max_nodes = limits.values.max_nodes.to_int64()
-  let max_text = limits.values.max_text_bytes.to_int64()
-  guard rows >= 0L &&
-    rows <= max_rows &&
-    nodes >= 0L &&
-    nodes <= max_nodes &&
-    text >= 0L &&
-    text <= max_text &&
-    wire_bytes >= 0L else {
+  @local.local_import_next_retention_extent(
+    limits, rows, nodes, text, wire_bytes,
+  )
+}
+
+///|
+// Same import prefix and pre-snapshot transport remain coheld. This arithmetic
+// supplies no ACK or grant; only the closed acknowledged snapshot calls it.
+fn local_managed_snapshot_reload_extent(
+  imported : Int64,
+  transport : Int64,
+  transport_prefix : Int64,
+  next : Int64,
+) -> (Int64, Int64)? {
+  if imported < 0L ||
+    transport_prefix < 0L ||
+    transport_prefix > transport ||
+    next < imported {
     return None
   }
-  let next_rows = rows + Int64::min(1L, max_rows - rows)
-  let next_nodes = nodes + Int64::min(wire_bytes, max_nodes - nodes)
-  let next_text = text + Int64::min(wire_bytes, max_text - text)
-  guard local_managed_import_start_bytes(limits) is Some(start) &&
-    @local.local_import_retention_capacity({
-      max_rows: next_rows.to_int(),
-      values: {
-        ..limits.values,
-        max_nodes: next_nodes.to_int(),
-        max_text_bytes: next_text.to_int(),
-      },
-      // Every parser node, text byte and provisional reference is bounded by
-      // this complete UTF-8 row. These are funding extents only; append still
-      // receives all original parser, wire and cumulative admission limits.
-      wire: {
-        ..limits.wire,
-        max_bytes: Int64::min(limits.wire.max_bytes.to_int64(), wire_bytes).to_int(),
-        max_nodes: Int64::min(limits.wire.max_nodes.to_int64(), wire_bytes).to_int(),
-      },
-      row: {
-        ..limits.row,
-        max_bytes: Int64::max(
-          1L,
-          Int64::min(limits.row.max_bytes.to_int64(), wire_bytes),
-        ).to_int(),
-        max_nodes: Int64::min(limits.row.max_nodes.to_int64(), wire_bytes).to_int(),
-        max_text_bytes: Int64::min(
-          limits.row.max_text_bytes.to_int64(),
-          wire_bytes,
-        ).to_int(),
-      },
-      max_batch_bytes: Int64::max(
-        1L,
-        Int64::min(limits.max_batch_bytes.to_int64(), wire_bytes),
-      ).to_int(),
-    })
-    is Some(quoted) &&
-    quoted >= start else {
+  guard @execution.checked_preparation_add_product(
+      imported,
+      transport - transport_prefix,
+      1L,
+    )
+    is Some(previous) else {
     return None
   }
-  Some((next_rows, next_nodes, next_text, quoted - start))
+  Some((transport_prefix, Int64::max(previous, next)))
+}
+
+///|
+// Reclassify only the closed original reload's duplicate scalar parser text.
+// Import DATA and every external wire/frame/batch prefix remain coheld. The
+// combined reservation never shrinks, and a later grow cannot spend it twice.
+fn local_managed_import_working_overlap(
+  imported : Int64,
+  reusable : Int64,
+  previous_working : Int64,
+  next_working : Int64,
+) -> (Int64, Int64, Int64)? {
+  if imported < 0L ||
+    reusable < 0L ||
+    reusable > imported ||
+    previous_working < 0L ||
+    next_working < previous_working {
+    return None
+  }
+  let delta = next_working - previous_working
+  let reused = Int64::min(reusable, delta)
+  Some((imported - reused, reusable - reused, delta - reused))
+}
+
+///|
+// Fixed constructor inventory, independent of row/wire limits and backend
+// nullable optimizations. Standing 2H/7R/1W: two Ref cells (scalar/optional),
+// plus six closure slots (reserve/outer snapshot/finish, save/reload/finish).
+// The optional cell's None tag and Some reference each use one eight-byte
+// slot. Reload peak 5H/1R/7W covers old/getter/new Some values plus bind/map
+// closures; each Some has its own header, tag and payload. Growth's remaining
+// Some plus Some(tuple3) is only 3H/1R/6W; each post-current map/Some fence is
+// at most 3H/1R/4W. These phases do not overlap. Prepay standing + reload
+// (7H/8R/8W) before construction on this SAME task, independently of parser
+// Text. One further standing word retains the installed Relation snapshot
+// mode in the existing snapshot closure. This is the logical representation
+// tariff, not a backend heap claim.
+let local_managed_scalar_overlap_controls : @execution.PreparationRepresentationUnits = {
+  record_headers: 7L,
+  reference_slots: 8L,
+  scalar_words: 9L,
+  owned_utf16_units: 0L,
+  owned_wire_bytes: 0L,
+}
+
+///|
+fn local_managed_scalar_overlap_control_capacity() -> Int64? {
+  @execution.preparation_representation_cost(
+    local_managed_scalar_overlap_controls,
+  )
 }
 
 ///|
@@ -721,7 +738,9 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   // managed producer bridges allocate an importer on this same task.
   let mut count = 0L
   let mut imported = 0L
-  guard local_managed_import_start_bytes(imports) is Some(import_start) else {
+  guard local_managed_import_start_bytes(imports) is Some(import_start) &&
+    @local.local_materializing_import_start_capacity(imports)
+    is Some(retained_import_start) else {
     return Err(Configuration(InvalidLimits))
   }
   for input in relation_inputs {
@@ -729,7 +748,13 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       OrdinaryRelationInput(read) =>
         if !@execution.producer_read_has_cell_access(read) {
           count += 1L
-          per_input
+          // The original Local retained importer below funds every actual row
+          // before decode. Unknown non-cell representations keep the full quote.
+          if @execution.producer_read_retained_material(read) is Some(_) {
+            retained_import_start
+          } else {
+            per_input
+          }
         } else {
           0L
         }
@@ -747,6 +772,11 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     imported += required
   }
   if per_input > 0L && count > 9223372036854775807L / per_input {
+    return Err(Configuration(InvalidLimits))
+  }
+  guard local_managed_scalar_overlap_control_capacity() is Some(controls) &&
+    @execution.checked_preparation_add_product(imported, controls, 1L)
+    is Some(imported) else {
     return Err(Configuration(InvalidLimits))
   }
   // Host metadata is a separately funded holding. It survives scratch release
@@ -884,6 +914,7 @@ pub fn[T] local_managed_dispatch_site_capacity(
 ///|
 pub fn[T] start_local_managed_dispatch(
   setup : LocalManagedDispatchConfiguration[T],
+  retained_relation? : Bool = false,
 ) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue] {
   let live = Ref(true)
   let settled = Ref(false)
@@ -1278,6 +1309,7 @@ pub fn[T] start_local_managed_dispatch(
   let metadata_extra = Ref(0L)
   let transport_extra = Ref(0L)
   let import_extra = Ref(0L)
+  let import_scalar_reusable = Ref(0L)
   let import_mutating = Ref(false)
   let output_row_extent : Ref[Int?] = Ref(None)
   let working_failure : Ref[LocalDispatchIssue?] = Ref(None)
@@ -1307,11 +1339,21 @@ pub fn[T] start_local_managed_dispatch(
       working_failure.val = Some(Execution(Stopped))
       return Err(WorkspaceUnavailable)
     }
+    guard local_managed_import_working_overlap(
+        import_extra.val,
+        import_scalar_reusable.val,
+        working_extra.val,
+        extra,
+      )
+      is Some((imported, reusable, requested_execution)) else {
+      working_failure.val = Some(Execution(Stopped))
+      return Err(WorkspaceUnavailable)
+    }
     let scratch = setup.capacity.scratch_bytes +
       extra +
       metadata_extra.val +
       transport_extra.val +
-      import_extra.val
+      imported
     // This pure balance refusal precedes every grow/current/imported-window
     // call and changes no reservation. It permits the common attachment to
     // ask for its exact minimum instead of spare page backing. The subsequent
@@ -1319,15 +1361,30 @@ pub fn[T] start_local_managed_dispatch(
     let ledger = @strategy.captured_dag_ledger(setup.run)
     let limits = @resources.ledger_admission_limits(ledger)
     let usage = @resources.ledger_usage(ledger)
-    let r_refused = retained_data - retained_extra.val >
-      limits.retained_bytes - usage.held_bytes - usage.reserved_retention_bytes
-    if r_refused ||
-      extra - working_extra.val >
-      limits.execution_bytes - usage.reserved_execution_bytes {
+    let requested_retention = retained_data - retained_extra.val
+    let available_retention = limits.retained_bytes -
+      usage.held_bytes -
+      usage.reserved_retention_bytes
+    let available_execution = limits.execution_bytes -
+      usage.reserved_execution_bytes
+    let r_refused = requested_retention > available_retention
+    if r_refused || requested_execution > available_execution {
       working_failure.val = Some(
-        Execution(
-          Physical(if r_refused { RetentionLimit } else { ExecutionLimit }),
-        ),
+        if r_refused {
+          ExecutionCapacityRefusal(
+            RetentionLimit,
+            requested_retention,
+            available_retention,
+            limits.retained_bytes,
+          )
+        } else {
+          ExecutionCapacityRefusal(
+            ExecutionLimit,
+            requested_execution,
+            available_execution,
+            limits.execution_bytes,
+          )
+        },
       )
       return Err(WorkspaceBudgetUnavailable)
     }
@@ -1354,6 +1411,8 @@ pub fn[T] start_local_managed_dispatch(
     }
     working_extra.val = extra
     retained_extra.val = retained_data
+    import_extra.val = imported
+    import_scalar_reusable.val = reusable
     working_failure.val = None
     Ok(())
   }
@@ -1362,32 +1421,89 @@ pub fn[T] start_local_managed_dispatch(
   }
   // Import DATA, evaluator scratch, framing and Result metadata coexist under
   // this original Task reservation. No live parent or other copy is credited.
-  let reserve_import = fn(next : Int64) -> Result[Unit, LocalDispatchIssue] {
+  let reserve_import = fn(
+    next : Int64,
+    retired_transport_prefix : Int64?,
+  ) -> Result[Unit, LocalDispatchIssue] {
     if !live.val || disposed.val || next < import_extra.val {
       return Err(Execution(Stopped))
     }
+    let (transport, imported) = match retired_transport_prefix {
+      None => (transport_extra.val, next)
+      Some(prefix) => {
+        // Only the closed snapshot's acknowledged Released -> Reloading
+        // transition selects this branch. Earlier transport and import DATA
+        // stay coheld. The completed export delta is now spare backing on
+        // this SAME reservation, never a physical release or a second grant.
+        guard local_managed_snapshot_reload_extent(
+            import_extra.val,
+            transport_extra.val,
+            prefix,
+            next,
+          )
+          is Some(extent) else {
+          return Err(Configuration(InvalidLimits))
+        }
+        extent
+      }
+    }
     let mut total = setup.capacity.scratch_bytes
-    for
-      extra in [
-        working_extra.val,
-        metadata_extra.val,
-        transport_extra.val,
-        next,
-      ] {
+    for extra in [working_extra.val, metadata_extra.val, transport, imported] {
       guard @execution.checked_preparation_add_product(total, extra, 1L)
         is Some(value) else {
         return Err(Configuration(InvalidLimits))
       }
       total = value
     }
+    guard @execution.checked_preparation_add_product(
+        setup.capacity.scratch_bytes,
+        working_extra.val,
+        1L,
+      )
+      is Some(base) &&
+      @execution.checked_preparation_add_product(base, metadata_extra.val, 1L)
+      is Some(metadata) &&
+      @execution.checked_preparation_add_product(
+        metadata,
+        transport_extra.val,
+        1L,
+      )
+      is Some(transport_before) &&
+      @execution.checked_preparation_add_product(
+        transport_before,
+        import_extra.val,
+        1L,
+      )
+      is Some(previous) else {
+      return Err(Configuration(InvalidLimits))
+    }
+    if total < previous {
+      return Err(Configuration(InvalidLimits))
+    }
+    let ledger = @strategy.captured_dag_ledger(setup.run)
+    let limits = @resources.ledger_admission_limits(ledger)
+    let usage = @resources.ledger_usage(ledger)
+    let needed = total - previous
+    let available = limits.execution_bytes - usage.reserved_execution_bytes
+    if needed > available {
+      return Err(
+        ExecutionCapacityRefusal(
+          ExecutionLimit,
+          needed,
+          available,
+          limits.execution_bytes,
+        ),
+      )
+    }
     match @strategy.grow_task_execution_workspace(setup.run, execution, total) {
       Err(issue) => return Err(Execution(Physical(issue)))
       Ok(_) => ()
     }
-    import_extra.val = next
     if !live.val || disposed.val {
       return Err(Execution(Stopped))
     }
+    import_extra.val = imported
+    transport_extra.val = transport
     Ok(())
   }
   let reserve_transport = fn(
@@ -1508,7 +1624,7 @@ pub fn[T] start_local_managed_dispatch(
             is Some(next) else {
             return Err(Configuration(InvalidLimits))
           }
-          match reserve_import(next) {
+          match reserve_import(next, None) {
             Err(issue) => return Err(issue)
             Ok(_) => ()
           }
@@ -1588,6 +1704,12 @@ pub fn[T] start_local_managed_dispatch(
     }
     let position = read_index
     let importer : Ref[@execution.CompletedOutputImport?] = Ref(None)
+    // The existing per-port startup packet prepays these four monotone
+    // counters and all refusal/current carriers before this closure escapes.
+    let copied_rows = Ref(0L)
+    let copied_nodes = Ref(0L)
+    let copied_text = Ref(0L)
+    let copied_extent = Ref(0L)
     retained_imports.push(importer)
     retained_transfers.push({
       material,
@@ -1605,7 +1727,8 @@ pub fn[T] start_local_managed_dispatch(
             settled.val,
             disposed.val,
           ) &&
-          importer.val is None else {
+          importer.val is None &&
+          !import_mutating.val else {
           return Err(Configuration(InputUnavailable))
         }
         let prepared = match
@@ -1630,18 +1753,64 @@ pub fn[T] start_local_managed_dispatch(
         )
       },
       append: row => {
-        guard importer.val is Some(active) &&
-          local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
-          return Err(Configuration(InputUnavailable))
-        }
-        @execution.append_completed_output_import_wire(
-          active,
-          row,
-          setup.imports.row,
-        ).map_err(_ => Configuration(InputUnavailable))
+        with_local_managed_import_mutation(import_mutating, fn() {
+          guard importer.val is Some(active) &&
+            local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
+            return Err(Configuration(InputUnavailable))
+          }
+          let bytes = match
+            managed_row_transfer_bytes(row, setup.imports.wire.max_bytes) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          guard local_managed_import_next_extent(
+              setup.imports,
+              copied_rows.val,
+              copied_nodes.val,
+              copied_text.val,
+              bytes,
+            )
+            is Some((rows, nodes, text, quoted)) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          let extent = Int64::max(copied_extent.val, quoted)
+          guard @execution.checked_preparation_add_product(
+              import_extra.val,
+              extent - copied_extent.val,
+              1L,
+            )
+            is Some(next) else {
+            return Err(Configuration(InvalidLimits))
+          }
+          match reserve_import(next, None) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          // Growth can synchronously cancel this SAME original importer.
+          // Keep its paid prefix, but never parse after that current fence.
+          guard local_managed_input_writes_open(
+              live.val,
+              settled.val,
+              disposed.val,
+            ) &&
+            importer.val is Some(current) &&
+            physical_equal(current, active) else {
+            return Err(Configuration(InputUnavailable))
+          }
+          copied_rows.val = rows
+          copied_nodes.val = nodes
+          copied_text.val = text
+          copied_extent.val = extent
+          @execution.append_completed_output_import_wire(
+            active,
+            row,
+            setup.imports.row,
+          ).map_err(_ => Configuration(InputUnavailable))
+        })
       },
       finish: fn() {
-        guard importer.val is Some(active) &&
+        guard !import_mutating.val &&
+          importer.val is Some(active) &&
           local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
           return Err(Configuration(InputUnavailable))
         }
@@ -1712,6 +1881,15 @@ pub fn[T] start_local_managed_dispatch(
                 execution_finished.val = true
                 return Err(Configuration(issue))
               }
+            }
+            guard local_task_constrain_expansion(
+                setup.run,
+                setup.task,
+                constrained,
+              )
+              is Some(constrained) else {
+              execution_finished.val = true
+              return Err(Configuration(InvalidLimits))
             }
             guard local_task_constrain_traversal(
                 setup.run,
@@ -2845,7 +3023,7 @@ pub fn[T] start_local_managed_dispatch(
           }
         }
       }
-      if !graph_rows {
+      if !retained_relation && !graph_rows {
         return Ok(None)
       }
       guard live.val &&
@@ -2904,8 +3082,12 @@ pub fn[T] start_local_managed_dispatch(
       retained_imports.push(importing)
       let restored : Ref[@execution.CompletedOutput?] = Ref(None)
       let phase = Ref(SnapshotPhase::Saving)
+      // Preserve any earlier transport prefix through this snapshot. Only
+      // its later, completed exporter delta can be reused after physical ACK.
+      let snapshot_transport_prefix = transport_extra.val
       let emitted_bytes = Ref(0L)
       let reload_capacity : Ref[Int64?] = Ref(None)
+      let reload_scalar_text : Ref[Int64?] = Ref(None)
       let fund_part = fn(part : String) -> Result[Unit, LocalDispatchIssue] {
         let bytes = match
           managed_row_transfer_bytes(part, frames.maxFrameBytes) {
@@ -3030,6 +3212,12 @@ pub fn[T] start_local_managed_dispatch(
         reload_capacity.val = local_relation_snapshot_reload_capacity(
           setup.imports,
           content,
+        )
+        let imported_values = @execution.output_stream_value_usage(content)
+        reload_scalar_text.val = @execution.checked_preparation_add_product(
+          0L,
+          Int::min(setup.imports.row.max_text_bytes, imported_values.text_bytes).to_int64(),
+          8L,
         )
         if !live.val ||
           phase.val != Saving ||
@@ -3304,7 +3492,7 @@ pub fn[T] start_local_managed_dispatch(
                   is Some(next) else {
                   return Err(Configuration(InvalidLimits))
                 }
-                match reserve_import(next) {
+                match reserve_import(next, Some(snapshot_transport_prefix)) {
                   Ok(_) => ()
                   Err(issue) => {
                     phase.val = Failed
@@ -3357,10 +3545,32 @@ pub fn[T] start_local_managed_dispatch(
             if debit_reload() is Err(issue) {
               return Err(issue)
             }
-            let value = match @execution.finish_completed_output_import(value) {
+            let original_import = value
+            let value = match
+              @execution.finish_completed_output_import(original_import) {
               Ok(result) => result
               Err(_) => return Err(Configuration(InputUnavailable))
             }
+            let scalar_text = if setup.metered_retention {
+              @execution.completed_output_import_shared_scalar_text_bytes(
+                original_import, value,
+              ).bind(bytes => {
+                reload_scalar_text.val.map(capacity => {
+                  Int64::min(bytes, capacity)
+                })
+              })
+            } else {
+              None
+            }
+            guard live.val &&
+              !disposed.val &&
+              phase.val == Reloading &&
+              importing.val
+              .map(original => physical_equal(original, original_import))
+              .unwrap_or(false) else {
+              return Err(Execution(Stopped))
+            }
+            reload_scalar_text.val = scalar_text
             restored.val = Some(value)
             importing.val = None
             phase.val = Restored
@@ -3379,6 +3589,30 @@ pub fn[T] start_local_managed_dispatch(
               receipt.val is None &&
               restored.val is Some(value) else {
               return Err(Configuration(InvalidLimits))
+            }
+            // The actual Host has returned every append frame, cancelled the
+            // framer and confirmed body/reference cleanup before this call.
+            // Recheck after the imported storage-release callback; a reentrant
+            // stop cannot publish this scalar overlap on a failed snapshot.
+            guard live.val &&
+              !disposed.val &&
+              !import_mutating.val &&
+              phase.val == Restored &&
+              importing.val is None &&
+              restored.val
+              .map(original => physical_equal(original, value))
+              .unwrap_or(false) &&
+              import_scalar_reusable.val == 0L else {
+              return Err(Execution(Stopped))
+            }
+            if setup.metered_retention && reload_scalar_text.val is Some(bytes) {
+              guard reload_capacity.val is Some(quoted) &&
+                bytes >= 0L &&
+                bytes <= quoted &&
+                bytes <= import_extra.val else {
+                return Err(Configuration(InvalidLimits))
+              }
+              import_scalar_reusable.val = bytes
             }
             ordinary.val = Some(value)
             restored.val = None
@@ -3755,6 +3989,7 @@ pub fn[T] start_local_managed_dispatch(
 ///|
 pub fn start_local_managed_dispatch_node(
   setup : LocalManagedDispatchConfiguration[Int],
+  retained_relation? : Bool = false,
 ) -> Result[LocalManagedDispatchOperations[Int], LocalDispatchIssue] {
-  start_local_managed_dispatch(setup)
+  start_local_managed_dispatch(setup, retained_relation~)
 }

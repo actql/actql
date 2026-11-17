@@ -1,12 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile, mkdtemp, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
 import {types as nodeTypes} from 'node:util';
 import {maxHeaderSize} from 'node:http';
 import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
+import {installedEffectDependencyOriginal, registerInstalledEffectDependencyOriginal, retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
@@ -343,33 +347,6 @@ test('a constructor Plan from another captured preparation refuses before native
   }
 });
 
-test('actual claimed dispatch keeps the request borrowed until send and projection finish',async()=>{
-  let proceed,entered,sends=0,projects=0;
-  const observed=new Promise(resolve=>{entered=resolve;}),gate=new Promise(resolve=>{proceed=resolve;});
-  const selected={kind:'create',resource:'rows'},request={},entry={request,requestCid:cid('e')},description={};
-  const claim=Object.fromEntries(['scope','locator','key','basis','intentFingerprintCid','canonicalRequestCid'].map(name=>[name,name]));
-  const owned={writeOperation:()=> 'create',send({request:actual}){assert.equal(actual,request);sends++;return {};},
-    project({request:actual,current}){assert.equal(actual,request);assert.equal(current,description);projects++;return {kind:'provider-response'};},
-    describe:()=>description};
-  const owner={installed:[{}],owned,site:{credential:{},callResource(){},issueEffectGrant(){return {original:true};}}};
-  selected.mapping=owner.installed[0];
-  const route=expression('physicalRoute',{fail,guarded:()=>false,ownerOf:()=>owner,
-    checkRows:async()=>{},resourceFields:()=>({}),admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),
-    commitDecisions:()=>new Map(),requireApproval:()=>{},scopeKey:()=> 'scope',admitRow:()=>claim,
-    async captureClaimedEffectResponse({execute}){execute();entered();await gate;return {claimed:true,physical:{observation:{original:true}}};},
-    settle:()=>undefined})({members:[selected],entries:[[entry]],previewRows:[[]],
-      dispatches:['dispatch'],dispatchIndexes:[[0]],subjectCid:'subject',ledger:{},applyPreview:{}});
-  const preflight=await route.current({preflight:{observedRows:[]}});
-  const dispatch=route.bindDispatch({members:[{claims:[claim]}],subjectCid:'subject'});
-  const sent=dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:preflight});
-  await observed;
-  assert.equal(route.retire(),false);
-  assert.equal(sends,1);assert.equal(projects,0);
-  await assert.rejects(dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:preflight}),{code:'InstalledRowEffectRouteRetired'});
-  proceed();assert.equal((await sent).claimed,true);
-  assert.equal(projects,1);assert.equal(route.retire(),true);assert.equal(sends,1);
-});
-
 test('actual create check forwards the same issued authorization into its selected managed physical occurrence',async()=>{
   const selected={kind:'create',memberIndex:3},request={},raw=Object.freeze({grant:{original:true},scope:{}});
   const decision={},events=[],selectedRecipe={credentialOperations:[{phase:'capture-check'}]};
@@ -454,81 +431,6 @@ test('managed create checks and cold routes refuse missing original parent reten
   assert.equal(entered,0);
 });
 
-test('actual claimed managed write enters its separate occurrence only inside the original durable dispatch',async()=>{
-  for(const claimed of [true,false]){
-    const events=[],selected={kind:'create',resource:'rows',memberIndex:4},request={},raw=Object.freeze({grant:{},scope:{}});
-    const claim=Object.fromEntries(['scope','locator','key','basis','intentFingerprintCid'].map(name=>[name,name]));
-    claim.canonicalRequestCid=cid('e');
-    const entry={request,requestCid:claim.canonicalRequestCid},description={},dispatching={},bytes=Buffer.from('{}');
-    const owned={describe:()=>description,writeOperation:()=> 'create',
-      send(context){events.push('send');assert.equal(context.request,request);assert.equal(context.authorization.grant,raw.grant);
-        return {observation:{useCid:'use',statusCode:200,body:bytes}};},
-      project(){events.push('project');return {kind:'provider-response'};}};
-    const owner={installed:[{}],owned,managedPlanRecipe:{credentialOperations:[{phase:'write'}]},
-      site:{issueEffectGrant(){events.push('grant');return raw;}}};selected.mapping=owner.installed[0];
-    const ledger={claimDispatch(original){assert.equal(original.canonicalRequestCid,claim.canonicalRequestCid);events.push('claim');return {claimed,dispatching};},
-      beginPhysicalFlight(original){assert.equal(original,dispatching);events.push('flight');return ()=>events.push('end');},
-      recordResponse(original){assert.equal(original.dispatching,dispatching);assert.equal(original.responseBytes,bytes);events.push('store');return {response:{}};}};
-    const route=expression('physicalRoute',{ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
-      admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),commitDecisions:()=>new Map(),requireApproval:()=>{},
-      scopeKey:()=> 'scope',admitRow:()=>claim,captureClaimedEffectResponse,settle:()=>undefined})({
-        members:[selected],entries:[[entry]],previewRows:[[]],dispatches:['dispatch'],dispatchIndexes:[[0]],
-        subjectCid:'subject',applyPreview:{},ledger,runInvocationCid:'run',assertCurrent(){},
-        physicalOperations(facts){events.push('managed');assert.equal(facts.originalAuthorization,raw);
-          assert.equal(facts.phase,'write');assert.equal(facts.rowIndex,0);assert.equal(facts.purpose,'effect');
-          assert.equal(facts.runInvocationCid,'run');assert.equal(facts.dispatchRequestCid,'dispatch');
-          return facts.invoke({authorization:{...raw,useId:facts.useId},credential:{},callResource(){}});}});
-    const current=await route.current({preflight:{observedRows:[]}});
-    const dispatch=route.bindDispatch({members:[{claims:[claim]}],subjectCid:'subject'});
-    const result=await dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:current});
-    assert.equal(result.claimed,claimed);
-    assert.deepEqual(events,claimed?['grant','claim','flight','managed','send','end','store','project']:['grant','claim']);
-    assert.equal(route.retire(),true);
-  }
-});
-
-test('actual claimed CREATE runs its separately authorized original Form check before the write occurrence',async()=>{
-  const events=[],selected={kind:'create',resource:'rows',memberIndex:2},request={},description={};
-  const controlConstruction=(receiver,method,args)=>Reflect.apply(method,receiver,args);
-  const claim={scope:'scope',locator:'locator',key:'key',basis:'basis',intentFingerprintCid:'row',canonicalRequestCid:cid('e')};
-  const writeGrant=Object.freeze({grant:{write:true},scope:{}}),readGrant=Object.freeze({grant:{read:true},scope:{}}),decision={};
-  let checked=false;
-  const owned={describe:()=>description,writeOperation:()=> 'create',
-    checkRequest(context){assert.equal(this,owned);assert.equal(context.request,request);assert.equal(context.authorization.grant,readGrant.grant);assert.equal(context.controlConstruction,controlConstruction);
-      events.push('form');checked=true;},
-    send(context){assert(checked);assert.equal(context.authorization.grant,writeGrant.grant);events.push('send');
-      return {observation:{useCid:'write-use',statusCode:200,body:Buffer.from('{}')}};},
-    project(){events.push('project');return {kind:'provider-response'};}};
-  const owner={installed:[{}],owned,managedPlanRecipe:{credentialOperations:[{phase:'write-check'},{phase:'write'}]},
-    beforeSendCheck:Object.freeze({resource:'forms',operation:'form-read',request:owned.checkRequest,receiver:owned}),
-    site:{issueEffectGrant(){events.push('effect-grant');return writeGrant;},
-      issueReadGrant(facts){assert.equal(facts.decision,decision);assert.equal(facts.resource,'forms');assert.equal(facts.operation,'form-read');
-        assert.equal(facts.runInvocationCid,'run');assert.equal(facts.dispatchRequestCid,'dispatch');assert.equal(facts.maxUses,1);
-        events.push('read-grant');return readGrant;}}};selected.mapping=owner.installed[0];
-  const ledger={claimDispatch(){events.push('claim');return {claimed:true,dispatching:{}};},
-    beginPhysicalFlight(){events.push('flight');return ()=>events.push('end');},recordResponse(){events.push('store');return {response:{}};}};
-  const route=expression('physicalRoute',{ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
-    admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),commitDecisions:()=>new Map(),requireApproval:()=>{},scopeKey:()=> 'scope',
-    admitRow:()=>claim,captureClaimedEffectResponse,settle:()=>undefined,
-    readDecision:async(member,resource,subject)=>{assert.equal(member,selected);assert.equal(resource,'forms');assert.equal(subject,'subject');events.push('authorize-read');return decision;}})({
-      members:[selected],entries:[[{request,requestCid:claim.canonicalRequestCid}]],previewRows:[[]],dispatches:['dispatch'],dispatchIndexes:[[0]],
-      subjectCid:'subject',runInvocationCid:'run',applyPreview:{},ledger,assertCurrent(){},controlConstruction,
-      physicalOperations(facts){
-        assert.equal(facts.member,selected);assert.equal(facts.rowIndex,0);
-        if(facts.phase==='write-check'){
-          assert.equal(facts.originalAuthorization,readGrant);assert.equal(facts.purpose,'read');events.push('managed-read');
-          return facts.invoke({authorization:{...readGrant,useId:facts.useId},credential:{},callResource(){}});
-        }
-        assert.equal(facts.phase,'write');assert(checked,'Form read must finish before selecting the write child');
-        assert.equal(facts.originalAuthorization,writeGrant);assert.equal(facts.purpose,'effect');events.push('managed-write');
-        return facts.invoke({authorization:{...writeGrant,useId:facts.useId},credential:{},callResource(){}});
-      }});
-  const current=await route.current({preflight:{observedRows:[]}}),dispatch=route.bindDispatch({members:[{claims:[claim]}],subjectCid:'subject'});
-  assert.equal((await dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:current})).claimed,true);
-  assert.deepEqual(events,['effect-grant','claim','flight','authorize-read','read-grant','managed-read','form','managed-write','send','end','store','project']);
-  assert.equal(route.retire(),true);
-});
-
 test('pre-write check selection captures original callback and refuses unfunded or accessor flags before use',()=>{
   const node=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='captureBeforeSendCheck').node;
   const capture=Function('nodeTypes','fail','text',`return (${source.slice(node.start,node.end)});`)(nodeTypes,fail,value=>typeof value==='string'&&value.length>0);
@@ -571,6 +473,10 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
   const events=[],children=[],input=Object.freeze({}),nativePlan={},parent={},prepared={},identity={};
   let releaseInputs,finish,borrowCount=0,exportCalls=0;
   const moon={clientProgramPinEffectSources(){events.push('pin');return {ok:input};},
+    clientProgramInstalledEffectDependencySourcesPin(owner,p,r,plan){
+      assert.equal(owner,parent);assert.equal(p,prepared);assert.equal(r,identity);assert.equal(plan,nativePlan);
+      return moon.clientProgramPinEffectSources();
+    },
     clientProgramReleaseEffectInputs(value){assert.equal(value,input);events.push('unpin');},
     clientProgramEffectInputExportLimits(){return {};},
     clientProgramInstalledEffectManagedOperationPlan(){return {$tag:1,_0:nativePlan};},
@@ -592,12 +498,16 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     owned:Object.freeze({recoveryEntry(){assert.fail('No recovery work before Source finishes');}})});
   const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:nativePlan,
     readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
+  // The same explicit test owners also bind the new dependency-original
+  // consumer. This fixture supplies no ordinary Core/physical authority.
+  registerInstalledEffectDependencyOriginal(managedEffect.controlConstruction,
+    {runtime:moon,parent,prepared,request:identity,plan:nativePlan,current(){}});
   const control={publicationPreparedReleaseAction(index,_count,checked,pending,attempted){
     return index<0?'finished':!checked?'inspect':pending&&!attempted?'release':'advance';},
     publicationCleanupOwnerAction(index,count,checked,pending,available,attempted){
       return index>=count?'finished':!checked?'inspect':pending&&available&&!attempted?'retry':'advance';
     }};
-  const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,
+  const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,installedEffectDependencyOriginal,
     runLimits:()=>ports.limits,
     limits:{maxPinnedResults:2,maxRows:2,maxRowsPerMember:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
     ownerOf:()=>owned,assertCurrent(){},own(){},ownChildren(value){assert.equal(children.length,0);children.push(value);},
@@ -628,6 +538,7 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     const marker=Object.freeze(new Error('same original prefix cleanup'));
     try{await releaseInstalledRowCapture({children:children[0],releaseInputs,control},marker);}
     catch(cause){if(cause!==marker)throw cause;}
+    retireInstalledEffectDependencyOriginal(managedEffect.controlConstruction);
   }};
 }
 
@@ -821,26 +732,6 @@ test('actual target authorization retains same original grant receiver in its se
   assert.deepEqual(f.events,['begin','grant','complete']);assert.equal(f.work.retire(),true);
 });
 
-test('actual claimed write and projection use their original control frame around the existing durable dispatch', async () => {
-  const f=sameControlFrame(),selected={kind:'create',resource:'rows',memberIndex:0},request={},raw={grant:{},scope:{}};
-  const claim=Object.fromEntries(['scope','locator','key','basis','intentFingerprintCid'].map(name=>[name,name]));claim.canonicalRequestCid=cid('e');
-  const entry={request,requestCid:claim.canonicalRequestCid},description={},dispatching={},bytes=Buffer.from('{}');
-  const owned={describe:()=>description,writeOperation:()=> 'create',send(){assert(!f.active());f.events.push('send');return {observation:{useCid:'use',statusCode:200,body:bytes}};},
-    project(context){assert.equal(this,owned);assert(f.active());assert.equal(context.request,request);f.events.push('project');return {kind:'provider-response'};}};
-  const site={issueEffectGrant(){assert.equal(this,site);assert(f.active());f.events.push('grant');return raw;}};
-  const owner={installed:[{}],owned,site,managedPlanRecipe:{credentialOperations:[{phase:'write'}]}};selected.mapping=owner.installed[0];
-  const ledger={claimDispatch(){f.events.push('claim');return {claimed:true,dispatching};},beginPhysicalFlight(){return ()=>{};},recordResponse(){f.events.push('store');return {response:{}};}};
-  const route=expression('physicalRoute',{ownerOf:()=>owner,fail,guarded:()=>false,checkRows:async()=>{},resourceFields:()=>({}),
-    admitCapability:()=>({identity:'capability'}),routeOf:()=>({}),commitDecisions:()=>new Map(),requireApproval:()=>{},scopeKey:()=> 'scope',admitRow:()=>claim,captureClaimedEffectResponse,settle:()=>undefined})({
-      members:[selected],entries:[[entry]],previewRows:[[]],dispatches:['dispatch'],dispatchIndexes:[[0]],subjectCid:'subject',applyPreview:{},ledger,runInvocationCid:'run',assertCurrent(){},controlConstruction:f.work,
-      physicalOperations(facts){assert(!f.active());return facts.invoke({authorization:raw,credential:{},callResource(){}});}});
-  const current=await route.current({preflight:{observedRows:[]}}),dispatch=route.bindDispatch({members:[{claims:[claim]}],subjectCid:'subject'});
-  await dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:current});
-  assert.deepEqual(f.events,['begin','grant','complete','claim','send','store','begin','project','complete']);
-  assert.equal(route.retire(),true);assert.equal(f.work.retire(),true);
-});
-
-
 test('actual managed row loop composes the original owned request child without replacing its factory', async () => {
   const f = fixture({managed: true}); let cleanup = false, factories = 0, prepares = 0;
   f.owned.prepareRequestChild = context => {
@@ -927,10 +818,11 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
   assert.equal(calls.length, 2, 'consumed original never grants another operation');
 });
 
-function recoveredConstructorFixture({refuseSecond = false, failure = false, capturedAlready = false, pendingRetire = false, input = false} = {}) {
+function recoveredConstructorFixture({refuseSecond = false, failure = false, capturedAlready = false, pendingRetire = false, input = false, inputRefusal = false} = {}) {
   const parent = {}, prepared = {}, request = {}, plan = {}, events = [], children = [];
   const members = [{memberIndex: 0}, {memberIndex: 1}], active = new Set(), tokens = [];
-  let aliasesRetired = false, constructions = 0, retirePending = pendingRetire;
+  let aliasesRetired = false, constructions = 0, retirePending = pendingRetire, controlDepth = 0;
+  const inputError = new Error('same original member input refused');
   const owners = [{}, {}], inputExtents = [{}, {}];
   const original = Object.freeze({entries: Object.freeze([[], []]), currents: Object.freeze([{}, {}])});
   const runtime = {
@@ -950,6 +842,7 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
     clientProgramInstalledEffectOperationInputBegin(token, selected) {
       assert.equal(tokens.length, 2, 'all original members precede selecting any input');
       assert.strictEqual(selected, inputExtents[token.member]);
+      if (inputRefusal && token.member === 1) throw inputError;
       active.add(token.member);events.push(`input-${token.member}`);
       return {$tag: 1, _0: undefined};
     },
@@ -963,10 +856,14 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
     },
   };
   const run = {runtime, value: parent, prepared, request, operationPlan: plan,
-    controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
+    controlConstruction: (receiver, method, args) => {
+      controlDepth++;
+      try {return Reflect.apply(method, receiver, args);} finally {controlDepth--;}
+    },
     readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan};
   const recipe = {captureConstruction: {operationIndex: 0}, recoveryConstruction: {operationIndex: 1,
     ...(input ? {inputExtent(wire, recovery, memberIndex) {
+      assert(controlDepth > 0, 'same original control backs the member scan before input selection');
       assert.equal(wire, facts.previewWire); assert.strictEqual(recovery, facts.durable.connectorRecovery);
       assert.strictEqual(members[memberIndex].memberIndex, memberIndex);
       events.push(`select-${memberIndex}`); return inputExtents[memberIndex];
@@ -984,10 +881,21 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
     }});
   const invoke = () => actual({...facts, managedEffect: run, requestChildren: children,
     retireRequestAliases: () => aliasesRetired, assertCurrent() {}});
-  return {invoke, original, events, children, run, facts, constructions: () => constructions,
+  return {invoke, original, events, children, run, facts, inputError, constructions: () => constructions,
     retire() {aliasesRetired = true;}, finalRetire() {return run.recoveredRequestInput.retire();},
     allowRetire() {retirePending = false;}};
 }
+
+test('cold observed member refusal keeps the original failed prefix and all alias retirement duties', () => {
+  const f = recoveredConstructorFixture({input: true, inputRefusal: true});
+  assert.throws(f.invoke, cause => cause === f.inputError);
+  assert.equal(f.constructions(), 0);
+  assert.equal(f.run.recoveredRequestInput.children.length, 2);
+  assert(!f.events.some(event => event.startsWith('retire-')));
+  assert.throws(f.invoke, cause => cause === f.inputError);
+  f.retire();assert.equal(f.finalRetire(), true);
+  assert.equal(f.run.recoveredRequestInput.children.length, 0);
+});
 
 test('cold request rebuilding enters every same-Plan member workspace before the single original provider constructor', async () => {
   const f = recoveredConstructorFixture();
@@ -1122,108 +1030,122 @@ test('managed request projection forwards the same completed original row and co
   assert.deepEqual(f.settlements, f.debits);
 });
 
-// Actual claimsOf plus the enclosing captureStage final construction/return
-// and actual Ledger open/binding/prepareCapturedSetIntents bodies. Semantic
-// issuers and physical Store are explicit ports: this is owned DATA/caller
-// correspondence, not Common capacity, durable intent or installed acceptance.
-async function ownedClaimsStageFixture() {
-  const ledgerSource=await readFile(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
-  const ledgerTree=parse(ledgerSource,{ecmaVersion:'latest',sourceType:'module'}),ledgerNodes=[];
-  const collect=node=>{if(!node||typeof node!=='object')return;ledgerNodes.push(node);
-    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(collect);else if(value&&typeof value==='object')collect(value);};
-  collect(ledgerTree);
-  const binding=ledgerNodes.filter(n=>n.type==='FunctionDeclaration'&&n.id?.name==='bindEffectLedgerConstruction');
-  const capturedMethod=ledgerNodes.filter(n=>n.type==='Property'&&n.key?.name==='prepareCapturedSetIntents');
-  assert.equal(binding.length,1);assert.equal(capturedMethod.length,1);
-  const bind=Function('nodeTypes',ledgerSource.slice(binding[0].start,binding[0].end)+';return bindEffectLedgerConstruction;')(nodeTypes);
-  const body={run_identity_cid:cid('1'),effects:[{effect_id:'owned-effect',effect_member_preview_cid:cid('2'),
-    row_order:[cid('4'),cid('3')],changes:[{row_preview_cid:cid('3'),target_row_identity:{id:1}},
-      {row_preview_cid:cid('4'),target_row_identity:{id:2}}]}]};
-  const identity={},requestScope={},previewInputs={},admittedPreview={},applyPreview={},result={};
-  const keys=[[{},{}]],entries=[[{request:{id:1},requestCid:cid('5')},{request:{id:2},requestCid:cid('6')}]],members=[{}];
-  const opaque=[],events=[];let family=0,generic=0,constructors=0,refusal,frame;
-  const effect={
-    logicalItemLocator(scope,program,stage,id,wire){assert.equal(scope,requestScope);assert.equal(program,'program');assert.equal(stage,'stage');assert.equal(id,'owned-effect');return {wire};},
-    dispatchKeyCid(key){assert(keys[0].includes(key));return 'dispatch-key';},
-    ledgerBasis(scope,locator,key,unit,member,row,request){assert.equal(scope,requestScope);assert(keys[0].includes(key));assert.equal(unit,cid('7'));const value={locator,key,row,request};opaque.push(value);return value;},
-    admitPreviewIdentity(){return applyPreview;},
-  };
-  const owner={profile:{unit:'owned-unit'},owned:{assertRequestFinalized(request,dispatch){assert(entries[0].some(x=>x.request===request));assert.equal(dispatch,'dispatch-key');}}};
-  const orderedSourceIndexes=expression('orderedSourceIndexes',{fail});
-  const claimsOf=expression('claimsOf',{effect,orderedSourceIndexes,
-    recoveryCid:expression('recoveryCid',{ownerOf:()=>owner,cid:()=>cid('e')}),
-    canonicalValueJson:JSON.stringify,limits:{locator:{maxBytes:256},key:{maxBytes:256,maxNodes:64,maxDepth:4}},ownerOf:()=>owner});
-  const original={
-    prepareSetIntents(preview,selected,maxWork){assert.equal(this,original);assert.equal(preview,admittedPreview);assert.equal(maxWork,100);
-      assert(['family','generic'].includes(frame));constructors++;events.push('constructor');return result;},
-    close(){events.push('close');},
-  };
-  const moon={clientRequestAuthorityScopeCid:value=>{assert.equal(value,identity);return cid('8');},
-    clientRequestCallerId:value=>{assert.equal(value,identity);return 'owned-request';},
-    clientProgramEffectApplySubjectCid:value=>{assert.equal(value,previewInputs);return cid('d');},
-    clientProgramEffectPreviewLedgerIdentity:value=>{assert.equal(value,previewInputs);return admittedPreview;}};
-  const method=capturedMethod[0].value;
-  original.prepareCapturedSetIntents=Function('moon','ledger','fail',
-    `return function(${method.params.map(x=>x.name).join(',')})${ledgerSource.slice(method.body.start,method.body.end)};`)(moon,original,fail);
-  Object.freeze(original);
-  const work=(receiver,method,args)=>{assert.equal(receiver,original);generic++;events.push('generic');frame='generic';
-    try{return Reflect.apply(method,receiver,args);}finally{frame=undefined;}};
-  work.ledgerFamily=(receiver,method,args,counts,...policy)=>{
-    assert.equal(receiver,original);assert.equal(method,original.prepareCapturedSetIntents);
-    assert.deepEqual(counts,[2]);assert(Object.isFrozen(counts));assert.deepEqual(policy,[100000,4096,64,4]);
-    family++;events.push('family-before-constructor');if(refusal!==undefined)throw refusal;frame='family';
-    try{return Reflect.apply(method,receiver,args);}finally{frame=undefined;}
-  };
-  work.ledgerOpen=(root,receiver,method,args)=>{
-    assert.equal(root,'/owned/ledger');assert.equal(receiver,undefined);assert.equal(args[0].controlConstruction,work);
-    events.push('open');return Reflect.apply(method,receiver,args);
-  };
-  const openLedger=expression('openLedger',{ledgerRoot:'/owned/ledger',moon,controlEntryBytes:4096,
-    openEffectLedger(options){assert.equal(options.controlConstruction,work);return bind(original,options.controlConstruction,
-      Object.freeze({maxEntries:100000,maxEntryBytes:options.maxEntryBytes,maxNodes:64,maxDepth:4}));}});
-  const start=capture.body.body.filter(n=>n.type==='VariableDeclaration'&&n.declarations.some(d=>d.id.name==='ledger'));
-  assert.equal(start.length,1);
-  const tail=source.slice(start[0].start,capture.body.end-1);
-  const ports={openLedger,identity,controlConstruction:work,applyPreview:undefined,effect,orderedSourceIndexes,
-    preview:{wire:'original-preview',authoringCid:cid('9'),keys},body,requestScope,
-    limits:{preview:{maxWireBytes:4096,maxNodes:64,maxDepth:4},maxFrontierWork:100},claimsOf,entries,
-    unit:{programId:'program',stageId:'stage'},dispatches:['original-dispatch'],members,ownerOf:()=>owner,
-    cid:()=>cid('7'),plan:{runDefinition:{identity:cid('a')},effectInputRetention:{identity:cid('b')},contractLimits:{}},
-    physicalRoute:()=>({current(){},bindDispatch(){}}),plans:[{proof:{}}],basePreflight:()=>({}),
-    computation:{},storedResults:{},admittedPreview,previewInputs,moon,route:undefined,
-    runInvocationCid:cid('c'),targetReads:undefined,assertCurrent(){},physicalOperations(){assert.fail('no physical operation in final DATA tail');},
-    scopes:()=>[],singular:undefined,releaseInputs:async()=>{},continuationOf:()=> 'original-continuation',
-    updateTargetSelections:undefined,execution:{},store:{},control:{}};
-  const stage=Function(...Object.keys(ports),tail)(...Object.values(ports));
-  return {stage,body,entries,members,opaque,events,result,original,work,
-    counts:()=>({family,generic,constructors}),refuse:primary=>{refusal=primary;}};
-}
+// These actual bridge tests use explicit Ledger/provider ports. They establish
+// alias custody and refusal ordering, not a grant or a physical Run admission.
+const originalClaim = () => ({scope: {}, locator: {}, key: {}, basis: {},
+  intentFingerprintCid: cid('4'), canonicalRequestCid: cid('5')});
 
-test('owned claims actual captureStage output selects original Ledger family before intent constructor',async()=>{
-  const f=await ownedClaimsStageFixture(),members=f.stage.apply.members;
-  assert(Object.isFrozen(members));assert(Object.isFrozen(members[0]));assert(Object.isFrozen(members[0].claims));
-  assert.deepEqual(members[0].claims.map(c=>c.intentFingerprintCid),[cid('4'),cid('3')]);
-  assert.equal(members[0].claims[0].canonicalRequestCid,f.entries[0][1].requestCid);
-  assert.equal(members[0].claims[0].basis,f.opaque[0]);
-  assert.equal(f.stage.receipt.members[0].rowOwners[0].claim,members[0].claims[0]);
-  assert.equal(Object.isFrozen(f.opaque[0]),false,'opaque original remains borrowed');
-  for(const input of [f.body,f.body.effects,f.body.effects[0],f.body.effects[0].changes,f.entries,f.members])
-    assert.equal(Object.isFrozen(input),false,'do not freeze caller-owned input');
-  assert.equal(f.stage.apply.ledger.prepareCapturedSetIntents(f.stage.apply.capturedInputs,members,100),f.result);
-  assert.deepEqual(f.counts(),{family:1,generic:0,constructors:1});
-  assert.deepEqual(f.events,['open','family-before-constructor','constructor']);
+test('claimed response keeps exact opaque originals across its physical await and projection', async () => {
+  const claim = originalClaim(), original = {...claim}, events = [];
+  let proceed, entered;
+  const gate = new Promise(resolve => {proceed = resolve;});
+  const started = new Promise(resolve => {entered = resolve;});
+  const dispatching = {}, bytes = Buffer.from('{}'), response = {};
+  let flightClaim;
+  const ledger = {
+    claimDispatch(value) {assert(Object.isFrozen(value)); assert.notStrictEqual(value, claim);
+      for (const key of Object.keys(original)) assert.strictEqual(value[key], original[key]);
+      events.push('claim'); return {claimed: true, dispatching};},
+    beginPhysicalFlight(value, owned) {assert.strictEqual(value, dispatching); flightClaim = owned; events.push('flight');
+      return () => events.push('end');},
+    recordResponse(value) {assert.strictEqual(value.scope, original.scope);
+      assert.strictEqual(flightClaim.basis, original.basis); assert.strictEqual(value.responseBytes, bytes);
+      assert.strictEqual(value.locator, original.locator); assert.strictEqual(value.key, original.key);
+      assert.equal(value.canonicalRequestCid, original.canonicalRequestCid);
+      events.push('store'); return {response};},
+  };
+  const operation = captureClaimedEffectResponse({ledger, claim, requestCid: claim.canonicalRequestCid,
+    async execute() {events.push('send'); entered(); await gate;
+      return {observation: {useCid: 'original-use', statusCode: 200, body: bytes}};},
+    projectStored(value) {assert.strictEqual(value, response); events.push('project'); return 'projected';}});
+  await started; claim.scope = {}; claim.basis = {}; claim.canonicalRequestCid = cid('6');
+  assert.deepEqual(events, ['claim', 'flight', 'send']);
+  proceed(); assert.equal((await operation).physical, 'projected');
+  assert.deepEqual(events, ['claim', 'flight', 'send', 'end', 'store', 'project']);
 });
 
-test('owned claims family refusal and genuinely mutable foreign callers keep original fallback and cause',async()=>{
-  const f=await ownedClaimsStageFixture(),owned=f.stage.apply.members,primary=new Error('original family reservation refused');
+test('an existing possible dispatch never enters another physical occurrence', async () => {
+  const claim = originalClaim(), ownership = {claimed: false}; let claims = 0;
+  const forbidden = () => assert.fail('A possible dispatch must be reconciled without another send');
+  const result = await captureClaimedEffectResponse({claim, requestCid: claim.canonicalRequestCid,
+    ledger: {claimDispatch(value) {claims++; assert.strictEqual(value.key, claim.key); return ownership;},
+      beginPhysicalFlight: forbidden, recordResponse: forbidden}, execute: forbidden, projectStored: forbidden});
+  assert.equal(result.claimed, false); assert.strictEqual(result.ownership, ownership); assert.equal(claims, 1);
+});
+
+test('a failed pre-write provider occurrence keeps its exact primary and possible dispatch', async () => {
+  const claim = originalClaim(), primary = new Error('original Form check refused'), events = [];
+  const ledger = {claimDispatch() {events.push('claim'); return {claimed: true, dispatching: {}};},
+    beginPhysicalFlight() {events.push('flight'); return () => events.push('end');},
+    recordResponse() {assert.fail('No physical response was observed');}};
+  await assert.rejects(captureClaimedEffectResponse({ledger, claim, requestCid: claim.canonicalRequestCid,
+    execute() {events.push('provider-check'); throw primary;},
+    projectStored() {assert.fail('A refused check has no response projection');}}), error => error === primary);
+  assert.deepEqual(events, ['claim', 'flight', 'provider-check', 'end']);
+});
+
+test('durable response precedes projection in the same original construction frame', async () => {
+  const claim = originalClaim(), f = sameControlFrame(), response = {}, bytes = Buffer.from('{}');
+  const receiver = {project(value) {assert.strictEqual(this, receiver); assert.strictEqual(value, response);
+    assert(f.active()); f.events.push('project'); return 'original projection';}};
+  const ledger = {claimDispatch() {f.events.push('claim'); return {claimed: true, dispatching: {}};},
+    beginPhysicalFlight() {return () => f.events.push('end');},
+    recordResponse() {f.events.push('store'); return {response};}};
+  const result = await captureClaimedEffectResponse({ledger, claim, requestCid: claim.canonicalRequestCid,
+    execute() {f.events.push('send'); return {observation: {useCid: 'original', statusCode: 200, body: bytes}};},
+    projectStored: value => f.work(receiver, receiver.project, [value])});
+  assert.equal(result.physical, 'original projection');
+  assert.deepEqual(f.events, ['claim', 'send', 'end', 'store', 'begin', 'project', 'complete']);
+  assert.equal(f.work.retire(), true);
+});
+
+async function actualLedgerFamilyFixture(t) {
+  const root = await mkdtemp(join(tmpdir(), 'actql-ledger-family-owner-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const identity = {}, scope = {}, result = {}, calls = [];
+  let receiver, selectedMethod, refusal;
+  const moon = {strategyRemoteManagedOutputEvidenceKind: () => 'explicit-unused',
+    strategyEffectLogicalRequestScope: () => ({$tag: 1, _0: scope}),
+    strategyEffectLogicalRequestScopeCid: value => {assert.strictEqual(value, scope); return cid('8');},
+    clientRequestAuthorityScopeCid: value => {assert.strictEqual(value, identity); return cid('8');},
+    clientRequestCallerId: value => {assert.strictEqual(value, identity); return 'original';}};
+  // Stop at the actual constructor frame. These ports do not pretend to admit
+  // a Preview or claims; actual Core Ledger tests cover semantic ownership.
+  const construction = (owner, method, args) => {
+    assert.strictEqual(owner, receiver); assert.strictEqual(method, selectedMethod);
+    calls.push({kind: 'generic', args}); return result;
+  };
+  construction.ledgerOpen = (actual, owner, method, args) => {
+    assert.equal(actual, root); assert.equal(owner, undefined); return Reflect.apply(method, owner, args);
+  };
+  construction.ledgerFamily = (owner, method, args, counts, ...policy) => {
+    receiver ??= owner; selectedMethod ??= method;
+    assert.strictEqual(owner, receiver); assert.strictEqual(method, selectedMethod);
+    assert(Object.isFrozen(counts)); assert.deepEqual(counts, [2]);
+    assert.deepEqual(policy, [100000, 4096, 64, 4]);
+    calls.push({kind: 'family', args}); if (refusal !== undefined) throw refusal; return result;
+  };
+  const ledger = openInstalledEffectLedger(moon, root, identity, 4096, 65536, construction);
+  t.after(() => ledger.close());
+  const claims = Object.freeze([Object.freeze(originalClaim()), Object.freeze(originalClaim())]);
+  const members = Object.freeze([Object.freeze({claims})]);
+  return {ledger, members, calls, result, captured: {}, refuse(value) {refusal = value;}};
+}
+
+test('actual Ledger owner selects its bounded frozen family before the original constructor', async t => {
+  const f = await actualLedgerFamilyFixture(t);
+  assert.strictEqual(f.ledger.prepareCapturedSetIntents(f.captured, f.members, 100), f.result);
+  assert.deepEqual(f.calls.map(value => value.kind), ['family']);
+  assert.strictEqual(f.calls[0].args[0], f.captured); assert.strictEqual(f.calls[0].args[1], f.members);
+});
+
+test('actual Ledger family refusal preserves primary and mutable callers keep the generic frame', async t => {
+  const f = await actualLedgerFamilyFixture(t), primary = new Error('same original family refused');
   f.refuse(primary);
-  assert.throws(()=>f.stage.apply.ledger.prepareCapturedSetIntents(f.stage.apply.capturedInputs,owned,100),error=>error===primary);
-  assert.deepEqual(f.counts(),{family:1,generic:0,constructors:0});
-  const mutable=[...owned],foreign=Object.freeze([{claims:owned[0].claims}]);
-  for(const selected of [mutable,foreign]){
-    assert.equal(f.stage.apply.ledger.prepareCapturedSetIntents(f.stage.apply.capturedInputs,selected,100),f.result);
-    assert.equal(Object.isFrozen(selected[0]),selected===mutable);
-  }
-  assert.equal(Object.isFrozen(mutable),false);
-  assert.deepEqual(f.counts(),{family:1,generic:2,constructors:2});
+  assert.throws(() => f.ledger.prepareCapturedSetIntents(f.captured, f.members, 100), error => error === primary);
+  const mutable = [...f.members];
+  assert.strictEqual(f.ledger.prepareCapturedSetIntents(f.captured, mutable, 100), f.result);
+  assert.equal(Object.isFrozen(mutable), false);
+  assert.deepEqual(f.calls.map(value => value.kind), ['family', 'generic']);
+  assert.strictEqual(f.calls[1].args[1], mutable);
 });

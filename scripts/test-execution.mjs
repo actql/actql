@@ -1,8 +1,23 @@
 // Nonzero-execution checks for the supported focused wrappers. See development.md.
 import {spawnSync} from 'node:child_process';
+import {realpathSync} from 'node:fs';
 import {constants} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {createCommandEvidence, redactCommandEvidence, redactCommandArguments} from './packed-query-evidence.mjs';
+
+// This module has no command runner. Reject direct invocation so a mistaken
+// verification command cannot report success without executing any tests.
+let directInvocation = false;
+const evaluating = process.execArgv.some(arg => /^(?:-e|-p|--eval|--print)(?:=|$)/u.test(arg));
+if (process.argv[1] && !evaluating) {
+  try { directInvocation = realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)); }
+  catch { /* Imported callers may use a non-path argument with node -e. */ }
+}
+if (directInvocation) {
+  process.stderr.write('test-execution.mjs is an import-only library; use scripts/local-checks.mjs test or import runFocusedTests.\n');
+  process.exitCode = 1;
+}
 
 const fields = ['tests', 'passed', 'failed', 'cancelled', 'skipped', 'todo'];
 const empty = () => Object.fromEntries(fields.map(field => [field, 0]));

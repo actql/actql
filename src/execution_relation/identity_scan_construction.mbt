@@ -26,9 +26,15 @@ fn identity_scan_capacity(
 pub fn completed_relation_identity_scan_start_construction_capacity(
   source : CompletedOutput,
   retain_body? : Bool = false,
+  producer_input? : ProducerRead? = None,
 ) -> ExecutionCapacity? {
   guard source.table is Some(table) else { return None }
-  let width = IndexedRows::column_count(table).to_int64()
+  if producer_input is Some(read) && read.bound.projection is Some(_) {
+    return None
+  }
+  let width = producer_input
+    .map(read => @schema.field_count(read.schema).to_int64())
+    .unwrap_or(IndexedRows::column_count(table).to_int64())
   guard @shape.collection_construction_extent({
       records: 28L,
       record_references: 63L,

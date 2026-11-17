@@ -523,20 +523,13 @@ pub fn client_infer_call_scope_local_coordinate(
 }
 
 ///|
-/// Exact private originals for a completed fixed input. This record is not
-/// a public artifact or permission; authenticated Store custody is required
-/// before it can be used by the saved-scope reader below.
-pub fn client_infer_call_scope_snapshot(
+// One actual emitter for snapshot wire and its prefunded construction census.
+// Measuring it does not serialize a body or reconstruct any Source authority.
+fn emit_client_infer_call_scope_snapshot(
   value : ClientInferCallScope,
-) -> Result[String, ClientInferCallScopeIssue] {
-  if !client_infer_call_scope_generation_available(value) ||
-    !@execution.completed_output_available(value.input) {
-    return Err(ForeignInput)
-  }
-  let writer = @encode.writer(1000000, 100000, 100) catch {
-    _ => return Err(Encoding)
-  }
-  let body = try {
+  writer : @encode.Writer,
+) -> Result[Unit, ClientInferCallScopeIssue] {
+  try {
     @encode.begin_object(writer)
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-host-model-input-scope/0.1")
@@ -611,10 +604,32 @@ pub fn client_infer_call_scope_snapshot(
       @encode.end_array(writer)
     }
     @encode.end_object(writer)
-    @encode.finish(writer)
+    Ok(())
   } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+/// Exact private originals for a completed fixed input. This record is not
+/// a public artifact or permission; authenticated Store custody is required
+/// before it can be used by the saved-scope reader below.
+pub fn client_infer_call_scope_snapshot(
+  value : ClientInferCallScope,
+) -> Result[String, ClientInferCallScopeIssue] {
+  if !client_infer_call_scope_generation_available(value) ||
+    !@execution.completed_output_available(value.input) {
+    return Err(ForeignInput)
+  }
+  let writer = @encode.writer(1000000, 100000, 100) catch {
     _ => return Err(Encoding)
   }
+  match emit_client_infer_call_scope_snapshot(value, writer) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
+
   // The completed input's availability observer can call out after the first
   // saved-custody observation. Keep the same receiving owner across that cut.
   if value.saved_result_scope is Some(_) &&

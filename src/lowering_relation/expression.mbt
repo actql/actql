@@ -227,6 +227,78 @@ pub fn expression_view_entries(value : Expression) -> Int {
 }
 
 ///|
+/// Whether the returned scalar has no newly constructed payload. This walks
+/// the original owned branches without exporting copied expression views.
+/// Conditions may still construct scratch: callers must retain their complete
+/// original evaluation, work, frame and physical traversal allowances.
+pub fn expression_result_borrows_payload(value : Expression) -> Bool {
+  let nodes = @typing.node_count(value.typed_owner)
+  nodes > 0 && expression_borrowed_result_nodes(value, nodes) >= 0
+}
+
+///|
+// The existing checked typed-tree geometry is the visit budget. Return only
+// its remaining integer; no branch views, callbacks or persistent facts escape.
+fn expression_borrowed_result_nodes(value : Expression, remaining : Int) -> Int {
+  if remaining <= 0 {
+    return -1
+  }
+  let next = remaining - 1
+  match value.contract.shape {
+    @contract.Number | @contract.Boolean => next
+    @contract.Text(_) =>
+      match value.body {
+        Field(_, @relation.InputField(_)) | TypedNull => next
+        Literal(checked) =>
+          if checked.value is @value.Text(_) || checked.value is @value.Null {
+            next
+          } else {
+            -1
+          }
+        Conditional(_, yes, no) => {
+          let next = expression_borrowed_result_nodes(yes, next)
+          if next < 0 {
+            -1
+          } else {
+            expression_borrowed_result_nodes(no, next)
+          }
+        }
+        Case(clauses, otherwise) => {
+          let mut next = next
+          for (_, branch) in clauses {
+            next = expression_borrowed_result_nodes(branch, next)
+            if next < 0 {
+              return -1
+            }
+          }
+          expression_borrowed_result_nodes(otherwise, next)
+        }
+        _ => -1
+      }
+    _ => -1
+  }
+}
+
+///|
+/// Constructor DATA from the original checked Array, without exporting its
+/// child view. Nonliteral, recursive and Text items keep the general recipe.
+pub fn expression_primitive_array_length(value : Expression) -> Int? {
+  guard value.body is Array(children) else { return None }
+  for child in children {
+    match child.body {
+      TypedNull => ()
+      Literal(value) =>
+        match value.value {
+          @value.Null | @value.Number(_) | @value.Boolean(_) => ()
+          _ => return None
+        }
+      _ => return None
+    }
+  }
+  Some(children.length())
+}
+
+///|
 pub fn expression_contract(value : Expression) -> @contract.Contract {
   value.contract
 }

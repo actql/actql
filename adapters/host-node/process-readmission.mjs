@@ -8,6 +8,16 @@ import * as runtime from '../../_build/js/release/build/retained_host_bridge/ret
 const defaultLimits = Object.freeze({maxCompletions: 4, maxInputs: 2, maxColumns: 10});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 
+// One authoritative Common quote, not a per-entrance numerical allowance.
+// This immutable recipe caches no facts, currentness or permission.
+const readmissionFactsControls = (() => {
+  if (typeof runtime.retainedReadmissionFactsControlBytes !== 'function') fail('CompletionReadmissionRuntimeUnavailable');
+  const value = runtime.retainedReadmissionFactsControlBytes();
+  if (typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) fail('InvalidCompletionReadmissionConstructionQuote');
+  return value;
+})();
+export function processReadmissionControlBytes() {return readmissionFactsControls;}
+
 export function prepareProcessReadmission(preparation, expectedTask, handoff, context, signal,
   suppliedLimits = defaultLimits) {
   // Installed receiving profile, never inferred from the supplied descriptor.

@@ -15,8 +15,7 @@ pub fn client_effect_model_evidence_copy_capacity(
     bundle_nodes < 1 ||
     bundle_depth < 1 ||
     other_text_units < 0 ||
-    calls < 1 ||
-    calls > 128 {
+    calls < 1 {
     return None
   }
   guard program_artifact_parse_layout(

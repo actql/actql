@@ -20,6 +20,8 @@ import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runti
 import {canonicalText} from './check-canonical-json.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
+import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
+import {observeNativeUnionRows, observeNativeUnionRowPolicy} from './native-cli-union-rows.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 
@@ -450,8 +452,9 @@ export async function observeNativeNumericScale({project, cli, outputDirectory =
 // same installed assets/libraries remain originals; no product default changes
 // and no accepted Host is reconfigured. The actual Owners still decide admission.
 export async function prepareNativeNumericOperator({project, assets, libraries, runtimeWire, maxRows,
-  journalRecordLimit = 8}) {
+  journalRecordLimit = 8, includeSqlResult = false}) {
   assert(Number.isSafeInteger(maxRows) && maxRows > 0 && maxRows <= 100000);
+  assert.equal(typeof includeSqlResult, 'boolean');
   // These are the explicit finite acceptance fixtures, not a product limit.
   assert([1, 2, 8].includes(journalRecordLimit));
   assert(isAbsolute(project) && isAbsolute(libraries.sqlite) && isAbsolute(libraries.crypto));
@@ -496,7 +499,8 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
   const files = {
     'account.json': {version: 'actql-execution-account-config/0.1', account_id: principal,
       entries: [permission('numeric-result', 'result/answer0', ['read']),
-        permission('numeric-run', 'run', ['cancel', 'publish', 'read', 'submit'])]},
+        permission('numeric-run', 'run', ['cancel', 'publish', 'read', 'submit']),
+        ...(includeSqlResult ? [permission('numeric-sql-result', 'result/answer', ['read'])] : [])]},
     'environment.json': environment,
     'run.json': {version: 'actql-config/0.1', native: {run: {
       namespace_id: 'numeric', store_name: 'results', store_authority_cid: storeCid,
@@ -506,7 +510,7 @@ export async function prepareNativeNumericOperator({project, assets, libraries, 
         ordered: assets.ordered, result_policy_cid: policyCid, result_policy_wire: assets['result-policy']},
     }}},
     'read.json': {version: 'actql-config/0.1', native: {result_read: {
-      enabled: true, principal, connection, result_names: ['answer0'], formats: ['jsonl'],
+      enabled: true, principal, connection, result_names: includeSqlResult ? ['answer0', 'answer'] : ['answer0'], formats: ['jsonl'],
       purpose: 'cli-read', sink: 'stdout', data_policy_cids: [policyCid], max_bytes: 16777216,
       max_uses: 1, run_policy_profile_cid: cid(profile),
       run_file: 'run.json', retention_file: 'retention.json', store_file: 'store.json',
@@ -651,7 +655,8 @@ export async function observeNativeNumericOperatorScale({project, cli, assets, l
   // A distinct fresh operator deliberately selects a lower finite row policy.
   // Its original refusal is neither retried nor a reason to weaken enforcement.
   const lowProject = project + '-low-policy';
-  const low = await prepareNativeNumericOperator({project: lowProject, assets, libraries, runtimeWire, maxRows: 1});
+  const low = await prepareNativeNumericOperator({project: lowProject, assets, libraries, runtimeWire,
+    maxRows: 1, includeSqlResult: true});
   const lowCli = (args, code = 0) => cli([...low.configuration, ...args], lowProject, code);
   await lowCli(['adopt', '--initialize-signing', '--json']);
   const small = {version: 'actql/0.1', id: 'numeric-low-policy', stages: [{id: 'main', inputs: {},
@@ -664,8 +669,13 @@ export async function observeNativeNumericOperatorScale({project, cli, assets, l
   // Statically excessive Values rows are RowsExceeded/InvalidInput in the
   // existing checker; this is distinct from an unclassified preparation failure.
   assert.equal(JSON.parse(refused.stderr).code, 'ACTQL_E_PROGRAM_INVALID');
+  const lowUnionRowPolicy = await observeNativeUnionRowPolicy({project: lowProject,
+    cli: (args, cwd, code = 0) => {
+      assert.equal(cwd, lowProject);
+      return lowCli(args, code);
+    }});
   return {...result, operator: {environmentCid: selected.environmentCid, maxRows: selected.maxRows,
-    lowPolicyRows: low.maxRows, lowPolicyRefused: true}};
+    lowPolicyRows: low.maxRows, lowPolicyRefused: true, lowUnionRowPolicy}};
 }
 
 export function nativeResourceShapeFixtures() {
@@ -759,34 +769,9 @@ export async function observeNativeResourceOperatorShapes({project, cli, assets,
   await mkdir(outputDirectory, {mode: 0o700});
   const observations = [];
   for (const fixture of nativeResourceShapeFixtures()) {
-    const inputName = fixture.id + '.json', input = join(project, inputName);
-    const wire = JSON.stringify(fixture.program), inputWireBytes = Buffer.byteLength(wire);
-    if (fixture.id === 'few-long-strings') assert(inputWireBytes > 1048576);
-    const first = join(outputDirectory, fixture.id + '-first.jsonl');
-    const saved = join(outputDirectory, fixture.id + '-saved.jsonl');
-    await writeFile(input, wire, {flag: 'wx', mode: 0o600});
-    const original = JSON.parse((await command(['run', inputName, '--format', 'json', '--json'])).stdout);
-    assert.equal(original.version, 'actql-run-state/0.1');
-    assert.equal(original.status, 'succeeded');
-    assert.equal(typeof original.run_id, 'string'); assert(original.run_id.length > 0);
-    await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', first]);
-    const firstRows = await verifyNativeResourceRows(first, fixture.expectedRows, fixture.key);
-    if (fixture.id === 'few-long-strings') {
-      assert.equal(firstRows.rows, 2); assert(firstRows.wireBytes > 1048576);
-    }
-    await unlink(input);
-    const restored = JSON.parse((await command(['status', original.run_id, '--json'])).stdout);
-    assert.deepEqual([restored.version, restored.run_id, restored.status],
-      [original.version, original.run_id, original.status]);
-    await command(['result', original.run_id, '--result', 'answer0', '--format', 'jsonl', '--output', saved]);
-    const savedRows = await verifyNativeResourceRows(saved, fixture.expectedRows, fixture.key);
-    assert.equal(savedRows.contentSha256, firstRows.contentSha256);
-    if (fixture.id === 'small-input-large-output') {
-      assert(inputWireBytes < 16384); assert(firstRows.wireBytes > 1048576);
-      assert(firstRows.wireBytes > 100 * inputWireBytes);
-    }
-    observations.push({id: fixture.id, runId: original.run_id, inputWireBytes,
-      first: firstRows, saved: savedRows, inputRemovedBeforeSaved: true});
+    observations.push(await observeNativeResourceOperatorShape({project, cli,
+      configuration: selected.configuration, fixture, outputDirectory,
+      verifyRows: verifyNativeResourceRows}));
   }
   return {scope: 'installed-native-json-source-resource-shapes', observations,
     operator: {environmentCid: selected.environmentCid, maxRows: selected.maxRows},
@@ -1033,7 +1018,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       const focused=new URL('./test-execution.mjs',import.meta.url).href;
       const fixture=fileURLToPath(new URL('./test-native-local-cli.test.mjs',import.meta.url));
       await run(process.execPath,['--input-type=module','-e',
-        `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',[${JSON.stringify(fixture)}],{cwd:process.cwd(),expectedTests:12});`]);
+        `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',[${JSON.stringify(fixture)}],{cwd:process.cwd(),expectedTests:13});`]);
     };
     // Node launches only the installed npm entry. Neither it nor the Native child
     // can discover a compiler, a repository executable, a provider or a Node Host.
@@ -1043,6 +1028,15 @@ async function observeInstalledSourceFree(input, observationPath) {
     // to count work. Invalid-input controls retain their original failure path.
     const sourceFreeCli = (args, cwd = project, code = 0) => code === 0 && ['check', 'run', 'sql', 'result'].includes(args[0])
       ? observeNativeSourceFreeCommand({args, cwd, cli, environment: env}) : cli(args, cwd, code);
+    // Bounded phase progress survives in the parent's captured output if its
+    // enclosing watchdog expires. It is not a success or cleanup receipt.
+    const phase = async (name, observe) => {
+      const started = performance.now();
+      console.log(`Native source-free progress: ${name} started`);
+      const value = await observe();
+      console.log(`Native source-free progress: ${name} returned (${Math.round(performance.now() - started)}ms)`);
+      return value;
+    };
     diagnoseFailure = () => observeFreshSubmissionFailureDiagnostic({
       root: join(root, 'submission-failure-diagnostic'), cli, environment: env});
     assert.equal((await cli(['--version'], root)).stdout, `${manifest.cohort.packageVersion}\n`);
@@ -1051,10 +1045,11 @@ async function observeInstalledSourceFree(input, observationPath) {
     const plainInitialization = await observeTimingEnabledPlainInitialization({root, cli, environment: env});
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
-    const defaultNumeric = await observeNativeDefaultNumericQueries({project, cli: sourceFreeCli});
-    const defaultUnionMetadata = await observeNativeDefaultUnionMetadata({root, cli: sourceFreeCli});
-    const fileSourceNumeric = await observeNativeFileSourceNumeric({root, cli});
-    const fileTaskBoundary = await observeNativeFileTaskBoundary({root, cli, environment: env});
+    const defaultNumeric = await phase('default-numeric', () => observeNativeDefaultNumericQueries({project, cli: sourceFreeCli}));
+    const defaultUnionMetadata = await phase('union-metadata', () => observeNativeDefaultUnionMetadata({root, cli: sourceFreeCli}));
+    const defaultUnionRows = await phase('union-rows', () => observeNativeUnionRows({root, cli: sourceFreeCli}));
+    const fileSourceNumeric = await phase('file-numeric', () => observeNativeFileSourceNumeric({root, cli}));
+    const fileTaskBoundary = await phase('file-task-boundary', () => observeNativeFileTaskBoundary({root, cli, environment: env}));
     await writeFile(join(project, 'query.sql'), 'SELECT 1 AS id\n');
     const help = (await cli(['--help'])).stdout;
     assert.match(help, /Usage: actql/u);
@@ -1116,21 +1111,21 @@ async function observeInstalledSourceFree(input, observationPath) {
     }
     const numericLibraries = Object.fromEntries(localRuntime.libraries.map(item =>
       [item.role, join(platformRoot, item.path)]));
-    const journalExhaustion = await observeNativeJournalExhaustion({project: join(root, 'journal-exhaustion'),
+    const journalExhaustion = await phase('journal-exhaustion', async () => observeNativeJournalExhaustion({project: join(root, 'journal-exhaustion'),
       cli, assets: numericAssets, libraries: numericLibraries, environment: env,
-      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
-    const numericScale = await observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')}));
+    const numericScale = await phase('numeric-scale', async () => observeNativeNumericOperatorScale({project: join(root, 'numeric-operator'),
       cli, assets: numericAssets, libraries: numericLibraries,
-      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
-    const resourceShapes = await observeNativeResourceOperatorShapes({project: join(root, 'resource-operator'),
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')}));
+    const resourceShapes = await phase('resource-shapes', async () => observeNativeResourceOperatorShapes({project: join(root, 'resource-operator'),
       cli, assets: numericAssets, libraries: numericLibraries,
-      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')});
+      runtimeWire: await readFile(join(platformRoot, artifact.localRuntime.path), 'utf8')}));
     receipt = {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, node: process.version, glibc: glibc ?? null,
       artifact, scriptSha256: createHash('sha256').update(await readFile(fileURLToPath(import.meta.url))).digest('hex'),
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
-      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, fileSourceNumeric, fileTaskBoundary,
+      mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, defaultUnionRows, fileSourceNumeric, fileTaskBoundary,
       journalExhaustion, numericScale, resourceShapes,
       sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,
@@ -1224,6 +1219,10 @@ export async function acceptInstalledSourceFree(input) {
   const receiptPath = join(directory, `source-free-install-${stamp}.json`);
   await runCleanupConditionedConsumer({command: process.execPath,
     args: [fileURLToPath(import.meta.url), '--consumer', directory, observationPath],
+    // This encloses the expanded serial functional suite, including its
+    // installation and ingress controls. Individual commands retain 180s.
+    // It does not change the separate Native approval performance criteria.
+    timeout: 1_200_000,
     observationPath, receiptPath, failurePath: join(directory, `source-free-install-failed-${stamp}.json`),
     expected: {version: 'actql-native-cli-install-acceptance/0.1', scope: 'source-free-local',
       cliSourceSha: manifest.sourceSha, platform, artifact,

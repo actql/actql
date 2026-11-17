@@ -103,6 +103,26 @@ test "array constructors preserve independent logical work under quantum and dra
 test "array constructor rejects workspace before copying or appending" {
   let source =
     #|{"array":[{"literal":2},{"literal":1}]}
+  assert_eq(@lower.expression_primitive_array_length(lowered(source)), Some(2))
+  assert_eq(
+    @lower.expression_primitive_array_length(
+      lowered(
+        (
+          #|{"array":[{"literal":true},{"literal":null}]}
+        ),
+      ),
+    ),
+    Some(2),
+  )
+  for
+    unsupported in [
+      "{\"array\":[{\"literal\":\"x\"}]}", "{\"array\":[{\"array\":[{\"literal\":0}]}]}",
+      "{\"array\":[{\"add\":[{\"literal\":1},{\"literal\":2}]}]}",
+    ] {
+    assert_true(
+      @lower.expression_primitive_array_length(lowered(unsupported)) is None,
+    )
+  }
   // Two retained views, continuation and builder, two element/root pairs.
   for slots in [8, 7, 1] {
     let workspace = row_workspace(slots)

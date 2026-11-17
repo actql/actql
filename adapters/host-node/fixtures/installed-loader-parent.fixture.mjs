@@ -1,15 +1,26 @@
 // Real initial Resource and Host services for public installed-loader tests.
 // This owner is retained before open(); no scope, constructor or ACK is mocked.
 import assert from 'node:assert/strict';
-import {openHostInitializationPreparation, closeHostInitializationPreparation}
-  from '../../local-node/request-preparation-adapter.mjs';
-import {createInstalledHostServices, retireInstalledSourceInitialization}
+import {realpathSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+import {createInstalledHostServices, retireInstalledSourceInitialization, closeInstalledAccountConstruction}
   from '../installed-host-services.mjs';
 
-export function createInstalledLoaderParent({root, principalId = 'operator', moon}) {
+// A retained normal runtime has its own physical Resource module instance.
+// Equal source-side bytes cannot open that runtime's original parent ports.
+const preparationUrl = process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME === undefined
+  ? new URL('../../local-node/request-preparation-adapter.mjs', import.meta.url)
+  : new URL('../../../../../adapters/local-node/request-preparation-adapter.mjs',
+    pathToFileURL(realpathSync(process.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME)));
+const {openHostInitializationPreparation, closeHostInitializationPreparation} = await import(preparationUrl.href);
+
+export function createInstalledLoaderParent({root, principalId = 'operator', moon, assertCurrent}) {
   const state = {}, sources = new Set(), failures = new Set();
   let services, active = true, childrenPending = false, opened = false, closed = false;
-  const current = () => assert.equal(active, true, 'original installation parent remains current');
+  const current = () => {
+    assert.equal(active, true, 'original installation parent remains current');
+    assertCurrent?.();
+  };
   return Object.freeze({
     get services() {return services;},
     open() {
@@ -19,7 +30,7 @@ export function createInstalledLoaderParent({root, principalId = 'operator', moo
       const initialPreparation = openHostInitializationPreparation(state, moon, input,
         current, () => childrenPending);
       services = createInstalledHostServices({root, principalId, moon,
-        initialPreparation, assertCurrent: current});
+        initialPreparation, assertCurrent: current, accountCurrent: current});
       childrenPending = true;
     },
     async load(factory, path, options) {
@@ -50,7 +61,10 @@ export function createInstalledLoaderParent({root, principalId = 'operator', moo
         try {await source.close();} catch (error) {errors.push(error);}
       }
       if (errors.length) throw new AggregateError(errors, 'InstalledLoaderChildrenCleanupPending');
-      if (services !== undefined) assert.equal(retireInstalledSourceInitialization(services), true);
+      if (services !== undefined) {
+        assert.equal(await closeInstalledAccountConstruction(services), true);
+        assert.equal(retireInstalledSourceInitialization(services), true);
+      }
       childrenPending = false;
       if (opened) closeHostInitializationPreparation(state);
       active = false; closed = true;

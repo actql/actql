@@ -3,23 +3,26 @@
 pub const ACCOUNT_CONFIG_VERSION : String = "actql-execution-account-config/0.1"
 
 ///|
-/// Largest encoded configuration accepted by the JSON decoder (UTF-8 bytes).
+/// Historical wire-byte boundary, retained as compatibility DATA. Selected
+/// wire admission derives its finite bounds from the SAME original bytes.
 pub const MAX_CONFIG_INPUT_BYTES : Int = 1048576
 
 ///|
-/// Largest number of entries in one account configuration.
+/// Historical entry-count boundary, retained as compatibility DATA. Admission
+/// no longer uses a separate per-configuration entry-count ceiling.
 pub const MAX_ENTRIES : Int = 1024
 
 ///|
-/// Largest number of exclusion boxes attached to one entry.
+/// Historical exclusion-count boundary, retained as compatibility DATA.
 pub const MAX_EXCLUSIONS_PER_ENTRY : Int = 64
 
 ///|
-/// Largest number of named values in one `any_of` selector.
+/// Historical selector-count boundary, retained as compatibility DATA.
 pub const MAX_SELECTOR_VALUES : Int = 256
 
 ///|
-/// Largest UTF-16 length of an identifier or selector value.
+/// Historical identifier-length boundary, retained as compatibility DATA.
+/// Identifier admission requires nonempty NFC/LF text and exact equality.
 pub const MAX_NAME_LENGTH : Int = 512
 
 ///|

@@ -269,6 +269,13 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
       capacity, input,
     ).unwrap()
     let bytes = program_check_data_extent_cost(parent.program_data.unwrap()).unwrap()
+    let providers = @local.local_module_provider_field_inventory(
+      @strategy.graph_task_count(
+        @strategy.checked_effect_computation_graph(
+          @publication_host.prepared_client_effect_computation_graph(prepared),
+        ),
+      ),
+    ).unwrap()
     let phase = installed_effect_control_phase_quote_capacity()
     // The existing generic Plan constructor also backs its checked-node proof
     // before entry. The previous data-only fixture omitted those live frames.
@@ -283,14 +290,32 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     }).unwrap()
+    let (member_retained, member_execution) = installed_effect_member_selection_layout(
+      1,
+    ).unwrap()
+    // The same no-Model Plan still retains its empty selection field,
+    // early publication receipt and keyed-plan field before constructor entry.
+    let (model_retained, model_execution) = installed_model_selection_layout(0).unwrap()
+    let receipt = installed_effect_early_publication_receipt_capacity()
+    let keyed_field = installed_effect_keyed_plan_field_bytes()
     let retained = bytes +
+      providers.retained_bytes +
       proof_retained +
       direct_selector_field +
+      member_retained +
+      model_retained +
+      @execution.execution_capacity_retained_bytes(receipt) +
+      keyed_field +
       @execution.execution_capacity_retained_bytes(phase)
     let execution = bytes +
+      providers.execution_bytes +
       proof_retained +
       proof_scratch +
       direct_selector_field +
+      member_execution +
+      model_execution +
+      @execution.execution_capacity_execution_bytes(receipt) +
+      keyed_field +
       @execution.execution_capacity_execution_bytes(phase)
     let limits = @resources.ledger_limits(parent.ledger)
     let block = @resources.reserve_capacity(

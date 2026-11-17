@@ -1590,6 +1590,40 @@ pub fn quiesce_installed_managed_run(
     value.effect_operation_controls is Some(_) {
     if value.effect_operation_controls is Some(control) &&
       value.ledger is Some(ledger) {
+      // A failed pre-Host pin may never have returned to Node's input owner.
+      // Drain that SAME original pin prefix before releasing its controls.
+      if control.dependency_inputs is Some(inputs) {
+        @strategy.release_captured_effect_inputs(inputs) |> ignore
+        if !@strategy.captured_effect_inputs_closed(inputs) {
+          return Err(CleanupPending)
+        }
+        control.dependency_inputs = None
+      }
+      // Returned Source/Result children have cut their aliases above. Cut
+      // this control's own immutable DATA aliases before returning capacity.
+      if control.dependency_work is Some(work) {
+        if @resources.finish_preparation_phase_work_continuation64(work)
+          is Err(_) {
+          return Err(ForeignOriginal)
+        }
+        control.dependency_work = None
+      }
+      control.dependency_static.clear()
+      control.dependency_inventory = None
+      control.dependency_inventory_geometry = None
+      if control.dependency_capture is Some(issuer) {
+        issuer.cancel()
+      }
+      control.dependency_capture = None
+      control.dependency_capture_slots = None
+      control.dependency_group = None
+      // Closed Effect issuer references are borrowed immutable DATA on this
+      // SAME control prefix. Cut them after child ACKs and before returning
+      // that backing. The spent invocation fence deliberately stays closed.
+      if value.preparation is Some(PlannedEffectManaged(_, _)) {
+        value.publication_definition = None
+        value.publication_invocation = None
+      }
       match @resources.settle_capacity(ledger, control.reservation) {
         Ok(_) => {
           control.coordinates.clear()

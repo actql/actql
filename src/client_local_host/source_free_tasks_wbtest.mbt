@@ -63,6 +63,17 @@ test "the original eight-task public UNION quotes every original input and execu
     assets.ordered,
     requirements=Some(original),
   ).unwrap()
+  assert_true(
+    @host_driver.compute_host_has_estimates(
+      @builtin.configured_host_runtime(setup),
+    ),
+  )
+  assert_eq(
+    @strategy.strategy_history_count(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    ),
+    0,
+  )
   let execution = match
     execute_source_free_local_tasks_guarded(setup, 64, 100000, () => true) {
     Ok(value) => value

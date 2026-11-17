@@ -46,6 +46,11 @@ test "selected Values row limit preserves checker identity and other budgets" {
   assert_eq(limits.max_rows, 121)
   assert_eq(limits.max_cells, standard.max_cells)
   assert_eq(limits.max_bindings, standard.max_bindings)
+  assert_eq(
+    standard.max_bindings,
+    client_standard_values_sequence_limits().max_bindings +
+    prepared.sequence_preparation_demand.work_used,
+  )
   assert_eq(limits.expressions, standard.expressions)
   assert_eq(
     prepared_client_identity(selected),

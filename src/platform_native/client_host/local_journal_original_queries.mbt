@@ -120,11 +120,20 @@ fn NativeLocalJournalReadQueries::access(
       self.query(() => self.database.fence_transactions()) |> ignore
     },
     read: (table_name, key) => {
-      if table_name == "client_submitted_intents" || table_name == "client_runs" {
+      if table_name == "client_submitted_intents" ||
+        table_name == "client_runs" ||
+        table_name == "client_task_run_materials" {
         let header = match
           self.query(() => self.database.observe_body_extent(table_name, key)) {
           Ok(Ok(value)) => value
           Ok(Err(issue)) | Err(issue) => return Err(issue)
+        }
+        // The original task-material codec slices UTF-8 Bytes at this exact
+        // physical chunk bound. Observe and fund those actual bytes before
+        // either adapter or Moon copy; no larger row policy is selected.
+        if table_name == "client_task_run_materials" &&
+          header.body_bytes > 131072L {
+          return Err(@sqlite.BodyTooLarge)
         }
         if self.prepare_submitted_copy(header.body_bytes) is Err(_) {
           return Err(@sqlite.Busy)

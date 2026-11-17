@@ -163,10 +163,15 @@ test "captured Event suffix uses original record schemas without a closed Source
   assert_eq(plan.demand_inventory.unwrap().closed_rows, None)
   assert_eq(plan.admitted_rows, 100)
   assert_eq(plan.execution.rows.max_rows, 100)
-  assert_eq(plan.values.max_text_bytes, 500000)
+  assert_eq(plan.values.max_text_bytes, 20000000)
   assert_true(demand.nodes < client_local_general_value_nodes())
   assert_eq(plan.measurement.max_nodes, 2 * demand.nodes)
-  assert_eq(plan.measurement.max_bytes, 500000)
+  // One row's complete JSON leaves can spend the original finite value work
+  // on Text/name bytes. Escape expansion and every leaf's syntax coexist.
+  assert_eq(
+    plan.measurement.max_bytes,
+    30 + 6 * 20000000 + 3 + 29 * demand.nodes,
+  )
   assert_eq(plan.measurement.max_depth, 100)
   assert_true(client_local_capacity_plan_matches(plan, tail, 100))
   // The actual configured per-task reservations still coexist. No max-only
@@ -192,9 +197,28 @@ test "captured Event suffix uses original record schemas without a closed Source
     assets.ordered,
     retained_output=true,
     provider_factory=_ => [],
+    runtime_admission=true,
   ).unwrap()
-  assert_true(capture.limits.execution_bytes <= 536870912L)
-  assert_true(capture.limits.retained_bytes <= 536870912L)
+  // This legacy quote includes each configured future Task maximum plus
+  // the separately coheld Source and occurrence selector. It reserves none
+  // of those maxima; operational callers use their existing admitted Ledger.
+  // One coordinate:4H/6R/5W; two retained Array backings:4H/22R/4W.
+  let selector = 16L * 8L + 8L * 28L + 8L * 9L
+  let mut task_retained = 0L
+  let mut task_execution = 0L
+  for task in 1..<@strategy.graph_task_count(capture.graph) {
+    let envelope = @local_driver.local_dispatch_preparation_task_capacity(
+      capture.configuration.dispatch,
+      task,
+    ).unwrap()
+    task_retained += envelope.retained_bytes
+    task_execution += envelope.execution_bytes
+  }
+  assert_eq(capture.limits.execution_bytes, task_execution + selector)
+  assert_eq(
+    capture.limits.retained_bytes,
+    task_retained + capacity.retained_bytes + selector,
+  )
   assert_eq(capture.captures.length(), 1)
   assert_eq(@strategy.graph_result_count(graph), 2)
 }
@@ -266,7 +290,7 @@ test "Signed64 record cells retain one value node without a numeric wire proof" 
     max_name_bytes=2,
   ).unwrap()
   assert_true(client_local_scalar_schema_width(schema) is None)
-  assert_eq(client_local_json_schema_nodes(schema, 1, 1), Some((2L, 0)))
+  assert_eq(client_local_json_schema_nodes(schema, 1, 1), Some((2L, 0, false)))
 }
 
 ///|
@@ -330,12 +354,14 @@ test "two captured Sources retain every Event task under the original execution 
     assets.ordered,
     retained_output=true,
     provider_factory=_ => [],
+    runtime_admission=true,
   ).unwrap()
   let plan = capture.capacity_plan
   println(
     "MULTI_EVENT tasks=\{@strategy.graph_task_count(capture.graph)} nodes=\{plan.values.max_nodes} retained=\{capture.limits.retained_bytes} execution=\{capture.limits.execution_bytes} proof=\{plan.value_node_demand is Some(_)}",
   )
   let mut all_tasks = 0L
+  let mut all_retained = 0L
   let mut largest_task = 0L
   for task in 2..<@strategy.graph_task_count(capture.graph) {
     let envelope = @local_driver.local_dispatch_preparation_task_capacity(
@@ -343,10 +369,11 @@ test "two captured Sources retain every Event task under the original execution 
       task,
     ).unwrap()
     all_tasks += envelope.execution_bytes
+    all_retained += envelope.retained_bytes
     largest_task = Int64::max(largest_task, envelope.execution_bytes)
   }
-  // Every original reservation survives with its downstream borrowers.
-  // A maximum-only fold would pass the ceiling but lose those obligations.
+  // Preserve each configured future envelope without max-only folding.
+  // This quote is not the operational Run's actual resource reservation.
   assert_eq(@strategy.graph_task_count(capture.graph), 10)
   assert_eq(@strategy.graph_result_count(capture.graph), 2)
   // Two Direct occurrences also retain owner/inventory/Some/coordinates
@@ -359,14 +386,19 @@ test "two captured Sources retain every Event task under the original execution 
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
+  // The ordinary runtime admits each actual Task on the same finite parent;
+  // the full future provider maxima are not all reserved during preparation.
   assert_eq(capture.limits.execution_bytes, all_tasks + selector)
   assert_true(all_tasks > largest_task)
   assert_eq(
     plan.measurement.max_nodes,
     2 * plan.value_node_demand.unwrap().nodes,
   )
-  assert_eq(plan.measurement.max_bytes, 500000)
-  assert_eq(plan.values.max_text_bytes, 500000)
+  assert_eq(
+    plan.measurement.max_bytes,
+    30 + 6 * 20000000 + 3 + 29 * plan.value_node_demand.unwrap().nodes,
+  )
+  assert_eq(plan.values.max_text_bytes, 20000000)
   assert_eq(plan.execution.rows.max_rows, 100)
   // Nine original data edges: seven row transfers and two Carrier views.
   // Carrier views never construct the row wire importer at runtime.
@@ -374,9 +406,14 @@ test "two captured Sources retain every Event task under the original execution 
     @local_driver.local_dispatch_preparation_transfer_bytes(
       capture.configuration.dispatch,
     ),
-    Some(7000000L),
+    Some(7L * plan.imports.wire.max_bytes.to_int64()),
   )
   assert_eq(capture.captures.length(), 2)
-  assert_true(capture.limits.execution_bytes <= 536870912L)
-  assert_true(capture.limits.retained_bytes <= 536870912L)
+  assert_eq(
+    capture.limits.retained_bytes,
+    all_retained +
+    capacities[0].retained_bytes +
+    capacities[1].retained_bytes +
+    selector,
+  )
 }

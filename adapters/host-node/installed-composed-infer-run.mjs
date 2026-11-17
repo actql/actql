@@ -4,7 +4,8 @@ import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runCapturedInternalStrategy} from './entry.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
-import {openNodeComposedInferProvider, startCompleteInferObservation} from './infer-operation.mjs';
+import {openNodeComposedInferProvider, startCompleteInferObservation,
+  fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding} from './infer-operation.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {inferTaskPublicationPlan} from './local-values-plan.mjs';
 import {preparePrivatePublicationHolding} from '../host-common/private-publication-holding.mjs';
@@ -79,9 +80,12 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     // before Local can transfer that component's completed output ownership.
     if (children.some(original => original.completed !== true)) return true;
     let calls = 0;
+    let allFunded = true;
     for (const original of children) {
       const count = original.capture.completedCallCount();
-      if (!Number.isSafeInteger(count) || count < 0 || count > 128 - calls) {
+      allFunded &&= fundedInferCaptureInventoryCount(original.capture.completedInventoryReceipt?.(), original.operation) === count;
+      if (!Number.isSafeInteger(count) || count < 0 || count > 2147483645 - calls ||
+          (!allFunded && count > 128 - calls)) {
         throw new Error('InstalledComposedInferOriginalObservationUnavailable');
       }
       calls += count;
@@ -228,7 +232,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     child.token = await modelController.prime(child.record);
     assertCurrent();
     child.restoredInput = {token: child.token, snapshot: child.token.snapshot,
-      sendMask: modelController.state(child.record.inventory).slots.map(slot => slot.state === 'Unsent'),
+      sendSlots: () => modelController.state(child.record.inventory).slots,
       savedScope: modelController.savedScope(plan, preparedProgram, child.selection, child.token)};
   }
   if (matched.size !== records.length) throw new Error('ModelResumeForeignInventory');
@@ -529,6 +533,8 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     await projectInferEvidence({configuration: inferEvidence, moon, control, preparedProgram, plan,
       selected: child.selection, operation: child.operation, captureOwner: child.capture,
       continuation: child.continuation, authorityScopeCid,
+      copyFunding: originalInferEvidenceCopyFunding({moon, funding: publicationOwner ?? child.operation,
+        operation: child.operation, legacy: false, current: () => {assertCurrent(); signal.throwIfAborted();}}),
       retainCopy(copy) {if (child.copy?.cleanupPending()) throw new Error('InferEvidenceCopyAlreadyRetained'); child.copy = copy;}});
   }
 }

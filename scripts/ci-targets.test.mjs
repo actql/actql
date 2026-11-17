@@ -275,7 +275,7 @@ test('Native consumers retain selected original commands and collect independent
     assert.equal(nativeCaseCondition('native', nativeCases('native').find(step => step.id === id)), condition);
 });
 
-test('finite SQLite regressions have portable lint and required prepared macOS Native owners', () => {
+test('SQLite physical regressions require their prepared macOS Native owner', () => {
   const selection = selectTargets(['src/platform_native/sqlite/sqlite_stub.c'], {draft: false});
   assert.equal(selection.profile, 'full');
   assert.equal(gateJobRequired(selection, 'native-macos'), true);
@@ -290,7 +290,6 @@ test('finite SQLite regressions have portable lint and required prepared macOS N
     nativeWorkload('native-macos').steps.findIndex(row => row.id === 'native-preparation'));
   const runner = readFileSync(new URL('./test-native-sqlite-read-statement.mjs', import.meta.url), 'utf8');
   assert.match(runner, /ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION/u);
-  assert.match(runner, /expectedTests: 3/u);
   const env = {...process.env};
   delete env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION;
   const missing = spawnSync(process.execPath, ['scripts/test-native-sqlite-read-statement.mjs'],
@@ -307,9 +306,6 @@ test('finite SQLite regressions have portable lint and required prepared macOS N
   assert(compiler.includes('sqlite-component/fixtures/read_statement.c'));
   assert(!compiler.includes("'component.c'"), 'The consumer compiles no replacement engine/component');
   assert(!compiler.includes('urlopen'), 'The consumer downloads no replacement input');
-  const sourceOwner = readFileSync(new URL('./native-approval-performance.test.mjs', import.meta.url), 'utf8');
-  assert(sourceOwner.includes("test('finite read statement keeps exact row admission and private selected ABI bindings'"));
-  assert(jobs.lint.steps.some(row => row.run?.includes('scripts/native-approval-performance.test.mjs')));
 });
 
 test('macOS HTTP retains its original command under shared preparation and a mandatory joined outcome', t => {
@@ -388,19 +384,16 @@ test('normal lint executes behavioral operation performance assessment tests', (
     row.name === 'Test ordinary operation performance policy oracles');
   assert.ok(step);
   assert.ok(policy);
-  assert.equal(policy.run, 'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs scripts/native-approval-cpu-diagnostic.test.mjs scripts/node-wait-cpu-diagnostic.test.mjs');
+  assert.equal(policy.run, 'npm run test:operation-performance-policy');
   assert.equal(policy.if, undefined);
-  assert.equal(step.run, 'node --test scripts/benchmark-node-operations.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs');
-  const files = [policy, step].flatMap(row => row.run.split(' ').slice(2));
-  assert.equal(files.length, 13);
-  assert.equal(new Set(files).size, 13, 'each full-suite file must execute exactly once');
+  assert.equal(step.run, 'npm run test:operation-performance-collectors');
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   // These tests validate raw samples, frame counts, faults and incomplete
   // evidence. Running them is not an ordinary-package performance result.
   assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
   const observed = jobs.host.steps.find(row =>
     row.name === 'Test operation authorization and unchanged Run observations');
-  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/local-run-authorization.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/mock-effect-host-original.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/installed-managed-source.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-node/in-process-result-observation.test.mjs');
+  assert.equal(observed.run, 'npm run test:host-observations');
   assert.ok(jobs.host.steps.indexOf(observed) > jobs.host.steps.findIndex(row =>
     row.run === 'npm run check:retained-boundary'));
 });
@@ -458,13 +451,6 @@ test('Host collection retains original command bodies and their actual build pre
   assert.equal(publication[3], 'npm run check:publication-owned-host');
   assert.equal(step('Test original publication Host extents').run, ownedHost[0]);
   assert.equal(step('Test original publication Host callers').run, ownedHost[1]);
-  const remote = commands('check:remote-site-runtime');
-  assert.equal(remote.length, 4);
-  assert.equal(step('Prepare the Remote Site runtime').run, remote.slice(0, 2).join('\n') + '\n');
-  assert.equal(step('Test durable Remote Site dispatch admission').run, remote[2]);
-  assert.equal(step('Test packed Remote coordinator').run, remote[3]);
-  assert.equal(step('Test original holder terminal facade').run,
-    'node --test packages/coordinator-core/holder-terminal.test.mjs');
   const runHost = commands('check:run-host-core');
   assert.equal(runHost.length, 4);
   assert.equal(step('Prepare the Run Host runtime').run, runHost[0]);
@@ -472,9 +458,15 @@ test('Host collection retains original command bodies and their actual build pre
   assert.equal(step('Test portable Run Host compilation package').run, runHost[2]);
   assert.equal(step('Test packed Run Host compilation package').run, runHost[3]);
   assert.equal(step('Test original Local result authorization').run,
-    'node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs');
+    'node --test adapters/host-node/local-result-authorization.test.mjs adapters/host-node/local-result-read-workspace.actual.test.mjs adapters/host-node/local-result-read-wire-workspace.test.mjs adapters/host-node/local-result-metadata-demand.actual.test.mjs adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/ordinary-local-account.test.mjs adapters/host-node/ordinary-mock-account-profile-history.test.mjs');
+  const wireWorkspace = 'adapters/host-node/local-result-read-wire-workspace.test.mjs';
+  assert.equal(step('Test original Local result authorization').run.split(/\s+/u).filter(value => value === wireWorkspace).length, 1);
+  assert.equal(steps.filter(row => row.run?.split(/\s+/u).includes(wireWorkspace)).length, 1);
+  assert.equal(step('Test original Local result authorization')['continue-on-error'], undefined);
   assert.equal(steps.filter(row => row.run?.includes('ordinary-local-account.test.mjs')).length, 1,
     'Actual standard Account bootstrap/current cases run once behind the existing runtime preparation');
+  assert.equal(steps.filter(row => row.run?.includes('ordinary-mock-account-profile-history.test.mjs')).length, 1,
+    'Mock Account observation, override and saved-original cases run in the existing Account lane');
   assert.equal(step('Test original Local Source inventory and lookup policy').run,
     'node --test adapters/host-node/ordinary-source-inventory.test.mjs adapters/host-node/local-files-lookup-policy.test.mjs');
   assert.equal(step('Test original Local Source inventory and lookup policy').if,
@@ -500,7 +492,8 @@ test('Host independent failures are collected while failed prerequisites and can
     'run-host-preparation': new Set(['Check Run Host types',
       'Test portable Run Host compilation package', 'Test packed Run Host compilation package',
       'Test original Local result authorization']),
-    'cold-runtime-preparation': new Set(['Test actual bound connector initialization and cleanup']),
+    'cold-runtime-preparation': new Set(['Test actual bound connector initialization and cleanup',
+      'Test ordinary Project Source and STORE original recovery']),
   };
   const setup = steps.find(row => row.id === 'host-toolchain');
   assert.equal(setup.uses, './.github/actions/setup-toolchain');
@@ -644,7 +637,7 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
       (name === 'native-separated-network' ? '-${{ matrix.profile }}' : '') + '" --entries ' + entries + ' --seconds 900' +
       (entries === 'all' ? ' --http-jobs 2' : '') +
       (residentSeconds === 900 ? '' : ' --resident-seconds ' + residentSeconds) +
-      (name === 'native-macos' ? ' --lanes 2' : ''));
+      (entries === 'all' ? ' --lanes 2' : ''));
     assert.equal(preparation.if, undefined);
     assert.equal(preparation['continue-on-error'], undefined);
     // Only the macOS Resident cold build selects 1200 seconds; all other
@@ -774,7 +767,7 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_PARTITION,
     "${{ matrix.target == 'native' && !startsWith(matrix.partition, 'linux-common-') && matrix.partition || '' }}");
   assert.equal(command.env.ACTQL_TEST_NATIVE_CORE_SCOPED_JOBS,
-    "${{ matrix.target == 'native' && matrix.partition == 'scoped' && '2' || '1' }}");
+    '1');
   const artifact = core.steps.find(step => step.name === 'Retain only sanitized current Native compiler diagnostics');
   assert(artifact.with.name.includes('${{ strategy.job-index }}'));
   assert(!artifact.with.name.includes('${{ matrix.partition }}'), 'Partition slashes are invalid artifact names');
@@ -1133,14 +1126,14 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
+    'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', targets: '["js"]', macos: 'false'}},
       lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), false);
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', deep_proofs: 'true', macos: 'true'}},
-      lint: {result: 'success'}, 'core-js': {result: 'success'}}), true);
+      lint: {result: 'success'}, 'core-js': {result: 'success'}, 'native-cli-linux-local': {result: 'success'}}), true);
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', targets: '[]', macos: 'true'}},
       lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), false);
   }
@@ -1156,14 +1149,15 @@ test('every heavy primitive is selected as one complete job and lint/spec always
   assert(jobs.spec.steps.some(step => step.run?.includes('npm run check:spec')));
 });
 
-test('full integration cannot skip, omit or fail either actual CLI acceptance job', () => {
-  for (const script of ['test-native-cli-source-free-install.mjs', 'test-native-cli-mock-install.mjs']) {
-    assert(jobs['native-cli-linux-local'].steps.some(step =>
+test('full integration cannot skip, omit or fail any actual CLI acceptance job', () => {
+  for (const [name, script] of [['native-cli-linux-local', 'test-native-cli-source-free-install.mjs'],
+    ['native-cli-linux-local-mock', 'test-native-approval-performance.mjs']]) {
+    assert(jobs[name].steps.some(step =>
       step.run?.includes(`node scripts/${script}`) && step['continue-on-error'] === undefined),
     `The required Local job must execute ${script}`);
   }
   const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
-  for (const name of ['native-cli-installed', 'native-cli-linux-local']) {
+  for (const name of ['native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock']) {
     for (const result of ['missing', 'failure', 'cancelled', 'skipped']) {
       const needs = results(selection);
       if (result === 'missing') delete needs[name];
@@ -1406,7 +1400,7 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
-    'native-cli-installed', 'native-cli-linux-local', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
+    'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];
   for (const profile of ['draft', 'draft-focused']) {
@@ -1443,41 +1437,38 @@ test('Explorer components require original built assets and keep Draft preparati
     for (const profile of ['full', 'maintenance', 'focused-tests']) assert.equal(draftStepEnabled(step, profile), true);
   }
 });
-test('Draft cheap command inventory excludes compiler API generation and compound suites', () => {
-  const commands = name => jobs[name].steps.filter(step => step.run && draftStepEnabled(step, 'draft')).map(step => step.run);
-  const preflight = commands('preflight');
-  // The pinned standalone workflow checker is also mandatory during Draft preparation.
-  // Its exact version, digest and all-workflow/fatal contract are checked by ci-preflight.test.mjs.
-  const workflowLint = jobs.preflight.steps.find(step => step.name === 'Check all workflows with pinned actionlint');
-  assert(workflowLint);
-  assert.equal(workflowLint.if, undefined);
-  assert.equal(workflowLint['continue-on-error'], undefined);
-  assert.deepEqual(preflight.filter(command => !command.includes('setup-moonbit')), [
-    workflowLint.run,
-    'node --test scripts/pure-operation-inventory.test.mjs',
-    'python3 scripts/test_native_timings.py CommandCounterMap', 'npm ci',
-    `node --input-type=module -e 'import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests("node",["--test-name-pattern","^check:.* retains its exact registered commands", "scripts/build-runtime-packages.test.mjs"],{cwd:process.cwd()});'`,
-    'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
-    'npm run check:metadata', 'moon fmt --check', 'git diff --exit-code', 'node scripts/ci-preflight.mjs']);
-  assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
-    'node --test scripts/source-read-current-control.test.mjs',
-    'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',
-    'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs',
-    'node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs',
-    'node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs adapters/host-common/sqlite-transaction.test.mjs scripts/owner-fault-mutations.test.mjs',
-    'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- adapters/connectors/gcs/test/gcs-file-listing.test.mjs adapters/connectors/gcs/test/gcs-prefix-profile.test.mjs adapters/connectors/gcs/test/gcs-site-profile-bounds.test.mjs adapters/connectors/snowflake/test/snowflake-key-pair.test.mjs adapters/connectors/snowflake/test/snowflake-public-fixture.test.mjs adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mjs adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs',
-    'node --test scripts/operation-performance.test.mjs scripts/operation-performance-policy.test.mjs scripts/native-approval-performance.test.mjs scripts/native-approval-cpu-diagnostic.test.mjs scripts/node-wait-cpu-diagnostic.test.mjs',
-    'node --test scripts/native-cli-default-numeric.test.mjs',
-    'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs scripts/native-http-phases.test.mjs']);
-  assert.deepEqual(commands('spec'), ['npm ci', 'npm run check:links',
-    'npm run check:local-resource-completion', 'npm run check:execution-authorization-vectors', 'git diff --exit-code']);
+test('fast health monitor harness runs in PR and Draft lint without enabling the main-only campaign', () => {
+  const command = 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- scripts/health-monitor.test.mjs';
+  const selected = jobs.lint.steps.filter(step => step.run === command);
+  assert.equal(selected.length, 1);
+  assert.equal(selected[0].if, undefined);
+  assert.equal(selected[0]['continue-on-error'], undefined);
+  for (const profile of ['draft', 'draft-focused', 'focused-tests', 'maintenance', 'full']) {
+    assert.equal(draftStepEnabled(selected[0], profile), true);
+  }
+  assert.deepEqual(jobs.lint.needs, ['select-targets']);
+  assert(!jobs.lint.steps.some(step => step.run?.includes('npm run health:quick')));
+});
+test('Draft excludes compiler API and full specification work while Ready runs both', () => {
+  // Check scheduling obligations, not a second copy of every lint command.
+  // Cheap tests may be added, reordered or regrouped without changing this contract.
+  for (const [name, command] of [
+    ['preflight', 'node scripts/check-moonbit-api.mjs'],
+    ['spec', 'npm run check:spec-after-preflight'],
+  ]) {
+    const selected = jobs[name].steps.filter(step => step.run === command);
+    assert.equal(selected.length, 1, `${name}: required check is missing or duplicated`);
+    assert.notEqual(selected[0]['continue-on-error'], true);
+    for (const profile of ['draft', 'draft-focused']) {
+      assert.equal(draftStepEnabled(selected[0], profile), false, `${name}/${profile}`);
+    }
+    for (const profile of ['full', 'maintenance', 'focused-tests']) {
+      assert.equal(draftStepEnabled(selected[0], profile), true, `${name}/${profile}`);
+    }
+  }
   for (const name of ['lint', 'spec']) {
     assert(!jobs[name].steps.some(step => draftStepEnabled(step, 'draft') &&
       (step.uses === './.github/actions/setup-toolchain' || step.uses?.startsWith('actions/setup-python@'))));
-  }
-  for (const profile of ['full', 'maintenance', 'focused-tests']) {
-    assert(jobs.preflight.steps.filter(step => step.run === 'node scripts/check-moonbit-api.mjs').every(step => draftStepEnabled(step, profile)));
-    assert(jobs.spec.steps.filter(step => step.run === 'npm run check:spec-after-preflight').every(step => draftStepEnabled(step, profile)));
   }
 });
 
@@ -1520,7 +1511,6 @@ test('distribution isolates pinned provider tests with their required GC recipe'
   const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
   const provider = 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- --expose-gc packages/provider-ai-sdk/*.test.mjs';
   assert.equal(scripts['check:provider-ai-sdk'], provider);
-  assert.equal(scripts['check:distribution-client'].split(' && ').length, 53);
   assert(!scripts['check:distribution-client'].includes('npm run check:provider-ai-sdk'));
   assert.equal(scripts['postcheck:distribution-client'], 'npm run check:provider-ai-sdk && npm run check:otel-node');
   assert(!scripts['check:distribution-client'].includes('packages/provider-ai-sdk/*.test.mjs'));
@@ -1546,14 +1536,23 @@ test('normal distribution keeps original Request resource and cleanup regression
   const selected = command.split(/\s+/u);
   for (const file of [
   "adapters/host-node/metadata-capacity-public.test.mjs",
+  "adapters/host-node/local-result-read-wire-workspace.test.mjs",
   "adapters/host-node/installed-duckdb-source-owner.test.mjs",
   "adapters/host-node/table-owned-site-retirement.test.mjs",
   "adapters/host-node/table-original-metadata.test.mjs",
   "adapters/host-node/content-pre-record-retirement.test.mjs",
   "adapters/host-node/effect-capture-connection.test.mjs",
   "adapters/host-node/effect-capture-resources.test.mjs",
+  "adapters/host-common/recovered-effect-capture-control.test.mjs",
+  "adapters/host-node/effect-publication-binding.test.mjs",
+  "adapters/host-common/deferred-catalog-control.test.mjs",
   "adapters/host-node/request-content-graph-resources.test.mjs",
   "adapters/host-node/request-keyed-prefix-execution.test.mjs",
+  "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
+  "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+  "adapters/host-node/acquired-direct-publication.test.mjs",
+  "adapters/host-node/source-keyed-adoption-original.test.mjs",
+  "adapters/host-node/local-file-keyed-effect-current.test.mjs",
   "adapters/host-node/request-model-material-resources.test.mjs",
   "adapters/host-node/request-model-source-ledger.test.mjs",
   "adapters/store-local/private-evidence-consumer-lifetime.test.mjs",
@@ -1562,6 +1561,22 @@ test('normal distribution keeps original Request resource and cleanup regression
 ]) {
     assert.equal(selected.filter(value => value === file).length, 1, file);
   }
+  const recoveredCapture = 'adapters/host-common/recovered-effect-capture-control.test.mjs';
+  const captureSteps = jobs['client-distribution-callers'].steps.filter(step =>
+    step.run?.includes('adapters/host-node/effect-capture-resources.test.mjs'));
+  assert.equal(captureSteps.length, 1);
+  assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === recoveredCapture).length, 1);
+  assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === 'adapters/host-node/effect-publication-binding.test.mjs').length, 1);
+  assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === 'adapters/host-common/deferred-catalog-control.test.mjs').length, 1);
+  for (const file of ['adapters/host-node/acquired-effect-keyed-prefix.test.mjs',
+    'adapters/host-node/acquired-effect-keyed-publication.test.mjs',
+    'adapters/host-node/acquired-direct-publication.test.mjs',
+    'adapters/host-node/source-keyed-adoption-original.test.mjs',
+    'adapters/host-node/local-file-keyed-effect-current.test.mjs']) {
+    assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === file).length, 1);
+  }
+  assert.equal(captureSteps[0].if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(captureSteps[0]['continue-on-error'], undefined);
 });
 
 

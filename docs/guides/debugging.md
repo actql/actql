@@ -101,6 +101,10 @@ Runs are never silently cut short: a limit that was hit is named in the
 failure, and a partial result is never presented as complete. Every error has
 a stable `ACTQL_E_*` code; `status --json` carries it with the full Run state.
 
+Local CLI row execution reports `ACTQL_E_EXECUTION_LIMIT` when its admitted
+row or workspace limit is exceeded. This differs from a static Program check
+failure; a successful check does not grant a larger runtime row policy.
+
 Running the same Program again creates a new Run. The old one stays in the
 Store with its evidence for the retention period, so you can compare.
 

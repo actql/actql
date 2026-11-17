@@ -148,8 +148,15 @@ fn prepare_local_query_requirement_owned(
     Ok(value) => value
     Err(issue) => return Err(Requirement(@publication_host.Requirement(issue)))
   }
+  let rows = match installed_local_query_guard_rows(query) {
+    Some(value) => value
+    None =>
+      return Err(
+        Requirement(@publication_host.Requirement(@planning.InvalidLimits)),
+      )
+  }
   let guards : @planning.QueryLogicalGuards = {
-    max_rows: 100,
+    max_rows: rows,
     max_value_bytes: 10000,
   }
   match (prepared, query_time) {
@@ -169,6 +176,37 @@ fn prepare_local_query_requirement_owned(
       @publication_host.prepare_client_effect_query_requirement(
         value, sequence, stage, source_index, guards, limits,
       ).map_err(issue => Requirement(issue))
+  }
+}
+
+///|
+// Select before QueryRequirement wire/CID construction from the SAME checked
+// Direct request's original Catalog profile. This is a finite rejection bound,
+// not observed DATA, capacity or permission. Other Sources keep their selection.
+fn installed_local_query_guard_rows(
+  query : @sourceviews.QueryAcquisition,
+) -> Int? {
+  guard @sourceviews.pipeline_request_at(
+      @sourceviews.query_acquisition_owner(query),
+      @sourceviews.query_acquisition_source_index(query),
+    )
+    is Some(@sourceviews.Direct(mode, _)) else {
+    return None
+  }
+  guard @environment.source_request_file_listing(
+      @sourceviews.selected_contract(@sourceviews.mode_input(mode)),
+    )
+    is Some(profile) &&
+    @environment.file_listing_declared_limit(profile, "max_listing_items")
+    is Some(rows) else {
+    // An absent Catalog ceiling cannot invent one. The existing physical
+    // resolver still requires its independently selected finite Host policy.
+    return Some(100)
+  }
+  if rows < 0L || rows > 2147483647L {
+    None
+  } else {
+    Some(rows.to_int())
   }
 }
 

@@ -590,7 +590,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           };
         }
         if (property !== 'strategyModule_local_Dispatch' &&
-            property !== 'strategyModule_local_ManagedStart') {
+            property !== 'strategyModule_local_ManagedStart' &&
+            property !== 'strategyModule_local_ManagedStartRetained') {
           return Reflect.get(target, property, receiver);
         }
         return (...args) => {

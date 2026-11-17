@@ -7,7 +7,7 @@ struct DurableResultRowFrames {
   max_row_bytes : Int
   max_depth : Int
   max_frame_bytes : Int
-  row : Array[Byte]
+  mut row : Array[Byte]
   stack : Array[Byte]
   mut state : Int
   mut bytes : Int
@@ -53,11 +53,9 @@ pub fn prepare_durable_result_row_frames(
   if max_bytes < 0 ||
     max_rows < 0 ||
     max_row_bytes < 1 ||
-    max_row_bytes > 16777216 ||
     max_depth < 1 ||
     max_depth > 64 ||
-    max_frame_bytes < 1 ||
-    max_frame_bytes > 16777216 {
+    max_frame_bytes < 1 {
     return Err(DurableRowFrameInvalidLimits)
   }
   Ok({
@@ -67,7 +65,9 @@ pub fn prepare_durable_result_row_frames(
     max_depth,
     max_frame_bytes,
     // The existing total-byte guard bounds every row byte as well. Retain the
-    // original row limit; only unused private backing is reduced here.
+    // original row limit; only unused private backing is reduced here. The
+    // caller funds this same total-bounded backing before this constructor.
+    // Physical chunk limits remain independent of the logical row bound.
     row: Array::make(Int::min(max_row_bytes, max_bytes), 0x00),
     stack: Array::make(max_depth, 0x00),
     state: 0,
@@ -79,6 +79,92 @@ pub fn prepare_durable_result_row_frames(
     escaped: false,
     closed: false,
   })
+}
+
+///|
+/// The installed READ owner reserves only this initial backing. Its original
+/// Resource grow must complete before grow_durable_result_row_frame_buffer.
+pub fn prepare_growing_durable_result_row_frames(
+  max_bytes : Int,
+  max_rows : Int,
+  max_row_bytes : Int,
+  max_depth : Int,
+  max_frame_bytes : Int,
+) -> Result[DurableResultRowFrames, DurableResultRowFrameIssue] {
+  let frames = match
+    prepare_durable_result_row_frames(
+      Int::min(max_bytes, 32),
+      max_rows,
+      Int::min(max_row_bytes, 32),
+      max_depth,
+      max_frame_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ ..frames, max_bytes, max_row_bytes, })
+}
+
+///|
+/// Pure upper bound from the SAME partial row and actual next chunk extent;
+/// no second wire scan, row parsing, allocation or capacity issuance.
+pub fn durable_result_row_frame_growth(
+  frames : DurableResultRowFrames,
+  chunk_bytes : Int,
+) -> Result[Int, DurableResultRowFrameIssue] {
+  if frames.closed {
+    return Err(DurableRowFrameClosed)
+  }
+  if chunk_bytes < 0 ||
+    chunk_bytes > frames.max_frame_bytes ||
+    chunk_bytes > frames.max_bytes - frames.bytes {
+    return Err(DurableRowFrameByteLimit)
+  }
+  let maximum = Int::min(frames.max_row_bytes, frames.max_bytes)
+  let needed = if chunk_bytes > maximum - frames.size {
+    maximum
+  } else {
+    frames.size + chunk_bytes
+  }
+  if needed <= frames.row.length() {
+    return Ok(frames.row.length())
+  }
+  let doubled = if frames.row.length() > maximum / 2 {
+    maximum
+  } else {
+    Int::min(maximum, Int::max(32, frames.row.length() * 2))
+  }
+  Ok(Int::max(needed, doubled))
+}
+
+///|
+/// The caller's SAME READ parent must have admitted the old/new buffer peak
+/// before this constructor; this typed framing operation grants no resources.
+pub fn grow_durable_result_row_frame_buffer(
+  frames : DurableResultRowFrames,
+  bytes : Int,
+) -> Result[Unit, DurableResultRowFrameIssue] {
+  if frames.closed {
+    return Err(DurableRowFrameClosed)
+  }
+  if bytes < frames.row.length() ||
+    bytes > frames.max_row_bytes ||
+    bytes > frames.max_bytes {
+    return Err(DurableRowFrameInvalidLimits)
+  }
+  if bytes == frames.row.length() {
+    return Ok(())
+  }
+  let original = frames.row
+  let next = Array::makei(bytes, index => {
+    if index < frames.size {
+      original[index]
+    } else {
+      0x00
+    }
+  })
+  frames.row = next
+  Ok(())
 }
 
 ///|
@@ -159,6 +245,9 @@ pub fn feed_durable_result_row_frames(
       frames.escaped = false
     }
     if frames.size == frames.max_row_bytes {
+      return durable_row_frame_fail(frames, DurableRowFrameRowSizeLimit)
+    }
+    if frames.size == frames.row.length() {
       return durable_row_frame_fail(frames, DurableRowFrameRowSizeLimit)
     }
     frames.row[frames.size] = byte

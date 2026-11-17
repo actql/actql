@@ -112,14 +112,6 @@ fn wire_entry(cursor : @decode.Cursor) -> RawAccountEntry raise WireStop {
   )
   let exclusions = []
   let listed = wire_decoded(@decode.required(object, "exclusions"))
-  match @decode.array_length(listed) {
-    Some(length) if length > MAX_EXCLUSIONS_PER_ENTRY =>
-      raise WireStop({
-        kind: InvalidShape,
-        path: wire_path(@decode.cursor_path(listed)),
-      })
-    _ => ()
-  }
   for item in wire_decoded(@decode.elements(listed)) {
     exclusions.push(
       wire_box(
@@ -155,8 +147,8 @@ fn wire_bootstrap(cursor : @decode.Cursor) -> BootstrapProfile raise WireStop {
 
 ///|
 /// Decode the `actql-execution-account-config/0.1` wire shape. Input size,
-/// node count, depth, string sizes, entry count and exclusion count are
-/// bounded before any per-entry work. Entries, `any_of` values and exclusions
+/// node count, depth and string sizes are bounded before per-entry work.
+/// Entries, `any_of` values and exclusions
 /// must already be in canonical ascending order (`NonCanonicalOrder`
 /// otherwise); equal neighbours are reported by admission as duplicates. The
 /// result is not admitted; pass it to `admit_account_configuration`.
@@ -171,58 +163,20 @@ fn decode_account_configuration_original(
   body : String,
 ) -> Result[(RawAccountConfiguration, Bytes), ConfigurationIssue] {
   let bytes = @utf8.encode(body)
-  if bytes.length() > MAX_CONFIG_INPUT_BYTES {
-    return Err(MalformedWire({ kind: InputTooLarge, path: "$", }))
+  let size = bytes.length()
+  if size == 0 {
+    return Err(MalformedWire({ kind: InvalidJson, path: "$", }))
   }
   let source = match
     @source.parse_json_bytes(bytes, {
-      max_input_bytes: MAX_CONFIG_INPUT_BYTES,
-      max_nodes: 262144,
+      max_input_bytes: size,
+      max_nodes: size,
       max_depth: 7,
     }) {
     Ok(value) => value
     Err(_) => return Err(MalformedWire({ kind: InvalidJson, path: "$", }))
   }
-  try {
-    let cursor = wire_decoded(
-      @decode.admit(source, {
-        max_nodes: 262144,
-        max_depth: 7,
-        max_string_bytes: MAX_NAME_LENGTH * 4,
-        max_total_string_bytes: MAX_CONFIG_INPUT_BYTES,
-      }),
-    )
-    let object = wire_decoded(
-      @decode.closed_object(cursor, [
-        "account_id", "bootstrap", "entries", "version",
-      ]),
-    )
-    if wire_text(object, "version") != ACCOUNT_CONFIG_VERSION {
-      raise WireStop({ kind: UnsupportedVersion, path: "$.version", })
-    }
-    let account_id = wire_text(object, "account_id")
-    let listed = wire_decoded(@decode.required(object, "entries"))
-    match @decode.array_length(listed) {
-      Some(length) if length > MAX_ENTRIES =>
-        raise WireStop({ kind: InvalidShape, path: "$.entries", })
-      _ => ()
-    }
-    let entries = []
-    for item in wire_decoded(@decode.elements(listed)) {
-      entries.push(wire_entry(item))
-    }
-    let bootstrap = match @decode.lookup(object, "bootstrap") {
-      None => None
-      Some(value) => Some(wire_bootstrap(value))
-    }
-    let raw : RawAccountConfiguration = { account_id, entries, bootstrap, }
-    match first_out_of_order(raw) {
-      Some(path) => Err(NonCanonicalOrder(path))
-      None => Ok((raw, bytes))
-    }
-  } catch {
-    WireStop(issue) => Err(MalformedWire(issue))
-  }
+  decode_account_configuration_source(source, bytes, size)
 }
 
 ///|
@@ -237,5 +191,162 @@ pub fn admit_account_configuration_json(
         original_wire: Some(bytes),
       })
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn decode_account_configuration_source(
+  source : @source.Node,
+  bytes : Bytes,
+  size : Int,
+) -> Result[(RawAccountConfiguration, Bytes), ConfigurationIssue] {
+  try {
+    let cursor = wire_decoded(
+      @decode.admit(source, {
+        max_nodes: size,
+        max_depth: 7,
+        max_string_bytes: size,
+        max_total_string_bytes: size,
+      }),
+    )
+    let object = wire_decoded(
+      @decode.closed_object(cursor, [
+        "account_id", "bootstrap", "entries", "version",
+      ]),
+    )
+    if wire_text(object, "version") != ACCOUNT_CONFIG_VERSION {
+      raise WireStop({ kind: UnsupportedVersion, path: "$.version", })
+    }
+    let account_id = wire_text(object, "account_id")
+    let listed = wire_decoded(@decode.required(object, "entries"))
+    let entries = []
+    for item in wire_decoded(@decode.elements(listed)) {
+      entries.push(wire_entry(item))
+    }
+    let bootstrap = match @decode.lookup(object, "bootstrap") {
+      None => None
+      Some(value) => Some(wire_bootstrap(value))
+    }
+    let raw : RawAccountConfiguration = { account_id, entries, bootstrap, }
+    match first_out_of_order(raw, account_canonical_wire_bounds(size)) {
+      Some(path) => Err(NonCanonicalOrder(path))
+      None => Ok((raw, bytes))
+    }
+  } catch {
+    WireStop(issue) => Err(MalformedWire(issue))
+  }
+}
+
+///|
+// Private prepared wire half. The existing public entrance above retains its
+// original route; no Native caller selects this half before canonical/overlap
+// construction and original physical custody are connected as well.
+fn decode_account_configuration_prepared(
+  body : String,
+  prepare : (AccountConfigurationConstruction) -> Bool,
+) -> Result[
+  (RawAccountConfiguration, Bytes, AccountConstructionContext),
+  ConfigurationIssue,
+]? {
+  if !prepare(account_construction_initial_request) {
+    return None
+  }
+  let context : AccountConstructionContext = {
+    prepare,
+    wire_live: account_construction_initial,
+  }
+  if body.is_empty() {
+    return Some(Err(MalformedWire({ kind: InvalidJson, path: "$", })))
+  }
+  let byte_bound = Int64::min(2147483647L, 3L * body.length().to_int64()).to_int()
+  let preflight = match
+    @source.start_json_source_preflight(body, {
+      max_input_bytes: Int::max(1, byte_bound),
+      max_nodes: Int::max(1, body.length()),
+      max_depth: 7,
+    }) {
+    Ok(value) => value
+    Err(_) => return Some(Err(MalformedWire({ kind: InvalidJson, path: "$", })))
+  }
+  let mut observed : @source.JsonSourceGeometry? = None
+  while observed is None {
+    match @source.advance_json_source_preflight(preflight, 4096).unwrap() {
+      @source.JsonSourceContinue(..) => ()
+      @source.JsonSourceReady(geometry, ..) => observed = Some(geometry)
+      @source.JsonSourceFailed(_) => {
+        @source.cancel_json_source_preflight(preflight)
+        return Some(Err(MalformedWire({ kind: InvalidJson, path: "$", })))
+      }
+    }
+  }
+  let geometry = observed.unwrap()
+  try {
+    // Encode only after the SAME Unicode preflight supplies exact byte size.
+    // This remains the original wire, not a normalized/canonical replacement.
+    let original_wire = account_construction_units(
+      1L,
+      0L,
+      0L,
+      0L,
+      wire=geometry.input_bytes.to_int64(),
+    )
+    account_prepare_construction(Some(context), original_wire, original_wire)
+    let bytes = @utf8.encode(body)
+    account_prepare_json_tree(context, geometry)
+    let parser = @source.take_json_source_parser(preflight).unwrap()
+    let mut source : @source.Node? = None
+    while source is None {
+      match @source.advance_json_parse(parser, 4096).unwrap() {
+        @source.JsonParseContinue(..) => ()
+        @source.JsonParseComplete(parsed, ..) => source = Some(parsed.node)
+        @source.JsonParseFailed(_) =>
+          return Some(Err(MalformedWire({ kind: InvalidJson, path: "$", })))
+      }
+    }
+    account_prepare_json_index(context, geometry)
+    let typed = account_prepare_wire_decode(context, geometry)
+    account_prepare_admission(context, geometry, typed)
+    match
+      decode_account_configuration_source(
+        source.unwrap(),
+        bytes,
+        bytes.length(),
+      ) {
+      Err(issue) => Some(Err(issue))
+      Ok((raw, original)) => {
+        context.wire_live = account_construction_add(
+          account_construction_initial, typed,
+        )
+        account_prepare_overlap(context, raw)
+        Some(Ok((raw, original, context)))
+      }
+    }
+  } catch {
+    AccountConstructionStop => {
+      @source.cancel_json_source_preflight(preflight)
+      None
+    }
+  }
+}
+
+///|
+/// Prepare each constructor synchronously at the caller's original resource.
+/// None means that caller refused construction; it is never Account admission.
+/// The continuation is borrowed only for this call and is not retained by the
+/// admitted immutable Account or used by later current checks.
+pub fn admit_account_configuration_json_prepared(
+  body : String,
+  prepare : (AccountConfigurationConstruction) -> Bool,
+) -> Result[AdmittedAccountConfiguration, ConfigurationIssue]? {
+  match decode_account_configuration_prepared(body, prepare) {
+    None => None
+    Some(Err(issue)) => Some(Err(issue))
+    Some(Ok((raw, bytes, _))) =>
+      Some(
+        admit_account_configuration(raw).map(account => {
+          ..account,
+          original_wire: Some(bytes),
+        }),
+      )
   }
 }

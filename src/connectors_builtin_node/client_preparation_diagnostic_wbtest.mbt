@@ -344,6 +344,69 @@ test "Request failure projection uses the original semantic issue without anothe
 }
 
 ///|
+// The real JS classifier receives the same nominal Core refusal. The semantic
+// projection is called once; no Program read, check or Source call is repeated.
+extern "js" fn request_effect_input_public_error_test(
+  loader : RequestDiagnosticTestLoader,
+  result : Result[Unit, @client_local_host.ClientRequestTerminalIssue],
+  project : (Result[Unit, @client_local_host.ClientRequestTerminalIssue]) -> String?,
+) -> Bool =
+  #|(loader,result,project)=>{const {checkedRequestProgramPreparation}=loader('../../../../../adapters/host-node/client-program-preparation.mjs');const {runtimeField}=loader('../../../../../adapters/host-common/compiler-binding.generated.mjs');let calls=0;try{checkedRequestProgramPreparation({clientProgramRequestPreparationIssueCode(value){calls++;if(value!==result)throw new Error('SubstitutedResult');return project(value);}},result);return false;}catch(error){return calls===1&&error.code==='ClientProgramInvalidInput'&&error.cause===runtimeField(result,0);}}
+
+///|
+test "Request Effect input order refusal retains the original typed diagnostic" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let document =
+    #|{"version":"actql/0.1","id":"effect-input-order-refusal","stages":[{"id":"source","inputs":{"files":{"connector":"storage","resource":"files","request":{"paths":null,"glob":null}}},"from":"files","steps":[{"serialize":{"format":"jsonl","fields":["name"],"name":"out.jsonl","preserve_order":true,"bounds":{"max_rows":3,"max_bytes":1024}},"as":"attachment"}],"results":{"content":{"from":"attachment","fields":["name","content","media_type","size_bytes","row_count"]}},"effects":{"save":{"command":{"from":{"result":"content"},"target":{"published_store":{"target_ref":"connector://storage/files","mapping_ref":"mapping:storage.gcs.upload.v1"}},"contract":"command:storage.gcs.upload.v1","input":{"name":{"field":"name"},"content":{"field":"content"}}}}}}],"results":{"answer":{"from":{"stage":"source","result":"content"}}}}
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let result = client_program_prepare_request_source_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json(
+      "{\"format\":\"json\",\"text\":" + document.to_json().stringify() + "}",
+    ),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  guard result
+    is Err(Preparation(ProgramCheck(EffectInput(Computation(cause))))) else {
+    fail("expected the original Effect input construction refusal")
+  }
+  assert_true(
+    cause
+    is Source(
+      SourceView(
+        Program(
+          Program(Order(0, PipelineOrder({ kind: SerializeOrderUnproven, .. })))
+        )
+      )
+    ),
+  )
+  let diagnostic = @program_check.construction_failure_diagnostic(cause)
+  assert_eq(@program_check.diagnostic_category(diagnostic), InvalidInput)
+  assert_eq(
+    request_diagnostic_checked_issue_code(result),
+    Some("check_invalid_input"),
+  )
+  assert_true(
+    request_effect_input_public_error_test(
+      request_diagnostic_test_loader(request_diagnostic_test_url()),
+      result,
+      original => request_diagnostic_checked_issue_code(original),
+    ),
+  )
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
 test "Request failure projection keeps input admission and nonsemantic uncertainty separate" {
   let environment = original_lookup_diagnostic_environment(false)
   let publication = @source_publication.prepare_published_query_environment(

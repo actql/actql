@@ -84,12 +84,13 @@ test "managed row scratch funds packed facts and refuses a truly occupied origin
     append_admitted_output(original, [cell]).unwrap()
     let stream = metered_managed_scratch_stream(original, growth, 2)
     if occupied {
+      append_managed_output_values(stream, 1, _ => Some(cell)).unwrap()
       assert_true(
         append_managed_output_values(stream, 1, _ => Some(cell))
         is Err(Admission(CaptureLimit)),
       )
       assert_true(finish_managed_output_values(stream) is Err(Closed))
-      assert_eq(growth.retained_outputs, Some(4056L + 320L))
+      assert_eq(growth.retained_outputs, Some(4056L + 320L + 528L))
       assert_eq(original.buffer.rows.length(), 1)
     } else {
       enable_managed_row_measurements(stream, 2).unwrap()

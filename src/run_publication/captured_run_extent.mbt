@@ -120,6 +120,7 @@ fn captured_plain_run_construction_extent(
     total_fields: total_fields.to_int(),
     max_fields,
     models: models.length(),
+    source_work: 0L,
   })
 }
 

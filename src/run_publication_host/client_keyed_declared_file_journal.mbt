@@ -10,15 +10,51 @@ pub fn prepare_client_keyed_declared_file_activation_record(
   graph : ClientInferPlanGraph,
   max_bytes : Int,
 ) -> Result[String, ClientKeyedRequestIssue] {
+  guard client_keyed_native_activation_matches(
+    original, request, compiled, definition, graph,
+  ) else {
+    return Err(Assembly("foreign_declared_file_activation_record"))
+  }
+  prepare_client_keyed_declared_file_activation_record_original(
+    original, request, compiled, definition, max_bytes,
+  )
+}
+
+///|
+pub fn prepare_client_effect_keyed_declared_file_activation_record(
+  original : ClientKeyedNativeActivation,
+  request : ClientRequestIdentity,
+  parent : ClientEffectKeyedOriginal,
+  max_bytes : Int,
+) -> Result[String, ClientKeyedRequestIssue] {
+  guard client_effect_keyed_native_activation_matches(original, request, parent) else {
+    return Err(Assembly("foreign_declared_file_activation_record"))
+  }
+  prepare_client_keyed_declared_file_activation_record_original(
+    original,
+    request,
+    parent.compiled,
+    parent.definition,
+    max_bytes,
+  )
+}
+
+///|
+fn prepare_client_keyed_declared_file_activation_record_original(
+  original : ClientKeyedNativeActivation,
+  request : ClientRequestIdentity,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  max_bytes : Int,
+) -> Result[String, ClientKeyedRequestIssue] {
   let state = original.original
   guard !state.growing &&
     !state.identifying &&
-    client_keyed_native_activation_matches(
-      original, request, compiled, definition, graph,
+    client_keyed_native_activation_matches_original(
+      original, request, compiled, definition,
     ) &&
     state.native_read_profile is Some(profile) &&
-    @publication.publication_contract_name(profile) ==
-    "declared_file_content_read" else {
+    @publication.read_profile_uses_installed_rows(profile) else {
     return Err(Assembly("foreign_declared_file_activation_record"))
   }
   let request_scope = client_request_scope_cid(request)
@@ -52,8 +88,8 @@ pub fn prepare_client_keyed_declared_file_activation_record(
   // turn an old activation into a new dispatch or Journal constructor.
   guard !state.growing &&
     !state.identifying &&
-    client_keyed_native_activation_matches(
-      original, request, compiled, definition, graph,
+    client_keyed_native_activation_matches_original(
+      original, request, compiled, definition,
     ) else {
     return Err(Assembly("retired_declared_file_activation_record"))
   }
@@ -108,8 +144,8 @@ pub fn prepare_client_keyed_declared_file_activation_record(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard client_keyed_native_activation_matches(
-    original, request, compiled, definition, graph,
+  guard client_keyed_native_activation_matches_original(
+    original, request, compiled, definition,
   ) else {
     return Err(Assembly("retired_declared_file_activation_record"))
   }
@@ -140,11 +176,10 @@ pub fn prepare_client_keyed_declared_file_retention(
     lookup.left.attempts == 0L &&
     lookup.left.lookup_issue is None &&
     lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(original) is Some(component) &&
     original.keyed.program is KeyedEffect(prepared) &&
     prepared_client_effect_request_scope(prepared, request) is Ok(_) &&
-    @publication.publication_contract_name(component.original.profile) ==
-    "declared_file_content_read" else {
+    @publication.read_profile_uses_installed_rows(component.original.profile) else {
     return Err(Assembly("foreign_declared_file_retention"))
   }
   lookup.identifying = true
@@ -254,9 +289,8 @@ pub fn start_client_keyed_declared_file_request_plan(
   issuer : String,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
-    @publication.publication_contract_name(component.original.profile) ==
-    "declared_file_content_read" &&
+    client_composed_keyed_original_component(original) is Some(component) &&
+    @publication.read_profile_uses_installed_rows(component.original.profile) &&
     lookup.native_sources is Some(sources) &&
     sources.relation is Some(_) else {
     return Err(Assembly("missing_declared_file_plan_originals"))
@@ -285,11 +319,58 @@ pub fn prepare_client_keyed_declared_file_page_record(
       page, keyed_request, request, compiled, definition, graph,
     ) &&
     keyed_request.assembly_accounting is Some(state) &&
+    state.left.composed is Some(original) else {
+    return Err(Assembly("foreign_declared_file_page_record"))
+  }
+  prepare_client_keyed_declared_file_page_record_original(
+    page, keyed_request, request, compiled, definition, original, max_bytes,
+  )
+}
+
+///|
+pub fn prepare_client_effect_keyed_declared_file_page_record(
+  page : ClientKeyedNativeCapturedPage,
+  keyed_request : ClientKeyedRequest,
+  request : ClientRequestIdentity,
+  parent : ClientEffectKeyedOriginal,
+  max_bytes : Int,
+) -> Result[String, ClientKeyedRequestIssue] {
+  guard client_effect_keyed_native_captured_page_matches(
+      page, keyed_request, request, parent,
+    ) &&
+    keyed_request.assembly_accounting is Some(state) &&
+    state.left.composed is Some(original) else {
+    return Err(Assembly("foreign_declared_file_page_record"))
+  }
+  prepare_client_keyed_declared_file_page_record_original(
+    page,
+    keyed_request,
+    request,
+    parent.compiled,
+    parent.definition,
+    original,
+    max_bytes,
+  )
+}
+
+///|
+fn prepare_client_keyed_declared_file_page_record_original(
+  page : ClientKeyedNativeCapturedPage,
+  keyed_request : ClientKeyedRequest,
+  request : ClientRequestIdentity,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  original : ClientComposedKeyedOriginal,
+  max_bytes : Int,
+) -> Result[String, ClientKeyedRequestIssue] {
+  guard client_keyed_native_captured_page_matches_original(
+      page, keyed_request, request, compiled, definition, original,
+    ) &&
+    keyed_request.assembly_accounting is Some(state) &&
     !state.identifying &&
     !state.growing &&
     state.native_read_profile is Some(profile) &&
-    @publication.publication_contract_name(profile) ==
-    "declared_file_content_read" else {
+    @publication.read_profile_uses_installed_rows(profile) else {
     return Err(Assembly("foreign_declared_file_page_record"))
   }
   let scope = client_request_scope_cid(request)
@@ -313,8 +394,8 @@ pub fn prepare_client_keyed_declared_file_page_record(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  guard client_keyed_native_captured_page_matches(
-      page, keyed_request, request, compiled, definition, graph,
+  guard client_keyed_native_captured_page_matches_original(
+      page, keyed_request, request, compiled, definition, original,
     ) &&
     !state.identifying else {
     return Err(Assembly("retired_declared_file_page_record"))
@@ -350,8 +431,8 @@ pub fn prepare_client_keyed_declared_file_page_record(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  guard client_keyed_native_captured_page_matches(
-    page, keyed_request, request, compiled, definition, graph,
+  guard client_keyed_native_captured_page_matches_original(
+    page, keyed_request, request, compiled, definition, original,
   ) else {
     return Err(Assembly("retired_declared_file_page_record"))
   }
@@ -380,8 +461,7 @@ pub fn prepare_client_keyed_declared_file_raw_store(
     state.selected_request is Some(same) &&
     physical_equal(same, request) &&
     state.native_read_profile is Some(profile) &&
-    @publication.publication_contract_name(profile) ==
-    "declared_file_content_read" &&
+    @publication.read_profile_uses_installed_rows(profile) &&
     state.planned_requests is Some(requests) &&
     requests.get(request.row) is Some((same, slot)) &&
     physical_equal(same, request) &&
@@ -490,9 +570,8 @@ pub fn prepare_client_keyed_declared_file_raw_capture(
     state.left.composed is Some(original) &&
     physical_equal(original.compiled, compiled) &&
     physical_equal(original.definition, definition) &&
-    original.plan.keyed is Some(component) &&
-    @publication.publication_contract_name(component.original.profile) ==
-    "declared_file_content_read" &&
+    client_composed_keyed_original_component(original) is Some(component) &&
+    @publication.read_profile_uses_installed_rows(component.original.profile) &&
     client_keyed_acquisition_source_evidence_facts(original.keyed)
     is Some(facts) &&
     state.planned_requests is Some(requests) &&
@@ -588,6 +667,7 @@ fn prepare_declared_file_lookup_dependencies(
   completed : ClientKeyedNativeCompletion,
   max_nodes : Int,
   max_depth : Int,
+  defer_catalog? : Bool = false,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard lookup.identifying &&
     !lookup.closed &&
@@ -602,13 +682,13 @@ fn prepare_declared_file_lookup_dependencies(
   }
   // Callback/Result/Map/Array controls and bounded measuring-writer frames.
   // Per-member controls, spare slots, text and parser/workspace follow below.
-  match
+  let phase = match
     grow_keyed_lookup_protocol_metadata(
       lookup,
       1,
       64L + 2L * max_depth.to_int64(),
     ) {
-    Ok(_) => ()
+    Ok(phase) => phase
     Err(issue) => return Err(issue)
   }
   let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
@@ -669,6 +749,7 @@ fn prepare_declared_file_lookup_dependencies(
       max_depth,
       state.physical_source,
       Some(before),
+      retain_catalog=!defer_catalog,
     ) {
     Ok(value) => value
     Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
@@ -681,7 +762,18 @@ fn prepare_declared_file_lookup_dependencies(
     return Err(Assembly("retired_declared_file_dependency_entry"))
   }
   state.dependency_bodies = Some(bodies)
-  Ok(())
+  // The synchronous collector returned; its parser/writer/seen/callback
+  // frames cannot escape in these opaque bodies. Retain the SAME completed
+  // bodies before this fallible cut. All prior Source, Value, receipt and IO
+  // backing remains in phase's original basis; only finished scratch returns.
+  finish_keyed_lookup_protocol_metadata(
+    lookup,
+    phase,
+    max_nodes,
+    max_depth,
+    [],
+    dependency_bodies=Some(bodies),
+  )
 }
 
 ///|
@@ -701,9 +793,8 @@ pub fn bind_client_keyed_declared_file_physical_source(
     lookup.native_sources is Some(state) &&
     state.physical_source is None &&
     lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
-    @publication.publication_contract_name(component.original.profile) ==
-    "declared_file_content_read" else {
+    client_composed_keyed_original_component(original) is Some(component) &&
+    @publication.read_profile_uses_installed_rows(component.original.profile) else {
     return Err(Assembly("foreign_declared_file_source_body"))
   }
   // Getter/Some/original-pair controls only. The immutable String belongs to

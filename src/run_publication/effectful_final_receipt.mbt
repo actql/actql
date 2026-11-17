@@ -281,12 +281,25 @@ pub fn validate_effectful_publication_commit(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared_capture? : PreparedCapturedEffectRun? = None,
 ) -> Result[Unit, EffectfulPublicationCommitIssue] {
   let final_receipt = match
     admit_effectful_final_run_evidence_chain(
-      run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
-      captured_run, preview, set_receipt_wire, member_receipt_wires, final_receipt_wire,
-      max_wire_bytes, max_nodes, max_depth,
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      computation_receipt,
+      captured_run,
+      preview,
+      set_receipt_wire,
+      member_receipt_wires,
+      final_receipt_wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      prepared_capture~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(FinalChain(issue))
@@ -322,6 +335,7 @@ pub fn validate_effectful_publication_commit_with_result_evidence(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared_capture? : PreparedCapturedEffectRun? = None,
 ) -> Result[Unit, EffectfulPublicationCommitIssue] {
   match
     validate_result_evidence_set(
@@ -339,9 +353,24 @@ pub fn validate_effectful_publication_commit_with_result_evidence(
     Err(issue) => return Err(DurableBinding(issue))
   }
   validate_effectful_publication_commit(
-    run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
-    captured_run, preview, set_receipt_wire, member_receipt_wires, final_receipt_wire,
-    request, attempt, index_entry, max_wire_bytes, max_nodes, max_depth,
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    computation_receipt,
+    captured_run,
+    preview,
+    set_receipt_wire,
+    member_receipt_wires,
+    final_receipt_wire,
+    request,
+    attempt,
+    index_entry,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    prepared_capture~,
   )
 }
 
@@ -365,11 +394,24 @@ pub fn admit_effectful_final_run_evidence_chain(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared_capture? : PreparedCapturedEffectRun? = None,
 ) -> Result[PublicationContract, EffectfulFinalChainIssue] {
   admit_effectful_final_run_evidence_with_outcomes(
-    run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
-    captured_run, preview, set_receipt_wire, member_receipt_wires, final_receipt_wire,
-    max_wire_bytes, max_nodes, max_depth,
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    computation_receipt,
+    captured_run,
+    preview,
+    set_receipt_wire,
+    member_receipt_wires,
+    final_receipt_wire,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    prepared_capture~,
   ).map(value => value.0)
 }
 
@@ -391,21 +433,39 @@ pub fn admit_effectful_final_run_evidence_with_outcomes(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared_capture? : PreparedCapturedEffectRun? = None,
 ) -> Result[
   (PublicationContract, EffectSetApplyReceiptEvidence),
   EffectfulFinalChainIssue,
 ] {
-  match
-    validate_effectful_computation_evidence_chain(
-      run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
-      captured_run, preview, max_wire_bytes, max_nodes, max_depth,
-    ) {
+  let checked = match prepared_capture {
+    None =>
+      validate_effectful_computation_evidence_chain(
+        run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+        captured_run, preview, max_wire_bytes, max_nodes, max_depth,
+      )
+    Some(original) =>
+      validate_prepared_effectful_computation_evidence_chain(
+        run_definition, invocation, definitions, artifacts, manifest, computation_receipt,
+        captured_run, original, preview, max_wire_bytes, max_nodes, max_depth,
+      )
+  }
+  match checked {
     Ok(_) => ()
     Err(issue) => return Err(Computation(issue))
   }
   admit_effectful_final_receipt_evidence(
-    run_definition, computation_receipt, captured_run, preview, set_receipt_wire,
-    member_receipt_wires, final_receipt_wire, max_wire_bytes, max_nodes, max_depth,
+    run_definition,
+    computation_receipt,
+    captured_run,
+    preview,
+    set_receipt_wire,
+    member_receipt_wires,
+    final_receipt_wire,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    prepared_capture~,
   ).map_err(issue => FinalReferences(issue))
 }
 
@@ -425,10 +485,20 @@ pub fn admit_effectful_final_receipt_references(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared_capture? : PreparedCapturedEffectRun? = None,
 ) -> Result[PublicationContract, EffectfulFinalReferenceIssue] {
   admit_effectful_final_receipt_evidence(
-    run_definition, computation_receipt, captured_run, preview, set_receipt_wire,
-    member_receipt_wires, final_receipt_wire, max_wire_bytes, max_nodes, max_depth,
+    run_definition,
+    computation_receipt,
+    captured_run,
+    preview,
+    set_receipt_wire,
+    member_receipt_wires,
+    final_receipt_wire,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    prepared_capture~,
   ).map(value => value.0)
 }
 
@@ -444,6 +514,7 @@ fn admit_effectful_final_receipt_evidence(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared_capture? : PreparedCapturedEffectRun? = None,
 ) -> Result[
   (PublicationContract, EffectSetApplyReceiptEvidence),
   EffectfulFinalReferenceIssue,
@@ -488,12 +559,29 @@ fn admit_effectful_final_receipt_evidence(
       return Err(ForeignPreview(field))
     }
   }
+  // Only the exact already-admitted capture can supply its complete context
+  // extent. The separately issued Receipt, Set, member and authoring codecs
+  // still use the original caller's limits below. This typed DATA is not an
+  // execution, current, evidence-view or publication grant.
+  let (context_bytes, context_nodes, context_depth) = match prepared_capture {
+    None => (max_wire_bytes, max_nodes, max_depth)
+    Some(original) => {
+      if !physical_equal(captured_run, original.captured) {
+        return Err(ForeignComputation)
+      }
+      (
+        Int::max(max_wire_bytes, original.max_bytes),
+        Int::max(max_nodes, original.max_nodes),
+        Int::max(max_depth, original.max_depth),
+      )
+    }
+  }
   let context = match evidence_object(captured_run.value, "effect_context") {
     Ok(value) => value
     Err(_) => return Err(ForeignPreview("effect_context"))
   }
   if !evidence_identity_valid(
-      context, "effect_context_cid", max_wire_bytes, max_nodes, max_depth,
+      context, "effect_context_cid", context_bytes, context_nodes, context_depth,
     ) {
     return Err(ForeignEffectContext)
   }
@@ -512,9 +600,9 @@ fn admit_effectful_final_receipt_evidence(
       context,
       preview,
       preview.invocation_cid,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      context_bytes,
+      context_nodes,
+      context_depth,
     ) {
     return Err(ForeignEffectInventory)
   }
@@ -590,7 +678,12 @@ pub fn issue_effectful_final_run_receipt(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared_capture? : PreparedCapturedEffectRun? = None,
 ) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue] {
+  if prepared_capture is Some(original) &&
+    !physical_equal(captured_run, original.captured) {
+    return Err(References(ForeignComputation))
+  }
   if computation_receipt.name != "run_receipt" {
     return Err(InvalidComputation)
   }
@@ -659,6 +752,7 @@ pub fn issue_effectful_final_run_receipt(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      prepared_capture~,
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(References(issue))

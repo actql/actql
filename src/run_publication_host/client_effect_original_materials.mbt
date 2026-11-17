@@ -8,6 +8,7 @@ pub fn issue_prepared_client_effect_run_materials(
   definition : @publication.PublicationContract,
   request? : ClientRequestIdentity? = None,
   normalization? : ClientEffectNormalization? = None,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
 ) -> Result[String, ClientEffectRunMaterialsIssue] {
   let prepared = client_effect_compilation_owner(allowed.compilation)
   if prepared.source_intent is Some(_) && request is None {
@@ -56,7 +57,11 @@ pub fn issue_prepared_client_effect_run_materials(
     }
   }
   encode_prepared_client_effect_materials(
-    allowed, definition, request_wire, normalization_wire,
+    allowed,
+    definition,
+    request_wire,
+    normalization_wire,
+    before_body~,
   )
 }
 
@@ -81,15 +86,16 @@ fn encode_prepared_client_effect_materials(
   definition : @publication.PublicationContract,
   request_wire : String?,
   normalization_wire : String?,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
 ) -> Result[String, ClientEffectRunMaterialsIssue] {
   let prepared = client_effect_compilation_owner(allowed.compilation)
   let (program, parameters, environment) = match
-    client_effect_original_input_wires(prepared) {
+    client_effect_original_input_wires(prepared, before_body~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let infer_input = match
-    client_effect_original_infer_input(allowed.compilation) {
+    client_effect_original_infer_input(allowed.compilation, before_body~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -99,12 +105,15 @@ fn encode_prepared_client_effect_materials(
     Err(issue) => return Err(issue)
   }
   let infer_inputs_wire = match
-    client_effect_original_infer_inputs(allowed.compilation) {
+    client_effect_original_infer_inputs(allowed.compilation, before_body~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let source_free_policy_input = match
-    client_effect_original_source_free_policy_input(allowed.compilation) {
+    client_effect_original_source_free_policy_input(
+      allowed.compilation,
+      before_body~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -122,6 +131,7 @@ fn encode_prepared_client_effect_materials(
     infer_native_read_profile~,
     infer_inputs_wire~,
     source_free_policy_input~,
+    before_body~,
   ).map_err(fn(issue) { ClientEffectRunMaterialsIssue::Input(issue) })
 }
 
@@ -131,7 +141,11 @@ fn encode_prepared_client_effect_materials(
 /// authoring inputs or reads a current alias publication.
 fn client_effect_original_input_wires(
   prepared : PreparedClientEffectComputation,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
 ) -> Result[(String, String?, String), ClientEffectRunMaterialsIssue] {
+  if before_body is Some(fund) {
+    return client_effect_funded_original_input_wires(prepared, fund)
+  }
   try {
     let source_writer = @encode.writer(65536, 8192, 64)
     @syntax.emit_program_source(prepared.source, source_writer)

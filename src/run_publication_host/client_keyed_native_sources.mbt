@@ -104,7 +104,10 @@ pub fn prepare_client_keyed_native_whole_source_evidence(
     @row_host.row_capture_source(capture) is Ok(same_source) &&
     physical_equal(same_source, source) &&
     @query.captured_source_matches_input_acquisition(source, original) &&
-    select_client_direct_acquisition_occurrences(composed.plan.owner, max_work)
+    select_client_direct_acquisition_occurrences(
+      client_composed_keyed_original_program(composed),
+      max_work,
+    )
     is Ok(direct) &&
     client_direct_acquisition_occurrence_at(direct, index) is Some((_, _, task)) &&
     client_keyed_left_available(lookup.left) else {
@@ -433,7 +436,7 @@ pub fn prepare_client_keyed_native_left_relation(
     lookup.left.composed is Some(composed) &&
     composed.keyed.program is KeyedEffect(prepared) &&
     prepared_client_effect_request_scope(prepared, request) is Ok(_) &&
-    composed.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(composed) is Some(component) &&
     component.original.policies.left is Some(policy) &&
     native_left_relation_phase(lookup, state, composed.sources.length()) else {
     return Err(Assembly("incomplete_native_left_sources"))
@@ -443,10 +446,9 @@ pub fn prepare_client_keyed_native_left_relation(
   // The declared-file consumer borrows already-retained Source bodies. Price
   // its next closed envelopes from those original wires/CIDs, not the policy
   // ceiling. Native's selected caller keeps its existing codec geometry.
-  let writer_bytes = if @publication.publication_contract_name(
+  let writer_bytes = if @publication.read_profile_uses_installed_rows(
       component.original.profile,
-    ) ==
-    "declared_file_content_read" {
+    ) {
     let mut units = issuer.length().to_int64() +
       policy.cid.length().to_int64() +
       @publication.publication_contract_json(retention).length().to_int64() +

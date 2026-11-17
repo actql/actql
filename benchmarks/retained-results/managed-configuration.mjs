@@ -17,17 +17,25 @@ export const productResidentOffer = true;
 // through the ordinary planner, including preparation/import attempts.
 export const nativeRegisteredResidentOffer = productResidentOffer;
 
-export function managedCaseConfiguration(fixture, contracts, database, directory) {
+// Shared with offline observation readers: the original case policy, never a
+// ceiling reconstructed from an observed holding or a candidate startup offer.
+export function managedCaseLedgerLimits(fixture) {
   const l = fixture.limits;
-  const environment = benchmarkEnvironment(fixture);
   const taskCount = fixture.workload === workloads[1] ? 4 : 3;
   const computeTransfer = 3 * l.representationBytes +
     2 * l.intermediateRows * (128 * l.maxColumns + 256) + 8192;
   // Join preflight's validation charge is additional to graph/search work.
-  const limits = Object.freeze({planning_work: 100000 + l.cumulativeGuardWork,
+  return Object.freeze({planning_work: 100000 + l.cumulativeGuardWork,
     attempts: 12, holdings: 12,
     transfer_bytes: BigInt(3 * l.representationBytes + (taskCount + 1) * computeTransfer),
     retained_bytes: 1073741824n, execution_bytes: 4294967296n});
+}
+
+export function managedCaseConfiguration(fixture, contracts, database, directory) {
+  const l = fixture.limits;
+  const environment = benchmarkEnvironment(fixture);
+  const taskCount = fixture.workload === workloads[1] ? 4 : 3;
+  const limits = managedCaseLedgerLimits(fixture);
   const batchBytes = Math.min(l.batchBytes, l.representationBytes);
   // Explicit execution account installed by this Host for the case: read
   // exactly its source table. Passed as exact text to the managed worker.

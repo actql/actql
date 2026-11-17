@@ -4,7 +4,7 @@ import {mkdir, mkdtemp, readFile, readdir, writeFile} from
   'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {packedClientPackage} from './packed-client-packages.mjs';
+import {acquireRunHostClientPackages} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -23,11 +23,7 @@ function run(command, args, cwd) {
   return result.stdout;
 }
 
-for (const name of ['run-host-core', 'client-wire']) {
-  await packedClientPackage({repository, name, destination: installation,
-    pack: selected => run('npm', ['pack', '--pack-destination', installation, '--json'],
-      join(repository, 'packages', selected))});
-}
+await acquireRunHostClientPackages({repository, destination: installation, run});
 await writeFile(join(installation, 'package.json'),
   '{"private":true,"type":"module"}\n');
 run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',

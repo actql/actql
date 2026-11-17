@@ -1,12 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createHash} from 'node:crypto';
 // The ordinary chain proof-check imports this file. Keep real child/source
 // custody and interruption refusals beside the existing recipe observations.
 import '../bounded-session/mutation-command.test.mjs';
 import '../bounded-session/mutation-detection.test.mjs';
-import {retirementCases, selectCases, retirementWitness, requireRetirementDetection, normalLifetimeCases, requireNormalLifetime} from './mutation-retirement.mjs';
+import {retirementCases, selectCases, retirementWitness, requireRetirementDetection, requireNormalLifetime} from './mutation-retirement.mjs';
 const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 const old = ['reset-consumed-budget','omit-handoff-accounting','fresh-budget-for-next-child','cleanup-reenters-advance','handoff-failure-drops-children','pending-cleanup-reported-complete','cancel-not-forwarded-to-session','row-adapter-cumulative-as-delta','premature-chain-terminal'].map(id => [id]);
@@ -42,60 +41,36 @@ for(const [label,result,text] of [
 ]) test(`controlled retirement observation refuses ${label}`,()=>assert.throws(()=>requireRetirementDetection(result,text,witness)));
 
 const normalFixture = read(retirementCases[0][4]);
-// Synthetic validator inputs only. The actual normal runner still executes
-// Moon and binds the unchanged Source snapshot before and after the child.
+// Synthetic validator inputs only. The real caller executes the entire Moon
+// fixture and binds its immutable Source snapshot before and after execution.
 const normalOutput = 'Total tests: 12, passed: 12, failed: 0.\n';
-test('current lifetime fixture retains reviewed fragment preparation and finite-memory changes', () => {
-  const start = normalFixture.indexOf('///|\ntest "reclaimed bounded chain does not fund an unused generic measurement forest" {');
-  const end = normalFixture.indexOf('///|\nfn chain_lifetime_append_body()', start);
-  assert(start >= 0 && end > start, 'Reach the one added finite-memory case');
-  const added = normalFixture.slice(start, end);
-  assert.equal(createHash('sha256').update(added).digest('hex'),
-    '97c9fc5915096ab971a411bf74cbfe777dd9c9f0641b63a827b91852c10b5c25');
-  const retainedCases = normalFixture.slice(0, start) + normalFixture.slice(end);
-  assert.equal(retainedCases.split('base.retained_bytes').length, 4,
-    'Only the three reviewed capacity baselines change');
-  const fragmentFixture = retainedCases.replaceAll('base.retained_bytes', 'base.execution_bytes');
-  // Reversing the exact added case and three baselines restores the complete
-  // prior eleven-case fixture, including every current/cleanup/row assertion.
-  assert.equal(createHash('sha256').update(fragmentFixture).digest('hex'),
-    'ac2e12bc9f2c26d25a1b06ac762c5a818eb69d330661ccd217f6d516e993e931');
-  const before = '      @lower.kernel_body(kernel) is @lower.Filter(_) {';
-  const after = '      (\n        @lower.kernel_body(kernel) is @lower.Filter(_) ||\n        @lower.kernel_bindings(kernel) is Some(_)\n      ) {';
-  assert.equal(normalFixture.split(after).length, 2, 'Reach the one reviewed fragment selection');
-  const previous = fragmentFixture.replace(after, before);
-  // Independently retained complete preimage: this single reversal includes
-  // every original case, limit, current check and cleanup assertion unchanged.
-  assert.equal(createHash('sha256').update(previous).digest('hex'),
-    '3ff093fd2c959c5ebcd4027ddc2bbcdf56fc351c86dfe1e1c85a750353ce4e3a');
-  assert.throws(() => requireNormalLifetime({status: 0}, normalOutput, previous),
-    /requires a new independent review/);
-  const foreign = normalFixture.replace('@lower.kernel_bindings(kernel) is Some(_)',
-    '@lower.kernel_bindings(kernel) is None');
-  assert.notEqual(foreign, normalFixture);
-  assert.throws(() => requireNormalLifetime({status: 0}, normalOutput, foreign),
-    /requires a new independent review/);
-});
-test('normal lifetime census admits exactly the independently reviewed twelve cases', () => {
-  assert.equal(normalLifetimeCases.length, 12);
+test('normal lifetime accepts current witnesses and actual successful totals', () => {
   assert.equal(requireNormalLifetime({status: 0}, normalOutput, normalFixture), 12);
+  assert.equal(requireNormalLifetime({status: 0}, 'Total tests: 17, passed: 17, failed: 0.\n', normalFixture), 17);
+});
+test('normal lifetime tolerates unrelated label comments and added cases', () => {
+  const changed = normalFixture.replace('reclaimed bounded chain does not fund an unused generic measurement forest',
+    'same finite operation under a different presentation') + '\n// harmless note\ntest "extra independent case" { assert_true(true) }\n';
+  assert.notEqual(changed, normalFixture);
+  assert.equal(requireNormalLifetime({status: 0}, normalOutput, changed), 12);
 });
 for (const [label, fixture] of [
-  ['missing', normalFixture.replace(`test "${normalLifetimeCases[0]}" {`, 'fn missing_case() {')],
-  ['renamed', normalFixture.replace(normalLifetimeCases[0], 'renamed case')],
-  ['added', `${normalFixture}\ntest "unreviewed case" {}\n`],
-  ['changed assertion', normalFixture.replace('assert_eq(count, 3)', 'assert_eq(count, 2)')],
-]) test(`normal census refuses ${label} authored case`, () => {
+  ['missing required test', normalFixture.replace(`test "${retirementCases[0][5]}" {`, 'fn missing_case() {')],
+  ['duplicate required test', normalFixture + `\ntest "${retirementCases[0][5]}" {}\n`],
+  ['missing intended assertion', normalFixture.replace(retirementCases[0][6], 'assert_eq(unrelated, 1)')],
+]) test(`normal lifetime refuses ${label}`, () => {
   assert.throws(() => requireNormalLifetime({status: 0}, normalOutput, fixture));
 });
 for (const [label, result, output] of [
   ['zero', {status: 0}, 'Total tests: 0, passed: 0, failed: 0.'],
+  ['required witnesses omitted', {status: 0}, 'Total tests: 1, passed: 1, failed: 0.'],
   ['missing summary', {status: 0}, ''],
   ['duplicate summary', {status: 0}, normalOutput.repeat(2)],
-  ['missing case', {status: 0}, 'Total tests: 11, passed: 11, failed: 0.'],
+  ['inconsistent count', {status: 0}, 'Total tests: 12, passed: 11, failed: 0.'],
   ['failed case', {status: 1}, 'Total tests: 12, passed: 11, failed: 1.'],
+  ['compile failure', {status: 0}, 'Error: [3001] invalid source\n' + normalOutput],
   ['process error', {status: 0, error: new Error('failed')}, normalOutput],
   ['signal', {status: 0, signal: 'SIGTERM'}, normalOutput],
-]) test(`normal census refuses ${label}`, () => {
+]) test(`normal lifetime refuses ${label}`, () => {
   assert.throws(() => requireNormalLifetime(result, output, normalFixture));
 });

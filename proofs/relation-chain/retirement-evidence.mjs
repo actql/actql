@@ -52,7 +52,8 @@ export function checkRetirementConnection(read) {
   const begin = source.indexOf('fn reclaim_relation_chain_child(');
   const end = source.indexOf('fn bounded_relation_chain_execution_state(', begin);
   assert(begin >= 0 && end > begin, 'Missing reviewed retirement owner');
-  const compact = value => value.replace(/\/\/[^\n]*/gu, '').replace(/\s+/gu, '');
+  const compact = value => value.replace(/\/\/[^\n]*/gu, '').replace(/\s+/gu, '')
+    .replace(/,\)/gu, ')');
   const reclaim = compact(source.slice(begin, end));
   assert(reclaim.includes('guardstate.currentisSome(active)&&managed_provider_stopped(active)else'),
     'Missing completed-child physical-stop guard');
@@ -62,9 +63,21 @@ export function checkRetirementConnection(read) {
   const route = compact(source.slice(end));
   assert(route.includes('ifcancelled.val&&state.pending{terminal.val=truereturnOk(managed_provider_stopped_poll(0L,0L))}'),
     'Missing scoped pending cancellation');
-  assert(route.includes('ifstate.pending{matchreclaim_relation_chain_child(state){Ok(true)=>()Ok(false)=>returnOk(managed_provider_waiting(0L,0L))Err(issue)=>{terminal.val=truereturnOk(managed_provider_failed(issue,0L,0L))}}'),
+  // Review the pending-custody region rather than requiring the fallback match
+  // to be its first statement. Owned finite cleanup can now make one funded
+  // continuation and return; it must not admit a successor in that poll.
+  const pendingStart = route.indexOf('ifstate.pending{');
+  const inputStart = route.indexOf('letnext_inputs=', pendingStart);
+  assert(pendingStart >= 0 && inputStart > pendingStart, 'Missing pending retirement boundary');
+  const pending = route.slice(pendingStart, inputStart);
+  assert(pending.includes('matchreclaim_relation_chain_child(state){Ok(true)=>()Ok(false)=>returnOk(managed_provider_waiting(0L,0L))Err(issue)=>{terminal.val=truereturnOk(managed_provider_failed(issue,0L,0L))}}'),
     'Missing pending reclamation custody before successor admission');
-  assert(route.includes('letreclaimed_prefix=relation_chain_reclaimed_prefix(sequence)'),
+  assert(pending.includes('letfinite=ifstate.reclaiming{state.current.map(managed_provider_cleanup_continuation).unwrap_or(-1L)}else{-1L}') &&
+    pending.includes('used.val+=1Lletchild=state.current.unwrap()matchreclaim_relation_chain_child(state)') &&
+    pending.includes('ifmanaged_provider_cleanup_continuation(child)<=finite{') &&
+    pending.includes('returnOk(managed_provider_continue(0L,1L))'),
+  'Missing funded finite retirement continuation and successor boundary');
+  assert(route.includes('letreclaimed_prefix=relation_chain_reclaimed_prefix(sequence,execution,measurement,family)'),
     'Missing reviewed retirement prefix selection');
   // Keep the all-eligible model scope. The adopted prefix selector is local to
   // the completed position; it does not admit conservative family suffixes.
@@ -83,7 +96,7 @@ export function checkRetirementConnection(read) {
   const mixedEnd = fixture.indexOf('\ntest "', mixedStart + 1);
   const mixed = compact(fixture.slice(mixedStart, mixedEnd < 0 ? undefined : mixedEnd));
   assert(mixed.includes('assert_false(relation_chain_reclaims_completed_scratch(sequence))') &&
-    mixed.includes('assert_eq(relation_chain_reclaimed_prefix(sequence),1)') &&
+    mixed.includes('assert_eq(relation_chain_reclaimed_prefix(sequence,chain_lifetime_limits(),chain_lifetime_measurement(),[]),1)') &&
     mixed.includes('ifstate.pending{assert_eq(state.children.length(),0)assert_false(state.reclaiming)}') &&
     mixed.includes('assert_eq(state.children.length(),count-1)assert_true(cleanup_managed_provider(active).unwrap())assert_true(state.children.is_empty())assert_true(@execution.completed_output_available(source))'),
   'Missing conservative retirement scope and suffix custody counterexample');

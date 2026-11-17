@@ -61,6 +61,8 @@ pub(all) enum PreparationWorkPhase {
   // Appended to preserve existing constructor tags; execution ordering is below.
   RequestValuePolicyCheck
   RequestPolicySubjectPreparation
+  HttpInputPreflight
+  NormalizationAudit
 } derive(Eq, Debug)
 
 ///|
@@ -88,7 +90,7 @@ pub(all) struct PreparationWorkConstructionInventory {
 let preparation_work_construction : PreparationWorkConstructionInventory = {
   record_headers: 12L,
   reference_slots: 16L,
-  scalar_words: 18L,
+  scalar_words: 19L,
 }
 
 ///|
@@ -116,10 +118,12 @@ struct PreparationPhaseWork64 {
 /// One original phase meter for staged constructors. This is an alternative
 /// receipt, not a wrapper issuing a second receipt or another work allowance.
 struct PreparationPhaseWorkContinuation64 {
+  ledger_original : Ledger
   spend_original : (Int64) -> Result[Unit, PreparationWorkIssue]
   finish_original : () -> Result[Int64, PreparationWorkIssue]
   return_original : () -> Result[Unit, PreparationWorkIssue]
   resume_original : () -> Result[Unit, PreparationWorkIssue]
+  remaining_original : () -> Result[Int64, PreparationWorkIssue]
 }
 
 ///|
@@ -134,12 +138,18 @@ priv struct PreparationPhaseWorkState[I, P] {
   owner : PreparationCapacity[I, P]
   live : Ref[PreparationWorkState]
   maximum : Int64
+  run : Bool
   mut remaining : Int64
 }
 
 ///|
+// Shared fresh-state sentinel; optional raw HTTP work precedes Header0.
+let preparation_work_unclaimed : Int = -2
+
+///|
 fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
   match phase {
+    HttpInputPreflight => -1
     HeaderInspection => 0
     OwnDataScan => 1
     TextEligibility => 2
@@ -198,8 +208,11 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     RequestPolicySubjectPreparation => 53
     RequestValuePolicyCheck => 54
     LowerAndGraph => 55
-    ExecutionPlan => 56
-    PublicationProof => 57
+    // This private fence is not a constructor/ABI tag or serialized counter.
+    // Normalization belongs to the same Prepared before Plan construction.
+    NormalizationAudit => 56
+    ExecutionPlan => 57
+    PublicationProof => 58
   }
 }
 
@@ -232,7 +245,7 @@ fn[I, P] begin_preparation_work_state(
   let live = Ref(PreparationWorkState::Executing)
   owner.last_work_phase = ordinal
   owner.active_phase_work = Some(live)
-  Ok({ owner, live, maximum, remaining: maximum, })
+  Ok({ owner, live, maximum, run: false, remaining: maximum, })
 }
 
 ///|
@@ -246,7 +259,11 @@ fn[I, P] spend_preparation_work_state(
   if state.live.val != Executing {
     return Err(WrongPhase)
   }
-  if !preparation_capacity_phase_is_working(state.owner.phase) {
+  if !(if state.run {
+      state.owner.phase == Run && !state.owner.inventory_growth_active
+    } else {
+      preparation_capacity_phase_is_working(state.owner.phase)
+    }) {
     return Err(WrongPhase)
   }
   if state.owner.ledger.imported_child is Some(origin) && origin.stopping {
@@ -275,6 +292,10 @@ fn[I, P] finish_preparation_work_state(
   }
   // A returned receipt can span a resize, whose original current callback may
   // reenter. Finishing inside that callback must not sever the live phase.
+  if state.run &&
+    (state.owner.phase != Run || state.owner.inventory_growth_active) {
+    return Err(WrongPhase)
+  }
   if state.owner.phase == Completing ||
     state.owner.phase == Transferring ||
     state.owner.phase == Settling {
@@ -293,7 +314,11 @@ fn[I, P] return_preparation_work_state(
     return Err(Closed)
   }
   if state.live.val != Executing ||
-    !preparation_capacity_phase_is_working(state.owner.phase) ||
+    !(if state.run {
+      state.owner.phase == Run && !state.owner.inventory_growth_active
+    } else {
+      preparation_capacity_phase_is_working(state.owner.phase)
+    }) ||
     !(state.owner.active_phase_work is Some(active) &&
     physical_equal(active, state.live)) {
     return Err(WrongPhase)
@@ -310,7 +335,11 @@ fn[I, P] resume_preparation_work_state(
     return Err(Closed)
   }
   if state.live.val != Returned ||
-    !preparation_capacity_phase_is_working(state.owner.phase) ||
+    !(if state.run {
+      state.owner.phase == Run && !state.owner.inventory_growth_active
+    } else {
+      preparation_capacity_phase_is_working(state.owner.phase)
+    }) ||
     !(state.owner.active_phase_work is Some(active) &&
     physical_equal(active, state.live)) {
     return Err(WrongPhase)
@@ -420,13 +449,13 @@ pub fn resume_preparation_phase_work_continuation64(
 }
 
 ///|
-/// Staged receipt adds two original closures2H2R and two receipt fields2R.
+/// Staged receipt adds three original closures3H3R and three receipt fields3R.
 /// The same state/status cell remains one scalar word. Ordinary narrow/wide
 /// receipts retain their exact original fields and constructor inventory.
 pub fn preparation_phase_work_continuation64_construction_inventory() -> PreparationWorkConstructionInventory {
   {
-    record_headers: preparation_work_construction.record_headers + 2L,
-    reference_slots: preparation_work_construction.reference_slots + 4L,
+    record_headers: preparation_work_construction.record_headers + 3L,
+    reference_slots: preparation_work_construction.reference_slots + 7L,
     scalar_words: preparation_work_construction.scalar_words,
   }
 }
@@ -446,10 +475,14 @@ pub fn[I, P] begin_preparation_phase_work_continuation64(
     Ok(state) => state
   }
   Ok({
+    ledger_original: owner.ledger,
     spend_original: amount => spend_preparation_work_state(state, amount),
     finish_original: () => finish_preparation_work_state(state),
     return_original: () => return_preparation_work_state(state),
     resume_original: () => resume_preparation_work_state(state),
+    remaining_original: () => {
+      spend_preparation_work_state(state, 0L).map(_ => state.remaining)
+    },
   })
 }
 
@@ -462,6 +495,16 @@ pub fn spend_preparation_phase_work_continuation64(
 }
 
 ///|
+/// Borrow the SAME executing phase's remaining amount without consuming or
+/// refilling it. Returned, closed, stopping and wrong-phase receipts retain
+/// their existing refusal, before another bounded constructor can advance.
+pub fn remaining_preparation_phase_work_continuation64(
+  receipt : PreparationPhaseWorkContinuation64,
+) -> Result[Int64, PreparationWorkIssue] {
+  (receipt.remaining_original)()
+}
+
+///|
 /// Finish the SAME total once, including cleanup of a returned constructor.
 pub fn finish_preparation_phase_work_continuation64(
   receipt : PreparationPhaseWorkContinuation64,
@@ -471,9 +514,77 @@ pub fn finish_preparation_phase_work_continuation64(
 
 ///|
 /// Live portion of the SAME staged receipt: state1H2R2W, live Ref1H1W,
-/// four original state closures4H4R, receipt1H4R and active Some1H1R1W.
+/// five original state closures5H5R, receipt1H6R and active Some1H1R1W.
 /// Construction-return/argument carriers have unwound before reconciliation.
 /// The caller's own receipt Some stays with that caller's control inventory.
 pub fn preparation_phase_work_continuation64_retained_inventory() -> PreparationWorkConstructionInventory {
-  { record_headers: 8L, reference_slots: 11L, scalar_words: 4L, }
+  { record_headers: 9L, reference_slots: 14L, scalar_words: 5L, }
+}
+
+///|
+// Run adoption is an explicit alternative, never a change to Working phase
+// eligibility. Only PublicationProof may claim this same original active cell.
+fn[I, P] begin_run_publication_work_continuation64(
+  owner : PreparationCapacity[I, P],
+  body : P,
+  ledger : Ledger,
+  maximum : Int64,
+) -> Result[PreparationPhaseWorkContinuation64, PreparationWorkIssue] {
+  if !physical_equal(owner.ledger, ledger) ||
+    owner.input is None ||
+    !(owner.body is Some(original) && physical_equal(original, body)) {
+    return Err(ForeignOriginal)
+  }
+  if owner.phase != Run ||
+    owner.active_phase_work is Some(_) ||
+    !owner.reservation.reservation.open ||
+    owner.inventory_growth_active {
+    return Err(WrongPhase)
+  }
+  if maximum < 0L {
+    return Err(InvalidWork)
+  }
+  let ordinal = preparation_work_ordinal(PublicationProof)
+  if ordinal <= owner.last_work_phase {
+    return Err(AlreadyClaimed)
+  }
+  if (ledger.imported_child is Some(origin) && origin.stopping) ||
+    (ledger.original_inventory is Some(inventory) && inventory.closing) {
+    return Err(Stopping)
+  }
+  if reservation_check_current(ledger, owner.reservation.reservation) is Err(_) {
+    return Err(ForeignOriginal)
+  }
+  let live = Ref(PreparationWorkState::Executing)
+  owner.last_work_phase = ordinal
+  owner.active_phase_work = Some(live)
+  let state : PreparationPhaseWorkState[I, P] = {
+    owner,
+    live,
+    maximum,
+    run: true,
+    remaining: maximum,
+  }
+  Ok({
+    ledger_original: ledger,
+    spend_original: amount => spend_preparation_work_state(state, amount),
+    finish_original: () => finish_preparation_work_state(state),
+    return_original: () => return_preparation_work_state(state),
+    resume_original: () => resume_preparation_work_state(state),
+    remaining_original: () => {
+      spend_preparation_work_state(state, 0L).map(_ => state.remaining)
+    },
+  })
+}
+
+///|
+// Only this adopted PublicationProof continuation may be parked around an
+// existing Run resize. No Working receipt or executing cursor is eligible.
+fn[I, P] preparation_run_publication_work_returned(
+  owner : PreparationCapacity[I, P],
+) -> Bool {
+  owner.phase == Run &&
+  owner.last_work_phase == preparation_work_ordinal(PublicationProof) &&
+  owner.active_phase_work is Some(active) &&
+  active.val == Returned
 }

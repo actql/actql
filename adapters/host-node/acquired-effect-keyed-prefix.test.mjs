@@ -4,14 +4,14 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {localStrategyContribution} from '../local-node/strategy-bundle.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
-import {prepareAcquiredEffectKeyedPrefix} from './acquired-effect-keyed-prefix.mjs';
+import {prepareAcquiredEffectKeyedCapture, prepareAcquiredEffectKeyedPrefix} from './acquired-effect-keyed-prefix.mjs';
 import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
 
 // Explicit nominal ports exercise the actual shared composition. They do not
 // issue a Run, Source evidence, capacity, permission or physical cleanup ACK.
-function fixture({rawProtocol = false} = {}) {
+function fixture({rawProtocol = false, sourceOnly = false, generic = false, failGenericMetadata = false, failGenericFinish = false} = {}) {
   const prepared = {}, managedRun = {}, graph = {}, scope = {}, compiled = {};
   const definition = {identity: 'sha256:' + '1'.repeat(64),
     wire: '{"valid_until":"2027-01-01T00:00:00.000Z"}'};
@@ -43,7 +43,7 @@ function fixture({rawProtocol = false} = {}) {
     },
   };
   const sourceRef = {}, access = {}, preparedKeyed = {}, ledger = {}, observation = {}, original = {}, evidence = {};
-  const captures = [{capture: {}}, {capture: {}}], events = [];
+  const captures = (sourceOnly ? [{}] : [{}, {}]).map(() => ({capture: {}})), events = [];
   let duty, current = true, acquired = 0, prepares = 0, advances = 0, closes = 0, cleanups = 0, ack = true;
   const lookup = {async close() {events.push('lookup-close'); closes++;},
     async cleanup() {events.push('lookup-cleanup'); cleanups++; return ack;},
@@ -61,9 +61,20 @@ function fixture({rawProtocol = false} = {}) {
       assert.equal(value.preparedEffect, prepared); assert.equal(value.managedRun, managedRun);
       assert.equal(value.keyedAcquisition, acquisition); assert.equal(value.left, left);
       assert.equal(value.ledger, ledger); assert.equal(value.preparedKeyed, preparedKeyed);
-      assert.deepEqual(value.originalCaptures, captures.map(member => member.capture));
+      if (sourceOnly) {
+        assert.equal(value.originalCaptures, undefined);
+        assert.strictEqual(value.originalCapture, captures[0].capture);
+      } else assert.deepEqual(value.originalCaptures, captures.map(member => member.capture));
       assert.equal(value.sourceAccess, access);
       value.publication.initialize(originalLookup);
+      if (generic) {
+        assert.equal(value.publication.protocol, 'generic-source');
+        assert.equal(value.publication.activate, undefined);
+        assert.equal(value.publication.retainRawResponse, undefined);
+        assert.equal(value.publication.adopt, undefined);
+        assert.strictEqual(value.publication.finishInput(originalLookup), original);
+        acquired++; return lookup;
+      }
       const attempt = value.publication.activate(originalLookup, keyedRequest);
       assert.equal(attempt.activation, activation); assert.equal(attempt.record, activationRecord);
       if (rawProtocol) {
@@ -75,7 +86,26 @@ function fixture({rawProtocol = false} = {}) {
       acquired++; return lookup;
     }};
   const request = {};
-  const control = {startInstalledOriginalComposedKeyedPrefix(...args) {
+  const sourceOriginal = {};
+  const genericFailure = new Error('original-generic-completion');
+  const control = {
+    prepareGenericEffectKeyedLookupSourceMetadata(parent, actual, originals, observations, selection, limits) {
+      assert(generic); assert.strictEqual(parent, sourceOriginal); assert.strictEqual(actual, originalLookup);
+      assert.strictEqual(originals, captures); assert.deepEqual(observations.map(value => value.captured), captures);
+      assert.equal(selection.availableUntil, '2027-01-01T00:00:00.000Z'); assert(limits.maxWireBytes > 0);
+      events.push('generic-metadata'); if (failGenericMetadata) throw genericFailure; return retention;
+    },
+    finishGenericEffectKeyedLookupPublicationInput(parent, actual, at, limits) {
+      assert.strictEqual(parent, sourceOriginal); assert.strictEqual(actual, originalLookup);
+      assert.equal(at, '2026-11-05T00:00:00.000Z'); assert(limits.maxNodes > 0);
+      events.push('generic-finish'); if (failGenericFinish) throw genericFailure; return original;
+    },
+    startInstalledEffectKeyedCaptureInput(...args) {
+    assert(sourceOnly); assert(duty, 'cleanup retained before the original constructor');
+    assert.deepEqual(args.slice(0, 8), [managedRun, prepared, request, compiled,
+      definition, graph, acquisition, captures]);
+    events.push('source-start'); return originalLookup;
+  }, startInstalledOriginalComposedKeyedPrefix(...args) {
     assert(duty, 'retain cleanup before the actual constructor');
     assert.deepEqual(args, [managedRun, compiled, definition, graph, scope, acquisition, captures]);
     events.push('prefix-start'); return prefix;
@@ -96,7 +126,21 @@ function fixture({rawProtocol = false} = {}) {
     assert(physicalRecord); events.push('page-prepare'); return page;
   }, keyedLookupPublicationEvidence(value) {assert.equal(value, observation); return evidence;}};
   const moon = {
-    clientProgramKeyedLookupDeclaredFilePublicationInput(value) {
+    clientProgramEffectKeyedPlanGraphIsGeneric(value) {assert.strictEqual(value, graph); return generic;},
+    clientProgramInstalledEffectKeyedInputWorkLimit(parent, owner, identity) {
+      assert(sourceOnly); assert.strictEqual(parent, managedRun);
+      assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+      return ok(2718281);
+    },
+    clientProgramInstalledEffectKeyedOriginal(parent, owner, identity) {
+      assert(sourceOnly); assert.strictEqual(parent, managedRun);
+      assert.strictEqual(owner, prepared); assert.strictEqual(identity, request);
+      return ok(sourceOriginal);
+    },
+    clientProgramKeyedLookupLeft(value) {assert.strictEqual(value, originalLookup); return left;},
+    clientProgramKeyedLookupStop(value) {assert.strictEqual(value, originalLookup); events.push('source-stop');},
+    clientProgramKeyedLookupCleanup(value) {assert.strictEqual(value, originalLookup); events.push('source-cleanup'); return ok(true);},
+    clientProgramKeyedLookupDeclaredFilePublicationInputDeferredCatalog(value) {
       assert.strictEqual(value,originalLookup); events.push('lookup-completion'); return ok(original);
     },
     clientProgramKeyedLookupStartDeclaredFileRequestPlan(value, at, ms, issuer) {
@@ -128,7 +172,8 @@ function fixture({rawProtocol = false} = {}) {
     assert.strictEqual(ref, runRef); assert.equal(value.activation, activation);
     assert.equal(value.identity, request); assert.equal(value.preparedEffect, prepared);
     assert.equal(value.compilation, compilation); assert.equal(value.compiled, compiled);
-    assert.equal(value.runDefinition, definition); assert.equal(value.graph, graph);
+    assert.equal(value.runDefinition, definition); assert.equal(value.graph, sourceOnly ? undefined : graph);
+    if (sourceOnly) assert.strictEqual(value.sourceOriginal, sourceOriginal);
     assert.equal(actualMoon, moon); assert.equal(actualControl, control);
     events.push('journal'); return activationRecord;
   }};
@@ -142,7 +187,11 @@ function fixture({rawProtocol = false} = {}) {
     captures, sourceProfile:adapter, ledger, now: () => '2026-11-05T00:00:00.000Z',
     current() {if (!current) throw new Error('OriginalNotCurrent');},
     retain(value) {assert.equal(duty, undefined); duty = value;}};
-  return {options, moon, adapter, events, lookup, original, observation, evidence, left,
+  if (sourceOnly) {
+    delete options.infer; delete options.selected; delete options.originalPreparation; delete options.plan;
+    options.sourcePreparation = {graph, acquisition, compiled, runDefinition: definition};
+  }
+  return {options, moon, adapter, events, lookup, original, observation, evidence, left, sourceOriginal, genericFailure,
     duty: () => duty, counts: () => ({acquired, prepares, advances, closes, cleanups}),
     setCurrent: value => {current = value;}, acknowledge: value => {ack = value;}};
 }
@@ -250,6 +299,67 @@ test('retirement during original raw Store await prevents page adoption and Mode
   assert.equal(f.counts().acquired,0);
 });
 
+test('failed raw confirmation retains its same reader before lookup retirement without another dispatch', async () => {
+  const f = fixture({rawProtocol: true});
+  let pending = false, closeAllowed = false, failed = false, retries = 0;
+  const closeFailure = new Error('original raw reader close failed');
+  const reader = Object.freeze({
+    status: () => ({pending}),
+    async retry() {
+      assert(pending, 'Only the same pending physical reader is retried');
+      retries++;
+      if (!closeAllowed) throw closeFailure;
+      pending = false;
+    },
+  });
+  const primary = Object.assign(new Error('original raw confirmation failed'),
+    {cleanupPending: true, cleanupHandle: reader});
+  const confirm = f.options.store.confirmLookupRawEvidence;
+  f.options.store.confirmLookupRawEvidence = async binding => {
+    assert.equal(pending, false, 'Reconfirmation cannot reopen while its original reader is pending');
+    const saved = await confirm(binding);
+    if (saved !== undefined && !failed) {
+      failed = true; pending = true;
+      throw primary;
+    }
+    return saved;
+  };
+  const close = f.lookup.close;
+  f.lookup.close = async () => {
+    assert.equal(pending, false, 'Lookup credit cannot retire before its original raw reader');
+    return close();
+  };
+  const open = f.adapter.openKeyedLookup;
+  f.adapter.openKeyedLookup = async value => {
+    try {return await open(value);}
+    catch (cause) {throw acquisitionFailure(cause, 'unknown', f.lookup);}
+  };
+  await assert.rejects(prepareAcquiredEffectKeyedPrefix(f.options),
+    error => error.cause === primary);
+  assert.equal(pending, true);
+  assert.equal(f.events.includes('journal-page'), false);
+  assert.equal(f.events.includes('lookup-completion'), false);
+  assert.equal(await f.duty().cleanup(), false);
+  assert.equal(f.counts().closes, 0);
+  assert.equal(f.duty().cleanupPending(), true);
+
+  closeAllowed = true;
+  let released = false;
+  for (let turn = 0; turn < 8 && !released; turn++) {
+    await new Promise(resolve => setImmediate(resolve));
+    released = await f.duty().cleanup();
+  }
+  assert.equal(released, true);
+  assert.equal(pending, false);
+  assert(retries > 0);
+  assert.equal(f.events.filter(event => event === 'raw-prepare').length, 1);
+  assert.equal(f.events.filter(event => event === 'raw-commit').length, 1);
+  assert.equal(f.counts().acquired, 0);
+  assert.equal(f.counts().closes, 1);
+  assert.equal(f.duty().cleanupPending(), false);
+  assert.equal(await f.duty().cleanup(), true);
+});
+
 
 test('same Host continuation selects original completed Result prefix without the raw-capture prefix entrance', async () => {
   const f = fixture(), host = {}, old = f.options.acquired.control.startInstalledOriginalComposedKeyedPrefix;
@@ -277,6 +387,8 @@ function sameHostContinuation({failure, lostCurrent = false} = {}) {
     }
   };
   walk(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(node);
+  let entered;
+  const enteredOriginal = new Promise(resolve => {entered = resolve;});
   let settle, pending = new Promise(resolve => {settle = resolve;}), calls = 0, binds = 0, adopts = 0;
   let current = true;
   const host = {}, run = {}, member = {selection: {graph: {}}, originalSelection: {}, originalPreparation: {}};
@@ -291,18 +403,19 @@ function sameHostContinuation({failure, lostCurrent = false} = {}) {
       assert.equal(value.$tag, 1); return value._0;
     }, async prepareAcquiredEffectKeyedPrefix(options) {
       calls++; assert.strictEqual(options.originalHost, host); assert.strictEqual(options.acquired, acquired);
-      options.retain({pending: true}); await pending;
+      options.retain({pending: true}); entered(); await pending;
       if (failure) throw failure.value;
       return original;
     }, managedRun: run, modelPlan: {}, captures: [], evidence: [], requestJournal: {}, runRef: {},
     sourceProfile: {}, ledger: {}, contentRun: {}, store: {}, principalId: 'explicit', signal: controller.signal,
     now: () => 'original time', checkedHost: host, acquired,
-    modelGroup: {bindKeyedFamily(value) {assert.strictEqual(value, original); adopts++;}}};
+    modelGroup: {prepareNext(task) {assert([3, 4].includes(task));},
+      bindKeyedFamily(value) {assert.strictEqual(value, original); adopts++;}}};
   const create = new Function(...Object.keys(ports), `let keyedAttempted = false, keyedPreparation,
     keyedCleanup, keyedFamily, captureCompletedAt; ${text.slice(node.start, node.end)};
     return {beforeModelPrepare, retained: () => keyedCleanup};`);
   const actual = create(...Object.values(ports));
-  return {...actual, settle() {if (lostCurrent) current = false; settle();}, controller,
+  return {...actual, enteredOriginal, settle() {if (lostCurrent) current = false; settle();}, controller,
     counts: () => ({calls, binds, adopts})};
 }
 
@@ -310,7 +423,7 @@ test('same Host pre-Model await shares one pending original and never starts it 
   const f = sameHostContinuation();
   await f.beforeModelPrepare(3); assert.deepEqual(f.counts(), {calls: 0, binds: 0, adopts: 0});
   const first = f.beforeModelPrepare(4), second = f.beforeModelPrepare(4);
-  await Promise.resolve(); assert(f.retained()); assert.deepEqual(f.counts(), {calls: 1, binds: 0, adopts: 0});
+  await f.enteredOriginal; assert(f.retained()); assert.deepEqual(f.counts(), {calls: 1, binds: 0, adopts: 0});
   f.settle(); await Promise.all([first, second]); await f.beforeModelPrepare(4);
   assert.deepEqual(f.counts(), {calls: 1, binds: 1, adopts: 1});
 });
@@ -318,7 +431,7 @@ test('same Host pre-Model await shares one pending original and never starts it 
 test('same Host pre-Model current loss and original undefined failure cannot bind or retry', async () => {
   for (const options of [{lostCurrent: true}, {failure: {value: undefined}}]) {
     const f = sameHostContinuation(options), first = f.beforeModelPrepare(4);
-    await Promise.resolve(); assert(f.retained()); f.settle();
+    await f.enteredOriginal; assert(f.retained()); f.settle();
     for (const pending of [first, f.beforeModelPrepare(4)]) {
       let rejected = false;
       try {await pending;} catch (error) {
@@ -359,7 +472,7 @@ test('actual Local input selection awaits original Host continuation before disp
 
 test('same Host pending original cancellation cannot publish the later Model input', async () => {
   const f = sameHostContinuation(), original = new Error('original cancellation');
-  const pending = f.beforeModelPrepare(4); await Promise.resolve(); assert(f.retained());
+  const pending = f.beforeModelPrepare(4); await f.enteredOriginal; assert(f.retained());
   f.controller.abort(original); f.settle();
   await assert.rejects(pending, error => error === original);
   await assert.rejects(f.beforeModelPrepare(4), error => error === original);
@@ -431,4 +544,117 @@ test('actual Local prebound selection preserves the Core dispatch refusal and pr
     if (refused) await assert.rejects(entry.prepareNext(new Map()), error => error === failure);
     else assert.equal(await entry.prepareNext(new Map()), undefined);
   }
+});
+
+
+test('Source-only keyed capture uses the same original lookup without Model or prefix execution', async () => {
+  const f = fixture({sourceOnly: true, rawProtocol: true});
+  const value = await prepareAcquiredEffectKeyedCapture(f.options);
+  assert.strictEqual(value.lookup, f.original);
+  assert.strictEqual(value.sourceOriginal, f.sourceOriginal);
+  assert.strictEqual(value.evidence, f.evidence);
+  assert.equal(Object.hasOwn(value, 'contentOwner'), false, 'No frame has no owner alias');
+  assert.equal(f.counts().advances, 0);
+  assert.equal(f.counts().acquired, 1);
+  assert(!f.events.includes('prefix-start'));
+  assert.equal(await f.duty().cleanup(), true);
+  assert(f.events.indexOf('lookup-cleanup') < f.events.indexOf('source-stop'));
+  assert.deepEqual(f.events.slice(-2), ['source-stop', 'source-cleanup']);
+});
+
+test('Source-only keyed capture forwards the same retained Content owner to its consumer', async () => {
+  const f = fixture({sourceOnly: true, generic: true});
+  const binding = {}, bytes = Buffer.from('original'), sourceBinding = {};
+  let live = true, consumed = 0, cleanups = 0;
+  // Explicit producer ports: this frame represents no Common admission or
+  // physical holding. Actual original/Store consumption is covered separately.
+  const frame = Object.freeze({sourceBinding, recoveryInventory: () => ({}),
+    consumeContent(actual, accept) {
+      assert.strictEqual(actual, binding);
+      assert(live, 'retirement cannot be replaced by the exported owner alias');
+      consumed++; return accept(bytes);
+    }});
+  f.adapter.requiresRunContentCapture = true;
+  f.adapter.keyedRecoveryBinding = () => sourceBinding;
+  f.options.contentRun = {captureKeyed(options) {
+    assert.strictEqual(options.preparedEffect, f.options.acquired.prepared);
+    assert.strictEqual(options.plan, f.options.sourcePreparation);
+    options.retainExecution({async cleanup() {live = false; cleanups++; return true;},
+      cleanupPending: () => false});
+    return frame;
+  }};
+  const result = await prepareAcquiredEffectKeyedCapture(f.options);
+  assert.strictEqual(result.contentOwner, frame);
+  assert.strictEqual(result.lookup, f.original);
+  assert(Object.isFrozen(result));
+  await result.contentOwner.consumeContent(binding, actual => assert.strictEqual(actual, bytes));
+  assert.equal(consumed, 1);
+  assert.equal(await f.duty().cleanup(), true);
+  assert.equal(cleanups, 1);
+  assert.throws(() => result.contentOwner.consumeContent(binding, () => assert.fail('Retired Content')));
+});
+
+test('Source-only current loss retains its original capture cleanup without opening a Source', async () => {
+  const f = fixture({sourceOnly: true});
+  f.adapter.prepareKeyed = async () => {f.setCurrent(false); return {prepared: {}};};
+  await assert.rejects(prepareAcquiredEffectKeyedCapture(f.options), /OriginalNotCurrent/);
+  assert.equal(f.counts().acquired, 0);
+  assert.equal(await f.duty().cleanup(), true);
+  assert.deepEqual(f.events, ['source-start', 'source-stop', 'source-cleanup']);
+});
+
+
+test('generic Source-only keyed publication uses original metadata and completion without Native history', async () => {
+  const f = fixture({sourceOnly: true, generic: true});
+  // There is no Native Journal or raw archive prerequisite for content_ref.
+  delete f.options.requestJournal;
+  const result = await prepareAcquiredEffectKeyedCapture(f.options);
+  assert.strictEqual(result.lookup, f.original);
+  assert.strictEqual(result.sourceOriginal, f.sourceOriginal);
+  assert.deepEqual(f.events, ['source-start', 'generic-metadata', 'generic-finish']);
+  assert.equal(await f.duty().cleanup(), true);
+  assert.deepEqual(f.events.slice(3), ['lookup-close', 'lookup-cleanup', 'source-stop', 'source-cleanup']);
+});
+
+test('generic Source-only metadata refusal retains its original cleanup and never activates Native transport', async () => {
+  const f = fixture({sourceOnly: true, generic: true, failGenericMetadata: true});
+  await assert.rejects(prepareAcquiredEffectKeyedCapture(f.options), error => error === f.genericFailure);
+  assert.equal(f.counts().acquired, 0);
+  assert.deepEqual(f.events, ['source-start', 'generic-metadata']);
+  // An unclassified thrown port result supplies no physical-stop evidence.
+  assert.equal(await f.duty().cleanup(), false);
+});
+
+
+test('Source work selector reaches the first capacity quote and the same start/open', async () => {
+  const f = fixture({sourceOnly: true, generic: true});
+  const oldOpen = f.adapter.openKeyedLookup;
+  const originalLimit = f.moon.clientProgramInstalledEffectKeyedInputWorkLimit;
+  f.moon.clientProgramInstalledEffectKeyedInputWorkLimit = (...args) => {
+    f.events.push('original-work'); return originalLimit(...args);
+  };
+  let quoted = false;
+  f.adapter.keyedLedgerCapacity = (acquisition, options) => {
+    assert.equal(f.events.at(-1), 'original-work');
+    assert.deepEqual(options, {originalWork: 2718281});
+    quoted = true; return {maxBytes: 17, maxWork: options.originalWork, maxNodes: 1000000};
+  };
+  const oldStart = f.options.acquired.control.startInstalledEffectKeyedCaptureInput;
+  f.options.acquired.control.startInstalledEffectKeyedCaptureInput = (...args) => {
+    assert(quoted); assert.equal(args.at(-1).maxWork, 2718281); return oldStart(...args);
+  };
+  f.adapter.openKeyedLookup = options => {
+    assert.equal(options.maxWork, 2718281); assert.equal(options.maxNodes, 1000000);
+    return oldOpen(options);
+  };
+  assert.strictEqual((await prepareAcquiredEffectKeyedCapture(f.options)).lookup, f.original);
+  assert.equal(await f.duty().cleanup(), true);
+});
+
+test('Source work selector refusal opens no lookup and retains the original cleanup', async () => {
+  const f = fixture({sourceOnly: true, generic: true}), failure = new Error('original-current');
+  f.moon.clientProgramInstalledEffectKeyedInputWorkLimit = () => {throw failure;};
+  f.adapter.keyedLedgerCapacity = () => {throw new Error('quote after refusal');};
+  await assert.rejects(prepareAcquiredEffectKeyedCapture(f.options), error => error === failure);
+  assert.equal(f.counts().acquired, 0); assert.equal(await f.duty().cleanup(), true);
 });

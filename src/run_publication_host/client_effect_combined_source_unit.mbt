@@ -341,6 +341,32 @@ pub fn client_effect_combined_source_unit_dependency_bodies(
 }
 
 ///|
+pub fn client_effect_combined_source_unit_catalog_subject(
+  value : ClientEffectCombinedSourceUnit,
+) -> (@checked.CheckedProgram, Int, Int) {
+  (
+    @checked.effect_program_static_checked_computation(
+      value.original.owner.candidate,
+    ),
+    value.invocation.unit,
+    value.contributions.length(),
+  )
+}
+
+///|
+pub fn client_effect_combined_source_unit_catalog_dependencies_at(
+  value : ClientEffectCombinedSourceUnit,
+  index : Int,
+) -> Result[Array[(String, String)], ClientEffectAcquiredEvidenceIssue] {
+  guard value.contributions.get(index) is Some(part) else {
+    return Err(Dependency(MissingDependency))
+  }
+  @publication.source_effect_catalog_dependencies(
+    value.original.source.sources[part.slot],
+  ).map_err(_ => Dependency(MissingDependency))
+}
+
+///|
 pub fn client_effect_combined_source_unit_catalog_bodies(
   value : ClientEffectCombinedSourceUnit,
   max_bytes : Int,
@@ -354,13 +380,11 @@ pub fn client_effect_combined_source_unit_catalog_bodies(
   let bodies = []
   let seen : Map[String, Bool] = Map([])
   let mut remaining = Int::min(max_bytes, 16777216)
-  for part in value.contributions {
+  for index in 0..<value.contributions.length() {
     let references = match
-      @publication.source_effect_catalog_dependencies(
-        value.original.source.sources[part.slot],
-      ) {
+      client_effect_combined_source_unit_catalog_dependencies_at(value, index) {
       Ok(value) => value
-      Err(_) => return Err(Dependency(MissingDependency))
+      Err(issue) => return Err(issue)
     }
     for (role, cid) in references {
       let key = role + "\u0000" + cid

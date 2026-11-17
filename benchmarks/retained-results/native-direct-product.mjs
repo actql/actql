@@ -80,7 +80,8 @@ export async function prepareNativeDirectProduct({root, fixture, database,
   const localEligible = registeredLocalEligibility(fixture).eligible;
   const expected = fixture.identity();
   return Object.freeze({binary, expected, finalTask, localEligible,
-    executionCap: limits.execution_bytes, attemptCap, phaseObserver, sourceReadOnly,
+    executionCap: limits.execution_bytes, retainedCap: limits.retained_bytes,
+    attemptCap, phaseObserver, sourceReadOnly,
     arguments: Object.freeze([
       '--application-root', directory,
       '--database', database,
@@ -241,7 +242,7 @@ export function admitNativeDirectProduct(fixture, invocation, execution, {cleanu
   assert.equal(acquisitionChoice.capacityScope, 'declared receiver, not physical heap');
   const ownerCorrespondence = admitNativeOwnerObservations(
     execution.ownerObservations, taskHoldings, ids.map(task => selected.get(task)),
-    record.usage);
+    record.usage, invocation.retainedCap);
   assert(ownerCorrespondence.observations.owners.every(owner =>
     BigInt(owner.reservedExecutionBytes) <= invocation.executionCap &&
     owner.attempts <= invocation.attemptCap),

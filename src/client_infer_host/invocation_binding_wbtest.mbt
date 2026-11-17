@@ -199,6 +199,41 @@ test "Infer invocation binding retains the exact Run output independently" {
     invocation,
     invocation_fixture_policy_cid(),
   ).unwrap()
+  // The actual execution/compiled binding supplies live provenance. Definition
+  // is canonical DATA, including a normal Journal's re-admitted allocation.
+  assert_true(invocation_binding_matches_run(binding, compiled, definition))
+  let copied_definition = @publication.admit_publication_contract(
+    "run_definition",
+    @publication.publication_contract_json(definition),
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  assert_false(physical_equal(definition, copied_definition))
+  assert_true(
+    invocation_binding_matches_run(binding, compiled, copied_definition),
+  )
+  let (foreign_compiled, foreign_definition) = invocation_fixture_compiled(
+    active,
+    alternate_plan=true,
+    run_id="other-run",
+  )
+  assert_false(
+    invocation_binding_matches_run(binding, foreign_compiled, definition),
+  )
+  assert_false(
+    invocation_binding_matches_run(binding, compiled, foreign_definition),
+  )
+  let changed = @publication.publication_contract_json(definition).replace(
+    old="infer-run",
+    new="changed-run",
+  )
+  assert_true(
+    @publication.admit_publication_contract(
+      "run_definition", changed, 1000000, 100000, 100,
+    )
+    is Err(@publication.IdentityMismatch),
+  )
   let consumer = acquire_output(active).unwrap()
   let completed = invocation_binding_output(binding).unwrap()
   assert_eq(@relation.completed_row_count(completed), 2)
@@ -229,6 +264,10 @@ test "Infer invocation binding retains the exact Run output independently" {
   assert_true(@model.release_verified_model_capture(capture))
   assert_true(!cleanup(active).unwrap())
   assert_true(release_invocation_binding(binding))
+  assert_false(invocation_binding_matches_run(binding, compiled, definition))
+  assert_false(
+    invocation_binding_matches_run(binding, compiled, copied_definition),
+  )
   assert_true(!release_invocation_binding(binding))
   assert_true(invocation_binding_output(binding) is None)
   assert_true(invocation_binding_observation(binding) is None)

@@ -443,6 +443,42 @@ pub fn open_multi_captured_effect_run_keyed_dag(
     is Some(graph) else {
     return Err(ForeignCapture)
   }
+  open_original_effect_keyed_read(checked, graph, sources, ledger, task, read)
+}
+
+///|
+/// Bind a completed Source read into its already-declared checked input slot.
+/// Unlike a deferred Model input, this original graph needs no added slot or
+/// graph rewrite. The same DAG opener checks all other ordered inputs and
+/// owns execution; this entry creates no Source observation or permission.
+pub fn open_captured_effect_keyed_source_run_dag(
+  checked : CheckedEffectRunDAG,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  task : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  open_original_effect_keyed_read(
+    checked,
+    checked.computation.graph_value(),
+    sources,
+    ledger,
+    task,
+    read,
+  )
+}
+
+///|
+// Both callers supply an actual live original read. Only the Model caller may
+// add its checked deferred slot; Source-only consumes the declared graph.
+fn open_original_effect_keyed_read(
+  checked : CheckedEffectRunDAG,
+  graph : CheckedDAG,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  task : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Result[CapturedEffectRunDAG, RunIssue] {
   let mut slot = None
   for value in graph.supplied_slots_iter() {
     if value.consumer == task &&
@@ -479,6 +515,122 @@ pub fn open_multi_captured_effect_run_keyed_dag(
 ///|
 pub fn captured_effect_run_dag(value : CapturedEffectRunDAG) -> CapturedDAG {
   value.captured
+}
+
+///|
+/// Exact retained keyed-input binding, including after its task completed.
+/// This observes no Source callback and grants no input read or execution.
+/// The caller separately binds this DAG's original checked graph and Ledger.
+pub fn captured_effect_keyed_supplied_input_matches(
+  run : CapturedDAG,
+  task : Int,
+  input : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Bool {
+  guard !run.stopped &&
+    run.failure is None &&
+    task >= run.graph.captured_prefix_value() &&
+    task < run.supplied_reads.length() &&
+    task < run.lifetimes.length() &&
+    run.lifetimes[task].live &&
+    input >= 0 &&
+    input < run.supplied_reads[task].length() &&
+    run.supplied_reads[task][input] is Some(original) &&
+    @execution.supplied_relation_read_same_binding(original, read) &&
+    run.graph.owners_at(task) is Some(owner) else {
+    return false
+  }
+  for slot in run.graph.supplied_slots_iter() {
+    if slot.consumer == task && slot.input == input {
+      return @execution.supplied_relation_read_matches_input(
+        read,
+        owner,
+        slot.source_input,
+      )
+    }
+  }
+  false
+}
+
+///|
+/// Historical correspondence for an already committed Effect task. The
+/// original supplied read remains owned by its Source; closing the ordinary
+/// intermediate output port does not erase this Run's successful completion.
+/// This metadata predicate issues neither an execution read nor a new pin.
+pub fn captured_effect_keyed_completed_input_matches(
+  value : CapturedEffectRunDAG,
+  task : Int,
+  input : Int,
+  read : @execution.SuppliedRelationRead,
+) -> Bool {
+  let run = value.captured
+  let graph = run.graph
+  guard !run.stopped &&
+    run.failure is None &&
+    task >= graph.captured_prefix_value() &&
+    task < run.done.length() &&
+    task < run.supplied_reads.length() &&
+    task < run.lifetimes.length() &&
+    run.done[task] &&
+    input >= 0 &&
+    input < run.supplied_reads[task].length() &&
+    run.supplied_reads[task][input] is Some(original) &&
+    @execution.supplied_relation_read_same_binding(original, read) &&
+    graph.owners_at(task) is Some(owner) else {
+    return false
+  }
+  let completion = run.lifetimes[task].completion
+  let output = run.outputs[task]
+  if completion is None && !(run.lifetimes[task].live && output is Some(_)) {
+    return false
+  }
+  for slot in graph.supplied_slots_iter() {
+    if slot.consumer == task && slot.input == input {
+      let output_available = match completion {
+        Some(_) => true
+        None =>
+          match output {
+            Some(Materialized(value)) =>
+              @execution.completed_output_available(value)
+            Some(Managed(value)) =>
+              @execution.managed_completed_reference_available(value)
+            Some(CarrierManaged(value)) =>
+              @execution.carrier_managed_completed_reference_available(value)
+            None => false
+          }
+      }
+      if !output_available {
+        return false
+      }
+      let available = @execution.supplied_relation_read_matches_input(
+        read,
+        owner,
+        slot.source_input,
+      )
+      // Availability can stop/replace this original. Keep the SAME committed
+      // record and cached binding after the callback, without re-reading it.
+      return available &&
+        !run.stopped &&
+        run.failure is None &&
+        physical_equal(run.graph, graph) &&
+        run.done[task] &&
+        (match completion {
+          Some(expected) =>
+            run.lifetimes[task].completion is Some(same) &&
+            physical_equal(same, expected)
+          None =>
+            run.lifetimes[task].live &&
+            run.lifetimes[task].completion is None &&
+            (match (output, run.outputs[task]) {
+              (Some(expected), Some(same)) => physical_equal(same, expected)
+              _ => false
+            })
+        }) &&
+        run.supplied_reads[task][input] is Some(same) &&
+        physical_equal(same, original)
+    }
+  }
+  false
 }
 
 ///|
@@ -1351,6 +1503,7 @@ pub fn captured_task_input(
   max_entries : Int,
   max_name_bytes : Int,
   input_index? : Int = 0,
+  data_index? : Int = -1,
 ) -> Result[@execution.ProducerRead, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -1361,6 +1514,15 @@ pub fn captured_task_input(
   if input_index < 0 || input_index >= run.inputs[task].length() {
     return Err(NotReady)
   }
+  if data_index >= 0 {
+    guard run.graph.data_at(data_index) is Some(edge) &&
+      edge.consumer == task &&
+      edge.input == input_index else {
+      return Err(NotReady)
+    }
+  } else if data_index != -1 {
+    return Err(NotReady)
+  }
   if run.inputs[task][input_index] is Some(read) {
     if !@execution.producer_read_available(read) {
       let issue = RunIssue::Read(@execution.ProducerUnavailable)
@@ -1369,12 +1531,20 @@ pub fn captured_task_input(
     }
     return Ok(read)
   }
-  let mut selected : DataEdge? = None
-  for edge in run.graph.data_iter() {
-    if edge.consumer == task && edge.input == input_index {
-      selected = Some(edge)
-      break
+  // An installed caller already walking this exact immutable graph can
+  // supply its original edge position. The position grants no binding:
+  // retain exact receiving task/port checks and all original read guards.
+  let selected = if data_index >= 0 {
+    run.graph.data_at(data_index)
+  } else {
+    let mut selected : DataEdge? = None
+    for edge in run.graph.data_iter() {
+      if edge.consumer == task && edge.input == input_index {
+        selected = Some(edge)
+        break
+      }
     }
+    selected
   }
   guard selected is Some(edge) else { return Err(NotReady) }
   let receiver = run.graph.owners_at(task).unwrap()
@@ -2645,4 +2815,31 @@ pub fn captured_next_task_has_prepared_input(
   }
   run.inputs.get(task).bind(ports => ports.get(input)).bind(value => value)
   is Some(_)
+}
+
+///|
+/// Exact whole-input occurrence already supplied to this DAG. Availability is
+/// a real Source callback; callers retain their current fence around it.
+pub fn captured_source_input_original_matches(
+  run : CapturedDAG,
+  task : Int,
+  input : Int,
+  source : @query.CapturedInputSource,
+) -> Bool {
+  guard !run.stopped &&
+    task >= 0 &&
+    task < run.supplied_reads.length() &&
+    input >= 0 &&
+    input < run.supplied_reads[task].length() &&
+    run.supplied_reads[task][input] is Some(original) &&
+    @query.captured_source_original_input_read(source) is Some(read) &&
+    @execution.supplied_relation_read_same_binding(original, read) &&
+    @execution.supplied_relation_read_available(original) &&
+    @execution.supplied_relation_read_available(read) &&
+    @query.captured_source_available(source) else {
+    return false
+  }
+  !run.stopped &&
+  run.supplied_reads[task][input] is Some(current) &&
+  physical_equal(current, original)
 }

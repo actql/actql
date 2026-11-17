@@ -25,8 +25,9 @@ async function fixture({signingMetadata=true,profile=previous}={}) {
       assert.strictEqual(this,moon);calls.known.push([id,version,cid]);
       return [previous,answerOnly,current].some(p=>p.id===id&&p.version===version&&p.cid===cid);
     },
-    clientProgramLocalMockAccountConfiguration(accountId,principal,connection){
+    clientProgramLocalMockAccountConfiguration(accountId,principal,connection,sources,modelTasks){
       calls.configuration++;
+      calls.modelTasks=modelTasks;
       return {$tag:1,_0:canonicalJson({version:'actql-execution-account-config/0.1',account_id:accountId,
         bootstrap:{profile_id:selected.id,profile_version:selected.version,profile_cid:selected.cid},
         entries:[{entry_id:'explicit-fixture-only',principal,connection,outcome:'deny'}]})};
@@ -163,4 +164,52 @@ test('foreign saved profile is refused without recreating its configuration',asy
   await assert.rejects(initializeOrdinaryMockAccount(f.options),{code:'LocalMockInstallationChanged'});
   assert.deepEqual(await f.snapshot(),before);assert.equal(f.calls.configuration,1);
   first.evidenceKey.key.fill(0);
+});
+
+test('diagnostic-only Mock observer retains bootstrap and all 129 original Task subjects',async()=>{
+  const f=await fixture(),events=[];
+  const observe=(...event)=>events.push(event);
+  const modelTasks=Array.from({length:129},(_,index)=>'sha256:'+index.toString(16).padStart(64,'0'));
+  const first=await initializeOrdinaryMockAccount({...f.options,modelTasks,operatorAuthorization:{observe}});
+  assert.notEqual(first,undefined,'An observer is not an authored Account selection');
+  assert.strictEqual(f.calls.modelTasks,modelTasks,'Forward the same complete Task inventory to Common');
+  assert.equal(f.calls.configuration,1);
+  assert.equal(first.authorization.accountConfig,first.configurationPath);
+  assert.strictEqual(first.authorization.observe,observe);
+  assert.deepEqual(events,[],'The diagnostic observer neither constructs nor approves authority');
+  await f.adopt(first);
+  const before=await f.snapshot();
+  const account=JSON.parse(await readFile(first.configurationPath,'utf8'));
+  account.entries[0].outcome='deny';account.entries[0].entry_id='current-observer-restriction';
+  const restricted=canonicalJson(account);await writeFile(first.configurationPath,restricted);
+  const reopened=await initializeOrdinaryMockAccount({...f.options,modelTasks,explicitSelection:false,
+    operatorAuthorization:{observe}});
+  assert.strictEqual(reopened.authorization.observe,observe);
+  assert.equal(f.calls.configuration,1,'The observer cannot reissue adopted grants');
+  assert.equal(f.calls.admitted.at(-1),restricted,'Current Deny remains the admitted original');
+  const after=await f.snapshot();
+  for(const original of before.filter(item=>item.name!=='account.json')) {
+    assert.deepEqual(after.find(item=>item.name===original.name),original);
+  }
+  first.evidenceKey.key.fill(0);reopened.evidenceKey.key.fill(0);
+});
+
+test('diagnostic exception does not bootstrap explicit or unrecognized authorization selections',async()=>{
+  const observe=()=>{},symbol=Symbol('unknown');
+  for(const operatorAuthorization of [null,{}, {accountConfig:'/not-opened',observe},
+    {accountConfiguration:'explicit current Deny',observe},{decide(){},observe},
+    {hostKey:{},observe},{unknown:true,observe},{observe:undefined},{observe:null},
+    {observe:'not-a-function'},{observe,[symbol]:true},Object.create({observe}),
+    Object.assign(Object.create({accountConfig:'/not-opened'}),{observe})]) {
+    const f=await fixture();
+    const result=await initializeOrdinaryMockAccount({...f.options,operatorAuthorization});
+    assert.equal(result,undefined);
+    assert.equal(f.calls.configuration,0);
+    await assert.rejects(stat(join(f.root,'mock-account')),{code:'ENOENT'});
+  }
+  let reads=0;
+  const f=await fixture(),operatorAuthorization=Object.defineProperty({},'observe',{
+    enumerable:true,get(){reads++;return observe;}});
+  assert.equal(await initializeOrdinaryMockAccount({...f.options,operatorAuthorization}),undefined);
+  assert.equal(reads,0,'A getter cannot select the data-only diagnostic exception');
 });

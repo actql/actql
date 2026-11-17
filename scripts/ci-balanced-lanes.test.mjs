@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
+import {parse as parseJavaScript} from 'acorn';
 import {validatePackedPublicQueryArguments} from './packed-public-query-options.mjs';
+import {tablePublicTestGroups} from './table-public-acceptance-cases.mjs';
+import './packed-public-query-profile.test.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const job = workflow.jobs['client-packed'];
@@ -26,6 +28,7 @@ test('every packed campaign has exactly one matrix owner and one same-run packag
   assert.equal(download[0].with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
   const campaigns = job.steps.filter(step => step.name?.startsWith('Test '));
   assert.deepEqual(campaigns.map(step => step.name), [
+    'Test packed Table Source inventory and cold Saved',
     'Test packed Local runtime assets', 'Test packed Sheets',
     'Test packed HubSpot record approval and original Saved',
     'Test packed kintone record approval and original Saved',
@@ -54,6 +57,63 @@ test('every packed campaign has exactly one matrix owner and one same-run packag
   assert(aggregate.steps[0].run.includes('const ok = result === "success";'));
 });
 
+test('packed Table Source inventory requires private locked Python and the same-run packages', () => {
+  const prepare = job.steps.find(step => step.id === 'table-python');
+  const accept = job.steps.find(step => step.id === 'packed-table-source');
+  const report = job.steps.find(step => step.id === 'packed-table-source-summary');
+  assert.ok(prepare); assert.ok(accept); assert.ok(report);
+  assert.equal(job['timeout-minutes'], 45);
+  assert.equal(job.steps.find(step => step.uses === './.github/actions/setup-toolchain').with.python, 'true');
+  assert.equal(prepare.run, 'python -m venv "$RUNNER_TEMP/table-python"\n' +
+    '"$RUNNER_TEMP/table-python/bin/python" -m pip install --require-hashes ' +
+    '-r adapters/connectors/local/iceberg/requirements.lock\n');
+  assert.deepEqual(accept.env, {ACTQL_TABLE_PYTHON: '${{ runner.temp }}/table-python/bin/python',
+    ACTQL_TABLE_CASE_GROUP: 'source-inventory'});
+  assert.equal(accept.run, 'test -n "${ACTQL_PACKED_CLIENT_PACKAGES:-}"\n' +
+    'test -z "${ACTQL_TABLE_NORMAL_RELEASE:-}"\n' +
+    'node --test scripts/packed-table-private-input.test.mjs\n');
+  for (const step of [prepare, accept, report]) {
+    assert.equal(step['continue-on-error'], undefined);
+    assert.equal(step['timeout-minutes'], undefined);
+  }
+  const evaluate = (step, {group = 'connectors', inputs = 'success', python = 'success',
+    accepted = 'success', cancelled = false} = {}) => runInNewContext(
+    step.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '').replace(/\.([a-z]+(?:-[a-z]+)+)/gu, "['$1']"), {
+      matrix: {group}, cancelled: () => cancelled, always: () => true, success: () => false,
+      steps: {'client-inputs': {outcome: inputs}, 'table-python': {outcome: python},
+        'packed-table-source': {outcome: accepted}, unrelated: {outcome: 'failure'}},
+    }, {timeout: 100});
+  assert.equal(evaluate(prepare), true); assert.equal(evaluate(accept), true);
+  for (const group of job.strategy.matrix.group.filter(group => group !== 'connectors')) {
+    assert.equal(evaluate(prepare, {group}), false);
+    assert.equal(evaluate(accept, {group}), false);
+    assert.equal(evaluate(report, {group, accepted: 'failure'}), false);
+  }
+  for (const inputs of ['failure', 'cancelled', 'skipped', undefined]) {
+    assert.equal(evaluate(prepare, {inputs: inputs ?? 'missing'}), false);
+    assert.equal(evaluate(accept, {inputs: inputs ?? 'missing'}), false);
+  }
+  for (const python of ['failure', 'cancelled', 'skipped', 'missing'])
+    assert.equal(evaluate(accept, {python}), false);
+  assert.equal(evaluate(prepare, {cancelled: true}), false);
+  assert.equal(evaluate(accept, {cancelled: true}), false);
+  assert.equal(evaluate(report), false);
+  assert.equal(evaluate(report, {python: 'failure', accepted: 'skipped'}), true);
+  assert.equal(evaluate(report, {accepted: 'failure'}), true);
+  assert.deepEqual(Object.keys(report.env), ['CLIENT_ARTIFACT_ID', 'TABLE_PYTHON_OUTCOME', 'TABLE_TEST_OUTCOME']);
+  assert.match(report.run, /GITHUB_STEP_SUMMARY/u);
+  assert.doesNotMatch(report.run, /(?:upload|\.codex-scratch|catalog\.db|source129\.json|\.key|cat )/u);
+  const groups = tablePublicTestGroups(accept.env.ACTQL_TABLE_CASE_GROUP);
+  assert.equal(groups.length, 1); assert.equal(groups[0].expected, 1);
+  const syntax = parseJavaScript(readFileSync(new URL('../adapters/host-node/table-public-commit.test.mjs',
+    import.meta.url), 'utf8'), {ecmaVersion: 'latest', sourceType: 'module'});
+  const names = syntax.body.filter(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'CallExpression' && node.expression.callee.name === 'test')
+    .map(node => node.expression.arguments[0].value).filter(name => typeof name === 'string');
+  assert.deepEqual(names.filter(name => new RegExp(groups[0].pattern, 'u').test(name)),
+    ['Table public129 Source views read real rows and retain SAME Saved after cold first-close']);
+});
+
 test('packed CI parts refuse narrowing, duplicate parts and ambient selective campaigns', () => {
   for (const part of ['portable', 'portable-1', 'portable-2', 'portable-3', 'native']) {
     assert.doesNotThrow(() => validatePackedPublicQueryArguments([`--ci-part=${part}`], {}));
@@ -73,8 +133,42 @@ test('packed CI parts refuse narrowing, duplicate parts and ambient selective ca
 
 test('portable and Native packed parts preserve both original complete campaigns', async () => {
   const source = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
-  assert(source.includes("if (ciPart !== 'native' && portableExtras) console.log(run(process.execPath, ['--test'"),
-    'Portable controls must not be executed again by the Native part');
+  const syntax = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const selectionNames = ['unionBudgetOnly', 'ciPart', 'portablePart', 'portableExtras'];
+  const selection = syntax.body.filter(node => node.type === 'VariableDeclaration' &&
+    node.declarations.length === 1 && selectionNames.includes(node.declarations[0].id.name));
+  assert.deepEqual(selection.map(node => node.declarations[0].id.name), selectionNames);
+  const campaign = syntax.body.find(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'AwaitExpression' &&
+    node.expression.argument.callee?.name === 'withPackedQueryEvidence');
+  assert(campaign);
+  const controls = campaign.expression.argument.arguments.at(-1).body.body.filter(node =>
+    node.type === 'IfStatement' && source.slice(node.start, node.end)
+      .includes('scripts/analytic-offset-profiles.test.mjs'));
+  assert.equal(controls.length, 1);
+  const controlSource = [...selection, controls[0]].map(node => source.slice(node.start, node.end)).join('\n');
+  const expectedControls = ['--test', 'scripts/analytic-offset-profiles.test.mjs',
+    'scripts/distinct-join-order-source-input.test.mjs', 'scripts/graph-difference-source-input.test.mjs',
+    'scripts/graph-relation-join-source-input.test.mjs', 'scripts/public-query-profiles.test.mjs',
+    'scripts/packed-query-transports.test.mjs', 'scripts/graph-argument-check.test.mjs',
+    'scripts/graph-argument-origin-literals.test.mjs'];
+  for (const [args, selected] of [
+    [[], true], [['--ci-part=portable'], true], [['--ci-part=portable-1'], true],
+    [['--ci-part=portable-2'], false], [['--ci-part=portable-3'], false],
+    [['--ci-part=native'], false], [['--union-budget-only'], false],
+  ]) {
+    validatePackedPublicQueryArguments(args, {});
+    const calls = [];
+    runInNewContext(controlSource, {
+      process: {argv: ['node', 'driver.mjs', ...args], execPath: '/pinned/node'},
+      repository: '/original-source', console: {log() {}},
+      run: (command, files, directory) => {
+        calls.push({command, files: Array.from(files), directory}); return '';
+      },
+    }, {timeout: 100});
+    assert.deepEqual(calls, selected ? [{command: '/pinned/node', files: expectedControls,
+      directory: '/original-source'}] : [], `Portable control ownership: ${JSON.stringify(args)}`);
+  }
   const portableStart = source.indexOf("if (ciPart !== 'native' && portableExtras) {\nconsole.log(run('bash'");
   const portableEnd = source.indexOf('\nasync function exerciseNativeGraphSource', portableStart);
   assert(portableStart > 0 && portableEnd > portableStart);
@@ -110,49 +204,4 @@ test('portable and Native packed parts preserve both original complete campaigns
     assert.equal(calls, expected);
   }
   assert(source.includes("ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS: process.argv.some(flag => flag.endsWith('-only')) ? '0' : '1'"));
-});
-
-test('Native fixture preparation uses original database/profile construction before returning without a Host', async () => {
-  const source = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const start = source.indexOf('const canonical = value =>');
-  const end = source.indexOf('// Observe actual native execution, never a diagnostic notification.', start);
-  assert(start > 0 && end > start);
-  assert(source.includes("if (prepareNativeGraph && profileName !== 'standard') continue;"));
-  assert(source.includes("assert.equal(prepareNativeGraph, false, 'Standard Native Graph fixture was not prepared')"));
-  const calls = [], writes = [];
-  const environment = {source_views: [{contract_cid: 'original-view', output: {schema: {cid: 'original-schema'}}}],
-    connector_capabilities: [{}], evidence_bundle_cid: 'old'};
-  const connection = {run: async (...args) => calls.push(args), closeSync: () => calls.push('connection-close')};
-  const body = source.slice(start, end).replaceAll('import.meta.url', 'fixtureUrl');
-  await runInNewContext(`(async () => { ${body} throw new Error('Native preparation did not return'); })()`, {
-    assert, createHash, prepareNativeGraph: true, scopeOnly: true, profileName: 'standard', transport: undefined,
-    analyticCapacity: {max_original: 41}, sourceRows: [{id: 1, amount: 2}], worker: undefined,
-    fixtureUrl: new URL('./fixtures/packed-public-query.mjs', import.meta.url).href, URL,
-    readFile: async path => JSON.stringify(path === 'source-environment.json' ? environment :
-      path === 'base-environment.json' ? {host_policy_profile: {capacity: {max_base: 7}}} : assert.fail(path)),
-    sourceFixturePaths: () => ({database: '/original/records.duckdb', sourceProfilePath: '/original/source-profile.json'}),
-    createRequire: () => name => {
-      assert.equal(name, '@duckdb/node-api');
-      return {DuckDBInstance: {create: async path => {
-        assert.equal(path, '/original/records.duckdb');
-        return {connect: async () => connection, closeSync: () => calls.push('instance-close')};
-      }}};
-    },
-    writeFile: async (path, wire) => {
-      assert.deepEqual(calls.slice(-2), ['connection-close', 'instance-close']);
-      writes.push({path, profile: JSON.parse(wire)});
-    },
-    console: {log() {}},
-  });
-  assert.equal(writes.length, 1);
-  assert.equal(writes[0].path, '/original/source-profile.json');
-  const profile = writes[0].profile;
-  assert.equal(profile.database, '/original/records.duckdb');
-  assert.equal(profile.sourceRef, 'connector://crm/main/r#v');
-  assert.equal(profile.queryAliases[0].sourceViewContractCid, 'original-view');
-  assert.deepEqual(JSON.parse(profile.checkEnvironmentWire).host_policy_profile.capacity,
-    {max_base: 7, max_original: 41});
-  assert.equal(JSON.parse(profile.accountConfigurationWire).account_id, 'packed-query');
-  assert.deepEqual(calls[0], ['CREATE TABLE records(id DOUBLE, amount DOUBLE)']);
-  assert.deepEqual(Array.from(calls[1][1]), [1, 2]);
 });

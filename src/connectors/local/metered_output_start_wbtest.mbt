@@ -26,6 +26,11 @@ test "metered output startup follows original default selection and preserves in
   let metered = local_module_metered_output_start_capacity(
     original, 0, sequence,
   ).unwrap()
+  let same = local_module_metered_output_start_capacity(original, 0, sequence).unwrap()
+  assert_true(
+    physical_equal(metered, same),
+    msg="reuse SAME prepared startup capacity, do not reconstruct its recipe",
+  )
   assert_true(metered.retained_bytes < full.retained_bytes)
   assert_true(metered.execution_bytes < full.execution_bytes)
   let replacement = managed_provider(_ => true, _ => Some(full), (_, _, _, _, _) => {
@@ -211,19 +216,19 @@ test "singleton Append startup uses its bounded constructor and preserves inject
 }
 
 ///|
-test "singleton Set startup keeps recursive and injected providers fully prepaid" {
+test "singleton Set borrows scalar Text without metering and preserves recursive and injected fallbacks" {
   for
-    (contract, literal, primitive) in [
-      ("{\"type\":\"number\",\"nullable\":false}", "1", true),
-      ("{\"type\":\"boolean\",\"nullable\":false}", "true", true),
-      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", false),
+    (contract, literal, metered_scalar, borrowed_scalar) in [
+      ("{\"type\":\"number\",\"nullable\":false}", "1", true, true),
+      ("{\"type\":\"boolean\",\"nullable\":false}", "true", true, true),
+      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", false, true),
       (
         "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
-        "[1,2]", false,
+        "[1,2]", false, false,
       ),
       (
         "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
-        "{\"x\":1}", false,
+        "{\"x\":1}", false, false,
       ),
     ] {
     let (chain, _, _) = chain_lifetime_fixture(
@@ -268,17 +273,39 @@ test "singleton Set startup keeps recursive and injected providers fully prepaid
     let metered = local_module_metered_output_start_capacity(
       original, 0, selected,
     )
-    if primitive {
+    if metered_scalar {
       assert_true(full.execution_bytes < generic.execution_bytes)
       assert_true(
         metered is Some(value) && value.execution_bytes < full.execution_bytes,
       )
     } else {
       assert_true(metered is None)
-      assert_eq(
-        (full.retained_bytes, full.execution_bytes),
-        (generic.retained_bytes, generic.execution_bytes),
-      )
+      if borrowed_scalar {
+        // The fixed Set constructor borrows original flat Text inputs, but
+        // keeps its complete output DATA prepaid. It does not opt Text into
+        // the Number/Boolean output-growth protocol or copy input forests.
+        let output = chain_lifetime_limits().rows.output_values
+        let retained_output = @execution.execution_capacity_inventory_bytes([
+          { unit: @execution.CursorRootSlots, count: 3L, copies: 1, },
+          {
+            unit: @execution.ValueNodeSlots,
+            count: output.max_nodes.to_int64(),
+            copies: 1,
+          },
+          {
+            unit: @execution.DecodedTextBytes,
+            count: output.max_text_bytes.to_int64(),
+            copies: 1,
+          },
+        ]).unwrap()
+        assert_eq(full.retained_bytes, retained_output)
+        assert_true(full.execution_bytes < generic.execution_bytes)
+      } else {
+        assert_eq(
+          (full.retained_bytes, full.execution_bytes),
+          (generic.retained_bytes, generic.execution_bytes),
+        )
+      }
     }
     let starts = Ref(0)
     let replacement = managed_provider(_ => true, _ => Some(generic), (
@@ -317,25 +344,28 @@ test "singleton Set startup keeps recursive and injected providers fully prepaid
 ///|
 test "singleton Join borrows carried values with immediate keys and preserves injected fallback" {
   for
-    (contract, literal) in [
-      ("{\"type\":\"number\",\"nullable\":false}", "1"),
-      ("{\"type\":\"boolean\",\"nullable\":false}", "true"),
-      ("{\"type\":\"string\",\"nullable\":false}", "\"text\""),
+    (kind, contract, literal) in [
+      ("inner", "{\"type\":\"number\",\"nullable\":false}", "1"),
+      ("inner", "{\"type\":\"boolean\",\"nullable\":false}", "true"),
+      ("inner", "{\"type\":\"string\",\"nullable\":false}", "\"text\""),
       (
-        "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
+        "inner", "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
         "[1,2]",
       ),
       (
-        "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
+        "inner", "{\"type\":\"object\",\"nullable\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
         "{\"x\":1}",
       ),
+      ("left", "{\"type\":\"string\",\"nullable\":false}", "\"text\""),
     ] {
     let (chain, _, _) = chain_lifetime_fixture(
       "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"payload\":" +
       contract +
       "},\"rows\":[{\"id\":1,\"payload\":" +
       literal +
-      "}]},\"as\":\"value\"},{\"from\":\"value\",\"join\":{\"with\":\"value\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\",\"payload\":\"right.payload\"}}}]",
+      "}]},\"as\":\"value\"},{\"from\":\"value\",\"join\":{\"with\":\"value\",\"kind\":\"" +
+      kind +
+      "\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\",\"payload\":\"right.payload\"}}}]",
     )
     let selected = @execution.select_generated_sequence_step(
       chain,
@@ -852,12 +882,14 @@ test "singleton CROSS JOIN borrows original inputs and refuses injected construc
 }
 
 ///|
-test "recursive carried Join funding preserves text-key and outer-join fallback" {
+test "recursive carried Join funding borrows bounded text keys and preserves nullable and outer fallback" {
   for
     (kind, contract, literal, borrowed) in [
       ("inner", "{\"type\":\"number\",\"nullable\":false}", "1", true),
       ("inner", "{\"type\":\"boolean\",\"nullable\":false}", "true", true),
-      ("inner", "{\"type\":\"string\",\"nullable\":false}", "\"key\"", false),
+      ("inner", "{\"type\":\"string\",\"nullable\":false}", "\"key\"", true),
+      ("inner", "{\"type\":\"string\",\"nullable\":true}", "\"key\"", false),
+      ("left", "{\"type\":\"string\",\"nullable\":false}", "\"key\"", false),
       ("left", "{\"type\":\"number\",\"nullable\":false}", "1", false),
     ] {
     let (chain, _, _) = chain_lifetime_fixture(
@@ -1015,12 +1047,12 @@ test "chained Join output funding retains recursive and injected provider fallba
 }
 
 ///|
-test "Count chains retain text recursive and injected provider funding" {
+test "Count chains borrow Text but retain recursive and injected provider funding" {
   for
     (contract, literal, immediate) in [
       ("{\"type\":\"number\",\"nullable\":false}", "1", true),
       ("{\"type\":\"boolean\",\"nullable\":false}", "true", true),
-      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", false),
+      ("{\"type\":\"string\",\"nullable\":false}", "\"text\"", true),
       (
         "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":false}}",
         "[1,2]", false,
@@ -1109,7 +1141,7 @@ test "Count chains retain text recursive and injected provider funding" {
 }
 
 ///|
-test "window chain startup preserves complete retention and injected full capacity" {
+test "window chain startup uses original row funding and preserves injected full capacity" {
   let (sequence, _, _) = chain_lifetime_fixture(
     "[{\"from\":\"source\",\"row_window\":{\"kind\":\"fixed\",\"time\":\"id\",\"size\":10},\"as\":\"windowed\"},{\"from\":\"windowed\",\"select\":[\"id\",\"window_start\",\"window_end\"]}]",
   )
@@ -1132,7 +1164,7 @@ test "window chain startup preserves complete retention and injected full capaci
   let startup = local_module_metered_output_start_capacity(
     original, 0, sequence,
   ).unwrap()
-  assert_eq(startup.retained_bytes, full.retained_bytes)
+  assert_true(startup.retained_bytes < full.retained_bytes)
   assert_true(startup.execution_bytes < full.execution_bytes)
   let starts = Ref(0)
   let replacement = managed_provider(_ => true, _ => Some(full), (_, _, _, _, _) => {
@@ -1159,6 +1191,84 @@ test "window chain startup preserves complete retention and injected full capaci
   )
   assert_eq(starts.val, 0)
   @connector.close_capability_registry(registry)
+}
+
+///|
+test "window reductions retain constructing aggregate backing before row funding" {
+  for
+    (aggregate, borrowed) in [
+      ("{\"fn\":\"count\"}", true),
+      (
+        "{\"fn\":\"sum\",\"expr\":{\"add\":[{\"field\":\"id\"},{\"literal\":1}]},\"filter\":{\"gt\":[{\"field\":\"id\"},{\"literal\":0}]},\"distinct\":true}",
+        true,
+      ),
+      ("{\"fn\":\"count\",\"expr\":{\"literal\":\"text\"}}", false),
+      (
+        "{\"fn\":\"array_agg\",\"field\":\"id\",\"max_items\":100,\"order_by\":[{\"id\":\"asc\"}]}",
+        false,
+      ),
+    ] {
+    let checked = @pipeline.check(
+      chain_lifetime_cursor(
+        "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"seed\"},{\"row_window\":{\"kind\":\"fixed\",\"time\":\"id\",\"size\":10}},{\"window_group\":{\"by\":[],\"aggregates\":{\"n\":" +
+        aggregate +
+        "}}}]",
+      ),
+      [],
+      None,
+      None,
+      {
+        max_steps: 100,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    )
+    let owner = match checked {
+      Ok(value) => chain_lifetime_bind(value)
+      Err(issue) => {
+        debug_inspect(issue.kind, content="checked window aggregate fixture")
+        abort("checked window aggregate fixture refused")
+      }
+    }
+    let whole = chain_lifetime_generated(owner)
+    let sequence = @execution.select_generated_sequence_range(whole, 1, 2).unwrap()
+    let registry = @connector.prepare_capability_registry(
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
+      1,
+      100,
+    ).unwrap()
+    let original = prepare_local_compute_module(
+      registry,
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      [sequence],
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      100000,
+      1,
+    ).unwrap()
+    let full = local_module_capacity_for_sequence(original, 0, sequence).unwrap()
+    let startup = local_module_metered_output_start_capacity(
+      original, 0, sequence,
+    ).unwrap()
+    if borrowed {
+      assert_true(startup.retained_bytes < full.retained_bytes)
+    } else {
+      // This aggregate constructs its own array before the managed row is
+      // committed. Its complete original output backing remains prepaid.
+      assert_eq(startup.retained_bytes, full.retained_bytes)
+    }
+    @connector.close_capability_registry(registry)
+  }
 }
 
 ///|
@@ -1217,14 +1327,29 @@ test "ROW_NUMBER startup keeps nonprimitive other-function and injected provider
       chain_lifetime_limits(),
       chain_lifetime_measurement(),
     ).unwrap()
-    assert_eq(
-      (full.retained_bytes, full.execution_bytes),
-      (generic.retained_bytes, generic.execution_bytes),
-    )
+    let borrowed = @execution.generated_sequence_step_at(sequence, 0)
+      .map(operation => {
+        match operation {
+          @lower.RowStep(kernel) =>
+            @execution.bounded_analytic_borrows_input(kernel)
+          _ => false
+        }
+      })
+      .unwrap_or(false)
+    assert_eq(full.retained_bytes, generic.retained_bytes)
     let startup = local_module_metered_output_start_capacity(
       original, 0, sequence,
     )
-    assert_true(startup is None)
+    if borrowed {
+      assert_true(full.execution_bytes <= generic.execution_bytes)
+      if startup is Some(value) {
+        assert_eq(value.retained_bytes, full.retained_bytes)
+        assert_true(value.execution_bytes <= full.execution_bytes)
+      }
+    } else {
+      assert_eq(full.execution_bytes, generic.execution_bytes)
+      assert_true(startup is None)
+    }
     let starts = Ref(0)
     let replacement = managed_provider(_ => true, _ => Some(full), (
       _,
@@ -1260,7 +1385,7 @@ test "ROW_NUMBER startup keeps nonprimitive other-function and injected provider
 }
 
 ///|
-test "unpivot borrowed cells keep full retention and original injected provider capacities" {
+test "unpivot borrowed cells use original row funding and preserve injected provider capacities" {
   for
     (contract, literal) in [
       ("{\"type\":\"string\",\"nullable\":false}", "\"text\""),
@@ -1312,14 +1437,21 @@ test "unpivot borrowed cells keep full retention and original injected provider 
       chain_lifetime_limits(),
       chain_lifetime_measurement(),
     ).unwrap()
+    let bounded = @execution.generated_bounded_sequence_capacity(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+    ).unwrap()
     assert_eq(
       (full.retained_bytes, full.execution_bytes),
-      (generic.retained_bytes, generic.execution_bytes),
+      (bounded.retained_bytes, bounded.execution_bytes),
     )
+    assert_true(full.retained_bytes <= generic.retained_bytes)
+    assert_true(full.execution_bytes < generic.execution_bytes)
     let startup = local_module_metered_output_start_capacity(
       original, 0, sequence,
     ).unwrap()
-    assert_eq(startup.retained_bytes, full.retained_bytes)
+    assert_true(startup.retained_bytes < full.retained_bytes)
     assert_true(startup.execution_bytes < full.execution_bytes)
     let starts = Ref(0)
     let replacement = managed_provider(_ => true, _ => Some(full), (
@@ -1356,22 +1488,28 @@ test "unpivot borrowed cells keep full retention and original injected provider 
 }
 
 ///|
-test "numeric pivot keeps full retention and recursive text output or injected fallback" {
+test "numeric pivot borrows Text index keys and preserves recursive aggregate or injected fallback" {
+  // resource-case-id: numeric_pivot_start_capacity
   for
-    (extra, key, borrowed) in [
-      ("", "id", true),
+    (extra, key, value, aggregate, borrowed) in [
+      ("", "id", "amount", "count", true),
       (
         ",\"extra\":{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":false}}",
-        "id", false,
+        "id", "amount", "count", false,
       ),
-      ("", "status", false),
+      ("", "status", "amount", "count", true),
+      ("", "id", "status", "max", false),
     ] {
     let (whole, _, _) = chain_lifetime_fixture(
       "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"status\":{\"type\":\"string\",\"nullable\":false},\"amount\":{\"type\":\"number\",\"nullable\":true}" +
       extra +
       "},\"rows\":[]},\"as\":\"value\"},{\"from\":\"value\",\"pivot\":{\"index\":[\"" +
       key +
-      "\"],\"column\":\"status\",\"values\":[\"open\"],\"value\":\"amount\",\"aggregate\":\"count\"}}]",
+      "\"],\"column\":\"status\",\"values\":[\"open\"],\"value\":\"" +
+      value +
+      "\",\"aggregate\":\"" +
+      aggregate +
+      "\"}}]",
     )
     let sequence = @execution.select_generated_sequence_step(
       whole,
@@ -1405,18 +1543,29 @@ test "numeric pivot keeps full retention and recursive text output or injected f
       chain_lifetime_limits(),
       chain_lifetime_measurement(),
     ).unwrap()
+    let bounded = @execution.generated_bounded_sequence_capacity(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+    ).unwrap()
     assert_eq(
       (full.retained_bytes, full.execution_bytes),
-      (generic.retained_bytes, generic.execution_bytes),
+      (bounded.retained_bytes, bounded.execution_bytes),
     )
     let start = local_module_metered_output_start_capacity(
       original, 0, sequence,
     )
     if borrowed {
       let start = start.unwrap()
-      assert_eq(start.retained_bytes, full.retained_bytes)
+      assert_true(full.retained_bytes <= generic.retained_bytes)
+      assert_true(full.execution_bytes < generic.execution_bytes)
+      assert_true(start.retained_bytes < full.retained_bytes)
       assert_true(start.execution_bytes < full.execution_bytes)
     } else {
+      assert_eq(
+        (full.retained_bytes, full.execution_bytes),
+        (generic.retained_bytes, generic.execution_bytes),
+      )
       assert_true(start is None)
     }
     let starts = Ref(0)
@@ -1548,6 +1697,100 @@ test "joined branch Append keeps recursive outer and injected provider fallbacks
       (full.retained_bytes, full.execution_bytes),
     )
     assert_eq(starts.val, 0)
+    @connector.close_capability_registry(registry)
+  }
+}
+
+///|
+test "nullable Text DISTINCT defers only actual same-task output and keeps recursive or injected retention" {
+  for recursive in [false, true] {
+    let (chain, _, _) = chain_lifetime_fixture(
+      "[{\"from\":\"source\",\"derive\":{\"tag\":" +
+      (if recursive {
+        "{\"array\":[{\"field\":\"id\"}]}"
+      } else {
+        "{\"case\":{\"when\":[{\"when\":{\"eq\":[{\"field\":\"id\"},{\"literal\":1}]},\"then\":{\"literal\":\"x\"}}],\"else\":{\"literal\":null}}}"
+      }) +
+      "}},{\"distinct\":[\"id\"" +
+      (if recursive { "" } else { ",\"tag\"" }) +
+      "]}]",
+    )
+    let sequence = @execution.select_generated_sequence_step(
+      chain,
+      @execution.generated_sequence_step_index_at(chain, 1).unwrap(),
+    ).unwrap()
+    let values = {
+      ..chain_lifetime_limits().rows.output_values,
+      max_nodes: 590000,
+      max_text_bytes: 20000000,
+    }
+    let limits = {
+      ..chain_lifetime_limits(),
+      rows: {
+        ..chain_lifetime_limits().rows,
+        input_values: values,
+        output_values: values,
+      },
+    }
+    let registry = @connector.prepare_capability_registry(
+      [
+        {
+          name: "local",
+          acquisition: false,
+          fixed_compute: true,
+          effect: false,
+        },
+      ],
+      1,
+      100,
+    ).unwrap()
+    let registration = @connector.capability_registration_at(registry, 0).unwrap()
+    let original = prepare_local_compute_module(
+      registry,
+      registration,
+      [sequence],
+      limits,
+      chain_lifetime_measurement(),
+      100000,
+      1,
+    ).unwrap()
+    let full = local_module_capacity(original, 0).unwrap()
+    let startup = local_module_metered_output_start_capacity(
+      original, 0, sequence,
+    ).unwrap()
+    if recursive {
+      assert_eq(startup.retained_bytes, full.retained_bytes)
+    } else {
+      assert_true(startup.retained_bytes < full.retained_bytes)
+      assert_true(startup.execution_bytes < full.execution_bytes)
+      assert_true(startup.retained_bytes + startup.execution_bytes < 536870912L)
+    }
+    let unchanged = local_module_capacity(original, 0).unwrap()
+    assert_eq(unchanged.retained_bytes, full.retained_bytes)
+    assert_eq(unchanged.execution_bytes, full.execution_bytes)
+    let replacement = managed_provider(_ => true, _ => Some(full), (
+      _,
+      _,
+      _,
+      _,
+      _,
+    ) => Err(@connector.InvalidLimits))
+    let injected = prepare_local_compute_module(
+      registry,
+      registration,
+      [sequence],
+      limits,
+      chain_lifetime_measurement(),
+      100000,
+      1,
+      managed_providers=[replacement],
+    ).unwrap()
+    assert_true(
+      local_module_metered_output_start_capacity(injected, 0, sequence) is None,
+    )
+    let fallback = local_module_capacity(injected, 0).unwrap()
+    assert_eq(fallback.retained_bytes, full.retained_bytes)
+    assert_eq(fallback.execution_bytes, full.execution_bytes)
     @connector.close_capability_registry(registry)
   }
 }

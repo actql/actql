@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {encodeRetainedFixture} from './retained-fixture-values.mjs';
 
 // Shared controls appear in more than one independently authored corpus.
 // A case name is also its request identity: equivalent controls run once;
@@ -106,4 +108,22 @@ export function partitionPublicQueryProfiles(profiles, part, inventoryKeys) {
       inputs: Object.fromEntries(['successes', 'executionFailures', 'refusals'].map(kind =>
         [kind, selected.flatMap(entry => entry.cohort[kind] ?? [])]))};
   }).filter(profile => profile.cohorts.length > 0);
+}
+
+// Actual transport inventory for both acceptance and its partition controls.
+export const publicQueryInventoryKeys = (profile, inputs, offsets = {}) => ['successes', 'executionFailures', 'refusals']
+  .flatMap(kind => {
+    const offset = offsets[kind] ?? 0, values = inputs[kind] ?? [];
+    offsets[kind] = offset + values.length;
+    return values.map((item, index) => JSON.stringify([profile, kind, offset + index, item.name,
+      createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')]));
+  });
+
+// Select the existing current evidence protocols before the fixture CID is built.
+export function configurePublicQueryEvidenceContracts(environment) {
+  environment.connector_capabilities[0].capability_contract_cids = [
+    'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d',
+    'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929',
+  ];
+  environment.connector_capabilities[0].capability_contract_cids.sort();
 }

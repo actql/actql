@@ -56,3 +56,46 @@ test "Pipe CTE stops at its own delimiter and excludes INFER" {
   ).unwrap()
   assert_eq(operation_count(query_binding_at(query, 0).unwrap().query), 3)
 }
+
+///|
+test "CTE name processing spends the original parser work before folding" {
+  let short = "WITH a AS (SELECT 1 AS n),b AS (SELECT 2 AS n) SELECT n FROM a"
+  let left = "a" + "x".repeat(256)
+  let right = "b" + "y".repeat(256)
+  let long = "WITH " +
+    left +
+    " AS (SELECT 1 AS n)," +
+    right +
+    " AS (SELECT 2 AS n) SELECT n FROM " +
+    left
+  let short_work = query_work(parse_query(short, query_limits()).unwrap())
+  let long_query = parse_query(long, query_limits()).unwrap()
+  let long_work = query_work(long_query)
+  assert_true(
+    long_work > short_work,
+    msg="original CTE name comparisons/folds must consume the SAME parser work",
+  )
+  match parse_query(long, { ..query_limits(), max_work: short_work, }) {
+    Err({ issue: Syntax(message), .. }) =>
+      assert_eq(message, "Query work limit")
+    _ => fail("long original names must refuse before uncharged processing")
+  }
+  assert_true(
+    parse_query(long, { ..query_limits(), max_work: long_work, }) is Ok(_),
+  )
+  assert_true(
+    parse_query(long, { ..query_limits(), max_work: long_work - 1, }) is Err(_),
+  )
+  assert_true(
+    parse_query(long, { ..query_limits(), max_cte_count: 1, }) is Err(_),
+  )
+  match
+    parse_query(
+      "WITH foo AS (SELECT 1 AS n),fOo AS (SELECT 2 AS n) SELECT n FROM foo",
+      query_limits(),
+    ) {
+    Err({ issue: Syntax(message), .. }) =>
+      assert_eq(message, "Duplicate CTE name")
+    _ => fail("same original case-insensitive duplicate rule must refuse")
+  }
+}

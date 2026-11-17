@@ -55,13 +55,21 @@ pub fn effect_apply_key_cid(EffectApplyKey) -> String
 
 pub fn effect_batch_rows_share_member(LogicalItemLocator, EffectDispatchKey, LogicalItemLocator, EffectDispatchKey) -> Bool
 
+pub fn effect_command_dispatch_correlation_retained_units() -> Int64
+
+pub fn effect_command_dispatch_correlation_workspace_units() -> Int64
+
 pub fn effect_dispatch_key_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_codec_limits() -> (Int, Int, Int)
 
+pub fn effect_dispatch_key_correlation_wire(EffectDispatchKey) -> String
+
 pub fn effect_dispatch_key_preview_cid(EffectDispatchKey) -> String
 
 pub fn effect_dispatch_key_scope_cid(EffectDispatchKey) -> String
+
+pub fn effect_ledger_claim_facts_status(EffectLedgerBasis, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, String, String, Int, Int, Int) -> Int
 
 pub fn effect_ledger_entry_admits_dispatch(EffectLedgerEntry, @logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String) -> Bool
 
@@ -78,6 +86,8 @@ pub fn effect_ledger_entry_scope_cid(EffectLedgerEntry) -> String
 pub fn effect_ledger_entry_state_code(EffectLedgerEntry) -> Int
 
 pub fn effect_ledger_entry_wire(EffectLedgerEntry) -> String
+
+pub fn effect_member_receipt_encoding_limits(Int) -> (Int, Int, Int)?
 
 pub fn effect_recovered_claim_basis(EffectRecoveredClaim) -> EffectLedgerBasis
 
@@ -147,7 +157,11 @@ pub fn prepare_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, S
 
 pub fn prepare_effect_ledger_basis(@logical_request_scope.LogicalRequestScope, LogicalItemLocator, EffectDispatchKey, String, String, String, String, String, String, String, String) -> Result[EffectLedgerBasis, EffectLedgerIssue]
 
+pub fn prepare_effect_preview_row_dispatch_key(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int) -> Result[EffectDispatchKey, EffectIdentityIssue]
+
 pub fn prepare_effect_recovery_bindings(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Int, Int) -> Result[Array[Array[EffectRecoveryBinding]], EffectRecoveredClaimIssue]
+
+pub fn prepare_effect_recovery_bindings_from_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, String, String, Array[Array[EffectDispatchKey]], Int, Int) -> Result[Array[Array[EffectRecoveryBinding]], EffectRecoveredClaimIssue]
 
 pub fn prepare_logical_item_locator(@logical_request_scope.LogicalRequestScope, String, String, String, String, Int, Int, Int, Int) -> Result[LogicalItemLocator, EffectIdentityIssue]
 

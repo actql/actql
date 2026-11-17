@@ -70,10 +70,18 @@ test "actual Task output growth refusal preserves Source and returns only failed
   let operations = @local_driver.start_local_managed_dispatch_node(dispatch).unwrap()
   let tasks : Array[LocalValuesTaskExecution?] = Array::make(3, None)
   tasks[1] = Some({ operations, settled: false, completed: None, })
-  assert_true(
-    (operations.execute)()
-    is Err(@local_driver.Execution(Physical(ExecutionLimit))),
-  )
+  guard (operations.execute)()
+    is Err(
+      @local_driver.ExecutionCapacityRefusal(
+        @resources.ExecutionLimit,
+        needed,
+        available,
+        policy
+      )
+    ) else {
+    fail("expected the original typed ExecutionLimit reservation refusal")
+  }
+  assert_true(needed > available && available >= 0L && policy >= available)
   assert_false(@strategy.captured_task_completed(run, 1))
   let mut closed = false
   for _ in 0..<10000 {
@@ -94,43 +102,79 @@ test "actual Task output growth refusal preserves Source and returns only failed
 
 ///|
 test "actual Task accepts exact output backing when a spare page cannot fit" {
-  let value = captured_tasks_fixture()
-  let before = @resources.ledger_usage(value.ledger)
-  let (run, dispatch) = metered_tail_dispatch(value)
-  let (_, startup) = @local_driver.local_managed_dispatch_site_capacity(
-    dispatch,
-  ).unwrap()
   // The original first compute task has two rows in each of its filter and
   // projection buffers: four row roots, four numbers and four id names.
-  let exact = 2112L
-  let block = @resources.reserve_capacity(
-    value.ledger,
-    0L,
-    @resources.ledger_limits(value.ledger).execution_bytes -
-    @resources.ledger_usage(value.ledger).reserved_execution_bytes -
-    startup -
-    exact,
-  ).unwrap()
-  let operations = @local_driver.start_local_managed_dispatch_node(dispatch).unwrap()
-  let tasks : Array[LocalValuesTaskExecution?] = Array::make(3, None)
-  tasks[1] = Some({ operations, settled: false, completed: None, })
-  (operations.execute)().unwrap()
-  assert_eq((operations.output_rows)(), 2)
-  assert_eq((operations.output_row)(0).unwrap(), "{\"id\":3}")
-  assert_eq((operations.output_row)(1).unwrap(), "{\"id\":2}")
-  assert_true((operations.execution_stopped)())
-  assert_eq(
-    @resources.ledger_usage(value.ledger).reserved_execution_bytes,
-    @resources.ledger_limits(value.ledger).execution_bytes,
-  )
-  assert_true(close_local_values_tasks(run, tasks))
-  @resources.settle_capacity(value.ledger, block).unwrap()
-  let after = @resources.ledger_usage(value.ledger)
-  assert_eq(after.attempts, before.attempts + 1)
-  assert_eq(after.held_bytes, before.held_bytes)
-  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
-  assert_true(@row_source_host.row_capture_source(value.capture) is Ok(_))
-  captured_tasks_close_source(value)
+  let output = @execution.execution_capacity_inventory_bytes([
+    { unit: ValueNodeSlots, count: 8L, copies: 1, },
+    { unit: DecodedTextBytes, count: 8L, copies: 1, },
+  ]).unwrap()
+  // The predicate visits 3,1,2. Its scalar operands peak at two canonical
+  // bytes, then release before the Boolean result. The false result is the
+  // five-byte peak; the same working owner retains that peak after release
+  // while all four output rows accumulate. These units are canonical extent,
+  // not one generic slot per Boolean. A spare 16KiB page still cannot fit.
+  let predicate = @execution.execution_capacity_inventory_bytes([
+    { unit: ValueNodeSlots, count: 5L, copies: 1, },
+    { unit: CanonicalWireBytes, count: 5L, copies: 1, },
+  ]).unwrap()
+  assert_eq(output, 2112L)
+  assert_eq(predicate, 1320L)
+  let exact = output + predicate
+  for short in [false, true] {
+    let value = captured_tasks_fixture()
+    let before = @resources.ledger_usage(value.ledger)
+    let (run, dispatch) = metered_tail_dispatch(value)
+    let (_, startup) = @local_driver.local_managed_dispatch_site_capacity(
+      dispatch,
+    ).unwrap()
+    let block = @resources.reserve_capacity(
+      value.ledger,
+      0L,
+      @resources.ledger_limits(value.ledger).execution_bytes -
+      @resources.ledger_usage(value.ledger).reserved_execution_bytes -
+      startup -
+      (if short { exact - 1L } else { exact }),
+    ).unwrap()
+    let operations = @local_driver.start_local_managed_dispatch_node(dispatch).unwrap()
+    let tasks : Array[LocalValuesTaskExecution?] = Array::make(3, None)
+    tasks[1] = Some({ operations, settled: false, completed: None, })
+    let result = (operations.execute)()
+    if short {
+      guard result
+        is Err(
+          @local_driver.ExecutionCapacityRefusal(
+            @resources.ExecutionLimit,
+            needed,
+            available,
+            _
+          )
+        ) else {
+        fail(
+          "one-byte-short exact backing must preserve its typed ExecutionLimit",
+        )
+      }
+      assert_eq(needed, available + 1L)
+      assert_false(@strategy.captured_task_completed(run, 1))
+    } else {
+      result.unwrap()
+      assert_eq((operations.output_rows)(), 2)
+      assert_eq((operations.output_row)(0).unwrap(), "{\"id\":3}")
+      assert_eq((operations.output_row)(1).unwrap(), "{\"id\":2}")
+      assert_true((operations.execution_stopped)())
+      assert_eq(
+        @resources.ledger_usage(value.ledger).reserved_execution_bytes,
+        @resources.ledger_limits(value.ledger).execution_bytes,
+      )
+    }
+    assert_true(close_local_values_tasks(run, tasks))
+    @resources.settle_capacity(value.ledger, block).unwrap()
+    let after = @resources.ledger_usage(value.ledger)
+    assert_eq(after.attempts, before.attempts + 1)
+    assert_eq(after.held_bytes, before.held_bytes)
+    assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+    assert_true(@row_source_host.row_capture_source(value.capture) is Ok(_))
+    captured_tasks_close_source(value)
+  }
 }
 
 ///|
@@ -252,13 +296,58 @@ test "real retention exhaustion refuses output before atomic capacity mutation" 
     Some({ operations, settled: false, completed: None, }),
     None,
   ]
+  let started = @resources.ledger_usage(value.ledger)
+  let mut working_grew_before_output = false
+  let mut refused = false
+  for _ in 0..<10000 {
+    let before_step = @resources.ledger_usage(value.ledger)
+    match (operations.advance)(1) {
+      Err(
+        @local_driver.ExecutionCapacityRefusal(
+          @resources.RetentionLimit,
+          needed,
+          available,
+          policy
+        )
+      ) => {
+        assert_true(
+          needed > available && available >= 0L && policy >= available,
+        )
+        let after_step = @resources.ledger_usage(value.ledger)
+        // Earlier successful predicate funding remains live. This exact
+        // failed grow atomically leaves BOTH reservation dimensions and
+        // original holdings unchanged; spent work is not rolled back.
+        assert_eq(
+          after_step.reserved_retention_bytes,
+          before_step.reserved_retention_bytes,
+        )
+        assert_eq(
+          after_step.reserved_execution_bytes,
+          before_step.reserved_execution_bytes,
+        )
+        assert_eq(after_step.held_bytes, before_step.held_bytes)
+        assert_eq(after_step.live_reservations, before_step.live_reservations)
+        refused = true
+        break
+      }
+      Err(_) =>
+        fail("expected the original typed RetentionLimit reservation refusal")
+      Ok(progress) => {
+        let after_step = @resources.ledger_usage(value.ledger)
+        if after_step.reserved_execution_bytes >
+          started.reserved_execution_bytes &&
+          after_step.reserved_retention_bytes ==
+          started.reserved_retention_bytes {
+          working_grew_before_output = true
+        }
+        assert_false(progress.complete)
+      }
+    }
+  }
+  assert_true(refused && working_grew_before_output)
   assert_true(
-    (operations.execute)()
-    is Err(@local_driver.Execution(Physical(RetentionLimit))),
-  )
-  assert_eq(
-    @resources.ledger_usage(value.ledger).reserved_execution_bytes,
-    before.reserved_execution_bytes + execution + 528L,
+    @resources.ledger_usage(value.ledger).reserved_execution_bytes >
+    before.reserved_execution_bytes + execution,
   )
   assert_false(@strategy.captured_task_completed(run, 1))
   assert_true(close_local_values_tasks(run, tasks))

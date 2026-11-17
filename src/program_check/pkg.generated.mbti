@@ -39,6 +39,8 @@ import {
 // Values
 pub fn admit_checked_local_dependency_body(CheckedProgram, Int, LocalDependencyBodyKind, CheckedLocalDependencyBody, String) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
 
+pub fn advance_checked_local_catalog_selection(CheckedLocalCatalogSelection, Int, work? : ((Int) -> Bool)?) -> Result[Unit, LocalDependencyBodyIssue]
+
 pub fn analytic_aggregate_subject(AnalyticAggregateSource, Int) -> String raise UnitBuildFailure
 
 pub fn analytic_input_proof_claim(AnalyticInputProof) -> @capacity_witness.ProgramProofClaim
@@ -87,6 +89,8 @@ pub fn asof_search_limit_selection(AsOfSearchLimit) -> @pipeline_check_context.A
 
 pub fn asof_search_limit_source(AsOfSearchLimit) -> UnitOperationSource
 
+pub fn begin_checked_local_catalog_selection(CheckedProgram, Int, String, String) -> Result[CheckedLocalCatalogSelection, LocalDependencyBodyIssue]
+
 pub fn begin_parsed_source_registration(ParsedCheckRegistry, @stage_parameters.Source) -> Result[ParsedSourceRegistration, ParsedSourceRegistrationIssue]
 
 pub fn begin_request_policy_subjects(CheckedProgram, CompileLimits, cumulative_work? : Int64?) -> RequestPolicySubjectPreparation raise UnitBuildFailure
@@ -96,6 +100,10 @@ pub fn bind_host_verified_request_value_policy(SourceExecution, @check_environme
 pub fn bind_host_verified_request_value_policy_cid(SourceExecution, String, Int, Int, Int, Int) -> HostRequestValuePolicyEvidence raise UnitBuildFailure
 
 pub fn bind_prepared_request_policy_subject(RequestPolicySubjectPreparation, Int, String?) -> HostRequestValuePolicyEvidence? raise UnitBuildFailure
+
+pub fn census_checked_local_catalog_selection(CheckedLocalCatalogSelection, Int, Int, Int, (Int) -> Bool) -> Result[CheckedLocalDependencyCensus, LocalDependencyBodyIssue]
+
+pub fn census_checked_local_dependency_body(CheckedProgram, Int, LocalDependencyBodyKind, Int, Int, Int, (Int) -> Bool) -> Result[CheckedLocalDependencyCensus, LocalDependencyBodyIssue]
 
 pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
@@ -113,6 +121,10 @@ pub fn checked_environment(CheckedProgram) -> @check_environment.WireEnvironment
 
 pub fn checked_local_catalog_dependency_body(CheckedProgram, Int, String, String, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
 
+pub fn checked_local_catalog_selection_geometry(CheckedLocalCatalogSelection) -> (Int, Int, Int)?
+
+pub fn checked_local_catalog_selection_remaining(CheckedLocalCatalogSelection) -> Int
+
 pub fn checked_local_dependency_bodies(CheckedProgram, Int, Int, Int, Int, Int) -> Result[Array[(String, CheckedLocalDependencyBody)], LocalDependencyBodyIssue]
 
 pub fn checked_local_dependency_body(CheckedProgram, Int, LocalDependencyBodyKind, Int, Int, Int) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
@@ -122,6 +134,14 @@ pub fn checked_local_dependency_body_cid(CheckedLocalDependencyBody) -> String
 pub fn checked_local_dependency_body_json(CheckedLocalDependencyBody) -> String
 
 pub fn checked_local_dependency_body_matches(CheckedLocalDependencyBody, CheckedProgram, Int, LocalDependencyBodyKind) -> Bool
+
+pub fn checked_local_dependency_census_cid(CheckedLocalDependencyCensus) -> String
+
+pub fn checked_local_dependency_census_geometry(CheckedLocalDependencyCensus) -> @encode_core.EncodingConstructionGeometry
+
+pub fn checked_local_dependency_static_count(CheckedProgram, Int) -> Int?
+
+pub fn checked_local_dependency_static_selection(CheckedProgram, Int, Int) -> (String, LocalDependencyBodyKind)?
 
 pub fn checked_local_policy_cid(CheckedProgram) -> String
 
@@ -160,6 +180,8 @@ pub fn close_effect_computation_static(EffectComputationCandidate, @check_enviro
 pub fn closed_values_local_owner_layout(Int) -> ClosedValuesLocalOwnerLayout?
 
 pub fn combine_classification(@check_environment.DataClassification, @check_environment.DataClassification) -> @check_environment.DataClassification
+
+pub fn compilation_artifact_pass_work_limit(CompileLimits) -> Int?
 
 pub fn complete_template_check(TemplateDeclarationPreparation) -> Result[TemplateCheckedProgram, TemplateConstructionIssue]
 
@@ -253,6 +275,8 @@ pub fn emit_analytic_numeric_slot(AnalyticNumericSlot, @encode_core.Writer) -> U
 
 pub fn emit_asof_search_limit(AsOfSearchLimit, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_censused_checked_local_dependency_body(CheckedLocalDependencyCensus, (Int) -> Bool, shared? : CheckedLocalDependencyBody?) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
+
 pub fn emit_direct_source_policy(DirectSourcePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_effective_policy(EffectivePolicy, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -280,6 +304,8 @@ pub fn expression_execution_bound(ExpressionExecution) -> @pipeline_check_contex
 pub fn expression_execution_owner(ExpressionExecution) -> @pipeline_check_context.ProgramExpressionClosure
 
 pub fn expression_execution_requirement_index(ExpressionExecution) -> Int
+
+pub fn finish_checked_local_catalog_selection(CheckedLocalCatalogSelection, Int, Int, Int) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
 
 pub fn finish_parsed_check_input(ParsedCheckInput) -> CheckOutcome
 
@@ -403,6 +429,8 @@ pub fn local_common_normalization_inventory_requirements(LocalCommonNormalizatio
 
 pub fn local_common_normalization_inventory_work(LocalCommonNormalizationInventory) -> Int
 
+pub fn local_common_normalization_retained_extent(LocalCommonNormalizationInventory) -> (@decode_shape.CollectionConstructionExtent, Int64, Int64)?
+
 pub fn local_common_update_completion_free_inventory_matches(LocalCommonUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
 
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
@@ -500,6 +528,8 @@ pub fn numeric_slot_for_requirement(CheckedProgram, Int) -> GroupNumericSlot?
 pub fn observe_finish_parsed_check_registry(ParsedCheckRegistry, calls_out? : @ref.Ref[Int64]?) -> Result[(CheckOutcome, Int, Bool), ParsedCheckPreludeIssue]
 
 pub fn observe_finish_parsed_effect_check_registry(ParsedCheckRegistry) -> (Result[EffectComputationCandidate, EffectComputationIssue], Int, Bool)
+
+pub fn observe_local_program_common_normalization_inventory(CheckedProgram, Int) -> (Result[LocalCommonNormalizationInventory, LocalCommonNormalizationIssue], Int)
 
 pub fn observe_parsed_check_carriers(ParsedCarriersInput) -> (Result[Unit, ParsedCatalogPreparationIssue], Int)
 
@@ -1265,7 +1295,11 @@ pub(all) enum CheckScope {
   BoundInput
 } derive(Eq, @debug.Debug)
 
+type CheckedLocalCatalogSelection
+
 type CheckedLocalDependencyBody
+
+type CheckedLocalDependencyCensus
 
 type CheckedProgram
 

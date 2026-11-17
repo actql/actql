@@ -981,20 +981,9 @@ fn collection_node_callback_order(
     if !current() {
       return reject(Fenced)
     }
-    // The single-capture factory retains adaptive proposals, not a selected
-    // strategy. Let the existing Host select/refresh them on this same Run.
-    if first == 1 {
-      match
-        @host_driver.refresh_compute_host(
-          @builtin.configured_host_runtime(setup),
-        ) {
-        Ok(_) => ()
-        Err(issue) => return reject(Estimate(issue))
-      }
-      if !current() {
-        return reject(Fenced)
-      }
-    }
+    // This entry starts the exact managed candidate below. The installed
+    // fallback estimator belongs to the legacy prepare-next-task boundary;
+    // its full materializing envelope cannot preflight this managed request.
     // The retained Model can have completed intermediate tasks already. None
     // only ends dispatch here; the original Result output is still required.
     if continuation && @strategy.next_captured_task(run) is None {
@@ -1316,13 +1305,25 @@ test "selected 100000 collection retains exact original Capture work cause and c
   guard original.val is Some(Driver(issue)) else {
     fail("original typed Driver failure missing")
   }
-  assert_true(
-    issue
+  guard issue
     is @local_driver.Configuration(
       @connector.Execution(
-        @execution.Capture(41, @execution.CaptureWorkLimit(100000))
+        @execution.Capture(
+          step,
+          @execution.CaptureWorkRefusal(limit, remaining)
+        )
       )
-    ),
+    ) else {
+    fail("expected the original typed Capture work refusal")
+  }
+  assert_eq(step, 41)
+  assert_eq(limit, 100000)
+  // A complete attempted value can exceed the remaining slice before zero.
+  // Keep original remaining-work DATA distinct from control or memory limits.
+  assert_true(remaining >= 0 && remaining < limit)
+  println(
+    "COLLECTION_ORIGINAL_CAPTURE_WORK " +
+    @debug.to_string((step, limit, remaining)),
   )
   assert_eq(
     @local_driver.local_managed_advance_capture_work(issue),

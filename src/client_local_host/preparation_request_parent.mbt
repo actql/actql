@@ -43,7 +43,8 @@ priv enum ClientRequestDomainCompilationInputs {
   // never continues into a compiler, Source/Model/Effect Plan or send owner.
   RequestEffectCaptureRecovery(
     @publication_host.ClientRequestIdentity,
-    @publication.PublicationContract
+    @publication.PublicationContract,
+    ClientRequestEffectCaptureMaterial?
   )
   // A saved Model continuation keeps its Journal-selected pair while the
   // existing Request reservation funds reconstruction. It cannot compile a
@@ -82,6 +83,18 @@ priv enum ClientRequestDomainCompilationInputs {
     @publication_host.ClientPureCompilationLimits,
     ClientInstalledSequenceContracts,
     @publication_host.ClientInferGraphConstruction
+  )
+  RequestEffectKeyedGraphConstruction(
+    @publication_host.PreparedClientEffectComputation,
+    @publication_host.ClientKeyedAcquisition,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientEffectKeyedPlanConstruction
+  )
+  RequestEffectKeyedGraph(
+    @publication_host.PreparedClientEffectComputation,
+    @publication_host.ClientKeyedAcquisition,
+    ClientInstalledSequenceContracts,
+    @publication_host.ClientEffectKeyedPlanGraph
   )
   RequestModelGraph(
     @publication_host.ClientCompilationManifests,
@@ -134,6 +147,7 @@ struct ClientRequestPreparation[I] {
   mut intent_source_quote : (Int64, Int64)?
   mut native_intake_base : (Int64, Int64)?
   mut native_intake_wire_bytes : Int
+  mut http_input : ClientRequestHttpInput?
   mut intent_attempted : Bool
   mut intent_peak_live : Bool
   mut intent_work : @resources.PreparationPhaseWork64?
@@ -161,6 +175,7 @@ struct ClientRequestPreparation[I] {
   ]?
   mut compiled_effect : @publication_host.PreparedClientEffectComputation?
   mut effect_plan : ClientInstalledEffectManagedPlan?
+  mut program_normalization : ClientRequestProgramNormalization?
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_measurement_quote : (Int64, Int64)?
@@ -260,10 +275,33 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 // continuation. No new observer record, parent backreference or callback exists.
 // Explicit source-free work selection retains one Some/header, its scalar and
 // two references on the SAME Request (1H/2R/1W), including failed construction.
+// Default Query's observed Stage selection retains four immutable records:
+// Program limits (3R/4W), Check limits (2R), Compile limits (6R/1W), and
+// structure limits (9W). Their 4H/11R/14W coexist with the original selection
+// before checking. Shared nested profiles and original Option payloads are
+// borrowed unchanged; no Stage-sized array or policy-sized storage is added.
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
-  record_headers: 234L,
-  reference_slots: 418L,
-  scalar_words: 482L,
+  // Common observed default input adds its Source-limit copy (1H/3W),
+  // Compile limits (1H/6R/1W) and Structure limits (1H/9W).
+  // Original optional raw lexical-work selection and its holder reference:
+  // 1H/1R/1W, retained before any fallible syntax grow/current callback.
+  // Coheld return wrapper for the shared post-lowering default selection.
+  // Original selected limits remain retained on the same Request.
+  // HTTP controls3H/4R/7W and one original normalization reference1R coexist.
+  // The prepared-original issuer adds one captured Effect method before the
+  // Plan borrow: proxy1H/3R, its fixed pair Array/backing2H/2R/2W,
+  // three growing names/methods/result backings3R each, and the retained
+  // object's key/value2R. Fund that3H/16R/2W here before the JS inventory.
+  // Nine installed family provider recipe fields (9R). Interval, Sequence
+  // and the direct flat Ranking constructor
+  // each retain Some(quote) (1H/1R) plus a closure capturing workspace_slots
+  // (1H/1W). Actual execution/measurement are call arguments, not captures.
+  // Events adds Some(quote) (1H/1R) and a closure borrowing its retained
+  // record policy and capturing storage_bytes (1H/1R/1W).
+  // These fixed controls are backed before the installed factory is entered.
+  record_headers: 257L,
+  reference_slots: 472L,
+  scalar_words: 523L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -296,6 +334,10 @@ pub fn client_request_preparation_control_capacity(
   // Optional Native scalar diagnostics retain only bounded before/after tuples
   // and the SAME light parent, plus parser/lowerer Ref/Some call observations
   // (together under 512 bytes), within this fixed 4096 group.
+  // Original Effect-material codec entry also uses this exclusive group for
+  // its fixed argument tuple/codec closure before the phase grow. Its two
+  // purpose arrays, complete returned bodies and parser/writer scratch are
+  // separately funded by the same Request before their constructors start.
   // The exclusive ResultRead phase retains its bounded budget/control tuple
   // in this same group; variable frames/rows/output reserve separately.
   let growth = @resources.preparation_inventory_growth_entry_construction()
@@ -395,6 +437,7 @@ fn[I] begin_request_preparation_original(
     intent_source_quote: None,
     native_intake_base: None,
     native_intake_wire_bytes: 0,
+    http_input: None,
     intent_attempted: false,
     intent_peak_live: false,
     intent_work: None,
@@ -413,6 +456,7 @@ fn[I] begin_request_preparation_original(
     effect_capacity: None,
     compiled_effect: None,
     effect_plan: None,
+    program_normalization: None,
     program_data: None,
     program_plan_quote: None,
     program_measurement_quote: None,
@@ -753,6 +797,14 @@ pub fn[I] abort_request_preparation_after_cleanup(
       }
     }
   }
+  match finish_request_program_normalization_work(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match finish_request_effect_capture_work(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   match finish_request_program_artifact_work(owner) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -760,6 +812,10 @@ pub fn[I] abort_request_preparation_after_cleanup(
   clear_request_source_input(owner)
   owner.submitted_intent = None
   owner.snapshot_base = None
+  match finish_request_result_read_wire(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   owner.result_read = None
   owner.result_read_metadata = None
   owner.snapshot_key_units.val = -1
@@ -767,6 +823,13 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.intent_source_quote = None
   owner.native_intake_base = None
   owner.native_intake_wire_bytes = 0
+  if owner.http_input is Some(original) && original.work is Some(work) {
+    match @resources.finish_preparation_phase_work64(work) {
+      Err(issue) => return Err(Work(issue))
+      Ok(_) => original.work = None
+    }
+  }
+  owner.http_input = None
   owner.intent_peak_live = false
   owner.held_program = None
   owner.native_parameters = None
@@ -778,6 +841,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   // Keep the original Effect until its last constructor borrower returns.
   // Its cached normalization custody is severed only after logical retirement.
   owner.effect_plan = None
+  owner.program_normalization = None
   owner.program_data = None
   owner.program_plan_quote = None
   owner.program_measurement_quote = None

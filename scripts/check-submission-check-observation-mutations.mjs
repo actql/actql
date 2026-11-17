@@ -8,6 +8,13 @@ const phases = ['not_accepted', 'preparation_failed'];
 const sdk = 'packages/sdk/internal/submission-observation.mjs';
 const tests = 'packages/sdk/submission-check-observations.test.mjs';
 const mutations = [
+  {name: 'structured preparation loses its original refusal observation', path: sdk,
+    file: 'adapters/host-node/client-submission-input.test.mjs',
+    from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
+    to: 'void checkObservation;',
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: structured Program preparation refusals retain input without a semantic observation`,
+      'program-preparation-observation'))},
   {name: 'reference-only lookup acquires original input observation',
     path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
     from: 'if (!projectsProblem && originalObservation === undefined) return outcome;',
@@ -69,7 +76,7 @@ const mutations = [
     from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
     to: 'void checkObservation;',
     targets: ['local', 'http'].flatMap(entrance => [
-      target(`${entrance}: original submission retains a disclosed analysis budget without input blame`,
+      target(`${entrance}: original submission separates checker budget from later acquisition refusal`,
         'submission-budget-observation'),
       target(`${entrance}: original submission projects implementation limits only from public checking`,
         'submission-implementation-observation'),

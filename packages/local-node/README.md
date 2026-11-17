@@ -166,6 +166,14 @@ remain independent. Exceeding any applicable limit refuses rather than silently
 expanding the budget. Reopen the installation with the same memory selection;
 Saved reads retain their original Run and do not re-execute the Program.
 
+Result reads derive their total transfer, retained-value and row allowances
+from that same selected finite policy. They have no separate10MiB total or1MiB
+row cutoff. The original READ Request reserves geometric raw-row and decoded
+workspace growth before its buffer constructor, including simultaneous old/new
+backing; a large allowed row does not preallocate the whole Result. Explicit
+caller limits can narrow reads or collection. Depth and integer representation
+checks and bounded frame/batch windows remain independent.
+
 For source-free ordinary Local Compute, select
 `installation: {sourceFreeMaxWork: 30000000}` (or `sourceFreeMaxWork` on the HTTP
 Host). The positive signed 32-bit value is captured as Host installation DATA
@@ -177,6 +185,24 @@ admission. Acquired Source, Model and Effect work policies remain separate.
 A successful computation can still refuse a later copy under the selected
 retained/workspace policy. Reopen with the same installation selection;
 reading an original Saved Result does not resubmit or re-execute its Program.
+
+When an accepted Compute exceeds a managed memory or runtime-work quota,
+`ExecutionUnsuccessful` keeps its original `execution` and `observation`.
+Inspect `error.observation.terminal_error.message` for the failed phase,
+dimension, requested additional amount, remaining allowance, selected policy,
+units, and installation setting. `retained_bytes` maps to
+`installation.requestMemory.retainedBytes`; `execution_bytes` maps to
+`installation.requestMemory.executionBytes`. These are logical byte quotas,
+not process RSS. `value_capture_work` and `control_work` map to
+`installation.sourceFreeMaxWork`, which does not change Program parsing or
+checking limits. The original bounded UTF8 probe can prove only a lower bound
+on additional work; the message labels that bound instead of rescanning the
+input. If the original failure did not retain quantities, they are explicitly
+unavailable. Diagnostics do not grant a retry, success, cancellation or cleanup
+acknowledgement. Re-reading the same failed Run retains the diagnosis after
+confirmed stop and retirement; successful Saved reads do not resubmit it.
+A request-snapshot refusal before submission remains a separate preparation
+failure, rather than an accepted Compute failure.
 
 The source-free Values profile derives its row demand from the checked authored
 input and closed outputs. For a single-task Values Program a Host may explicitly

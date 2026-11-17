@@ -127,13 +127,11 @@ test "project configuration preserves strict duplicate Unicode and JSON admissio
 }
 
 ///|
-test "project configuration enforces the original exact wire intake bound" {
+test "project configuration derives intake geometry from the original wire" {
   let original = "{\"version\":\"actql-config/0.1\"}"
   let exact = original + " ".repeat(65536 - original.length())
   assert_true(admit_client_project_configuration(exact) is Ok(_))
-  assert_true(
-    admit_client_project_configuration(exact + " ") is Err(InvalidConfiguration),
-  )
+  assert_true(admit_client_project_configuration(exact + " ") is Ok(_))
 }
 
 ///|

@@ -136,10 +136,24 @@ test "text-free capacity proof checks every typed child and original step" {
         client_local_scalar_name_bytes(sequences, plan.execution.rows.max_rows).unwrap(),
       )
     } else {
-      assert_eq(plan.execution.rows.output_values.max_text_bytes, 500000)
-      assert_eq(plan.execution.rows.input_values.max_text_bytes, 500000)
+      let flat = plan.value_node_demand
+        .map(value => value.original.flat_json_leaves)
+        .unwrap_or(false)
+      let text = if flat { 20000000 } else { 500000 }
+      assert_eq(plan.execution.rows.output_values.max_text_bytes, text)
+      assert_eq(plan.execution.rows.input_values.max_text_bytes, text)
+      assert_eq(
+        plan.measurement.max_bytes,
+        if flat {
+          30 + 6 * text + 3 + 29 * plan.values.max_nodes
+        } else {
+          500000
+        },
+      )
     }
-    assert_eq(plan.measurement.max_bytes, 500000)
+    if expected {
+      assert_eq(plan.measurement.max_bytes, 500000)
+    }
     assert_false(client_local_text_free_scalar_sequences(sequences, max_work=0))
     assert_false(client_local_text_free_scalar_sequences(sequences, max_work=1))
   }
@@ -191,9 +205,10 @@ test "capacity plan funds checked leaf nodes separately from text and Result met
     graph=Some(@publication_host.prepared_client_graph(prepared)),
   )
   assert_eq(plan.imports.wire.max_nodes, plan.values.max_nodes + 3)
-  assert_eq(plan.imports.wire.max_bytes, 1000000)
-  assert_eq(plan.values.max_text_bytes, 500000)
-  assert_eq(plan.execution.rows.output_values.max_text_bytes, 500000)
+  assert_eq(plan.imports.wire.max_bytes, 30 + 6 * 20000000 + 3 + 29 * 7)
+  assert_eq(plan.values.max_work, 20000000)
+  assert_eq(plan.values.max_text_bytes, 20000000)
+  assert_eq(plan.execution.rows.output_values.max_text_bytes, 20000000)
   let selected_rows = plan.execution.rows.max_rows
   assert_eq(selected_rows, 1)
   assert_eq(

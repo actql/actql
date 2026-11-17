@@ -39,6 +39,7 @@ fn prepare_native_keyed_lookup_completion(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  defer_catalog? : Bool = false,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   guard max_bytes > 0 &&
     max_nodes > 0 &&
@@ -66,7 +67,7 @@ fn prepare_native_keyed_lookup_completion(
     lookup.completed_responses == order.length() &&
     order.length() == lookup.known.length() &&
     lookup.left.composed is Some(original) &&
-    original.plan.keyed is Some(component) &&
+    client_composed_keyed_original_component(original) is Some(component) &&
     @environment.lookup_execution_policy(
       @acquisition.lookup_bounds_policy(lookup.left.acquisition.binding.bounds),
     )
@@ -83,10 +84,9 @@ fn prepare_native_keyed_lookup_completion(
   // accounting/receipt emit only fixed field spellings, bounded numeric counts
   // and CID references per original; actual time/issuer text is quoted here.
   // Preserve the Native codec policy; do not allocate the declared wire ceiling.
-  let codec_bytes = if @publication.publication_contract_name(
+  let codec_bytes = if @publication.read_profile_uses_installed_rows(
       component.original.profile,
-    ) ==
-    "declared_file_content_read" {
+    ) {
     let text = issuer.length().to_int64() +
       started_at.length().to_int64() +
       recorded_at.length().to_int64() +
@@ -152,10 +152,13 @@ fn prepare_native_keyed_lookup_completion(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if @publication.publication_contract_name(component.original.profile) ==
-    "declared_file_content_read" {
+  if @publication.read_profile_uses_installed_rows(component.original.profile) {
     prepare_declared_file_lookup_dependencies(
-      lookup, result, max_nodes, max_depth,
+      lookup,
+      result,
+      max_nodes,
+      max_depth,
+      defer_catalog~,
     )
   } else {
     Ok(())
@@ -194,7 +197,6 @@ fn build_native_keyed_lookup_completion(
       physical_equal(activation.original, lookup) &&
       physical_equal(activation.request, history.request) &&
       physical_equal(activation.definition, original.definition) &&
-      physical_equal(activation.graph, original.plan) &&
       physical_equal(activation.batch, batch) &&
       client_request_identity_relation(activation.client_request, request)
       is SameRequest &&

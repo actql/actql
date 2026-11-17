@@ -1,18 +1,10 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {registeredPublicQueryInventory} from './public-query-inventory.mjs';
-import {publicQueryCohorts, partitionPublicQueryProfiles} from './fixtures/public-query-cases.mjs';
-import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
+import {publicQueryCohorts, partitionPublicQueryProfiles, publicQueryInventoryKeys as inventoryKeys} from './fixtures/public-query-cases.mjs';
 
-const source = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-const start = source.indexOf('const inventoryKeys =');
-const end = source.indexOf('// Host profiles are immutable', start);
-assert(start >= 0 && end > start);
-const inventoryKeys = runInNewContext(source.slice(start, end) + '\ninventoryKeys;',
-  {createHash, encodeRetainedFixture}, {timeout: 1000});
 const registered = await registeredPublicQueryInventory({includeInputs: true});
 const fullPin = JSON.parse(readFileSync(new URL('./fixtures/public-query-inventory.json', import.meta.url)));
 const profiles = registered.profileInputs.map(profile => ({...profile, cohorts: publicQueryCohorts(profile.inputs)}));

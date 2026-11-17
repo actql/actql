@@ -14,7 +14,12 @@ fn chain_lifetime_child_capacity(
 fn relation_chain_reclaims_completed_scratch(
   sequence : @execution.GeneratedSequence,
 ) -> Bool {
-  relation_chain_reclaimed_prefix(sequence) ==
+  relation_chain_reclaimed_prefix(
+    sequence,
+    chain_lifetime_limits(),
+    chain_lifetime_measurement(),
+    [],
+  ) ==
   @execution.generated_sequence_step_count(sequence)
 }
 
@@ -96,6 +101,7 @@ fn chain_lifetime_bind(
 ///|
 fn chain_lifetime_generated(
   owner : @lower.BoundPrepared,
+  fragment_work? : Int64 = 100000L,
 ) -> @execution.GeneratedSequence raise {
   let sequence = @lower.prepare_sequence(owner, {
     max_steps: 100,
@@ -117,7 +123,22 @@ fn chain_lifetime_generated(
     if @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) &&
       (
         @lower.kernel_body(kernel) is @lower.Filter(_) ||
-        @lower.kernel_bindings(kernel) is Some(_)
+        @lower.kernel_bindings(kernel) is Some(_) ||
+        @lower.kernel_analytic(kernel)
+        .map(@lower.analytic_requires_expression_context)
+        .unwrap_or(false) ||
+        @lower.kernel_group(kernel)
+        .map(group => {
+          let mut dynamic = false
+          for index in 0..<@lower.group_aggregate_count(group) {
+            if @lower.group_aggregate_at(group, index) is Some(aggregate) &&
+              @lower.group_aggregate_requires_expression_context(aggregate) {
+              dynamic = true
+            }
+          }
+          dynamic
+        })
+        .unwrap_or(false)
       ) {
       let fragment = @lower.prepare_fragment_pipeline(sequence, step, {
         max_roots: 100,
@@ -145,7 +166,7 @@ fn chain_lifetime_generated(
             max_input_rows: 10L,
             max_value_bytes: 1000L,
             max_live_value_bytes: 10000L,
-            max_work: 100000L,
+            max_work: fragment_work,
           },
         ).unwrap(),
       )
@@ -215,15 +236,24 @@ fn chain_lifetime_fixture(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
     @pipeline.Step(0),
   ).unwrap()
-  let receiver = chain_lifetime_bind(
+  let checked = match
     @pipeline.check_with_evidence(
       chain_lifetime_cursor(body),
       [("source", @pipeline.ProducedInput(producer))],
       None,
       None,
       check_limits,
-    ).unwrap(),
-  )
+    ) {
+    Ok(checked) => checked
+    Err(issue) => {
+      debug_inspect(
+        issue.kind,
+        content="accepted checked chain lifetime fixture",
+      )
+      fail("chain lifetime fixture did not check")
+    }
+  }
+  let receiver = chain_lifetime_bind(checked)
   let read = @execution.prepare_producer_read(
     receiver,
     @execution.bind_completed_input(receiver, 0, source_owner, source).unwrap(),
@@ -352,7 +382,17 @@ test "bounded chains execute and charge an unconsumed checked branch" {
     capacity.execution_bytes,
     Int64::max(
       base.retained_bytes,
-      retained + peak + count.to_int64() * 256L + 512L,
+      retained +
+      peak +
+      count.to_int64() * 256L +
+      512L +
+      @execution.preparation_representation_cost({
+        record_headers: 4L,
+        reference_slots: 13L,
+        scalar_words: 4L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }).unwrap(),
     ),
   )
   let (active, state) = chain_lifetime_start(sequence, read)
@@ -468,7 +508,15 @@ test "built-in chains reclaim each intermediate execution and preserve exact out
         measurement,
         [],
       ).unwrap()
-      let handles = count.to_int64() * 256L + 512L
+      let handles = count.to_int64() * 256L +
+        512L +
+        @execution.preparation_representation_cost({
+          record_headers: 4L,
+          reference_slots: 13L,
+          scalar_words: 4L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        }).unwrap()
       assert_eq(
         capacity.execution_bytes,
         Int64::max(base.retained_bytes, retained + peak + handles),
@@ -727,10 +775,26 @@ test "audited prefix releases scratch before conservative child custody" {
   let measure = chain_lifetime_measurement()
   let capacity = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
   let count = @execution.generated_sequence_step_count(sequence)
-  assert_eq(relation_chain_reclaimed_prefix(sequence), 1)
+  assert_eq(
+    relation_chain_reclaimed_prefix(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      [],
+    ),
+    1,
+  )
   // The first SELECT is reclaimed before the unaudited Set starts. Both
   // accepted outputs remain retained; only one execution scratch is live.
-  let mut overlap = count.to_int64() * 256L + 512L
+  let mut overlap = count.to_int64() * 256L +
+    512L +
+    @execution.preparation_representation_cost({
+      record_headers: 4L,
+      reference_slots: 13L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
   let mut peak = 0L
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
@@ -739,7 +803,15 @@ test "audited prefix releases scratch before conservative child custody" {
     overlap += child.retained_bytes
     peak = Int64::max(peak, child.execution_bytes)
   }
-  assert_eq(capacity.execution_bytes, overlap + peak)
+  let original = @execution.generated_sequence_capacity(
+    sequence, limits, measure,
+  ).unwrap()
+  assert_false(@execution.bounded_literal_string_group_chain(sequence))
+  // The unaudited suffix also keeps the original whole generic floor.
+  assert_eq(
+    capacity.execution_bytes,
+    Int64::max(original.execution_bytes, overlap + peak),
+  )
   let (active, state) = chain_lifetime_start(sequence, read)
   let mut result = None
   for _ in 0..<100000 {
@@ -821,7 +893,15 @@ test "Values and UNNEST chains reclaim scratch and preserve accepted output gene
     peak = Int64::max(peak, child.execution_bytes)
     conservative += child.execution_bytes
   }
-  let handles = count.to_int64() * 256L + 512L
+  let handles = count.to_int64() * 256L +
+    512L +
+    @execution.preparation_representation_cost({
+      record_headers: 4L,
+      reference_slots: 13L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
   let required = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
   assert_eq(
     required.execution_bytes,
@@ -977,11 +1057,27 @@ test "an unaudited first child keeps the complete conservative suffix" {
   let (sequence, read, source) = chain_lifetime_fixture(
     "[{\"from\":\"source\",\"intersect\":{\"with\":\"source\",\"duplicates\":\"all\"},\"as\":\"first\"},{\"from\":\"first\",\"select\":[\"id\"],\"as\":\"out\"}]",
   )
-  assert_eq(relation_chain_reclaimed_prefix(sequence), 0)
+  assert_eq(
+    relation_chain_reclaimed_prefix(
+      sequence,
+      chain_lifetime_limits(),
+      chain_lifetime_measurement(),
+      [],
+    ),
+    0,
+  )
   let limits = chain_lifetime_limits()
   let measure = chain_lifetime_measurement()
   let count = @execution.generated_sequence_step_count(sequence)
-  let mut overlap = count.to_int64() * 256L + 512L
+  let mut overlap = count.to_int64() * 256L +
+    512L +
+    @execution.preparation_representation_cost({
+      record_headers: 4L,
+      reference_slots: 13L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()

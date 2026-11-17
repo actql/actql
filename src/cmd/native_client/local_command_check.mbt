@@ -364,7 +364,9 @@ fn LocalCommandPreparationOriginal::execute_product_command(
     original_runtime,
     @run_host.client_native_local_runtime_original(runtime.manifest),
   )
-  let configuration = text_file(configuration_root, "config.json", 65536L)
+  let configuration = local_host_configuration_text_file(
+    configuration_root, "config.json",
+  )
   let settings = local_host_settings(configuration)
   if settings.sqlite_library != runtime.sqlite ||
     settings.signature_library != runtime.crypto ||
@@ -827,16 +829,76 @@ fn command_project_original_text(
       Ok(_) => original.read_failure = None
     }
   }
-  let result = @files.read_bounded_text_file_in_current_read_context_with_custody(
+  let result = @files.read_observed_text_file_in_current_read_context_with_custody(
     root,
     name,
-    65536L,
     original.profile.diagnostic_ceiling,
+    bytes => {
+      match original.prepare_project_text_payload(bytes) {
+        Ok(_) => true
+        Err(issue) => {
+          original.retain_primary(issue)
+          false
+        }
+      }
+    },
   )
   if result is Err(failure) {
     original.read_failure = Some(failure)
   }
   result
+}
+
+///|
+// The bounded Reader's original transport/UTF8 envelope, also used by the
+// existing Request intake: fixed controls, one Reader quantum and overlapping
+// accumulation/copy buffers. These are representation quantities, not input
+// ceilings, parser/Account admission or a physical allocation theorem.
+fn local_project_text_payload_extent(bytes : Int64) -> (Int64, Int64)? {
+  if bytes < 0L || bytes > 2147483518L {
+    return None
+  }
+  guard @execution.checked_preparation_add_product(0L, bytes, 2L)
+    is Some(text_peak) &&
+    @execution.checked_preparation_add_product(65536L, bytes, 4L)
+    is Some(wire_peak) &&
+    @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 16L,
+      scalar_words: 16L,
+      owned_utf16_units: bytes,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 16L,
+      scalar_words: 16L,
+      owned_utf16_units: text_peak,
+      owned_wire_bytes: wire_peak,
+    })
+    is Some(execution) else {
+    return None
+  }
+  Some((retained, execution))
+}
+
+///|
+// Project discovery precedes the business Request. Use only the SAME entered
+// initial Read, retaining each new text frame before its Reader/buffers exist.
+// The existing owner checks selected policy/currentness and obtains actual
+// domain backing before growing the original reservation. No MAX is prepaid.
+fn LocalCommandPreparationOriginal::prepare_project_text_payload(
+  self : Self,
+  bytes : Int64,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard local_project_text_payload_extent(bytes) is Some((r, e)) else {
+    return Err(CommandUnavailable)
+  }
+  // Keep the actual escaping String in the same metadata prefix used by the
+  // next parser/index/settings constructor. Finished Reader scratch is a max,
+  // never a second retained frame or a sum of historical temporary peaks.
+  self.prepare_host_metadata(r, e)
 }
 
 ///|

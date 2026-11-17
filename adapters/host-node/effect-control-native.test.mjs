@@ -3,15 +3,16 @@ import test from 'node:test';
 import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 function fixture({beginFailure} = {}) {
   const parent = {}, prepared = {}, request = {}, plan = {}, events = [];
-  const begin = (...args) => {
+  const begin = (kind, ...args) => {
     assert.deepEqual(args.slice(0, 4), [parent, prepared, request, plan]);
-    events.push({kind: 'begin', args});
+    events.push({kind, args});
     if (beginFailure) throw beginFailure;
     return Object.create({$tag: 1});
   };
   const runtime = {
-    clientProgramInstalledEffectOperationControlConstructionBegin: begin,
-    clientProgramInstalledEffectOperationNativeConstructionBegin: begin,
+    clientProgramInstalledEffectOperationControlConstructionBegin: (...args) => begin('begin', ...args),
+    clientProgramInstalledEffectOperationNativeConstructionBegin: (...args) => begin('begin', ...args),
+    clientProgramInstalledEffectOperationMemberReceiptConstructionBegin: (...args) => begin('receipt', ...args),
     clientProgramInstalledEffectOperationControlConstructionComplete(...args) {
       assert.deepEqual(args, [parent, prepared, request, plan]);
       events.push({kind: 'complete'}); return Object.create({$tag: 1});
@@ -49,4 +50,26 @@ test('failed native caller keeps its original failed prefix without completion o
   // synchronous caller has returned. It calls no Core completion/physical ACK.
   assert.equal(f.work.retire(), true);
   assert.deepEqual(f.events.map(x => x.kind), ['begin']);
+});
+
+test('member Receipt selects its same-parent Ledger-capable entrance with the original opaque quote', () => {
+  const f = fixture(), original = Object.freeze({});
+  let calls = 0;
+  f.work(undefined, () => {calls++;}, [], original, true);
+  assert.equal(calls, 1);
+  assert.equal(f.events[0].args[4], original);
+  assert.deepEqual(f.events.map(x => x.kind), ['receipt', 'complete']);
+  f.work(undefined, () => {calls++;}, [], original);
+  assert.deepEqual(f.events.map(x => x.kind), ['receipt', 'complete', 'begin', 'complete']);
+});
+test('member Receipt funding refusal preserves the primary error and invalid role has no callback', () => {
+  const primary = Object.freeze(new Error('refused')), f = fixture({beginFailure: primary});
+  assert.throws(() => f.work(undefined, () => assert.fail('No receipt after refusal'), [], {}, true), error => error === primary);
+  assert.deepEqual(f.events.map(x => x.kind), ['receipt']);
+  for (const args of [[undefined, true], [{}, 1]]) {
+    const fresh = fixture();
+    assert.throws(() => fresh.work(undefined, () => assert.fail('No invalid receipt callback'), [], ...args),
+      {code: 'InvalidInstalledEffectControlConstruction'});
+    assert.deepEqual(fresh.events, []);
+  }
 });

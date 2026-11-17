@@ -7,6 +7,8 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked as checkedRuntime} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {canonicalJson as canonicalValueJson} from
   '../../packages/sdk/host-port.mjs';
 import {issuedEffectSetReceiptWires} from
@@ -144,15 +146,16 @@ function batchClaims() {
   });
 }
 
-function admittedProgressFixture(firstPolicy = 'continue') {
+function admittedProgressFixture(firstPolicy = 'continue', firstRows = 2) {
   const scope = effect.logicalRequestScope(authorityScopeCid,
     'request-1', 32);
   const authoring =
     'sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a';
   const rowSpecs = [
-    {id: 'WriteOne', rows: ['row-1', 'row-2'], rowCids: [cid('3'), cid('4')],
+    {id: 'WriteOne', rows: Array.from({length:firstRows}, (_, index) => `row-${index + 1}`),
+      rowCids: Array.from({length:firstRows}, (_, index) => cid((index + 3).toString(16))),
       policy: firstPolicy, target: cid('1')},
-    {id: 'WriteTwo', rows: ['row-3'], rowCids: [cid('5')],
+    {id: 'WriteTwo', rows: [`row-${firstRows + 1}`], rowCids: [cid('5')],
       policy: 'halt', target: cid('2')},
   ];
   const effects = rowSpecs.map(({id, rows, rowCids, policy, target}) => ({
@@ -175,7 +178,7 @@ function admittedProgressFixture(firstPolicy = 'continue') {
       before: {state: 'present', value: {}},
       after: {state: 'present', value: {}},
       row_preview_cid: rowCids[index],
-      row_idempotency_key: cid(String(index + (id === 'WriteOne' ? 6 : 8))),
+      row_idempotency_key: cid((index + (id === 'WriteOne' ? 6 : 8)).toString(16)),
     })),
     row_order: rowCids, effect_member_preview_cid: cid('a'), executed: false,
   }));
@@ -233,6 +236,129 @@ function admittedProgressFixture(firstPolicy = 'continue') {
   return {admitted, members: claims.map(rows => ({claims: rows})), claims};
 }
 
+function countedFrontierRuntime() {
+  const calls = {facts: 0, prepared: 0, next: 0, admit: 0};
+  const names = {
+    strategyEffectLedgerClaimFactsStatus: 'facts',
+    strategyEffectIssuePreparedLedgerEntry: 'prepared',
+    strategyEffectIssueNextLedgerEntry: 'next',
+    strategyEffectAdmitLedgerEntry: 'admit',
+  };
+  // Every selected call still enters the actual imported Core. These counts
+  // observe constructor selection; they provide no claim or send authority.
+  const countedMoon = new Proxy(moon, {get(target, name) {
+    const value = Reflect.get(target, name);
+    const counter = names[name];
+    return counter === undefined ? value : (...args) => {
+      calls[counter]++;
+      return value(...args);
+    };
+  }});
+  return {moon: countedMoon, calls,
+    reset() { for (const name of Object.keys(calls)) calls[name] = 0; }};
+}
+
+const frontierReady = value => Array.from(
+  {length: effect.setFrontierReadyCount(value)},
+  (_, index) => [effect.setFrontierReadyMember(value, index),
+    effect.setFrontierReadyRow(value, index)]);
+
+test('frontier checks immutable claim facts without draft issuers and keeps durable heads and flights fresh',
+  async t => {
+    const root = await fixture(t);
+    const counted = countedFrontierRuntime();
+    const reader = openEffectLedger({moon: counted.moon, root,
+      authorityScopeCid, callerRequestId: 'request-1', maxEntryBytes: 4096});
+    const writer = open(root);
+    t.after(() => reader.close());
+    t.after(() => writer.close());
+    const {admitted, members, claims} = admittedProgressFixture();
+    const ready = () => frontierReady(
+      reader.frontierFromDurableHeads(admitted, members, 48));
+    counted.reset();
+    assert.deepEqual(ready(), [[0, 0], [1, 0]]);
+    assert.deepEqual(counted.calls, {facts: 3, prepared: 0, next: 0, admit: 0});
+
+    const ownership = writer.claimDispatch(claims[0][0]);
+    assert.equal(ownership.claimed, true);
+    const finish = writer.beginPhysicalFlight(
+      ownership.dispatching, claims[0][0]);
+    t.after(finish);
+    counted.reset();
+    assert.deepEqual(ready(), [[1, 0]]);
+    assert.deepEqual(counted.calls, {facts: 3, prepared: 0, next: 0, admit: 1});
+    const unknown = effect.issueNextLedgerEntry(
+      ownership.dispatching, 'unknown', '', 4096, 64, 4);
+    writer.append(effect.ledgerEntryWire(unknown));
+    counted.reset();
+    // A new durable head does not pretend the original physical call ended.
+    assert.deepEqual(ready(), [[1, 0]]);
+    assert.deepEqual(counted.calls, {facts: 3, prepared: 0, next: 0, admit: 1});
+    finish(); finish();
+    counted.reset();
+    assert.deepEqual(ready(), [[0, 1], [1, 0]]);
+    assert.deepEqual(counted.calls, {facts: 3, prepared: 0, next: 0, admit: 1});
+    reader.close();
+    const reopened = openEffectLedger({moon: counted.moon, root,
+      authorityScopeCid, callerRequestId: 'request-1', maxEntryBytes: 4096});
+    t.after(() => reopened.close());
+    counted.reset();
+    assert.deepEqual(frontierReady(reopened.frontierFromDurableHeads(
+      admitted, members, 48)), [[0, 1], [1, 0]]);
+    assert.deepEqual(counted.calls, {facts: 3, prepared: 0, next: 0, admit: 1});
+    assert.equal(reopened.claimDispatch(claims[0][0]).claimed, false);
+  });
+
+test('frontier preserves the original tight byte node and depth codec refusals',
+  async t => {
+    const {admitted, members, claims} = admittedProgressFixture();
+    for (const limits of [
+      {maxEntryBytes: 512}, {maxNodes: 1}, {maxDepth: 0},
+    ]) {
+      const root = await fixture(t);
+      const counted = countedFrontierRuntime();
+      const ledger = openEffectLedger({moon: counted.moon, root,
+        authorityScopeCid, callerRequestId: 'request-1',
+        maxEntryBytes: 4096, ...limits});
+      t.after(() => ledger.close());
+      counted.reset();
+      assert.throws(() => ledger.frontierFromDurableHeads(
+        admitted, members, 48), {code: 'MoonBitHostFailure'});
+      assert.deepEqual(counted.calls,
+        {facts: 1, prepared: 1, next: 0, admit: 0});
+      assert.equal(ledger.current(effect.logicalItemLocatorCid(
+        claims[0][0].locator)), undefined);
+    }
+  });
+
+test('frontier rejects foreign duplicated claim facts without issuing draft entries',
+  async t => {
+    const root = await fixture(t);
+    const counted = countedFrontierRuntime();
+    const ledger = openEffectLedger({moon: counted.moon, root,
+      authorityScopeCid, callerRequestId: 'request-1', maxEntryBytes: 4096});
+    t.after(() => ledger.close());
+    const {admitted, members, claims} = admittedProgressFixture();
+    const original = claims[0][0];
+    const foreignScope = effect.logicalRequestScope(
+      authorityScopeCid, 'foreign-request', 32);
+    for (const changed of [
+      {scope: foreignScope}, {locator: claims[0][1].locator},
+      {key: claims[0][1].key}, {intentFingerprintCid: cid('9')},
+      {canonicalRequestCid: cid('9')},
+    ]) {
+      const selected = [{claims: [{...original, ...changed}, claims[0][1]]},
+        members[1]];
+      counted.reset();
+      assert.throws(() => ledger.frontierFromDurableHeads(
+        admitted, selected, 48), {code: 'EffectProgressBindingMismatch'});
+      assert.deepEqual(counted.calls,
+        {facts: 1, prepared: 0, next: 0, admit: 0});
+    }
+    assert.equal(ledger.current(effect.logicalItemLocatorCid(
+      original.locator)), undefined);
+  });
+
 test('whole-set intents are durable and atomic before any dispatch',
   async t => {
     const root = await fixture(t);
@@ -272,6 +398,17 @@ test('whole-set intents are durable and atomic before any dispatch',
       claim => claim.canonicalRequestCid)),
     claims.map(rows => rows.map(claim => claim.canonicalRequestCid)));
     assert.equal(effect.setFrontierReadyCount(recovered.frontier), 2);
+    const originalKeys = claims.map(rows => rows.map(claim => claim.key));
+    const borrowed = restarted.recoverClaimFacts({
+      preview: admitted, scope: claims[0][0].scope,
+      programId: 'program-1', nodeId: 'node-1', maxRows: 3, maxWork: 100,
+    }, originalKeys);
+    for (const [member, rows] of borrowed.members.entries()) {
+      for (const [row, claim] of rows.claims.entries()) {
+        assert.strictEqual(claim.key, originalKeys[member][row]);
+        assert.equal(claim.canonicalRequestCid, claims[member][row].canonicalRequestCid);
+      }
+    }
     assert.throws(() => restarted.recoverClaimFacts({
       preview: admitted, scope: claims[0][0].scope,
       programId: 'another-program', nodeId: 'node-1',
@@ -315,6 +452,64 @@ test('recovered possible dispatch never becomes a second send', async t => {
   assert.equal(restarted.claimDispatch(recovered.members[0].claims[1])
     .claimed, true);
 });
+
+for (const refused of [false, true]) {
+  test(`installed Ledger selects real row and Receipt constructors before their work: refused=${refused}`, async t => {
+    const root = await fixture(t), events = [], refusal = new Error('Response reservation refused');
+    const construction = (receiver, method, args) => Reflect.apply(method, receiver, args);
+    construction.ledgerRow = (receiver, method, args, kind, bytes, nodes, depth, responseBytes) => {
+      assert.deepEqual([bytes, nodes, depth, responseBytes], [4096, 64, 4, 4096]);
+      events.push(kind);
+      if (refused && kind === 'response') throw refusal;
+      return Reflect.apply(method, receiver, args);
+    };
+    construction.ledgerCodec = (receiver, method, args) => Reflect.apply(method, receiver, args);
+    construction.receiptCodec = (receiver, method, args, wire, nodes, depth, receiptWire) => {
+      assert.equal(typeof wire, 'string');
+      assert.equal(nodes, 512); assert.equal(depth, 16);
+      events.push(receiptWire ? 'admit-receipt' : 'issue-receipt');
+      return Reflect.apply(method, receiver, args);
+    };
+    construction.ledgerHistory = (count, wireUnits) => {
+      assert(Number.isSafeInteger(count) && count > 0);
+      assert(Number.isSafeInteger(wireUnits) && wireUnits > 0);
+      events.push('history');
+    };
+    const ledger = openEffectLedger({moon, root, authorityScopeCid,
+      callerRequestId: 'request-1', maxEntryBytes: 4096, maxResponseBytes: 4096,
+      controlConstruction: construction});
+    t.after(() => ledger.close());
+    const {admitted, claims} = admittedProgressFixture('continue', 1), claim = claims[0][0];
+    let physicalCalls = 0;
+    const capture = () => captureClaimedEffectResponse({ledger, claim,
+      requestCid: claim.canonicalRequestCid, execute: async () => {
+        physicalCalls++; return {observation: {useCid: cid('4'), statusCode: 201,
+          body: Buffer.from('{"success":true}')}};
+      }});
+    if (refused) {
+      await assert.rejects(capture(), cause => cause === refusal);
+      assert.equal(ledger.readClaimedResponse(claim), undefined);
+      assert.equal((await capture()).claimed, false);
+      assert.equal(physicalCalls, 1, 'an unrecorded response never permits another send');
+      assert.equal(events.includes('issue-receipt'), false);
+      return;
+    }
+    assert.equal((await capture()).claimed, true);
+    const recorded = ledger.recordAdmittedRowOutcome({claim, preview: admitted,
+      memberIndex: 0, previewRowIndex: 0,
+      outcomeWire: '{"result":{"id":"a001"},"state":"applied"}'});
+    assert.equal(recorded.custody.created, true);
+    ledger.commitAdmittedRowOutcome({claim, preview: admitted, memberIndex: 0, previewRowIndex: 0});
+    const receipt = ledger.issueMemberReceiptFromRowPartition({preview: admitted,
+      memberIndex: 0, rowOwners: [{claim}]});
+    const body = JSON.parse(receipt.wire);
+    assert.equal(body.rows.length, 1); assert.equal(body.rows[0].state, 'applied');
+    for (const kind of ['entry', 'response', 'receipt', 'quantity', 'issue-receipt', 'admit-receipt', 'history']) {
+      assert(events.includes(kind), `The actual installed path must use its ${kind} boundary`);
+    }
+    assert.equal(physicalCalls, 1);
+  });
+}
 
 test('saved response issues one exact terminal row Receipt before Ledger head',
   async t => {
@@ -1210,3 +1405,74 @@ test('Local closed producer codec admits all six Ledger states and refuses overs
   assert.throws(()=>effect.admitLedgerEntry(' '.repeat(maxEntryBytes+1)+'{}',
     maxEntryBytes,64,4),{code:'MoonBitHostFailure'});
 });
+
+
+test('member receipts cover every durable row beyond a single-entry codec without enlarging stored entries', async t => {
+  const root = await fixture(t);
+  const ledger = openEffectLedger({moon, root, authorityScopeCid,
+    callerRequestId:'request-1', maxEntryBytes:1510});
+  t.after(() => ledger.close());
+  const {admitted, claims} = admittedProgressFixture('continue', 8);
+  for (const claim of claims[0]) assert.equal(ledger.claimDispatch(claim).claimed, true);
+  const rowOwners = claims[0].map(claim => ({claim}));
+  const issued = await issueAuthorizedEffectMemberReceipt({ledger, preview:admitted,
+    memberIndex:0, rowOwners, commonMoon:moon, authorizeEvidenceRead:async () => true});
+  assert(Buffer.byteLength(issued.wire) > 1510);
+  const body = JSON.parse(issued.wire);
+  assert.equal(body.status, 'unknown_outcome');
+  assert.deepEqual(body.rows.map(row => row.row_preview_cid), claims[0].map((_, index) =>
+    effect.previewOrderedRowCid(admitted, 0, index)));
+  assert(body.rows.every(row => row.state === 'unknown'));
+  assert.equal(ledger.checkMemberReceiptRowPartitionEvidence({preview:admitted,
+    memberIndex:0, rowOwners, memberReceiptWire:issued.wire}), true);
+  assert.throws(() => ledger.checkMemberReceiptRowPartitionEvidence({preview:admitted,
+    memberIndex:0, rowOwners:[...rowOwners].reverse(), memberReceiptWire:issued.wire}));
+});
+
+
+for (const outcome of ['funded', 'refused', 'changed', 'proxy', 'replaced']) {
+  test(`member receipt grows the SAME constructor before its body: ${outcome}`, async t => {
+    const root = await fixture(t);
+    const original = Object.freeze(new Error('OriginalReceiptConstructionRefused'));
+    let quote, rowOwners, bodyCalls = 0, grows = 0;
+    const runtime = {...moon,
+      clientProgramInstalledEffectMemberReceiptConstruction(...args) {
+        const result = moon.clientProgramInstalledEffectMemberReceiptConstruction(...args);
+        quote = checkedRuntime(result); return result;
+      },
+      strategyIssueEffectMemberReceiptFromRowPartitionFunded(...args) {
+        bodyCalls++;
+        return moon.strategyIssueEffectMemberReceiptFromRowPartitionFunded(...args);
+      }};
+    const construction = (receiver, method, args, capacity, memberReceipt = false) => {
+      if (capacity !== undefined) {
+        grows++;
+        assert.strictEqual(capacity, runtimeField(quote, 0));
+        assert.equal(memberReceipt, true);
+        if (outcome === 'refused') throw original;
+        if (outcome === 'changed') rowOwners.push(rowOwners[0]);
+        if (outcome === 'proxy') rowOwners = new Proxy(rowOwners, {});
+        if (outcome === 'replaced') rowOwners = [...rowOwners];
+      }
+      const value = Reflect.apply(method, receiver, args);
+      return value;
+    };
+    const ledger = openEffectLedger({moon:runtime, root, authorityScopeCid,
+      callerRequestId:'request-1', maxEntryBytes:1510, controlConstruction:construction});
+    t.after(() => ledger.close());
+    const {admitted, claims} = admittedProgressFixture('continue', 8);
+    for (const claim of claims[0]) assert.equal(ledger.claimDispatch(claim).claimed, true);
+    rowOwners = claims[0].map(claim => ({claim}));
+    const options = {preview:admitted, memberIndex:0, get rowOwners() {return rowOwners;}};
+    const call = () => ledger.issueMemberReceiptFromRowPartition(options, Object.freeze([]), -1);
+    if (outcome === 'refused') assert.throws(call, error => error === original);
+    else if (['changed','proxy','replaced'].includes(outcome)) assert.throws(call, {code:'InvalidEffectMemberReceiptEvidence'});
+    else {
+      const receipt = call();
+      assert.equal(JSON.parse(receipt.wire).rows.length, 8);
+      assert(Buffer.byteLength(receipt.wire) > 1510);
+    }
+    assert.equal(grows, 1);
+    assert.equal(bodyCalls, outcome === 'funded' ? 1 : 0);
+  });
+}

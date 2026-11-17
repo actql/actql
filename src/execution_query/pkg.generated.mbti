@@ -64,6 +64,10 @@ pub fn captured_source_original_input_read(CapturedInputSource) -> @execution_re
 
 pub fn captured_source_relation_dependency_bodies(CapturedSourceRelationIdentity, CapturedInputSource) -> (String, String)?
 
+pub fn captured_source_relation_dependency_usage(CapturedSourceRelationIdentity, CapturedInputSource) -> CapturedSourceRelationDependencyUsage?
+
+pub fn captured_source_relation_dependency_usage_capacity() -> @execution_relation.ExecutionCapacity
+
 pub fn captured_source_relation_identity_has_input_binding(CapturedSourceRelationIdentity, @execution_relation.SuppliedRelationRead) -> Bool
 
 pub fn captured_source_relation_identity_matches_source(CapturedSourceRelationIdentity, CapturedInputSource) -> Bool
@@ -179,12 +183,20 @@ pub(all) enum CapturedSourceIssue {
   DependencyBodyLimit
 }
 
+pub struct CapturedSourceRelationDependencyUsage {
+  logical_bytes : Int
+  logical_nodes : Int
+  schema_bytes : Int
+  schema_nodes : Int
+  // private fields
+}
+
 pub struct CapturedSourceRelationIdentity {
   origin : CapturedInputSource
   logical_relation_cid : String
   schema_cid : String
   row_count : Int
-  mut dependency_bodies : (String, String)?
+  // private fields
 }
 
 pub struct CapturedSourceStatistics {

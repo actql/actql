@@ -597,7 +597,7 @@
   {
     "module": "adapters/connectors/local/host/iceberg-process.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "a34cd699677b467d80ddc6282ccc6981d6b64e4e659fccc8de89a0d366916f0d",
+    "sha256": "d8ab3299c303151c61105131c0d599ed63dfe6427c529b9429da6f654231dc17",
     "exports": [
       "admitIcebergStorageMapping",
       "createIcebergPhysicalBridge",
@@ -640,11 +640,6 @@
           "implementation",
           "entry"
         ],
-        "async": false
-      },
-      {
-        "name": "createIcebergPhysicalBridge/assertImplementation/assertImplementation",
-        "parameters": [],
         "async": false
       },
       {
@@ -692,6 +687,14 @@
         "async": true
       },
       {
+        "name": "createIcebergPhysicalBridge/bridge/init:inspectReadSelectorConstruction/init:inspectReadSelectorConstruction",
+        "parameters": [
+          "selector",
+          "inspect"
+        ],
+        "async": false
+      },
+      {
         "name": "createIcebergPhysicalBridge/bridge/init:issueStorageMapping/init:issueStorageMapping",
         "parameters": [
           "values"
@@ -725,7 +728,8 @@
           "mapping",
           "signal",
           "beforeBodyAllocation",
-          "bodyReceived"
+          "bodyReceived",
+          "bodySnapshot"
         ],
         "async": true
       },
@@ -743,7 +747,8 @@
           "selector",
           "signal",
           "beforeBodyAllocation",
-          "bodyReceived"
+          "bodyReceived",
+          "bodySnapshot"
         ],
         "async": true
       },
@@ -762,51 +767,12 @@
         "async": false
       },
       {
-        "name": "createIcebergPhysicalBridge/configuration/configuration",
-        "parameters": [],
-        "async": false
-      },
-      {
-        "name": "createIcebergPhysicalBridge/invoke/invoke",
-        "parameters": [
-          "command",
-          "payload",
-          "signal",
-          "stopped",
-          "beforeBodyAllocation",
-          "bodyReceived"
-        ],
-        "async": true
-      },
-      {
-        "name": "createIcebergPhysicalBridge/own/own",
-        "parameters": [
-          "prepared"
-        ],
-        "async": false
-      },
-      {
-        "name": "createIcebergPhysicalBridge/preflight/preflight",
-        "parameters": [
-          "command",
-          "payload"
-        ],
-        "async": false
-      },
-      {
         "name": "createIcebergPhysicalBridge/reconcileOperation/reconcileOperation",
         "parameters": [
           "operation",
           "signal",
           "beforeBodyAllocation",
           "bodyReceived"
-        ],
-        "async": false
-      },
-      {
-        "name": "fail/fail",
-        "parameters": [
-          "code"
         ],
         "async": false
       },
@@ -834,13 +800,6 @@
           "responseWire",
           "statusCode",
           "limits"
-        ],
-        "async": false
-      },
-      {
-        "name": "snapshot/snapshot",
-        "parameters": [
-          "value"
         ],
         "async": false
       },
@@ -909,13 +868,13 @@
           "admitIcebergStorageMapping",
           "cid/cid",
           "createIcebergPhysicalBridge",
-          "createIcebergPhysicalBridge/assertImplementation/assertImplementation",
           "createIcebergPhysicalBridge/bridge/init:admitStorageMapping/init:admitStorageMapping",
           "createIcebergPhysicalBridge/bridge/init:checkReadSelector/init:checkReadSelector",
           "createIcebergPhysicalBridge/bridge/init:cleanup/init:cleanup",
           "createIcebergPhysicalBridge/bridge/init:execute/init:execute",
           "createIcebergPhysicalBridge/bridge/init:execute/init:execute/result/result",
           "createIcebergPhysicalBridge/bridge/init:inspect/init:inspect",
+          "createIcebergPhysicalBridge/bridge/init:inspectReadSelectorConstruction/init:inspectReadSelectorConstruction",
           "createIcebergPhysicalBridge/bridge/init:issueStorageMapping/init:issueStorageMapping",
           "createIcebergPhysicalBridge/bridge/init:prepareWrite/init:prepareWrite",
           "createIcebergPhysicalBridge/bridge/init:projectCommitResponse/init:projectCommitResponse",
@@ -924,16 +883,10 @@
           "createIcebergPhysicalBridge/bridge/init:resolveGeneration/init:resolveGeneration",
           "createIcebergPhysicalBridge/bridge/init:status/init:status",
           "createIcebergPhysicalBridge/bridge/init:supportsOperation/init:supportsOperation",
-          "createIcebergPhysicalBridge/configuration/configuration",
-          "createIcebergPhysicalBridge/invoke/invoke",
-          "createIcebergPhysicalBridge/own/own",
-          "createIcebergPhysicalBridge/preflight/preflight",
           "createIcebergPhysicalBridge/reconcileOperation/reconcileOperation",
-          "fail/fail",
           "issueIcebergStorageMapping",
           "keys/keys",
           "projectIcebergCommitResponse",
-          "snapshot/snapshot",
           "supportsIcebergTableOperation",
           "validateIcebergPhysicalConfiguration",
           "validateIcebergPhysicalConfiguration/validateIcebergPhysicalConfiguration",

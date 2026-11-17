@@ -202,3 +202,28 @@ fn compile_source_limits(limits : CompileLimits) -> SourceLimits {
     max_regex_depth: limits.patterns.depth,
   }
 }
+
+///|
+/// Ordinary Host selection for one combined checking-work ceiling. Canonical
+/// metadata keeps at most four logical byte debits (measure/write/UTF8/admission)
+/// and two logical node debits per charged artifact. Hash-only material is smaller. The
+/// SAME aggregate artifact quota is depleted by those constructors; it is not
+/// replenished per Stage or publication. Keep the original work allowance
+/// alongside this finite codec allowance. This is not consumed Usage or Resource capacity, and no
+/// explicitly supplied CompileLimits is rewritten by this projection.
+pub fn compilation_artifact_pass_work_limit(limits : CompileLimits) -> Int? {
+  let artifacts = limits.artifacts
+  if limits.work < 0 || artifacts.bytes < 0 || artifacts.nodes < 0 {
+    return None
+  }
+  // Inputs are nonnegative Int values; this sum fits Int64. The actual checker
+  // still uses Int work, so refuse that ABI overflow instead of saturating it.
+  let total = limits.work.to_int64() +
+    4L * artifacts.bytes.to_int64() +
+    2L * artifacts.nodes.to_int64()
+  if total > 2147483647L {
+    None
+  } else {
+    Some(total.to_int())
+  }
+}

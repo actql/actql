@@ -404,3 +404,119 @@ pub fn client_program_effect_target_selection_members_current(
     original, prepared, members,
   )
 }
+
+///|
+/// The ordinary installed Request funds its actual original projections before
+/// Core starts each writer. The bridge closes over original typed inputs;
+/// no caller-supplied policy or alternate resource owner enters the codec.
+#export_name("clientProgramIssueRequestEffectPreparedOriginal")
+pub fn client_program_issue_request_effect_prepared_original(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  compilation : @publication_host.ClientEffectCompilation,
+) -> Result[String, ClientRequestProgramModuleBridgeIssue] {
+  @client_local_host.construct_request_effect_materials(
+    parent,
+    input,
+    prepared,
+    codec_owner=Some(
+      @publication_host.client_effect_compilation_owner(compilation),
+    ),
+    before_body => {
+      @publication_host.issue_client_effect_prepared_original(
+        compilation,
+        before_body=Some(before_body),
+      )
+    },
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramIssueRequestEffectRunMaterials")
+pub fn client_program_issue_request_effect_run_materials(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  request : @publication_host.ClientRequestIdentity?,
+) -> Result[String, ClientRequestProgramModuleBridgeIssue] {
+  @client_local_host.construct_request_effect_materials(
+    parent,
+    input,
+    prepared,
+    codec_owner=Some(@publication_host.client_effect_allowed_run_owner(allowed)),
+    before_body => {
+      @publication_host.issue_prepared_client_effect_run_materials(
+        allowed,
+        definition,
+        request~,
+        before_body=Some(before_body),
+      )
+    },
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+/// A cold ordinary Request retains its already funded compiler. Read complete
+/// saved materials under that same parent and retain the returned originals;
+/// the wire cannot select this path without the nominal prepared/compiler pair.
+#export_name("clientProgramAdmitRequestEffectRunMaterialsWithCompilation")
+pub fn client_program_admit_request_effect_run_materials_with_compilation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  wire : String,
+  expected_run_cid : String,
+  compilation : @publication_host.ClientEffectCompilation,
+  expected_request : @publication_host.ClientRequestIdentity,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+  environment : @program_check.CheckEnvironment,
+) -> Result[
+  @publication_host.ClientEffectRunMaterials,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  // Request compilation already borrowed this module's prewarmed immutable
+  // manifests. Do not reparse them outside the original funded constructor.
+  let manifests = match client_generated_manifest_admission.val {
+    Some(Ok(value)) => value
+    Some(Err(issue)) => return Err(Manifests(issue))
+    None => return Err(Manifests(@publication_host.InvalidBudget))
+  }
+  @client_local_host.construct_request_effect_materials(
+    parent,
+    input,
+    prepared,
+    codec_owner=Some(
+      @publication_host.client_effect_compilation_owner(compilation),
+    ),
+    before_body => {
+      @publication_host.admit_client_effect_run_materials(
+        wire,
+        expected_run_cid,
+        { text_time, veca, },
+        { rela, sga, tea, calendar, text_rank, },
+        manifests,
+        client_effect_original_limits(),
+        client_program_effect_limits(),
+        expected_request=Some(expected_request),
+        original_compilation=Some(compilation),
+        original_environment=Some(environment),
+        before_body=Some(before_body),
+      )
+    },
+  ).map_err(issue => Preparation(issue))
+}

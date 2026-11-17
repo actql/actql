@@ -1,3 +1,4 @@
+import {clientCheckSourceEnvironment} from './fixtures/client-check-source-environment.mjs';
 // Public check outcome and disclosure, through the public Local and HTTP
 // entrances of installed Hosts with a real DuckDB source profile. The
 // environment, aliases and account configurations are independent fixtures;
@@ -26,8 +27,7 @@ import {installNodeClientCheck} from './client-check.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
-import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment} from
-  './installed-host-policy.mjs';
+import {selectInstalledHostEnvironment} from './installed-host-policy.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -105,11 +105,9 @@ async function installedSource(root, {readOutcome, aliases,
   environment = sourceEnvironment, seedAuthoringRows = false, incompatiblePhysicalSchema = false}, hostEnvironmentWire) {
   // This is an adapter publication for the installed Host, not a standalone
   // checker profile. Preserve the Host's own policy when adding Source facts.
-  const base = JSON.parse(hostEnvironmentWire ?? selectInstalledLocalMaterializationEnvironment(moon,
-    (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd()));
-  environment = {...environment, host_policy_profile: base.host_policy_profile};
-  delete environment.evidence_bundle_cid;
-  environment.evidence_bundle_cid = contentCid(environment);
+  const selectedHostWire = hostEnvironmentWire ?? selectInstalledHostEnvironment(moon,
+    (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd());
+  environment = clientCheckSourceEnvironment(environment, selectedHostWire);
   const database = join(root, 'records.duckdb');
   const instance = await DuckDBInstance.create(database);
   const connection = await instance.connect();
@@ -196,7 +194,10 @@ async function localClient(t, configuration, installed = {}) {
     await client?.close();
     await rm(root, {recursive: true, force: true});
   });
-  const sourceInstallation = await installedConfigurations(root, configuration);
+  const hostEnvironmentWire = selectInstalledHostEnvironment(moon,
+    (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd(),
+    installed.hostCapacityPolicy, installed.hostLookupExecutionPolicy);
+  const sourceInstallation = await installedConfigurations(root, configuration, hostEnvironmentWire);
   const observation = observeCheckOnly(t, root);
   client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     installation: {directory: join(root, 'state'), ...sourceInstallation, ...installed}});
@@ -208,12 +209,11 @@ async function localClient(t, configuration, installed = {}) {
 
 async function httpClient(t, configuration, mutateCheckReply, installed = {}) {
   const root = await mkdtemp(join(scratch, 'http-'));
-  // Match the existing Host branch for an independently supplied Remote
-  // Effect. Other Remote Source callers retain its ordinary Local selector.
-  const hostEnvironmentWire = installed.effectInstallation === undefined ? undefined
-    : selectInstalledHostEnvironment(moon,
-      (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd(),
-      installed.hostCapacityPolicy, installed.hostLookupExecutionPolicy);
+  // Profile-loaded Sources publish against the generic Host policy at both
+  // entrances, including the Host's explicit capacity and lookup selections.
+  const hostEnvironmentWire = selectInstalledHostEnvironment(moon,
+    (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd(),
+    installed.hostCapacityPolicy, installed.hostLookupExecutionPolicy);
   const sourceInstallation = await installedConfigurations(root, configuration, hostEnvironmentWire);
   const observation = observeCheckOnly(t, root);
   const host = await openInstalledRemoteHttpHost({
@@ -280,6 +280,28 @@ async function submissionObservationClient(t, entrance, configuration) {
 }
 
 const entrances = Object.freeze({local: localClient, http: httpClient});
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: published Source facts preserve the selected Host capacity and lookup policy`, async t => {
+    const base = JSON.parse(await readFile(join(repository,
+      'spec/local-check-environment.json'), 'utf8'));
+    const installed = {
+      hostCapacityPolicy: {...base.host_policy_profile.capacity,
+        max_effect_items: base.host_policy_profile.capacity.max_effect_items + 1},
+      hostLookupExecutionPolicy: {version: 'actql-lookup-execution-policy/0.1',
+        max_network_attempts_per_request: 3, max_request_bytes_per_attempt: 4096,
+        max_total_request_bytes: 32768, max_total_response_bytes: 32768,
+        max_total_decoded_response_bytes: 32768, max_total_duration_ms: 30000},
+    };
+    const client = entrance === 'local'
+      ? await localClient(t, configurations.allowed, installed)
+      : await httpClient(t, configurations.allowed, undefined, installed);
+    const outcome = await check(client, 'satisfied');
+    assert.equal(outcome.outcome, 'completed');
+    assert.equal(outcome.report.verdict, 'verified');
+    client.assertNoExecution();
+  });
+}
 
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: actual check display keeps hostile declaration names as data`, async t => {
@@ -1526,9 +1548,9 @@ for (const [entrance, open] of Object.entries(entrances)) {
         unresolved: []}}, '[check-mutation:construction-budget]');
   });
 
-  test(`${entrance}: original submission retains a disclosed analysis budget without input blame`, async t => {
+  test(`${entrance}: original submission separates checker budget from later acquisition refusal`, async t => {
     const text = 'SELECT id FROM records' + ' UNION ALL SELECT id FROM records'.repeat(50);
-    const problems = [];
+    const protectedCoverage = [];
     for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
       const client = await submissionObservationClient(t, entrance, configuration);
       const original = await client.newSubmission();
@@ -1538,30 +1560,37 @@ for (const [entrance, open] of Object.entries(entrances)) {
       const outcome = sdk.getSubmissionOutcome(error);
       const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
       const publicBudget = configuration === configurations.allowed;
-      // Missing visible relations stop lowering before this construction
-      // budget is proven. Absence and denied access are the same obligation;
-      // they cannot borrow the budget fact from the authorized configuration.
+      const beforeAcceptance = configuration === configurations.absent;
+      // Generated Query demand now carries its actual inventory through
+      // preparation. Its later unsupported acquisition is not the independent
+      // public checker's budget, and cannot borrow that report as an original
+      // submission observation. Missing publication fails before acceptance;
+      // an actual denied acquisition keeps its later Account refusal.
       assert.equal(checked.report.verdict, 'undetermined');
       assert.deepEqual(checked.report.coverage, publicBudget
         ? {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []}
         : {limits: [], unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
-      assert.equal(outcome?.kind, 'not_accepted');
+      assert.equal(outcome?.kind, beforeAcceptance ? 'not_accepted' : 'preparation_failed');
       assert.deepEqual(outcome.problem, publicBudget
-        ? {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'}
-        : {code: 'ClientProgramRejected', classification: 'operation_failed'},
+        ? {code: 'ClientProgramUnsupported', classification: 'implementation_limit'}
+        : beforeAcceptance
+          ? {code: 'ClientProgramRejected', classification: 'operation_failed'}
+          : {code: 'ACTQL_E_ACCOUNT_DENIED', classification: 'operation_failed'},
         '[check-mutation:submission-budget-public]');
       const observed = sdk.getSubmissionCheckObservation(error);
-      assert.equal(observed?.outcome, 'completed', '[check-mutation:submission-budget-observation]');
-      assert.equal(observed.report.verdict, 'undetermined');
-      assert.deepEqual(observed.report.coverage, publicBudget
-        ? {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []}
-        : {limits: [], unresolved: protectedSource});
-      assert.equal(sdk.getCheckInput(observed, 'source').text, text);
+      if (!beforeAcceptance) {
+        assert.equal(observed, undefined, '[check-mutation:submission-acquisition-no-borrow]');
+      } else {
+        assert.equal(observed?.outcome, 'completed', '[check-mutation:submission-budget-observation]');
+        assert.equal(observed.report.verdict, 'undetermined');
+        assert.deepEqual(observed.report.coverage, {limits: [], unresolved: protectedSource});
+        assert.equal(sdk.getCheckInput(observed, 'source').text, text);
+      }
       assert.equal(sdk.getSubmissionCheckObservation({...error}), undefined);
-      problems.push(outcome.problem);
+      if (!publicBudget) protectedCoverage.push(checked.report.coverage);
       const explanation = sdk.explainSubmission(error);
-      assert.equal(explanation.observation, 'not_accepted');
-      assert.equal(explanation.preparationIssue?.kind, publicBudget ? 'analysis_budget_exhausted' : undefined);
+      assert.equal(explanation.observation, beforeAcceptance ? 'not_accepted' : 'preparation_failed');
+      assert.equal(explanation.preparationIssue, undefined);
       assert.deepEqual(explanation.next.submissionRef, original);
       assert.deepEqual(await client.lookupSubmission(original), outcome);
       let invalid;
@@ -1574,7 +1603,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
         '[check-mutation:submission-budget-independent]');
       client.assertNoExecution();
     }
-    assert.deepEqual(problems[1], problems[2]);
+    assert.deepEqual(protectedCoverage[0], protectedCoverage[1]);
   });
 
   test(`${entrance}: original submission projects implementation limits only from public checking`, async t => {
@@ -5660,12 +5689,10 @@ for (const entrance of ['local', 'http']) {
 
 // Inert test providers extend the SAME selected Host policy, as installed
 // Source declarations do. Their publication creates no dispatch authority.
-async function checkOnlyEffectEnvironment(entrance) {
+async function checkOnlyEffectEnvironment() {
   const body = JSON.parse(await readFile(join(repository,
     'packages/sdk/fixtures/values.environment.json'), 'utf8'));
-  const select = entrance === 'http' ? selectInstalledHostEnvironment
-    : selectInstalledLocalMaterializationEnvironment;
-  const base = select(moon, (await readFile(join(repository,
+  const base = selectInstalledHostEnvironment(moon, (await readFile(join(repository,
     'spec/local-check-environment.json'), 'utf8')).trimEnd());
   body.host_policy_profile = JSON.parse(base).host_policy_profile;
   delete body.evidence_bundle_cid;
@@ -5692,7 +5719,7 @@ for (const entrance of ['local', 'http']) {
       registerModelProviders: () => [{providerId: 'models/authoring-fixture',
         validatePrompt: () => false,
         invoke() {modelCalls++; throw new Error('UnexpectedAuthoringModelExecution');}}],
-      effectInstallation: {environmentWire: await checkOnlyEffectEnvironment(entrance),
+      effectInstallation: {environmentWire: await checkOnlyEffectEnvironment(),
         execute() {effectCalls++; throw new Error('UnexpectedAuthoringEffectExecution');},
         resume() {resumes++; throw new Error('UnexpectedAuthoringEffectResume');}}};
     const configuration = {...configurations.allowed, seedAuthoringRows: true};
@@ -5932,7 +5959,7 @@ for (const entrance of ['local', 'http']) {
       registerModelProviders: () => [{providerId: 'models/protected-authoring-fixture',
         validatePrompt: () => false,
         invoke() {modelCalls++; throw new Error('UnexpectedProtectedAuthoringModelExecution');}}],
-      effectInstallation: {environmentWire: await checkOnlyEffectEnvironment(entrance),
+      effectInstallation: {environmentWire: await checkOnlyEffectEnvironment(),
         execute() {effectCalls++; throw new Error('UnexpectedProtectedAuthoringEffectExecution');},
         resume() {effectCalls++; throw new Error('UnexpectedProtectedAuthoringEffectResume');}}};
     const clients = [];
@@ -5989,10 +6016,8 @@ for (const entrance of ['local', 'http']) {
     const effectEnvironment = JSON.parse(await readFile(join(repository,
       'packages/sdk/fixtures/values.environment.json'), 'utf8'));
     // The inert Effect publication extends this same installed Host policy.
-    // Remote Effect Hosts keep the generic selector; Local uses its own
-    // materialization policy, exactly as the Source fixture above does.
-    const hostEnvironment = (entrance === 'http' ? selectInstalledHostEnvironment
-      : selectInstalledLocalMaterializationEnvironment)(moon,
+    // Both entrances load the same generic Source profile alongside it.
+    const hostEnvironment = selectInstalledHostEnvironment(moon,
       (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd());
     effectEnvironment.host_policy_profile = JSON.parse(hostEnvironment).host_policy_profile;
     delete effectEnvironment.evidence_bundle_cid;

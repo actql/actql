@@ -75,3 +75,48 @@ test "unknown object operands retain their conservative subtree growth" {
   assert_eq(program_preparation_data(program).possible_growth, 5)
   assert_true(program_preparation_data(program).may_contain_expression_syntax)
 }
+
+///|
+test "ranking fusion schema growth does not multiply input and weight inventories" {
+  for inputs in [1, 257] {
+    let others = "\"r\",".repeat(inputs - 1) + "\"r\""
+    let weights = "1,".repeat(inputs) + "1"
+    let program = preparation_operand_program(
+      "{\"as\":\"v\",\"merge_rankings\":{\"with\":[" +
+      others +
+      "],\"by\":[],\"candidate\":\"id\",\"rank\":\"position\",\"k\":1,\"score_policy\":{\"rrf\":{\"rank_constant\":1,\"weights\":[" +
+      weights +
+      "],\"rank_window\":1}}}}",
+    )
+    let data = program_preparation_data(program)
+    assert_eq(data.possible_growth, 3)
+    assert_true(data.may_contain_expression_syntax)
+    assert_true(physical_equal(data, program_preparation_data(program)))
+    // Input/weight bodies remain part of the separately priced source tree.
+    assert_true(program_usage(program).tree.nodes > inputs * 2)
+  }
+}
+
+///|
+test "ranking fusion schema growth retains every grouping field" {
+  let program = preparation_operand_program(
+    "{\"as\":\"v\",\"merge_rankings\":{\"with\":\"r\",\"by\":[\"tenant\",\"query\",\"tenant\"],\"candidate\":\"id\",\"score\":\"relevance\",\"k\":1,\"score_policy\":\"max\"}}",
+  )
+  // Duplicate groups may later be removed by semantic checking; the raw
+  // constructor quote conservatively retains their complete declared count.
+  assert_eq(program_preparation_data(program).possible_growth, 6)
+}
+
+///|
+test "ranking fusion with an unrecognized grouping shape keeps subtree backing" {
+  for
+    operand in [
+      "{\"with\":[\"a\",\"b\"],\"candidate\":\"id\"}", "{\"with\":[\"a\",\"b\"],\"by\":{\"unknown\":[1,2,3]},\"candidate\":\"id\"}",
+    ] {
+    let program = preparation_operand_program(
+      "{\"as\":\"v\",\"merge_rankings\":" + operand + "}",
+    )
+    assert_true(program_preparation_data(program).possible_growth > 3)
+    assert_true(program_preparation_data(program).may_contain_expression_syntax)
+  }
+}

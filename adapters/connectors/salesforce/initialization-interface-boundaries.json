@@ -12,93 +12,6 @@
       ],
       "operations": [
         {
-          "name": "add/add",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "array/array",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "bodyBytes",
-          "parameters": [
-            "encoded",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "evidenceGeometry",
-          "parameters": [
-            "generation"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "initializationCapacity",
-          "parameters": [
-            "common",
-            "generation",
-            "siteBinding",
-            "declarationLimits",
-            "exportName",
-            "dimensions"
-          ],
-          "async": false
-        },
-        {
-          "name": "integer/integer",
-          "parameters": [
-            "value",
-            "minimum"
-          ],
-          "async": false
-        },
-        {
-          "name": "limits/limits",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "object/object",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "own/own",
-          "parameters": [
-            "value",
-            "key",
-            "optional"
-          ],
-          "async": false
-        },
-        {
-          "name": "quote",
-          "parameters": [
-            "common",
-            "exportName",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "salesforceDeclarationConstructionCapacity",
           "parameters": [
             "common",
@@ -131,13 +44,6 @@
             "options"
           ],
           "async": false
-        },
-        {
-          "name": "string/string",
-          "parameters": [
-            "value"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -152,20 +58,8 @@
         {
           "operations": [
             "<module>",
-            "add/add",
-            "array/array",
-            "bodyBytes",
-            "evidenceGeometry",
-            "fail/fail",
-            "integer/integer",
-            "limits/limits",
-            "object/object",
-            "own/own",
-            "quote",
             "salesforceExecutionMappingConstructionCapacity",
             "salesforceInitializationConstructionCapacity",
-            "string/string",
-            "initializationCapacity",
             "salesforceDeclarationConstructionCapacity",
             "salesforceObservationConstructionCapacity"
           ],

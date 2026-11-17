@@ -151,3 +151,74 @@ test('missing or foreign original projection refuses before a sealed Effect wait
     assert.equal((await installed.listCheckpoints({principalId:'reviewer',after:'',limit:10})).items.length,0);
   }
 });
+
+
+test('review output limits do not reselect the admitted private Preview policy', async t => {
+  const inputLimits={maxWireBytes:1_000_000,maxNodes:100_000,maxDepth:64};
+  const outputLimits={maxWireBytes:65536,maxNodes:10000,maxDepth:64};
+  const run=control.seal('run_definition',canonicalText({
+    version:'actql-run-definition/0.1',scope_id:'namespace-a-scope',run_id:'review-run',
+    compiled_plan_cid:C('1'),invocation_template_cid:C('2'),
+    authorization_context_cid:C('3'),input_artifact_set_cid:C('4'),
+    created_at:'2026-09-24T00:00:00.000Z',valid_until:'2098-01-01T00:00:00.000Z',
+  }),inputLimits);
+  const preview=structuredClone(vectors[3].preview);
+  // These private provenance identities are omitted from the public review.
+  // All expected identities use the independent canonical preimage oracle.
+  preview.barrier_provenance_cids=Array.from({length:1000},(_,i)=>hash({index:i})).sort();
+  preview.run_identity_cid=run.identity;
+  const {effect_preview_cid:ignored,run_identity_cid:runCid,authoring_context:authoring,...semantic}=preview;
+  void ignored;void runCid;
+  const member={...semantic.effects[0]};
+  member.changes=member.changes.map(({row_idempotency_key:excluded,...row})=>{void excluded;return row;});
+  semantic.effects=[member];
+  preview.effect_preview_cid=hash(semantic);
+  const wire=canonicalText(preview);
+  assert.ok(Buffer.byteLength(wire)>outputLimits.maxWireBytes);
+  const context=control.admitRunEvidence('authoring_context',canonicalText(authoring),inputLimits);
+  const original=control.admitEffectComputationPreview(wire,run,context,inputLimits);
+  const selectedPolicy={authorityScopeCid:C('7'),approvalClaims:['effect_scope_approved'],redactionPolicyCid:policy};
+  assert.throws(()=>control.projectEffectComputationReview(original,selectedPolicy,outputLimits),{code:'MoonBitHostFailure'});
+  const expectedBody={...vectors[3].body,effect_preview_cid:preview.effect_preview_cid,
+    redaction_policy_cid:policy};
+  const expected={...expectedBody,review_projection_cid:hash(expectedBody)};
+  const quote=moon.clientProgramEffectReviewConstructionCapacity(wire,
+    inputLimits.maxWireBytes,inputLimits.maxNodes,inputLimits.maxDepth,
+    outputLimits.maxWireBytes,outputLimits.maxNodes,outputLimits.maxDepth);
+  assert.notEqual(control.effectComputationReviewConstructionCapacity(
+    original,outputLimits,inputLimits),undefined);
+  assert.throws(()=>control.effectComputationReviewConstructionCapacity(
+    {...original},outputLimits,inputLimits),/Foreign Effect computation Preview/);
+  assert.notEqual(quote,undefined);
+  assert.equal(moon.clientProgramEffectReviewConstructionCapacity(wire,0,
+    inputLimits.maxNodes,inputLimits.maxDepth,outputLimits.maxWireBytes,
+    outputLimits.maxNodes,outputLimits.maxDepth),undefined);
+  const review=control.projectEffectComputationReview(original,selectedPolicy,outputLimits,inputLimits);
+  assert.equal(review.wire,canonicalText(expected));
+  assert.equal(review.identity,expected.review_projection_cid);
+  assert.throws(()=>control.projectEffectComputationReview(original,selectedPolicy,
+    {...outputLimits,maxWireBytes:Buffer.byteLength(review.wire)-1},inputLimits),{code:'MoonBitHostFailure'});
+  assert.throws(()=>control.projectEffectComputationReview(original,selectedPolicy,outputLimits,
+    {...inputLimits,maxNodes:2}),{code:'MoonBitHostFailure'});
+  assert.throws(()=>control.projectEffectComputationReview({...original},selectedPolicy,outputLimits,inputLimits),/Foreign Effect computation Preview/);
+  assert.throws(()=>control.admitEffectComputationPreview(wire.replace('private','changed'),run,context,inputLimits),{code:'MoonBitHostFailure'});
+  assert.throws(()=>control.projectEffectComputationReview(original,selectedPolicy,outputLimits,
+    {...inputLimits,maxWireBytes:-1}),/Invalid Effect review Preview/);
+  // Saved/read/retirement admission uses the original Run policy, independently
+  // of the smaller output policy. No projection upgrades execution authority.
+  const restored=control.admitEffectComputationPreview(wire,run,context,inputLimits);
+  assert.equal(control.effectComputationPreviewSemanticCid(restored),preview.effect_preview_cid);
+  const f=await fixture(t),installed=await f.open();
+  const gate=await f.authorization(installed,vectors[3],{
+    reviewWire:wire,runDefinition:run,runDefinitionCid:run.identity,
+    projectReview:(selection,bounds)=>control.projectEffectComputationReview(original,selection,bounds,inputLimits),
+  });
+  const waiting=await gate.authorize('effect_commit',tuple,{subjectCid:preview.effect_preview_cid});
+  assert.equal(waiting.action,'waiting',JSON.stringify(waiting));
+  const checkpoint=(await installed.listCheckpoints({principalId:'reviewer',after:'',limit:10})).items[0];
+  assert.equal(checkpoint.reviewProjectionCid,expected.review_projection_cid);
+  gate.close();await f.close(installed);
+  const reopened=await f.open();
+  const stored=await reopened.reviewCheckpoint({principalId:'reviewer',checkpointCid:checkpoint.checkpointCid,maxBytes:outputLimits.maxWireBytes});
+  assert.equal(Buffer.from(stored.contentBase64,'base64').toString('utf8'),review.wire);
+});

@@ -58,18 +58,42 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "ownership": [
@@ -80,12 +104,28 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "failure": [
@@ -100,12 +140,28 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "resources": [
@@ -116,12 +172,28 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "extension": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ],
             "verification": [
@@ -148,6 +220,14 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "source_free_max_work? : Int? = None,"
+              },
+              {
+                "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
+                "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
               }
             ]
           }
@@ -293,7 +373,7 @@
         },
         {
           "name": "prepare_installed_managed_source_free_with_contracts",
-          "declaration": "prepare_installed_managed_source_free_with_contracts ( prepared : @ publication_host . PreparedClientProgram , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ?"
+          "declaration": "prepare_installed_managed_source_free_with_contracts ( prepared : @ publication_host . PreparedClientProgram , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , source_free_max_work ? : Int ?"
         },
         {
           "name": "prepared_installed_managed_publication_limits",
@@ -320,7 +400,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "eed678f29df8223287110f2e58c16ce06a7c97eba0c4ed246d4773d64891f5fe"
+      "sha256": "f0b2e820dee09f1beb2a1cf61be7a6490126583358c9eedd98d648e52c3c80a4"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
@@ -475,7 +555,7 @@
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b86d8e79396e4c4f546d5d7b0a702598c6aff72be054123107b0c6a205c130c7",
+      "sha256": "0534f1dee70043f004088f00e6e574c4cf61d822b83b0889e6eb2915f86ed18e",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -589,6 +669,10 @@
           "declaration": "prepared_installed_effect_model_sequence ( plan : ClientInstalledEffectManagedPlan , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ execution . GeneratedSequence , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "prepared_installed_effect_source_sequence",
+          "declaration": "prepared_installed_effect_source_sequence ( plan : ClientInstalledEffectManagedPlan , index : Int , ) - > Result [ ( Int , @ execution . GeneratedSequence ) , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "resolve_installed_effect_capture_extent",
           "declaration": "resolve_installed_effect_capture_extent ( original : ClientInstalledEffectOperationExtent , rows : Int , ) - > ClientInstalledEffectOperationExtent ?"
         },
@@ -616,6 +700,7 @@
             "prepare_installed_effect_capture_extent",
             "prepare_installed_effect_capture_recipe_extent",
             "prepare_installed_effect_managed_plan",
+            "prepare_installed_effect_managed_plan_owned",
             "prepare_installed_effect_operation_demand",
             "prepare_installed_effect_operation_demand_with_controls",
             "prepare_installed_effect_operation_extent",
@@ -624,10 +709,10 @@
             "prepared_installed_effect_managed_requirements",
             "prepared_installed_effect_managed_shape",
             "prepared_installed_effect_managed_source",
+            "prepared_installed_effect_model_sequence",
+            "prepared_installed_effect_source_sequence",
             "resolve_installed_effect_capture_extent",
-            "resolve_installed_effect_id_extent",
-            "prepare_installed_effect_managed_plan_owned",
-            "prepared_installed_effect_model_sequence"
+            "resolve_installed_effect_id_extent"
           ],
           "exports": [],
           "attributes": {
@@ -635,60 +720,140 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "failure": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "resources": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "extension": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "verification": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn prepared_installed_effect_source_sequence("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ]
           }
@@ -931,7 +1096,7 @@
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "91862175dbae4af12f399a981e9286c677360f1500b17ebe795753fd5bfbbb0c",
+      "sha256": "f7fd95ced725f07f78947c5c14795108ca8a3a6991e24873e8c355436788de61",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1006,6 +1171,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -1030,6 +1199,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
@@ -1561,14 +1734,14 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0c3bd672ddfe0eed7a854db31b10548275a2a0464af45134755d1a34cc6c3c38",
+      "sha256": "3e7910c29dbdd332a1852fab76f65bebba8b9c9c4bd54c1de828cc56ddd3f756",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
       "operations": [
         {
           "name": "[I,P]original_request_plan_construction_quote",
-          "declaration": "[ I , P ] original_request_plan_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+          "declaration": "[ I , P ] original_request_plan_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , tasks ? : Int"
         },
         {
           "name": "[I]begin_request_program_managed_run",
@@ -1612,11 +1785,11 @@
         },
         {
           "name": "[I]prepare_request_program_module_body",
-          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , source_free_max_work ? : Int ?"
         },
         {
           "name": "[I]prepare_request_program_module_body_owned",
-          "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+          "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , source_free_max_work ? : Int ?"
         },
         {
           "name": "[I]request_program_compilation_limits",
@@ -1641,6 +1814,10 @@
         {
           "name": "[I]retain_request_program_module_inputs",
           "declaration": "[ I ] retain_request_program_module_inputs ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ @ publication_host . PreparedClientProgram , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "request_program_plan_issue_is_sequence_limit",
+          "declaration": "request_program_plan_issue_is_sequence_limit ( issue : ClientRequestProgramPlanIssue , ) - > Bool"
         },
         {
           "name": "request_query_time_invocation_extent",
@@ -1670,7 +1847,8 @@
             "[I]reserve_request_query_time_invocation",
             "[I]retain_request_program_module_inputs",
             "request_query_time_invocation_extent",
-            "[I]request_program_compilation_limits"
+            "[I]request_program_compilation_limits",
+            "request_program_plan_issue_is_sequence_limit"
           ],
           "exports": [],
           "attributes": {
@@ -1678,6 +1856,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "inputsOutputs": [
@@ -1688,12 +1870,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Checked compiler configuration at the installed module boundary"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "ownership": [
@@ -1704,12 +1894,24 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "failure": [
@@ -1724,12 +1926,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "resources": [
@@ -1740,12 +1950,24 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ],
             "verification": [
@@ -1776,16 +1998,21 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"successful Request artifact retires returned compiler scratch before runtime adoption\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
               }
             ]
           }
         }
-      ]
+      ],
+      "referenceQualification": " The added original sequence-limit projection is callback-free diagnostic DATA only, not an original/current/phase/capacity or retirement grant."
     },
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "07a2176ea65062ed0b6dcfd82d61fe592011266ad90ea526a8bcab2c590c32e2",
+      "sha256": "515aec8b431bb4d4297a26d5bc9670b700eca7f40f5c27504d0117b04f4089d0",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1880,6 +2107,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
               }
             ],
             "synchronization": [
@@ -1904,6 +2135,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Original Model inventory construction"
               }
             ],
             "extension": [

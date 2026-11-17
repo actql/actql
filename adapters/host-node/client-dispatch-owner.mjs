@@ -1,6 +1,7 @@
 // One installed Host owner for an admitted Run's physical dispatch, stop
 // observation, and recoverable cleanup. The journal and MoonBit control keep
 // their existing authority; this owner does not decide whether to retry.
+import {types as nodeTypes} from 'node:util';
 import {runtimeField, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
@@ -14,6 +15,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {installTaskObservation} from '../host-common/task-observation.mjs';
 import {bindClientSourceOperation} from './client-source-operation.mjs';
 import {ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
+import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observation.mjs';
 
 // Diagnostics must not become a second owner of execution/cleanup capabilities.
 // Read only inert own data, including one existing primaryFailure diagnostic
@@ -78,6 +80,29 @@ function dispatchFailureSnapshot(error) {
         if (localWork) data.controlWorkLimit = workLimit.value;
         if (valueWork) data.workLimit = valueLimit.value;
         if (resource) data.dimension = dimension.value;
+        // Preserve only closed inert quantities supplied by that original
+        // failed reserve/probe. A later ledger sample is not this failure.
+        const budgetField = Object.getOwnPropertyDescriptor(field.value, 'budget');
+        if ((resource || valueWork) && budgetField && Object.hasOwn(budgetField, 'value')) {
+          const original = budgetField.value, selected = {};
+          const keys = ['requested', 'remaining', 'policy', 'requestedIsLowerBound'];
+          if (original != null && Object.keys(original).length === keys.length) {
+            let valid = true;
+            for (const key of keys) {
+              const member = Object.getOwnPropertyDescriptor(original, key);
+              if (!member || !Object.hasOwn(member, 'value')) { valid = false; break; }
+              selected[key] = member.value;
+            }
+            if (valid && keys.slice(0, 3).every(key => typeof selected[key] === 'string' &&
+                /^(?:0|[1-9][0-9]{0,18})$/u.test(selected[key]) && BigInt(selected[key]) <= 9223372036854775807n) &&
+                BigInt(selected.requested) > BigInt(selected.remaining) &&
+                BigInt(selected.remaining) <= BigInt(selected.policy) &&
+                selected.requestedIsLowerBound === valueWork &&
+                (!valueWork || selected.policy === String(data.workLimit))) {
+              data.budget = Object.freeze(selected);
+            }
+          }
+        }
         primaryDiagnostic = Object.freeze(data);
       }
     }
@@ -102,6 +127,81 @@ function dispatchFailureSnapshot(error) {
     message: typeof error === 'string' ? error : text('message'),
     ...(primaryDiagnostic === undefined ? {} : {primaryDiagnostic}),
     ...(cleanupDiagnostic === undefined ? {} : {cleanupDiagnostic})});
+}
+
+// Resolve only the engine's own lazy Error stack. An observer receives code
+// locations, never the original exception, its message, or its cause/owners.
+function dispatchFailureCodeSite(error, errorType, formatter) {
+  try {
+    if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
+    if (Object.getPrototypeOf(error) !== errorType.prototype) return undefined;
+    const currentFormatter = Object.getOwnPropertyDescriptor(errorType, 'prepareStackTrace');
+    if (currentFormatter !== undefined && !Object.hasOwn(currentFormatter, 'value') ||
+        currentFormatter?.value !== formatter) return undefined;
+    const heading = {};
+    const code = Object.getOwnPropertyDescriptor(error, 'code');
+    if (!code || !Object.hasOwn(code, 'value') || typeof code.value !== 'string' ||
+        code.value.length < 1 || code.value.length > 96 ||
+        !/^[A-Za-z][A-Za-z0-9_]*$/u.test(code.value)) return undefined;
+    for (const key of ['name', 'message']) {
+      const own = Object.getOwnPropertyDescriptor(error, key);
+      const inherited = Object.getOwnPropertyDescriptor(errorType.prototype, key);
+      if (key === 'message' && own === undefined) return undefined;
+      if (own !== undefined && (!Object.hasOwn(own, 'value') || typeof own.value !== 'string') ||
+          inherited === undefined || !Object.hasOwn(inherited, 'value')) return undefined;
+      heading[key] = own?.value ?? inherited.value;
+    }
+    // Only a bounded code used verbatim as its own inert message is a safe
+    // heading. Arbitrary exception text is neither resolved nor copied.
+    if (heading.name !== 'Error' || heading.message !== code.value) return undefined;
+    const field = Object.getOwnPropertyDescriptor(error, 'stack');
+    if (field === undefined) return undefined;
+    let stack;
+    if (Object.hasOwn(field, 'value')) stack = field.value;
+    else {
+      const native = Object.getOwnPropertyDescriptor(new errorType(), 'stack');
+      if (typeof native?.get !== 'function' || field.get !== native.get || field.set !== native.set) return undefined;
+      stack = native.get.call(error);
+    }
+    if (typeof stack !== 'string') return undefined;
+    const header = heading.name === '' ? heading.message : heading.message === ''
+      ? heading.name : `${heading.name}: ${heading.message}`;
+    if (!stack.startsWith(`${header}\n`)) return undefined;
+    const sites = [];
+    for (const line of stack.slice(header.length + 1, header.length + 16385).split('\n').slice(0, 16)) {
+      // Drop function names and absolute installation/state prefixes. These
+      // are optional source locations, not artifact or provenance evidence.
+      const site = /^\s+at [^\n]*\/((?:adapters|packages)\/[A-Za-z0-9_./-]+\.[cm]?js|_build\/js\/release\/build\/[A-Za-z0-9_./-]+\.js):([1-9][0-9]{0,8}):([1-9][0-9]{0,8})\)?$/u.exec(line);
+      if (site !== null && !site[1].split('/').includes('..')) {
+        sites.push(`${site[1]}:${site[2]}:${site[3]}`);
+        if (sites.length === 8) break;
+      }
+    }
+    if (sites.length !== 0) return Object.freeze({phase: 'dispatch', kind: 'code_site',
+      message: sites.join('\n').slice(0, 2048)});
+  } catch { /* Optional diagnostics cannot replace a failure or its cleanup. */ }
+  return undefined;
+}
+
+// This message extends the existing failed Run observation, not its status,
+// authority or cleanup evidence. Never format arbitrary exception text.
+function publicBudgetFailureMessage(error) {
+  const data = dispatchFailureSnapshot(error)?.primaryDiagnostic;
+  if (data?.phase !== 'local_managed_advance') return undefined;
+  const memory = data.kind === 'resource';
+  if (!memory && !['value_capture_work', 'control_work'].includes(data.kind)) return undefined;
+  const dimension = memory ? data.dimension : data.kind;
+  const setting = memory ? `installation.requestMemory.${dimension === 'retained_bytes' ? 'retainedBytes' : 'executionBytes'}`
+    : 'installation.sourceFreeMaxWork';
+  const unit = memory ? 'logical_bytes' : 'work_units';
+  const budget = data.budget;
+  const requested = budget === undefined ? 'unavailable'
+    : `${budget.requestedIsLowerBound ? '>=' : ''}${budget.requested}`;
+  const remaining = budget?.remaining ?? 'unavailable';
+  const policy = budget?.policy ?? (memory ? 'unavailable' : String(data.workLimit ?? data.controlWorkLimit));
+  return `Budget exceeded: phase=${data.phase}; dimension=${dimension}; requested_delta=${requested}; remaining=${remaining}; policy=${policy}; unit=${unit}; setting=${setting}. ` +
+    (memory ? 'Logical quota, not process RSS.'
+      : 'Runtime work, not Program parsing/checking. A lower bound does not give the complete UTF8 demand.');
 }
 
 // Only diagnostic custody moves here. An Unknown result keeps its outcome,
@@ -289,6 +389,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
   const diagnostic = diagnosticObserver(observed);
+  const diagnosticErrorType = Error;
+  const diagnosticStackFormatter = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace')?.value;
   const step = async (name, detail) => {
     diagnostic(name, detail);
     await faultInjection?.(name, detail);
@@ -303,6 +405,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     new Error('ClientRunCancellationRequested'));
   const live = ref => current(ref)?.settled === false;
   const operation = ref => current(ref)?.promise;
+  const failureMessage = ref => {
+    const entry = current(ref);
+    return entry === undefined ? undefined : publicBudgetFailureMessage(entry.primaryFailure);
+  };
 
   async function acquireSource(entry, preparedProgram, preparedSource, sourceAccess,
     {captureOnly = false, originalEvidence = false, ledger, occurrence} = {}) {
@@ -468,8 +574,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     return {plan, setup};
   }
 
-  function retire(entry) {
-    if (entry.settled && entry.cleanupOwner === undefined &&
+  function retirementReady(entry) {
+    return entry.settled && entry.cleanupOwner === undefined &&
         entry.cleanupHandle === undefined && !entry.unresolvedCleanup &&
         entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&
         entry.pendingSetup === undefined &&
@@ -477,7 +583,39 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         !entry.failureObservationPending && !entry.finishPending &&
         !entry.releasePending &&
         (!entry.physicalStarted || entry.stopObserved ||
-          !entry.physicalWorkMayHaveStarted)) {
+          !entry.physicalWorkMayHaveStarted);
+  }
+
+  function retainBudgetFailureObservation(entry) {
+    const message = publicBudgetFailureMessage(entry.primaryFailure);
+    if (message === undefined || !entry.stopObserved) return;
+    const frame = journal.lookupRunDefinition(entry.ref, moon, control);
+    if (frame?.physicalCloseConfirmed !== true || frame.observedTerminalOutcome !== 'failed') return;
+    const state = issueInstalledUnpublishedRunState(moon, {
+      runId: control.runDefinitionRunId(frame.runDefinition),
+      observedAt: now(), resultNames: frame.resultNames,
+      dispatchReserved: frame.dispatchReserved,
+      preDispatchFailureConfirmed: frame.preDispatchFailureConfirmed,
+      cancelledBeforeStart: false, observedTerminalOutcome: 'failed',
+      executionUnknown: false,
+    });
+    if (state.status !== 'failed' || state.terminal_error?.code !== 'ACTQL_E_UNPUBLISHED_RUN') return;
+    state.terminal_error = {...state.terminal_error, message};
+    // The original journal's exact frame and CAS still own this observation.
+    // No successful/pending/Unknown state or cleanup fact is issued here.
+    journal.publishRunState(frame, state, moon, control);
+  }
+
+  function retire(entry) {
+    if (retirementReady(entry) && !entry.publishingBudgetDiagnostic) {
+      if (!entry.budgetDiagnosticAttempted && entry.primaryFailure !== undefined) {
+        entry.budgetDiagnosticAttempted = true;
+        entry.publishingBudgetDiagnostic = true;
+        try { retainBudgetFailureObservation(entry); }
+        catch { /* Optional diagnosis cannot mask the primary or block cleanup. */ }
+        finally { entry.publishingBudgetDiagnostic = false; }
+        if (!retirementReady(entry) || entries.get(keyOf(entry.ref)) !== entry) return;
+      }
       try {
         entry.retirePreparation?.();
       } catch (failure) {
@@ -1352,13 +1490,20 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const original = entry.primaryFailure;
         const primaryFailure = original instanceof CapturedRunPublicationError
           ? original.primaryFailure : original;
+        const issue = primaryFailure?.cause;
+        const issueTag = runtimeTag(issue);
+        const nestedIssue = runtimeOptionalField(issue, 0);
+        const nestedTag = runtimeTag(nestedIssue);
         diagnostic('dispatch_failed', {ref: accepted.ref,
           code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
-          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic,
+          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic ??
+            dispatchFailureCodeSite(primaryFailure, diagnosticErrorType, diagnosticStackFormatter),
           cleanupDiagnostic: dispatchFailureSnapshot(primaryFailure)?.cleanupDiagnostic,
-          issueTag: runtimeTag(primaryFailure?.cause),
-          nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
+          issueTag: issueTag === undefined && Number.isSafeInteger(issue) &&
+            issue >= 0 && issue <= 65535 ? issue : issueTag,
+          nestedIssueTag: nestedTag === undefined && Number.isSafeInteger(nestedIssue) &&
+            nestedIssue >= 0 && nestedIssue <= 65535 ? nestedIssue : nestedTag});
       } catch { /* Optional diagnostics cannot interrupt cleanup. */ }
       const failedExecution = cause instanceof CapturedRunPublicationError
         ? cause.execution : undefined;
@@ -1470,12 +1615,19 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const original = entry.primaryFailure;
         const primaryFailure = original instanceof CapturedRunPublicationError
           ? original.primaryFailure : original;
+        const issue = primaryFailure?.cause;
+        const issueTag = runtimeTag(issue);
+        const nestedIssue = runtimeOptionalField(issue, 0);
+        const nestedTag = runtimeTag(nestedIssue);
         diagnostic('dispatch_failed', {ref: entry.ref,
           code: cause?.code ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
-          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic,
-          issueTag: runtimeTag(primaryFailure?.cause),
-          nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
+          primaryDiagnostic: dispatchFailureSnapshot(primaryFailure)?.primaryDiagnostic ??
+            dispatchFailureCodeSite(primaryFailure, diagnosticErrorType, diagnosticStackFormatter),
+          issueTag: issueTag === undefined && Number.isSafeInteger(issue) &&
+            issue >= 0 && issue <= 65535 ? issue : issueTag,
+          nestedIssueTag: nestedTag === undefined && Number.isSafeInteger(nestedIssue) &&
+            nestedIssue >= 0 && nestedIssue <= 65535 ? nestedIssue : nestedTag});
       } catch { /* Optional diagnostics cannot interrupt original cleanup. */ }
       if (!entry.runInvoked) {
         // A refused execution barrier ran no Site callback. This is a
@@ -1536,5 +1688,5 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       });
     }
   };
-  return Object.freeze({start, track, cancel, live, operation, drain});
+  return Object.freeze({start, track, cancel, live, operation, failureMessage, drain});
 }

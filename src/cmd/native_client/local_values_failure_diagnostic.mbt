@@ -1,4 +1,15 @@
 ///|
+/// Preserve the original failure family. Only this already typed row executor
+/// refusal selects a closed public resource diagnostic, never message parsing.
+fn local_values_command_diagnostic(
+  issue : @local_host.NativeClientValuesWorkIssue,
+) -> Unit {
+  if issue is Execution(Driver(Configuration(Execution(Rows(_, RowLimit))))) {
+    command_preparation_diagnostic.val = RuntimeRowExecutionLimit
+  }
+}
+
+///|
 // Existing failed Work variants only. Keep the actual failed occurrence and
 // its cleanup with the caller; counters carry no document, identity or handle.
 fn local_values_failure_tags(

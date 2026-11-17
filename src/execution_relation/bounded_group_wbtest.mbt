@@ -48,6 +48,8 @@ fn bounded_relation_start(
   max_entries? : Int = 1000,
   name_bytes? : Int = 10000,
   constrain? : (GeneratedSequence) -> GeneratedSequence = generated => generated,
+  numeric? : NumericAggregateExecution? = None,
+  input_live? : Ref[Bool]? = None,
 ) -> (
   @bounded.Control,
   Result[BoundedGroupExecution, BoundedGroupIssue],
@@ -72,6 +74,10 @@ fn bounded_relation_start(
     execute_generated_sequence(source_generated, [], compute_test_limits()).unwrap(),
     @pipeline.Step(0),
   ).unwrap()
+  let source = match input_live {
+    Some(live) => restrict_completed_output(source, () => live.val)
+    None => source
+  }
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
     @pipeline.Step(0),
@@ -134,6 +140,7 @@ fn bounded_relation_start(
     100,
     max_entries,
     name_bytes,
+    numeric~,
   )
   (control, execution, source)
 }
@@ -683,4 +690,215 @@ test "group output funds original measured rows before transfer and keeps refusa
 ///|
 test "pivot output funds original measured rows before transfer and keeps refusal or close custody" {
   bounded_group_output_funding_case(true)
+}
+
+///|
+fn bounded_number_group_workspace_fixture(
+  max_entries : Int,
+  rows? : String? = None,
+  counts? : Bool = false,
+  input_live? : Ref[Bool]? = None,
+) -> (@bounded.Control, BoundedGroupExecution, CompletedOutput) raise {
+  let profile = @numeric.builtin_profile()
+  let reduction = @numeric.select(
+    profile,
+    @numeric.member_cid_at(profile, 0).unwrap(),
+  ).unwrap()
+  let numeric = numeric_aggregate_execution((
+    _,
+    name,
+    _,
+    contributors,
+    expected_count,
+    max_work,
+  ) => {
+    let operation = match name {
+      "average" => @numeric.Average
+      "total" => @numeric.Sum
+      _ => return None
+    }
+    Some(
+      @numeric.execute(
+        reduction, operation, contributors, expected_count, max_work,
+      ),
+    )
+  })
+  let quoted : Ref[ExecutionCapacity?] = Ref(None)
+  let (control, execution, source) = bounded_relation_start(
+    "{\"bucket\":{\"type\":\"string\",\"nullable\":false},\"n\":{\"type\":\"number\",\"nullable\":true}}",
+    rows.unwrap_or(
+      "[{\"bucket\":{\"literal\":\"a\"},\"n\":1},{\"bucket\":{\"literal\":\"a\"},\"n\":3},{\"bucket\":{\"literal\":\"b\"},\"n\":null}]",
+    ),
+    "\"group\":{\"by\":[\"bucket\"],\"aggregates\":{\"average\":{\"fn\":\"avg\",\"field\":\"n\"},\"total\":{\"fn\":\"sum\",\"field\":\"n\"}" +
+    (if counts { ",\"rows\":{\"fn\":\"count\"}" } else { "" }) +
+    "}}",
+    "group_0",
+    false,
+    max_work=10000,
+    max_entries~,
+    constrain=generated => {
+      quoted.val = generated_bounded_sequence_capacity(
+        generated,
+        compute_test_limits(),
+        {
+          max_work: 100000,
+          max_nodes: 10000,
+          max_bytes: 10000,
+          max_depth: 100,
+        },
+      )
+      generated
+    },
+    numeric=Some(numeric),
+    input_live~,
+  )
+  // This functional constructor uses the exact generated quote, not a Host or
+  // Run grant. Its complete logical footprint fits the runtime's same 512 MiB.
+  assert_true(quoted.val.unwrap().execution_bytes <= 536870912L)
+  (control, execution.unwrap(), source)
+}
+
+///|
+test "direct Number group preserves actual workspace exact and one-short refusal" {
+  let (_, baseline, source) = bounded_number_group_workspace_fixture(10000)
+  guard drive_bounded_group(baseline) is BoundedGroupComplete(output, ..) else {
+    fail("bounded direct Number group did not complete")
+  }
+  assert_eq(completed_row_count(output), 2)
+  assert_eq(completed_column_count(output), 3)
+  for index, name in ["average", "bucket", "total"] {
+    assert_eq(completed_column_name(output, index), Some(name))
+  }
+  assert_true(completed_cell(output, 0, 1) is Some(Text("a")))
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2)))
+  assert_true(completed_cell(output, 0, 2) is Some(Number(4)))
+  assert_true(completed_cell(output, 1, 1) is Some(Text("b")))
+  assert_true(completed_cell(output, 1, 0) is Some(Null))
+  assert_true(completed_cell(output, 1, 2) is Some(Null))
+  let peak = baseline.state.workspace.peak
+  assert_true(peak > 0)
+  assert_true(cleanup_bounded_group_execution(baseline).unwrap())
+  assert_eq(baseline.state.workspace.live, 0)
+  assert_true(completed_output_available(source))
+  for (maximum, accepted) in [(peak, true), (peak - 1, false)] {
+    let (_, execution, input) = bounded_number_group_workspace_fixture(maximum)
+    match drive_bounded_group(execution) {
+      BoundedGroupComplete(output, ..) => {
+        assert_true(accepted)
+        assert_eq(completed_row_count(output), 2)
+      }
+      BoundedGroupFailed(Rows(RowLimit), ..) => assert_false(accepted)
+      _ => fail("direct Number group changed its original workspace refusal")
+    }
+    assert_true(cleanup_bounded_group_execution(execution).unwrap())
+    assert_eq(execution.state.workspace.live, 0)
+    assert_true(completed_output_available(input))
+  }
+}
+
+///|
+test "direct Number group preserves empty and NULL keyed constructor semantics" {
+  for
+    (rows, count) in [
+      ("[]", 0),
+      ("[{\"bucket\":{\"literal\":\"a\"},\"n\":null}]", 1),
+    ] {
+    let (_, execution, input) = bounded_number_group_workspace_fixture(
+      10000,
+      rows=Some(rows),
+    )
+    guard drive_bounded_group(execution) is BoundedGroupComplete(output, ..) else {
+      fail("direct Number group changed empty/NULL constructor semantics")
+    }
+    assert_eq(completed_row_count(output), count)
+    if count == 1 {
+      assert_eq(completed_column_count(output), 3)
+      for index, name in ["average", "bucket", "total"] {
+        assert_eq(completed_column_name(output, index), Some(name))
+      }
+      assert_true(completed_cell(output, 0, 1) is Some(Text("a")))
+      assert_true(completed_cell(output, 0, 0) is Some(Null))
+      assert_true(completed_cell(output, 0, 2) is Some(Null))
+    }
+    assert_true(cleanup_bounded_group_execution(execution).unwrap())
+    assert_eq(execution.state.workspace.live, 0)
+    assert_true(completed_output_available(input))
+  }
+}
+
+///|
+test "mixed numeric group retains row multiplicity NULL semantics and exact workspace refusal" {
+  let (_, baseline, source) = bounded_number_group_workspace_fixture(
+    10000,
+    counts=true,
+  )
+  guard drive_bounded_group(baseline) is BoundedGroupComplete(output, ..) else {
+    fail("mixed numeric group did not complete")
+  }
+  assert_eq(completed_row_count(output), 2)
+  for index, name in ["average", "bucket", "rows", "total"] {
+    assert_eq(completed_column_name(output, index), Some(name))
+  }
+  assert_true(completed_cell(output, 0, 0) is Some(Number(2)))
+  assert_true(completed_cell(output, 0, 1) is Some(Text("a")))
+  assert_true(completed_cell(output, 0, 2) is Some(Number(2)))
+  assert_true(completed_cell(output, 0, 3) is Some(Number(4)))
+  assert_true(completed_cell(output, 1, 0) is Some(Null))
+  assert_true(completed_cell(output, 1, 1) is Some(Text("b")))
+  assert_true(completed_cell(output, 1, 2) is Some(Number(1)))
+  assert_true(completed_cell(output, 1, 3) is Some(Null))
+  let peak = baseline.state.workspace.peak
+  assert_true(peak > 0)
+  assert_true(cleanup_bounded_group_execution(baseline).unwrap())
+  assert_eq(baseline.state.workspace.live, 0)
+  assert_true(completed_output_available(source))
+  for (maximum, accepted) in [(peak, true), (peak - 1, false)] {
+    let (_, execution, input) = bounded_number_group_workspace_fixture(
+      maximum,
+      counts=true,
+    )
+    match drive_bounded_group(execution) {
+      BoundedGroupComplete(output, ..) => {
+        assert_true(accepted)
+        assert_eq(completed_row_count(output), 2)
+        assert_true(completed_cell(output, 1, 2) is Some(Number(1)))
+      }
+      BoundedGroupFailed(Rows(RowLimit), ..) => assert_false(accepted)
+      _ => fail("mixed group changed its exact workspace refusal")
+    }
+    assert_true(cleanup_bounded_group_execution(execution).unwrap())
+    assert_eq(execution.state.workspace.live, 0)
+    assert_true(completed_output_available(input))
+  }
+}
+
+///|
+test "mixed numeric group stops on cancellation or its same borrowed source losing currentness" {
+  let (control, cancelled, original) = bounded_number_group_workspace_fixture(
+    10000,
+    counts=true,
+  )
+  check_bounded_group_evaluation_stop(control, cancelled, original)
+  let live = Ref(true)
+  let (_, execution, input) = bounded_number_group_workspace_fixture(
+    10000,
+    counts=true,
+    input_live=Some(live),
+  )
+  assert_true(
+    advance_bounded_group_execution(execution, 1).unwrap()
+    is BoundedGroupContinue(work~, ..) &&
+    work > 0L,
+  )
+  live.val = false
+  assert_true(
+    drive_bounded_group(execution) is BoundedGroupFailed(InvalidExecution, ..),
+  )
+  assert_false(execution.accepted.val)
+  assert_true(execution.state.rows.val is None)
+  assert_true(cleanup_bounded_group_execution(execution).unwrap())
+  assert_eq(execution.state.workspace.live, 0)
+  assert_false(completed_output_available(input))
+  live.val = true
+  assert_true(completed_output_available(input))
 }

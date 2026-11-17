@@ -13,23 +13,9 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "NotionUserListReadFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -110,9 +96,7 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "NotionUserListReadFailure/constructor:constructor/constructor:constructor",
-            "positive/positive",
             "prepareNotionUserListPages",
             "prepareNotionUserListPages/init:decodePage/init:decodePage",
             "prepareNotionUserListPages/init:fetchPage/init:fetchPage",
@@ -235,14 +219,6 @@
           "async": false
         },
         {
-          "name": "createPropertyReader",
-          "parameters": [
-            "options",
-            "title"
-          ],
-          "async": false
-        },
-        {
           "name": "createPropertyReader/handle/init:observe/init:observe",
           "parameters": [],
           "async": false
@@ -267,14 +243,6 @@
           "async": false
         },
         {
-          "name": "executeRead",
-          "parameters": [
-            "prepared",
-            "received"
-          ],
-          "async": true
-        },
-        {
           "name": "executeRead/response/response",
           "parameters": [
             "options"
@@ -287,59 +255,10 @@
           "async": true
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "NotionPropertyReadFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalPathSegment",
-          "parameters": [
-            "text"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReader",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "x"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRead",
-          "parameters": [
-            "moon",
-            "originalRequest",
-            "readContracts",
-            "column",
-            "pageTitle",
-            "initialAuthorization",
-            "credential",
-            "authorizationFor",
-            "current",
-            "chargeResponse",
-            "consumeObservation",
-            "consumeValue",
-            "limits",
-            "signal",
-            "title"
           ],
           "async": false
         },
@@ -412,20 +331,13 @@
             "<module>",
             "createNotionPageTitleReader",
             "createNotionPropertyReader",
-            "createPropertyReader",
             "createPropertyReader/handle/init:observe/init:observe",
             "createPropertyReader/handle/init:read/init:read",
             "createPropertyReader/handle/init:read/init:read/result/result",
             "createPropertyReader/handle/init:requestStop/init:requestStop",
-            "executeRead",
             "executeRead/response/response",
             "executeRead/verify/verify",
-            "fail/fail",
             "NotionPropertyReadFailure/constructor:constructor/constructor:constructor",
-            "originalPathSegment",
-            "originalReader",
-            "positive/positive",
-            "prepareRead",
             "prepareRead/call/call",
             "prepareRead/complete/complete",
             "prepareRead/matches/matches",
@@ -632,14 +544,6 @@
           "async": false
         },
         {
-          "name": "executeRead",
-          "parameters": [
-            "prepared",
-            "state"
-          ],
-          "async": true
-        },
-        {
           "name": "executeRead/authorizationFor/authorizationFor",
           "parameters": [
             "input"
@@ -689,54 +593,12 @@
           "async": true
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "NotionDataSourceReadFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observations",
             "children",
             "responseCharges"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReader",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "x"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRead",
-          "parameters": [
-            "moon",
-            "declaration",
-            "source",
-            "readContracts",
-            "initialAuthorization",
-            "propertyAuthorization",
-            "propertyAuthorizationFor",
-            "credential",
-            "authorizationFor",
-            "current",
-            "chargeResponse",
-            "consumeObservation",
-            "consumePage",
-            "limits",
-            "signal"
           ],
           "async": false
         },
@@ -788,7 +650,6 @@
             "createNotionDataSourceReader/handle/init:observe/init:observe",
             "createNotionDataSourceReader/handle/init:read/init:read",
             "createNotionDataSourceReader/handle/init:requestStop/init:requestStop",
-            "executeRead",
             "executeRead/authorizationFor/authorizationFor",
             "executeRead/chargeResponse/chargeResponse",
             "executeRead/child/child",
@@ -796,11 +657,7 @@
             "executeRead/response/response",
             "executeRead/response/response/response",
             "executeRead/verify/verify",
-            "fail/fail",
             "NotionDataSourceReadFailure/constructor:constructor/constructor:constructor",
-            "originalReader",
-            "positive/positive",
-            "prepareRead",
             "prepareRead/prepareRead",
             "prepareRead/prepareRead#2",
             "prepareRead/prepareRead#3",
@@ -1015,15 +872,6 @@
           "async": false
         },
         {
-          "name": "coordinate/coordinate",
-          "parameters": [
-            "id",
-            "kind",
-            "bound"
-          ],
-          "async": false
-        },
-        {
           "name": "createNotionDatabaseDiscovery",
           "parameters": [
             "options"
@@ -1048,24 +896,6 @@
           "async": false
         },
         {
-          "name": "discover",
-          "parameters": [
-            "original",
-            "state"
-          ],
-          "async": true
-        },
-        {
-          "name": "discover/request/request",
-          "parameters": [
-            "operation",
-            "index",
-            "path",
-            "selectedAuthorization"
-          ],
-          "async": true
-        },
-        {
           "name": "discover/request/request/response/response",
           "parameters": [
             "options"
@@ -1075,27 +905,6 @@
         {
           "name": "discover/request/request/response/response/response",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "discover/verify/verify",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "hash/hash",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -1115,22 +924,6 @@
           "async": false
         },
         {
-          "name": "originalReader",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownData",
-          "parameters": [
-            "value",
-            "names",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "ownData/ownData",
           "parameters": [
             "key"
@@ -1141,16 +934,6 @@
           "name": "ownData/ownData#2",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownPublication",
-          "parameters": [
-            "value",
-            "moon",
-            "declaration",
-            "context"
           ],
           "async": false
         },
@@ -1196,26 +979,6 @@
           "async": false
         },
         {
-          "name": "prepare",
-          "parameters": [
-            "moon",
-            "declaration",
-            "initialAuthorization",
-            "sourceAuthorization",
-            "sourceAuthorizationFor",
-            "credential",
-            "authorizationFor",
-            "current",
-            "chargeResponse",
-            "consumeObservation",
-            "limits",
-            "signal",
-            "systemColumns",
-            "publication"
-          ],
-          "async": false
-        },
-        {
           "name": "prepare/prepare",
           "parameters": [
             "x"
@@ -1240,15 +1003,6 @@
           "name": "prepare/provider/provider",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "sameRequestData",
-          "parameters": [
-            "control",
-            "left",
-            "right"
           ],
           "async": false
         },
@@ -1280,21 +1034,14 @@
           "id": "notion-original-database-discovery",
           "operations": [
             "<module>",
-            "coordinate/coordinate",
             "createNotionDatabaseDiscovery",
             "createNotionDatabaseDiscovery/handle/init:observe/init:observe",
             "createNotionDatabaseDiscovery/handle/init:read/init:read",
             "createNotionDatabaseDiscovery/handle/init:requestStop/init:requestStop",
-            "discover",
-            "discover/request/request",
             "discover/request/request/response/response",
             "discover/request/request/response/response/response",
-            "discover/verify/verify",
-            "fail/fail",
             "NotionDatabaseDiscoveryFailure/constructor:constructor/constructor:constructor",
-            "originalReader",
             "positive/positive",
-            "prepare",
             "prepare/prepare",
             "prepare/prepare#2",
             "prepare/prepare#3",
@@ -1586,16 +1333,12 @@
           "operations": [
             "captureNotionDatabaseDiscoveryPublication",
             "captureNotionDatabaseDiscoveryPublication/captureNotionDatabaseDiscoveryPublication",
-            "hash/hash",
             "notionDatabaseDiscoveryPublicationOriginals",
-            "ownData",
             "ownData/ownData",
             "ownData/ownData#2",
-            "ownPublication",
             "ownPublication/call/call",
             "ownPublication/ownPublication",
             "ownPublication/ports/ports",
-            "sameRequestData",
             "sameRequestData/sameRequestData",
             "ownPublication/retained/retained",
             "ownPublication/retained/retained#2"
@@ -1685,20 +1428,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureProvider",
-          "parameters": [
-            "provider"
-          ],
-          "async": false
-        },
-        {
           "name": "captureProvider/captureProvider",
           "parameters": [
             "name"
@@ -1727,38 +1456,9 @@
           "async": false
         },
         {
-          "name": "checkSite",
-          "parameters": [
-            "site"
-          ],
-          "async": false
-        },
-        {
           "name": "checkSite/checkSite",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "closed/closed",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -1833,22 +1533,6 @@
           "async": false
         },
         {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInputs",
-          "parameters": [
-            "profile",
-            "configurationReader",
-            "readJson"
-          ],
-          "async": true
-        },
-        {
           "name": "readInputs/binding/binding",
           "parameters": [
             "name"
@@ -1858,20 +1542,6 @@
         {
           "name": "readInputs/reads/reads",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sha/sha",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
           "async": false
         }
       ],
@@ -1896,17 +1566,11 @@
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
-            "captureProvider",
             "captureProvider/captureProvider",
             "captureProvider/captureProvider/captureProvider",
             "checkInstalledNotionSourceProfile",
             "checkInstalledNotionSourceProfile/checkInstalledNotionSourceProfile",
-            "checkSite",
             "checkSite/checkSite",
-            "cid/cid",
-            "closed/closed",
-            "fail/fail",
             "installedNotionSourceIdentityParts",
             "loadInstalledNotionSource",
             "loadInstalledNotionSource/admitsApprovalTarget/admitsApprovalTarget",
@@ -1915,12 +1579,8 @@
             "loadInstalledNotionSource/init:preparePageReader/init:preparePageReader",
             "loadInstalledNotionSource/services/services",
             "loadInstalledNotionSource/target/target",
-            "positive/positive",
-            "readInputs",
             "readInputs/binding/binding",
-            "readInputs/reads/reads",
-            "sha/sha",
-            "text/text"
+            "readInputs/reads/reads"
           ],
           "exports": [
             "INSTALLED_NOTION_SITE_VERSION",
@@ -2020,13 +1680,6 @@
       ],
       "operations": [
         {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "createNotionPageReader",
           "parameters": [
             "options"
@@ -2051,47 +1704,11 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "NotionPageReadFailure/constructor:constructor/constructor:constructor",
           "parameters": [
             "cause",
             "observation",
             "responseCharge"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReader",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepare",
-          "parameters": [
-            "moon",
-            "pageId",
-            "initialAuthorization",
-            "credential",
-            "current",
-            "chargeResponse",
-            "consumeObservation",
-            "limits",
-            "signal"
           ],
           "async": false
         },
@@ -2131,13 +1748,6 @@
           "async": false
         },
         {
-          "name": "readPage",
-          "parameters": [
-            "state"
-          ],
-          "async": true
-        },
-        {
           "name": "readPage/readPage",
           "parameters": [
             "options"
@@ -2165,22 +1775,16 @@
         {
           "operations": [
             "<module>",
-            "count/count",
             "createNotionPageReader",
             "createNotionPageReader/handle/init:observe/init:observe",
             "createNotionPageReader/handle/init:read/init:read",
             "createNotionPageReader/handle/init:requestStop/init:requestStop",
-            "fail/fail",
             "NotionPageReadFailure/constructor:constructor/constructor:constructor",
-            "originalReader",
-            "positive/positive",
-            "prepare",
             "prepare/prepare",
             "prepare/prepare#2",
             "prepare/prepare#3",
             "prepare/prepare#4",
             "prepare/provider/provider",
-            "readPage",
             "readPage/readPage",
             "readPage/verify/verify"
           ],
@@ -2315,13 +1919,6 @@
       ],
       "operations": [
         {
-          "name": "count/count",
-          "parameters": [
-            "x"
-          ],
-          "async": false
-        },
-        {
           "name": "createNotionPagePropertiesReader",
           "parameters": [
             "options"
@@ -2344,13 +1941,6 @@
             "reason"
           ],
           "async": false
-        },
-        {
-          "name": "executeRead",
-          "parameters": [
-            "state"
-          ],
-          "async": true
         },
         {
           "name": "executeRead/chargeResponse/chargeResponse",
@@ -2388,25 +1978,11 @@
           "async": false
         },
         {
-          "name": "executeRead/propertyAuthorization/propertyAuthorization",
-          "parameters": [
-            "input"
-          ],
-          "async": true
-        },
-        {
           "name": "executeRead/verify/verify",
           "parameters": [
             "operation"
           ],
           "async": true
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
         },
         {
           "name": "NotionPagePropertiesReadFailure/constructor:constructor/constructor:constructor",
@@ -2416,40 +1992,6 @@
             "originalRow",
             "children",
             "responseCharges"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalReader",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "x"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepare",
-          "parameters": [
-            "moon",
-            "declaration",
-            "source",
-            "readContracts",
-            "pageId",
-            "initialAuthorization",
-            "credential",
-            "propertyAuthorizationFor",
-            "current",
-            "chargeResponse",
-            "consumeObservation",
-            "consumeRow",
-            "limits",
-            "signal"
           ],
           "async": false
         },
@@ -2504,24 +2046,17 @@
         {
           "operations": [
             "<module>",
-            "count/count",
             "createNotionPagePropertiesReader",
             "createNotionPagePropertiesReader/handle/init:observe/init:observe",
             "createNotionPagePropertiesReader/handle/init:read/init:read",
             "createNotionPagePropertiesReader/handle/init:requestStop/init:requestStop",
-            "executeRead",
             "executeRead/chargeResponse/chargeResponse",
             "executeRead/child/child",
             "executeRead/child/child#2",
             "executeRead/property/property",
             "executeRead/property/property#2",
-            "executeRead/propertyAuthorization/propertyAuthorization",
             "executeRead/verify/verify",
-            "fail/fail",
             "NotionPagePropertiesReadFailure/constructor:constructor/constructor:constructor",
-            "originalReader",
-            "positive/positive",
-            "prepare",
             "prepare/prepare",
             "prepare/prepare#2",
             "prepare/prepare#3",
@@ -2665,20 +2200,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareNotionDatabaseMetadataTargets",
           "parameters": [
             "moon",
@@ -2687,22 +2208,6 @@
             "resource",
             "maxTargetBytes",
             "maxResourceBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareNotionDatabaseMetadataTargets/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareNotionDatabaseMetadataTargets/coordinate/coordinate",
-          "parameters": [
-            "id",
-            "section"
           ],
           "async": false
         },
@@ -2729,13 +2234,6 @@
           "async": false
         },
         {
-          "name": "selectedData",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "selectedData/selectedData",
           "parameters": [
             "name"
@@ -2746,13 +2244,6 @@
           "name": "selectedData/selectedData#2",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -2774,18 +2265,12 @@
           ],
           "operations": [
             "<module>",
-            "fail/fail",
-            "positive/positive",
             "prepareNotionDatabaseMetadataTargets",
-            "prepareNotionDatabaseMetadataTargets/call/call",
-            "prepareNotionDatabaseMetadataTargets/coordinate/coordinate",
             "prepareNotionDatabaseMetadataTargets/ports/ports",
             "prepareNotionDatabaseMetadataTargets/targetAuthority/init:project/init:project",
             "prepareNotionDatabaseMetadataTargets/targets/init:selectSource/init:selectSource",
-            "selectedData",
             "selectedData/selectedData",
-            "selectedData/selectedData#2",
-            "text/text"
+            "selectedData/selectedData#2"
           ],
           "attributes": {
             "responsibility": [

@@ -9,10 +9,7 @@ test "Program preparation syntax projection preserves explicitly narrowed tokens
   assert_eq(limits.lexical.max_tokens, 16)
   assert_eq(limits.max_syntax_nodes, 16)
   assert_eq(limits.lexical.max_work, 1000)
-  assert_eq(
-    limits.max_cte_count,
-    @source_frontend.syntax_limits().max_cte_count,
-  )
+  assert_eq(limits.max_cte_count, selected.lowering.max_nodes)
   let (result, spent, complete) = @source_frontend.observe_parse_query(
     "SELECT [0,0,0,0,0,0,0,0,0,0] AS payload",
     @source_frontend.Sql,

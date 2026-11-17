@@ -96,6 +96,30 @@ Reader and writer physical duties survive cancellation or currentness refusal
 until their own acknowledgements. These physical facts do not issue an Effect
 receipt, Account grant or replacement Run.
 
+## Managed Local file quantity selection
+
+The active Local STORE installation keeps its original per-file, wire, codec
+and physical-operation limits. Its incidental backend row and member defaults
+do not replace the selected managed Plan's checked inventory. The original
+Request construction reservation covers definition selectors, member and route
+wrappers, and Plan-demand vectors before exposing them to the Host. The adopted
+Plan retains those wrappers; count-dependent capture arrays grow only after
+the same Run has admitted its actual captured-input inventory.
+
+The existing Local file Run binding verifies the original Journal admission,
+checked prepared/allowed/Definition tuple and current managed Plan. Its finite
+row/member shape supplies a refusal ceiling, never physical capacity or send
+permission. Explicit installer and driver bounds still narrow this ceiling.
+Fresh capture and saved request reconstruction use the same original envelope,
+Content obligations and current/CAS/claim checks. Reconstruction cannot issue
+another execution, retry an uncertain write or acknowledge a physical child.
+
+A standalone owner composition without that original Request construction
+borrow retains its legacy installed envelope. Routing many definitions to one
+already selected owner does not qualify a larger unfunded owner composition.
+Per-file byte limits and actual request, control and writer reservations remain
+independent of the number of definitions.
+
 ## Saved Command Content
 
 Cold continuation uses the saved original Program, Environment, compiled Run,
@@ -125,3 +149,36 @@ replace a Run, bypass explicit approval or resend an uncertain publication.
 Unselected recovery preserves its existing synchronous validation path. Only
 the selected Content consumer awaits physical restoration, and it does so under
 the already retained original recovery parent rather than a detached callback.
+
+## Saved Source Command Content
+
+Captured Source Content and derived Content use their own closed Reference issuer
+families. Source recovery borrows the current installed keyed original from the
+same prepared Request and Run Definition. It checks the authenticated captured
+member, Command input, complete intended Preview row and independent Source
+policy, classification, MIME and lifetime. A matching CID is not authority to
+substitute another Request, occurrence, physical holding or issued Reference.
+
+The installing Host checks the saved namespace, Store and workspace before
+constructing the Source binding. The existing Store then verifies the exact
+captured holding and supplies its actual issued original. The retained Command
+view must match that issued object and remain current before every read. No
+generation, provider response, new capture grant or alternate Run is created.
+Derived Content retains its existing serialization recovery contract.
+
+Each Source constructor quotes its own live output and conservative parsing and
+encoding workspace through the same managed native control. Returned retained
+output remains charged until that control retires. Store awaits end the native
+frame; subsequent constructors enter a fresh frame under the same current Read.
+The recovery parent retains the child before asynchronous physical preparation.
+Cancellation, current-state changes and failed reader closes keep their cleanup
+duties; an earlier authorization result never replaces a fresh current check.
+
+After the same Read completes its trusted Store return, retained-value
+validation keeps the returned trees, Strings and schema inventory on that
+Read's original reservation. It funds the full validator workspace without
+re-reserving the ended physical receive/decrypt buffers or parsed container.
+Physical read and reserve entrances invalidate this completed-state proof and
+retain their full construction quote. Failed validation keeps its acquired
+prefix for the original cleanup; it cannot reuse an earlier completion as a
+new physical cleanup acknowledgement.

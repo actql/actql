@@ -472,3 +472,27 @@ pub fn grow_client_model_read_preparing_capacity(
     execution_bytes,
   ).map_err(issue => Resource(issue))
 }
+
+///|
+/// Same entered Read constructor span; the Resource owner supplies the actual
+/// previous token/child amounts rather than a caller-owned numerical snapshot.
+pub fn grow_client_model_read_preparation_consumer_span(
+  read : ClientModelReadPreparation,
+  consumer : ClientModelReadConsumer,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  retained_span : Int64,
+  execution_span : Int64,
+) -> Result[(Int64, Int64), ClientModelReadPreparationIssue] {
+  if read.retired ||
+    !client_model_read_origin_matches(read, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  @resources.grow_funded_read_consumer_span(
+    consumer.consumer,
+    read.origin,
+    retained_span,
+    execution_span,
+  ).map_err(issue => Resource(issue))
+}

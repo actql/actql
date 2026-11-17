@@ -101,6 +101,7 @@ priv enum BoundedSequencePhase {
 
 ///|
 priv struct BoundedSequenceState {
+  mut reclamation_steps : Int64
   input : BoundedSequenceInput
   input_schema : @schema.Schema
   kernel : @lower.PreparedSequenceMatch
@@ -342,6 +343,8 @@ fn cleanup_bounded_sequence_state(state : BoundedSequenceState) -> Bool {
       }
       return true
     }
+    // Every successful branch above removed an actual private reference.
+    state.reclamation_steps += 1L
   }
   false
 }
@@ -1917,6 +1920,7 @@ fn start_bounded_sequence_match_input(
     }
   }
   let state : BoundedSequenceState = {
+    reclamation_steps: 0L,
     input,
     input_schema: schema,
     kernel,
@@ -2139,4 +2143,30 @@ pub fn bounded_sequence_match_cleanup_pending(
 ) -> Bool {
   bounded_sequence_match_state(value).output_scope is Some(_) ||
   @bounded.cleanup_pending(value.session)
+}
+
+///|
+/// This stopped session may continue only its finite private reference drain.
+/// Accepted output remains separately retained; an unfinished nested owner,
+/// row scope or physical/borrowed operation never becomes a cleanup ACK.
+pub fn bounded_sequence_match_cleanup_continuation(
+  value : BoundedSequenceMatchExecution,
+) -> Int64 {
+  let state = bounded_sequence_match_state(value)
+  if !@bounded.session_stopped(value.session) ||
+    !@bounded.cleanup_pending(value.session) ||
+    state.port_preparation is Some(_) ||
+    state.output is Some(_) ||
+    state.output_scope is Some(_) ||
+    state.sort is Some(_) ||
+    state.metadata_lookup is Some(_) ||
+    state.name_charge is Some(_) ||
+    state.output_charge is Some(_) ||
+    state.output_recheck is Some(_) ||
+    state.predicate_execution is Some(_) ||
+    state.comparison is Some(_) {
+    -1L
+  } else {
+    state.reclamation_steps
+  }
 }

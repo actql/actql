@@ -21,6 +21,16 @@ export const CLIENT_PACKAGES = Object.freeze(['client-wire', 'sdk',
 const MANIFEST = 'packed-client-packages.json';
 const tarball = name => `actql-${name}-0.0.0-development.tgz`;
 
+// The Run Host consumer and its refusal controls use this same acquisition
+// recipe. A verified retained package never selects the npm fallback.
+export async function acquireRunHostClientPackages({repository, destination, run}) {
+  for (const name of ['run-host-core', 'client-wire']) {
+    await packedClientPackage({repository, name, destination,
+      pack: selected => run('npm', ['pack', '--pack-destination', destination, '--json'],
+        join(repository, 'packages', selected))});
+  }
+}
+
 // Normal lifecycle-enabled readers need one uncontaminated npm JSON value.
 // Other npm options remain the caller's DATA; npm owns their interpretation.
 export function normalNpmPackJsonArgs(args) {

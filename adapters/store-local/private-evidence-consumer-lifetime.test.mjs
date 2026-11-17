@@ -74,7 +74,7 @@ test('failed private decode preserves the original cause and retires only its te
   assert.equal((await f.store.retirePhysicalHolding(f.holding)).cleanup.status().pending, false);
 });
 
-function captureOptions(f, cause) {
+function captureOptions(f, cause, onNested) {
   const run = {name: 'run_definition', wire: 'original run', identity: cid('original run')};
   let plaintext, consumers = 0;
   const store = {...f.store,
@@ -86,8 +86,9 @@ function captureOptions(f, cause) {
       }, beforeRead);
     }};
   const control = {
-    admit(name, wire) {
+    admit(name, wire, limits) {
       if (name === run.name && wire === run.wire) return run;
+      onNested?.(name, wire, limits);
       throw cause;
     },
     effectComputationCaptureHoldingCid: () => cid('capture holding'),
@@ -132,7 +133,31 @@ test('actual recovery reservation refusal precedes ciphertext allocation and pre
   }
 });
 
-test('actual decoded capture retains SAME schema cleanup and reservation through failed release', async t => {
+test('funded private inverse preserves the Store refusal of nonvoid reservation callbacks', async t => {
+  const f = await fixture(t), c = captureOptions(f, new Error('unexpected typed admission'), assert.fail);
+  for (const result of [1, Promise.resolve()]) {
+    let reserves = 0, finished = false, primary;
+    await assert.rejects(recoverCompletedEffectfulComputation(c.options, {
+      begin() {},
+      reserve(bytes) {
+        assert.ok(Number.isSafeInteger(bytes) && bytes > 0);
+        reserves++;
+        return result;
+      },
+      reserveEnvelope() {assert.fail('No ciphertext read before synchronous reservation acceptance');},
+      finish(failed, cause) {assert(failed); finished = true; primary = cause;},
+      retainCleanup() {assert.fail('No typed owner before reservation acceptance');},
+    }), error => error === primary && error.code === 'InvalidCompletedEffectfulCaptureRecord' &&
+      error.cause?.code === 'InvalidPublicationPrivateEvidence');
+    assert.equal(reserves, 1);
+    assert(finished);
+    assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
+  }
+});
+
+for (const preparedProjection of [false,true]) {
+test('actual decoded capture retains SAME schema cleanup and reservation through failed release'+
+  (preparedProjection?' using prepared Source projection':''), async t => {
   const capturedCid = cid('original capture'), captureCid = cid('zero payload capture');
   const run = {name:'run_definition', identity:cid('original run'), wire:'original run'};
   const body = {version:'actql-completed-effectful-capture/0.1',
@@ -140,12 +165,16 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
     invocation:'invocation', definitions:[], artifacts:[], derivations:[], orderings:[], retentions:[],
     durable_bindings:[], result_schemas:[], manifest:'manifest', computation_receipt:'receipt',
     captured_run:'captured', preview:'preview', authoring_context:'authoring',
-    effect_source_artifacts:[], connector_recovery:[], effect_dependency_payloads:[]};
+    effect_source_artifacts:preparedProjection?[{member_index:0,artifact:'source artifact'}]:[],
+    connector_recovery:[], effect_dependency_payloads:[]};
   const f = await fixture(t, JSON.stringify(body));
   await f.store.commitPhysicalHolding({version:'actql-local-physical-holding/0.1',
     namespace:'effect-capture', holding_cid:captureCid, manifest_cid:capturedCid, objects:[]}, []);
+  const sourceCid=cid('original source holding'),sourceArtifactCid=cid('source artifact'),source={};
+  if(preparedProjection)await f.store.commitPhysicalHolding({version:'actql-local-physical-holding/0.1',
+    namespace:'effect-source',holding_cid:sourceCid,manifest_cid:sourceArtifactCid,objects:[]},[]);
   let pending = true, releases = 0, retries = 0, retired = 0, resource, reserves = 0, completed = 0;
-  let begins = 0, admissions = 0;
+  let begins = 0, admissions = 0, projections=0,chainChecked=false;
   const recoveryEvents = [];
   const original = new Error('original schema release');
   const schema = {prepared:{status:() => ({pending}),
@@ -161,15 +190,24 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
       assert.equal(begins, 1, 'same original begin must precede every admission');
       admissions++; recoveryEvents.push('admit:' + name);
       return name === 'run_definition' ? run
-        : {name, wire, identity:name === 'captured_run' ? capturedCid : cid(name)};
+        : {name, wire, identity:name === 'captured_run' ? capturedCid : name==='effect_source_artifact'?sourceArtifactCid:cid(name)};
     },
     admitRunEvidence:() => ({}), admitEffectComputationPreview:() => ({}),
     effectComputationCaptureHoldingCid:() => captureCid,
     effectComputationRecordHoldingCid:() => f.holding,
-    effectfulComputationEvidenceChainValid:() => true,
-    capturedEffectSourceInventoryFromCaptureValid:() => true,
-    admitCapturedEffectSourceFromCapture:assert.fail, capturedEffectSourceHoldingCid:assert.fail,
-    capturedEffectSourceArtifactCid:assert.fail,
+    effectfulComputationEvidenceChainValid:() => {assert.equal(preparedProjection,false);chainChecked=true;return true;},
+    ...(preparedProjection?{hasPreparedCapturedEffectRun:()=>true,
+    prepareCapturedEffectSourceInventory(chain,_preview,sources,authority){
+      assert.equal(begins,1);assert.equal(reserves,1);assert.equal(completed,0);
+      assert.equal(chain.capturedRun.identity,capturedCid);assert.equal(chain.invocation.wire,'invocation');
+      assert.equal(chain.runDefinition.identity,run.identity);chainChecked=true;
+      assert.equal(authority,store.storeAuthorityCid);assert.deepEqual(sources.map(value=>value.memberIndex),[0]);
+      projections++;return [source];
+    }}:{}),
+    capturedEffectSourceInventoryFromCaptureValid:() => {assert.equal(preparedProjection,false);return true;},
+    admitCapturedEffectSourceFromCapture:assert.fail,
+    capturedEffectSourceHoldingCid:actual=>{assert.strictEqual(actual,source);return sourceCid;},
+    capturedEffectSourceArtifactCid:actual=>{assert.strictEqual(actual,source);return sourceArtifactCid;},
     capturedEffectDependencyPayloadBindings:() => [],
     capturedEffectDependencySchemas:() => [{wire:'original schema', cid:cid('schema')}],
     publicationPreparedReleaseAction(index, _count, inspected, isPending, attempted) {
@@ -218,9 +256,12 @@ test('actual decoded capture retains SAME schema cleanup and reservation through
   assert.equal(await resources.close(), true); assert.equal(releases, 1); assert.equal(retries, 1);
   assert.equal(completed,1);
   assert.equal(begins,1, 'cleanup must not re-enter admission or reserve another peak');
+  assert.equal(projections,preparedProjection?1:0);
+  assert(chainChecked);
   assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
   assert.notEqual(await f.store.inspectPhysicalHolding(captureCid), undefined);
 });
+}
 
 test('later same private confirmation retires its original temporary plaintext after directory ACK', async t => {
   const f = await fixture(t); let plaintext;
@@ -386,4 +427,92 @@ test('original private-read admission refuses before ciphertext allocation and d
     assert.equal(consumers, 0);
     assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
   } finally {crypto.createDecipheriv = original; syncBuiltinESMExports();}
+});
+
+test('same private Read funds encrypted envelope before generic JSON parse or AEAD and preserves refusal', async t => {
+  const f=await fixture(t), originalParse=JSON.parse, originalDecrypt=crypto.createDecipheriv;
+  const primary=new Error('same envelope Resource refused');
+  let envelopeParses=0,decrypts=0,consumers=0,selected;
+  JSON.parse=function(wire,...args){
+    if(typeof wire==='string'&&wire.includes('actql-private-publication-evidence/0.1'))envelopeParses++;
+    return Reflect.apply(originalParse,JSON,[wire,...args]);
+  };
+  crypto.createDecipheriv=(...args)=>{decrypts++;return Reflect.apply(originalDecrypt,crypto,args);};
+  syncBuiltinESMExports();
+  const beforeRead=bytes=>{selected=bytes;};
+  Object.defineProperty(beforeRead,'reserveEnvelope',{value:wire=>{
+    assert.equal(typeof wire,'string');assert.ok(Buffer.byteLength(wire)<=selected);
+    assert.equal(envelopeParses,0);assert.equal(decrypts,0);throw primary;
+  }});
+  try{
+    await assert.rejects(f.store.readPrivateEvidence(f.name,f.semantic,f.holding,()=>{consumers++;},beforeRead),e=>e===primary);
+    assert.equal(envelopeParses,0);assert.equal(decrypts,0);assert.equal(consumers,0);
+    assert.notEqual(await f.store.inspectPhysicalHolding(f.holding),undefined);
+  }finally{JSON.parse=originalParse;crypto.createDecipheriv=originalDecrypt;syncBuiltinESMExports();}
+});
+
+test('same envelope census precedes decryption and plaintext consumer on successful original Read', async t=>{
+  const f=await fixture(t),events=[];
+  const beforeRead=bytes=>{assert.ok(bytes>0);events.push('extent');};
+  Object.defineProperty(beforeRead,'reserveEnvelope',{value:wire=>{assert.equal(typeof wire,'string');events.push('envelope');}});
+  const value=await f.store.readPrivateEvidence(f.name,f.semantic,f.holding,(_bytes,read)=>{
+    events.push('plaintext');return JSON.parse(read.releaseBytes());
+  },beforeRead);
+  assert.deepEqual(events,['extent','envelope','plaintext']);assert.equal(value.items.length,2);
+});
+
+
+for (const selectedMax of [16384, 128]) {
+  test(`actual funded private inverse bounds nested metadata by SAME authenticated UTF8 plaintext and preserves smaller ${selectedMax} policy`, async t => {
+    const runWire = 'original run';
+    const body = {version:'actql-completed-effectful-capture/0.1',
+      store_authority_cid:cid('consumer authority'), run_definition:runWire,
+      invocation:'original invocation', definitions:['original definition é\u{1F600}'], artifacts:['artifact'],
+      derivations:['derivation'], orderings:['ordering'], retentions:['retention'],
+      durable_bindings:['binding'], result_schemas:[], manifest:'manifest',
+      computation_receipt:'receipt', captured_run:'captured', preview:'preview', authoring_context:'authoring',
+      effect_source_artifacts:[], connector_recovery:[], effect_dependency_payloads:[]};
+    const f = await fixture(t, JSON.stringify(body));
+    const original = new Error('actual nested admission refusal');
+    let acquired, nested = 0, finished = false;
+    const c = captureOptions(f, original, (_name, _wire, limits) => {
+      nested++;
+      assert.equal(limits.maxWireBytes, Math.min(selectedMax, Buffer.byteLength(JSON.stringify(body), 'utf8')));
+      assert.equal(limits.maxNodes, 4096); assert.equal(limits.maxDepth, 64);
+      assert(Object.isFrozen(limits));
+    });
+    c.options.contractLimits.maxWireBytes = selectedMax;
+    const holding = await f.store.inspectPhysicalHolding(f.holding);
+    await assert.rejects(recoverCompletedEffectfulComputation(c.options, {
+      begin() {},
+      reserve(bytes) {
+        acquired = bytes; assert.equal(bytes, holding.objects[0].byte_count);
+      },
+      finish(failed, cause) {assert(failed); assert.equal(cause, original); finished = true;},
+      retainCleanup: assert.fail,
+    }), error => error === original);
+    assert.equal(nested, 1); assert(finished);
+    assert(acquired > Buffer.byteLength(JSON.stringify(body), 'utf8'));
+    assert.equal(c.options.contractLimits.maxWireBytes, selectedMax);
+    c.assertReleased();
+    assert.notEqual(await f.store.inspectPhysicalHolding(f.holding), undefined);
+  });
+}
+
+test('funded private inverse rejects a different inspected extent before nested admission and releases actual plaintext', async t => {
+  const f = await fixture(t), c = captureOptions(f, new Error('unexpected nested admission'), assert.fail);
+  const inspect = c.options.store.inspectPhysicalHolding;
+  c.options.store.inspectPhysicalHolding = async holding => {
+    const original = await Reflect.apply(inspect, f.store, [holding]);
+    return holding !== f.holding ? original : {...original,
+      objects: original.objects.map(object => ({...object, byte_count: object.byte_count + 1}))};
+  };
+  let acquired, finished = false;
+  await assert.rejects(recoverCompletedEffectfulComputation(c.options, {
+    begin() {}, reserve(bytes) {acquired = bytes;},
+    finish(failed, cause) {assert(failed); assert.equal(cause.code, 'InvalidCompletedEffectfulCaptureRecord'); finished = true;},
+    retainCleanup: assert.fail,
+  }), {code: 'InvalidCompletedEffectfulCaptureRecord'});
+  assert.equal(acquired, (await f.store.inspectPhysicalHolding(f.holding)).objects[0].byte_count);
+  assert(finished); c.assertReleased();
 });

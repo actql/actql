@@ -18,6 +18,7 @@ fn effect_model_plan_source(
   lookup_policy? : Json? = None,
   plural? : Bool = false,
   source_implementation? : (String, String)? = None,
+  catalog_registry_count? : Int = 0,
 ) -> (@checked.CheckEnvironment, String) raise {
   let task =
     #|{"authored_model_selector":"fixture-risk-model","connector_id":"models/fixture","contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","data_handling":{"accepted_classifications":["public","internal"],"allowed_regions":["fixture-region"],"contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retention":"none","training_use":"forbidden"},"generation_config":{"max_output_tokens":32,"seed_requested":-7,"temperature":0,"top_p":1},"input_contract":{"additional_properties":false,"fields":{"text":{"nullable":true,"type":"string"}},"nullable":false,"type":"object"},"input_schema_cid":"sha256:57887e29c270383ae1e005ba3476a81c8b0012a8b566db860c75abba9c786dd7","max_items":2,"output_contract":{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"output_schema_cid":"sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3","prompt_template_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","retrieval_policy":"none","schema":"actql.model_task/0.1","streaming":false,"task_id":"model-task:risk-score.v1","task_kind":"structured_generate","tool_policy":"none","version":"1"}
@@ -90,18 +91,79 @@ fn effect_model_plan_source(
       [],
     )
   }
+  if catalog_registry_count > 0 {
+    guard fields["contract_registry"] is Array(registry) else {
+      fail("Model Catalog registry")
+    }
+    let extra_contracts = []
+    while registry.length() < catalog_registry_count {
+      // Genuine unused immutable metadata, not physical Source acquisitions.
+      let entry = @json.parse(
+        "{\"body\":{},\"id\":\"catalog-extra-" +
+        registry.length().to_string() +
+        "\",\"kind\":\"carrier_facts\",\"schema\":\"actql.contract/0.1\",\"version\":\"fixture\"}",
+      )
+      let unsigned = @identity.stringify_value(
+        @identity.from_json(entry, 1000, 20, 10000),
+        10000,
+        1000,
+        20,
+      )
+      guard entry is Object(envelope) else { fail("Catalog fixture envelope") }
+      envelope["cid"] = Json::string(
+        "sha256:" + @sha.hex(@utf8.encode(unsigned)),
+      )
+      registry.push(entry)
+      extra_contracts.push(
+        ("sha256:" + @sha.hex(@utf8.encode(unsigned)), entry),
+      )
+    }
+    fields["contract_registry"] = effect_plan_fixture_members(
+      fields["contract_registry"],
+      [],
+    )
+    let catalog = @json.parse(
+      "{\"schema\":\"actql.connector_catalog/0.1\",\"connector_id\":\"catalog-padding\",\"connector_version\":\"fixture\",\"contracts\":[],\"source_views\":[],\"commands\":[]}",
+    )
+    guard catalog is Object(catalog_fields) else { fail("Catalog fixture") }
+    extra_contracts.sort_by((a, b) => a.0.compare(b.0))
+    catalog_fields["contracts"] = Json::array(
+      extra_contracts.map(pair => pair.1),
+    )
+    let unsigned = @identity.stringify_value(
+      @identity.from_json(catalog, 1000000, 100, 4000000),
+      4000000,
+      1000000,
+      100,
+    )
+    catalog_fields["catalog_cid"] = Json::string(
+      "sha256:" + @sha.hex(@utf8.encode(unsigned)),
+    )
+    fields["connector_catalogs"] = effect_plan_fixture_members(
+      fields["connector_catalogs"],
+      [
+        @identity.stringify_value(
+          @identity.from_json(catalog, 1000000, 100, 4000000),
+          4000000,
+          1000000,
+          100,
+        ),
+      ],
+    )
+  }
+  let fixture_bytes = if catalog_registry_count > 0 { 4000000 } else { 1000000 }
   let unsigned = @identity.stringify_value(
-    @identity.from_json(parsed, 100000, 100, 1000000),
+    @identity.from_json(parsed, 1000000, 100, fixture_bytes),
+    fixture_bytes,
     1000000,
-    100000,
     100,
   )
   let cid = "sha256:" + @sha.hex(@utf8.encode(unsigned))
   fields["evidence_bundle_cid"] = @json.parse("\"" + cid + "\"")
   let wire = @identity.stringify_value(
-    @identity.from_json(parsed, 100000, 100, 1000000),
+    @identity.from_json(parsed, 1000000, 100, fixture_bytes),
+    fixture_bytes,
     1000000,
-    100000,
     100,
   )
   let environment = @publication_host.admit_client_check_environment(

@@ -10,7 +10,7 @@ import * as runtime from '../../_build/js/release/build/connectors_builtin_node/
 const ok = value => ({$tag: 1, _0: value});
 const pause = (waiting, settlement) => ({complete: false, waiting, settlement, progress: 0n, work: 0n});
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
-function fixture(first, handler) {
+function fixture(first, handler, observeStopped) {
   const setup = {}, registration = {}, task = {index: 1};
   let advances = 0, completed = 0, stopped = false, cancelled = false;
   let reclaim = true, closed = 0;
@@ -22,7 +22,7 @@ function fixture(first, handler) {
       return ok(advances === 1 ? first : {complete: true, progress: 1n, work: 1n});
     },
     request_cancel() { cancelled = true; return true; },
-    execution_stopped: () => stopped,
+    execution_stopped: () => observeStopped === undefined ? stopped : observeStopped(),
     settle: () => ok(),
     complete() { completed++; stopped = true; return ok(); },
     close() { closed++; },
@@ -145,5 +145,30 @@ test('ordinary zero-work Continue remains invalid and explicit pause requires a 
     await assert.rejects(f.entry.run(f.task), expected);
     assert.equal(f.completed(), 0);
     assert.equal(f.stopped(), true);
+  }
+});
+
+test('a failed stop observation preserves the primary error and original cleanup custody', async () => {
+  for (const prepared of [false, true]) {
+    const secondary = new Error('Stop observation unavailable');
+    const f = fixture(pause(true), undefined, () => { throw secondary; });
+    f.reclaim(false);
+    let failure;
+    await assert.rejects(prepared ? f.entry.runPrepared(f.prepared) : f.entry.run(f.task), error => {
+      failure = error;
+      assert.notStrictEqual(error, secondary);
+      assert.equal(error.primaryFailure?.message ?? error.message, 'MissingLocalExecutionPauseHandler');
+      assert.equal(error.cleanupPending, true);
+      assert.equal(error.cleanupHandle.status().pending, true);
+      return true;
+    });
+    assert.equal(f.completed(), 0);
+    assert.equal(f.stopped(), true);
+    const advances = f.advances();
+    f.reclaim(true);
+    await failure.cleanupHandle.retry();
+    assert.equal(failure.cleanupHandle.status().pending, false);
+    assert.equal(f.advances(), advances, 'Cleanup never resumes Compute');
+    assert.equal(f.completed(), 0);
   }
 });

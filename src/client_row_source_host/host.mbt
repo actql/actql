@@ -102,7 +102,14 @@ pub fn restore_row_declaration(
   }
   let declaration = match
     generate_row_declaration(
-      connector_id, connector_registration, connector_version, views, declaration_limits,
+      connector_id,
+      connector_registration,
+      connector_version,
+      views,
+      // The installed caller funds this complete original specification before
+      // entering restore. Its admitted input determines the inventory; an
+      // independent default view count is not another Resource allowance.
+      { ..declaration_limits, max_views: views.length(), },
     ) {
     Ok(value) => value
     Err(issue) => return Err(Declaration(issue))
@@ -321,6 +328,22 @@ fn prepare_row_acquisition_owned(
     ) else {
     return Err(Physical(InvalidLimits))
   }
+  let residual_rows = match listing_rows {
+    None => 100
+    Some(rows) => {
+      // Both limits belong to this SAME requirement and resolved original
+      // listing. An explicit caller guard stays narrower than the physical
+      // ceiling; neither count grants backing or bypasses value admission.
+      let selected = Int64::min(
+        @planning.query_requirement_guards(requirement).max_rows.to_int64(),
+        listing_rows_maximum(rows),
+      )
+      if selected < 0L || selected > 2147483647L {
+        return Err(Physical(InvalidLimits))
+      }
+      selected.to_int()
+    }
+  }
   // The residual filter and capture measure every captured value; the
   // capture holds at most 500 KB of text, what the standard Host's Local
   // fragments evaluate at once.
@@ -344,7 +367,7 @@ fn prepare_row_acquisition_owned(
       limits: {
         execution: {
           rows: {
-            max_rows: 100,
+            max_rows: residual_rows,
             metadata_entries: 10000,
             retained_entries: 10000,
             operation_entries: 10000,
@@ -391,6 +414,12 @@ fn prepare_row_acquisition_owned(
 /// Site driver must put in every row of every page.
 pub fn row_acquisition_columns(value : RowAcquisition) -> Array[String] {
   value.preparation.columns.copy()
+}
+
+///|
+/// The selected residual row limit used by this same acquisition's execution.
+pub fn row_acquisition_max_rows(value : RowAcquisition) -> Int {
+  value.configuration.limits.execution.rows.max_rows
 }
 
 ///|

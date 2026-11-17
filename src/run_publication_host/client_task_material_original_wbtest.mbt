@@ -5,6 +5,11 @@ test "retained task materials preserve the logical cap across bounded UTF8 chunk
   let cid = client_task_material_original_cid(wire).unwrap()
   let chunks = client_task_material_original_chunks(key, wire).unwrap()
   assert_eq(chunks.length(), 3)
+  // The physical copy bound is UTF-8 Bytes, including a multibyte seam;
+  // String code units are not a substitute for the observed SQLite extent.
+  assert_eq(chunks.map(chunk => @utf8.encode(chunk.1).length()), [
+    131071, 131072, 1,
+  ])
   let rows = chunks.map(chunk => {
     ("client_task_run_materials", inventory_row(chunk.0, @utf8.encode(chunk.1)))
   })

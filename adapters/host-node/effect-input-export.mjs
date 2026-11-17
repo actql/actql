@@ -1,3 +1,4 @@
+import {installedEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
@@ -22,12 +23,40 @@ export function preparePinnedEffectDependencyInventory({
   const owner = preparedEffectSourceSets.get(sources);
   if (owner?.store !== store || owner?.control !== control ||
       !Array.isArray(sources?.dependencies) ||
-      !Array.isArray(dependencies) || dependencies.length > 4096) {
+      !Array.isArray(dependencies) || owner?.dependencyConstruction === undefined && dependencies.length > 4096) {
     throw new TypeError('InvalidEffectDependencySetOwner');
   }
-  const bodies = [];
+  const construction = owner.dependencyConstruction;
+  if (construction !== undefined) {
+    const original=installedEffectDependencyOriginal(construction,owner.runtime);
+    // Count every actual retained candidate before Set/parse/selection/DTO
+    // arrays. The optional Manifest can later be omitted by exact imports.
+    let candidates = dependencies.length;
+    for (const {payload} of sources.dependencies) candidates += payload.dependencyBodies.length + 6;
+    checked(owner.runtime.clientProgramInstalledEffectDependencyGroupReserve(original.parent,
+      original.prepared,original.request,original.plan,candidates,sources.members.length));
+    original.current();
+  }
+  const bodies = [], originalArtifacts = [];
+  const aliases = construction === undefined ? undefined : new Set();
   const append = body => {
-    if (bodies.length >= 4096) throw new RangeError('EffectDependencyEntryLimit');
+    // The private acquisition vector is shared by every Result path. Only
+    // an identical immutable DATA record can bypass a second wire traversal.
+    // Separate objects still receive Core's metered full-wire/CID comparison.
+    if (aliases !== undefined && body !== null && typeof body === 'object' &&
+        !types.isProxy(body) && Object.isFrozen(body) &&
+        (Object.getPrototypeOf(body) === Object.prototype || Object.getPrototypeOf(body) === null)) {
+      const kind = Object.getOwnPropertyDescriptor(body, 'kind'),
+        wire = Object.getOwnPropertyDescriptor(body, 'wire'),
+        cid = Object.getOwnPropertyDescriptor(body, 'cid');
+      if (kind && wire && Object.hasOwn(kind, 'value') && Object.hasOwn(wire, 'value') &&
+          typeof kind.value === 'string' && typeof wire.value === 'string' &&
+          (cid === undefined || Object.hasOwn(cid, 'value') && typeof cid.value === 'string')) {
+        if (aliases.has(body)) return;
+        aliases.add(body);
+      }
+    }
+    if (construction === undefined && bodies.length >= 4096) throw new RangeError('EffectDependencyEntryLimit');
     bodies.push(body);
   };
   // A Manifest is a dependency only when an actual consumer import names
@@ -42,6 +71,7 @@ export function preparePinnedEffectDependencyInventory({
     }
   }
   for (const {payload} of sources.dependencies) {
+    originalArtifacts.push(payload.localResultArtifact);
     for (const body of payload.dependencyBodies) append(body);
     const table = preparedEffectSourceOwners.get(payload)?.tableInput === true;
     for (const [kind, wire] of [
@@ -58,7 +88,8 @@ export function preparePinnedEffectDependencyInventory({
   for (const body of dependencies) append(body);
   return control.prepareLocalEffectDependencyInventory(
     sources.members.map(({payload}) => payload.localResultArtifact),
-    bodies, contractLimits);
+    bodies, contractLimits, construction,
+    originalArtifacts);
 }
 
 // Only this export set can transfer its payload owners. Public Result names
@@ -74,6 +105,7 @@ export function retainPinnedEffectDependencyPayloads({
   }
   const bindings = retainCompletedEffectDependencyPayloads({execution, store,
     storedResults, control, runDefinition,
+    dependencyConstruction: owner.dependencyConstruction,
     dependencyInventoryWire: preparePinnedEffectDependencyInventory({
       sources, store, control, contractLimits: owner.contractLimits,
     }),
@@ -95,7 +127,18 @@ export function retainPinnedEffectDependencyPayloads({
 export async function preparePinnedEffectSourceSet({
   maxMembers, maxGroupingWork, memberSourceBindings, commandWorkspaces, publishedTargets, ...options
 }) {
+  if (options.localEvidenceContext?.catalogDeferred === true && options.dependencyConstruction === undefined) {
+    throw new TypeError('MissingOriginalCatalogConstruction');
+  }
   const {moon, inputs, control, signal} = options;
+  if(options.dependencyConstruction!==undefined){
+    const original=installedEffectDependencyOriginal(options.dependencyConstruction,moon);
+    // Reuse the actual existing original-input entrance; a foreign registered
+    // Run cannot lend its earlier index reservation to this source vector.
+    checked(moon.clientProgramInstalledEffectCapturedInputInventoryRetain(
+      original.parent,original.prepared,original.request,original.plan,inputs));
+    original.current();
+  }
   if (!Number.isSafeInteger(maxMembers) || maxMembers < 1 ||
       !Number.isSafeInteger(maxGroupingWork) || maxGroupingWork < 0 ||
       typeof moon?.clientProgramEffectInputCount !== 'function' ||
@@ -220,7 +263,6 @@ export async function preparePinnedEffectSourceSet({
       count, maxGroupingWork, hasCommandWorkspace, hasPublishedTarget);
   }
   const groups = [];
-  const duplicateManifestMembers = new Set();
   // Every source Unit Manifest covers all checked Result declarations, even
   // when an ordinary Effect consumes only a subset. These extra exports use
   // the retained capture; they are neither new Effect members nor source reads.
@@ -247,10 +289,8 @@ export async function preparePinnedEffectSourceSet({
   for (let index = 0; index < count; index++) {
     signal?.throwIfAborted();
     if (!shares(index, index)) throw new TypeError('UnavailableEffectSource');
-    let sharedManifest = false;
     const group = groups.find(value => {
       const sameView = shares(value[0], index);
-      if (sameView) sharedManifest = true;
       return sameView && workspaces?.[value[0]] === undefined &&
         workspaces?.[index] === undefined && targets?.[value[0]] === undefined &&
         targets?.[index] === undefined && (bindings === undefined ||
@@ -258,9 +298,6 @@ export async function preparePinnedEffectSourceSet({
     });
     if (group === undefined) {
       groups.push([index]);
-      // Moon's original live Result view proof, never equal content or CID,
-      // permits one logical Manifest entry across independent source custody.
-      if (sharedManifest) duplicateManifestMembers.add(index);
     }
     else group.push(index);
   }
@@ -285,7 +322,7 @@ export async function preparePinnedEffectSourceSet({
         ...(owned.onProposalRow === undefined ? {} : {
           proposalMemberIndexes: indexes,
         }),
-      }, manifestSet, undefined, duplicateManifestMembers.has(indexes[0]));
+      }, manifestSet);
       payloads.push(payload);
       for (const memberIndex of indexes) {
         members[memberIndex] = Object.freeze({memberIndex, payload});
@@ -330,8 +367,9 @@ export async function preparePinnedEffectSourceSet({
     const result = Object.freeze({payloads: Object.freeze(payloads.filter(value => memberPayloads.has(value)).map(value =>
       finalized.get(value))), members: Object.freeze(members.map(member =>
       Object.freeze({...member, payload: finalized.get(member.payload)})))});
-    preparedEffectSourceSets.set(result, Object.freeze({store: owned.store,
+    preparedEffectSourceSets.set(result, Object.freeze({runtime:moon,store: owned.store,
       control: owned.control, contractLimits: owned.contractLimits,
+      dependencyConstruction: owned.dependencyConstruction,
       runDefinition: Object.freeze({...owned.localEvidenceContext.runDefinition})}));
     return result;
   } catch (error) {
@@ -481,19 +519,25 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
   try {
     for (const [unitIndex, entries] of orderedUnits) {
       signal?.throwIfAborted();
-      const staticBodies = Object.freeze(checked(
+      const staticSelection = options.dependencyConstruction === undefined ? checked(
         moon.clientProgramEffectLocalStaticBodies(checkedOwner, unitIndex,
-          staticEntriesRemaining,
-          Math.min(contractLimits.maxWireBytes, dependencyText.remaining),
-          contractLimits.maxNodes, contractLimits.maxDepth),
-      ).map(pair => {
-        staticEntriesRemaining--;
+          staticEntriesRemaining, Math.min(contractLimits.maxWireBytes, dependencyText.remaining),
+          contractLimits.maxNodes, contractLimits.maxDepth))
+        : (()=>{
+          const original=installedEffectDependencyOriginal(options.dependencyConstruction,moon);
+          const value=checked(moon.clientProgramInstalledEffectStaticDependencyBodies(original.parent,
+            original.prepared,original.request,original.plan,inputs,unitIndex,
+            contractLimits.maxWireBytes,contractLimits.maxNodes,contractLimits.maxDepth));
+          original.current();return value;
+        })();
+      const staticBodies = Object.freeze(staticSelection.map(pair => {
+        if (options.dependencyConstruction === undefined) staticEntriesRemaining--;
         const wire = moon.clientProgramEffectLocalDependencyBodyJson(runtimeField(pair, 1));
         const bytes = Buffer.byteLength(wire, 'utf8');
-        if (bytes > dependencyText.remaining) {
-          throw new RangeError('EffectDependencyBodyByteLimit');
+        if (options.dependencyConstruction === undefined) {
+          if (bytes > dependencyText.remaining) throw new RangeError('EffectDependencyBodyByteLimit');
+          dependencyText.remaining -= bytes;
         }
-        dependencyText.remaining -= bytes;
         return Object.freeze({kind: runtimeField(pair, 0),
           cid: moon.clientProgramEffectLocalDependencyBodyCid(runtimeField(pair, 1)), wire});
       }));
@@ -552,7 +596,10 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
       if (model !== undefined && originalUnit === undefined) {
         dependency = control.issueOriginalModelEffectEvidence(model,
           owned.localEvidenceContext.modelRetention,
-          imports === 0 ? undefined : dependency, owned.contractLimits);
+          imports === 0 ? undefined : dependency, owned.contractLimits, options.dependencyConstruction !== undefined);
+      }
+      if (dependency.catalogDeferred === true && options.dependencyConstruction === undefined) {
+        throw new TypeError('MissingOriginalCatalogConstruction');
       }
       const unit = {invocation: dependency.invocation, artifacts: []};
       const manifestSet = new Map([[unitIndex, unit]]);
@@ -573,7 +620,7 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
             onProposalRow: proposes ? owned.onProposalRow : undefined,
             ...(proposes ? {proposalMemberIndexes: indexes} : {}),
           }, manifestSet, {resultIndex: entry.resultIndex, tableInput: entry.tableInput, dependency,
-            dependencyText, staticBodies,
+            dependencyText, dependencyConstruction: options.dependencyConstruction, staticBodies,
             ...(originalUnit === undefined || entry.tableInput ? {} : {
               originalArtifact,
             })}, entry.payloads.length > 0);
@@ -647,8 +694,9 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork,
         payload: entry.payload,
       }))),
     });
-    preparedEffectSourceSets.set(result, Object.freeze({store: owned.store,
+    preparedEffectSourceSets.set(result, Object.freeze({runtime:moon,store: owned.store,
       control: owned.control, contractLimits: owned.contractLimits,
+      dependencyConstruction: owned.dependencyConstruction,
       runDefinition: Object.freeze({...owned.localEvidenceContext.runDefinition})}));
     return result;
   } catch (error) {
@@ -896,7 +944,7 @@ async function preparePinnedEffectSourcePayloadOwned({
   localEvidenceContext,
   onProposalRow, proposalMemberIndexes, proposalLimits, onOriginalArtifact,
   commandWorkspace, onCommandKey, publishedTarget,
-}, manifestSet, local, duplicateManifestMember = false) {
+}, manifestSet, local) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
       typeof moon?.clientProgramIssueCapturedEffectInputLocalResultDefinition !==
@@ -1050,11 +1098,16 @@ async function preparePinnedEffectSourcePayloadOwned({
   let schemaBody;
   let sourceSchema;
   const retainText = text => {
-    const bytes = Buffer.byteLength(text, 'utf8');
-    if (bytes > local.dependencyText.remaining) {
-      throw new RangeError('EffectDependencyBodyByteLimit');
+    if (local.dependencyConstruction !== undefined) {
+      const original=installedEffectDependencyOriginal(local.dependencyConstruction,moon);
+      checked(moon.clientProgramInstalledEffectDependencyTextRetain(original.parent,
+        original.prepared,original.request,original.plan,text));
+      original.current();
+    } else {
+      const bytes = Buffer.byteLength(text, 'utf8');
+      if (bytes > local.dependencyText.remaining) throw new RangeError('EffectDependencyBodyByteLimit');
+      local.dependencyText.remaining -= bytes;
     }
-    local.dependencyText.remaining -= bytes;
     return text;
   };
   try {
@@ -1214,9 +1267,10 @@ async function preparePinnedEffectSourcePayloadOwned({
       tableInput: table,
       contractLimits: Object.freeze({...contractLimits}),
     }));
-    if (!duplicateManifestMember) {
-      manifestSet?.get(unitIndex).artifacts.push(localResultArtifact);
-    }
+    // Preserve every independently issued original for its member's custody.
+    // Common deduplicates only the canonical named entry after checking the
+    // exact live Result origin; it still retains each physical witness.
+    manifestSet?.get(unitIndex).artifacts.push(localResultArtifact);
     return payload;
   } catch (failure) {
     const pendingOwners = [];

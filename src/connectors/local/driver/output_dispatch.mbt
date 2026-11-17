@@ -59,11 +59,12 @@ fn local_output_transfer(
   attempt : @local.LocalMaterializingAttempt,
   index : Int,
   limits : @local.LocalExportLimits,
+  reserve? : ((Int64, Int64) -> Result[Unit, LocalDispatchIssue])? = None,
 ) -> LocalOutputTransfer {
   let issue = fn(value) {
     LocalDispatchIssue::Preparation(Materializing(value))
   }
-  {
+  let original : LocalOutputTransfer = {
     key: "task-" + index.to_string(),
     limits,
     install: check => {
@@ -114,6 +115,167 @@ fn local_output_transfer(
     refresh: () => {
       @strategy.refresh_task_execution_cleanup(run, ticket).map_err(value => {
         Execution(Physical(value))
+      })
+    },
+  }
+  guard reserve is Some(_) else { return original }
+  let emitted = Ref(0L)
+  let working = Ref(0L)
+  let retained = Ref(0L)
+  let failed : Ref[LocalDispatchIssue?] = Ref(None)
+  let fund = fn(
+    pending : Int,
+  ) -> Result[Bool, @execution.CompletedExportIssue] {
+    guard pending >= 0 else { return Err(Admission(InvalidCaptureLimits)) }
+    if reserve is Some(grow) {
+      guard @execution.checked_preparation_add_product(
+          emitted.val,
+          pending.to_int64(),
+          8L,
+        )
+        is Some(w) &&
+        @execution.checked_preparation_add_product(
+          emitted.val,
+          pending.to_int64(),
+          1L,
+        )
+        is Some(r) else {
+        return Err(Admission(InvalidCaptureLimits))
+      }
+      // The sealed file is consumed after Task completion. Its verifier and
+      // frame aliases are bounded by this SAME frame policy and actual file
+      // prefix, so retain that reusable window rather than ended writer E.
+      guard @execution.checked_preparation_add_product(
+          r,
+          Int64::min(r, limits.max_batch_bytes.to_int64()),
+          8L,
+        )
+        is Some(r) else {
+        return Err(Admission(InvalidCaptureLimits))
+      }
+      let w = Int64::max(working.val, Int64::max(w, r))
+      let r = Int64::max(retained.val, r)
+      match grow(w, r) {
+        Err(issue) => {
+          failed.val = Some(issue)
+          return Err(Admission(CaptureLimit))
+        }
+        Ok(_) => {
+          working.val = w
+          retained.val = r
+          failed.val = None
+        }
+      }
+    }
+    Ok(true)
+  }
+  let observe = fn(part : String) {
+    match managed_row_transfer_bytes(part, limits.wire.max_bytes) {
+      Err(issue) => Err(issue)
+      Ok(bytes) => {
+        guard @execution.checked_preparation_add_product(emitted.val, bytes, 1L)
+          is Some(next) &&
+          (reserve is None || next <= retained.val) else {
+          return Err(Configuration(InvalidLimits))
+        }
+        emitted.val = next
+        Ok(())
+      }
+    }
+  }
+  {
+    ..original,
+    next: () => {
+      if reserve is None {
+        return @local.next_local_output_export(attempt).map_err(issue)
+      }
+      // Preserve the blocking port's metadata preparation before entering the
+      // same stream with its before-commit growth callback.
+      while true {
+        match @local.advance_local_output_export_preparation(attempt, 64) {
+          Ok((true, _)) => break
+          Ok((false, _)) => ()
+          Err(value) => return Err(failed.val.unwrap_or(issue(value)))
+        }
+      }
+      let mut complete = false
+      let mut batch : String? = None
+      while !complete && batch is None {
+        let value = match
+          @local.advance_local_output_export(
+            attempt,
+            64,
+            before_batch_growth=Some(fund),
+          ) {
+          Ok(value) => value
+          Err(value) => return Err(failed.val.unwrap_or(issue(value)))
+        }
+        batch = value.batch
+        complete = value.complete
+      }
+      if batch is Some(part) {
+        match observe(part) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+      }
+      Ok(batch)
+    },
+    advance: quantum => {
+      @local.advance_local_output_export(
+        attempt,
+        quantum,
+        before_batch_growth=reserve.map(_ => fund),
+      )
+      .map_err(value => failed.val.unwrap_or(issue(value)))
+      .bind(value => {
+        if value.batch is Some(part) {
+          match observe(part) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+        }
+        Ok(value)
+      })
+    },
+    finish: () => {
+      match fund(if emitted.val == 0L { 2 } else { 1 }) {
+        Ok(true) => ()
+        _ => return Err(failed.val.unwrap_or(Configuration(InvalidLimits)))
+      }
+      @local.finish_local_output_export(attempt)
+      .map_err(issue)
+      .bind(value => {
+        let (content, tail) = value
+        match observe(tail) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        let (cid, bytes, _, rows) = @execution.output_stream_identity(content)
+        Ok({
+          cid,
+          bytes,
+          rows,
+          tail,
+          bind: available => {
+            let handle = @execution.retain_admitted_output_stream(
+              content,
+              (),
+              available,
+            )
+            @local.bind_local_output_export(
+              attempt,
+              @execution.retained_output_material(handle),
+            )
+            .map(_ => {
+              material: @execution.retained_output_material(handle),
+              readable: input => {
+                @execution.retained_producer_payload(handle, input) is Some(_)
+              },
+            })
+            .map_err(issue)
+          },
+        })
       })
     },
   }

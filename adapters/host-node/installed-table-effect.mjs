@@ -1,3 +1,5 @@
+import {installedEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
+import {prepareInstalledEffectResultProgress} from './effect-result-work.mjs';
 // Whole-Relation Table projections for the existing installed Effect Site.
 // The common Run, Checkpoint, capture, Ledger, apply and publication owners
 // remain authoritative. A Table member is one operation, including zero rows.
@@ -324,6 +326,28 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
     if (plan.receiptEvidence?.modelEvidence?.length || plan.captureEvidence?.modelEvidence?.length) {
       fail('InstalledTableModelProvenanceUnsupported');
     }
+    const managedEffect = facts.managedEffect;
+    const dependencyConstruction = managedEffect?.controlConstruction;
+    if (managedEffect !== undefined && typeof dependencyConstruction !== 'function') {
+      fail('InstalledEffectControlRuntimeUnavailable');
+    }
+    // The existing managed Run supplies the same registered late Catalog
+    // constructor used by row Effects. A copied shape or equal CID cannot
+    // lend another parent, checked preparation, Request or operation Plan.
+    const dependencyOriginal = managedEffect === undefined ? undefined
+      : installedEffectDependencyOriginal(dependencyConstruction, moon);
+    if (dependencyOriginal !== undefined &&
+        (dependencyOriginal.parent !== managedEffect.value ||
+          dependencyOriginal.prepared !== prepared || dependencyOriginal.request !== identity ||
+          dependencyOriginal.plan !== managedEffect.operationPlan)) {
+      fail('ForeignInstalledEffectManagedRun');
+    }
+    if (dependencyOriginal !== undefined && plan.sourceFreeInvocationOriginal !== undefined) {
+      control.bindCheckedInstalledEffectSourceFreeInvocation(dependencyOriginal.parent,
+        prepared, identity, dependencyOriginal.plan, checkedHost, plan.admission,
+        plan.runDefinition, plan.sourceFreeInvocationOriginal);
+      dependencyOriginal.current();
+    }
     const unit = facts.unit ?? installedRowEffectUnit(moon, compilation);
     const descriptors = unit.effectIds.map(effectId => ({effectId,
       descriptor: checked(moon.clientProgramEffectMemberDescriptor(prepared,
@@ -343,9 +367,12 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
       compiledPlan: checked(moon.strategyPublicationAdmit('compiled_plan',
         moon.clientProgramEffectCompilationCompiledPlanWire(compilation),
         plan.contractLimits.maxWireBytes, plan.contractLimits.maxNodes, plan.contractLimits.maxDepth))};
+    const resultProgress = managedEffect === undefined ? undefined
+      : prepareInstalledEffectResultProgress(managedEffect, checkedHost);
     const storedResults = await storeCompletedRunResultSet({execution, store, control,
       runDefinition: plan.runDefinition, invocation: plan.invocation, results: plan.results,
-      outputLimits: plan.outputLimits, contractLimits: plan.contractLimits});
+      outputLimits: plan.outputLimits, contractLimits: plan.contractLimits,
+      signal, resultProgress});
     const owner = cleanupOwner();
     let inputs, sources, releasedInputs = false;
     const releaseInputs = () => {
@@ -354,10 +381,17 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
       }
     };
     try {
-      inputs = checked(moon.clientProgramPinEffectSources(checkedHost, limits.maxPinnedResults));
+      inputs = dependencyOriginal === undefined
+        ? checked(moon.clientProgramPinEffectSources(checkedHost, limits.maxPinnedResults))
+        : checked(moon.clientProgramInstalledEffectDependencySourcesPin(dependencyOriginal.parent,
+          prepared, identity, dependencyOriginal.plan, checkedHost, limits.maxPinnedResults));
+      dependencyOriginal?.current();
       sources = await preparePinnedEffectSourceSet({moon, checkedOwner: prepared,
+        dependencyConstruction,
         execution, inputs, maxMembers: descriptors.length,
-        maxGroupingWork: (descriptors.length + limits.maxPinnedResults)*2,
+        // Counts bound inventories; the existing Host work policy bounds
+        // grouping and checked dependency-import correspondence across Units.
+        maxGroupingWork: limits.maxWork,
         limits: moon.clientProgramEffectInputExportLimits(...exportLimits(plan.outputLimits)),
         store, control, maxBytes: limits.maxInputBytes, invocation: plan.invocation,
         retention: plan.effectInputRetention, contractLimits: plan.contractLimits,
@@ -498,7 +532,8 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
       for (let index=0; index<targets.length; index++) {
         const input = await prepareRecoveredTableInput({recovered: durable, store,
           control, memberIndex: index, requestScope, contractLimits: localContractLimits,
-          tableLimits: limits.material, bridge, signal});
+          tableLimits: limits.material, bridge, signal,
+          recoveryResources: recovered.recoveryResources});
         recoveredInputs.push(input);
         const schema = await store.putPreparedResultSchema(input.schemaWire,
           JSON.parse(input.operationWire).schema_cid, inventory.chain.runDefinition.identity);

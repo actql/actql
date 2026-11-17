@@ -163,6 +163,7 @@ priv enum Frame {
   Value(@decode.Cursor)
   ArrayRest(@decode.Cursor, Int, Int)
   ObjectRest(Array[(String, @decode.Cursor)], Int)
+  CensusObjectRest(@decode.Cursor, Int, Int)
 }
 
 ///|
@@ -172,6 +173,7 @@ pub fn emit(
 ) -> Unit raise @encode.EncodeFailure {
   let pending : Array[Frame] = [Value(steps.source)]
   while pending.pop() is Some(frame) {
+    @encode.construction_work_step(writer, 1)
     match frame {
       Value(cursor) => {
         let index = @decode.tree_index(steps.source, cursor).unwrap()
@@ -184,17 +186,26 @@ pub fn emit(
           pending.push(ArrayRest(cursor, 0, n))
         } else if @decode.object_length(cursor) is Some(n) {
           @encode.begin_object(writer)
-          let fields = []
-          for i in 0..<n {
-            let field = @decode.field_at(cursor, i).unwrap()
-            if !steps.annotations.contains(
-                @decode.tree_index(steps.source, field.1).unwrap(),
-              ) {
-              fields.push(field)
+          if @encode.construction_census_mode(writer) {
+            pending.push(CensusObjectRest(cursor, 0, n))
+          } else {
+            let fields = []
+            for i in 0..<n {
+              @encode.construction_work_step(writer, 1)
+              let field = @decode.field_at(cursor, i).unwrap()
+              if !steps.annotations.contains(
+                  @decode.tree_index(steps.source, field.1).unwrap(),
+                ) {
+                fields.push(field)
+              }
             }
+            if @encode.construction_work_active(writer) {
+              @encode.sort_construction_fields(fields, writer)
+            } else {
+              fields.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
+            }
+            pending.push(ObjectRest(fields, 0))
           }
-          fields.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
-          pending.push(ObjectRest(fields, 0))
         } else {
           match @decode.view(cursor) {
             @decode.NullValue => @encode.null_value(writer)
@@ -212,6 +223,27 @@ pub fn emit(
           pending.push(ArrayRest(cursor, i + 1, n))
           pending.push(Value(@decode.element_at(cursor, i).unwrap()))
         }
+      CensusObjectRest(cursor, start, count) => {
+        let mut i = start
+        let mut found = false
+        while i < count {
+          @encode.construction_work_step(writer, 1)
+          let field = @decode.field_at(cursor, i).unwrap()
+          if !steps.annotations.contains(
+              @decode.tree_index(steps.source, field.1).unwrap(),
+            ) {
+            @encode.key(writer, field.0)
+            pending.push(CensusObjectRest(cursor, i + 1, count))
+            pending.push(Value(field.1))
+            found = true
+            break
+          }
+          i += 1
+        }
+        if !found {
+          @encode.end_object(writer)
+        }
+      }
       ObjectRest(fields, i) =>
         if i == fields.length() {
           @encode.end_object(writer)

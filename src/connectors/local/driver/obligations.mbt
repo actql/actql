@@ -258,7 +258,7 @@ pub fn local_dispatch_rejection(
 }
 
 ///|
-/// Every selected expansion must carry its exact checked output envelope.
+/// Every selected append/expansion must carry its exact checked output envelope.
 /// A missing or foreign envelope keeps the task out of retained execution.
 fn local_task_expansion_output_ceilings(
   run : @strategy.CapturedDAG,
@@ -272,6 +272,19 @@ fn local_task_expansion_output_ceilings(
   let ceilings : Array[(Int, Int64)] = []
   for index in 0..<count {
     let requirement = @strategy.graph_task_operation_at(graph, task, index).unwrap()
+    if requirement.disposition is ExecutionCheck(AppendRows(check)) {
+      let step = requirement.site.step
+      if !expansion_steps.contains(step) {
+        expansion_steps.push(step)
+      }
+      if check.rule is EnforceOutputEnvelope(ceiling) {
+        let maximum = @policy.ceiling_value(ceiling)
+        if maximum < 0L || ceilings.any(entry => entry.0 == step) {
+          return None
+        }
+        ceilings.push((step, maximum))
+      }
+    }
     if requirement.disposition is ExecutionCheck(ExpansionExecution(check)) {
       let step = requirement.site.step
       match check.rule {
@@ -298,6 +311,30 @@ fn local_task_expansion_output_ceilings(
     }
   }
   Some(ceilings)
+}
+
+///|
+/// Bind the exact checked operation restrictions to the same generated task.
+/// This reuses its existing step-indexed expansion restriction carrier.
+fn local_task_constrain_expansion(
+  run : @strategy.CapturedDAG,
+  task : Int,
+  sequence : @execution.GeneratedSequence,
+) -> @execution.GeneratedSequence? {
+  guard local_task_expansion_output_ceilings(run, task) is Some(ceilings) else {
+    return None
+  }
+  let mut constrained = sequence
+  for (step, ceiling) in ceilings {
+    constrained = match
+      @execution.constrain_generated_expansion_output(
+        constrained, step, ceiling,
+      ) {
+      Ok(value) => value
+      Err(_) => return None
+    }
+  }
+  Some(constrained)
 }
 
 ///|

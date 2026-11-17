@@ -25,7 +25,14 @@ test "materializing unverified import keeps reservation until sliced cleanup" {
   @strategy.close_task_execution(run, ticket)
   @strategy.settle_task_execution(run, ticket, true).unwrap()
   let pending = @resources.ledger_usage(ledger)
-  assert_eq(pending.reserved_execution_bytes, before.reserved_execution_bytes)
+  // Common settlement can retire the ended construction overlap while the
+  // same retained prefix and positive cleanup scratch stay funded. This is
+  // not a physical cleanup ACK or permission to release imported DATA.
+  assert_true(
+    pending.reserved_execution_bytes <= before.reserved_execution_bytes,
+  )
+  assert_eq(pending.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(pending.held_bytes, before.held_bytes)
   assert_true(pending.reserved_execution_bytes > 0L)
   // Common observations are pure; only the installed cleanup poll advances.
   for _ in 0..<2 {
@@ -154,13 +161,20 @@ test "materializing close retains stopped provider through cleanup error and ret
   )
   assert_eq(cleanup_calls.val, 1)
   assert_false(@strategy.refresh_task_execution_cleanup(run, ticket).unwrap())
+  let pending = @resources.ledger_usage(ledger)
+  assert_true(pending.reserved_execution_bytes > 0L)
+  assert_true(
+    pending.reserved_execution_bytes <= before.reserved_execution_bytes,
+  )
+  assert_eq(pending.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(pending.held_bytes, before.held_bytes)
   assert_false(
     @local_connector.advance_local_materializing_cleanup(attempt, 64),
   )
   assert_eq(cleanup_calls.val, 2)
   assert_eq(
     @resources.ledger_usage(ledger).reserved_execution_bytes,
-    before.reserved_execution_bytes,
+    pending.reserved_execution_bytes,
   )
   assert_true(@execution.completed_output_available(source))
   let work = @local_connector.local_materializing_cumulative_work(attempt)

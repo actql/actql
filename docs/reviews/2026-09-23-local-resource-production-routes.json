@@ -6081,7 +6081,7 @@
             "native"
           ],
           "path": "src/query_integration/local_managed_unary_wbtest.mbt",
-          "fixture": "ordinary keyed count chain grows prepaid workspace and preserves one-short physical limits"
+          "fixture": "ordinary keyed count chain enforces explicit workspace and one-short physical limits"
         },
         {
           "role": "keyed_count_same_stage_overlap_capacity",
@@ -8157,7 +8157,8 @@
             "native"
           ],
           "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
-          "fixture": "Values publication rejects wrong children and shadowing providers"
+          "fixture": "Values publication rejects wrong children and shadowing providers",
+          "case_id": "retained_source_free_chain_rejection"
         },
         {
           "role": "retained_source_free_product_configuration",
@@ -8168,7 +8169,8 @@
             "native"
           ],
           "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
-          "fixture": "product source-free retained factory installs exact bounded chain offers"
+          "fixture": "product source-free retained factory executes its exact bounded chain",
+          "case_id": "retained_source_free_product_configuration"
         },
         {
           "role": "retained_source_free_product_branch_admission",
@@ -8179,7 +8181,8 @@
             "native"
           ],
           "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
-          "fixture": "product retained factory admits the exact earlier Values producer of a checked branch"
+          "fixture": "product retained factory admits the exact earlier Values producer of a checked branch",
+          "case_id": "retained_source_free_product_branch_admission"
         },
         {
           "role": "retained_source_free_branch_execution_and_cancellation",
@@ -8190,7 +8193,8 @@
             "native"
           ],
           "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
-          "fixture": "source-free Values chains preserve ordered results and cancellation custody"
+          "fixture": "source-free Values chains preserve ordered results and cancellation custody",
+          "case_id": "retained_source_free_branch_execution_and_cancellation"
         },
         {
           "role": "retained_source_free_chain_budgets",

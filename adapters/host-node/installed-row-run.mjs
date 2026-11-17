@@ -9,7 +9,7 @@ import {types as nodeTypes} from 'node:util';
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 
 export function startInstalledRowRun({moon, acquisition, nonce, ledger,
-  capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false}) {
+  capacity, keyed = false, originalRead, originalKeyedRead, wholeInput = false, responseBackingReleased}) {
   // The checked original already retains the Whole acquisition and its Core
   // provider capacity. A Host-backed Mock read has no separate managed reader;
   // do not fabricate one or confuse that absence with missing Run backing.
@@ -17,6 +17,12 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       capacity?.listingReport !== undefined)) {
     fail('InstalledWholeSourceReadUnavailable');
   }
+  if (responseBackingReleased !== undefined &&
+      (!keyed || typeof responseBackingReleased !== 'function' || nodeTypes.isProxy(responseBackingReleased) || nodeTypes.isAsyncFunction(responseBackingReleased))) {
+    fail('InvalidInstalledSourceBackingOwner');
+  }
+  const physicalAndBackingStopped = () => transportStopped &&
+    (responseBackingReleased === undefined || responseBackingReleased() === true);
   if (keyed && ledger === undefined) fail('InstalledKeyedSourceLedgerRequired');
   const reportCapacity = capacity?.listingReport;
   const providerCapacity = capacity?.provider;
@@ -58,7 +64,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       : 'clientProgramInstalledSourceReadStartProviderRows',
       wholeInput ? 'clientProgramWholeSourceBorrowResponses' : 'clientProgramRowSourceBorrowResponses',
       'clientProgramRowSourceBindResponseCleanup',
-      ...(!wholeInput ? ['clientProgramRowSourceRetireResponseWorkspace'] : [])]
+      'clientProgramRowSourceRetireResponseWorkspace',
+      ...(wholeInput ? ['clientProgramWholeSourceIsListing'] : [])]
       .some(name => typeof moon[name] !== 'function')) fail('InstalledProviderSourceUnavailable');
   }
   if (reportCapacity !== undefined) {
@@ -79,11 +86,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     : originalKeyedRead !== undefined
     ? moon.clientProgramInstalledKeyedSourceReadStartRows(originalKeyedRead, acquisition,
       nonce, attempt => settled.has(attempt), capacity.transferBytes,
-      capacity.executionBytes, () => transportStopped)
+      capacity.executionBytes, physicalAndBackingStopped)
     : keyed
     ? moon.clientProgramKeyedRowStartAccounted(acquisition, nonce,
       attempt => settled.has(attempt), ledger, capacity.transferBytes,
-      capacity.executionBytes, () => transportStopped)
+      capacity.executionBytes, physicalAndBackingStopped)
     : reportCapacity !== undefined
     ? moon.clientProgramRowSourceStartListingAccounted(acquisition,
       reportCapacity, nonce, attempt => settled.has(attempt), ledger,
@@ -215,6 +222,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     };
     const grow = moon.clientProgramRowSourceGrowResponseCapacity;
     const growConstruction = moon.clientProgramRowSourceGrowResponseConstructionCapacity;
+    const completeConstruction = moon.clientProgramRowSourceCompleteResponseConstructionCapacity;
     const reserveResponseCapacity = typeof grow !== 'function' ? undefined
       : (capacity, phase) => {
         if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
@@ -223,7 +231,8 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
         // against this SAME original before Buffer/JSON construction; only the
         // existing one-argument path consumes a live page's charged entrance.
         const selected = phase === undefined ? grow
-          : phase === 'announced-body' ? growConstruction : undefined;
+          : phase === 'announced-body' ? growConstruction
+          : phase === 'completed-body' ? completeConstruction : undefined;
         if (typeof selected !== 'function') fail('InstalledSourceResponseConstructionUnavailable');
         checked(Reflect.apply(selected, moon, [borrow, capacity]));
         // The original Resource callback already checked currentness. Reentry
@@ -320,11 +329,14 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     retainedRelationOutput, currentRead, signal, captureOnly = false}) {
     if (keyed) fail('InstalledSourceProgramMismatch');
     const captured = await capture({currentRead, signal});
-    if (providerCapacity !== undefined && !wholeInput) {
+    if (providerCapacity !== undefined &&
+        (!wholeInput || !moon.clientProgramWholeSourceIsListing(acquisition))) {
       // This SAME reader must actually retire its response/decode workspace
       // before Source/Compute/Effect consumers may use that phase allowance.
       // Keep its observer and receiver for final Row cleanup, including a
       // pending/throwing retirement; stopping alone never returns bytes.
+      // Whole input keeps its independently charged immutable capture. Its
+      // stopped provider workspace has the same cut; listing custody does not.
       stopReader();
       // Core invokes the SAME bound observer once for this cut. Do not first
       // observe it here and then repeat that external observation in Core.

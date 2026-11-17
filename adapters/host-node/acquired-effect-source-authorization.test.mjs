@@ -26,7 +26,7 @@ const select = (type, name) => {
   return source.slice(found[0].start, found[0].end);
 };
 const makeAuthorization = compileFunction(`
-  const {installedSources, sources, createLocalAuthorizationGate} = ports;
+  const {installedSources, sources, accountConstruction, createLocalAuthorizationGate} = ports;
   const authorityScopeCid = 'original-authority', ownerPrincipal = 'original-principal';
   const journal = {}, decisionOptions = {}, authorities = [], binding = {};
   const decide = undefined, answeringAuthorities = undefined;
@@ -39,16 +39,18 @@ const fail = code => {throw Object.assign(new Error(code), {code});};
 
 function fixture(coordinates = [0, 1, 2].map(task => ({stage: task, input: 0, task}))) {
   const prepared = {}, definition = {identity: 'original-definition'}, held = new WeakSet();
+  const accountConstruction = Object.freeze({original: 'account-construction'});
   const binding = Object.freeze({connectorId: 'original', connectorRegistration: 'original',
     connectorRevision: 'original/0.1', bindingCid: 'sha256:' + 'a'.repeat(64)});
   const configuration = {sourceRef: 'original-source', accountConfiguration: 'original-account',
     context: {contextCid: 'original-context'}};
   const events = [], gates = [];
   let current = true;
-  const authorization = makeAuthorization({sources: [configuration],
+  const authorization = makeAuthorization({sources: [configuration], accountConstruction,
     installedSources: [{configuration, gate: {configurationCid: 'original-config',
       contextCid: 'original-context'}}],
     async createLocalAuthorizationGate(options) {
+      assert.equal(options.accountConstruction, accountConstruction);
       assert.equal(options.accountConfiguration, configuration.accountConfiguration);
       assert.equal(options.context, configuration.context);
       const gate = {configurationCid: 'original-config', contextCid: 'original-context',

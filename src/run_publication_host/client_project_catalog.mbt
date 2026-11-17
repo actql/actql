@@ -18,22 +18,7 @@ pub fn admit_client_project_catalog(
   wire : String,
 ) -> Result[ClientProjectCatalog, ClientProjectCatalogIssue] {
   let bytes = @utf8.encode(wire)
-  let source = match
-    @source.parse_json_bytes_preserving(bytes, {
-      max_input_bytes: 65536,
-      max_nodes: 4096,
-      max_depth: 16,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidCatalog)
-  }
-  let cursor = match
-    @decode.admit(source, {
-      max_nodes: 4096,
-      max_depth: 16,
-      max_string_bytes: 65536,
-      max_total_string_bytes: 65536,
-    }) {
+  let cursor = match project_metadata_cursor(bytes) {
     Ok(value) => value
     Err(_) => return Err(InvalidCatalog)
   }

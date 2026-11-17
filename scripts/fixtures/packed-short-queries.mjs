@@ -2,7 +2,6 @@
 // owners. Only independently expected rows and observed Compute counts pass.
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
@@ -11,43 +10,10 @@ import {setImmediate} from 'node:timers/promises';
 import {connect, open} from '@actql/node';
 import {getSubmissionInput, getSubmissionOutcome} from '@actql/sdk';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
-import {assertObservedTransition, createComputedBarrier, observedRevision,
+import {assertObservedTransition, shortQueryAuthorization as authorization, observedRevision,
   observeSettledResult, publishedFacts} from './run-revision-assertions.mjs';
 import {closeFixtureClient, withFixtureClientCleanup} from './client-cleanup.mjs';
 
-function authorization(outcome = 'allow') {
-  const keys = generateKeyPairSync('ed25519');
-  let computes = 0, nextComputed;
-  return {count: () => computes, holdNextComputed() {
-    assert.equal(nextComputed, undefined, 'One fixture-owned pending barrier');
-    nextComputed = createComputedBarrier();
-    return nextComputed;
-  }, value: {
-    accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
-      account_id: `short-${outcome}`, entries: [{entry_id: 'write', outcome,
-        principal: {all: true}, connection: {all: true}, resource: {all: true},
-        operation: {any_of: ['write']}, exclusions: []},
-      // Current Host observation and each named Result use distinct read
-      // tuples. Neither grants a write or answers a delegated preparation.
-      {entry_id: 'owner-read', outcome: 'allow',
-        principal: {any_of: [userInfo().username]},
-        connection: {any_of: ['actql-remote-host']},
-        resource: {any_of: ['result/answer', 'result/main', 'result/named', 'run']},
-        operation: {any_of: ['read']}, exclusions: []}]
-        .sort((left, right) => left.entry_id.localeCompare(right.entry_id))}),
-    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
-      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
-    hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
-    observe(name) {if (name === 'computed') computes++;},
-    async faultInjection(name, detail) {
-      if (name === 'computed' && nextComputed !== undefined) {
-        const original = nextComputed;
-        nextComputed = undefined;
-        await original.observe(detail.ref);
-      }
-    },
-  }};
-}
 
 const defaults = await open();
 await withFixtureClientCleanup(defaults, async () => {

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 
 // Execute the original coordination branches with explicit ports. No physical
 // Model, Journal, Source or cleanup acknowledgement is supplied by this test.
@@ -111,44 +112,41 @@ test('diagnostic handoff preserves a recorded null or undefined and never consum
   assert.equal(Object.hasOwn(entry, 'primaryFailure'), false);
 });
 
-function trackCallback(method, marker) {
-  const found = [];
-  function visit(node) {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
-        node.callee.property.name === method && node.arguments[0]?.type === 'ArrowFunctionExpression' &&
-        dispatch.slice(node.arguments[0].start, node.arguments[0].end).includes(marker)) {
-      found.push(node.arguments[0]);
-    }
-    for (const value of Object.values(node)) for (const child of Array.isArray(value) ? value : [value]) visit(child);
-  }
-  visit(dispatchTree);assert.equal(found.length, 1);
-  return dispatch.slice(found[0].start, found[0].end);
-}
-const trackedResult = trackCallback('then', "result?.status === 'failed_without_effect_dispatch'");
-const trackedFailure = trackCallback('catch', 'if (!entry.runInvoked)');
-
 test('the actual tracked Effect caller keeps the Model primary across a later cleanup refusal', async () => {
   const primary = Object.assign(new Error('OriginalModelFailure'), {code: 'OriginalModelFailure'});
   const cleanup = Object.assign(new Error('OriginalCleanupPending'), {code: 'ClientDispatchCleanupPending'});
-  const custody = {}, entry = {runInvoked: true, cleanupOwner: custody};
-  const make = (source, ports) => new Function(...Object.keys(ports), `return (${source});`)(...Object.values(ports));
-  const next = make(trackedResult, {entry, retainDispatchPrimaryFailure,
-    settleCleanup: async actual => {
-      assert.strictEqual(actual.primaryFailure, primary);assert.strictEqual(actual.cleanupOwner, custody);throw cleanup;
-    }});
-  await assert.rejects(next({status: 'needs_reconciliation', primaryFailure: primary}), error => error === cleanup);
-  const diagnostics = [];
-  const failed = make(trackedFailure, {entry, settleCleanup: async () => {throw cleanup;},
-    CapturedRunPublicationError: class ExplicitPublicationError extends Error {}, dispatchFailureSnapshot,
-    diagnostic: (name, facts) => diagnostics.push({name, facts}), runtimeTag: () => undefined,
-    runtimeOptionalField: () => undefined, barrierFailureOutcome: null});
-  await assert.rejects(failed(cleanup), error => error === cleanup);
-  assert.strictEqual(entry.primaryFailure, primary);assert.strictEqual(entry.cleanupFailure, cleanup);
-  assert.strictEqual(entry.cleanupOwner, custody);assert.equal(entry.terminalOutcome, undefined);
+  const diagnostics = [], stopped = [];
+  let cleanupReady = false;
+  const custody = {async close() {}, cleanup() {
+    if (!cleanupReady) throw cleanup;
+    return true;
+  }, cleanupPending: () => !cleanupReady};
+  const owner = installNodeClientDispatchOwner({observed(name, facts) {
+    if (name === 'dispatch_failed') diagnostics.push({name, facts});
+  }});
+  const ref = {runDefinitionCid: 'unknown-primary-cleanup'};
+  const operation = owner.track(ref, {run({beginPhysicalWork, retainExecution}) {
+    beginPhysicalWork();
+    retainExecution(custody);
+    return Object.freeze({status: 'needs_reconciliation', primaryFailure: primary});
+  }, observeStopped: outcome => stopped.push(outcome)});
+  await assert.rejects(operation, error => error === cleanup);
+  await assert.rejects(owner.drain(), error => {
+    assert.equal(error.code, 'ClientDispatchCleanupPending');
+    assert.deepEqual(error.pendingRefs, [ref]);
+    assert.equal(error.failures[0].primary.code, primary.code);
+    assert.equal(error.failures[0].cleanup.code, cleanup.code);
+    return true;
+  });
+  assert.strictEqual(owner.operation(ref), operation);
+  assert.deepEqual(stopped, []);
   assert.equal(diagnostics.length, 1);assert.equal(diagnostics[0].name, 'dispatch_failed');
   assert.equal(diagnostics[0].facts.code, cleanup.code);
   assert.equal(diagnostics[0].facts.primaryCode, primary.code);
+  cleanupReady = true;
+  await owner.drain();
+  assert.deepEqual(stopped, [null]);
+  assert.equal(owner.operation(ref), undefined);
 });
 
 test('dispatch copies only inert typed primary diagnostic DATA without invoking failure getters',()=>{

@@ -35,9 +35,9 @@ function owner(requestMemory = memory) {
       calls.prepare++;
       return Reflect.apply(raw.clientProgramReserveRequestResultRead, raw, args);
     },
-    clientProgramGrowRequestResultReadRow(...args) {
+    clientProgramGrowRequestResultReadFrame(...args) {
       calls.grow++;
-      return Reflect.apply(raw.clientProgramGrowRequestResultReadRow, raw, args);
+      return Reflect.apply(raw.clientProgramGrowRequestResultReadFrame, raw, args);
     },
     clientProgramAbortRequestPreparation(...args) {
       calls.close++;
@@ -72,7 +72,7 @@ for (const [format, wire] of [
   // JSONL is three row batches; CSV header + one row batch.
   assert.equal(retained.length, format === 'json' ? 5 : format === 'jsonl' ? 3 : 2);
   assert.equal(o.calls.begin, 1); assert.equal(o.calls.prepare, 1);
-  assert.equal(o.calls.grow, 1, 'one row high-water, no per-row Resource/Graph check');
+  assert.equal(o.calls.grow, 1, 'one physical-frame high-water; raw-row preflight is separate');
   assert.deepEqual(o.reserved(o.parents[0]), [0n, 0n]);
   assert.deepEqual(await o.workspace.closeAll(), {pending: false});
 });
@@ -106,7 +106,7 @@ test('actual bounded writes reobserve changed Account at callbacks rather than e
 
 test('equal Result DATA has distinct concurrent READ parents and failed physical cleanup retains its original', async () => {
   const o = owner(), first = Object.freeze({result: 'same', attempt: 'one'}), second = Object.freeze({result: 'same', attempt: 'two'});
-  const metadata = Object.freeze({payloadBytes: 1000, resultSchemaWire: '{"value":{"type":"integer","nullable":false}}', resultFields: ['value']});
+  const metadata = Object.freeze({rowCount: 1, payloadBytes: 1000, resultSchemaWire: '{"value":{"type":"integer","nullable":false}}', resultFields: ['value']});
   const limits = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64}, frames = {maxRowBytes: 4096, maxFrameBytes: 4096, maxDepth: 32};
   o.workspace.begin(first);o.workspace.begin(second);
   o.workspace.prepare(first, metadata, limits, frames);o.workspace.prepare(second, metadata, limits, frames);
@@ -177,7 +177,7 @@ test('record durability and original physical read cleanup both retain the SAME 
   const {ResultDeliveryError} = await import('../host-common/result-delivery.mjs');
   const o = owner(), request = Object.freeze({result: 'same', attempt: 'original'});
   o.workspace.begin(request);
-  o.workspace.prepare(request, {payloadBytes: 1000, resultSchemaWire: '{"value":{"type":"integer","nullable":false}}', resultFields: ['value']},
+  o.workspace.prepare(request, {rowCount: 1, payloadBytes: 1000, resultSchemaWire: '{"value":{"type":"integer","nullable":false}}', resultFields: ['value']},
     {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64}, {maxRowBytes: 4096, maxFrameBytes: 4096, maxDepth: 32});
   const before = o.reserved(o.parents[0]);
   let recordPending = true, readerPending = true, records = 0, readers = 0;
@@ -240,8 +240,49 @@ test('normal installed Result caller captures SAME policy and uses its actual RE
   assert.throws(() => actual({}), {code: 'ForeignInstalledHostPreparation'});
   const request = Object.freeze({result: 'same', attempt: 'actual-caller'});
   workspace.begin(request);
-  workspace.prepare(request, {payloadBytes: 20, resultSchemaWire: '{"value":{"type":"integer","nullable":false}}', resultFields: ['value']},
+  workspace.prepare(request, {rowCount: 1, payloadBytes: 20, resultSchemaWire: '{"value":{"type":"integer","nullable":false}}', resultFields: ['value']},
     {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64}, {maxRowBytes: 4096, maxFrameBytes: 4096, maxDepth: 32});
   workspace.row(request, 11);workspace.close(request);
   assert.deepEqual(await workspace.closeAll(), {pending: false});assert(initial >= 2 && current > 0);
+});
+
+
+test('actual READ serializer accepts a row beyond legacy one MiB under the same selected parent', async () => {
+  const row = '{"value":"' + 'x'.repeat(1048600) + '"}';
+  const o = owner(Object.freeze({retainedBytes: 536870912, executionBytes: 536870912}));
+  const f = createResultDeliveryFixture(access, control, {rows: [row],
+    resultSchemaWire: '{"value":{"nullable":false,"type":"string"}}',
+    deliveryLimits: {maxWireBytes: 8 * 1024 * 1024, maxNodes: 4096, maxDepth: 64},
+    frameLimits: {maxRowBytes: row.length, maxDepth: 64, maxFrameBytes: 65536},
+    maxBytes: 8 * 1024 * 1024, readWorkspace: o.workspace});
+  const result = await f.deliver();
+  assert.equal(f.state.chunks.join(''), '[' + row + ']');
+  assert.equal(result.sha256, hash('[' + row + ']'));
+  assert.deepEqual(o.reserved(o.parents[0]), [0n, 0n]);
+  assert.deepEqual(await o.workspace.closeAll(), {pending: false});
+});
+
+
+test('actual in-process Result decoder uses the SAME selected row policy beyond legacy one MiB', async () => {
+  const {authorizedLocalResultFrames} = await import('./in-process-result.mjs');
+  const {localResourceResultReadLimits} = await import('./installed-host-policy.mjs');
+  const selected = Object.freeze({retainedBytes: 536870912, executionBytes: 536870912});
+  const policy = localResourceResultReadLimits(raw, selected);
+  const text = 'x'.repeat(1048600), row = JSON.stringify({value: text});
+  const o = owner(selected), f = createResultDeliveryFixture(access, control, {rows: [row],
+    resultSchemaWire: '{"value":{"nullable":false,"type":"string"}}',
+    deliveryLimits: {maxWireBytes: Math.min(2147483647, policy.maxReadWireBytes),
+      maxNodes: policy.maxRowWireBytes, maxDepth: 64},
+    frameLimits: {maxRowBytes: policy.maxRowWireBytes, maxDepth: 64, maxFrameBytes: 65536},
+    maxBytes: policy.maxReadWireBytes, readWorkspace: o.workspace});
+  const received = [];
+  for await (const frame of authorizedLocalResultFrames(f.service, {
+    indexKey: {namespaceId: 'namespace', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+      runDefinitionCid: `sha256:${'9'.repeat(64)}`}, principalId: 'principal',
+    purpose: 'download', resultName: 'answer', attemptId: 'same-logical-attempt',
+  }, undefined, {maxRowBytes: policy.maxRowWireBytes}).frames) received.push(frame);
+  assert.deepEqual(received.map(frame => frame.value), [{value: text}]);
+  assert.equal(received[0].byteLength, Buffer.byteLength(row));
+  assert.deepEqual(o.reserved(o.parents[0]), [0n, 0n]);
+  assert.deepEqual(await o.workspace.closeAll(), {pending: false});
 });

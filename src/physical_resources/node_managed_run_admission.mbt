@@ -27,6 +27,19 @@ struct NodeManagedRunAdmission[P] {
 }
 
 ///|
+// Internal shared-work view only. Original prepared/lifetime checks happen
+// before this immutable child link is read; this issues no Ledger or grant.
+fn[P] prepared_run_operation_work_node_child(
+  owner : NodeManagedRunAdmission[P],
+) -> ImportedChildLedger? {
+  if owner.cleaned {
+    None
+  } else {
+    Some(owner.child)
+  }
+}
+
+///|
 fn[P] prepare_node_managed_run_original(
   child : ImportedChildLedger,
   prepared : P,
@@ -508,5 +521,16 @@ pub fn[P] stop_node_managed_run_admission(
   match check_node_managed_run_original(value) {
     Err(issue) => Err(issue)
     Ok(_) => stop_imported_child_ledger(value.child)
+  }
+}
+
+///|
+fn[P] prepared_run_operation_work_node_body(
+  owner : NodeManagedRunAdmission[P],
+) -> PreparationBodyBorrow[P]? {
+  if owner.cleaned {
+    None
+  } else {
+    owner.preparation_holder
   }
 }

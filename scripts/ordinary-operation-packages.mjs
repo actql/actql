@@ -5,7 +5,8 @@ import {createHash} from 'node:crypto';
 import {execFile, execFileSync} from 'node:child_process';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {arch, cpus, platform, release, totalmem} from 'node:os';
-import {join, resolve} from 'node:path';
+import {basename, join, resolve} from 'node:path';
+import {openArtifactZip} from './ci-artifact-reader.mjs';
 import {pathToFileURL} from 'node:url';
 import {promisify} from 'node:util';
 import {CLIENT_PACKAGES, checkoutState} from './packed-client-packages.mjs';
@@ -30,11 +31,30 @@ export async function readFixedSQLiteComparison(path, environment, load) {
 
 // The original run records the PR identity and workflow checkout. Git tree and
 // parent verification still follow after the downloaded manifest is admitted.
-function originalPerformanceMerge(repository, eventHeadSha, buildSourceSha, run) {
+function originalPerformanceMerge(repository, eventHeadSha, buildSourceSha, run, diagnosticHeadComparison) {
   assert.equal(run.event, 'pull_request', 'Only the original PR merge may differ from its event head');
   assert.equal(run.pull_requests.length, 1);
   const pr = run.pull_requests[0];
-  assert(positiveId(pr.number)); assert.equal(pr.head.sha, eventHeadSha);
+  assert(positiveId(pr.number));
+  if (diagnosticHeadComparison !== undefined && pr.head.sha !== eventHeadSha) {
+    // REST refreshes the associated PR head after later pushes. Only this
+    // diagnostic entrance may bind that head to the immutable producer event.
+    assert.equal(run.head_sha, eventHeadSha); assert.equal(run.head_commit.id, eventHeadSha);
+    assert.match(pr.head.sha, /^[a-f0-9]{40}$/u);
+    assert.equal(pr.head.ref, run.head_branch); assert.equal(typeof pr.head.ref, 'string');
+    assert(pr.head.ref.length > 0); assert.equal(typeof pr.base.ref, 'string'); assert(pr.base.ref.length > 0);
+    assert.equal(pr.url, `https://api.github.com/repos/${repository}/pulls/${pr.number}`);
+    const comparison = diagnosticHeadComparison;
+    assert.equal(comparison.html_url, `https://github.com/${repository}/compare/${eventHeadSha}...${pr.head.sha}`);
+    assert.equal(comparison.status, 'ahead'); assert.equal(comparison.behind_by, 0);
+    assert.equal(comparison.base_commit.sha, eventHeadSha);
+    assert.equal(comparison.merge_base_commit.sha, eventHeadSha);
+    assert(Number.isSafeInteger(comparison.total_commits) && comparison.total_commits > 0
+      && comparison.total_commits <= 100, 'Historical diagnostic needs a complete bounded ancestry response');
+    assert.equal(comparison.ahead_by, comparison.total_commits);
+    assert.equal(comparison.commits.length, comparison.total_commits);
+    assert.equal(comparison.commits.at(-1).sha, pr.head.sha);
+  } else assert.equal(pr.head.sha, eventHeadSha);
   assert.match(pr.base.sha, /^[a-f0-9]{40}$/u);
   assert.equal(pr.head.repo.id, run.repository.id); assert.equal(pr.base.repo.id, run.repository.id);
   const reference = run.referenced_workflows.filter(value =>
@@ -84,7 +104,23 @@ export function validatePerformancePackageProducer({repository, sourceSha, runId
     qualification: 'Successful package producer only; other source-run failures remain failures.'};
 }
 
+const nativeCpuPurpose = 'native-approval-cpu-diagnostic';
+const nativeCpuProducerSteps = [
+  'Produce normal selected Linux Local artifact',
+  'Require Local payload in the selected npm cohort',
+  'Require actual bounded Crypto allocator conformance',
+];
+
 export function validatePerformanceProcessPackageProducer(options) {
+  return validateProcessPackageProducer(options, 'acceptance');
+}
+
+// A named diagnostic entrance, never an option understood by formal acceptance.
+export function validateNativeApprovalDiagnosticProducer(options) {
+  return validateProcessPackageProducer({...options, nativeApproval: true}, nativeCpuPurpose);
+}
+
+function validateProcessPackageProducer(options, purpose) {
   const {repository, sourceSha, runId, artifactId, artifact, run, jobs, producerJob, adapter,
     nativeApproval = false} = options;
   assert.equal(typeof nativeApproval, 'boolean');
@@ -111,7 +147,15 @@ export function validatePerformanceProcessPackageProducer(options) {
   assert.equal(artifact.workflow_run.head_sha, sourceSha);
   const selected = jobs.filter(job => job.name === producerJob);
   assert.equal(selected.length, 1, 'Exactly one selected normal package job is required');
-  assert.equal(selected[0].status, 'completed'); assert.equal(selected[0].conclusion, 'success');
+  assert.equal(selected[0].status, 'completed');
+  if (purpose === nativeCpuPurpose) {
+    assert(['success', 'failure'].includes(selected[0].conclusion), 'Diagnostic producer did not complete normally');
+    for (const name of nativeCpuProducerSteps) {
+      const steps = selected[0].steps?.filter(step => step.name === name);
+      assert.equal(steps?.length, 1, `One original successful producer step required: ${name}`);
+      assert.equal(steps[0].status, 'completed'); assert.equal(steps[0].conclusion, 'success');
+    }
+  } else assert.equal(selected[0].conclusion, 'success');
   assert.equal(selected[0].head_sha, sourceSha);
   assert(positiveId(selected[0].id));
   assert.equal(String(selected[0].run_id), String(runId));
@@ -121,14 +165,30 @@ export function validatePerformanceProcessPackageProducer(options) {
     ...(nativeApproval ? {sourceRunStatus: run.status, sourceRunConclusion: run.conclusion} : {}), adapter,
     runId: String(runId), artifactId: String(artifactId),
     attempt: run.run_attempt, producerJobId: selected[0].id, artifactName: artifact.name,
-    qualification: nativeApproval
+    ...(purpose === nativeCpuPurpose ? {purpose, diagnosticOnly: true, acceptanceEligible: false,
+      producerJobConclusion: selected[0].conclusion,
+      producerSteps: [...nativeCpuProducerSteps]}
+      : nativeApproval ? {purpose: 'native-approval-acceptance', acceptanceEligible: true,
+        producerJobConclusion: selected[0].conclusion} : {}),
+    qualification: purpose === nativeCpuPurpose
+      ? 'CPU diagnosis only; original producer and source-run failures remain failures; never acceptance evidence.'
+      : nativeApproval
       ? 'Successful original Native package job only; final source-run CI acceptance remains separate.'
       : 'Original same-run artifact and selected package job only; installed payload and performance checks remain required.'};
 }
 
 export function validatePerformanceBuildSource(options) {
+  return validateBuildSource(options, 'acceptance');
+}
+
+export function validateNativeApprovalDiagnosticSource(options) {
+  return validateBuildSource({...options, nativeApproval: true}, nativeCpuPurpose);
+}
+
+function validateBuildSource(options, purpose) {
   const {sourceSha: eventHeadSha, manifest, manifestSha256, run, headCommit, sourceCommit} = options;
-  const producer = options.nativeApproval || (options.adapter !== undefined && options.adapter !== 'node')
+  const producer = purpose === nativeCpuPurpose ? validateNativeApprovalDiagnosticProducer(options)
+    : options.nativeApproval || (options.adapter !== undefined && options.adapter !== 'node')
     ? validatePerformanceProcessPackageProducer(options)
     : validatePerformancePackageProducer({...options, buildSourceSha: manifest.sourceSha});
   assert.match(manifest.sourceSha, /^[a-f0-9]{40}$/u);
@@ -139,7 +199,8 @@ export function validatePerformanceBuildSource(options) {
   assert.equal(sourceCommit.tree.sha, headCommit.tree.sha, 'Built source differs from the reviewed head tree');
   let relation = 'same-head';
   if (manifest.sourceSha !== eventHeadSha) {
-    const pr = originalPerformanceMerge(options.repository, eventHeadSha, manifest.sourceSha, run);
+    const pr = originalPerformanceMerge(options.repository, eventHeadSha, manifest.sourceSha, run,
+      purpose === nativeCpuPurpose ? options.diagnosticHeadComparison : undefined);
     assert.deepEqual(sourceCommit.parents.map(parent => parent.sha), [pr.base.sha, eventHeadSha],
       'Built source does not have the original PR base/head parents');
     relation = 'pull-request-merge';
@@ -153,6 +214,14 @@ export function validateNativeApprovalSource(options) {
 }
 
 export async function inspectPerformancePackageProducer(options, fetchMetadata = fetch) {
+  return inspectPackageProducer(options, fetchMetadata, 'acceptance');
+}
+
+export async function inspectNativeApprovalDiagnosticProducer(options, fetchMetadata = fetch) {
+  return inspectPackageProducer({...options, nativeApproval: true}, fetchMetadata, nativeCpuPurpose);
+}
+
+async function inspectPackageProducer(options, fetchMetadata, purpose) {
   const {repository, runId, artifactId, token} = options;
   assert.match(repository, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u);
   assert(positiveId(runId) && positiveId(artifactId), 'Missing original package artifact');
@@ -176,9 +245,11 @@ export async function inspectPerformancePackageProducer(options, fetchMetadata =
     if (jobs.length >= result.total_count) { complete = true; break; }
   }
   assert(complete, 'Incomplete producer job inventory');
+  const validateProducer = purpose === nativeCpuPurpose ? validateNativeApprovalDiagnosticProducer
+    : options.nativeApproval || (options.adapter !== undefined && options.adapter !== 'node')
+    ? validatePerformanceProcessPackageProducer : validatePerformancePackageProducer;
   if (options.packages !== undefined || (options.nativeApproval && options.nativePackages !== undefined)) {
-    (options.nativeApproval || (options.adapter !== undefined && options.adapter !== 'node')
-      ? validatePerformanceProcessPackageProducer : validatePerformancePackageProducer)({...options, run, artifact, jobs});
+    validateProducer({...options, run, artifact, jobs});
     const adapter = options.adapter ?? 'node';
     const manifestFile = {node: 'packed-client-packages.json', native: 'release.json', python: 'cohort.json'}[adapter];
     assert(manifestFile, 'Exact package adapter is required');
@@ -199,11 +270,55 @@ export async function inspectPerformancePackageProducer(options, fetchMetadata =
     const headCommit = await get(`git/commits/${options.sourceSha}`);
     const sourceCommit = manifest.sourceSha === options.sourceSha ? headCommit
       : await get(`git/commits/${manifest.sourceSha}`);
-    return {...validatePerformanceBuildSource({...options, run, artifact, jobs, manifest,
-      manifestSha256: hash(bytes), headCommit, sourceCommit}), manifestFile};
+    let diagnosticHeadComparison;
+    if (purpose === nativeCpuPurpose && manifest.sourceSha !== options.sourceSha
+      && run.pull_requests?.length === 1 && run.pull_requests[0].head.sha !== options.sourceSha) {
+      assert.match(options.sourceSha, /^[a-f0-9]{40}$/u);
+      const currentHead = run.pull_requests[0].head.sha; assert.match(currentHead, /^[a-f0-9]{40}$/u);
+      diagnosticHeadComparison = await get(`compare/${options.sourceSha}...${currentHead}?per_page=100&page=1`);
+    }
+    const binding = {...validateBuildSource({...options, run, artifact, jobs, manifest, diagnosticHeadComparison,
+      manifestSha256: hash(bytes), headCommit, sourceCommit}, purpose), manifestFile};
+    if (purpose === nativeCpuPurpose) {
+      // Recheck the exact downloaded archive before the checkout changes. Member
+      // verification still runs on the original source before any consumer starts.
+      const zip = await openArtifactZip(options.diagnosticArchive, {expectedSha256: binding.artifactDigest});
+      try {
+        assert.equal(hash(await zip.read('release/release.json')), binding.manifestSha256);
+        binding.archiveSha256 = zip.sha256;
+      } finally {await zip.close();}
+    }
+    return binding;
   }
-  return (options.nativeApproval || (options.adapter !== undefined && options.adapter !== 'node')
-    ? validatePerformanceProcessPackageProducer : validatePerformancePackageProducer)({...options, run, artifact, jobs});
+  return validateProducer({...options, run, artifact, jobs});
+}
+
+// Only the verified release manifest and its original npm archives are needed.
+// The bounded reader rejects unsafe ZIP names and verifies the complete archive
+// digest before any bytes are written or any archived code can run.
+export async function extractNativeApprovalDiagnosticArtifact({archive, producer, output}) {
+  assert.equal(producer.purpose, nativeCpuPurpose);
+  assert.equal(producer.diagnosticOnly, true); assert.equal(producer.acceptanceEligible, false);
+  const zip = await openArtifactZip(archive, {expectedSha256: producer.artifactDigest});
+  try {
+    const bytes = await zip.read('release/release.json');
+    assert(bytes.length <= 8 * 1024 ** 2, 'Package manifest exceeds bounded input');
+    const {admitNativeReleaseManifest} = await import('./native-cli-release.mjs');
+    const manifest = admitNativeReleaseManifest(JSON.parse(bytes));
+    for (const item of manifest.packages) {
+      assert.equal(item.file, `${item.name.replace('@', '').replace('/', '-')}-${manifest.cohort.packageVersion}.tgz`);
+      assert.equal(basename(item.file), item.file);
+    }
+    await mkdir(output);
+    await writeFile(join(output, 'release.json'), bytes, {flag: 'wx'});
+    for (const item of manifest.packages) {
+      const body = await zip.read(`release/${item.file}`);
+      assert.equal(body.length, item.bytes); assert.equal(hash(body), item.sha256);
+      await writeFile(join(output, item.file), body, {flag: 'wx'});
+    }
+    return {purpose: nativeCpuPurpose, acceptanceEligible: false, archiveSha256: zip.sha256,
+      manifestSha256: hash(bytes)};
+  } finally {await zip.close();}
 }
 
 export async function prepareOrdinaryNativePerformanceConsumer({packages, sourceSha, output,
@@ -404,23 +519,32 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     const [command, ...args] = process.argv.slice(2);
     if (['inspect-producer', 'inspect-process-producer', 'inspect-native-approval-producer',
-      'inspect-native-approval-source', 'inspect-source'].includes(command)) {
+      'inspect-native-approval-source', 'inspect-native-approval-cpu-producer',
+      'inspect-native-approval-cpu-source', 'inspect-source'].includes(command)) {
       const nativeApproval = command.startsWith('inspect-native-approval-');
-      assert.equal(args.length, ['inspect-native-approval-source', 'inspect-source'].includes(command) ? 1 : 0);
+      const diagnostic = command.startsWith('inspect-native-approval-cpu-');
+      assert.equal(args.length, command === 'inspect-native-approval-cpu-source' ? 2
+        : ['inspect-native-approval-source', 'inspect-source'].includes(command) ? 1 : 0);
       if (command === 'inspect-source') assert(['node', 'native', 'python'].includes(process.env.PACKAGE_ADAPTER));
       if (command === 'inspect-process-producer') {
         assert(['native', 'python'].includes(process.env.PACKAGE_ADAPTER), 'Exact process adapter is required');
       }
-      console.log(JSON.stringify(await inspectPerformancePackageProducer({repository: process.env.GITHUB_REPOSITORY,
+      const inspect = diagnostic ? inspectNativeApprovalDiagnosticProducer : inspectPerformancePackageProducer;
+      console.log(JSON.stringify(await inspect({repository: process.env.GITHUB_REPOSITORY,
         sourceSha: process.env.PACKAGE_EVENT_HEAD_SHA ?? process.env.GITHUB_SHA,
         runId: process.env.PACKAGE_RUN_ID,
         artifactId: process.env.PACKAGE_ARTIFACT_ID, token: process.env.GITHUB_TOKEN,
         ...(nativeApproval ? {adapter: 'native', producerJob: process.env.PACKAGE_PRODUCER_JOB,
-          nativeApproval: true, ...(args.length ? {nativePackages: resolve(args[0])} : {})} : {}),
+          nativeApproval: true, ...(args.length ? {nativePackages: resolve(args[0])} : {}),
+          ...(diagnostic && args.length ? {diagnosticArchive: resolve(args[1])} : {})} : {}),
         ...(command === 'inspect-source' ? {adapter: process.env.PACKAGE_ADAPTER, packages: resolve(args[0]),
           ...(process.env.PACKAGE_ADAPTER === 'node' ? {} : {producerJob: process.env.PACKAGE_PRODUCER_JOB})} : {}),
         ...(command === 'inspect-process-producer' ? {adapter: process.env.PACKAGE_ADAPTER,
           producerJob: process.env.PACKAGE_PRODUCER_JOB} : {})})));
+    } else if (command === 'extract-native-approval-cpu-artifact') {
+      assert.equal(args.length, 3);
+      console.log(JSON.stringify(await extractNativeApprovalDiagnosticArtifact({archive: resolve(args[0]),
+        producer: JSON.parse(await readFile(resolve(args[1]), 'utf8')), output: resolve(args[2])})));
     } else if (command === 'prepare-native') {
       assert.equal(args.length, 3);
       const before = checkoutState(process.cwd());

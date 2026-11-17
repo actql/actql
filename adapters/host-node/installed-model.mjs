@@ -187,13 +187,16 @@ function modelDefaultsCallbacks(moon) {
   return Object.freeze({reader: moon.clientProgramReadInstalledModelDefaults,
     resolver: moon.clientProgramResolveInstalledModelDefaults,
     bindingReader: moon.clientProgramInstalledModelDefaultsBinding,
-    usageReader: moon.clientProgramInstalledModelDefaultsUsage});
+    usageReader: moon.clientProgramInstalledModelDefaultsUsage,
+    readCapacity: moon.clientProgramModelProviderDefaultsReadConstructionCapacity,
+    retainedCapacity: moon.clientProgramModelProviderDefaultsRetainedCapacity,
+    resolutionCapacities: moon.clientProgramModelProviderDefaultsResolutionCapacities});
 }
 
 function modelDefaultsResolver(moon, providerId, bindingOriginals, assertCurrent, receiver,
-  {reader, resolver, bindingReader, usageReader} = modelDefaultsCallbacks(moon)) {
-  let original, bounds, readFailure;
-  return function resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits) {
+  {reader, resolver, bindingReader, usageReader, readCapacity, retainedCapacity, resolutionCapacities} = modelDefaultsCallbacks(moon)) {
+  let original, bounds, readFailure, originalConstruction;
+  return function resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits, construction) {
     if (this !== receiver()) {
       throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
         {code: 'InstalledModelDefaultsForeignOriginal'});
@@ -213,13 +216,32 @@ function modelDefaultsResolver(moon, providerId, bindingOriginals, assertCurrent
       throw Object.assign(new Error('InstalledModelDefaultsLimitsChanged'),
         {code: 'InstalledModelDefaultsLimitsChanged'});
     }
+    if (bounds !== undefined && construction !== undefined && originalConstruction !== construction) {
+      throw Object.assign(new Error('InstalledModelDefaultsConstructionChanged'),
+        {code: 'InstalledModelDefaultsConstructionChanged'});
+    }
     if (bounds === undefined) {
       bounds = nextBounds;
+      originalConstruction = construction;
       try {
-        original = checked(Reflect.apply(reader, moon, [providerId,
+        const project = () => checked(Reflect.apply(reader, moon, [providerId,
           bindingOriginals.installationRevision.wire, bindingOriginals.configurationContract.wire,
           bindingOriginals.configuration.wire, bounds.maxBytes, bounds.maxNodes, bounds.maxDepth,
           bounds.maxMembers, bounds.maxWork]));
+        if (construction === undefined) original = project();
+        else {
+          if (typeof construction.prepareModelTaskInput !== 'function' ||
+              ![readCapacity, retainedCapacity, resolutionCapacities].every(value => typeof value === 'function')) {
+            throw Object.assign(new Error('InstalledModelDefaultsConstructionUnavailable'),
+              {code: 'InstalledModelDefaultsConstructionUnavailable'});
+          }
+          original = construction.prepareModelTaskInput(Object.freeze({
+            capacity: () => Reflect.apply(readCapacity, moon, [providerId,
+              bindingOriginals.installationRevision.wire, bindingOriginals.configurationContract.wire,
+              bindingOriginals.configuration.wire, bounds.maxBytes, bounds.maxNodes, bounds.maxDepth, bounds.maxMembers]),
+            project, retained: value => Reflect.apply(retainedCapacity, moon, [value]),
+          }));
+        }
         if (original === undefined || original === null) {
           throw Object.assign(new Error('InvalidHostRuntimeResult'), {code: 'InvalidHostRuntimeResult'});
         }
@@ -229,15 +251,27 @@ function modelDefaultsResolver(moon, providerId, bindingOriginals, assertCurrent
     }
     if (readFailure !== undefined) throw readFailure.cause;
     assertCurrent();
-    const binding = retainAdmittedProviderBinding(moon, providerId, bindingOriginals,
-      Reflect.apply(bindingReader, moon, [original]));
-    const resolved = checked(Reflect.apply(resolver, moon,
-      [original, selectedModel, taskMaxOutputTokens, bounds.maxWork]));
-    const usage = Reflect.apply(usageReader, moon, [original]);
-    const readUsage = Object.freeze({bytes: runtimeField(usage, 0),
-      nodes: runtimeField(usage, 1), work: runtimeField(usage, 2)});
-    assertCurrent();
-    return Object.freeze({value: original, resolved, binding, readUsage});
+    const project = () => {
+      const binding = retainAdmittedProviderBinding(moon, providerId, bindingOriginals,
+        Reflect.apply(bindingReader, moon, [original]));
+      const resolved = checked(Reflect.apply(resolver, moon,
+        [original, selectedModel, taskMaxOutputTokens, bounds.maxWork]));
+      const usage = Reflect.apply(usageReader, moon, [original]);
+      const readUsage = Object.freeze({bytes: runtimeField(usage, 0),
+        nodes: runtimeField(usage, 1), work: runtimeField(usage, 2)});
+      assertCurrent();
+      return Object.freeze({value: original, resolved, binding, readUsage});
+    };
+    if (construction === undefined) return project();
+    const quantities = Reflect.apply(resolutionCapacities, moon, [original, taskMaxOutputTokens]);
+    if (!Array.isArray(quantities) || quantities.length !== 2) {
+      throw Object.assign(new Error('InstalledModelDefaultsConstructionUnavailable'),
+        {code: 'InstalledModelDefaultsConstructionUnavailable'});
+    }
+    return construction.prepareModelTaskInput(Object.freeze({
+      capacity: () => quantities[0], project,
+      retained: () => quantities[1],
+    }));
   };
 }
 
@@ -450,12 +484,12 @@ export function installModelProviders(moon, register, assertHostRuntime,
     const resolveTaskDefaults = preparedDefaults === undefined
       ? modelDefaultsResolver(moon, providerId, bindingOriginals, assertNewTrustedRuntime,
         () => retained, defaultsCallbacks)
-      : function (selectedModel, taskMaxOutputTokens, limits) {
+      : function (selectedModel, taskMaxOutputTokens, limits, construction) {
         if (this !== retained) {
           throw Object.assign(new Error('InstalledModelDefaultsForeignOriginal'),
             {code: 'InstalledModelDefaultsForeignOriginal'});
         }
-        return preparedDefaults.resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits);
+        return preparedDefaults.resolveTaskDefaults(selectedModel, taskMaxOutputTokens, limits, construction);
       };
     retained = Object.freeze({provider, originalReadInstallation, originalReadRecipe, rawCaptureSelection,
       assertTrustedRuntime, assertNewTrustedRuntime, requireEagerSdkStartup,

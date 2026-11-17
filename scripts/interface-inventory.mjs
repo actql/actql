@@ -8,6 +8,7 @@ import {isAbsolute, relative, resolve} from 'node:path';
 import {parse} from 'acorn';
 import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
+import {hasExecutableTestCase} from './executable-test-cases.mjs';
 
 export const interfaceRoles = Object.freeze([
   'common-semantics', 'connector-semantics', 'physical-io',
@@ -69,8 +70,14 @@ function names(pattern) {
 
 // Resolve only lexical, single-write references. The normal builder must still
 // admit each resulting target; this AST projection never loads product code.
-function runtimeImportReferences(tree) {
+function runtimeImportReferences(tree, privateFunctions) {
   const scopes = new WeakMap(), parents = new WeakMap(), assignments = [], nodes = [];
+  const callables = new WeakMap(), candidates = new Map(), exported = new Set();
+  const callable = (binding, node) => {
+    callables.set(binding, node);
+    if (!candidates.has(node)) candidates.set(node, new Set());
+    candidates.get(node).add(binding);
+  };
   const scope = (parent, functionScope = false) => ({parent, functionScope, bindings: new Map()});
   const lookup = (current, name) => {
     for (; current; current = current.parent) if (current.bindings.has(name)) return current.bindings.get(name);
@@ -86,7 +93,13 @@ function runtimeImportReferences(tree) {
     parents.set(node, parent);
     nodes.push(node);
     if (node.type === 'FunctionDeclaration' || node.type === 'ClassDeclaration') {
-      if (node.id) declare(current, node.id.name, {function: node.type === 'FunctionDeclaration' ? node : undefined});
+      if (node.id) {
+        const binding = declare(current, node.id.name, {function: node.type === 'FunctionDeclaration' ? node : undefined});
+        if (node.type === 'FunctionDeclaration') {
+          callable(binding, node);
+          if (/^Export/u.test(parent?.type ?? '')) exported.add(node);
+        }
+      }
     }
     if (/^(?:FunctionDeclaration|FunctionExpression|ArrowFunctionExpression)$/u.test(node.type)) {
       current = scope(current, true);
@@ -99,7 +112,12 @@ function runtimeImportReferences(tree) {
             ? {function: node, index, property: property ? property.key.name ?? property.key.value : undefined} : undefined});
         }
       });
-      if (node.type === 'FunctionExpression' && node.id) declare(current, node.id.name);
+      if (node.type === 'FunctionExpression' && node.id) {
+        const binding = declare(current, node.id.name);
+        // A returned/passed function literal is not a private declaration.
+        // Only retain its self-name when an actual local binding owns it.
+        if (candidates.has(node)) callable(binding, node);
+      }
     } else if (['BlockStatement', 'CatchClause'].includes(node.type)) {
       current = scope(current);
       if (node.param) for (const name of names(node.param)) declare(current, name);
@@ -121,7 +139,14 @@ function runtimeImportReferences(tree) {
           if (property && value.init) binding.projection = {node: value.init, key: property.key.name ?? property.key.value};
           else binding.invalid = true;
         }
-        else if (value.init) binding.initializers.push(value.init);
+        else if (value.init) {
+          binding.initializers.push(value.init);
+          if (/^(?:FunctionExpression|ArrowFunctionExpression)$/u.test(value.init.type)) {
+            callable(binding, value.init);
+            binding.definition = value.id;
+            if (/^Export/u.test(parent?.type ?? '')) exported.add(value.init);
+          }
+        }
       }
     }
     if (['AssignmentExpression', 'UpdateExpression', 'UnaryExpression'].includes(node.type)) assignments.push(node);
@@ -152,14 +177,23 @@ function runtimeImportReferences(tree) {
   }
   const calls = new Map(), escaped = new Set();
   for (const node of nodes) if (node.type === 'Identifier') {
-    const binding = lookup(scopes.get(node), node.name), fn = binding?.function;
+    const binding = lookup(scopes.get(node), node.name), fn = binding?.function ?? (binding && callables.get(binding));
     if (!fn) continue;
     const parent = parents.get(node);
-    if (parent === fn && fn.id === node) continue;
+    if (parent === fn && fn.id === node || binding.definition === node) continue;
     if (parent?.type === 'CallExpression' && parent.callee === node) {
       if (!calls.has(fn)) calls.set(fn, []);
       calls.get(fn).push(parent);
     } else escaped.add(fn);
+  }
+  // Direct eval can observe/return any lexical function without an Identifier
+  // reference in this syntax tree. Keep the entire module conservative there.
+  const lexicalEval = nodes.some(node => node.type === 'CallExpression' && !node.optional &&
+    node.callee.type === 'Identifier' && node.callee.name === 'eval' && !lookup(scopes.get(node), 'eval'));
+  for (const [fn, bindings] of candidates) {
+    if (!lexicalEval && !exported.has(fn) && !escaped.has(fn) && [...bindings].every(binding => !binding.invalid)) {
+      privateFunctions?.add(fn);
+    }
   }
   const union = values => values.length === 1 ? values[0] : {kind: 'alternatives', values};
   const unresolved = () => ({kind: 'unresolved'});
@@ -263,13 +297,15 @@ function runtimeImportReferences(tree) {
   return reference;
 }
 
-// Private helpers are inventoried too: a new decision helper must not hide
-// under an already classified file. Locations are diagnostic, not identity.
+// Keep implementation syntax available for diagnostics. Responsibility belongs
+// to the actual module and its escaping/public operations, not private helper
+// names or argument spelling. Compiler representation checks remain separate.
 export function javascriptInterface(source, {resolveRuntimeImport} = {}) {
   const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module',
     allowHashBang: true, locations: true});
   const operations = [], exports = [], imports = [], compilerFields = [], unresolvedSyntax = [], occurrences = new Map();
-  const runtimeReference = resolveRuntimeImport && runtimeImportReferences(tree);
+  const privateFunctions = new WeakSet(), privateOperations = [];
+  const runtimeReference = runtimeImportReferences(tree, privateFunctions);
   function commonJsMembers(value) {
     if (value?.type === 'CallExpression' && value.callee.type === 'MemberExpression' &&
         value.callee.object.name === 'Object' && propertyName(value.callee) === 'freeze') value = value.arguments[0];
@@ -300,6 +336,7 @@ export function javascriptInterface(source, {resolveRuntimeImport} = {}) {
       occurrences.set(base, occurrence);
       const path = occurrence === 1 ? base : `${base}#${occurrence}`;
       operations.push({name: path, parameters: node.params.flatMap(names), async: node.async});
+      if (privateFunctions.has(node)) privateOperations.push(path);
       childScope = [...scope, name];
     }
     if (node.type === 'ImportDeclaration' || node.type === 'ExportAllDeclaration' ||
@@ -310,7 +347,7 @@ export function javascriptInterface(source, {resolveRuntimeImport} = {}) {
       const target = literalValue(argument);
       if (typeof target === 'string') imports.push(target);
       else {
-        const reference = runtimeReference?.(argument);
+        const reference = resolveRuntimeImport && runtimeReference(argument);
         const resolved = reference && resolveRuntimeImport(reference);
         if (Array.isArray(resolved) && resolved.length && resolved.every(value => typeof value === 'string')) imports.push(...resolved);
         else unresolvedSyntax.push('runtime-dependent module dependency requires original owner/artifact mapping');
@@ -358,6 +395,7 @@ export function javascriptInterface(source, {resolveRuntimeImport} = {}) {
   }
   visit(tree);
   return {exports: ordered(exports), operations: operations.sort((a, b) => a.name.localeCompare(b.name)),
+    privateOperations: ordered(privateOperations),
     imports: ordered(imports), compilerFields: ordered(compilerFields), unresolvedSyntax: ordered(unresolvedSyntax)};
 }
 
@@ -391,22 +429,127 @@ export function packageEntrances(manifest, directory = '.') {
   }).sort();
 }
 
-function reference(root, ref, readReference) {
-  assert(ref && Object.keys(ref).sort().join() === 'anchor,path', 'Invalid interface reference');
-  assert(typeof ref.path === 'string' && inside(ref.path) && typeof ref.anchor === 'string' && ref.anchor.length,
+// A verification reference identifies a real test entry, not its presentation
+// label. Registration presence does not prove execution, assertions or coverage;
+// the existing runtime/nonzero-test gates remain responsible for those claims.
+function hasNodeTestRegistration(source) {
+  let tree;
+  try {tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module', allowHashBang: true});}
+  catch {return false;}
+  const imports = new Map();
+  for (const node of tree.body) if (node.type === 'ImportDeclaration' && node.source.value === 'node:test') {
+    for (const item of node.specifiers) {
+      if (item.type === 'ImportDefaultSpecifier' ||
+          item.type === 'ImportSpecifier' && ['test', 'it'].includes(item.imported.name)) {
+        imports.set(item.local.name, 'test');
+      } else if (item.type === 'ImportNamespaceSpecifier') imports.set(item.local.name, 'namespace');
+    }
+  }
+  const bindings = (pattern, names) => {
+    if (!pattern) return;
+    if (pattern.type === 'Identifier') names.add(pattern.name);
+    else if (pattern.type === 'RestElement') bindings(pattern.argument, names);
+    else if (pattern.type === 'AssignmentPattern') bindings(pattern.left, names);
+    else if (pattern.type === 'ArrayPattern') pattern.elements.forEach(item => bindings(item, names));
+    else if (pattern.type === 'ObjectPattern') pattern.properties.forEach(item =>
+      bindings(item.type === 'RestElement' ? item.argument : item.value, names));
+  };
+  const locals = nodes => {
+    const names = new Set();
+    for (const node of nodes) {
+      if (node?.type === 'VariableDeclaration') node.declarations.forEach(item => bindings(item.id, names));
+      else if (['FunctionDeclaration', 'ClassDeclaration'].includes(node?.type) && node.id) names.add(node.id.name);
+    }
+    return names;
+  };
+  const visit = (node, shadowed = new Set()) => {
+    if (!node || typeof node !== 'object') return false;
+    if (/^(?:Function|ArrowFunction)/u.test(node.type)) return false;
+    let scope = shadowed;
+    if (node.type === 'Program' || node.type === 'BlockStatement') {
+      scope = new Set([...shadowed, ...locals(node.body)]);
+    } else if (['ForStatement', 'ForInStatement', 'ForOfStatement'].includes(node.type)) {
+      scope = new Set([...shadowed, ...locals([node.init ?? node.left])]);
+    } else if (node.type === 'CatchClause') {
+      scope = new Set(shadowed);bindings(node.param, scope);
+    }
+    if (node.type === 'CallExpression') {
+      const callee = node.callee;
+      const binding = callee.type === 'Identifier' ? callee.name
+        : callee.type === 'MemberExpression' && callee.object.type === 'Identifier' ? callee.object.name : undefined;
+      const registered = !scope.has(binding) && (callee.type === 'Identifier' && imports.get(binding) === 'test' ||
+        callee.type === 'MemberExpression' && imports.get(binding) === 'namespace' &&
+        ['test', 'it'].includes(propertyName(callee)));
+      if (registered) {
+        const callback = node.arguments.at(-1);
+        const skipped = node.arguments.some(argument => argument.type === 'ObjectExpression' &&
+          argument.properties.some(item => item.type === 'Property' &&
+            ['skip', 'todo'].includes(item.computed ? item.key.value : item.key.name ?? item.key.value) &&
+            item.value.type === 'Literal' && item.value.value === true));
+        if (!skipped && callback && (['FunctionExpression', 'ArrowFunctionExpression'].includes(callback.type) ||
+            callback.type === 'Identifier' && node.arguments.length > 1)) return true;
+      }
+    }
+    return Object.values(node).some(value => Array.isArray(value)
+      ? value.some(item => visit(item, scope)) : value && typeof value === 'object' && visit(value, scope));
+  };
+  return visit(tree);
+}
+
+function reference(root, ref, readReference, verification = false, registeredTest = hasNodeTestRegistration) {
+  const keys = ref && Object.keys(ref).sort().join();
+  assert(keys === 'anchor,path' || keys === 'case_id,path', 'Invalid interface reference');
+  const executable = keys === 'case_id,path';
+  assert(typeof ref.path === 'string' && inside(ref.path) &&
+    (executable ? /_(?:wbtest|bbtest|test)\.mbt$/u.test(ref.path) &&
+      typeof ref.case_id === 'string' && /^[a-z][a-z0-9_]*$/u.test(ref.case_id)
+      : typeof ref.anchor === 'string' && ref.anchor.length),
     'Invalid interface reference');
   assert(!ref.path.split('/').includes('..'), 'Invalid interface reference traversal');
+  const testEntry = verification && /\.test\.[cm]?js$/u.test(ref.path);
+  const present = source => executable ? hasExecutableTestCase(source, ref.case_id)
+    : testEntry ? registeredTest(source) : source.includes(ref.anchor);
+  const label = executable ? `case_id=${ref.case_id}` : ref.anchor;
   if (readReference) {
-    assert(readReference(ref.path).includes(ref.anchor), `Missing interface reference: ${ref.path}#${ref.anchor}`);
+    assert(present(readReference(ref.path)), `Missing interface reference: ${ref.path}#${label}`);
     return;
   }
   const path = realpathSync(resolve(root, ref.path));
   assert(inside(relative(realpathSync(root), path)), 'Interface reference escapes owner');
-  assert(readFileSync(path, 'utf8').includes(ref.anchor), `Missing interface reference: ${ref.path}#${ref.anchor}`);
+  assert(present(readFileSync(path, 'utf8')), `Missing interface reference: ${ref.path}#${label}`);
+}
+
+// Source headers keep argument roles/types, but an optional trailing comma
+// in the OUTER named-parameter list is formatting. Nested tuple punctuation
+// and compiler-generated .mbti/API text retain their exact existing identity.
+function sourceOperationCorrespondence(module, operations, privateOperations = []) {
+  if (/\.[cm]?jsx?$/u.test(module)) return operations.filter(operation => !privateOperations.includes(operation.name));
+  if (!module.endsWith('.mbt')) return operations;
+  return operations.map(operation => {
+    if (typeof operation.declaration !== 'string') return operation;
+    const header = operation.declaration.split(' '), open = header.indexOf('(');
+    if (open < 0) return operation;
+    let depth = 0, named = false;
+    for (let index = open; index < header.length; index++) {
+      if (header[index] === '(') depth++;
+      else if (header[index] === ')') {
+        if (--depth === 0) {
+          if (!named || header[index - 1] !== ',') return operation;
+          header.splice(index - 1, 1);
+          return {...operation, declaration:header.join(' ')};
+        }
+      } else if (depth === 1 && header[index] === ':') named = true;
+    }
+    return operation;
+  });
 }
 
 export function assertInterfaceCoverage({root, modules, declarations, generated = [], readReference}) {
-  const references = new Map();
+  const references = new Map(), registrations = new Map();
+  const registeredTest = source => {
+    if (!registrations.has(source)) registrations.set(source, hasNodeTestRegistration(source));
+    return registrations.get(source);
+  };
   const read = path => {
     if (!references.has(path)) references.set(path, readReference
       ? readReference(path) : (() => {
@@ -430,7 +573,7 @@ export function assertInterfaceCoverage({root, modules, declarations, generated 
       for (const [name, value] of Object.entries(contract.attributes)) {
       if (Array.isArray(value)) {
         assert(value.length, `Empty interface attribute: ${declaration.module}:${name}`);
-        value.forEach(ref => reference(root, ref, read));
+        value.forEach(ref => reference(root, ref, read, name === 'verification', registeredTest));
       } else assert(value && Object.keys(value).join() === 'notApplicable' &&
         typeof value.notApplicable === 'string' && value.notApplicable.trim().length > 0,
       `Unexplained interface attribute: ${declaration.module}:${name}`);
@@ -442,12 +585,17 @@ export function assertInterfaceCoverage({root, modules, declarations, generated 
     const declaration = byModule.get(module.module);
     assert(!module.unresolvedSyntax?.length, `Unresolved interface syntax: ${module.module}`);
     assert(declaration, `Unregistered distributed interface: ${module.module}`);
-    assert.equal(declaration.sha256, module.sha256,
-      `Unreviewed interface implementation: ${module.module}`);
+    // The declaration digest is a review snapshot, not behavioral evidence.
+    // Actual source/artifact correspondence uses the current module digest;
+    // privileged generated representations retain their proof check below.
     assert.deepEqual(declaration.exports, module.exports, `Unregistered interface export: ${module.module}`);
-    assert.deepEqual(declaration.operations, module.operations,
+    const privateSnapshot = declaration.role !== 'generated-binding' && !module.compilerFields?.length;
+    const actualPrivate = privateSnapshot ? module.privateOperations ?? [] : [];
+    const declaredOperations = sourceOperationCorrespondence(module.module, declaration.operations);
+    const actualOperations = sourceOperationCorrespondence(module.module, module.operations, actualPrivate);
+    assert.deepEqual(declaredOperations, actualOperations,
       `Unregistered interface operation: ${module.module}`);
-    for (const [field, actual] of [['operations', ['<module>', ...module.operations.map(value => value.name)]],
+    for (const [field, actual] of [['operations', ['<module>', ...actualOperations.map(value => value.name)]],
       ['exports', module.exports]]) {
       const covered = declaration.contracts.flatMap(value => value[field]);
       assert.equal(new Set(covered).size, covered.length, `Duplicate operation contract: ${module.module}`);

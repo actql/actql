@@ -10,48 +10,9 @@
       ],
       "operations": [
         {
-          "name": "authorizeRead",
-          "parameters": [
-            "value",
-            "frame",
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "count/count",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "decodeResponse",
-          "parameters": [
-            "response",
-            "limit"
-          ],
-          "async": false
-        },
-        {
           "name": "decodeResponse/encoding/encoding",
           "parameters": [
             "pair"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "queryLimits",
-          "parameters": [
-            "moon",
-            "limits"
           ],
           "async": false
         },
@@ -86,20 +47,6 @@
           "name": "readBigQuerySqlApi/readBigQuerySqlApi#2",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "readBigQuerySqlApi/send/send",
-          "parameters": [
-            "request"
-          ],
-          "async": true
-        },
-        {
-          "name": "sha/sha",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
         }
       ],
       "imports": [
@@ -121,18 +68,11 @@
         {
           "operations": [
             "<module>",
-            "authorizeRead",
-            "count/count",
-            "decodeResponse",
             "decodeResponse/encoding/encoding",
-            "fail/fail",
-            "queryLimits",
             "readBigQuerySqlApi",
             "readBigQuerySqlApi/readBigQuerySqlApi",
             "readBigQuerySqlApi/readBigQuerySqlApi/readBigQuerySqlApi",
-            "readBigQuerySqlApi/readBigQuerySqlApi#2",
-            "readBigQuerySqlApi/send/send",
-            "sha/sha"
+            "readBigQuerySqlApi/readBigQuerySqlApi#2"
           ],
           "exports": [
             "BIGQUERY_SQL_READ_OPERATION",
@@ -216,20 +156,6 @@
       ],
       "operations": [
         {
-          "name": "absolute/absolute",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "canonical/canonical",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "checkInstalledBigQuerySiteProfile",
           "parameters": [
             "value"
@@ -268,28 +194,6 @@
           "name": "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile#3",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "decodeMetadataBody",
-          "parameters": [
-            "encoded",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
           ],
           "async": false
         },
@@ -375,15 +279,6 @@
           "async": true
         },
         {
-          "name": "loadInstalledBigQuerySource/method/method",
-          "parameters": [
-            "receiver",
-            "name",
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "loadInstalledBigQuerySource/originals/originals",
           "parameters": [
             "name"
@@ -402,24 +297,6 @@
           "parameters": [
             "resource",
             "fields"
-          ],
-          "async": false
-        },
-        {
-          "name": "metadataBodyBytes",
-          "parameters": [
-            "encoded",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "own/own",
-          "parameters": [
-            "value",
-            "required",
-            "optional",
-            "code"
           ],
           "async": false
         },
@@ -445,26 +322,9 @@
           "async": false
         },
         {
-          "name": "readInputs",
-          "parameters": [
-            "value",
-            "readJson",
-            "readText",
-            "decode"
-          ],
-          "async": true
-        },
-        {
           "name": "readInputs/readInputs",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -487,17 +347,12 @@
         {
           "operations": [
             "<module>",
-            "absolute/absolute",
-            "canonical/canonical",
             "checkInstalledBigQuerySiteProfile",
             "checkInstalledBigQuerySiteProfile/checkInstalledBigQuerySiteProfile",
             "checkInstalledBigQuerySourceProfile",
             "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile",
             "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile#2",
             "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile#3",
-            "cid/cid",
-            "decodeMetadataBody",
-            "fail/fail",
             "installedBigQuerySourceIdentityParts",
             "installedBigQuerySourceIdentityParts/readers/readers",
             "loadInstalledBigQuerySource",
@@ -509,18 +364,13 @@
             "loadInstalledBigQuerySource/loadInstalledBigQuerySource#3",
             "loadInstalledBigQuerySource/loadInstalledBigQuerySource#4",
             "loadInstalledBigQuerySource/loadInstalledBigQuerySource#5",
-            "loadInstalledBigQuerySource/method/method",
             "loadInstalledBigQuerySource/originals/originals",
             "loadInstalledBigQuerySource/originals/originals/originals",
             "loadInstalledBigQuerySource/target/target",
-            "metadataBodyBytes",
-            "own/own",
             "own/own/own",
             "own/own/own#2",
             "own/own/own#3",
-            "readInputs",
-            "readInputs/readInputs",
-            "text/text"
+            "readInputs/readInputs"
           ],
           "exports": [
             "INSTALLED_BIGQUERY_SITE_VERSION",

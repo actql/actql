@@ -2,8 +2,14 @@
 import {createHash} from 'node:crypto';
 const digest = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
 
+// The same finite representation rule applies at issuance and cold custody.
+// This predicate validates policy DATA; it supplies no row allocation credit.
+export function validValuesHostPolicyRows(value) {
+  return Number.isSafeInteger(value) && value >= 1 && value <= 2147483647;
+}
+
 export function valuesHostPolicyOriginal(maxRows) {
-  if (!Number.isSafeInteger(maxRows) || maxRows < 1 || maxRows > 2147483647) {
+  if (!validValuesHostPolicyRows(maxRows)) {
     throw new TypeError('InvalidLocalValuesRowLimit');
   }
   if (maxRows === 100) return undefined;

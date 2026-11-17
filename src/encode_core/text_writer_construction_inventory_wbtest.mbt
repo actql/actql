@@ -95,3 +95,70 @@ test "original text writer Unicode spans finish and one short retain their own s
     }
   }
 }
+
+///|
+fn ordered_review_inventory_fixture(
+  output : Writer,
+) -> Unit raise EncodeFailure {
+  begin_object(output)
+  key(output, "outer")
+  begin_ordered_object(output)
+  for index in 100..<133 {
+    ordered_key(output, "k" + index.to_string())
+    null_value(output)
+  }
+  ordered_key(output, "z")
+  string_value(output, "é😀\n")
+}
+
+///|
+test "wide ordered values retain literal unordered keys and identical text hash and refusal" {
+  let bytes = 422
+  let text = writer(bytes, 100, 4)
+  ordered_review_inventory_fixture(text)
+  let mut keys = 0
+  let mut ordered = 0
+  for frame in text.frames {
+    match frame {
+      ObjectKey(_, map) | ObjectValue(map) => keys += map.length()
+      OrderedObjectKey(_, _) | OrderedObjectValue(_, _) => ordered += 1
+      _ => ()
+    }
+  }
+  assert_eq((keys, ordered), (1, 1))
+  end_object(text)
+  end_object(text)
+  let wire = finish(text)
+  let hashed = hashing_writer(bytes, 100, 4)
+  ordered_review_inventory_fixture(hashed)
+  end_object(hashed)
+  end_object(hashed)
+  assert_eq(
+    finish_hash(hashed),
+    "57c7ae4465d529104647d7a477c599859f124a16f9f754a6b75a1cca652909c3",
+  )
+  assert_eq(@utf8.encode(wire).length(), bytes)
+  let general = text_writer_construction_inventory(bytes, 100, 4).unwrap()
+  let bounded = text_writer_live_key_inventory(bytes, keys, 4).unwrap()
+  assert_true(bounded.record_headers < general.record_headers)
+  assert_eq(bounded.owned_utf16_units, general.owned_utf16_units)
+  assert_eq(
+    text_writer_construction_inventory(bytes, 100, 4),
+    text_writer_live_key_inventory(bytes, 100, 4),
+  )
+  let short = writer(bytes - 1, 100, 4)
+  assert_true(
+    try {
+      ordered_review_inventory_fixture(short)
+      end_object(short)
+      end_object(short)
+      ignore(finish(short))
+      false
+    } catch {
+      OutputLimit => true
+      _ => false
+    },
+  )
+  assert_true(short.closed)
+  assert_true(text_writer_live_key_inventory(bytes, -1, 4) is None)
+}

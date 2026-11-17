@@ -26,17 +26,19 @@ pub fn client_effect_prepared_original_compilation(
 /// compilation's CID in its original captured_input before continuation.
 pub fn issue_client_effect_prepared_original(
   compilation : ClientEffectCompilation,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
 ) -> Result[String, ClientEffectRunMaterialsIssue] {
   let prepared = compilation.owner
   guard prepared_client_effect_target_selections(prepared) is Some(selections) else {
     return Err(TargetSelection(OriginalOwnerRequired))
   }
   let (program, parameters, environment) = match
-    client_effect_original_input_wires(prepared) {
+    client_effect_original_input_wires(prepared, before_body~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let infer_input = match client_effect_original_infer_input(compilation) {
+  let infer_input = match
+    client_effect_original_infer_input(compilation, before_body~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -46,17 +48,60 @@ pub fn issue_client_effect_prepared_original(
     Err(issue) => return Err(issue)
   }
   let infer_inputs_wire = match
-    client_effect_original_infer_inputs(compilation) {
+    client_effect_original_infer_inputs(compilation, before_body~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let source_free_policy_input = match
-    client_effect_original_source_free_policy_input(compilation) {
+    client_effect_original_source_free_policy_input(compilation, before_body~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let max_bytes = match before_body {
+    None => @remote.REMOTE_RUN_MATERIALS_MAX_BYTES
+    Some(fund) => {
+      let mut units = 0L
+      for name in client_effect_prepared_original_fields {
+        units += name.length().to_int64() + 2L
+      }
+      for
+        value in [
+          program,
+          environment,
+          prepared.check_environment_cid,
+          selections,
+        ] {
+        units += value.length().to_int64()
+      }
+      for value in [parameters, infer_inputs_wire, infer_native_read_profile] {
+        if value is Some(wire) {
+          units += wire.length().to_int64()
+        }
+      }
+      for value in [infer_input, source_free_policy_input] {
+        if value is Some((cid, wire)) {
+          units += cid.length().to_int64() + wire.length().to_int64()
+        }
+      }
+      if compilation.normalization_profile is Some(inventory) {
+        let (profile, cid) = client_effect_normalization_inventory_profile(
+          inventory,
+        )
+        units += profile.length().to_int64() + cid.length().to_int64()
+      }
+      guard @execution.checked_preparation_add_product(2L, units, 6L)
+        is Some(bound) &&
+        bound < 2147483647L else {
+        return Err(Input(MaterialsConstructionRefused("run_materials")))
+      }
+      if !fund("run_materials", bound.to_int(), 32, 2) {
+        return Err(Input(MaterialsConstructionRefused("run_materials")))
+      }
+      bound.to_int()
+    }
+  }
   try {
-    let writer = @encode.writer(@remote.REMOTE_RUN_MATERIALS_MAX_BYTES, 32, 2)
+    let writer = @encode.writer(max_bytes, 32, 2)
     @encode.begin_object(writer)
     @encode.key(writer, "check_environment")
     @encode.string_value(writer, environment)
@@ -106,9 +151,25 @@ pub fn issue_client_effect_prepared_original(
     @encode.end_object(writer)
     Ok(@encode.finish(writer))
   } catch {
-    _ => Err(Input(MaterialsMalformed))
+    issue =>
+      Err(
+        Input(
+          match before_body {
+            None => MaterialsMalformed
+            Some(_) => MaterialsEncoding("run_materials", issue)
+          },
+        ),
+      )
   }
 }
+
+///|
+let client_effect_prepared_original_fields : Array[String] = [
+  "check_environment", "check_environment_cid", "effect_target_selections_json",
+  "infer_execution_contract_cid", "infer_execution_contract_json", "infer_execution_contracts_json",
+  "infer_native_read_profile_json", "normalization_profile_cid", "normalization_profile_key",
+  "parameters", "program", "source_free_result_policy_cid", "source_free_result_policy_json",
+]
 
 ///|
 /// Restore only concrete original inputs under an identity selected from the
@@ -155,12 +216,7 @@ pub fn admit_client_effect_prepared_original(
     Err(_) => return Err(Input(MaterialsMalformed))
   }
   let object = match
-    @decode.closed_object(root, [
-      "check_environment", "check_environment_cid", "effect_target_selections_json",
-      "infer_execution_contract_cid", "infer_execution_contract_json", "infer_execution_contracts_json",
-      "infer_native_read_profile_json", "normalization_profile_cid", "normalization_profile_key",
-      "parameters", "program", "source_free_result_policy_cid", "source_free_result_policy_json",
-    ]) {
+    @decode.closed_object(root, client_effect_prepared_original_fields) {
     Ok(value) => value
     Err(_) => return Err(Input(MaterialsMalformed))
   }

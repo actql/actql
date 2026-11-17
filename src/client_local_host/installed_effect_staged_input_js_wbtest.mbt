@@ -7,6 +7,8 @@ fn staged_effect_input_fixture(
   parent_limit? : Int64? = None,
   projection_retained? : @execution.ExecutionCapacity? = None,
   empty_header_limit? : Int? = None,
+  selected_environment? : @checked.CheckEnvironment? = None,
+  row_constructor? : Bool = false,
 ) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
@@ -16,6 +18,7 @@ fn staged_effect_input_fixture(
 ) raise {
   let (prepared, request, contracts) = effect_operation_plan_inputs(
     rows="[{\"id\":1},{\"id\":2}]",
+    selected_environment~,
   )
   let capture = prepare_installed_effect_staged_extent(
     prepare_installed_effect_capture_extent(
@@ -41,26 +44,36 @@ fn staged_effect_input_fixture(
         prepare_installed_effect_empty_response_headers_extent(extent, limit).unwrap()
     }
   }
-  let send = prepare_installed_effect_staged_extent(
-    bind_projection(
-      prepare_installed_effect_operation_extent(
-        "send",
-        physical_initial.unwrap_or(
-          @execution.execution_capacity(5L, 8L).unwrap(),
-        ),
-        7L,
-        true,
-      ).unwrap(),
-    ),
-    bind_projection(
-      prepare_installed_effect_operation_extent(
-        "send",
-        @execution.execution_capacity(1000000000L, 2000000000L).unwrap(),
-        7L,
-        true,
-      ).unwrap(),
-    ),
-  ).unwrap()
+  let send = if row_constructor {
+    let original = prepare_installed_effect_operation_extent(
+      "request",
+      @execution.execution_capacity(5L, 8L).unwrap(),
+      0L,
+      false,
+    ).unwrap()
+    prepare_installed_effect_staged_extent(original, original).unwrap()
+  } else {
+    prepare_installed_effect_staged_extent(
+      bind_projection(
+        prepare_installed_effect_operation_extent(
+          "send",
+          physical_initial.unwrap_or(
+            @execution.execution_capacity(5L, 8L).unwrap(),
+          ),
+          7L,
+          true,
+        ).unwrap(),
+      ),
+      bind_projection(
+        prepare_installed_effect_operation_extent(
+          "send",
+          @execution.execution_capacity(1000000000L, 2000000000L).unwrap(),
+          7L,
+          true,
+        ).unwrap(),
+      ),
+    ).unwrap()
+  }
   let demand = prepare_installed_effect_operation_demand(
     prepared,
     0,
@@ -458,6 +471,65 @@ test "staged Effect input resolves the same two rows and grows one original cons
     begin_installed_effect_operation_input(child, input) is Err(Retired),
   )
   retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "warm row InputBegin keeps its equal full maximum and original cleanup custody" {
+  let calls = Ref(0)
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(
+    row_constructor=true,
+    current=() => calls.val += 1,
+  )
+  let input = prepare_installed_effect_operation_extent(
+    "request",
+    @execution.execution_capacity(5L, 8L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  for row in 0..<2 {
+    let child = retain_installed_effect_operation_construction(
+      owner, prepared, request, plan, 0, true, 0, row, "request",
+    ).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let foreign = { ..input, operation: "foreign", }
+    assert_true(
+      begin_installed_effect_operation_input(child, foreign)
+      is Err(ForeignOriginal),
+    )
+    let larger = {
+      ..input,
+      capacity: @execution.execution_capacity(6L, 9L).unwrap(),
+    }
+    assert_true(
+      begin_installed_effect_operation_input(child, larger)
+      is Err(InsufficientCapacity),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    let observations = calls.val
+    begin_installed_effect_operation_input(child, input).unwrap()
+    assert_eq(calls.val, observations + 1)
+    let active = @resources.ledger_usage(ledger)
+    assert_eq(active.attempts, before.attempts)
+    assert_eq(active.reserved_attempts, before.reserved_attempts)
+    assert_eq(active.reserved_transfer_bytes, before.reserved_transfer_bytes)
+    assert_eq(active.reserved_retention_bytes, before.reserved_retention_bytes)
+    assert_true(
+      active.reserved_execution_bytes >= before.reserved_execution_bytes,
+    )
+    assert_true(
+      begin_installed_effect_operation_input(child, input) is Err(AlreadyBound),
+    )
+    complete_installed_effect_operation_construction(child).unwrap()
+    assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+    assert_true(retire_installed_effect_operation(child, true).unwrap())
+    assert_true(
+      begin_installed_effect_operation_input(child, input) is Err(Retired),
+    )
+  }
+  retire_installed_managed_run(owner).unwrap()
+  let closed = @resources.ledger_usage(ledger)
+  assert_eq(closed.reserved_retention_bytes, 0L)
+  assert_eq(closed.reserved_execution_bytes, 0L)
 }
 
 ///|

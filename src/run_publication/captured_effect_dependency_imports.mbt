@@ -3,9 +3,56 @@
 /// Reuse already admitted values: do not parse or hash the closure again.
 fn validate_effect_dependency_import_bindings(
   bodies : Array[CapturedEffectDependencyBody],
+  prepared? : Bool = false,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[Unit, CapturedEffectDependencyIssue] {
+  // The prepared path builds each immutable Unit import index once. The
+  // legacy branch keeps its original behavior. Every body/edge is still
+  // validated, including duplicate/unused/missing import obligations below.
+  let interfaces : Map[String, Map[String, Bool]]? = if prepared {
+    let interfaces : Map[String, Map[String, Bool]] = Map([])
+    for body in bodies {
+      if !dependency_validation_work(work, 1) ||
+        !dependency_validation_key_work(
+          work,
+          body.node.kind,
+          body.node.identity,
+          2,
+        ) {
+        return Err(ReferenceLimit)
+      }
+      if !dependency_validation_work(work, 1) {
+        return Err(ReferenceLimit)
+      }
+      if body.node.kind != "local_dependencies" {
+        continue
+      }
+      let selected : Map[String, Bool] = Map([])
+      for reference in body.node.references {
+        if !dependency_validation_work(work, reference.identity.length()) {
+          return Err(ReferenceLimit)
+        }
+        if reference.kind == "result_import_interface" {
+          selected[reference.identity] = true
+        }
+      }
+      interfaces[body.node.identity] = selected
+    }
+    Some(interfaces)
+  } else {
+    None
+  }
   let index : Map[String, @json.CanonicalValue] = Map([])
   for body in bodies {
+    if !dependency_validation_work(work, 1) ||
+      !dependency_validation_key_work(
+        work,
+        body.node.kind,
+        body.node.identity,
+        2,
+      ) {
+      return Err(ReferenceLimit)
+    }
     index[dependency_key(body.node.kind, body.node.identity)] = body.value
   }
   fn referenced(
@@ -13,10 +60,18 @@ fn validate_effect_dependency_import_bindings(
     field : String,
     kind : String,
   ) -> @json.CanonicalValue? {
-    guard evidence_string(value, field) is Some(cid) else { return None }
+    guard dependency_binding_string(value, field, work) is Some(cid) else {
+      return None
+    }
+    if !dependency_validation_key_work(work, kind, cid, 2) {
+      return None
+    }
     index.get(dependency_key(kind, cid))
   }
   for body in bodies {
+    if !dependency_validation_work(work, 1) {
+      return Err(ReferenceLimit)
+    }
     let value = body.value
     if body.node.kind == "result_import_observation" {
       guard referenced(value, "import_interface_cid", "result_import_interface")
@@ -29,54 +84,89 @@ fn validate_effect_dependency_import_bindings(
         is Some(artifact) &&
         referenced(artifact, "result_definition_cid", "local_result_definition")
         is Some(definition) &&
-        evidence_string(value, "input_name") is Some(input_name) &&
-        evidence_string(interface, "input_name") == Some(input_name) &&
-        evidence_string(interface, "producer_result") is Some(result_name) &&
-        evidence_string(definition, "result_name") == Some(result_name) &&
-        evidence_string(interface, "producer_unit_definition_cid")
+        dependency_binding_string(value, "input_name", work) is Some(input_name) &&
+        dependency_binding_string(interface, "input_name", work) ==
+        Some(input_name) &&
+        dependency_binding_string(interface, "producer_result", work)
+        is Some(result_name) &&
+        dependency_binding_string(definition, "result_name", work) ==
+        Some(result_name) &&
+        dependency_binding_string(
+          interface, "producer_unit_definition_cid", work,
+        )
         is Some(producer) &&
         index.get(dependency_key("local_dependencies", producer))
         is Some(producer_definition) &&
-        @json.object_field(interface, "producer_namespace")
+        dependency_binding_field(interface, "producer_namespace", work)
         is Some(import_namespace) &&
-        @json.object_field(producer_definition, "unit_namespace")
+        dependency_binding_field(producer_definition, "unit_namespace", work)
         is Some(producer_namespace) &&
-        evidence_string(import_namespace, "program_id") ==
-        evidence_string(producer_namespace, "program_id") &&
-        evidence_string(import_namespace, "node_id") ==
-        evidence_string(producer_namespace, "node_id") &&
-        evidence_string(definition, "unit_definition_cid") == Some(producer) &&
-        evidence_string(manifest, "unit_definition_cid") == Some(producer) &&
-        evidence_string(manifest, "local_invocation_cid") ==
-        evidence_string(artifact, "invocation_cid") &&
-        @json.object_field(manifest, "results") is Some(results) &&
-        evidence_string(results, result_name) ==
-        evidence_string(value, "result_artifact_cid") &&
-        @json.object_field(consumer, "import_interface_cids") is Some(imports) &&
-        evidence_string_array(imports) is Some(imports) &&
-        evidence_string(value, "import_interface_cid") is Some(interface_cid) &&
-        imports.contains(interface_cid) else {
+        dependency_binding_string(import_namespace, "program_id", work) ==
+        dependency_binding_string(producer_namespace, "program_id", work) &&
+        dependency_binding_string(import_namespace, "node_id", work) ==
+        dependency_binding_string(producer_namespace, "node_id", work) &&
+        dependency_binding_string(definition, "unit_definition_cid", work) ==
+        Some(producer) &&
+        dependency_binding_string(manifest, "unit_definition_cid", work) ==
+        Some(producer) &&
+        dependency_binding_string(manifest, "local_invocation_cid", work) ==
+        dependency_binding_string(artifact, "invocation_cid", work) &&
+        dependency_binding_field(manifest, "results", work) is Some(results) &&
+        dependency_binding_string(results, result_name, work) ==
+        dependency_binding_string(value, "result_artifact_cid", work) &&
+        dependency_binding_string(value, "import_interface_cid", work)
+        is Some(interface_cid) &&
+        (match interfaces {
+          Some(interfaces) => {
+            guard dependency_binding_string(consumer, "self_cid", work)
+              is Some(unit) &&
+              interfaces.get(unit) is Some(selected) else {
+              return Err(InvalidBody)
+            }
+            selected.contains(interface_cid)
+          }
+          None => {
+            guard dependency_binding_field(
+                consumer, "import_interface_cids", work,
+              )
+              is Some(imports) &&
+              dependency_binding_string_array(imports, work) is Some(imports) else {
+              return Err(InvalidBody)
+            }
+            imports.contains(interface_cid)
+          }
+        }) else {
         return Err(InvalidBody)
       }
     } else if body.node.kind == "local_computation" {
-      guard evidence_string(value, "unit_definition_cid") is Some(unit) &&
+      guard dependency_binding_string(value, "unit_definition_cid", work)
+        is Some(unit) &&
         referenced(value, "unit_definition_cid", "local_dependencies")
         is Some(definition) &&
-        @json.object_field(definition, "import_interface_cids") is Some(imports) &&
-        evidence_string_array(imports) is Some(imports) &&
-        @json.object_field(value, "observation_cids") is Some(observations) &&
-        evidence_string_array(observations) is Some(observations) else {
+        dependency_binding_field(definition, "import_interface_cids", work)
+        is Some(imports) &&
+        dependency_binding_string_array(imports, work) is Some(imports) &&
+        dependency_binding_field(value, "observation_cids", work)
+        is Some(observations) &&
+        dependency_binding_string_array(observations, work)
+        is Some(observations) else {
         return Err(InvalidBody)
       }
       let positions : Map[String, Bool] = Map([])
       let observed_interfaces : Map[String, Bool] = Map([])
       let model_positions : Map[Int64, Bool] = Map([])
       for cid in observations {
+        if !dependency_validation_work(work, cid.length()) ||
+          !dependency_validation_work(work, 1) {
+          return Err(ReferenceLimit)
+        }
         if index.get(dependency_key("local_model_observation", cid))
           is Some(observation) {
-          guard evidence_string(observation, "unit_definition_cid") ==
+          guard dependency_binding_string(
+              observation, "unit_definition_cid", work,
+            ) ==
             Some(unit) &&
-            @json.object_field(observation, "source_ordinal")
+            dependency_binding_field(observation, "source_ordinal", work)
             is Some(@json.Number(raw)) &&
             @scalar.read_safe_integer(raw) is Some(ordinal) &&
             !model_positions.contains(ordinal) else {
@@ -85,10 +175,13 @@ fn validate_effect_dependency_import_bindings(
           model_positions[ordinal] = true
         } else if index.get(dependency_key("result_import_observation", cid))
           is Some(observation) {
-          guard evidence_string(observation, "consumer_unit_definition_cid") ==
+          guard dependency_binding_string(
+              observation, "consumer_unit_definition_cid", work,
+            ) ==
             Some(unit) &&
-            evidence_string(observation, "input_name") is Some(position) &&
-            evidence_string(observation, "import_interface_cid")
+            dependency_binding_string(observation, "input_name", work)
+            is Some(position) &&
+            dependency_binding_string(observation, "import_interface_cid", work)
             is Some(interface) &&
             !positions.contains(position) else {
             return Err(InvalidBody)
@@ -103,13 +196,16 @@ fn validate_effect_dependency_import_bindings(
         }
       }
     } else if body.node.kind == "local_manifest" {
-      guard evidence_string(value, "unit_definition_cid") is Some(unit) &&
-        evidence_string(value, "local_invocation_cid") is Some(invocation) &&
+      guard dependency_binding_string(value, "unit_definition_cid", work)
+        is Some(unit) &&
+        dependency_binding_string(value, "local_invocation_cid", work)
+        is Some(invocation) &&
         referenced(value, "local_invocation_cid", "local_computation")
         is Some(computation) &&
-        evidence_string(computation, "unit_definition_cid") == Some(unit) &&
-        @json.object_field(value, "results") is Some(results) &&
-        object_fields(results) is Ok(results) else {
+        dependency_binding_string(computation, "unit_definition_cid", work) ==
+        Some(unit) &&
+        dependency_binding_field(value, "results", work) is Some(results) &&
+        dependency_binding_fields(results, work) is Ok(results) else {
         return Err(InvalidBody)
       }
       for
@@ -125,10 +221,10 @@ fn validate_effect_dependency_import_bindings(
         let entries = if map_name == "results" {
           results
         } else {
-          match @json.object_field(value, map_name) {
+          match dependency_binding_field(value, map_name, work) {
             None => continue
             Some(map) => {
-              guard object_fields(map) is Ok(entries) else {
+              guard dependency_binding_fields(map, work) is Ok(entries) else {
                 return Err(InvalidBody)
               }
               entries
@@ -136,13 +232,20 @@ fn validate_effect_dependency_import_bindings(
           }
         }
         for (name, cid_value) in entries {
+          if !dependency_validation_work(work, name.length()) ||
+            !dependency_validation_work(work, 1) {
+            return Err(ReferenceLimit)
+          }
           guard string_value(cid_value) is Some(cid) &&
             index.get(dependency_key(artifact_kind, cid)) is Some(artifact) &&
-            evidence_string(artifact, "invocation_cid") == Some(invocation) &&
+            dependency_binding_string(artifact, "invocation_cid", work) ==
+            Some(invocation) &&
             referenced(artifact, "result_definition_cid", definition_kind)
             is Some(definition) &&
-            evidence_string(definition, "unit_definition_cid") == Some(unit) &&
-            evidence_string(definition, name_field) == Some(name) else {
+            dependency_binding_string(definition, "unit_definition_cid", work) ==
+            Some(unit) &&
+            dependency_binding_string(definition, name_field, work) ==
+            Some(name) else {
             return Err(InvalidBody)
           }
         }
@@ -150,4 +253,97 @@ fn validate_effect_dependency_import_bindings(
     }
   }
   Ok(())
+}
+
+///|
+// Prepared dependency bindings use the admitted canonical field order. The
+// legacy field lookup stays untouched; this private binary search borrows the
+// same frozen fields and charges spans before comparison, with no copy/index.
+fn dependency_binding_field(
+  value : @json.CanonicalValue,
+  name : String,
+  work : ((Int) -> Bool)?,
+) -> @json.CanonicalValue? {
+  if work is None {
+    return @json.object_field(value, name)
+  }
+  guard value is @json.Object(fields) else { return None }
+  let mut low = 0
+  let mut high = @json.array_count(fields)
+  while low < high {
+    if !dependency_validation_work(work, 1) {
+      return None
+    }
+    let middle = low + (high - low) / 2
+    let (key, item) = @json.array_at(fields, middle).unwrap()
+    if !dependency_validation_work(work, key.length()) ||
+      !dependency_validation_work(work, name.length()) {
+      return None
+    }
+    let compared = @canonical.compare_utf16(key, name)
+    if compared == 0 {
+      return Some(item)
+    }
+    if compared < 0 {
+      low = middle + 1
+    } else {
+      high = middle
+    }
+  }
+  None
+}
+
+///|
+fn dependency_binding_string(
+  value : @json.CanonicalValue,
+  field : String,
+  work : ((Int) -> Bool)?,
+) -> String? {
+  guard dependency_binding_field(value, field, work) is Some(@json.String(text)) else {
+    return None
+  }
+  if !dependency_validation_work(work, text.length()) {
+    return None
+  }
+  Some(text)
+}
+
+///|
+fn dependency_binding_string_array(
+  value : @json.CanonicalValue,
+  work : ((Int) -> Bool)?,
+) -> Array[String]? {
+  if work is None {
+    return evidence_string_array(value)
+  }
+  guard value is @json.Array(values) else { return None }
+  let count = @json.array_count(values)
+  if !dependency_validation_work(work, count) {
+    return None
+  }
+  let result : Array[String] = []
+  for index in 0..<count {
+    guard @json.array_at(values, index) is Some(@json.String(text)) else {
+      return None
+    }
+    if !dependency_validation_work(work, text.length()) {
+      return None
+    }
+    result.push(text)
+  }
+  Some(result)
+}
+
+///|
+fn dependency_binding_fields(
+  value : @json.CanonicalValue,
+  work : ((Int) -> Bool)?,
+) -> Result[Array[(String, @json.CanonicalValue)], PublicationContractIssue] {
+  if work is Some(_) {
+    guard @json.object_field_count(value) is Some(count) &&
+      dependency_validation_work(work, count) else {
+      return Err(Encoding)
+    }
+  }
+  object_fields(value)
 }

@@ -1,3 +1,4 @@
+import {constructEffectfulPublication} from '../host-common/run-publication.mjs';
 // Durable local publication storage. Prepared objects are content-addressed
 // but remain invisible to ordinary Result lookup until an authority-scoped
 // public index entry is installed with an exclusive atomic link.
@@ -4297,15 +4298,24 @@ async function openOriginalLocalPublicationStore(
     return configuration.privateEvidenceKey;
   };
   const privateEvidenceField = (value, bytes) => {
-    if (typeof value !== 'string' ||
-        !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u
-          .test(value)) {
+    if (typeof value !== 'string' || value.length % 4 !== 0) {
       fail('PublicationPrivateEvidenceCorrupt');
+    }
+    // The selected holding already bounds this field. A repeated-group
+    // regexp can exhaust the engine stack on a valid large ciphertext;
+    // scan the same alphabet/padding grammar with constant workspace.
+    const end = value.length - (value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0);
+    for (let index = 0; index < end; index++) {
+      const code = value.charCodeAt(index);
+      if (!(code >= 65 && code <= 90 || code >= 97 && code <= 122 ||
+          code >= 48 && code <= 57 || code === 43 || code === 47)) {
+        fail('PublicationPrivateEvidenceCorrupt');
+      }
     }
     // The bounded envelope and strict alphabet above fix the decoded extent.
     // Noncanonical padding bits still fail the same round-trip check below.
     // Keep nonce/tag/ciphertext on dedicated backings, not shared pool slices.
-    const length = value.length / 4 * 3 - (value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0);
+    const length = value.length / 4 * 3 - (value.length - end);
     if (bytes !== undefined && length !== bytes) {
       fail('PublicationPrivateEvidenceCorrupt');
     }
@@ -4318,7 +4328,7 @@ async function openOriginalLocalPublicationStore(
   };
   const readPrivateEvidenceObject = async (
     name, semanticCid, holdingCid, index = 0, objectCount = 1, originalHolding,
-    retainOriginalRead,
+    retainOriginalRead, beforeEnvelope,
   ) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name)) {
@@ -4378,10 +4388,19 @@ async function openOriginalLocalPublicationStore(
       if (receivedBytes !== expectedBytes) {
         fail('InvalidPublicationPhysicalHoldingStore');
       }
+      // Initial SAME-Read reservation already covers bytes and this String.
+      // The closed numeric envelope census then precedes any generic parser;
+      // its typed Resource refusal is the primary cause, outside AEAD wrapping.
+      const envelopeWire = bytes.toString('utf8');
+      if (beforeEnvelope !== undefined) {
+        if (typeof beforeEnvelope !== 'function' || beforeEnvelope(envelopeWire) !== undefined) {
+          fail('InvalidPublicationPrivateEvidence');
+        }
+      }
       let plaintext;
       try {
         let envelope;
-        try { envelope = JSON.parse(bytes.toString('utf8')); }
+        try { envelope = JSON.parse(envelopeWire); }
         catch (error) { fail('PublicationPrivateEvidenceCorrupt', error); }
         if (!exactKeys(envelope, ['version', 'nonce', 'tag', 'ciphertext']) ||
             envelope.version !== 'actql-private-publication-evidence/0.1') {
@@ -4464,7 +4483,7 @@ async function openOriginalLocalPublicationStore(
               fail('InvalidPublicationPrivateEvidence');
             }
           }
-        });
+        }, beforeRead?.reserveEnvelope);
       return await consume(plaintext, context);
     } finally {
       // This overload never hands byte custody to its caller. Typed values
@@ -4669,7 +4688,9 @@ async function openOriginalLocalPublicationStore(
     const original = validateModelRawBinding(binding);
     const operation = materialRetentionBusy.then(() =>
       readPrivateRawEvidenceOriginal(original, 'lookup', true));
-    materialRetentionBusy = operation.catch(() => {});
+    // The queue owns settlement ordering only. Keep the returned original API
+    // result, but do not retain its decrypted raw bytes on the Store tail.
+    materialRetentionBusy = operation.then(() => undefined, () => undefined);
     return operation;
   };
 
@@ -6359,7 +6380,7 @@ async function openOriginalLocalPublicationStore(
   // chain; the Store confirms its public bodies and private physical holdings.
   // A caller cannot use this result as an apply or commit permit.
   const inspectEffectfulStoredEvidence = async ({index, chain, preview,
-    receipts, privateBinding, effectSources},
+    receipts, privateBinding, effectSources, recoveryResources},
     readOriginal = (cid, includeNative) => readSemanticOriginal(cid, includeNative), retainedIndex) => {
     active();
     if (typeof contractControl.effectfulCommitValid !== 'function' ||
@@ -6422,10 +6443,11 @@ async function openOriginalLocalPublicationStore(
         fail('EffectfulCommitEvidenceMismatch');
       }
     }
-    if (contractControl.effectfulCommitValid(
-      chain, preview, receipts, request, attempt, admittedIndex,
-      contractLimits,
-    ) !== true) {
+    const validCommit = recoveryResources === undefined
+      ? contractControl.effectfulCommitValid(chain, preview, receipts, request, attempt, admittedIndex, contractLimits)
+      : constructEffectfulPublication(recoveryResources, chain.capturedRun, contractControl,
+        contractControl.effectfulCommitValid, [chain, preview, receipts, request, attempt, admittedIndex, contractLimits]);
+    if (validCommit !== true) {
       fail('InvalidEffectfulCommitChain');
     }
     const expectedPrivate = contractControl.effectPrivateEvidenceBinding(
@@ -6846,10 +6868,9 @@ async function openOriginalLocalPublicationStore(
   };
 
   const commitEffectfulIndex = (preparation, requiredObjectCids) => {
-    if (!exactKeys(preparation, [
-      'index', 'chain', 'preview', 'receipts', 'privateBinding',
-      'effectSources',
-    ]) || typeof preparation.index?.wire !== 'string') {
+    const keys = ['index', 'chain', 'preview', 'receipts', 'privateBinding', 'effectSources'];
+    if (preparation != null && Object.hasOwn(preparation, 'recoveryResources')) keys.push('recoveryResources');
+    if (!exactKeys(preparation, keys) || typeof preparation.index?.wire !== 'string') {
       fail('InvalidEffectfulStoredEvidence');
     }
     return withSemanticCommit(() => commitIndexInternal(
@@ -7137,21 +7158,43 @@ async function openOriginalLocalPublicationStore(
       async (metadata, consume) => {
         let scopeOpen = true;
         let rowsConsumed = false;
-        const readRows = async accept => {
+        const readRows = async (accept, beforeBufferGrowth) => {
           if (!scopeOpen || rowsConsumed || typeof accept !== 'function') {
             fail('InvalidPublicationRowConsumer');
           }
           rowsConsumed = true;
-          const frames = frameControl.prepareDurableResultRowFrames({
+          const growing = readDemand !== undefined;
+          if (growing && (typeof beforeBufferGrowth !== 'function' ||
+              ['prepareGrowingDurableResultRowFrames', 'durableResultRowFrameGrowth',
+                'growDurableResultRowFrameBuffer'].some(name => typeof frameControl[name] !== 'function'))) {
+            fail('InvalidPublicationRowConsumer');
+          }
+          const prepareFrames = growing ? frameControl.prepareGrowingDurableResultRowFrames
+            : frameControl.prepareDurableResultRowFrames;
+          const frames = Reflect.apply(prepareFrames, frameControl, [{
             maxBytes: metadata.payloadBytes,
             maxRows: metadata.rowCount,
             maxRowBytes: frameLimits.maxRowBytes,
             maxDepth: frameLimits.maxDepth,
             maxFrameBytes: frameLimits.maxFrameBytes,
-          });
-          let rowIndex = 0;
+          }]);
+          let rowIndex = 0, frameCapacity = 0;
           try {
             const physical = await consume(async chunk => {
+              if (growing) {
+                const needed = frameControl.durableResultRowFrameGrowth(frames, chunk.byteLength);
+                if (needed > frameCapacity) {
+                  // The original delivery owner flushes staged output and
+                  // grows its SAME READ parent before old/new row backing.
+                  const admitted = await beforeBufferGrowth(needed);
+                  if (!Number.isSafeInteger(admitted) || admitted < needed ||
+                      admitted > Math.min(frameLimits.maxRowBytes, metadata.payloadBytes)) {
+                    fail('InvalidPublicationRowConsumer');
+                  }
+                  frameControl.growDurableResultRowFrameBuffer(frames, admitted);
+                  frameCapacity = admitted;
+                }
+              }
               const rows = frameControl.feedDurableResultRowFrames(
                 frames, chunk,
               );

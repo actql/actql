@@ -1,6 +1,6 @@
 import {checked} from '../host-common/runtime-result.mjs';
 
-const integer = value => Number.isSafeInteger(value) && value >= 0;
+const integer = value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647;
 
 // Async environment bridge for the portable MoonBit row framer. The bridge
 // owns callback sequencing only; all structure, capacity, and terminal-state

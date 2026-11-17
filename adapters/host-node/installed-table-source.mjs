@@ -121,8 +121,9 @@ export function installedTableReadSite({connection, authorization, principalId, 
 function createInstalledTableSourceReader({moon, initialCapacity, readPages, frameLimits}) {
   const bodyCapacity = moon.clientProgramInstalledTableSourceBodyCapacity;
   const serializationCapacity = moon.clientProgramInstalledTableSourceSerializationCapacity;
+  const completedCapacity = moon.clientProgramInstalledTableSourceCompletedCapacity;
   const chargeBody = moon.clientProgramRowSourceChargeResponseBody;
-  if ([bodyCapacity,serializationCapacity,chargeBody].some(value=>typeof value !== 'function') ||
+  if ([bodyCapacity,serializationCapacity,completedCapacity,chargeBody].some(value=>typeof value !== 'function') ||
       initialCapacity === undefined || typeof readPages !== 'function' || !Object.isFrozen(frameLimits)) {
     fail('InstalledTableSourceReaderUnavailable');
   }
@@ -138,6 +139,7 @@ function createInstalledTableSourceReader({moon, initialCapacity, readPages, fra
       // A failed preparation then uses the Host's existing original retry.
       let run, consume, stop, signal;
       let selected = options, capacity = initialCapacity, ticket, bodyBytes = 0;
+      let nodes = 0, fields = 0, objects = 0, arrays = 0, utf16Units = 0;
       let phase = 'preparing', pending = false, stopped = false, retired = false, cleanup;
       let handle;
       const check = () => {
@@ -161,8 +163,30 @@ function createInstalledTableSourceReader({moon, initialCapacity, readPages, fra
         // observed ticket, but never decode after that original callback.
         check();bodyBytes=body.byteLength;
       };
+      const bodySnapshot = geometry => {
+        check();
+        if (!Number.isSafeInteger(geometry.nodes) || geometry.nodes < 0 ||
+            !Number.isSafeInteger(geometry.fields) || geometry.fields < 0 ||
+            !Number.isSafeInteger(geometry.objects) || geometry.objects < 0 ||
+            !Number.isSafeInteger(geometry.arrays) || geometry.arrays < 0 ||
+            !Number.isSafeInteger(geometry.utf16Units) || geometry.utf16Units < 0) {
+          fail('InvalidTableReplyGeometry');
+        }
+        nodes += geometry.nodes; fields += geometry.fields; objects += geometry.objects;
+        arrays += geometry.arrays; utf16Units += geometry.utf16Units;
+        if (nodes > 2147483647 || fields > 2147483647 || objects > 2147483647 ||
+            arrays > 2147483647 || utf16Units > 2147483647) fail('InvalidTableReplyGeometry');
+      };
+      const completeBodies = () => {
+        // Both bridge calls return only after their ORIGINAL process close.
+        // The same snapshot traversal measured every returned native tree;
+        // old Buffers, decoded text and parser/encoder scratch no longer escape.
+        const next = checked(Reflect.apply(completedCapacity, moon,
+          [initialCapacity, nodes, fields, objects, arrays, utf16Units]));
+        reserveResponseCapacity(next, 'completed-body'); check(); capacity = next;
+      };
       const preparePayload = () => {
-        check();consumePrevious();
+        check();consumePrevious();completeBodies();
         // Actual metadata payload snapshot, full envelope preflight and send
         // encoding are separate constructors. Keep their original full peaks
         // alongside the received prefix; no earlier body is assumed retired.
@@ -175,6 +199,7 @@ function createInstalledTableSourceReader({moon, initialCapacity, readPages, fra
         if(ticket===undefined)fail('InstalledTableSourceResponseUnavailable');
         // This is the final received response: preserve its unconsumed
         // original ticket and use the EXISTING charged constructor entrance.
+        completeBodies();
         const next=checked(Reflect.apply(serializationCapacity,moon,[capacity,bodyBytes]));
         reserveResponseCapacity(next);check();capacity=next;
       };
@@ -192,7 +217,7 @@ function createInstalledTableSourceReader({moon, initialCapacity, readPages, fra
           if(this!==handle||phase!=='ready'||stopped||closing)fail('InstalledTableSourceReaderAlreadyStarted');
           phase='reading';pending=true;
           try {
-            const physical={signal,beforeBodyAllocation,bodyReceived,preparePayload,prepareOutput,
+            const physical={signal,beforeBodyAllocation,bodyReceived,bodySnapshot,preparePayload,prepareOutput,
               finalCharge() {if(ticket===undefined)fail('InstalledTableSourceResponseUnavailable');const value=ticket;ticket=undefined;return value;}};
             const result=await readPages(selected,physical);
             phase='complete';return result;
@@ -261,7 +286,7 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
       !text(site?.connection) || typeof site?.issueReadGrant !== 'function' ||
       typeof authorization?.authorize !== 'function' ||
       !['checkReadSelector', 'resolveGeneration', 'read'].every(key => typeof bridge?.[key] === 'function') ||
-      !Array.isArray(targets) || targets.length < 1 || targets.length > 64) {
+      !Array.isArray(targets) || targets.length < 1) {
     fail('InvalidInstalledTableSource');
   }
   const installed = targets.map(target => {
@@ -307,7 +332,7 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
     if (!target || columns.some(column => !view.fields.includes(column))) fail('InstalledTableReadTargetMismatch');
     signal?.throwIfAborted();
     await Reflect.apply(authorizationFor, options, [0]);
-    const frozen = closedReply(await bridge.resolveGeneration(target.selector, signal, physical?.beforeBodyAllocation, physical?.bodyReceived),
+    const frozen = closedReply(await bridge.resolveGeneration(target.selector, signal, physical?.beforeBodyAllocation, physical?.bodyReceived, physical?.bodySnapshot),
       ['receipt', 'mapping', 'schema_wire']);
     signal?.throwIfAborted();
     // The physical owner verified its immutable metadata and publication record.
@@ -326,7 +351,7 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
     signal?.throwIfAborted();
     physical?.preparePayload();
     const rows = closedReply(await bridge.read(frozen.receipt, frozen.mapping, signal,
-      physical?.beforeBodyAllocation, physical?.bodyReceived));
+      physical?.beforeBodyAllocation, physical?.bodyReceived, physical?.bodySnapshot));
     if (!Array.isArray(rows) || rows.length !== frozen.receipt.row_count) fail('InvalidTableReadReply');
     await Reflect.apply(authorizationFor, options, [2]);
     signal?.throwIfAborted();

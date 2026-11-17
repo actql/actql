@@ -274,20 +274,9 @@ fn execute_local_tasks_guarded(
     if !current() {
       return reject(Fenced)
     }
-    // The single-capture factory retains adaptive proposals, not a selected
-    // strategy. Let the existing Host select/refresh them on this same Run.
-    if first == 1 {
-      match
-        @host_driver.refresh_compute_host(
-          @builtin.configured_host_runtime(setup),
-        ) {
-        Ok(_) => ()
-        Err(issue) => return reject(Estimate(issue))
-      }
-      if !current() {
-        return reject(Fenced)
-      }
-    }
+    // This entry starts the exact managed candidate below. The installed
+    // fallback estimator belongs to the legacy prepare-next-task boundary;
+    // its full materializing envelope cannot preflight this managed request.
     // The retained Model can have completed intermediate tasks already. None
     // only ends dispatch here; the original Result output is still required.
     if continuation && @strategy.next_captured_task(run) is None {
@@ -355,7 +344,11 @@ fn execute_local_tasks_guarded(
     if !current() {
       return reject(Fenced)
     }
-    if continuation {
+    // The same original Source-free Host has one selected Local module.
+    // Commit its actual managed candidate only after preparing this next
+    // Task with its real inputs; no whole-Run future DATA reservation is
+    // needed. The start boundary still admits its complete simultaneous cost.
+    if continuation || first == 0 {
       match
         @strategy.select_captured_managed_registration(
           run,

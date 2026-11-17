@@ -25,35 +25,12 @@
           "async": false
         },
         {
-          "name": "envelopeObject",
-          "parameters": [
-            "value",
-            "control"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
-          ],
-          "async": false
-        },
-        {
           "name": "signRemoteCredentialGrant",
           "parameters": [
             "grant",
             "control",
             "keyId",
             "privateKey"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
           ],
           "async": false
         }
@@ -65,10 +42,7 @@
           "operations": [
             "<module>",
             "admitSignedRemoteCredentialGrant",
-            "envelopeObject",
-            "fail/fail",
-            "signRemoteCredentialGrant",
-            "text/text"
+            "signRemoteCredentialGrant"
           ],
           "exports": [
             "admitSignedRemoteCredentialGrant",
@@ -189,11 +163,6 @@
           "async": false
         },
         {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "observationConfiguration",
           "parameters": [
             "options"
@@ -256,7 +225,6 @@
           "operations": [
             "<module>",
             "endpoint",
-            "fail/fail",
             "observationConfiguration",
             "observationConfiguration/applicationOwned/applicationOwned",
             "observationConfiguration/init:deliver/init:deliver",
@@ -398,20 +366,6 @@
           "async": false
         },
         {
-          "name": "environmentOptions/read/read",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "headers",
           "parameters": [
             "raw"
@@ -429,8 +383,6 @@
             "environmentOptions/environmentOptions",
             "environmentOptions/environmentOptions#2",
             "environmentOptions/propagators/propagators",
-            "environmentOptions/read/read",
-            "fail/fail",
             "headers"
           ],
           "exports": [
@@ -705,13 +657,6 @@
           "async": true
         },
         {
-          "name": "createNodeHostObservability/connection/init:deliver/init:deliver/attempt/attempt",
-          "parameters": [
-            "work"
-          ],
-          "async": true
-        },
-        {
           "name": "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver",
           "parameters": [],
           "async": true
@@ -879,7 +824,6 @@
             "<module>",
             "createNodeHostObservability",
             "createNodeHostObservability/connection/init:deliver/init:deliver",
-            "createNodeHostObservability/connection/init:deliver/init:deliver/attempt/attempt",
             "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver",
             "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver/httpLabels/httpLabels",
             "createNodeHostObservability/connection/init:deliver/init:deliver/init:deliver/httpLabels/httpLabels#2",
@@ -1237,13 +1181,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "fixedInferResponseLimits",
           "parameters": [
             "maxBytes",
@@ -1258,13 +1195,6 @@
           "name": "fixedInferResponseLimits/fixedInferResponseLimits",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -1338,10 +1268,8 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "fixedInferResponseLimits",
             "fixedInferResponseLimits/fixedInferResponseLimits",
-            "positive/positive",
             "readBoundedInferResponse",
             "readBoundedInferResponse/abort/abort",
             "readBoundedInferResponse/readBoundedInferResponse",
@@ -1475,14 +1403,6 @@
       ],
       "operations": [
         {
-          "name": "advanceOriginalPhysicalCleanup",
-          "parameters": [
-            "state",
-            "transport"
-          ],
-          "async": false
-        },
-        {
           "name": "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup",
           "parameters": [
             "retired"
@@ -1538,14 +1458,6 @@
         {
           "name": "cleanupSdkPreparation/cleanupSdkPreparation#5",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "deliverOriginalSdkResponse",
-          "parameters": [
-            "state",
-            "response"
-          ],
           "async": false
         },
         {
@@ -1628,11 +1540,6 @@
           "async": false
         },
         {
-          "name": "interceptSdkRequest/wake/wake",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "issue/issue",
           "parameters": [
             "code"
@@ -1661,13 +1568,6 @@
           "async": false
         },
         {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareSdkTransport",
           "parameters": [
             "handle",
@@ -1685,13 +1585,6 @@
         },
         {
           "name": "progressSdkOriginalIoCleanup",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
-          "name": "record/record",
           "parameters": [
             "handle"
           ],
@@ -1771,11 +1664,6 @@
           "async": false
         },
         {
-          "name": "startSdkTransport/wake/wake",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "takeSdkDecodedResult",
           "parameters": [
             "handle"
@@ -1789,7 +1677,6 @@
         {
           "operations": [
             "<module>",
-            "advanceOriginalPhysicalCleanup",
             "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup",
             "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup#2",
             "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup#3",
@@ -1800,7 +1687,6 @@
             "cleanupSdkPreparation/cleanupSdkPreparation#3",
             "cleanupSdkPreparation/cleanupSdkPreparation#4",
             "cleanupSdkPreparation/cleanupSdkPreparation#5",
-            "deliverOriginalSdkResponse",
             "deliverSdkResponse",
             "interceptSdkRequest",
             "interceptSdkRequest/fetch/fetch",
@@ -1812,16 +1698,13 @@
             "interceptSdkRequest/interceptSdkRequest#3",
             "interceptSdkRequest/interceptSdkRequest#4",
             "interceptSdkRequest/reject/reject",
-            "interceptSdkRequest/wake/wake",
             "issue/issue",
             "pollSdkDecode",
             "pollSdkPreparation",
             "pollSdkTransport",
-            "positive/positive",
             "prepareSdkTransport",
             "prepareSdkTransport/prepareSdkTransport",
             "progressSdkOriginalIoCleanup",
-            "record/record",
             "retireSdkDecodedResult",
             "sdkOriginalIoObservationAvailable",
             "sdkPreparedRequest",
@@ -1833,7 +1716,6 @@
             "startSdkTransport/startSdkTransport#2",
             "startSdkTransport/startSdkTransport#3",
             "startSdkTransport/startSdkTransport#4",
-            "startSdkTransport/wake/wake",
             "takeSdkDecodedResult"
           ],
           "exports": [
@@ -2122,16 +2004,6 @@
       ],
       "operations": [
         {
-          "name": "bindAcquisitionRead",
-          "parameters": [
-            "socket",
-            "limits",
-            "acquisition",
-            "inputExtent"
-          ],
-          "async": false
-        },
-        {
           "name": "bindAcquisitionRead/bindAcquisitionRead",
           "parameters": [],
           "async": false
@@ -2188,32 +2060,9 @@
           "async": false
         },
         {
-          "name": "issue/issue",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalHeadersView",
-          "parameters": [
-            "originalHeaders"
-          ],
-          "async": false
-        },
-        {
           "name": "originalHeadersView/init:get/init:get",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "originalResponseView",
-          "parameters": [
-            "response",
-            "body",
-            "closed"
           ],
           "async": false
         },
@@ -2362,14 +2211,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "sameResponseLimits",
-          "parameters": [
-            "limits",
-            "original"
-          ],
-          "async": false
         }
       ],
       "role": "physical-io",
@@ -2378,7 +2219,6 @@
         {
           "operations": [
             "<module>",
-            "bindAcquisitionRead",
             "bindAcquisitionRead/bindAcquisitionRead",
             "bindAcquisitionRead/boundedRead/boundedRead",
             "createOriginalUndiciFetch",
@@ -2387,10 +2227,7 @@
             "fixedOriginalAcquisitionLimits/entries/entries",
             "fixedOriginalAcquisitionLimits/fixedOriginalAcquisitionLimits",
             "fixedOriginalAcquisitionLimits/fixedOriginalAcquisitionLimits#2",
-            "issue/issue",
-            "originalHeadersView",
             "originalHeadersView/init:get/init:get",
-            "originalResponseView",
             "originalResponseView/cancel/cancel",
             "originalResponseView/stream/init:getReader/init:getReader",
             "originalResponseView/stream/init:getReader/init:getReader/originalReader/init:read/init:read",
@@ -2414,8 +2251,7 @@
             "prepareOriginalUndiciFetch/invoke/invoke/response/response/response#2",
             "prepareOriginalUndiciFetch/invoke/invoke/settled/settled",
             "prepareOriginalUndiciFetch/onread/init:callback/init:callback",
-            "prepareOriginalUndiciFetch/prepareOriginalUndiciFetch",
-            "sameResponseLimits"
+            "prepareOriginalUndiciFetch/prepareOriginalUndiciFetch"
           ],
           "exports": [
             "createOriginalUndiciFetch",
@@ -2868,13 +2704,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "fixedInferResponseLimits",
           "parameters": [
             "maxBytes",
@@ -2889,13 +2718,6 @@
           "name": "fixedInferResponseLimits/fixedInferResponseLimits",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -2969,10 +2791,8 @@
         {
           "operations": [
             "<module>",
-            "fail/fail",
             "fixedInferResponseLimits",
             "fixedInferResponseLimits/fixedInferResponseLimits",
-            "positive/positive",
             "readBoundedInferResponse",
             "readBoundedInferResponse/abort/abort",
             "readBoundedInferResponse/readBoundedInferResponse",

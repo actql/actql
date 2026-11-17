@@ -239,3 +239,17 @@ pub fn prepare_node_original_source_child(
 
   }
 }
+
+///|
+fn[P] prepared_run_operation_work_node_child(
+  _owner : NodeManagedRunAdmission[P],
+) -> ImportedChildLedger? {
+  None
+}
+
+///|
+fn[P] prepared_run_operation_work_node_body(
+  _owner : NodeManagedRunAdmission[P],
+) -> PreparationBodyBorrow[P]? {
+  None
+}

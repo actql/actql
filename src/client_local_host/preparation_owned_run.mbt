@@ -209,11 +209,14 @@ fn[I] begin_preparation_owned_installed_effect_managed_run_original(
     Ok(_) => ()
   }
   // The original plan.model guard above already selected this non-Model
-  // constructor. No operation-name or graph reconstruction is needed.
-  match
-    @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
-    Err(issue) => return Err(Preparation(issue))
-    Ok(_) => ()
+  // constructor. A checked keyed Source retains its same original census;
+  // all other non-Model Plans still discard only unused census metadata.
+  if plan.keyed_original is None {
+    match
+      @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
+      Err(issue) => return Err(Preparation(issue))
+      Ok(_) => ()
+    }
   }
   adopt_preparation_owned_installed_effect_plan(
     initial, input, capacity, request, plan,
@@ -394,6 +397,25 @@ fn[P] retire_preparation_owned_installed_run(
   if value.preparation is Some(_) &&
     !@resources.prepared_run_usage_isolated(original.admission, ledger) {
     return Err(CleanupPending)
+  }
+  if value.preparation is Some(PlannedEffectManaged(_, plan)) &&
+    plan.model is None &&
+    plan.keyed_inventory is Some(_) &&
+    value.ledger is Some(ledger) {
+    // FINAL retirement only: the Run's quiescence already acknowledged its
+    // actual registered children/controls/dependencies, and the isolation
+    // check above retains every remaining publication/operation allocation.
+    // The SAME Resource Owner still verifies its full token census/current.
+    // Intermediate Source/Compute quiescence must not close this lifetime;
+    // no process-exit, FD or whole-Host physical-stop claim is issued here.
+    match @resources.finish_original_ledger_inventory(ledger, true) {
+      Err(_) => return Err(CleanupPending)
+      Ok(false) => return Err(CleanupPending)
+      Ok(true) => {
+        plan.keyed_original = None
+        plan.keyed_inventory = None
+      }
+    }
   }
   match @resources.retire_transferred_preparation(original.retirement) {
     Err(@resources.PreparationCapacityIssue::Resource(issue)) =>

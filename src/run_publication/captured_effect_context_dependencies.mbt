@@ -117,6 +117,7 @@ fn captured_effect_context_dependencies_valid(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared? : CapturedEffectDependencyInventory? = None,
 ) -> Bool {
   guard @json.object_field(context, "effect_source_local_inventory")
     is Some(local_sources) &&
@@ -127,6 +128,12 @@ fn captured_effect_context_dependencies_valid(
     is Some(wire) else {
     return false
   }
+  if prepared is Some(original) {
+    return original.wire == wire &&
+      captured_effect_context_dependency_roots_match(
+        context, original, max_bytes, max_nodes, max_depth,
+      )
+  }
   admit_effect_context_dependencies(
     entries.map(entry => entry.1),
     wire,
@@ -135,4 +142,105 @@ fn captured_effect_context_dependencies_valid(
     max_depth,
   )
   is Ok(_)
+}
+
+///|
+// The body was already fully admitted. Compare actual captured root material
+// with that typed body's canonical original, avoiding another parse/hash/graph.
+pub fn captured_effect_context_dependency_roots_match(
+  context : @json.CanonicalValue,
+  inventory : CapturedEffectDependencyInventory,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  guard @json.object_field(context, "effect_source_local_inventory")
+    is Some(sources) &&
+    object_fields(sources) is Ok(sources) else {
+    return false
+  }
+  captured_effect_dependency_source_values_match(
+    ContextSources(sources),
+    inventory,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+priv enum CapturedDependencySourceValues {
+  ContextSources(Array[(String, @json.CanonicalValue)])
+  AdmittedSources(Array[CapturedLocalEffectSourceEvidence])
+}
+
+///|
+pub fn captured_effect_dependency_sources_match(
+  sources : Array[CapturedLocalEffectSourceEvidence],
+  inventory : CapturedEffectDependencyInventory,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  captured_effect_dependency_source_values_match(
+    AdmittedSources(sources),
+    inventory,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn captured_effect_dependency_source_values_match(
+  sources : CapturedDependencySourceValues,
+  inventory : CapturedEffectDependencyInventory,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  let expected : Map[String, CapturedEffectDependencyBody] = Map([])
+  let found : Map[String, Bool] = Map([])
+  for root in inventory.roots {
+    expected[dependency_key(root.node.kind, root.node.identity)] = root
+  }
+  let count = match sources {
+    ContextSources(values) => values.length()
+    AdmittedSources(values) => values.length()
+  }
+  for index in 0..<count {
+    let source = match sources {
+      ContextSources(values) => values[index].1
+      AdmittedSources(values) => values[index].value
+    }
+    guard @json.object_field(source, "invocation") is Some(invocation) &&
+      @json.object_field(invocation, "observation_cids") is Some(observations) &&
+      evidence_string_array(observations) is Some(observations) &&
+      @json.object_field(source, "derivation") is Some(derivation) &&
+      @json.object_field(derivation, "input_relation_cids") is Some(relations) &&
+      evidence_string_array(relations) is Some(relations) else {
+      return false
+    }
+    if observations.is_empty() && relations.is_empty() {
+      continue
+    }
+    guard @json.object_field(source, "artifact") is Some(artifact) &&
+      @json.object_field(source, "definition") is Some(definition) &&
+      evidence_string(artifact, "result_artifact_cid") is Some(cid) else {
+      return false
+    }
+    let kind = match evidence_string(definition, "version") {
+      Some("actql-local-result-definition/0.1") => "result_artifact"
+      Some("actql-local-table-input-definition/0.1") => "table_input_artifact"
+      _ => return false
+    }
+    let key = dependency_key(kind, cid)
+    guard expected.get(key) is Some(original) &&
+      canonical_value_wire(artifact, max_bytes, max_nodes, max_depth) ==
+      Some(original.wire) else {
+      return false
+    }
+    found[key] = true
+  }
+  found.length() == expected.length()
 }

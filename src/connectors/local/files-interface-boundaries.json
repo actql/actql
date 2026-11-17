@@ -10,37 +10,14 @@
       ],
       "operations": [
         {
-          "name": "currentResult/currentResult",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "currentResult/currentResult/currentResult",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "equalMetadata/equalMetadata",
-          "parameters": [
-            "left",
-            "right"
-          ],
           "async": false
         },
         {
           "name": "equalMetadata/equalMetadata/equalMetadata",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
           ],
           "async": false
         },
@@ -54,14 +31,6 @@
           "async": false
         },
         {
-          "name": "openLocalFileRoot/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
           "name": "openLocalFileRoot/callbacks/callbacks",
           "parameters": [
             "name"
@@ -71,13 +40,6 @@
         {
           "name": "openLocalFileRoot/cleanup/cleanup",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openLocalFileRoot/closeNative/closeNative",
-          "parameters": [
-            "slot"
-          ],
           "async": false
         },
         {
@@ -100,25 +62,10 @@
           "async": false
         },
         {
-          "name": "openLocalFileRoot/init:openReader/init:openReader/acquire",
-          "parameters": [
-            "name",
-            "parent",
-            "component",
-            "maximum"
-          ],
-          "async": false
-        },
-        {
           "name": "openLocalFileRoot/init:openReader/init:openReader/bounds/bounds",
           "parameters": [
             "name"
           ],
-          "async": false
-        },
-        {
-          "name": "openLocalFileRoot/init:openReader/init:openReader/check/check",
-          "parameters": [],
           "async": false
         },
         {
@@ -134,22 +81,6 @@
           "async": false
         },
         {
-          "name": "openLocalFileRoot/init:openReader/init:openReader/content",
-          "parameters": [
-            "slot",
-            "metadata",
-            "collect"
-          ],
-          "async": true
-        },
-        {
-          "name": "openLocalFileRoot/init:openReader/init:openReader/execute",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
           "name": "openLocalFileRoot/init:openReader/init:openReader/execute/execute",
           "parameters": [
             "cause"
@@ -159,13 +90,6 @@
         {
           "name": "openLocalFileRoot/init:openReader/init:openReader/execute/execute#2",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openLocalFileRoot/init:openReader/init:openReader/finishSlot",
-          "parameters": [
-            "slot"
-          ],
           "async": false
         },
         {
@@ -186,16 +110,6 @@
         {
           "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list",
           "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list/visit",
-          "parameters": [
-            "parent",
-            "component",
-            "prefix",
-            "depth"
-          ],
           "async": true
         },
         {
@@ -222,20 +136,6 @@
         {
           "name": "openLocalFileRoot/init:openReader/init:openReader/reader/reader",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "readMetadata",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -272,39 +172,26 @@
       "contracts": [
         {
           "operations": [
-            "currentResult/currentResult",
             "currentResult/currentResult/currentResult",
-            "equalMetadata/equalMetadata",
             "equalMetadata/equalMetadata/equalMetadata",
-            "fail/fail",
             "openLocalFileRoot",
-            "openLocalFileRoot/call/call",
             "openLocalFileRoot/callbacks/callbacks",
             "openLocalFileRoot/cleanup/cleanup",
-            "openLocalFileRoot/closeNative/closeNative",
             "openLocalFileRoot/closeRoot",
             "openLocalFileRoot/current/current",
             "openLocalFileRoot/init:openReader/init:openReader",
-            "openLocalFileRoot/init:openReader/init:openReader/acquire",
             "openLocalFileRoot/init:openReader/init:openReader/bounds/bounds",
-            "openLocalFileRoot/init:openReader/init:openReader/check/check",
             "openLocalFileRoot/init:openReader/init:openReader/close",
             "openLocalFileRoot/init:openReader/init:openReader/close/close",
-            "openLocalFileRoot/init:openReader/init:openReader/content",
-            "openLocalFileRoot/init:openReader/init:openReader/execute",
             "openLocalFileRoot/init:openReader/init:openReader/execute/execute",
             "openLocalFileRoot/init:openReader/init:openReader/execute/execute#2",
-            "openLocalFileRoot/init:openReader/init:openReader/finishSlot",
             "openLocalFileRoot/init:openReader/init:openReader/init:openReader",
             "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list",
             "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list",
-            "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list/visit",
             "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read",
             "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read/init:read",
             "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read/init:read#2",
             "openLocalFileRoot/init:openReader/init:openReader/reader/reader",
-            "positive/positive",
-            "readMetadata",
             "readMetadata/readMetadata",
             "readMetadata/readMetadata#2",
             "version/version"
@@ -496,41 +383,13 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d7e91baa48df173421bd6bf6b164aa0b960c81e2322363c702d7c52b9f87a36c",
+      "sha256": "c4589b00ca208d25d1d87149012e260c200d2ac990b2784ab7f762255f0c01fe",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
         "prepareInstalledProjectLocalFiles"
       ],
       "operations": [
-        {
-          "name": "acknowledged/acknowledged",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "canonical/canonical",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
         {
           "name": "installPreparedProjectLocalFiles",
           "parameters": [
@@ -541,7 +400,8 @@
             "authorizationFor",
             "nativeFilesystem",
             "prepareManagedRun",
-            "prepareManagedContentRun"
+            "prepareManagedContentRun",
+            "construction"
           ],
           "async": true
         },
@@ -590,7 +450,9 @@
             "checkedOwner",
             "keyedAcquisition",
             "request",
-            "declaration"
+            "declaration",
+            "managedRun",
+            "rowLimits"
           ],
           "async": false
         },
@@ -649,13 +511,6 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/flush/flush",
-          "parameters": [
-            "final"
-          ],
-          "async": true
-        },
-        {
           "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:onFile/init:onFile",
           "parameters": [
             "file"
@@ -680,29 +535,8 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectLocalFiles/captureClose",
-          "parameters": [
-            "read"
-          ],
-          "async": false
-        },
-        {
           "name": "installPreparedProjectLocalFiles/close",
           "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/closeRead",
-          "parameters": [
-            "read"
-          ],
-          "async": true
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/closeSharedReadExternal",
-          "parameters": [
-            "read"
-          ],
           "async": true
         },
         {
@@ -730,14 +564,6 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectLocalFiles/contentSourceEntry",
-          "parameters": [
-            "resource",
-            "reference"
-          ],
-          "async": false
-        },
-        {
           "name": "installPreparedProjectLocalFiles/contentSourceEntry/index/index",
           "parameters": [
             "source",
@@ -754,7 +580,7 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectLocalFiles/current/current",
+          "name": "installPreparedProjectLocalFiles/init:capacity/init:capacity",
           "parameters": [],
           "async": false
         },
@@ -773,11 +599,45 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectLocalFiles/init:originalsForProjectEffects/init:originalsForProjectEffects",
+          "parameters": [
+            "runtime",
+            "originalPreparation"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectLocalFiles/init:prepare/init:prepare",
           "parameters": [
             "facts"
           ],
           "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:project/init:project/entries/entries",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:project/init:project/entries/entries/response/response",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:project/init:project/init:project",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
         },
         {
           "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
@@ -883,35 +743,6 @@
           "async": false
         },
         {
-          "name": "installPreparedProjectLocalFiles/releaseSharedRead",
-          "parameters": [
-            "read"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/resourceFor/resourceFor",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
-          "name": "installPreparedProjectLocalFiles/sameRun/sameRun",
-          "parameters": [
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownLimits",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
           "name": "ownLimits/ownLimits",
           "parameters": [
             "name"
@@ -940,15 +771,6 @@
           "async": false
         },
         {
-          "name": "physicalReadChild",
-          "parameters": [
-            "namespace",
-            "path",
-            "assertCurrent"
-          ],
-          "async": false
-        },
-        {
           "name": "physicalReadChild/child/init:close/init:close",
           "parameters": [],
           "async": true
@@ -968,13 +790,6 @@
         {
           "name": "physicalReadChild/child/init:status/init:status",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
           "async": false
         },
         {
@@ -1030,37 +845,6 @@
           "async": false
         },
         {
-          "name": "prepareInstalledProjectLocalFiles/same/same",
-          "parameters": [
-            "runtime",
-            "receiver"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreDeclaration",
-          "parameters": [
-            "call",
-            "connection",
-            "rootPath",
-            "versionMode",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreDeclaration/request/request",
-          "parameters": [
-            "fields"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreDeclaration/restore/restore",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "restoreDeclaration/restoreDeclaration",
           "parameters": [
             "view"
@@ -1071,38 +855,6 @@
           "name": "restoreDeclaration/restoreDeclaration#2",
           "parameters": [
             "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreDeclaration/string/string",
-          "parameters": [
-            "nullable"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreDeclaration/timestamp/timestamp",
-          "parameters": [
-            "nullable"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreDeclaration/view/view",
-          "parameters": [
-            "name",
-            "schema",
-            "fields",
-            "acquisition"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value",
-            "maximum"
           ],
           "async": false
         }
@@ -1131,10 +883,6 @@
       "contracts": [
         {
           "operations": [
-            "acknowledged/acknowledged",
-            "canonical/canonical",
-            "cid/cid",
-            "fail/fail",
             "installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/adapter/adapter",
             "installPreparedProjectLocalFiles/adapter/init:close/init:close",
@@ -1148,20 +896,21 @@
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead#2",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/fileLimits/fileLimits",
-            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/flush/flush",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:onFile/init:onFile",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/limits/limits",
-            "installPreparedProjectLocalFiles/captureClose",
             "installPreparedProjectLocalFiles/close",
-            "installPreparedProjectLocalFiles/closeRead",
             "installPreparedProjectLocalFiles/contentLedger",
-            "installPreparedProjectLocalFiles/contentSourceEntry",
             "installPreparedProjectLocalFiles/contentSourceEntry/index/index",
             "installPreparedProjectLocalFiles/contentSourceEntry/index/index/index",
-            "installPreparedProjectLocalFiles/current/current",
+            "installPreparedProjectLocalFiles/init:capacity/init:capacity",
             "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
+            "installPreparedProjectLocalFiles/init:originalsForProjectEffects/init:originalsForProjectEffects",
             "installPreparedProjectLocalFiles/init:prepare/init:prepare",
+            "installPreparedProjectLocalFiles/init:project/init:project",
+            "installPreparedProjectLocalFiles/init:project/init:project/entries/entries",
+            "installPreparedProjectLocalFiles/init:project/init:project/entries/entries/response/response",
+            "installPreparedProjectLocalFiles/init:project/init:project/init:project",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
             "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
@@ -1174,19 +923,14 @@
             "installPreparedProjectLocalFiles/prepareRun",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases",
             "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
-            "installPreparedProjectLocalFiles/resourceFor/resourceFor",
-            "installPreparedProjectLocalFiles/sameRun/sameRun",
-            "ownLimits",
             "ownLimits/ownLimits",
             "ownLimits/ownLimits#2",
             "ownLimits/ownLimits#3",
             "ownLimits/value/value",
-            "physicalReadChild",
             "physicalReadChild/child/init:close/init:close",
             "physicalReadChild/child/init:start/init:start",
             "physicalReadChild/child/init:start/init:start/init:assertCurrent/init:assertCurrent",
             "physicalReadChild/child/init:status/init:status",
-            "positive/positive",
             "prepareInstalledProjectLocalFiles",
             "prepareInstalledProjectLocalFiles/call/call",
             "prepareInstalledProjectLocalFiles/current/current",
@@ -1194,16 +938,8 @@
             "prepareInstalledProjectLocalFiles/init:retire/init:retire",
             "prepareInstalledProjectLocalFiles/ports/ports",
             "prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
-            "prepareInstalledProjectLocalFiles/same/same",
-            "restoreDeclaration",
-            "restoreDeclaration/request/request",
-            "restoreDeclaration/restore/restore",
             "restoreDeclaration/restoreDeclaration",
-            "restoreDeclaration/restoreDeclaration#2",
-            "restoreDeclaration/string/string",
-            "restoreDeclaration/timestamp/timestamp",
-            "restoreDeclaration/view/view",
-            "text/text"
+            "restoreDeclaration/restoreDeclaration#2"
           ],
           "exports": [
             "LOCAL_FILES_DEFAULT_LIMITS",
@@ -1529,6 +1265,22 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "public Local installer funds and forwards its same installed row read profile and transport"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "public Local profile constructor refuses before projection on the original Source budget"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "public Local profile construction observes original retirement before authorization or Source publication"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "combined Local Source and STORE initialization retain the same original connection binding"
               }
             ]
           }
@@ -1538,11 +1290,9 @@
             "installPreparedProjectLocalFiles/adapter/init:closeSourceRead/init:closeSourceRead",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup#2",
             "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages#2",
-            "installPreparedProjectLocalFiles/closeSharedReadExternal",
             "installPreparedProjectLocalFiles/closeSharedReadExternal/work/work",
             "installPreparedProjectLocalFiles/closeSourceRead",
-            "installPreparedProjectLocalFiles/init:managedCaptureCapacity/init:managedCaptureCapacity",
-            "installPreparedProjectLocalFiles/releaseSharedRead"
+            "installPreparedProjectLocalFiles/init:managedCaptureCapacity/init:managedCaptureCapacity"
           ],
           "exports": [],
           "attributes": {
@@ -2401,14 +2151,6 @@
           "async": false
         },
         {
-          "name": "closed/closed",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
           "name": "createLocalFileStoreDriver",
           "parameters": [
             "entry",
@@ -2421,7 +2163,8 @@
             "resources",
             "limits",
             "nativeFilesystem",
-            "writerProfile"
+            "writerProfile",
+            "maxRecoveryBytes"
           ],
           "async": false
         },
@@ -2443,21 +2186,6 @@
           "async": false
         },
         {
-          "name": "createLocalFileStoreDriver/decisionCurrent/decisionCurrent",
-          "parameters": [
-            "decision"
-          ],
-          "async": false
-        },
-        {
-          "name": "createLocalFileStoreDriver/description/description",
-          "parameters": [
-            "value",
-            "runOriginal"
-          ],
-          "async": false
-        },
-        {
           "name": "createLocalFileStoreDriver/driver/driver",
           "parameters": [],
           "async": false
@@ -2470,17 +2198,20 @@
           "async": false
         },
         {
-          "name": "createLocalFileStoreDriver/driver/driver#3",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "createLocalFileStoreDriver/driver/init:describe/init:describe",
           "parameters": [
             "member",
             "runInvocationCid",
             "dispatchRequestCid",
             "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:footprint/init:footprint",
+          "parameters": [
+            "member",
+            "entries"
           ],
           "async": false
         },
@@ -2498,7 +2229,8 @@
             "checkCurrent",
             "signal",
             "inputLimits",
-            "runOriginal"
+            "runOriginal",
+            "managedContext"
           ],
           "async": false
         },
@@ -2523,14 +2255,19 @@
           "async": true
         },
         {
-          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/contentChild",
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent/contentChild/contentChild",
           "parameters": [
             "entry"
           ],
           "async": false
         },
         {
-          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/init:assertCurrent/init:assertCurrent",
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent/contentChild/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -2648,21 +2385,6 @@
           "async": false
         },
         {
-          "name": "createLocalFileStoreDriver/memberCurrent/memberCurrent",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createLocalFileStoreDriver/own/own",
-          "parameters": [
-            "request",
-            "runOriginal"
-          ],
-          "async": false
-        },
-        {
           "name": "createLocalFileStoreDriver/recover/recover",
           "parameters": [
             "durable",
@@ -2698,23 +2420,6 @@
           "async": false
         },
         {
-          "name": "createLocalFileStoreDriver/requestFrom/requestFrom",
-          "parameters": [
-            "record",
-            "runOriginal",
-            "borrow",
-            "contentOwner"
-          ],
-          "async": false
-        },
-        {
-          "name": "createLocalFileStoreDriver/runCurrent/runCurrent",
-          "parameters": [
-            "runOriginal"
-          ],
-          "async": false
-        },
-        {
           "name": "createLocalFileStoreDriver/runCurrent/runCurrent/runCurrent",
           "parameters": [
             "name",
@@ -2745,24 +2450,9 @@
           "async": false
         },
         {
-          "name": "createLocalFileStoreDriver/validPath/validPath",
-          "parameters": [
-            "path"
-          ],
-          "async": false
-        },
-        {
           "name": "createLocalFileStoreDriver/validPath/validPath/validPath",
           "parameters": [
             "part"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "cause"
           ],
           "async": false
         },
@@ -2780,7 +2470,8 @@
             "nativeFilesystem",
             "effectResources",
             "sourceBindings",
-            "installationServices"
+            "installationServices",
+            "sourceProfile"
           ],
           "async": true
         },
@@ -2801,6 +2492,16 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects/effects/effects/effects",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects/effects/effects/effects#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -2841,20 +2542,6 @@
           "async": false
         },
         {
-          "name": "isCid/isCid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "synchronous/synchronous",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "synchronous/synchronous/synchronous",
           "parameters": [],
           "async": false
@@ -2872,24 +2559,22 @@
           "operations": [
             "<module>",
             "cid/cid",
-            "closed/closed",
             "createLocalFileStoreDriver",
             "createLocalFileStoreDriver/close/close",
             "createLocalFileStoreDriver/close/close/close",
             "createLocalFileStoreDriver/current/current",
-            "createLocalFileStoreDriver/decisionCurrent/decisionCurrent",
-            "createLocalFileStoreDriver/description/description",
             "createLocalFileStoreDriver/driver/driver",
             "createLocalFileStoreDriver/driver/driver#2",
-            "createLocalFileStoreDriver/driver/driver#3",
             "createLocalFileStoreDriver/driver/init:describe/init:describe",
+            "createLocalFileStoreDriver/driver/init:footprint/init:footprint",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/child",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/init:prepare",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work",
-            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/contentChild",
-            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/init:assertCurrent/init:assertCurrent",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent/contentChild/contentChild",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/prepareContent/prepareContent/contentChild/init:assertCurrent/init:assertCurrent",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/sources/sources",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:release/init:release",
             "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:release/init:release/init:release",
@@ -2906,32 +2591,26 @@
             "createLocalFileStoreDriver/driver/init:requestFacts/init:requestFacts",
             "createLocalFileStoreDriver/driver/init:send/init:send",
             "createLocalFileStoreDriver/driver/init:send/init:send/write/init:assertCurrent/init:assertCurrent",
-            "createLocalFileStoreDriver/memberCurrent/memberCurrent",
-            "createLocalFileStoreDriver/own/own",
             "createLocalFileStoreDriver/recover/recover",
             "createLocalFileStoreDriver/recover/recover/indexes/indexes",
             "createLocalFileStoreDriver/recover/recover/matches/matches",
             "createLocalFileStoreDriver/recover/recover/recover",
-            "createLocalFileStoreDriver/requestFrom/requestFrom",
-            "createLocalFileStoreDriver/runCurrent/runCurrent",
             "createLocalFileStoreDriver/runCurrent/runCurrent/runCurrent",
             "createLocalFileStoreDriver/site/init:issueEffectGrant/init:issueEffectGrant",
             "createLocalFileStoreDriver/site/init:issueReadGrant/init:issueReadGrant",
             "createLocalFileStoreDriver/site/site",
-            "createLocalFileStoreDriver/validPath/validPath",
             "createLocalFileStoreDriver/validPath/validPath/validPath",
-            "fail/fail",
             "installPreparedProjectLocalFileEffects",
             "installPreparedProjectLocalFileEffects/current/current",
             "installPreparedProjectLocalFileEffects/effects/effects",
             "installPreparedProjectLocalFileEffects/effects/effects/binding/binding",
+            "installPreparedProjectLocalFileEffects/effects/effects/effects",
+            "installPreparedProjectLocalFileEffects/effects/effects/effects#2",
             "installPreparedProjectLocalFileEffects/effects/effects/entries/entries",
             "installPreparedProjectLocalFileEffects/effects/effects#2",
             "installPreparedProjectLocalFileEffects/installPreparedProjectLocalFileEffects",
             "installPreparedProjectLocalFileEffects/resources/resources",
             "installPreparedProjectLocalFileEffects/resources/resources/resources",
-            "isCid/isCid",
-            "synchronous/synchronous",
             "synchronous/synchronous/synchronous",
             "wire/wire"
           ],
@@ -2953,6 +2632,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "inputsOutputs": [
@@ -2967,6 +2650,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "identity": [
@@ -2981,6 +2668,14 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "ownership": [
@@ -2995,6 +2690,14 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "synchronization": [
@@ -3009,6 +2712,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "failure": [
@@ -3023,6 +2730,14 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "cancellation": [
@@ -3037,6 +2752,14 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "resources": [
@@ -3051,6 +2774,14 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "extension": [
@@ -3065,6 +2796,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ],
             "verification": [
@@ -3083,6 +2818,14 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "combined Local Source and STORE initialization retain the same original connection binding"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
               }
             ]
           }
@@ -3092,8 +2835,10 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/authorization-gate.mjs",
+        "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-effect-inventory.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-services.mjs",
         "../../../host-node/installed-row-effect.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../site/root-file-writer-profile.mjs",
@@ -3105,7 +2850,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "22a3cd7cc7c4a37d9f59db218c87fd39aa47540d332e277e12ddf166546857e0"
+      "sha256": "70fe10d95eeff15921c5a2a3def900493f74bcb99b9f19acb6dcf26392f74508"
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
@@ -3122,18 +2867,6 @@
           "parameters": [
             "value"
           ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [],
           "async": false
         },
         {
@@ -3190,16 +2923,6 @@
           "async": false
         },
         {
-          "name": "localFileStoreDeclaration/merge/merge",
-          "parameters": [
-            "original",
-            "additional",
-            "key",
-            "selector"
-          ],
-          "async": false
-        },
-        {
           "name": "localFileStoreDeclaration/merge/merge/merge",
           "parameters": [
             "member"
@@ -3228,51 +2951,10 @@
           "async": false
         },
         {
-          "name": "localFileStoreDeclaration/reference/reference",
-          "parameters": [
-            "id",
-            "version",
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "localFileStoreDeclaration/role/role",
-          "parameters": [
-            "kind",
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "sealed/sealed",
-          "parameters": [
-            "body",
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "sorted/sorted",
-          "parameters": [
-            "members",
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "sorted/sorted/sorted",
           "parameters": [
             "a",
             "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value",
-            "max"
           ],
           "async": false
         }
@@ -3281,8 +2963,6 @@
         {
           "operations": [
             "canonical/canonical",
-            "cid/cid",
-            "fail/fail",
             "keys/keys",
             "localFileStoreDeclaration",
             "localFileStoreDeclaration/commands/commands",
@@ -3290,17 +2970,11 @@
             "localFileStoreDeclaration/localFileStoreDeclaration",
             "localFileStoreDeclaration/mapping/mapping",
             "localFileStoreDeclaration/mapping/mapping#2",
-            "localFileStoreDeclaration/merge/merge",
             "localFileStoreDeclaration/merge/merge/merge",
             "localFileStoreDeclaration/merge/merge/old/old",
             "localFileStoreDeclaration/read/read",
             "localFileStoreDeclaration/record/record",
-            "localFileStoreDeclaration/reference/reference",
-            "localFileStoreDeclaration/role/role",
-            "sealed/sealed",
-            "sorted/sorted",
-            "sorted/sorted/sorted",
-            "text/text"
+            "sorted/sorted/sorted"
           ],
           "exports": [
             "localFileStoreDeclaration"
@@ -3501,34 +3175,6 @@
       ],
       "operations": [
         {
-          "name": "canonical/canonical",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "isCid/isCid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "positive/positive",
           "parameters": [
             "value"
@@ -3549,19 +3195,6 @@
             "maxNodes",
             "maxDepth"
           ],
-          "async": false
-        },
-        {
-          "name": "prepareLocalFileStoreTarget/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareLocalFileStoreTarget/current/current",
-          "parameters": [],
           "async": false
         },
         {
@@ -3611,14 +3244,8 @@
       "contracts": [
         {
           "operations": [
-            "canonical/canonical",
-            "cid/cid",
-            "fail/fail",
-            "isCid/isCid",
             "positive/positive",
             "prepareLocalFileStoreTarget",
-            "prepareLocalFileStoreTarget/call/call",
-            "prepareLocalFileStoreTarget/current/current",
             "prepareLocalFileStoreTarget/current/current/current",
             "prepareLocalFileStoreTarget/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference",
             "prepareLocalFileStoreTarget/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference",
@@ -3863,13 +3490,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareLocalFileWrite",
           "parameters": [
             "native",
@@ -3882,14 +3502,6 @@
             "signal",
             "writeQuantumBytes",
             "observeWriteBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareLocalFileWrite/acquire/acquire",
-          "parameters": [
-            "name",
-            "args"
           ],
           "async": false
         },
@@ -3911,11 +3523,6 @@
           "parameters": [
             "slot"
           ],
-          "async": false
-        },
-        {
-          "name": "prepareLocalFileWrite/current/current",
-          "parameters": [],
           "async": false
         },
         {
@@ -3963,13 +3570,6 @@
           "async": false
         },
         {
-          "name": "prepareLocalFileWrite/perform/perform",
-          "parameters": [
-            "operation"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareLocalFileWrite/prepareLocalFileWrite",
           "parameters": [
             "name"
@@ -3980,26 +3580,15 @@
           "name": "prepareLocalFileWrite/prepareLocalFileWrite#2",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value",
-            "max"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
-            "fail/fail",
             "prepareLocalFileWrite",
-            "prepareLocalFileWrite/acquire/acquire",
             "prepareLocalFileWrite/call/call",
             "prepareLocalFileWrite/close/close",
             "prepareLocalFileWrite/close/close/close",
-            "prepareLocalFileWrite/current/current",
             "prepareLocalFileWrite/current/current/current",
             "prepareLocalFileWrite/init:publish/init:publish",
             "prepareLocalFileWrite/init:publish/init:publish/init:publish",
@@ -4008,10 +3597,8 @@
             "prepareLocalFileWrite/init:write/init:write",
             "prepareLocalFileWrite/init:write/init:write/init:write",
             "prepareLocalFileWrite/methods/methods",
-            "prepareLocalFileWrite/perform/perform",
             "prepareLocalFileWrite/prepareLocalFileWrite",
-            "prepareLocalFileWrite/prepareLocalFileWrite#2",
-            "text/text"
+            "prepareLocalFileWrite/prepareLocalFileWrite#2"
           ],
           "exports": [
             "prepareLocalFileWrite"
@@ -4342,13 +3929,6 @@
       ],
       "operations": [
         {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareLocalStoredContentWrite",
           "parameters": [
             "contentOwner",
@@ -4421,7 +4001,6 @@
       "contracts": [
         {
           "operations": [
-            "fail/fail",
             "prepareLocalStoredContentWrite",
             "prepareLocalStoredContentWrite/close/close",
             "prepareLocalStoredContentWrite/close/close/close",
@@ -4651,7 +4230,7 @@
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-plan.mjs",
-      "sha256": "c59825b707b16bc0032be186c7372b280e860d837607464c33cfb16e2b611ab4",
+      "sha256": "6f1c44f81f2aaa9de086e2d1b98c8f7c811c75e6bb223942e4f51a3cede39c3d",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Local file constructor DATA; common Effect Plan retains all admission and physical ownership",
@@ -4665,22 +4244,50 @@
             "moon",
             "inputLimits",
             "limits",
-            "writerProfile"
+            "writerProfile",
+            "requestHeaderUnits",
+            "grantIssuer",
+            "responseProjector"
           ],
           "async": false
         },
         {
-          "name": "prepareLocalFileStorePlanRecipe/quote/quote",
+          "name": "prepareLocalFileStorePlanRecipe/observe/observe/observe",
           "parameters": [
-            "controlWireBytes"
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe",
+          "parameters": [
+            "proposals"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe#2",
+          "parameters": [
+            "proposal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe#3",
+          "parameters": [
+            "_previewWire",
+            "recovery",
+            "memberIndex"
           ],
           "async": false
         }
       ],
       "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/effect-ledger-implementation-bounds.mjs",
         "../../../host-node/installed-effect-plan.mjs",
+        "../../../host-node/installed-source-construction-geometry.mjs",
         "../../../store-local/publication-store.mjs",
         "../site/root-file-writer.mjs"
       ],
@@ -4690,8 +4297,7 @@
         {
           "operations": [
             "<module>",
-            "prepareLocalFileStorePlanRecipe",
-            "prepareLocalFileStorePlanRecipe/quote/quote"
+            "prepareLocalFileStorePlanRecipe"
           ],
           "exports": [
             "prepareLocalFileStorePlanRecipe"
@@ -4787,6 +4393,77 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareLocalFileStorePlanRecipe/observe/observe/observe",
+            "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe",
+            "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe#2",
+            "prepareLocalFileStorePlanRecipe/prepareLocalFileStorePlanRecipe#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "const observe = proposals => {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.test.mjs",
+                "anchor": "test("
+              }
+            ]
+          }
         }
       ]
     },
@@ -4806,11 +4483,6 @@
             "native"
           ],
           "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
@@ -4822,8 +4494,7 @@
         {
           "operations": [
             "<module>",
-            "captureLocalFileWriteConstructionProfile",
-            "fail/fail"
+            "captureLocalFileWriteConstructionProfile"
           ],
           "exports": [
             "captureLocalFileWriteConstructionProfile"

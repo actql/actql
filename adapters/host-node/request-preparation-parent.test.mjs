@@ -509,18 +509,19 @@ async function initialHostFixture({beginFailure = false} = {}) {
     await import('../local-node/request-preparation-adapter.mjs');
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  let method, selectionMethod, servicesMethod;
+  let method, identityMethod, selectionMethod, servicesMethod;
   function visit(node) {
     if (!node || typeof node !== 'object') return;
     if (node.type === 'Property' && node.key?.name === 'hostInitializationPreparation') method = node.value;
     if (node.type === 'Property' && node.key?.name === 'sourceInitializationServices') servicesMethod = node.value;
+    if (node.type === 'FunctionDeclaration' && node.id?.name === 'assertSourceInitializationIdentity') identityMethod = node;
     if (node.type === 'FunctionDeclaration' && node.id?.name === 'assertSourceInitializationSelection') selectionMethod = node;
     for (const value of Object.values(node)) {
       if (Array.isArray(value)) value.forEach(visit);
       else if (value && typeof value === 'object') visit(value);
     }
   }
-  visit(ast); assert.ok(method); assert.ok(selectionMethod); assert.ok(servicesMethod);
+  visit(ast); assert.ok(method); assert.ok(identityMethod); assert.ok(selectionMethod); assert.ok(servicesMethod);
   const policy = {}, parent = {}, record = {}, installation = {}, calls = [];
   let admission;
   const stop = () => {
@@ -550,12 +551,13 @@ async function initialHostFixture({beginFailure = false} = {}) {
   const invoke = new Function('record','moon','originalInstallation','openHostInitializationPreparation',
     'assertInitialControlHostPreparation','assertInitialControlInstallationCurrent','clientOperationError',
     `let hostInitialization, sourceManaged, sourceInitializationSelection, project, control={}, originals={};
+      ${source.slice(identityMethod.start,identityMethod.end)}
       ${source.slice(selectionMethod.start,selectionMethod.end)}
       return (${code});`)(
       record,moon,installation,openHostInitializationPreparation,()=>{},()=>{},
       code=>Object.assign(new Error(code),{code}));
   return {invoke,moon,parent,record,calls,close:()=>closeHostInitializationPreparation(record.hostInitialization),
-    get original() {return admission.original;},source,ast,servicesMethod};
+    get original() {return admission.original;},source,ast,identityMethod,selectionMethod,servicesMethod};
 }
 
 test('actual Host initialization retains the original before construction and reuses it across Requests', async () => {
@@ -586,8 +588,51 @@ test('actual Host passes its early original to installation services before Sour
   const initial = servicesBody.indexOf('const initialPreparation = preparation.hostInitializationPreparation(runtime);');
   const create = servicesBody.indexOf('sourceInitializationServices = createInstalledHostServices(',initial);
   assert.ok(initial >= 0 && create > initial);
-  const servicesEnd = servicesBody.indexOf(';',create);
-  assert.match(servicesBody.slice(create,servicesEnd),/moon: runtime, initialPreparation, assertCurrent/);
+  let servicesOptions;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee?.name === 'createInstalledHostServices') {
+      assert.equal(servicesOptions, undefined, 'One actual services constructor owns the early parent');
+      servicesOptions = node.arguments[0];
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(f.servicesMethod); assert.equal(servicesOptions?.type, 'ObjectExpression');
+  const runtime = {}, root = '/original-source-root', principalId = 'original-operator';
+  const initialPreparation = {}, control = {}, originals = {}, events = [];
+  const selection = {runtime, root, hostCurrent() {events.push('source-current');}};
+  const installation = {root};
+  let controlCurrent = true;
+  const ports = {root, principalId, runtime, moon: runtime, initialPreparation,
+    sourceInitializationSelection: selection, originalInstallation: installation,
+    project: undefined, control, originals,
+    installedProjectOriginalsForRuntime() {assert.fail('This fixture has no Project original');},
+    assertInitialControlInstallationCurrent(actualControl, actualOriginals) {
+      assert.strictEqual(actualControl, control); assert.strictEqual(actualOriginals, originals);
+      events.push('control-current');
+      if (!controlCurrent) throw new Error('OriginalInitialControlChanged');
+    }, clientOperationError: code => Object.assign(new Error(code), {code})};
+  const services = new Function(...Object.keys(ports),
+    `${f.source.slice(f.identityMethod.start,f.identityMethod.end)}
+     ${f.source.slice(f.selectionMethod.start,f.selectionMethod.end)}
+     return (${f.source.slice(servicesOptions.start,servicesOptions.end)});`)(...Object.values(ports));
+  assert.strictEqual(services.moon, runtime); assert.strictEqual(services.initialPreparation, initialPreparation);
+  assert.equal(services.root, root); assert.equal(services.principalId, principalId);
+  services.accountCurrent(); assert.deepEqual(events.splice(0), ['control-current']);
+  services.assertCurrent(); assert.deepEqual(events.splice(0), ['control-current', 'source-current']);
+  selection.root = '/foreign-source-root';
+  for (const current of [services.accountCurrent, services.assertCurrent]) {
+    assert.throws(current, {code: 'ForeignInstalledSourceInitialization'});
+    assert.deepEqual(events.splice(0), ['control-current']);
+  }
+  selection.root = root; controlCurrent = false;
+  for (const current of [services.accountCurrent, services.assertCurrent]) {
+    assert.throws(current, /OriginalInitialControlChanged/);
+    assert.deepEqual(events.splice(0), ['control-current']);
+  }
   const start = f.source.indexOf('const installationServices = preparation === undefined');
   const service = f.source.indexOf('preparation.sourceInitializationServices(moon, root, principalId, assertProjectRuntime)',start);
   const load = f.source.indexOf('await loadInstalledSources(', service);
@@ -1069,8 +1114,8 @@ test('ordinary Effect Plan adopts the same Request input and typed compiler borr
     {code: 'ForeignInstalledSourceProducer'});
 });
 
-async function originalEffectRequest({completeFailure, adoptFailure, reserveFailure} = {}) {
-  const f = await fixture(), moon = f.context.runtime, sdkRequest = {}, prepared = {}, holder = {}, identity = {}, plan = {}, parent = {};
+async function originalEffectRequest({completeFailure, adoptFailure, reserveFailure, environment, validateRetained} = {}) {
+  const f = await fixture({environment, validateRetained}), moon = f.context.runtime, sdkRequest = {}, prepared = {}, holder = {}, identity = {}, plan = {}, parent = {};
   const receipt = f.view.beforeSourceSnapshot('program', input(), {}, connection);
   const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: input()}, snapshotClientRequest);
   f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, sdkRequest);
@@ -1079,7 +1124,7 @@ async function originalEffectRequest({completeFailure, adoptFailure, reserveFail
   moon.clientProgramPrepareRequestNativeComputation = () => {events.push('check'); return ok(undefined);};
   moon.clientProgramFinishRequestComputation = function(owner, original, selected, publication) {
     assert.equal(this, moon); assert.equal(owner, f.parent); assert.equal(original, receipt);
-    assert.equal(selected, undefined); assert.equal(publication, f.context.preparedEnvironment);
+    assert.equal(selected, environment); assert.equal(publication, f.context.preparedEnvironment);
     events.push('compile'); return ok('effectful');
   };
   moon.clientProgramBorrowRequestEffectPlanInput = function(owner, original) {
@@ -1117,6 +1162,65 @@ async function originalEffectRequest({completeFailure, adoptFailure, reserveFail
   return {...f, moon, sdkRequest, prepared, holder, identity, plan, parent, requestParent: f.parent, receipt, events,
     markRetiring() {retiring = true;}, finishPhysicalRetirement() {return Reflect.apply(abort, moon, [f.parent]);}, async failedCleanup() {f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();}};
 }
+
+test('Effect materials use captured same-Request codec methods for issuance and inverse', async () => {
+  const environment = Object.freeze({body: 'same original environment'});
+  const f = await originalEffectRequest({environment}), allowed = {}, definition = {}, compilation = {}, restored = {};
+  const features = [false, true, true, true, true, false, false];
+  f.moon.clientProgramIssueRequestEffectPreparedOriginal = function(parent, input, prepared, originalCompilation) {
+    assert.strictEqual(this, f.moon); assert.strictEqual(parent, f.requestParent);
+    assert.strictEqual(input, f.receipt); assert.strictEqual(prepared, f.prepared);
+    assert.strictEqual(originalCompilation, compilation);
+    return ok('complete prepared original');
+  };
+  f.moon.clientProgramIssueRequestEffectRunMaterials = function(parent, input, prepared, a, d, identity) {
+    assert.strictEqual(this, f.moon); assert.strictEqual(parent, f.requestParent);
+    assert.strictEqual(input, f.receipt); assert.strictEqual(prepared, f.prepared);
+    assert.strictEqual(a, allowed); assert.strictEqual(d, definition); assert.strictEqual(identity, f.identity);
+    f.events.push('issue-materials'); return ok('complete original');
+  };
+  f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation = function(parent, input, prepared, wire, run, c, identity, ...selected) {
+    assert.strictEqual(this, f.moon); assert.strictEqual(parent, f.requestParent);
+    assert.strictEqual(input, f.receipt); assert.strictEqual(prepared, f.prepared);
+    assert.equal(wire, 'complete original'); assert.equal(run, 'original-run');
+    assert.strictEqual(c, compilation); assert.strictEqual(identity, f.identity); assert.deepEqual(selected.slice(0, -1), features); assert.strictEqual(selected.at(-1), environment);
+    f.events.push('admit-materials'); return ok(restored);
+  };
+  const foreignEnvironment = Object.freeze({body: environment.body});
+  assert.deepEqual(foreignEnvironment, environment);
+  assert.notStrictEqual(foreignEnvironment, environment);
+  await assert.rejects(f.view.fundedPreparation(f.sdkRequest, foreignEnvironment),
+    {code: 'ForeignInstalledSourceProducer'});
+  await f.view.fundedPreparation(f.sdkRequest, environment);
+  f.moon.clientProgramIssueRequestEffectRunMaterials = f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation =
+    () => assert.fail('Do not replace captured original codec methods');
+  f.moon.clientProgramIssueRequestEffectPreparedOriginal =
+    () => assert.fail('Do not replace the captured prepared-original codec');
+  assert.throws(() => f.view.issueEffectMaterials(f.prepared, {}, undefined, undefined, undefined, compilation),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(f.view.issueEffectMaterials(f.prepared, f.sdkRequest, undefined, undefined, undefined, compilation),
+    'complete prepared original');
+  assert.throws(() => f.view.issueEffectMaterials(f.prepared, {}, allowed, definition, f.identity),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(f.view.issueEffectMaterials(f.prepared, f.sdkRequest, allowed, definition, f.identity), 'complete original');
+  assert.strictEqual(f.view.admitEffectMaterials(f.prepared, f.sdkRequest, 'complete original',
+    'original-run', compilation, f.identity, features), restored);
+  assert.deepEqual(f.events, ['check', 'compile', 'borrow', 'issue-materials', 'admit-materials']);
+  await f.failedCleanup();
+});
+
+test('Effect material codec refusal keeps the original cause and forbids another construction', async () => {
+  const f = await originalEffectRequest(), cause = new Error('OriginalMaterialCapacity'); let calls = 0;
+  f.moon.clientProgramRequestProgramModuleIssueCode = () => null;
+  f.moon.clientProgramIssueRequestEffectRunMaterials = function() {calls++; return {$tag: 0, _0: cause};};
+  await f.view.fundedPreparation(f.sdkRequest, undefined);
+  let primary;
+  const issue = () => f.view.issueEffectMaterials(f.prepared, f.sdkRequest, {}, {}, f.identity);
+  assert.throws(issue, error => {primary = error; return error.code === 'MoonBitHostFailure' && error.cause === cause;});
+  assert.throws(issue, error => error === primary);
+  assert.equal(calls, 1);
+  await f.failedCleanup();
+});
 
 test('Effect original projection forwards only the same checked Request and keeps a failed reservation sticky', async () => {
   for (const reserveFailure of [undefined, new Error('OriginalEnvelopeCapacityRefused')]) {
@@ -2222,4 +2326,125 @@ test('cold Model Source metadata failures keep the same primary and cannot rerun
       assert.equal(await original.retire(), true);
     } finally {f.view.finishSourceProducer(f.recovery.receipt, 'failed'); await f.view.close();}
   }
+});
+
+test('HTTP manager retains one original Request from raw copies through the existing Source snapshot', async () => {
+  const f = await fixture();
+  let originalReceipt;
+  f.context.runtime.clientProgramReserveRequestHttpInput = function(parent, receipt, bytes, chunks, quantum, limit) {
+    assert.strictEqual(this, f.context.runtime); assert.strictEqual(parent, f.parent);
+    originalReceipt ??= receipt; assert.strictEqual(receipt, originalReceipt);
+    assert.equal(limit, 65536); assert(bytes >= 0 && chunks > 0 && quantum > 0);
+    f.calls.push('raw-copy'); return ok(undefined);
+  };
+  f.context.runtime.clientProgramPrepareRequestHttpJson = function(parent, receipt, wire) {
+    assert.strictEqual(this, f.context.runtime); assert.strictEqual(parent, f.parent);
+    assert.strictEqual(receipt, originalReceipt); assert.equal(typeof wire, 'string');
+    f.calls.push('raw-geometry'); return ok(undefined);
+  };
+  const receipt = f.view.beforeHttpRequestBody();
+  const producer = {kind: 'program', input: input(), parameters: null};
+  f.view.reserveHttpRequestBody(receipt, 4096, 1, 4096, 65536);
+  f.view.prepareHttpRequestJson(receipt, JSON.stringify(producer));
+  f.view.bindHttpRequestKind(receipt, 'program', connection);
+  const body = f.view.captureSourceSnapshot(receipt, producer, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body);
+  f.view.bindSourceRequest(receipt, body, producer);
+  assert.equal(f.calls.filter(value => value === 'parent').length, 1);
+  assert.equal(f.calls.filter(value => value === 'admission').length, 1);
+  assert.deepEqual(f.calls.filter(value => value.startsWith('raw-')), ['raw-copy', 'raw-geometry']);
+  assert(f.calls.includes('snapshot-grow'));
+  f.view.finishSourceProducer(receipt, 'returned');
+  assert.deepEqual(await f.view.close(), {pending: false});
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+test('HTTP manager refuses missing Core ports copied receipts and changed current before own copies', async () => {
+  const missing = await fixture();
+  assert.throws(() => missing.view.beforeHttpRequestBody(), {code: 'NodeLocalPreparationAdmissionUnavailable'});
+  assert.equal(missing.calls.includes('admission'), false);
+  assert.deepEqual(await missing.view.close(), {pending: false});
+  let allowed = true;
+  const primary = new Error('original Host current refusal');
+  const f = await fixture({validate: () => {if (!allowed) throw primary;}});
+  let copies = 0;
+  f.context.runtime.clientProgramReserveRequestHttpInput = () => {copies++; return ok(undefined);};
+  f.context.runtime.clientProgramPrepareRequestHttpJson = () => ok(undefined);
+  const receipt = f.view.beforeHttpRequestBody();
+  assert.throws(() => f.view.reserveHttpRequestBody({...receipt}, 64, 1, 64, 65536),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(copies, 0);
+  allowed = false;
+  assert.throws(() => f.view.reserveHttpRequestBody(receipt, 64, 1, 64, 65536), error => error === primary);
+  assert.equal(copies, 0);
+  allowed = true;
+  f.view.finishSourceProducer(receipt, 'failed');
+  assert.deepEqual(await f.view.close(), {pending: false});
+});
+
+test('Effect materials inverse is retained before adoption and borrowed only by the exact live owner', async () => {
+  let current=true, reenter=false;
+  const f=await originalEffectRequest({validateRetained(){if(!current)throw new Error('original-current');if(reenter){f.markRetiring();f.view.severPreparation(f.prepared,f.original);}}});
+  const compilation={}, value={}, flags=[false,true,true,true,true,false,false];
+  let calls=0;
+  f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation=function(){
+    assert.strictEqual(this,f.moon);calls++;return ok(value);
+  };
+  await f.view.fundedPreparation(f.sdkRequest,undefined);
+  const admit=(wire='original-materials',run='same-run',c=compilation,id=f.identity,features=flags,request=f.sdkRequest)=>
+    f.view.admitEffectMaterials(f.prepared,request,wire,run,c,id,features);
+  assert.strictEqual(admit(),value);
+  assert.equal(calls,1);
+  f.view.adoptEffectPreparation(f.prepared,f.sdkRequest,f.identity,f.plan);
+  f.view.finishSourceProducer(f.receipt,'returned');
+  f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation=()=>assert.fail('No post-adoption inverse');
+  assert.strictEqual(admit(),value);
+  for(const args of [
+    ['changed-materials'],['original-materials','other-run'],
+    ['original-materials','same-run',{}],['original-materials','same-run',compilation,{}],
+    ['original-materials','same-run',compilation,f.identity,[true,...flags.slice(1)]],
+    ['original-materials','same-run',compilation,f.identity,Array(7)],
+    ['original-materials','same-run',compilation,f.identity,[false,true,undefined,true,true,false,false]],
+    ['original-materials','same-run',compilation,f.identity,flags,{}],
+  ])assert.throws(()=>admit(...args),{code:'ForeignInstalledSourceProducer'});
+  assert.equal(calls,1);
+  current=false;assert.throws(()=>admit(),/original-current/);current=true;
+  assert.strictEqual(admit(),value);
+  reenter=true;
+  assert.throws(()=>admit(),{code:'ForeignInstalledSourceProducer'});
+  reenter=false;
+  assert.throws(()=>admit(),{code:'ForeignInstalledSourceProducer'});
+  assert.equal(calls,1);
+});
+
+test('an adopted Effect without retained materials cannot run a new inverse and mismatched Run adoption refuses', async () => {
+  for(const retain of [false,true]){
+    const f=await originalEffectRequest(),compilation={},flags=[false,true,true,true,true,false,false];let calls=0;
+    f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation=()=>{calls++;return ok({});};
+    await f.view.fundedPreparation(f.sdkRequest,undefined);
+    if(retain){
+      f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'original-materials','same-run',compilation,f.identity,flags);
+      assert.throws(()=>f.view.adoptEffectPreparation(f.prepared,f.sdkRequest,{},f.plan),{code:'ForeignInstalledSourceProducer'});
+      assert.equal(calls,1);await f.failedCleanup();
+    }else{
+      f.view.adoptEffectPreparation(f.prepared,f.sdkRequest,f.identity,f.plan);
+      assert.throws(()=>f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'original-materials','same-run',compilation,f.identity,flags),{code:'ForeignInstalledSourceProducer'});
+      assert.equal(calls,0);f.markRetiring();f.view.severPreparation(f.prepared,f.original);
+    }
+  }
+});
+
+test('Effect retained flags are the exact pre-callback inverse arguments, not a mutable later array', async () => {
+  const f=await originalEffectRequest(),c={},value={},original=[false,true,true,true,true,false,false],flags=original.slice();
+  let calls=0;
+  f.moon.clientProgramAdmitRequestEffectRunMaterialsWithCompilation=function(...args){
+    calls++;assert.deepEqual(args.slice(-8,-1),original);flags[0]=true;return ok(value);
+  };
+  await f.view.fundedPreparation(f.sdkRequest,undefined);
+  assert.strictEqual(f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'wire','run',c,f.identity,flags),value);
+  f.view.adoptEffectPreparation(f.prepared,f.sdkRequest,f.identity,f.plan);
+  assert.throws(()=>f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'wire','run',c,f.identity,flags),
+    {code:'ForeignInstalledSourceProducer'});
+  assert.strictEqual(f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'wire','run',c,f.identity,original),value);
+  assert.equal(calls,1);f.markRetiring();f.view.severPreparation(f.prepared,f.original);
 });

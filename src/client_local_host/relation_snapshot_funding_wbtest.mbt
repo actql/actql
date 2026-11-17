@@ -198,3 +198,130 @@ test "metered empty snapshot funds both delimiters before zero-work finalization
     captured_tasks_close_source(value)
   }
 }
+
+///|
+test "acknowledged snapshot reuses only retired export backing before exact reload and preserves short refusal" {
+  for short in [false, true] {
+    let original = single_installed_prepared(
+      document=(
+        #|{"version":"actql/0.1","id":"snapshot-reload-nonoverlap","stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"compute","inputs":{"r":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id >= 2"},{"derive":{}},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"finish","inputs":{"r":{"result":{"stage":"compute","result":"rows"}}},"steps":[{"filter":"id < 3"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"finish","result":"rows"}}}}
+      ),
+    )
+    let value = captured_tasks_fixture(original=Some(original))
+    let before = @resources.ledger_usage(value.ledger)
+    let (run, dispatch) = metered_tail_dispatch(value)
+    let operations = @local_driver.start_local_managed_dispatch_node(dispatch).unwrap()
+    let tasks : Array[LocalValuesTaskExecution?] = Array::make(3, None)
+    tasks[1] = Some({ operations, settled: false, completed: None, })
+    (operations.execute)().unwrap()
+    let released = Ref(false)
+    let before_save = @resources.ledger_usage(value.ledger).reserved_execution_bytes
+    let snapshot = (operations.prepare_relation_snapshot)(() => released.val)
+      .unwrap()
+      .unwrap()
+    let parts : Array[String] = []
+    let mut saved = false
+    for _ in 0..<1000 {
+      let next = (snapshot.advance_save)(7).unwrap()
+      let part = (snapshot.take_output)().unwrap()
+      if part != "" {
+        parts.push(part)
+      }
+      if next.complete {
+        saved = true
+        break
+      }
+    }
+    assert_true(saved)
+    assert_eq(parts.join(""), "[{\"id\":3},{\"id\":2}]")
+    let content = (snapshot.content)().unwrap()
+    let saved_usage = @resources.ledger_usage(value.ledger)
+    let export_extent = saved_usage.reserved_execution_bytes - before_save
+    assert_true(export_extent > 0L)
+    // Independent literal inventory: two row roots and two numeric cells,
+    // four name bytes, five JSON nodes and nineteen exact wire bytes. The
+    // existing receiving recipe retains its original policy and column view.
+    let policy = value.requirements.capacity_plan.imports
+    let reload = @local.local_import_retention_capacity({
+      max_rows: 2,
+      values: { ..policy.values, max_nodes: 4, max_text_bytes: 4, },
+      wire: { ..policy.wire, max_bytes: 19, max_nodes: 5, },
+      row: {
+        ..policy.row,
+        max_bytes: Int::min(policy.row.max_bytes, 19),
+        max_nodes: Int::min(policy.row.max_nodes, 4),
+        max_text_bytes: Int::min(policy.row.max_text_bytes, 4),
+      },
+      max_batch_bytes: Int::min(policy.max_batch_bytes, 19),
+    }).unwrap()
+    assert_true(reload > export_extent)
+    // Saved DATA is not physical ACK. A receiving constructor and a false
+    // availability fence cannot retire any live export reservation.
+    assert_true((snapshot.begin_reload)() is Err(_))
+    assert_true((snapshot.release_source)(content.cid, () => false) is Err(_))
+    assert_eq(@resources.ledger_usage(value.ledger), saved_usage)
+    assert_true((snapshot.source_available)())
+    // This component releases its actual test-owned chunks before modeling
+    // the physical adapter's seal ACK; real Store order is checked in Node.
+    parts.clear()
+    let reentry_refused = Ref(false)
+    (snapshot.release_source)(content.cid, () => {
+      reentry_refused.val = (snapshot.begin_reload)() is Err(_)
+      true
+    }).unwrap()
+    assert_true(reentry_refused.val)
+    assert_eq(@resources.ledger_usage(value.ledger), saved_usage)
+    let needed = reload - export_extent
+    let available = needed - (if short { 1L } else { 0L })
+    let remaining = @resources.ledger_limits(value.ledger).execution_bytes -
+      saved_usage.reserved_execution_bytes
+    assert_true(remaining > available)
+    let blocker = @resources.reserve_capacity(
+      value.ledger,
+      0L,
+      remaining - available,
+    ).unwrap()
+    let before_reload = @resources.ledger_usage(value.ledger)
+    if short {
+      guard (snapshot.begin_reload)()
+        is Err(
+          @local_driver.ExecutionCapacityRefusal(
+            ExecutionLimit,
+            actual,
+            left,
+            limit
+          )
+        ) else {
+        fail("expected exact same-original reload budget refusal")
+      }
+      assert_eq(actual, needed)
+      assert_eq(left, available)
+      assert_eq(limit, @resources.ledger_limits(value.ledger).execution_bytes)
+      assert_eq(@resources.ledger_usage(value.ledger), before_reload)
+    } else {
+      (snapshot.begin_reload)().unwrap()
+      assert_eq(
+        @resources.ledger_usage(value.ledger).reserved_execution_bytes,
+        before_reload.reserved_execution_bytes + needed,
+      )
+      (snapshot.append_reload)("{\"id\":3}").unwrap()
+      (snapshot.append_reload)("{\"id\":2}").unwrap()
+      (snapshot.finish_reload)().unwrap()
+    }
+    released.val = true
+    let mut closed = false
+    for _ in 0..<10000 {
+      if close_local_values_tasks(run, tasks) {
+        closed = true
+        break
+      }
+    }
+    assert_true(closed)
+    @resources.settle_capacity(value.ledger, blocker).unwrap()
+    let after = @resources.ledger_usage(value.ledger)
+    assert_eq(after.held_bytes, before.held_bytes)
+    assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+    assert_true(@row_source_host.row_capture_source(value.capture) is Ok(_))
+    captured_tasks_close_source(value)
+  }
+}

@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict';
-import {mkdir,writeFile,open} from 'node:fs/promises';
+import {mkdir,writeFile,open,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
 import {loadInstalledProjectConfiguration} from '../../../host-node/installed-project-configuration.mjs';
-import {prepareInstalledProjectLocalFiles} from './installed-project-files.mjs';
+import {prepareInstalledProjectLocalFiles,installPreparedProjectLocalFiles} from './installed-project-files.mjs';
+import {installPreparedProjectLocalFileEffects} from './installed-project-file-effects.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
+import {installedSourceConfigurationReader} from '../../../host-node/installed-host-services.mjs';
+import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
+import {canonical,cid} from '../../../host-node/fixtures/file-listing-source.fixture.mjs';
+import {composeInstalledSourceEnvironment} from '../../../host-node/installed-funded-environment.mjs';
 
 assert(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME,'Select the actual qualified Common runtime');
 const moon=await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
@@ -87,4 +93,143 @@ test('Local preparation keeps nominal runtime/receiver and currentness fences wi
     {code:'LocalFilesLimitsUnavailable'});
   current=false;assert.throws(()=>preparation.originalsForRuntime(moon),{code:'TestCurrentChanged'});
   preparation.retire(moon);
+});
+
+// Actual public installer and original Resource/Source construction owner.
+// No Run, Account decision, native Root, transport or cleanup ACK is mocked.
+async function installedReadProfileFixture(t, wrap = value => value) {
+  const f=await fixture(document('{"connector":"local","root":"../data","tables":{}}'));
+  const preparation=await prepareInstalledProjectLocalFiles(moon,f.project,{limits,assertCurrent(){}});
+  const original=preparation.originalsForRuntime(moon);
+  const parent=createInstalledLoaderParent({root:f.directory,moon});parent.open();
+  t.after(async()=>{await parent.close();preparation.retire(moon);});
+  let authorizationCalls=0;
+  const construction=wrap(installedSourceConfigurationReader(parent.services));
+  const base=JSON.parse(await readFile(new URL('../../../../spec/local-check-environment.json',import.meta.url),'utf8'));
+  delete base.evidence_bundle_cid;
+  // This component selects its actual finite Source service policy; the
+  // Resource parent and its default 512 MiB allowances remain unchanged.
+  base.host_policy_profile.lookup_execution={version:'actql-lookup-execution-policy/0.1',
+    max_network_attempts_per_request:limits.maxAttempts,max_request_bytes_per_attempt:4096,
+    max_total_request_bytes:limits.maxReadBytes,max_total_response_bytes:limits.maxReadBytes,
+    max_total_decoded_response_bytes:limits.maxReadBytes,max_total_duration_ms:limits.maxDurationMs};
+  const options={moon,preparation,construction,
+    sourceManaged:{assertCurrent(){},prepareRead(){assert.fail('No physical read during installation');}},
+    baseEnvironmentWire:canonical({...base,evidence_bundle_cid:cid(base)}),
+    authorizationFor:async()=>{authorizationCalls++;return {context:{contextCid:'sha256:'+'a'.repeat(64)},
+      configurationCid:cid({fixture:'ungranted Local installation'}),
+      authorize(){assert.fail('Initialization cannot authorize a Run');},
+      assertAccountCurrent(){assert.fail('No Account grant during metadata construction');}};}};
+  return{options,original,preparation,parent,authorizationCalls:()=>authorizationCalls};
+}
+
+test('public Local installer funds and forwards its same installed row read profile and transport',async t=>{
+  const f=await installedReadProfileFixture(t);
+  let profile;
+  try {profile=f.parent.retain(await installPreparedProjectLocalFiles(f.options));}
+  catch(error){
+    const primary=error.primaryFailure;
+    t.diagnostic(JSON.stringify({code:primary?.code,message:primary?.message,
+      stack:primary?.stack?.split('\n').slice(1,7)}));throw error;
+  }
+  assert.strictEqual(f.preparation.originalsForRuntime(moon),f.original);
+  assert.equal(f.authorizationCalls(),1);
+  const original=f.original.sources[0],bound=profile.fileReadDeclarations[0];
+  assert.notStrictEqual(bound,original.declaration);
+  const contents=JSON.parse(original.wire).views.find(view=>view.resource==='contents');
+  assert.equal(moon.clientProgramRowSourceFileReadProfile(original.declaration,contents.source_ref),undefined);
+  const descriptor=moon.clientProgramRowSourceFileReadProfile(bound,contents.source_ref);
+  assert.equal(JSON.parse(moon.strategyPublicationContractJson(descriptor)).response_encoding,'typed_json_row_array');
+  const wire=profile.environmentWire;
+  const environment=moon.clientProgramCheckEnvironment(wire,JSON.parse(wire).evidence_bundle_cid,
+    false,false,true,false,false,false,false);
+  const program={version:'actql/0.1',id:'original-read-profile',stages:[{id:'capture',
+    inputs:{files:{connector:'local',resource:'files',request:{paths:null,glob:null}},
+      contents:{connector:'local',resource:'contents'}},
+    steps:[{join:{left:'files',with:'contents',kind:'inner',
+      on:[{left:'resource',right:'resource'},{left:'version',right:'version'}],
+      select:{path:'left.path',content:'right.content'}},as:'captured'}],
+    results:{out:{from:'captured',fields:['path','content']}}}],
+    results:{out:{from:{stage:'capture',result:'out'}}}};
+  const preparation=moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),'json',environment,undefined);
+  const prepared=moon.clientProgramPreparationReady(preparation);
+  assert.ok(prepared,'the original files/contents view remains checked');
+  const keyed=checked(moon.clientProgramSelectSingleKeyedAcquisition(prepared));
+  const capacity=profile.sources[0].keyedLedgerCapacity(keyed);
+  assert.equal(capacity.executionBytes,2n*BigInt(limits.maxFileBytes)+65536n+24n*BigInt(limits.maxPageBytes));
+  assert.equal(capacity.transferBytes,BigInt(limits.maxReadBytes)+BigInt(limits.maxPages)*BigInt(limits.maxPageBytes));
+});
+
+test('combined Local Source and STORE initialization retain the same original connection binding',async t=>{
+  const f=await installedReadProfileFixture(t);
+  const source=f.parent.retain(await installPreparedProjectLocalFiles(f.options));
+  let physical=0;
+  const nativeFilesystem=Object.freeze({localFileWriteConstructionProfile(){
+    return Object.freeze({nativeOriginalBytes:8192,maxRootBytes:4096,maxNameBytes:1024,
+      maxDepth:130,writeQuantumBytes:65536});
+  },...Object.fromEntries(['openFileRoot','openFileDirectory','openRootFileWriter',
+    'fileRootCurrent','fileRootWrite','fileRootPublish','fileRootClose'].map(name=>
+    [name,()=>{physical++;assert.fail('Initialization cannot perform a file operation');}]))});
+  let effect;
+  try{effect=f.parent.retain(await installPreparedProjectLocalFileEffects({
+    ...f.options,principalId:'operator',runtimeBundleCid:cid({fixture:'same Local runtime'}),
+    ledgerRoot:join(f.original.sources[0].rootPath,'unused-effect-ledger'),nativeFilesystem,
+    effectResources:Object.freeze(Object.fromEntries(['bindRunOriginal','assertCurrent','limits'].map(name=>
+      [name,()=>assert.fail('Initialization cannot use a Run resource')]))),
+    sourceBindings:source.connectorBindings,installationServices:f.parent.services,sourceProfile:source,
+  }));}catch(error){t.diagnostic(JSON.stringify({primaryFailureCode:error.primaryFailure?.code}));throw error;}
+  const original=f.original.sources[0];
+  const expected=cid({scope:original.scopeCid,declaration:original.wire,
+    account_context:'sha256:'+'a'.repeat(64)});
+  assert.equal(source.connectorBindings[0].bindingCid,expected);
+  assert.equal(effect.queryStoreTargets[0].installationBindingCid,expected);
+  assert.equal(effect.effects.length,1);assert.equal(physical,0);
+  const contents=JSON.parse(original.wire).views.find(view=>view.resource==='contents');
+  assert.ok(moon.clientProgramRowSourceFileReadProfile(source.fileReadDeclarations[0],contents.source_ref),
+    'the augmented read-execution declaration remains retained');
+  const composed=composeInstalledSourceEnvironment(f.parent.services,moon,f.options.baseEnvironmentWire,
+    source.environmentWire,effect.environmentWire);
+  const profileCid=JSON.parse(moon.strategyPublicationContractJson(
+    moon.clientProgramRowSourceFileReadProfile(source.fileReadDeclarations[0],contents.source_ref))).transport_cid;
+  assert(JSON.parse(composed.wire).connector_capabilities.some(value=>
+    value.source_ref===contents.source_ref&&value.capability_contract_cids.includes(profileCid)));
+  assert.throws(()=>source.originalsForProjectEffects.call({...source},moon,f.preparation),
+    {code:'ForeignLocalFilesPreparation'});
+  assert.throws(()=>source.originalsForProjectEffects(moon,{...f.preparation}),
+    {code:'ForeignLocalFilesPreparation'});
+  assert.strictEqual(f.preparation.originalsForRuntime(moon),f.original);
+  let closing;
+  f.options.sourceManaged.assertCurrent=()=>{closing??=source.close();};
+  assert.throws(()=>source.originalsForProjectEffects(moon,f.preparation),
+    {code:'LocalFilesInstallationClosing'});
+  await closing;
+  assert.throws(()=>source.originalsForProjectEffects(moon,f.preparation),
+    {code:'LocalFilesInstallationClosing'});
+});
+
+test('public Local profile constructor refuses before projection on the original Source budget',async t=>{
+  let projected=0;
+  const f=await installedReadProfileFixture(t,real=>({prepareNativeInput(input){
+    return real.prepareNativeInput(Object.freeze({capacity(){
+      const policy=moon.clientLocalPreparationResourceLimits(moon.clientLocalResourcePolicyOriginal());
+      const excessive=checked(moon.clientProgramInstalledSourceConstructionCapacity(1n,0n,0n,0n,0n,policy[5]));
+      return checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(input.capacity(),[excessive]));
+    },project(){projected++;return input.project();}}));
+  }}));
+  await assert.rejects(installPreparedProjectLocalFiles(f.options),error=>error.primaryFailure?.code==='MoonBitHostFailure');
+  assert.equal(projected,0);assert.equal(f.authorizationCalls(),0);
+  assert.strictEqual(f.preparation.originalsForRuntime(moon),f.original);
+});
+
+test('public Local profile construction observes original retirement before authorization or Source publication',async t=>{
+  const primary=new Error('OriginalLocalSourceRetired');let retired=false,projected=0;
+  const f=await installedReadProfileFixture(t,real=>({prepareNativeInput(input){
+    return real.prepareNativeInput(Object.freeze({capacity:()=>input.capacity(),project(){
+      projected++;const value=input.project();retired=true;return value;
+    }}));
+  }}));
+  f.options.sourceManaged.assertCurrent=()=>{if(retired)throw primary;};
+  await assert.rejects(installPreparedProjectLocalFiles(f.options),error=>error.primaryFailure===primary);
+  assert.equal(projected,1);assert.equal(f.authorizationCalls(),0);
+  assert.strictEqual(f.preparation.originalsForRuntime(moon),f.original);
 });

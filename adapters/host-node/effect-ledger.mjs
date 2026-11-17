@@ -1,5 +1,7 @@
 import {types as nodeTypes} from 'node:util';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {openSqliteEffectLedger} from './sqlite-effect-ledger.mjs';
 import {realpathSync} from 'node:fs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
@@ -12,9 +14,9 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
-// The normalizing Ledger parser alone uses the staged Unicode workspace.
-// Receipt/data-key constructors keep their complete unchanged envelope. These
-// original methods are closed installing-code calls, never caller callbacks.
+// Ledger and Receipt codecs keep their genuine parser/writer families. Their
+// immutable original wires can refine workspace without supplying admission.
+// These are closed installing-code methods, never caller callbacks.
 function bindEffectLedgerCodecs(original, construction) {
   if (typeof construction?.ledgerCodec !== 'function') return original;
   const codec = construction.ledgerCodec;
@@ -28,13 +30,43 @@ function bindEffectLedgerCodecs(original, construction) {
       [original, method, args, name === 'admitLedgerEntry' ? args[0] : undefined,
         args.at(-2), args.at(-1)]);
   }
+  const receiptCodec = construction.receiptCodec;
+  if (typeof receiptCodec === 'function') {
+    for (const [name, wireIndex, receiptWire] of [
+      ['issueRowOutcomeReceipt', 7, false],
+      ['issueRowOutcomeReceiptFromResponse', 5, false],
+      ['admitRowOutcomeReceipt', 7, true],
+      ['admitRowOutcomeReceiptFromResponse', 5, true],
+      ['issueRowReceiptTerminalEntry', 13, true],
+      ['issueRowReceiptTerminalEntryFromResponse', 11, true],
+    ]) {
+      const method = original[name];
+      if (typeof method !== 'function') fail('EffectLedgerControlRuntimeUnavailable');
+      control[name] = (...args) => Reflect.apply(receiptCodec, construction,
+        [original, method, args, args[wireIndex], args.at(-2), args.at(-1), receiptWire]);
+    }
+  }
   return Object.freeze(control);
 }
 
 // MoonBit admits the canonical fact and its transition. SQLite only owns
 // durable bytes and the atomic compare-and-swap of one item head.
-// Same original receiver and methods; only these single-head/frontier constructors
-// use the finite family. Receipt/history/unknown work keeps the generic frame.
+// Original receivers select closed row or frontier construction classes;
+// unknown work keeps the generic frame. The funded quantity call below
+// constructs only a fixed numeric quote before the real member Receipt body.
+// Its returned carrier stays on the same control until the next body call;
+// the body then grows its aggregate workspace before any Receipt allocation.
+function prepareMemberReceiptConstruction(args) {
+  const rowOwners = args[0]?.rowOwners;
+  if (nodeTypes.isProxy(rowOwners) || !Array.isArray(rowOwners)) fail('InvalidEffectMemberReceiptEvidence');
+  const rows = rowOwners.length;
+  if (rows > this.maxEntries) fail('InvalidEffectMemberReceiptEvidence');
+  args[2] = rows; args[3] = rowOwners;
+  if (rows === 0) return undefined;
+  return checked(Reflect.apply(this.receiptConstruction, this.runtime,
+    [rows, this.maxEntryBytes, this.maxOutcomeNodes, this.maxOutcomeDepth]));
+}
+
 function bindEffectLedgerConstruction(ledger, construction, policy) {
   const caller = {};
   for (const name of Object.keys(ledger)) {
@@ -42,8 +74,27 @@ function bindEffectLedgerConstruction(ledger, construction, policy) {
     caller[name] = typeof method !== 'function' ? method : name === 'close'
       ? (...args) => Reflect.apply(method, ledger, args)
       : (...args) => {
-        // DATA lengths only, never argument getters/Proxy traps or row scans.
-        // Mutable/nonstandard callers keep their exact original generic path.
+        if ((name === 'issueMemberReceiptFromRowPartition' || name === 'checkMemberReceiptRowPartitionEvidence') &&
+            typeof policy.receiptConstruction === 'function') {
+          const prepared = typeof construction.ledgerRow === 'function'
+            ? construction.ledgerRow(policy, prepareMemberReceiptConstruction, [args], 'quantity',
+              policy.maxEntryBytes, policy.maxNodes, policy.maxDepth, policy.maxReadResponseBytes)
+            : construction(policy, prepareMemberReceiptConstruction, [args]);
+          // This is the existing private Ledger receiver. Public callers cannot
+          // inject a quote: their second argument is replaced at this boundary.
+          args[1] = prepared;
+          return construction(ledger, method, args, prepared === undefined ? undefined : runtimeField(prepared, 0), prepared !== undefined);
+        }
+        const rowKind = name === 'claimDispatch' || name === 'beginPhysicalFlight' || name === 'readClaimedResponse'
+          ? 'entry' : name === 'recordResponse' ? 'response'
+            : name === 'recordAdmittedRowOutcome' || name === 'commitAdmittedRowOutcome' || name === 'readAdmittedTerminalOutcome'
+              ? 'receipt' : undefined;
+        if (rowKind !== undefined && typeof construction.ledgerRow === 'function') {
+          return construction.ledgerRow(ledger, method, args, rowKind,
+            policy.maxEntryBytes, policy.maxNodes, policy.maxDepth, policy.maxReadResponseBytes);
+        }
+        // These family selections read only frozen DATA lengths. Mutable or
+        // nonstandard callers keep their exact original generic path.
         const members = args[1];
         let counts;
         if ((name === 'current' || name === 'currentAdmitted') &&
@@ -82,6 +133,7 @@ export function openEffectLedger({
   maxEntries = effectLedgerImplementationBounds.maxEntries,
   maxEntryBytes = effectLedgerImplementationBounds.maxEntryBytes,
   maxResponseBytes = effectLedgerImplementationBounds.maxResponseBytes,
+  maxReadResponseBytes = maxResponseBytes,
   maxStoredBytes = effectLedgerImplementationBounds.maxStoredBytes,
   maxBatchRows = effectLedgerImplementationBounds.maxBatchRows,
   maxNodes = effectLedgerImplementationBounds.maxNodes,
@@ -108,8 +160,10 @@ export function openEffectLedger({
   );
   const scopeCid = control.logicalRequestScopeCid(scope);
   const physical = openSqliteEffectLedger(root, {
-    authorityScopeCid, maxEntries, maxEntryBytes, maxResponseBytes,
+    authorityScopeCid, maxEntries, maxEntryBytes, maxResponseBytes, maxReadResponseBytes,
     maxStoredBytes,
+    ...(typeof controlConstruction?.ledgerHistory === 'function'
+      ? {beforeHistoryRead: (count, wireUnits) => controlConstruction.ledgerHistory(count, wireUnits)} : {}),
   });
   const ownedBatchEvidence = new WeakSet();
   const assertOwnedBatchEvidence = (claims, evidence) => {
@@ -194,7 +248,7 @@ export function openEffectLedger({
     const locatorCid = control.logicalItemLocatorCid(ownedClaim.locator);
     const current = validateStored(physical.current(locatorCid));
     const outcome = physical.outcomeForLocator(
-      locatorCid, responseEvidence?.stored);
+      locatorCid, responseEvidence?.stored, claims === undefined && responseEvidence === undefined);
     if (current === undefined || outcome === undefined ||
         outcome.responsePhysicalSha256 !== stored.responsePhysicalSha256) {
       fail('EffectPhysicalOutcomeNotOwned');
@@ -373,18 +427,31 @@ export function openEffectLedger({
               typeof claim.intentFingerprintCid !== 'string') {
             fail('InvalidEffectProgressInventory');
           }
-          const prepared = control.issuePreparedLedgerEntry(
-            claim.basis, maxEntryBytes, maxNodes, maxDepth);
-          const dispatching = control.issueNextLedgerEntry(
-            prepared, 'dispatching', '', maxEntryBytes, maxNodes, maxDepth);
-          if (control.ledgerEntryScopeCid(prepared) !== scopeCid ||
-              !control.ledgerEntryAdmitsDispatch(
-                dispatching, claim.scope, claim.locator, claim.key,
-                claim.canonicalRequestCid) ||
-              control.recoveryActionFromEntry(
-                claim.locator, claim.intentFingerprintCid, claim.key,
-                claim.canonicalRequestCid, prepared, false) !== 1) {
+          // Reconstructing two inert Entries is unnecessary when their exact
+          // immutable basis facts and complete codec bounds are already known.
+          // Tight/unsupported policies retain the original codec and refusal.
+          const factsStatus = typeof control.ledgerClaimFactsStatus === 'function'
+            ? control.ledgerClaimFactsStatus(claim.basis, claim.scope, claim.locator,
+              claim.key, claim.intentFingerprintCid, claim.canonicalRequestCid,
+              scopeCid, maxEntryBytes, maxNodes, maxDepth) : 0;
+          if (factsStatus === 0) {
+            const prepared = control.issuePreparedLedgerEntry(
+              claim.basis, maxEntryBytes, maxNodes, maxDepth);
+            const dispatching = control.issueNextLedgerEntry(
+              prepared, 'dispatching', '', maxEntryBytes, maxNodes, maxDepth);
+            if (control.ledgerEntryScopeCid(prepared) !== scopeCid ||
+                !control.ledgerEntryAdmitsDispatch(
+                  dispatching, claim.scope, claim.locator, claim.key,
+                  claim.canonicalRequestCid) ||
+                control.recoveryActionFromEntry(
+                  claim.locator, claim.intentFingerprintCid, claim.key,
+                  claim.canonicalRequestCid, prepared, false) !== 1) {
+              fail('EffectProgressBindingMismatch');
+            }
+          } else if (factsStatus === 2) {
             fail('EffectProgressBindingMismatch');
+          } else if (factsStatus !== 1) {
+            fail('EffectLedgerControlRuntimeUnavailable');
           }
           const locatorCid = control.logicalItemLocatorCid(claim.locator);
           if (seen.has(locatorCid)) fail('EffectProgressDuplicateLocator');
@@ -498,7 +565,7 @@ export function openEffectLedger({
     // recorded intents: current whole-set admission and the exact physical
     // request must be checked again before any dispatch.
     recoverClaimFacts({preview, scope, programId, nodeId, maxRows,
-      maxWork}) {
+      maxWork}, originalKeys) {
       if (!preview || !scope || typeof programId !== 'string' ||
           typeof nodeId !== 'string' ||
           !Number.isSafeInteger(maxRows) || maxRows < 1 ||
@@ -508,8 +575,12 @@ export function openEffectLedger({
           control.logicalRequestScopeCid(scope) !== scopeCid) {
         fail('InvalidEffectRecordedClaimRecovery');
       }
-      const bindings = control.recoveryBindings(preview, scope, programId,
-        nodeId, maxRows, maxWork);
+      // The managed recovery already funded and admitted these exact keys.
+      // Borrow that cohort; do not encode and retain another correlation set.
+      const bindings = originalKeys === undefined
+        ? control.recoveryBindings(preview, scope, programId, nodeId, maxRows, maxWork)
+        : control.recoveryBindingsFromKeys(preview, scope, programId, nodeId,
+          originalKeys, maxRows, maxWork);
       const locatorCids = bindings.flatMap(rows => rows.map(binding =>
         control.recoveryBindingLocatorCid(binding)));
       if (locatorCids.length === 0 || locatorCids.length > maxRows ||
@@ -618,7 +689,7 @@ export function openEffectLedger({
         fail('EffectDispatchBindingMismatch');
       }
       if (action < 3 || action > 7) return undefined;
-      const row = physical.responseForLocator(locatorCid);
+      const row = physical.responseForLocator(locatorCid, true);
       if (row !== undefined && row.logicalRequestScopeCid !== scopeCid) {
         fail('EffectLedgerScopeMismatch');
       }
@@ -633,7 +704,7 @@ export function openEffectLedger({
     readClaimedOutcome(claim) {
       const stored = ledger.readClaimedResponse(claim);
       if (stored === undefined) return undefined;
-      return physical.outcomeForLocator(stored.logicalItemLocatorCid);
+      return physical.outcomeForLocator(stored.logicalItemLocatorCid, undefined, true);
     },
     // Physical custody only. The caller must separately admit the typed
     // provider projection and issue its semantic outcome Receipt. A partial
@@ -664,6 +735,7 @@ export function openEffectLedger({
         logicalItemLocatorCid: member.logicalItemLocatorCid,
         dispatchEntryCid: member.dispatchEntryCid,
         responsePhysicalSha256, outcomeCid, outcomeJson,
+        singleOnly: claims === undefined,
       });
     },
     // The common MoonBit issuer fixes the receipt semantics before SQLite
@@ -755,19 +827,53 @@ export function openEffectLedger({
     // Receipt; unknown and unattempted rows supply no invented outcome.
     // Current evidence-view authorization belongs to the Host caller.
     checkMemberReceiptRowPartitionEvidence({preview, memberIndex,
-      rowOwners, memberReceiptWire}) {
+      rowOwners, memberReceiptWire}, prepared, originalRows, originalOwners) {
       if (typeof memberReceiptWire !== 'string') {
         fail('InvalidEffectMemberReceiptEvidence');
       }
-      return control.checkMemberReceiptRowPartitionEvidence(
-        ...memberReceiptEvidence({preview, memberIndex, rowOwners}),
-        memberReceiptWire, rowOwners.length,
-        maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth);
+      if (nodeTypes.isProxy(rowOwners) || !Array.isArray(rowOwners)) fail('InvalidEffectMemberReceiptEvidence');
+      if (controlConstruction !== undefined &&
+          typeof moon.clientProgramInstalledEffectMemberReceiptConstruction === 'function' &&
+          (rowOwners !== originalOwners || rowOwners.length !== originalRows)) {
+        fail('InvalidEffectMemberReceiptEvidence');
+      }
+      const evidence = memberReceiptEvidence({preview, memberIndex, rowOwners});
+      if (rowOwners.length === 0 || typeof moon.clientProgramInstalledEffectMemberReceiptConstruction !== 'function') {
+        return control.checkMemberReceiptRowPartitionEvidence(...evidence,
+          memberReceiptWire, rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth);
+      }
+      // With no installed construction owner this is the existing explicitly
+      // managed component Ledger. The installed path uses its private quote.
+      const selected = controlConstruction === undefined
+        ? checked(moon.clientProgramInstalledEffectMemberReceiptConstruction(
+          rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth)) : prepared;
+      if (selected === undefined) fail('InvalidEffectMemberReceiptEvidence');
+      return checked(moon.strategyCheckEffectMemberReceiptRowPartitionEvidenceFunded(
+        ...evidence, memberReceiptWire, rowOwners.length,
+        maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth,
+        runtimeField(selected, 1), runtimeField(selected, 2), runtimeField(selected, 3)));
     },
-    issueMemberReceiptFromRowPartition({preview, memberIndex, rowOwners}) {
-      return control.issueMemberReceiptFromRowPartition(
-        ...memberReceiptEvidence({preview, memberIndex, rowOwners}),
-        rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth);
+    issueMemberReceiptFromRowPartition({preview, memberIndex, rowOwners}, prepared, originalRows, originalOwners) {
+      if (nodeTypes.isProxy(rowOwners) || !Array.isArray(rowOwners)) fail('InvalidEffectMemberReceiptEvidence');
+      if (controlConstruction !== undefined &&
+          typeof moon.clientProgramInstalledEffectMemberReceiptConstruction === 'function' &&
+          (rowOwners !== originalOwners || rowOwners.length !== originalRows)) {
+        fail('InvalidEffectMemberReceiptEvidence');
+      }
+      const evidence = memberReceiptEvidence({preview, memberIndex, rowOwners});
+      if (rowOwners.length === 0 || typeof moon.clientProgramInstalledEffectMemberReceiptConstruction !== 'function') {
+        return control.issueMemberReceiptFromRowPartition(...evidence,
+          rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth);
+      }
+      const selected = controlConstruction === undefined
+        ? checked(moon.clientProgramInstalledEffectMemberReceiptConstruction(
+          rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth)) : prepared;
+      if (selected === undefined) fail('InvalidEffectMemberReceiptEvidence');
+      const value = checked(moon.strategyIssueEffectMemberReceiptFromRowPartitionFunded(
+        ...evidence, rowOwners.length, maxEntryBytes, maxOutcomeNodes, maxOutcomeDepth,
+        runtimeField(selected, 1), runtimeField(selected, 2), runtimeField(selected, 3)));
+      return Object.freeze({identity: moon.strategyPublicationContractIdentity(value),
+        wire: moon.strategyPublicationContractJson(value)});
     },
     // A sealed Collections response belongs to the original ordered member
     // list. A reordered or partially replaced list cannot borrow its bytes.
@@ -909,7 +1015,7 @@ export function openEffectLedger({
           return Object.freeze({
             action, claimed: false, entry: stored.entry,
             response: action === 3
-              ? physical.response(control.ledgerEntryCid(stored.entry))
+              ? physical.response(control.ledgerEntryCid(stored.entry), true)
               : undefined,
           });
         }
@@ -1047,5 +1153,6 @@ export function openEffectLedger({
   // One outer caller frame owns nested original work, never recursive debits.
   // Close remains the original cleanup path even after a constructor failed.
   return bindEffectLedgerConstruction(ledger, controlConstruction,
-    Object.freeze({maxEntries, maxEntryBytes, maxNodes, maxDepth}));
+    Object.freeze({maxEntries, maxEntryBytes, maxReadResponseBytes, maxNodes, maxDepth, maxOutcomeNodes, maxOutcomeDepth,
+      runtime: moon, receiptConstruction: moon.clientProgramInstalledEffectMemberReceiptConstruction}));
 }

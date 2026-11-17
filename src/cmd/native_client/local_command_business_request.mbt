@@ -149,7 +149,10 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
   capture : @local_host.NativeLocalJournalCapture,
   intent : @run_host.ClientSubmittedIntent,
   environment : @checked.CheckEnvironment,
-) -> @local_host.NativeClientSubmittedPreparation raise ClientStop {
+) -> (
+  @local_host.NativeClientSubmittedPreparation,
+  @run_host.ClientLocalNormalization?,
+) raise ClientStop {
   guard self.business is Some(business) &&
     business.request_input is Some(input) &&
     business.request_parent is Some(parent) &&
@@ -157,7 +160,8 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
     stop("LocalBusinessOriginalUnavailable")
   }
   business.request_intent = Some(intent)
-  self.with_business_request(capture, () => {
+  let mut normalization = None
+  let preparation = self.with_business_request(capture, () => {
     if business.request_intake_units > 0L {
       // construct_business_intent returned before this entry. Keep the same
       // typed output and retire only its completed transport/construction peak.
@@ -186,6 +190,16 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
             })
           None => None
         },
+        before_program_borrow=Some(() => {
+          match
+            @local_values.prepare_request_program_normalization(parent, input) {
+            Err(issue) => Err(@local_host.RequestNormalization(issue))
+            Ok(original) => {
+              normalization = Some(original)
+              Ok(())
+            }
+          }
+        }),
       ) {
       Err(issue) => local_stop_submitted_preparation(issue)
       Ok((preparation, holder)) => {
@@ -194,6 +208,7 @@ fn LocalCommandPreparationOriginal::prepare_business_request(
       }
     }
   })
+  (preparation, normalization)
 }
 
 ///|

@@ -8,9 +8,10 @@ fn client_local_json_leaf_schema(schema : @schema.Schema) -> Bool {
   }
   for index in 0..<count {
     guard @schema.field_at(schema, index) is Some(field) else { return false }
-    match @schema.field_contract(field).shape {
-      @contract.Number | @contract.Boolean | @contract.Text(_) => ()
-      _ => return false
+    if !@execution.json_leaf_representation_contract(
+        @schema.field_contract(field),
+      ) {
+      return false
     }
   }
   true

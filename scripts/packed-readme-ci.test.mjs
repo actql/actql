@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
-import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm} from 'node:fs/promises';
+import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm, glob} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -13,10 +14,15 @@ import {mockWorkflowMetrics} from './health-monitor-adapters.mjs';
 import {packedReadmeCases, packedCompositionCases} from './test-packed-readme-workflows.mjs';
 import {packedEffectControlCases, assertMockEffectControlOutcome} from './packed-mock-effect-controls.mjs';
 import {nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
+import {packedModelControlPhases} from './packed-model-controls.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {createCommandEvidence, checkCommandEvidenceUpload} from './packed-query-evidence.mjs';
 import {nativeCoreScopedTestEnvironment} from './native-core-test-selection.mjs';
+import {projectFileStoreRows101, projectFileStoreMembers17} from './fixtures/project-file-store-inventory-cases.mjs';
+import {packedDependencyBoundaryCases, packedDependencyBoundaryPhases} from './packed-project-dependency-boundary.mjs';
+import {packedProjectFileStoreInventoryCases} from './packed-project-file-store-inventory.mjs';
+import {readWholeResults, checkJoinedSourceRows, readJoinedWholeResults, assertRecordWorkflowWork} from '../adapters/host-node/fixtures/work-observation.fixture.mjs';
 
 const workflow = parse(await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const name = 'client-readme-packed', job = workflow.jobs[name];
@@ -27,9 +33,71 @@ const explicitWork = (phase, variant = 'readme') => ({complete: true,
   sourceAcquisitionStarts: phase === 'capture' ? 2 : 0,
   modelCallStarts: phase === 'capture' ? variant === 'readme' ? 2 : 4 : 0,
   effectReplacementReturns: phase === 'approve' ? 2 : 0});
+const explicitDependencySuccess = async ({report}) => {
+  report.cases.push(...packedDependencyBoundaryCases.flatMap(selected =>
+    packedDependencyBoundaryPhases.map(phase => ({case: selected.case, phase, status: 'passed', completed: true}))));
+  report.complete = true;
+};
 const explicitStep = (phase, step) => ({phase, step, status: 'passed', timing: {
   startedAt: '2026-01-01T00:00:00.000Z', endedAt: '2026-01-01T00:00:00.001Z',
   wallNs: 1000000, cpuUserUs: 0, cpuSystemUs: 0, scope: 'Explicit test port, not a runtime measurement'}});
+
+test('required packed dependency boundaries keep cold approval, locked physical setup and timeout diagnostics', async () => {
+  assert.deepEqual(packedDependencyBoundaryCases.map(value => value.case), ['count', 'width']);
+  assert.deepEqual(packedDependencyBoundaryPhases, ['capture', 'approve', 'saved']);
+  assert.deepEqual(job.strategy.matrix.node, ['22.22.0', '24']);
+  const setup = job.steps.find(step => step.name === 'Select the existing locked Table fixture interpreter');
+  assert.equal(setup.uses, 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1');
+  assert.equal(setup.with['python-version'], '3.12');
+  const dependencies = job.steps.find(step => step.name === 'Prepare locked physical dependencies for cold Effect restoration');
+  assert.match(dependencies.run, /pip install --require-hashes -r adapters\/connectors\/local\/iceberg\/requirements\.lock/u);
+  const functional = job.steps.find(step => step.run === 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"');
+  assert.equal(functional.env.ACTQL_TABLE_PYTHON, '${{ runner.temp }}/readme-table-python/bin/python');
+  assert.equal(functional.env.PYTHONDONTWRITEBYTECODE, '1');
+  const upload = job.steps.find(step => step.name === 'Preserve actual functional outcomes and failures');
+  assert.equal(upload.if, 'always()');
+  for (const suffix of ['*.observation.json', '*.pending.json', '*.source-progress.json']) {
+    assert(upload.with.path.split('\n').includes('${{ runner.temp }}/client-readme-packed/dependency-boundary/*/' + suffix));
+  }
+  assert(!upload.with.path.includes('original.json'), 'Private signing originals are not public diagnostics');
+  const source = await readFile(new URL('./test-packed-readme-workflows.mjs', import.meta.url), 'utf8');
+  assert.match(source, /await runPackedDependencyBoundaries\(\{prepared,/u);
+  assert.match(source, /report\.complete = failures\.length === 0 && report\.account\.completed &&\s*report\.dependencyBoundaries\.complete &&/u);
+});
+
+test('README artifact retains File STORE partial and final observations without private application state', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-readme-upload-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const upload = job.steps.find(step => step.name === 'Preserve actual functional outcomes and failures');
+  assert.equal(upload.if, 'always()');
+  const prefix = '${{ runner.temp }}/client-readme-packed/';
+  const patterns = upload.with.path.trim().split('\n').map(path => {
+    assert(path.startsWith(prefix)); return path.slice(prefix.length);
+  });
+  const expected = [];
+  const privateFiles = [];
+  for (const selected of packedProjectFileStoreInventoryCases) {
+    const directory = `project-store-inventory/${selected.case}`;
+    for (const phase of ['capture', 'approve', 'saved']) {
+      for (const suffix of ['pending', 'observation']) {
+        expected.push(`${directory}/${selected.case}-${phase}.${suffix}.json`);
+      }
+    }
+    privateFiles.push(...['original.json', 'approval.json', 'state/ledger.sqlite',
+      'state/service-private.pem', 'source-data/input.pending.json',
+      'destination-data/output.observation.json'].map(path => `${directory}/${path}`));
+  }
+  // These are path-selection fixtures, not runtime outcomes or credentials.
+  // The real fixture writes only its bounded report to these diagnostic names.
+  for (const path of [...expected, ...privateFiles]) {
+    await mkdir(dirname(join(root, path)), {recursive: true});
+    await writeFile(join(root, path), '{}\n');
+  }
+  const selected = [];
+  for await (const path of glob(patterns, {cwd: root})) selected.push(path);
+  assert.deepEqual(selected.sort(), expected.sort(),
+    'Keep both sides of FIRST-close, including a failed approval, without uploading signing originals or Store state');
+});
 
 test('README call bounds come from authored joined rows and declared per-row Tasks rather than prior observations', () => {
   for (const template of ['churn-risk-mock', 'deal-review-mock']) {
@@ -95,10 +163,6 @@ test('distinct Whole producer fixture retains both Model Units and all public Re
   assert.deepEqual(program.stages[3].inputs.confirmed, {result: {stage: 'confirm', result: 'rows'}});
   assert.deepEqual(program.results?.updates, {from: {stage: 'apply', result: 'rows'}});
   assert.deepEqual(Object.keys(program.results), ['answer', 'main', 'updates']);
-  const source = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
-  const original = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .find(node => node.id?.name === 'readWholeResults');
-  const read = new Function('assert', `return (${source.slice(original.start, original.end)});`)(assert);
   const sourceRows = [
     {id: '006Acme', name: 'Acme Corp - Renewal', StageName: 'Proposal', NextStep: null},
     {id: '006Globex', name: 'Globex - Expansion', StageName: 'Negotiation', NextStep: 'Legal review'},
@@ -108,10 +172,10 @@ test('distinct Whole producer fixture retains both Model Units and all public Re
   const reviewed = updates.map(({confirmation, ...row}) => row);
   const roots = {answer: sourceRows, main: reviewed}, calls = [];
   const execution = {result(name) {calls.push(name); return {all: async () => roots[name]};}};
-  assert.deepEqual(await read(execution, updates), roots);
+  assert.deepEqual(await readWholeResults(execution, updates), roots);
   assert.deepEqual(calls, ['answer', 'main']);
   roots.main = [];
-  await assert.rejects(read(execution, updates), {code: 'ERR_ASSERTION'});
+  await assert.rejects(readWholeResults(execution, updates), {code: 'ERR_ASSERTION'});
 });
 
 test('existing collector keeps the distinct Whole fixture and original cold inputs separate', async t => {
@@ -136,11 +200,8 @@ test('existing collector keeps the distinct Whole fixture and original cold inpu
   assert.equal(metric.samples[0].verified, true);
 });
 
-test('record fixture bounds use authored Whole binary and three-Source occurrences on the original Run only', async () => {
-  const source = await readFile(new URL('../adapters/host-node/fixtures/work-observation.fixture.mjs', import.meta.url), 'utf8');
-  const node = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .find(value => value.type === 'ExportNamedDeclaration' && value.declaration?.id?.name === 'assertRecordWorkflowWork').declaration;
-  const check = Function('assert', `return (${source.slice(node.start, node.end)});`)(assert);
+test('record fixture bounds use authored Whole binary and three-Source occurrences on the original Run only', () => {
+  const check = assertRecordWorkflowWork;
   for (const [variant, starts] of [['whole-input', 1], ['binary-source', 2], ['three-source', 3]]) {
     for (const phase of ['capture', 'approve', 'recover']) {
       const writes = phase === 'approve' ? 1 : 0;
@@ -158,6 +219,23 @@ test('record fixture bounds use authored Whole binary and three-Source occurrenc
       assert.throws(() => check(work, {phase, variant: 'inferred-from-observation'}));
     }
   }
+});
+
+test('workflow DATA oracles execute before an installed runtime is available', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-workflow-data-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const helper = join(directory, 'oracles.mjs');
+  await copyFile(new URL('../adapters/host-node/fixtures/work-observation.fixture.mjs', import.meta.url), helper);
+  const env = {...process.env}; delete env.NODE_OPTIONS; delete env.NODE_PATH;
+  const output = execFileSync(process.execPath, ['--input-type=module', '-e', `
+    const {assertRecordWorkflowWork} = await import(${JSON.stringify(new URL('file://' + helper).href)});
+    assertRecordWorkflowWork({complete: true, sourceAcquisitionStarts: 3,
+      modelCallStarts: 0, effectReplacementReturns: 0,
+      totals: {modelCallStarts: 0, effectReplacementReturns: 0}},
+      {phase: 'capture', variant: 'three-source'});
+    console.log('data-only');
+  `], {cwd: directory, env, encoding: 'utf8', timeout: 5000});
+  assert.equal(output.trim(), 'data-only');
 });
 
 test('record ordinary runner binds the exact selected fixture variant before the existing installed child', async () => {
@@ -279,8 +357,18 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   assert.equal(job.strategy['fail-fast'], false);
   assert.deepEqual(job.strategy.matrix.node, ['22.22.0', '24']);
   const input = job.steps.find(step => step.uses === './.github/actions/download-client-packages');
+  assert.equal(input.id, 'client-inputs');
   assert.equal(input.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
   assert(job.steps.some(step => step.run === 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"'));
+  const union = job.steps.find(step => step.id === 'packed-union-budget');
+  assert.equal(union.run, 'node scripts/test-packed-public-query.mjs --union-budget-only');
+  assert.equal(union.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
+  assert.equal(union['continue-on-error'], undefined);
+  const unionUpload = job.steps.find(step => step.with?.directory === '${{ steps.packed-union-budget.outputs.evidence-directory }}');
+  assert.equal(unionUpload.uses, './.github/actions/upload-packed-query-evidence');
+  assert.equal(unionUpload.if, "always() && steps.packed-union-budget.outputs.evidence-directory != ''");
+  assert.equal(unionUpload['continue-on-error'], undefined);
+  assert(!Object.hasOwn(unionUpload.with, 'path'), 'Only the bounded command diagnostics may be uploaded');
   assert(!job.steps.some(step => /npm pack|build:runtime|moon (?:build|test)/u.test(step.run ?? '')));
   assert(job.steps.every(step => !Object.hasOwn(step.env ?? {}, 'CI_PLAN')));
   const output = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
@@ -492,28 +580,41 @@ test('failed README command retains original exit primary and first-close failur
   assert.equal(observed[0].samples[0].phases.length, 1);
 });
 
+function publicBudgetFixture(data, policy = data.kind === 'resource' ? 536870912 : data.workLimit ?? data.controlWorkLimit) {
+  const memory = data.kind === 'resource', dimension = memory ? data.dimension : data.kind;
+  const setting = memory ? `installation.requestMemory.${dimension === 'retained_bytes' ? 'retainedBytes' : 'executionBytes'}` : 'installation.sourceFreeMaxWork';
+  const budget = data.budget;
+  const message = `Budget exceeded: phase=local_managed_advance; dimension=${dimension}; requested_delta=${budget ? (memory ? '' : '>=') + budget.requested : 'unavailable'}; remaining=${budget?.remaining ?? 'unavailable'}; policy=${policy}; unit=${memory ? 'logical_bytes' : 'work_units'}; setting=${setting}. ` +
+    (memory ? 'Logical quota, not process RSS.' : 'Runtime work, not Program parsing/checking. A lower bound does not give the complete UTF8 demand.');
+  return {terminal: {status: 'failed', result_available: false, revision: 4,
+    control: {physical_stop: 'confirmed'}, terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message}},
+    publicBudget: {message, phase: 'local_managed_advance', dimension, setting, quantities: budget ?? 'unavailable', policy: String(policy)}};
+}
+const publicBudgetRereadFixture = {sameHost: true, originalFailedRun: true, sameMessage: true, sameRevision: true, newSubmissions: 0};
+
 async function collectionBudgetPorts() {
   const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
   const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const load = name => {
     const node = tree.body.find(value => value.type === 'FunctionDeclaration' && value.id.name === name);
     assert(node);
-    return Function('assert', `return (${source.slice(node.start, node.end)});`)(assert);
+    return Function('assert', 'originalPublicBudget', `return (${source.slice(node.start, node.end)});`)(assert,
+      name === 'originalPublicBudget' ? undefined : load('originalPublicBudget'));
   };
   const body = tree.body.find(value => value.type === 'TryStatement').block;
   // Execute the actual fixture with explicit public/diagnostic ports, not a
   // substitute Core, Ledger, installed acceptance, or successful budget run.
-  return {project: load('originalBudgetRefusal'), program: load('collectionProgram'), budgetProgram: load('oversizedRowProgram'),
+  return {project: load('originalBudgetRefusal'), program: load('collectionProgram'), budgetProgram: load('oversizedRowProgram'), largeProgram: load('largeRowProgram'),
     memoryProgram: load('memoryRecoveryProgram'), workProject: load('originalControlWorkRefusal'),
-    memoryProject: load('originalAcceptedMemoryRefusal'), exact: load('exactRows'),
+    memoryProject: load('originalAcceptedMemoryRefusal'), publicProject: load('originalPublicBudget'), exact: load('exactRows'),
     recovery: load('sameHostSmallResult'), createPrevious: load('createPreviousSavedResult'), readPrevious: load('readPreviousSavedResult'),
-    run: Function('ports', `return (async () => {
+    run: Function('originalBudgetReread', `return ports => (async () => {
       const {assert,report,span,open,phase,stateDir,capacityObservations,
         originalBudgetRefusal,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
-        collectionProgram,oversizedRowProgram,memoryRecoveryProgram,originalControlWorkRefusal,originalAcceptedMemoryRefusal,exactRows,
+        collectionProgram,oversizedRowProgram,largeRowProgram,memoryRecoveryProgram,originalControlWorkRefusal,originalAcceptedMemoryRefusal,exactRows,
         sameHostSmallResult,createPreviousSavedResult,readPreviousSavedResult,workObservations,save}=ports;
       let client; ${source.slice(body.start, body.end)}; return client;
-    })();`)};
+    })();`)(load('originalBudgetReread'))};
 }
 
 test('collection boundary fixtures keep all required rows and the original larger SQL statements', async () => {
@@ -637,7 +738,7 @@ test('packed collection persists Program-removal failure after FIRST close and n
   const runFinalizer = Function('client', 'span', 'report', 'cleanup', 'failed', 'phase', 'programs',
     'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert', 'progress',
     `return (async () => ${source.slice(finalizer.start, finalizer.end)})();`);
-  for (const phase of ['budget', 'capture', 'saved']) {
+  for (const phase of ['budget', 'capture', 'saved', 'large-row-capture', 'large-row-saved']) {
     const events = [], cleanup = [], report = {firstClose: 'unobserved'}, observations = [];
     const failure = Object.assign(new Error('Original Program removal failed'), {code: 'EACCES'});
     await runFinalizer({async close() {events.push('FIRST-close');}},
@@ -652,7 +753,7 @@ test('packed collection persists Program-removal failure after FIRST close and n
     assert.equal(final.path, `${phase}.observation.json`);
     assert.equal(final.value.firstClose, 'returned');
     assert.deepEqual(final.value.aliveScopedFD, {before: 0, after: 0});
-    if (phase === 'capture') {
+    if (phase === 'capture' || phase === 'large-row-capture') {
       assert.deepEqual(events, ['FIRST-close', 'first.sql', 'second.sql']);
       assert.equal(cleanup[0], failure); assert.equal(report.originalProgramsRemovedAfterFirstClose, 1);
       assert.equal(final.value.complete, false);
@@ -672,16 +773,16 @@ test('collection saves its original primary before pending close and diagnostic 
     'unlink', 'save', 'observeRecordApprovalDescriptors', 'setTimeout', 'stateDir', 'assert', 'primary', 'console', 'progress',
     `return (async () => {${source.slice(finalizer.start + 1, finalizer.end - 1)}
       ${source.slice(finalizer.end)}})();`);
-  for (const writeFails of [false, true]) {
+  for (const phase of ['capture', 'large-row-capture']) for (const writeFails of [false, true]) {
     const primary = Object.assign(new Error('OriginalWaitRefusal'), {code: 'OriginalWaitRefusal'});
-    const report = {phase: 'capture', pid: 123, firstFailedStep: 'wait-100000',
+    const report = {phase, pid: 123, firstFailedStep: 'wait-100000',
       primary: {name: primary.name, code: primary.code}, submits: 4};
     const events = [], stored = [];
     let release, entered;
     const closing = new Promise(resolve => {release = resolve;});
     const started = new Promise(resolve => {entered = resolve;});
     const result = invoke({async close() {events.push('close'); entered(); await closing;}},
-      async (_name, action) => action(), report, [], true, 'capture', [],
+      async (_name, action) => action(), report, [], true, phase, [],
       async () => assert.fail('Failed capture cannot remove input'),
       async (path, value) => {
         events.push('save'); stored.push({path, value: structuredClone(value)});
@@ -840,15 +941,17 @@ test('collection aggregate requires completed full stream independently of succe
   const {root} = await scratch(t), load = await runnerFunctions();
   const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   const actual = {phase: 'capture', pid: 123, complete: true, firstClose: 'returned',
-    aliveScopedFD: {before: 0, after: 0}, submits: 5, sourceFreeMaxWork: 30000000,
+    aliveScopedFD: {before: 0, after: 0}, submits: 6, sourceFreeMaxWork: 30000000,
     requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824},
     cases: [9999, 10000, 10001, 100000].map(count => ({count})),
     fullStream: {rows: 100000, complete: true},
     controls: {tighterRows: true, collectionBytes: true, wireBytes: true, rowWireBytes: true,
       rowBytes: true, originalChargeBeforeValidation: true, boundedBatches: true,
       batchBytes: true, earlyBreak: true, readerCancellation: true},
-    oversizedRow: {rows: 1, arrayElements: 20000, expectedRefusal: 'ResultRowRetainedLimit', complete: true},
-    originalProgramsRemovedAfterFirstClose: 5};
+    oversizedRow: {rows: 1, arrayElements: 20000, maxRowRetainedValueBytes: 1048576, expectedRefusal: 'ResultRowRetainedLimit', complete: true},
+    largeRow: {ref: {run: 'same-large'}, resultName: 'large', rows: 1, fields: 17, textUnitsPerField: 64000, wireBytes: 1088144, aboveLegacyRowWireBytes: 1048576,
+      explicitRefusal: 'ResultRowWireLimit', sameRunRecovery: true, complete: true},
+    originalProgramsRemovedAfterFirstClose: 6};
   for (const fullStream of [actual.fullStream, undefined, {rows: 99999, complete: true}]) {
     const record = {phase: 'capture'};
     const promise = run({collection: root, record, async command() {
@@ -970,6 +1073,10 @@ test('independent normal consumers continue after collection and variant failure
       platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository,
     URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+    runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedDependencyBoundaries: explicitDependencySuccess,
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
+    packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
     nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
     prepareHealthPackages: async () => ({consumer, manifest: {}, manifestPath: '/authored-manifest'}),
@@ -1023,6 +1130,10 @@ test('each required Model composition is distinct from README three and cannot p
         platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository,
       URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
       packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+      runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedDependencyBoundaries: explicitDependencySuccess,
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
+    packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
       nodeBenchmarkFailure,
       execute: async () => assert.fail('No product command'), prepareHealthPackages: async () => prepared,
@@ -1092,6 +1203,10 @@ test('failed shared package preparation records every dependent as unexecuted an
       platform: 'explicit-test', arch: 'explicit-test'}, fileURLToPath: () => repository, URL,
     checkoutState: () => before, execFileSync: () => 'b'.repeat(40), mkdir, join, writeFile,
     packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+    runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedDependencyBoundaries: explicitDependencySuccess,
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
+    packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.forEach(record => {record.completed = true; record.status = 'passed';}),
     nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
     prepareHealthPackages: async options => {assert.equal(options.normalLifecycle, true); throw failure;},
@@ -1101,9 +1216,9 @@ test('failed shared package preparation records every dependent as unexecuted an
     verifyNodeBenchmarkPackages: async () => assert.fail('No successful prepared input')});
   await assert.rejects(run(output), error => error === failure);
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
-  assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved']);
+  assert.deepEqual(report.collection.map(value => value.phase), ['budget', 'memory-recovery', 'work-recovery', 'accepted-memory-recovery', 'capture', 'saved', 'large-row-capture', 'large-row-saved']);
   assert.equal(report.complete, false);
-  assert([...report.collection, ...report.projectFiles, ...report.cases, ...report.compositions, ...report.controls].every(value =>
+  assert([report.account, ...report.collection, ...report.projectFiles, ...report.cases, ...report.compositions, ...report.controls].every(value =>
     value.status === 'unexecuted' && value.completed === false && value.unexecutedReason));
   assert.equal(report.failures.length, 1);
 });
@@ -1243,7 +1358,8 @@ test('completed original collection Saved is independent of a later capture case
         pid: 456, complete: true, firstClose: 'returned', aliveScopedFD: {before: 0, after: 0},
         submits: 0, sourceFreeMaxWork: 30000000,
         requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824},
-        cases: [{count: 100000, complete: true}]})};
+        cases: [{count: 100000, complete: true}],
+        largeRow: {complete: false, unexecutedReason: 'Requires completed original large-row handoff'}})};
     }}), error => error === failure);
   assert.deepEqual(commands, ['capture', 'saved']);
   assert.equal(report.collection[0].status, 'failed'); assert.equal(report.collection[0].completed, false);
@@ -1277,13 +1393,20 @@ test('small policy and oracle units run during Draft while normal required gates
   const policy = steps.find(value => value.name === 'Test ordinary operation performance policy oracles');
   const rest = steps.find(value => value.name === 'Test ordinary operation performance assessment');
   assert(rest.if.includes('draft'));
+  const recipes = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
+  const scheduled = [policy, rest].flatMap(step => {
+    const alias = /^npm run ([\w:-]+)$/u.exec(step.run.trim());
+    const command = alias ? recipes[alias[1]] : step.run;
+    assert.equal(typeof command, 'string', 'Scheduled recipe must exist');
+    return command.trim().split(/\s+/u);
+  });
   for (const file of ['scripts/operation-performance.test.mjs', 'scripts/benchmark-node-operations.test.mjs',
     'scripts/operation-performance-policy.test.mjs', 'scripts/operation-performance-native-control.test.mjs',
     'scripts/benchmark-node-process-operations.test.mjs', 'scripts/benchmark-node-sqlite.test.mjs',
     'scripts/benchmark-node-boundaries.test.mjs', 'scripts/node-operation-fs-trace.test.mjs',
     'scripts/operation-performance-priority-transition.test.mjs', 'scripts/operation-performance-transition-ci.test.mjs',
     'scripts/native-approval-performance.test.mjs']) {
-    const occurrences = [...policy.run.split(/\s+/u), ...rest.run.split(/\s+/u)].filter(value => value === file);
+    const occurrences = scheduled.filter(value => value === file);
     assert.equal(occurrences.length, 1, file);
   }
   assert(gateJobs.includes('client-readme-packed')); assert.deepEqual(workflow.jobs.check.needs, gateJobs);
@@ -1529,6 +1652,10 @@ test('required normal controls preserve original errors and cannot pass an unexe
     runCollectionConsumer: async ({report}) => report.collection.forEach(row => row.completed = true),
     runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => row.completed = true),
     runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
+    runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedDependencyBoundaries: explicitDependencySuccess,
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
+    packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
     runMockEffectControls: async ({records}) => records.filter(row => row.mode !== 'publication-io-failure')
       .forEach(row => {row.completed = true; row.status = 'passed';}), verifyNodeBenchmarkPackages: async () => {}});
   await assert.rejects(execute(output), {code: 'ERR_ASSERTION'});
@@ -1613,8 +1740,10 @@ test('normal resource work evidence refuses generic unpublished memory row and f
   const {workProject} = await collectionBudgetPorts(), ref = {original: 'same-run'};
   const terminal = {status: 'failed', result_available: false};
   const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000};
+  const publicFixture = publicBudgetFixture(data);
+  Object.assign(terminal, publicFixture.terminal);
   const event = {ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure', primaryDiagnostic: data};
-  assert.deepEqual(workProject([event], ref, terminal, 100000), {...data, verified: true});
+  assert.deepEqual(workProject([event], ref, terminal, 100000), {...data, publicBudget: publicFixture.publicBudget, verified: true});
   for (const events of [[], [event, event], [{...event, ref: {original: 'foreign'}}],
     [{...event, primaryCode: 'ClientHostFailure'}], [{...event, primaryDiagnostic: undefined}],
     ...['execution', 'retention', 'row', 'workspace'].map(kind => [{...event, primaryDiagnostic: {...data, kind}}]),
@@ -1632,6 +1761,7 @@ test('normal resource fixture reuses the SAME finite-policy Host for a later ind
     const report = {phase, cases: [], submits: 0}, observations = [], work = [], events = [];
     const primary = new Error('Original snapshot refusal'), failedRef = {original: 'work-run'};
     let opens = 0, starts = 0, selected;
+    const failedState = publicBudgetFixture({code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000}).terminal;
     const client = {async startSource(document, options) {
       assert.strictEqual(this, client); starts++;
       assert.deepEqual(options, {format: 'sql'});
@@ -1653,13 +1783,14 @@ test('normal resource fixture reuses the SAME finite-policy Host for a later ind
           selected.authorization.observe('dispatch_failed', {ref: failedRef, code: 'CapturedRunExecutionFailed',
             primaryCode: 'MoonBitHostFailure', primaryDiagnostic: {code: 'MoonBitHostFailure',
               phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000}});
-          events.push('refused'); return {status: 'failed', result_available: false};
-        }};
+          events.push('refused'); return failedState;
+        }, async status() {return failedState;}};
       }
       assert.equal(starts, 3); assert.equal(document, 'SELECT 7 AS n'); events.push('later-small');
       return {ref: {original: 'new-small'}, async wait() {return {status: 'succeeded', next_action: {results: ['answer']}};},
         result(name) {assert.equal(name, 'answer'); return {async all() {return [{n: 7}];}};}};
     }, async attach(ref) {
+      if (ref === failedRef) return {async status() {return failedState;}};
       assert.equal(starts, 3); assert.deepEqual(ref, {original: 'previous-Saved'}); events.push('attach-prior');
       let read = false;
       return {result(name) {assert.equal(name, 'prior'); return {async all() {read = true;return [{n: 41}];}};},
@@ -1701,7 +1832,9 @@ test('normal resource parent rejects missing recovery wrong policies misclassifi
   const {root} = await scratch(t), load = await runnerFunctions();
   const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   for (const phase of ['memory-recovery', 'work-recovery']) for (const mode of [
-    'exact', 'wrong-owner-limit', 'missing-recovery', 'wrong-rows', 'missing-prior', 'changed-prior', 'wrong-policy', 'wrong-kind', 'extra-submit', 'pending-close', 'open-fd', 'cleanup']) {
+    'exact', 'wrong-owner-limit', 'missing-recovery', 'wrong-rows', 'missing-prior', 'changed-prior', 'wrong-policy', 'wrong-kind', 'extra-submit', 'pending-close', 'open-fd', 'cleanup',
+    ...(phase === 'work-recovery' ? ['missing-public', 'wrong-public-phase', 'wrong-public-dimension',
+      'wrong-public-policy', 'wrong-public-setting', 'wrong-public-message', 'wrong-public-quantities', 'missing-public-reread'] : [])]) {
     const bytes = phase === 'memory-recovery' ? 268435456 : 1073741824;
     const actual = {phase, pid: 12345, complete: true, firstClose: 'returned', cleanup: [],
       aliveScopedFD: {before: 0, after: 0}, submits: 3,
@@ -1714,6 +1847,18 @@ test('normal resource parent rejects missing recovery wrong policies misclassifi
         dimension: 'retention', requiredRetentionBytes: '536870912', requiredExecutionBytes: '536870912',
         availableRetentionBytes: '268435456', availableExecutionBytes: '268435456'},
       workRefusal: {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'control_work', task: 3, controlWorkLimit: 100000, verified: true}};
+    if (phase === 'work-recovery') {
+      actual.workRefusal.publicBudget = publicBudgetFixture(actual.workRefusal).publicBudget;
+      actual.publicBudgetReread = {...publicBudgetRereadFixture};
+    }
+    if (mode === 'missing-public') delete actual.workRefusal.publicBudget;
+    if (mode === 'wrong-public-phase') actual.workRefusal.publicBudget.phase = 'source_free_plan';
+    if (mode === 'wrong-public-dimension') actual.workRefusal.publicBudget.dimension = 'execution_bytes';
+    if (mode === 'wrong-public-policy') actual.workRefusal.publicBudget.policy = '30000000';
+    if (mode === 'wrong-public-setting') actual.workRefusal.publicBudget.setting = 'installation.requestMemory.executionBytes';
+    if (mode === 'wrong-public-message') actual.workRefusal.publicBudget.message = 'generic failure';
+    if (mode === 'wrong-public-quantities') actual.workRefusal.publicBudget.quantities = {requested: '100001', remaining: '100000'};
+    if (mode === 'missing-public-reread') delete actual.publicBudgetReread;
     if (mode === 'wrong-owner-limit') {actual.workRefusal.controlWorkLimit--; actual.memoryRefusal.dimension = 'control_work';}
     if (mode === 'missing-recovery') delete actual.resourceRecovery;
     if (mode === 'wrong-rows') actual.resourceRecovery.rows = [{n: 8}];
@@ -1833,8 +1978,11 @@ test('normal resource original value capture work evidence remains distinct from
   const {workProject}=await collectionBudgetPorts(),ref={original:'same-run'};
   const terminal={status:'failed',result_available:false};
   const data={code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000};
+  data.budget = {requested: '8', remaining: '7', policy: '100000', requestedIsLowerBound: true};
+  const publicFixture = publicBudgetFixture(data);
+  Object.assign(terminal, publicFixture.terminal);
   const event={ref,code:'CapturedRunExecutionFailed',primaryCode:'MoonBitHostFailure',primaryDiagnostic:data};
-  assert.deepEqual(workProject([event],ref,terminal,100000),{...data,verified:true});
+  assert.deepEqual(workProject([event],ref,terminal,100000),{...data, publicBudget: publicFixture.publicBudget, verified: true});
   for(const changed of [{...data,kind:'capture'},{...data,kind:'CaptureLimit'},{...data,workLimit:99999},
     {...data,step:-1},{...data,controlWorkLimit:100000},{...data,unit:0}])assert.throws(()=>workProject([{...event,primaryDiagnostic:changed}],ref,terminal,100000));
 });
@@ -1845,6 +1993,8 @@ test('normal resource parent preserves exact value capture work evidence through
   const run=load('runCollectionPhase',{readFile,join,assert,process,nodeBenchmarkFailure});
   for(const mode of ['exact','wrong-limit','missing-step','generic-capture','foreign-control']){
     const data={code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000,verified:true};
+    data.budget = {requested: '8', remaining: '7', policy: '100000', requestedIsLowerBound: true};
+    data.publicBudget = publicBudgetFixture(data).publicBudget;
     if(mode==='wrong-limit')data.workLimit--;
     if(mode==='missing-step')delete data.step;
     if(mode==='generic-capture')data.kind='capture';
@@ -1854,7 +2004,7 @@ test('normal resource parent preserves exact value capture work evidence through
       previousSaved:{complete:true,rows:[{n:41}],submits:0},sourceFreeMaxWork:100000,
       requestMemory:{retainedBytes:1073741824,executionBytes:1073741824},
       resourceRecovery:{complete:true,rows:[{n:7}],submits:1},
-      cases:[{expectedRefusal:'value_capture_work',complete:true}],workRefusal:data};
+      publicBudgetReread: publicBudgetRereadFixture, cases:[{expectedRefusal:'value_capture_work',complete:true}],workRefusal:data};
     const record={phase:'work-recovery',completed:false};
     const promise=run({collection:root,record,async command(){return {pid:12345,code:0,stdout:JSON.stringify(actual)};}});
     if(mode==='exact'){await promise;assert.equal(record.completed,true);}
@@ -1888,14 +2038,17 @@ test('accepted Compute memory oracle requires same original typed dimension and 
   const ref = {original: 'accepted-compute'};
   const terminal = {status: 'failed', result_available: false, control: {physical_stop: 'confirmed'}};
   const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes'};
+  data.budget = {requested: '8', remaining: '7', policy: '536870912', requestedIsLowerBound: false};
+  const publicFixture = publicBudgetFixture(data);
+  Object.assign(terminal, publicFixture.terminal);
   const event = {ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure', primaryDiagnostic: data};
-  assert.deepEqual(memoryProject([event], ref, terminal), {...data, verified: true});
+  assert.deepEqual(memoryProject([event], ref, terminal, {retainedBytes: 536870912, executionBytes: 536870912}), {...data, publicBudget: publicFixture.publicBudget, verified: true});
   for (const changed of [undefined, {...data, dimension: 'memory'}, {...data, task: -1},
     {...data, phase: 'request_snapshot'}, {...data, kind: 'control_work'}, {...data, unit: 0}]) {
-    assert.throws(() => memoryProject([{...event, primaryDiagnostic: changed}], ref, terminal));
+    assert.throws(() => memoryProject([{...event, primaryDiagnostic: changed}], ref, terminal, {retainedBytes: 536870912, executionBytes: 536870912}));
   }
-  assert.throws(() => memoryProject([{...event, ref: {original: 'foreign'}}], ref, terminal));
-  assert.throws(() => memoryProject([event, event], ref, terminal));
+  assert.throws(() => memoryProject([{...event, ref: {original: 'foreign'}}], ref, terminal, {retainedBytes: 536870912, executionBytes: 536870912}));
+  assert.throws(() => memoryProject([event, event], ref, terminal, {retainedBytes: 536870912, executionBytes: 536870912}));
   assert.throws(() => memoryProject([event], ref, {...terminal, status: 'needs_reconciliation'}));
   assert.throws(() => memoryProject([event], ref, {...terminal, control: {physical_stop: 'unknown'}}));
 });
@@ -1906,6 +2059,8 @@ test('accepted Compute fixed512 fixture checks refusal recovery and every legiti
     const report = {phase: 'accepted-memory-recovery', cases: [], submits: 0}, work = [], saved = new Map();
     let starts = 0, opens = 0, attached = 0, selected;
     const ref = {original: 'accepted-compute'}, previousRef = {original: 'previous-Saved'};
+    const memoryData = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes', budget: {requested: '8', remaining: '7', policy: '536870912', requestedIsLowerBound: false}};
+    const failedState = publicBudgetFixture(memoryData).terminal;
     const result = n => ({ref: n === 41 ? previousRef : {original: 'small'},
       async wait() {return {status: 'succeeded', next_action: {results: ['answer']}};},
       result() {return {async all() {return [{n}];}};}});
@@ -1919,17 +2074,17 @@ test('accepted Compute fixed512 fixture checks refusal recovery and every legiti
         if (mode === 'succeeded' || mode === 'wrong-row') return {status: 'succeeded', result_available: true,
           control: {physical_stop: 'confirmed'}, next_action: {results: ['answer']}};
         selected.authorization.observe('dispatch_failed', {ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure',
-          ...(mode === 'generic' ? {} : {primaryDiagnostic: {code: 'MoonBitHostFailure', phase: 'local_managed_advance',
-            kind: 'resource', task: 44, dimension: 'retained_bytes'}})});
-        return {status: mode === 'unknown' ? 'needs_reconciliation' : 'failed', result_available: false,
-          control: {physical_stop: mode === 'unknown' ? 'unknown' : 'confirmed'}};
-      }, result() {return {async all() {
+          ...(mode === 'generic' ? {} : {primaryDiagnostic: memoryData})});
+        return {...failedState, status: mode === 'unknown' ? 'needs_reconciliation' : 'failed',
+          control: {...failedState.control, physical_stop: mode === 'unknown' ? 'unknown' : 'confirmed'}};
+      }, async status() {return failedState;}, result() {return {async all() {
         const rows = Array.from({length: 100000}, () => ({n: 0}));
         if (mode === 'wrong-row') rows[99999].n = 1;
         return rows;
       }};}};
     }, async attach(original) {
-      attached++; assert.deepEqual(original, previousRef);
+      attached++; if (original === ref) return {async status() {return failedState;}};
+      assert.deepEqual(original, previousRef);
       return {result() {return {async all() {return [{n: 41}];}};}, async status() {return {status: 'succeeded'};}};
     }};
     const checking = run({assert, report, phase: report.phase, stateDir: '/fresh-accepted-memory',
@@ -1942,7 +2097,7 @@ test('accepted Compute fixed512 fixture checks refusal recovery and every legiti
         assert.deepEqual(selected.requestMemory, {retainedBytes: 536870912, executionBytes: 536870912}); return client;}});
     if (mode === 'refused' || mode === 'succeeded') {
       assert.equal(await checking, client);
-      assert.equal(starts, 3); assert.equal(attached, 1); assert.equal(report.submits, 3);
+      assert.equal(starts, 3); assert.equal(attached, mode === 'refused' ? 2 : 1); assert.equal(report.submits, 3);
       assert.deepEqual(report.resourceRecovery, {complete: true, rows: [{n: 7}], submits: 1});
       assert.deepEqual(report.previousSaved, {complete: true, rows: [{n: 41}], submits: 0});
       assert.equal(report.cases[0].disposition, mode === 'refused' ? 'resource_refused' : 'succeeded');
@@ -1997,8 +2152,9 @@ test('required accepted Compute parent rejects generic Unknown incomplete recove
   const {root} = await scratch(t), load = await runnerFunctions();
   const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
   for (const mode of ['exact', 'success', 'generic', 'unknown', 'stop-unknown', 'wrong-dimension', 'foreign-ref',
-    'missing-recovery', 'missing-Saved', 'wrong-memory', 'wrong-work', 'missing-ref', 'two-closes', 'pending-close', 'open-fd', 'short-success']) {
-    const ref = {original: 'accepted'}, data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes'};
+    'missing-recovery', 'missing-Saved', 'wrong-memory', 'wrong-work', 'missing-ref', 'two-closes', 'pending-close', 'open-fd', 'short-success', 'missing-public', 'wrong-setting', 'missing-reread']) {
+    const ref = {original: 'accepted'}, data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'resource', task: 44, dimension: 'retained_bytes', budget: {requested: '8', remaining: '7', policy: '536870912', requestedIsLowerBound: false}};
+    const publicFixture = publicBudgetFixture(data);
     const actual = {phase: 'accepted-memory-recovery', pid: 12345, complete: true, firstClose: 'returned', firstCloseCalls: 1,
       cleanup: [], aliveScopedFD: {before: 0, after: 0}, submits: 3, sourceFreeMaxWork: 30000000,
       requestMemory: {retainedBytes: 536870912, executionBytes: 536870912},
@@ -2006,8 +2162,11 @@ test('required accepted Compute parent rejects generic Unknown incomplete recove
       resourceRecovery: {complete: true, rows: [{n: 7}], submits: 1}, originalRefRecordedBeforeWait: true,
       acceptedComputeRef: ref, acceptedComputeTerminal: {status: 'failed', result_available: false, physical_stop: 'confirmed'},
       capacityObservations: [], workObservations: [{ref, code: 'CapturedRunExecutionFailed', primaryCode: 'MoonBitHostFailure', primaryDiagnostic: data}],
-      acceptedMemoryRefusal: {...data, verified: true}, cases: [{count: 100000, disposition: 'resource_refused', complete: true}]};
+      publicBudgetReread: publicBudgetRereadFixture, acceptedMemoryRefusal: {...data, publicBudget: publicFixture.publicBudget, verified: true}, cases: [{count: 100000, disposition: 'resource_refused', complete: true}]};
     if (mode === 'generic') delete actual.acceptedMemoryRefusal;
+    if (mode === 'missing-public') delete actual.acceptedMemoryRefusal.publicBudget;
+    if (mode === 'wrong-setting') actual.acceptedMemoryRefusal.publicBudget.setting = 'installation.sourceFreeMaxWork';
+    if (mode === 'missing-reread') delete actual.publicBudgetReread;
     if (mode === 'unknown') actual.acceptedComputeTerminal.status = 'needs_reconciliation';
     if (mode === 'stop-unknown') actual.acceptedComputeTerminal.physical_stop = 'unknown';
     if (mode === 'wrong-dimension') actual.acceptedMemoryRefusal.dimension = 'memory';
@@ -2077,10 +2236,7 @@ test('joined Whole composition has one genuine six-field Result and preserves bo
   assert.deepEqual(infer.input.notes, {field: 'notes'});
   assert.deepEqual(program.results.answer, {from: {stage: source.id, result: 'rows'}});
   assert.deepEqual(Object.keys(program.results), ['answer', 'main', 'updates']);
-  const workflow = await readFile(new URL('../adapters/host-node/fixtures/mock-project-effect-public.mjs', import.meta.url), 'utf8');
-  const node = parseJavaScript(workflow, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .find(value => value.id?.name === 'checkJoinedSourceRows');
-  const check = Function('assert', 'createHash', `return (${workflow.slice(node.start, node.end)});`)(assert, createHash);
+  const check = checkJoinedSourceRows;
   const resource = identity => ({$actql_ref: 'resource', version: 'actql-resource-ref/0.1',
     provider_namespace: 'drive', resource_kind: 'file', provider_identity_cid: 'sha256:' + 'a'.repeat(64),
     authority_scope_cid: 'sha256:' + 'b'.repeat(64), boundary_cid: 'sha256:' + 'a'.repeat(64),
@@ -2101,20 +2257,17 @@ test('joined Whole composition has one genuine six-field Result and preserves bo
   assert.throws(() => check(rows.slice(0, 1)));
   assert.throws(() => check([rows[0], rows[0]]));
   assert.throws(() => check([{...rows[0], extra: 'undeclared'}, rows[1]]));
-  const reader = parseJavaScript(workflow, {ecmaVersion: 'latest', sourceType: 'module'}).body
-    .find(value => value.id?.name === 'readJoinedWholeResults');
-  const read = Function('assert', 'checkJoinedSourceRows', `return (${workflow.slice(reader.start, reader.end)});`)(assert, check);
   const updates = rows.map(({id, StageName, NextStep}) => ({id, StageName, NextStep,
     review: {outcome: 'ok', value: {}}, confirmation: {outcome: 'ok', value: {confirmed: true}}}));
   const reviewed = updates.map(({confirmation, ...row}) => row);
   const roots = {answer: rows, main: reviewed}, calls = [];
   const execution = {result(name) {calls.push(name); return {all: async () => roots[name]};}};
-  assert.deepEqual(await read(execution, updates), roots);
+  assert.deepEqual(await readJoinedWholeResults(execution, updates), roots);
   assert.deepEqual(calls, ['answer', 'main']);
   roots.answer = [{...rows[0], version: 'wrong'}, rows[1]];
-  await assert.rejects(read(execution, updates), {code: 'ERR_ASSERTION'});
+  await assert.rejects(readJoinedWholeResults(execution, updates), {code: 'ERR_ASSERTION'});
   roots.answer = rows; roots.main = reviewed.slice(0, 1);
-  await assert.rejects(read(execution, updates), {code: 'ERR_ASSERTION'});
+  await assert.rejects(readJoinedWholeResults(execution, updates), {code: 'ERR_ASSERTION'});
 });
 
 for (const variant of ['two-models-joined-inputs', 'two-models-joined-whole']) {
@@ -2448,6 +2601,10 @@ test('normal Project file JOIN cannot pass with an unexecuted capture or Saved',
       runProjectFileJoinConsumer: async ({report}) => report.projectFiles.filter(row => row.phase !== missing)
         .forEach(row => {row.completed = true; row.status = 'passed';}),
       runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => row.completed = true),
+      runPackedAccountControls: async ({report}) => {report.account.completed = true; report.account.status = 'passed';},
+    runPackedDependencyBoundaries: explicitDependencySuccess,
+    runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
+    packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
       runMockEffectControls: async ({records}) => records.forEach(row => row.completed = true),
       verifyNodeBenchmarkPackages: async () => {}});
     await assert.rejects(run(output), {code: 'ERR_ASSERTION'});
@@ -2455,4 +2612,506 @@ test('normal Project file JOIN cannot pass with an unexecuted capture or Saved',
     assert.equal(report.complete, false);
     assert.equal(report.projectFiles.find(row => row.phase === missing).status, 'unexecuted');
   }
+});
+
+
+test('normal large-row acceptance keeps a small authored input and independently complete projected fields', async () => {
+  const {largeProgram} = await collectionBudgetPorts();
+  const source = largeProgram();
+  assert(Buffer.byteLength(source) < 65536);
+  assert(source.includes("'" + 'x'.repeat(64000) + "' AS t"));
+  for (let field = 0; field < 17; field++) assert(source.includes(`t AS f${field}`));
+  assert.equal(Buffer.byteLength(JSON.stringify(Object.fromEntries(
+    Array.from({length: 17}, (_, n) => [`f${n}`, 'x'.repeat(64000)])))), 1088144);
+});
+
+test('required collection Saved consumes the original large-row handoff and checks every field before status', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const first = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(node => node.type !== 'ImportDeclaration');
+  const invoke = Function('ports', `return (async () => {
+    const {assert,readFile,writeFile,unlink,join,setTimeout,open,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
+      observeRecordApprovalDescriptors,process,console}=ports;
+    ${source.slice(first.start)}
+  })();`);
+  const expected = Object.fromEntries(Array.from({length: 17}, (_, index) => ['f'+index, 'x'.repeat(64000)]));
+  assert.equal(Buffer.byteLength(JSON.stringify(expected)), 1088144);
+  for (const mode of ['exact', 'last-field-short', 'missing-field', 'foreign-ref']) {
+    const events = [], stored = new Map(); let output, closes = 0;
+    const original = {ref: {run: 'same-small'}, resultName: 'small', count: 100000,
+      largeRow: {ref: {run: mode === 'foreign-ref' ? 'foreign' : 'same-large'}, resultName: 'large',
+        rows: 1, fields: 17, textUnitsPerField: 64000, wireBytes: 1088144}};
+    const running = invoke({assert, join,
+      process: {argv: ['node','fixture','saved','/fresh/original.json'], pid: 456,
+        cwd: () => '/fresh', hrtime: process.hrtime, cpuUsage: process.cpuUsage},
+      console: {log(wire) {output = JSON.parse(wire);}}, setTimeout: async () => {},
+      async readFile(path) {assert.equal(path, '/fresh/original.json'); return JSON.stringify(original);},
+      async writeFile(path, wire) {stored.set(path, wire);},
+      unlink: () => assert.fail('Saved must not acquire or remove a Program'),
+      getSubmissionOutcome: () => assert.fail('No Saved submission outcome'),
+      getSubmissionInput: () => assert.fail('No Saved submit input'),
+      getSubmissionAttempt: () => assert.fail('No Saved submit attempt'),
+      observeRecordApprovalDescriptors: async () => ({openPaths: []}),
+      async open() {return {
+        startSource() {assert.fail('Saved must not submit');},
+        async attach(ref) {
+          assert(['same-small','same-large'].includes(ref.run), 'Only original references may be attached');
+          events.push('attach:'+ref.run);
+          return {result(name) {
+            assert.equal(name, ref.run === 'same-large' ? 'large' : 'small');
+            return {async all() {
+              events.push('all:'+ref.run);
+              if (ref.run === 'same-small') return Array.from({length: 100000}, () => ({n: 0}));
+              const row = {...expected};
+              if (mode === 'last-field-short') row.f16 = row.f16.slice(1);
+              if (mode === 'missing-field') delete row.f8;
+              return [row];
+            }};
+          }, async status() {events.push('status:'+ref.run); return {status: 'succeeded'};}};
+        }, async close() {closes++;},
+      };},
+    });
+    if (mode === 'exact') {
+      await running;
+      assert.deepEqual(events, ['attach:same-small','all:same-small','status:same-small',
+        'attach:same-large','all:same-large','status:same-large']);
+      assert.deepEqual(output.largeRow, {...original.largeRow, complete: true});
+      assert.equal(output.submits, 0); assert.equal(output.firstCloseCalls, 1);
+      assert.equal(output.complete, true);
+    } else {await assert.rejects(running); assert.equal(output.complete, false);}
+    assert.equal(closes, 1);
+  }
+});
+
+test('required collection parent rejects missing or foreign large Saved evidence while preserving independent small Saved', async t => {
+  const {root} = await scratch(t), load = await runnerFunctions();
+  const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
+  const large = {ref: {run: 'same-large'}, resultName: 'large', rows: 1, fields: 17,
+    textUnitsPerField: 64000, wireBytes: 1088144};
+  for (const mode of ['exact', 'missing-report', 'foreign-ref', 'short-wire', 'missing-handoff',
+    'foreign-capture', 'partial-capture']) {
+    const original = {ref: {run: 'same-small'}, resultName: 'small', count: 100000, largeRow: large};
+    const captured = {phase: 'capture', pid: 123, complete: true, firstClose: 'returned',
+      aliveScopedFD: {before: 0, after: 0}, cleanup: [],
+      cases: [{ref: original.ref, resultName: original.resultName, count: 100000, complete: true}],
+      largeRow: {...large, complete: true}};
+    const actual = {phase: 'saved', pid: 456, complete: true, firstClose: 'returned',
+      aliveScopedFD: {before: 0, after: 0}, submits: 0, sourceFreeMaxWork: 30000000,
+      requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824},
+      cases: [{count: 100000, complete: true}], largeRow: {...large, complete: true}};
+    if (mode === 'missing-report') delete actual.largeRow;
+    if (mode === 'foreign-ref') actual.largeRow.ref = {run: 'foreign'};
+    if (mode === 'short-wire') actual.largeRow.wireBytes--;
+    if (mode === 'missing-handoff') delete original.largeRow;
+    if (mode === 'foreign-capture') captured.largeRow.ref = {run: 'foreign'};
+    if (mode === 'partial-capture') {
+      delete original.largeRow; delete captured.largeRow; captured.complete = false;
+      actual.largeRow = {complete: false, unexecutedReason: 'Requires completed original large-row handoff'};
+    }
+    await writeFile(join(root, 'original.json'), JSON.stringify(original));
+    await writeFile(join(root, 'capture.observation.json'), JSON.stringify(captured));
+    const record = {phase: 'saved'};
+    const checking = run({collection: root, capturePid: 123, record, async command() {
+      return {pid: 456, code: 0, wallNs: 10, stdout: JSON.stringify(actual)};
+    }});
+    if (mode === 'exact' || mode === 'partial-capture') {
+      await checking; assert.equal(record.status, 'passed');
+      if (mode === 'partial-capture') assert.equal(record.largeRowUnexecutedReason,
+        'Requires completed original large-row handoff');
+    } else {await assert.rejects(checking); assert.equal(record.status, 'failed');}
+  }
+});
+
+
+test('16MiB regression SQL and complete tuple oracles retain263 fields and272 small rows', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const declarations = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body;
+  const load = name => {
+    const node = declarations.find(value => value.type === 'FunctionDeclaration' && value.id.name === name);
+    return Function('assert', 'Buffer', `return (${source.slice(node.start, node.end)});`)(assert, Buffer);
+  };
+  const program = load('largeRow16Program'), exact = load('exactLargeRow16Rows');
+  const text = 'x'.repeat(64000);
+  const one = [Object.fromEntries(Array.from({length: 263}, (_, index) => ['f'+index, text]))];
+  const many = Array.from({length: 17}, (_, a) => Array.from({length: 16}, (_, b) => ({a,b,t:text}))).flat();
+  const first = program('one-row'), second = program('many-rows');
+  assert.equal(first.split(text).length, 2); assert.equal(second.split(text).length, 2);
+  assert.equal((first.match(/t AS f[0-9]+/gu) ?? []).length, 263);
+  assert.equal((second.match(/SELECT [0-9]+ AS n/gu) ?? []).length, 33);
+  assert(second.endsWith('SELECT a.n AS a, b.n AS b, t AS t FROM x CROSS JOIN a CROSS JOIN b'));
+  assert.deepEqual(exact(one, 'one-row'), {rows: 1, wireBytes: 16834521, maxRowWireBytes: 16834521});
+  assert.deepEqual(exact(many, 'many-rows'), {rows: 272, wireBytes: 17413654, maxRowWireBytes: 64022});
+  assert.throws(() => exact([{...one[0], f262: text.slice(1)}], 'one-row'));
+  assert.throws(() => exact([...many.slice(0, -1), {...many.at(-1), t: text.slice(1)}], 'many-rows'));
+  assert.throws(() => exact(many.slice(1), 'many-rows'));
+});
+
+test('16MiB fixture captures once per SQL, refuses a smaller reader, closes then cold reads SAME Saved without SQL', async () => {
+  const source = await readFile(new URL('./fixtures/packed-result-collection.mjs', import.meta.url), 'utf8');
+  const first = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(node => node.type !== 'ImportDeclaration');
+  const invoke = Function('ports', `return (async () => {
+    const {assert,readFile,writeFile,unlink,join,setTimeout,open,getSubmissionOutcome,getSubmissionInput,getSubmissionAttempt,
+      observeRecordApprovalDescriptors,process,console}=ports;
+    ${source.slice(first.start)}
+  })();`);
+  const text = 'x'.repeat(64000), files = new Map(), observations = [], events = [], policies = [];
+  const expected = {
+    'one-row': [Object.fromEntries(Array.from({length: 263}, (_, n) => ['f'+n, text]))],
+    'many-rows': Array.from({length: 17}, (_, a) => Array.from({length: 16}, (_, b) => ({a,b,t:text}))).flat(),
+  };
+  let selectedPhase, submissions = 0, failedTerminal;
+  const run = id => ({ref: {run: id}, async wait() {
+    events.push('wait:'+id);
+    assert(files.has('large-row16-ref-before-wait-'+id+'.json'));
+    const progress = JSON.parse(files.get(selectedPhase+'.progress.json'));
+    assert.equal(progress.event, 'start'); assert.equal(progress.step, 'wait-large-row16-'+id);
+    return failedTerminal ?? {status: 'succeeded', result_available: true, control: {physical_stop: 'confirmed'}, next_action: {results: ['answer']}};
+  }, result(name) {assert.equal(name, 'answer'); return {async all(options) {
+    if (options) {assert.deepEqual(options, {maxRowWireBytes: 16777216});
+      events.push('refusal:'+id); throw Object.assign(new Error('Explicit smaller reader'), {code: 'ResultRowWireLimit'});}
+    events.push('all:'+id); return expected[id];
+  }};}, async status() {events.push('status:'+id); return {status: 'succeeded'};}});
+  const execute = async (phase, pid) => {
+    selectedPhase = phase;
+    await invoke({assert, join, process: {argv: ['node','fixture',phase,'/fresh/large-row-original.json'], pid,
+      cwd: () => '/fresh', hrtime: process.hrtime, cpuUsage: process.cpuUsage},
+      console: {log(wire) {observations.push(JSON.parse(wire));}}, setTimeout: async () => {},
+      async readFile(path) {if (!files.has(path)) throw Object.assign(new Error('Absent'), {code: 'ENOENT'}); return files.get(path);},
+      async writeFile(path, wire, options) {if (options?.flag === 'wx') assert(!files.has(path)); files.set(path, wire);},
+      async unlink(path) {events.push('unlink:'+path); assert(files.delete(path));},
+      getSubmissionOutcome: () => assert.fail('No refusal submission'), getSubmissionInput: () => assert.fail('No refusal input'),
+      getSubmissionAttempt: () => assert.fail('No refusal attempt'),
+      observeRecordApprovalDescriptors: async () => ({openPaths: []}),
+      async open(options) {policies.push(options); return {
+        async startSource(sql, selected) {
+          assert.equal(phase, 'large-row-capture'); assert.deepEqual(selected, {format: 'sql'}); submissions++;
+          const id = sql.includes('t AS f262') ? 'one-row' : 'many-rows'; events.push('submit:'+id); return run(id);
+        }, async attach(ref) {assert.equal(phase, 'large-row-saved');
+          assert.deepEqual(ref, {run: ref.run}); assert(Object.hasOwn(expected, ref.run)); events.push('attach:'+ref.run); return run(ref.run);},
+        async close() {
+          const pending = JSON.parse(files.get(phase+'.pending.json'));
+          assert.equal(pending.firstClose, 'pending'); assert.equal(pending.complete, false);
+          if (failedTerminal) {assert.equal(pending.primary.code, 'ERR_ASSERTION');
+            assert.equal(pending.currentRunResult.terminal.terminal_error.message, 'RunPublicationCapacityUnsupported');}
+          events.push('close:'+phase);
+        },
+      };},
+    });
+  };
+  await execute('large-row-capture', 123); await execute('large-row-saved', 456);
+  assert.equal(submissions, 2);
+  assert(policies.every(value => value.stateDir === '/fresh/large-row-state' &&
+    value.installation.sourceFreeMaxWork === 100000000 &&
+    value.installation.requestMemory.retainedBytes === 1073741824 && value.installation.requestMemory.executionBytes === 1073741824));
+  assert.deepEqual(observations.map(value => [value.phase,value.pid,value.submits,value.complete]),
+    [['large-row-capture',123,2,true],['large-row-saved',456,0,true]]);
+  for (const actual of observations) {
+    assert.equal(actual.firstCloseCalls, 1); assert.equal(actual.firstClose, 'returned');
+    assert.deepEqual(actual.aliveScopedFD, {before: 0, after: 0}); assert.deepEqual(actual.cleanup, []);
+  }
+  assert.deepEqual(observations[0].largeRowTerminals, [
+    {id:'one-row',status:'succeeded',resultAvailable:true,physicalStop:'confirmed'},
+    {id:'many-rows',status:'succeeded',resultAvailable:true,physicalStop:'confirmed'},
+  ]);
+  assert.equal(observations[0].explicitRefusal, 'ResultRowWireLimit'); assert.equal(observations[0].sameRunRecovery, true);
+  assert.equal(observations[0].originalProgramsRemovedAfterFirstClose, 2);
+  assert.equal(observations[1].originalProgramsAbsent, true); assert.deepEqual(observations[1].cases, observations[0].cases);
+  assert(events.indexOf('close:large-row-capture') < events.findIndex(value => value.startsWith('unlink:')));
+  assert(events.indexOf('unlink:/fresh/collection-large-row16-many-rows.sql') < events.indexOf('attach:one-row'));
+  failedTerminal = {status: 'failed', result_available: false, control: {physical_stop: 'confirmed'},
+    terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message: 'RunPublicationCapacityUnsupported'}};
+  await assert.rejects(execute('large-row-capture', 789), {code: 'ERR_ASSERTION'});
+  const failure = observations.at(-1), pending = JSON.parse(files.get('large-row-capture.pending.json'));
+  for (const receipt of [failure, pending]) {
+    assert.equal(receipt.complete, false); assert.equal(receipt.primary.code, 'ERR_ASSERTION');
+    assert.deepEqual(receipt.currentRunResult.terminal, {status: 'failed', result_available: false,
+      physical_stop: 'confirmed', terminal_error: {...failedTerminal.terminal_error, messageTruncated: false}});
+  }
+  assert.equal(failure.firstCloseCalls, 1); assert.equal(failure.firstClose, 'returned');
+  assert(files.has('/fresh/collection-large-row16-one-row.sql'), 'Failed original input is retained');
+});
+
+test('16MiB collection capture requires both original successful stopped terminals', async t => {
+  const {root} = await scratch(t), load = await runnerFunctions();
+  const run = load('runCollectionPhase', {readFile, join, assert, process, nodeBenchmarkFailure});
+  const cases = [{id:'one-row',ref:{run:'one'},resultName:'answer',rows:1,wireBytes:16834521,maxRowWireBytes:16834521,complete:true},
+    {id:'many-rows',ref:{run:'many'},resultName:'answer',rows:272,wireBytes:17413654,maxRowWireBytes:64022,complete:true}];
+  const terminals = cases.map(({id}) => ({id, status:'succeeded', resultAvailable:true, physicalStop:'confirmed'}));
+  await writeFile(join(root, 'large-row-original.json'), JSON.stringify({cases}));
+  for (const mode of ['exact','missing','one-only','unknown-stop','failed','no-result','foreign-case','duplicate']) {
+    const actual = {phase:'large-row-capture',pid:123,sourceFreeMaxWork:100000000,
+      requestMemory:{retainedBytes:1073741824,executionBytes:1073741824},submits:2,
+      firstClose:'returned',firstCloseCalls:1,aliveScopedFD:{before:0,after:0},cleanup:[],complete:true,cases,
+      explicitRefusal:'ResultRowWireLimit',sameRunRecovery:true,originalProgramsRemovedAfterFirstClose:2,
+      largeRowTerminals:structuredClone(terminals)};
+    if (mode === 'missing') delete actual.largeRowTerminals;
+    if (mode === 'one-only') actual.largeRowTerminals.pop();
+    if (mode === 'unknown-stop') actual.largeRowTerminals[1].physicalStop = 'unknown';
+    if (mode === 'failed') actual.largeRowTerminals[0].status = 'failed';
+    if (mode === 'no-result') actual.largeRowTerminals[0].resultAvailable = false;
+    if (mode === 'foreign-case') actual.largeRowTerminals[0].id = 'foreign';
+    if (mode === 'duplicate') actual.largeRowTerminals[1] = actual.largeRowTerminals[0];
+    const record = {phase:'large-row-capture'};
+    const checking = run({collection:root,record,async command() {
+      return {pid:123,code:0,signal:null,wallNs:10,stdout:JSON.stringify(actual)};
+    }});
+    if (mode === 'exact') {await checking;assert.equal(record.status,'passed');}
+    else {await assert.rejects(checking);assert.equal(record.status,'failed');}
+  }
+});
+
+test('16MiB collection routing uses SAME staged artifact and separate Saved PID within the existing timeout', async t => {
+  const {root, consumer} = await scratch(t), load = await runnerFunctions(), phases = [], cleanup = [];
+  const runCollectionPhase = load('runCollectionPhase', {readFile,join,assert,process,nodeBenchmarkFailure});
+  const completedCollectionCapture = load('completedCollectionCapture', {readFile,join,assert});
+  const completedLargeRowCapture = load('completedLargeRowCapture', {readFile,join,assert});
+  const invoke = load('runCollectionConsumer', {join,dirname,mkdir,copyFile,writeFile,symlink,unlink,readlink,assert,process,
+    runCollectionPhase,completedCollectionCapture,completedLargeRowCapture});
+  const cases = [{id:'one-row',ref:{run:'one'},resultName:'answer',rows:1,wireBytes:16834521,maxRowWireBytes:16834521,complete:true},
+    {id:'many-rows',ref:{run:'many'},resultName:'answer',rows:272,wireBytes:17413654,maxRowWireBytes:64022,complete:true}];
+  const report = {collection: ['large-row-capture','large-row-saved'].map(phase => ({phase,completed:false,status:'unexecuted'}))};
+  await invoke({prepared:{consumer},root,repository,report,cleanup,async command(executable,args,options) {
+    assert.equal(executable,process.execPath); assert.equal(options.timeout,120000);
+    assert.equal(await readlink(join(options.cwd,'node_modules')),join(consumer,'node_modules'));
+    assert.deepEqual(await readFile(args[0]),await readFile(join(repository,'scripts/fixtures/packed-result-collection.mjs')));
+    const phase = args[1]; phases.push(phase); assert.equal(args[2],join(options.cwd,'large-row-original.json'));
+    const actual = {phase,pid:phase==='large-row-capture'?123:456,sourceFreeMaxWork:100000000,
+      requestMemory:{retainedBytes:1073741824,executionBytes:1073741824},submits:phase==='large-row-capture'?2:0,
+      firstClose:'returned',firstCloseCalls:1,aliveScopedFD:{before:0,after:0},cleanup:[],complete:true,cases,
+      ...(phase==='large-row-capture'?{largeRowTerminals:[
+        {id:'one-row',status:'succeeded',resultAvailable:true,physicalStop:'confirmed'},
+        {id:'many-rows',status:'succeeded',resultAvailable:true,physicalStop:'confirmed'}],explicitRefusal:'ResultRowWireLimit',sameRunRecovery:true,originalProgramsRemovedAfterFirstClose:2}
+        :{originalProgramsAbsent:true})};
+    await writeFile(args[2],JSON.stringify({cases}));
+    await writeFile(join(options.cwd,phase+'.observation.json'),JSON.stringify(actual));
+    return {pid:actual.pid,code:0,signal:null,wallNs:10,stdout:JSON.stringify(actual)};
+  }});
+  assert.deepEqual(phases,['large-row-capture','large-row-saved']); assert(report.collection.every(row=>row.completed));
+  assert.deepEqual(cleanup,[]); await assert.rejects(readlink(join(root,'collection/node_modules')),{code:'ENOENT'});
+  // The existing required Node22/24 route still invokes this same collection runner.
+  assert.deepEqual(job.strategy.matrix.node.map(version => Number(version.split('.')[0])),[22,24]);
+  assert(job.steps.some(step=>step.run?.includes('node scripts/test-packed-readme-workflows.mjs')));
+});
+
+
+test('required Account control uses SAME prepared artifact once and cannot pass failed or unexecuted', async t => {
+  for (const mode of ['passed','failed','unexecuted']) {
+    const {root,consumer} = await scratch(t), output = join(root,'out'), load = await runnerFunctions();
+    const before = {clean:true,revision:'a'.repeat(40)}, prepared = {consumer,manifest:{},manifestPath:'/same-normal'};
+    const primary = new Error('OriginalAccountControlFailure'); let calls=0;
+    const run = load('runPackedReadmeWorkflows', {assert,isAbsolute:value=>value.startsWith('/'),
+      process:{env:{ACTQL_PACKED_CLIENT_PACKAGES:'/same-normal'},version:'explicit-test'},
+      fileURLToPath:()=>repository,URL,checkoutState:()=>before,execFileSync:()=>'b'.repeat(40),mkdir,join,writeFile,
+      packedReadmeCases,packedCompositionCases,packedEffectControlCases,nodeBenchmarkFailure,
+      execute:async()=>assert.fail('No product command'),prepareHealthPackages:async()=>prepared,
+      runPackedDependencyBoundaries: explicitDependencySuccess,
+      runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
+    packedModelControlPhases, runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
+      async runPackedAccountControls(options) {
+        calls++; assert.strictEqual(options.prepared,prepared); assert.equal(options.repository,repository);
+        assert.equal(options.root,output); assert.equal(typeof options.command,'function'); assert(Array.isArray(options.cleanup));
+        if(mode==='failed') {options.report.account.status='failed';throw primary;}
+        if(mode==='passed') {options.report.account.completed=true;options.report.account.status='passed';}
+      },
+      runCollectionConsumer:async({report})=>report.collection.forEach(row=>row.completed=true),
+      runProjectFileJoinConsumer:async({report})=>report.projectFiles.forEach(row=>row.completed=true),
+      runReadmeCases:async({report,cases=report.cases})=>cases.forEach(row=>row.completed=true),
+      runMockEffectControls:async({records})=>records.forEach(row=>row.completed=true),verifyNodeBenchmarkPackages:async()=>{}});
+    if(mode==='passed') assert.equal((await run(output)).complete,true);
+    else await assert.rejects(run(output),error=>mode==='failed'?error===primary:error.code==='ERR_ASSERTION');
+    assert.equal(calls,1);
+    const report=JSON.parse(await readFile(join(output,'summary.json'),'utf8'));
+    assert.equal(report.complete,mode==='passed'); assert.equal(report.account.status,mode==='passed'?'passed':mode==='failed'?'failed':'unexecuted');
+  }
+});
+
+
+test('required Model controls use the same artifact and every phase must complete successfully', async t => {
+  for (const mode of ['passed', 'failed', 'unexecuted', 'partial', 'wrong-status']) {
+    const {root, consumer} = await scratch(t), output = join(root, 'out'), load = await runnerFunctions();
+    const before = {clean: true, revision: 'a'.repeat(40)}, prepared = {consumer, manifest: {}, manifestPath: '/same-normal'};
+    const primary = new Error('OriginalModelControlFailure'); let calls = 0;
+    const run = load('runPackedReadmeWorkflows', {assert, isAbsolute: value => value.startsWith('/'),
+      process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/same-normal'}, version: 'explicit-test'},
+      fileURLToPath: () => repository, URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40),
+      mkdir, join, writeFile, packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+      packedModelControlPhases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+      prepareHealthPackages: async () => prepared,
+      runPackedAccountControls: async ({report}) => {report.account.completed = true;},
+      runPackedDependencyBoundaries: explicitDependencySuccess,
+      runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
+      async runPackedModelControls(options) {
+        calls++; assert.strictEqual(options.prepared, prepared); assert.equal(options.repository, repository);
+        assert.equal(options.root, output); assert.equal(typeof options.command, 'function');
+        assert.deepEqual(options.records.map(row => row.phase), packedModelControlPhases);
+        if (mode === 'failed') {options.failures.push(primary); return;}
+        if (mode === 'unexecuted') return;
+        options.records.forEach((row, index) => {
+          row.completed = mode !== 'partial' || index !== 3;
+          row.status = mode === 'wrong-status' ? 'failed' : 'passed';
+        });
+      },
+      runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true;}),
+      runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => {row.completed = true;}),
+      runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => {row.completed = true;}),
+      runMockEffectControls: async ({records}) => records.forEach(row => {row.completed = true;}),
+      verifyNodeBenchmarkPackages: async () => {}});
+    if (mode === 'passed') assert.equal((await run(output)).complete, true);
+    else await assert.rejects(run(output), error => mode === 'failed' ? error === primary : error.code === 'ERR_ASSERTION');
+    assert.equal(calls, 1);
+    assert.equal(JSON.parse(await readFile(join(output, 'summary.json'), 'utf8')).complete, mode === 'passed');
+  }
+});
+
+
+test('required packed File boundaries reject missing, failed or duplicate phases on the same artifact', async t => {
+  for (const mode of ['passed', 'failed', 'unexecuted', 'partial', 'duplicate', 'missing-approve']) {
+    const {root, consumer} = await scratch(t), output = join(root, 'out'), load = await runnerFunctions();
+    const before = {clean: true, revision: 'a'.repeat(40)}, prepared = {consumer, manifest: {}, manifestPath: '/same-normal'};
+    const primary = new Error('OriginalFileControlFailure'); let calls = 0;
+    const run = load('runPackedReadmeWorkflows', {assert, isAbsolute: value => value.startsWith('/'),
+      process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/same-normal'}, version: 'explicit-test'},
+      fileURLToPath: () => repository, URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40),
+      mkdir, join, writeFile, packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+      packedModelControlPhases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+      prepareHealthPackages: async () => prepared,
+      runPackedAccountControls: async ({report}) => {report.account.completed = true;},
+      runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
+      runPackedDependencyBoundaries: explicitDependencySuccess,
+      async runPackedProjectFileStoreInventory(options) {
+        calls++; assert.strictEqual(options.prepared, prepared); assert.equal(options.repository, repository);
+        assert.equal(options.root, join(output, 'project-store-inventory')); assert.equal(typeof options.command, 'function');
+        assert(Array.isArray(options.cleanup));
+        if (mode === 'failed') throw primary;
+        if (mode === 'unexecuted') return;
+        options.report.cases.push(...Array.from({length: mode === 'partial' ? 5 : 6}, (_, index) => ({
+          case: mode === 'duplicate' || index < 3 ? 'rows101' : 'members17',
+          phase: mode === 'missing-approve' && index % 3 === 1 ? 'capture' : ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));
+      },
+      runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true;}),
+      runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => {row.completed = true;}),
+      runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => {row.completed = true;}),
+      runMockEffectControls: async ({records}) => records.forEach(row => {row.completed = true;}),
+      verifyNodeBenchmarkPackages: async () => {}});
+    if (mode === 'passed') assert.equal((await run(output)).complete, true);
+    else await assert.rejects(run(output), error => mode === 'failed' ? error === primary : error.code === 'ERR_ASSERTION');
+    assert.equal(calls, 1);
+    assert.equal(JSON.parse(await readFile(join(output, 'summary.json'), 'utf8')).complete, mode === 'passed');
+  }
+});
+
+
+test('required dependency restoration cannot pass an unexecuted consumer and retains its original failure', async t => {
+  for (const mode of ['passed', 'failed', 'unexecuted']) {
+    const {root, consumer} = await scratch(t), output = join(root, 'out'), load = await runnerFunctions();
+    const before = {clean: true, revision: 'a'.repeat(40)}, prepared = {consumer, manifest: {}, manifestPath: '/same-normal'};
+    const primary = new Error('OriginalDependencyFailure'); let calls = 0;
+    const run = load('runPackedReadmeWorkflows', {assert, isAbsolute: value => value.startsWith('/'),
+      process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/same-normal'}, version: 'explicit-test'},
+      fileURLToPath: () => repository, URL, checkoutState: () => before, execFileSync: () => 'b'.repeat(40),
+      mkdir, join, writeFile, packedReadmeCases, packedCompositionCases, packedEffectControlCases,
+      packedModelControlPhases, nodeBenchmarkFailure, execute: async () => assert.fail('No product command'),
+      prepareHealthPackages: async () => prepared,
+      runPackedAccountControls: async ({report}) => {report.account.completed = true;},
+      runPackedModelControls: async ({records}) => records.forEach(row => {row.completed = true; row.status = 'passed';}),
+      runPackedProjectFileStoreInventory: async ({report}) => {report.cases.push(...Array.from({length: 6}, (_, index) => ({
+        case: index < 3 ? 'rows101' : 'members17', phase: ['capture', 'approve', 'saved'][index % 3], completed: true, status: 'passed'})));},
+      async runPackedDependencyBoundaries(options) {
+        calls++; assert.strictEqual(options.prepared, prepared); assert.equal(options.repository, repository);
+        assert.equal(options.root, join(output, 'dependency-boundary')); assert.equal(typeof options.command, 'function');
+        if (mode === 'failed') throw primary;
+        if (mode === 'passed') await explicitDependencySuccess(options);
+      },
+      runCollectionConsumer: async ({report}) => report.collection.forEach(row => {row.completed = true;}),
+      runProjectFileJoinConsumer: async ({report}) => report.projectFiles.forEach(row => {row.completed = true;}),
+      runReadmeCases: async ({report, cases = report.cases}) => cases.forEach(row => {row.completed = true;}),
+      runMockEffectControls: async ({records}) => records.forEach(row => {row.completed = true;}),
+      verifyNodeBenchmarkPackages: async () => {}});
+    if (mode === 'passed') assert.equal((await run(output)).complete, true);
+    else await assert.rejects(run(output), error => mode === 'failed' ? error === primary : error.code === 'ERR_ASSERTION');
+    assert.equal(calls, 1);
+    const summary = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
+    assert.equal(summary.complete, mode === 'passed');
+    assert(summary.cases.every(row => row.completed), 'Independent README consumers still execute after this refusal');
+  }
+});
+
+test('File inventory phase oracle requires three cold processes and no completed work replay', async () => {
+  const {assertPackedProjectFileStorePhase: check} = await import('./packed-project-file-store-inventory.mjs');
+  const selected = {case: 'rows101', writes: 101, definitions: 1, rows: 101,
+    sourceAcquisitions: 1, sourceAttempts: 101};
+  const phase = 'approve', ref = {runDefinitionCid: 'same-original'};
+  const sourceAcquisitionEvidence = {receipts: 1, attempts: 101,
+    capturedRunCid: 'sha256:' + 'a'.repeat(64), snapshotCid: 'sha256:' + 'b'.repeat(64)};
+  const before = {case: selected.case, phase: 'capture', pid: 101, ref, runId: 'run',
+    checkpointId: 'checkpoint', checkpointCid: 'sealed-checkpoint', sourceAttempts: 101,
+    sourceAcquisitionEvidence};
+  const actual = {case: selected.case, phase, pid: 202, ref, runId: 'run',
+    checkpointId: 'checkpoint', checkpointCid: 'sealed-checkpoint', complete: true,
+    submits: 0, approvals: 1, successfulStores: 101, memberPreviews: 1, newEffectCommits: 101,
+    modelAttempts: 0, workObservation: {complete: true, modelCallStarts: 0,
+      sourceAcquisitionStarts: 0, totals: {modelCallStarts: 0, sourceAcquisitionStarts: 0}},
+    sourceStarts: 0, sourceAttempts: 101, newSourceAttempts: 0, sourceAcquisitionEvidence,
+    rows: Array.from({length: 101}, (_, key) => ({key})), targets: Array.from({length: 101}, (_, key) => ({key})),
+    requestMemory: {retainedBytes: 536870912, executionBytes: 536870912},
+    firstClose: 'returned', firstCloseCalls: 1, aliveScopedFD: {before: 0, after: 0}, cleanup: [],
+    originalInputsAndProgramAbsent: true, zeroWritesBeforeApproval: true};
+  const original = {captureComplete: true, approveComplete: true, capturePid: 101, approvePid: 202,
+    ref, checkpointId: 'checkpoint', runId: 'run', checkpoint: {checkpointCid: 'sealed-checkpoint'},
+    rows: actual.rows, targets: actual.targets, ledger: {receipts: Array(101).fill({})}};
+  const run = (row = actual, prior = [before]) => check({selected, phase, actual: row,
+    pid: row.pid, original, previous: prior});
+  run();
+  const mutations = [row => row.pid = 101, row => row.submits++, row => row.approvals = 0,
+    row => row.newEffectCommits++, row => row.sourceStarts = 1,
+    row => row.workObservation.sourceAcquisitionStarts = 1,
+    row => row.workObservation.complete = false, row => row.workObservation.modelCallStarts++,
+    row => row.workObservation.totals.sourceAcquisitionStarts++,
+    row => row.modelAttempts++, row => row.newSourceAttempts++, row => row.sourceAttempts--,
+    row => row.sourceAcquisitionEvidence.attempts--,
+    row => row.sourceAcquisitionEvidence.snapshotCid = 'sha256:' + 'c'.repeat(64),
+    row => row.firstCloseCalls++,
+    row => row.firstClose = 'pending', row => row.aliveScopedFD.after++, row => row.ref = {},
+    row => row.checkpointCid = 'foreign', row => row.rows.pop(), row => row.targets.pop(),
+    row => row.originalInputsAndProgramAbsent = false];
+  for (const mutate of mutations) {
+    const row = structuredClone(actual); mutate(row); assert.throws(() => run(row));
+  }
+  assert.throws(() => run(actual, []), 'Missing capture cannot become successful approval');
+  const saved = {...structuredClone(actual), phase: 'saved', pid: 303, approvals: 0,
+    newEffectCommits: 0};
+  const savedCheck = (row = saved, prior = [before, actual]) => check({selected, phase: 'saved',
+    actual: row, pid: row.pid, original, previous: prior});
+  savedCheck();
+  assert.throws(() => savedCheck({...saved, pid: 202}));
+  assert.throws(() => savedCheck(saved, [before]));
+  assert.throws(() => savedCheck({...saved, targets: saved.targets.toReversed()}));
+});
+
+test('File inventory uses independent per-key bytes across shuffled inputs and member definitions', async t => {
+  const authored = projectFileStoreRows101();
+  assert.equal(authored.inputs.length, 101);
+  assert.notDeepEqual(authored.inputs.map(row => row.path), authored.expectedFiles.map(row => row.path));
+  assert.equal(new Set(authored.expectedFiles.map(row => row.body)).size, 101);
+  const members = projectFileStoreMembers17(), program = JSON.parse(members.source);
+  const destinations = Object.values(program.stages[0].effects).map(value => value.command.input.path.literal);
+  assert.notDeepEqual(destinations, members.expectedFiles.map(row => row.path));
+  assert.deepEqual(destinations.toSorted(), members.expectedFiles.map(row => row.path).toSorted());
+  const load = await runnerFunctions('./fixtures/packed-project-file-store-inventory.mjs');
+  const digest = bytes => 'sha256:' + createHash('sha256').update(bytes).digest('hex');
+  const checkRows = load('assertProjectFileStoreRows', {assert, Buffer, digest});
+  const rows = authored.expectedFiles.toReversed().map(file => ({path: file.path,
+    size_bytes: Buffer.byteLength(file.body), content: {metadata: {content_cid: digest(Buffer.from(file.body))}}}));
+  checkRows(rows, authored, 'rows101');
+  const swapped = structuredClone(rows); [swapped[0].content, swapped[1].content] = [swapped[1].content, swapped[0].content];
+  assert.throws(() => checkRows(swapped, authored, 'rows101'));
+  const duplicate = structuredClone(rows); duplicate[0] = duplicate[1];
+  assert.throws(() => checkRows(duplicate, authored, 'rows101'));
+  const {root} = await scratch(t), destination = join(root, 'destination'); await mkdir(destination);
+  const expected = authored.expectedFiles.slice(0, 2);
+  for (const file of expected) await writeFile(join(destination, file.path), file.body);
+  const checkTargets = load('assertProjectFileStoreTargets', {assert, Buffer, readdir, readFile, join, digest,
+    generation: async path => ({testPath: path})});
+  assert.equal((await checkTargets(expected, destination)).length, 2);
+  await writeFile(join(destination, expected[0].path), expected[1].body);
+  await assert.rejects(checkTargets(expected, destination));
 });

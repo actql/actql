@@ -238,7 +238,11 @@ fn evaluate_physical_sequence(
           kernel,
           left,
           right,
-          limits.max_rows,
+          selected_expansion_row_limit(
+            expansion_ceilings,
+            @lower.append_kernel_step(kernel),
+            limits.max_rows,
+          ),
           control,
           invocation.output_budget,
           workspace,

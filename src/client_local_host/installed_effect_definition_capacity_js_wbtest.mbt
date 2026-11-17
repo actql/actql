@@ -1,4 +1,10 @@
 ///|
+extern "js" fn definition_capacity_failure_codes(
+  issue : ClientInstalledManagedRunIssue,
+) -> FixedArray[Int] =
+  #|(issue) => { const out=[]; let value=issue; for(let i=0;i<6;i++){out.push(Number.isSafeInteger(value?.$tag)?value.$tag:-1); value=value?._0;} return out; }
+
+///|
 // Real admitted Definition and existing Run Ledger; explicit component current
 // ports supply no HTTP/Store/physical-close or ordinary execution evidence.
 fn definition_capacity_fixture(
@@ -9,7 +15,7 @@ fn definition_capacity_fixture(
   ClientInstalledManagedRun,
   @resources.Ledger,
   @publication.PublicationContract,
-) {
+) raise {
   let (prepared, request, definition) = capture_recovery_originals(run_id~)
   let contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
@@ -29,9 +35,17 @@ fn definition_capacity_fixture(
   let run = begin_preparation_owned_installed_effect_managed_run(
     initial, input, capacity, prepared, request, plan,
   ).unwrap()
-  let recovery = prepare_installed_effect_capture_recovery(
-    run, prepared, request, definition, 100000, 10000, 100,
-  ).unwrap()
+  let recovery = match
+    prepare_installed_effect_capture_recovery(
+      run, prepared, request, definition, 100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      fail(
+        "DefinitionCapacity.Constructors=" +
+        definition_capacity_failure_codes(issue).to_json().stringify(),
+      )
+  }
   (recovery, run, run.ledger.unwrap(), definition)
 }
 

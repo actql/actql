@@ -93,35 +93,42 @@ test "ordinary Python insufficient original root refuses without a replacement o
     execution_bytes: 16777216L,
   }).unwrap()
   let wasm = @resources.reserve_shared_capacity(root, 16777216L).unwrap()
-  let configured = configure_source_free_local_compute_on_ledger(
+  let before = @resources.ledger_usage(root)
+  let host = configure_source_free_local_compute_on_ledger(
     original,
     root,
     installed,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
+  ).unwrap()
+  let run = local_compute_run(host)
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), root))
+  let configured = source_free_setup_usage(root, run, before)
+  // Binding the packaged module starts no attempt and reserves no future
+  // task. The actual authorized start must refuse the exhausted original.
+  let current = account(Allow)
+  assert_true(
+    start_local_compute_task(
+      host,
+      compute_start(host),
+      [],
+      permit(original.input, current),
+      current,
+      tuple(),
+      context_cid(),
+    )
+    is Err(
+      Managed(@managed.Execution(@strategy.Physical(@resources.ExecutionLimit)))
+    ),
   )
-  let refused = match configured {
-    Ok(host) => {
-      println(
-        "ORIGINAL_SHORT_ROOT unexpectedly configured on its original ledger",
-      )
-      let run = local_compute_run(host)
-      assert_true(physical_equal(@strategy.captured_dag_ledger(run), root))
-      @strategy.stop_captured_dag(run)
-      @strategy.refresh_captured_retention(run)
-      false
-    }
-    Err(Configuration) => {
-      println("ORIGINAL_SHORT_ROOT Configuration refusal")
-      true
-    }
-    Err(_) => fail("original root failed outside configuration capacity")
-  }
+  assert_eq(@resources.ledger_usage(root), configured)
+  assert_false(@strategy.captured_task_completed(run, 0))
+  @strategy.stop_captured_dag(run)
+  @strategy.refresh_captured_retention(run)
   assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 16777216L)
   assert_eq(@resources.ledger_usage(root).held_bytes, 0L)
   @resources.close_shared_capacity(wasm).unwrap()
   @resources.settle_shared_capacity(wasm).unwrap()
   assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 0L)
-  assert_true(refused)
 }

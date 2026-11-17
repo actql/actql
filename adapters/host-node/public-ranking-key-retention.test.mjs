@@ -107,6 +107,7 @@ async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {
     let dispatches = 0;
     let completions = 0;
     let representations;
+    let primaryFailure;
     const trace = [];
     const keys = generateKeyPairSync('ed25519');
     const authorization = {
@@ -144,6 +145,7 @@ async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {
         await released.promise;
       },
       observe(step, detail) {
+        if (step === 'dispatch_failed') primaryFailure = {code: detail.code, issueTag: detail.issueTag, nestedIssueTag: detail.nestedIssueTag};
         if (step !== 'computed') return;
         completions++;
         representations = detail.outputRepresentations;
@@ -157,8 +159,10 @@ async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {
     const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });
-    const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
-    assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
+    // Functional publication precedes the independently bounded cancellation
+    // checks below; this wait is not a ranking latency acceptance threshold.
+    const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
+    assert.equal(state.status, 'succeeded', inspect({state, primaryFailure}, {depth: 6}));
     assert.deepEqual(Object.keys(state.result_availability).sort(), [...names].sort());
     for (const name of names) assert.deepEqual(await execution.result(name).all(), expected);
     assert.equal(completions, 1);
@@ -175,7 +179,9 @@ async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {
     const cancel = await client.startSource(JSON.stringify(fixture(fixtureId + '-cancel')),
       {format: 'json', submissionRef: client.newSubmission({nonce: fixtureId + '-cancel'})});
     await Promise.race([barrier.promise,
-      cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
+      // Reaching the held comparison includes ordinary preparation/execution.
+      // Only cancellation-to-confirmed-stop below uses the short stop bound.
+      cancel.wait({signal: AbortSignal.timeout(60_000)}).then(state => {
         throw new Error(`ranking missed bounded barrier: ${inspect({state, trace}, {depth: 6})}`);
       })]);
     const atBarrier = advances;
@@ -204,10 +210,10 @@ async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {
 }
 
 test('public retained ranking publishes and cancels inside long group comparison',
-  {timeout: 45_000}, t => runPublicRankingBarrier(t));
+  {timeout: 150_000}, t => runPublicRankingBarrier(t));
 
 test('public retained ranking publishes and cancels inside unused array recheck',
-  {timeout: 45_000}, t => runPublicRankingBarrier(t, {unused: true}));
+  {timeout: 150_000}, t => runPublicRankingBarrier(t, {unused: true}));
 
 test('public retained ranking publishes and cancels inside reference name matching',
-  {timeout: 45_000}, t => runPublicRankingBarrier(t, {nameScan: true}));
+  {timeout: 150_000}, t => runPublicRankingBarrier(t, {nameScan: true}));

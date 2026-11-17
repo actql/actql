@@ -82,9 +82,9 @@ fn installed_table_body_construction_inventory(
 
 ///|
 /// Retain the complete original body-construction peak alongside all previous
-/// response/material/failed-child backing. The actual reader may drop it only
-/// through its original retirement; no new body or callback proves that an
-/// earlier one was physically returned. The caller must back quotation's fixed
+/// response/material/failed-child backing. It remains until the actual reader
+/// completes that original constructor (retaining its measured snapshots) or
+/// retires; a new body alone cannot prove an earlier physical return. The caller must back quotation's fixed
 /// controls BEFORE entry and call the SAME RowRun grow BEFORE allocation.
 pub fn installed_table_source_body_capacity(
   previous : @execution.ExecutionCapacity,
@@ -121,9 +121,13 @@ pub fn installed_table_source_reader_capacity(
   // Count that shared factory envelope per selected reader conservatively;
   // equal callback/source identity never discounts a concurrent reader.
   let reader : @execution.PreparationRepresentationUnits = {
-    record_headers: 23L,
-    reference_slots: 60L + 2L * columns.to_int64(),
-    scalar_words: 9L,
+    // Completed-snapshot observer and bridge wrapper2H3R; same reader
+    // geometry/complete closures2H3R; their scalar geometry record1H5W and
+    // one6-slot quote argument Array/backing2H2R5W. The existing reader
+    // environment retains five geometry counters5W. Keep all controls here.
+    record_headers: 30L,
+    reference_slots: 68L + 2L * columns.to_int64(),
+    scalar_words: 24L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -205,4 +209,46 @@ pub fn installed_table_source_serialization_capacity(
     return None
   }
   @execution.add_execution_capacity(previous, capacity)
+}
+
+///|
+/// All native reply snapshots observed during this SAME reader. The physical
+/// process has returned/closed before this projection is applied, so raw input,
+/// decoded text, the first parsed tree and constructor scratch do not escape.
+/// Keep every returned snapshot, including metadata still used by the next
+/// request; this DATA projection neither acknowledges stop nor grants a read.
+pub fn installed_table_source_completed_capacity(
+  initial : @execution.ExecutionCapacity,
+  nodes : Int,
+  fields : Int,
+  objects : Int,
+  arrays : Int,
+  utf16_units : Int,
+) -> @execution.ExecutionCapacity? {
+  guard nodes > 0 &&
+    fields >= 0 &&
+    objects >= 0 &&
+    arrays >= 0 &&
+    utf16_units >= 0 &&
+    @source.json_tree_retained_construction_extent(
+      nodes,
+      fields,
+      objects,
+      arrays,
+      utf16_units.to_int64(),
+      keep_spans=false,
+    )
+    is Some(tree) &&
+    @execution.preparation_representation_cost({
+      record_headers: tree.record_headers,
+      reference_slots: tree.reference_slots,
+      scalar_words: tree.scalar_words,
+      owned_utf16_units: tree.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    @execution.execution_capacity(retained, retained) is Some(snapshot) else {
+    return None
+  }
+  @execution.add_execution_capacity(initial, snapshot)
 }

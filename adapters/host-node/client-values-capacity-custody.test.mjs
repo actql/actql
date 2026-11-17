@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {tmpdir} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
@@ -26,10 +28,21 @@ const request = {kind: 'program', input: program, parameters: null};
 const planFor = preparedProgram => sourceFreeValuesPlan({moon, control, preparedProgram, publicationOriginal: publicationOriginalFixture(moon, preparedProgram),
   ...scope, storeAuthorityCid: cid('7'), now: () => '2026-10-07T00:00:00.000Z'});
 
+// Retained artifacts keep the actual Request/Resource owner and Common in
+// one canonical installation; ordinary checkout CI uses its own default graph.
+async function prepareRetainedProfile(t, valuesMaxRows) {
+  const installed = process.env.ACTQL_TEST_PREPARATION_PACKAGE;
+  const preparationPorts = installed === undefined ? undefined : {
+    ...(await import(pathToFileURL(join(installed, 'adapters/host-node/ordinary-source-managed.mjs')))),
+    ...(await import(pathToFileURL(join(installed, 'adapters/host-node/client-program-preparation.mjs')))),
+  };
+  return fundedClientPreparation(t, {moon, environment, valuesMaxRows, preparationPorts});
+}
+
 // Retained prior-format records keep their original explicit policy binding.
 // Ordinary new Plans below do not invent this historical evidence field.
-function priorProfilePlan(prepared) {
-  const original = valuesHostPolicyOriginal(121);
+function priorProfilePlan(prepared, selectedRows = 121) {
+  const original = valuesHostPolicyOriginal(selectedRows);
   const compiled = control.prepareCheckedClientCompiledRun(prepared, 'values', {
     executionContextCid: valuesExecutionContextCid(scope.authorityScopeCid, original),
     hostPolicyCid: original.cid, expiresAt: '2098-01-01T00:00:00.000Z'});
@@ -94,7 +107,7 @@ test('retained prior Values profile custody rejects altered originals and a diff
   async t => {
     const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-values-custody-', label: 'Values profile custody'});
     const directory = scratch.path;
-    const prepare = await fundedClientPreparation(t, {moon, environment, valuesMaxRows: 121});
+    const prepare = await prepareRetainedProfile(t, 121);
     const prepared = await prepare(request);
     const {plan, evidence} = priorProfilePlan(prepared);
     const identity = moon.clientProgramRequestIdentity(prepared, scope.authorityScopeCid, 'saved-profile', cid('b'));
@@ -144,3 +157,53 @@ test('retained prior Values profile custody rejects altered originals and a diff
       scratch.passed();
     } finally {journal?.close();}
   });
+
+// The selected ceiling is original policy DATA, not a claim that this small
+// fixture executes 10001 rows or supplies normal Host/Account funding.
+test('retained Values profile above the old Journal ceiling keeps its original policy through cold lookup', async t => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-values-large-policy-',
+    label: 'same selected Values policy original above the old Journal ceiling'});
+  const selectedRows = 10001;
+  const prepare = await prepareRetainedProfile(t, selectedRows);
+  let prepared;
+  try {prepared = await prepare(request);}
+  catch (failure) {
+    t.diagnostic('Original preparation cause: '+String(failure.cause?.code ?? failure.cause?.message));
+    t.diagnostic('Original preparation cleanup: '+String(failure.cleanupCause?.code ?? failure.cleanupCause?.message));
+    throw failure;
+  }
+  const {plan, evidence} = priorProfilePlan(prepared, selectedRows);
+  assert.equal(JSON.parse(evidence.valuesHostPolicyOriginal.wire).max_rows, selectedRows);
+  const identity = moon.clientProgramRequestIdentity(prepared, scope.authorityScopeCid, 'same-large-profile', cid('b'));
+  const options = {namespaceId: scope.namespaceId, runDefinition: plan.runDefinition,
+    runAdmissionEvidence: evidence, lookupExpiresAt: '2099-01-01T00:00:00.000Z'};
+  let journal = openClientRequestJournal(scratch.path);
+  try {
+    const saved = journal.acceptDefinition(identity, options, moon, control);
+    const before = journal.lookupRunDefinition(saved.ref, moon, control);
+    assert.deepEqual(before.runAdmissionEvidence, evidence);
+    journal.close(); journal = openClientRequestJournal(scratch.path);
+    const restored = journal.lookupRunDefinition(saved.ref, moon, control);
+    assert.deepEqual(restored.runAdmissionEvidence, evidence);
+    assert.equal(restored.runDefinitionCid, before.runDefinitionCid);
+    const dedup = await journal.admitOrLookupDefinition(identity, {...options,
+      issueDefinition() {throw new Error('SameOriginalPolicyMustNotBeReissued');}}, moon, control);
+    assert.deepEqual(dedup.ref, saved.ref);
+    assert.deepEqual(dedup.runAdmissionEvidence, evidence);
+    journal.close(); journal = undefined;
+    const db = new DatabaseSync(join(scratch.path, 'client-requests.sqlite3'));
+    try {
+      const changed = structuredClone(evidence);
+      changed.valuesHostPolicyOriginal.wire = changed.valuesHostPolicyOriginal.wire.replace('10001', '10002');
+      db.prepare('UPDATE client_requests SET run_admission_evidence_json=?').run(JSON.stringify(changed));
+    } finally {db.close();}
+    journal = openClientRequestJournal(scratch.path);
+    assert.throws(() => journal.lookupRunDefinition(saved.ref, moon, control), {code: 'ClientRequestJournalCorrupt'});
+    scratch.passed();
+  } finally {journal?.close();}
+});
+
+test('smaller original Values policy refuses checked rows before Journal construction', async t => {
+  const prepare = await prepareRetainedProfile(t, 120);
+  await assert.rejects(prepare(request), {code: 'ClientProgramUnsupported'});
+});

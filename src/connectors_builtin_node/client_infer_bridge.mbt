@@ -3295,10 +3295,7 @@ pub fn client_program_infer_call_scope_unit_id(
 pub fn client_program_infer_call_scope_snapshot(
   active : @infer_host.Execution,
 ) -> Result[String, @publication_host.ClientInferCallScopeIssue] {
-  guard @infer_host.call_scope(active) is Some(scope) else {
-    return Err(@publication_host.ForeignInput)
-  }
-  @publication_host.client_infer_call_scope_snapshot(scope)
+  @infer_host.call_scope_snapshot(active)
 }
 
 ///|

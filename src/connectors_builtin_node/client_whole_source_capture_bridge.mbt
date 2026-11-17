@@ -32,6 +32,25 @@ pub fn client_program_select_installed_effect_source_input(
 }
 
 ///|
+/// Normal Effect Whole capture uses its trusted Source page envelope.
+#export_name("clientProgramInstalledEffectRowInputPolicy")
+pub fn client_program_installed_effect_row_input_policy(
+  max_pages : Int,
+  max_rows : Int,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+) -> Result[
+  @client_row_source_host.RowInputLimits,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_source_row_input_policy(
+    max_pages, max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+  )
+}
+
+///|
 #export_name("clientProgramPrepareWholeSourceCapacity")
 pub fn client_program_prepare_whole_source_capacity(
   prepared : @publication_host.PreparedClientProgram,
@@ -44,6 +63,7 @@ pub fn client_program_prepare_whole_source_capacity(
   max_page_nodes : Int,
   max_page_depth : Int,
   max_page_rows : Int,
+  max_pages : Int,
 ) -> Result[
   @client_local_host.ClientInstalledWholeSourceCapacity,
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -51,15 +71,15 @@ pub fn client_program_prepare_whole_source_capacity(
   guard selection is @acquisition.WholeInputRoute(original) else {
     return Err(@client_local_host.Unsupported)
   }
+  let limits = match
+    @client_local_host.installed_source_row_input_policy(
+      max_pages, max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   @client_local_host.prepare_installed_whole_source_capacity(
-    prepared,
-    original,
-    declaration,
-    contracts,
-    @client_local_host.installed_row_input_policy(
-      max_rows, max_page_bytes, max_page_nodes, max_page_depth, max_page_rows,
-    ),
-    provider,
+    prepared, original, declaration, contracts, limits, provider,
   )
 }
 

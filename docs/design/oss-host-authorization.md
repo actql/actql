@@ -291,6 +291,35 @@ input's lifetime to the Account lifetime; it is not free storage, a capacity
 grant or a cleanup acknowledgement. A new operation still observes current
 Account state, and Run and named-Result permissions remain distinct.
 
+### Funded Account construction on the same original
+
+The installed Host may fund bootstrap and current Account intake through a
+byte-only Read on its existing initialization Ledger. The original opened file
+supplies its byte extent before Buffer allocation and fatal UTF8 decoding;
+canonical conversion, exact-key/index admission and standard-profile creation
+are reserved before their constructors. The retained prefix, active scratch and
+failed children coexist on that same original. A quote, wire length or matching
+CID supplies neither permission nor another reservation owner.
+
+This funded route can admit an original wire above the legacy one-million-byte
+reader selection. Unfunded compatibility intake retains that existing cap.
+Explicit smaller Resource, node/depth/work limits, malformed input and foreign
+Account refusals remain. Exact unchanged wire may borrow its admitted Account;
+a changed spelling requires its original admission again. Every protected
+operation still observes live current Account state, including Deny.
+
+The existing file/Read owners retain failure and uncertain close custody. A
+synchronous numeric FD close is attempted once; an unknown outcome cannot be
+retried against a possibly reused integer or acknowledged as retirement. Host
+close waits for those original duties. The authored construction/current/close
+regressions are Source references, not evidence of normal installed acceptance.
+
+The existing installed Account construction facet keeps one constant fixed-control Read until its final Host close. Each metadata observation or gate construction acquires a separate original Read on the same parent and Ledger. A closed ephemeral gate therefore does not retain another gate's reservation or an installation-wide retirement callback.
+
+The same frame captures the constructed gate and its original close/cleanupPending methods before checking whether publication is still allowed. If Host close started during the actual constructor await, the constructor remains a failure to publish, while its already-created Scope stays owned for cleanup. The returned gate's close/cleanup methods observe those captured originals with their retained receiver. Only actual close=true together with cleanupPending=false permits that gate's otherwise-clean Read to retire; a caller argument supplies no acknowledgment. Pending decisions, failed sibling frames and unknown numeric-FD close remain distinct duties.
+
+Frame cleanup is idempotent and rejects reentry while the same original is being observed. Concurrent Host closes join one flight. The fixed facet-control Read retires last, after every retained gate, physical cleanup carrier and frame is settled. These changes issue no Account judgment, replacement configuration, authorization, Ledger or cleanup Owner. Existing file reads, UTF8 checks, current checks and the compiled Account/Read contracts remain unchanged.
+
 ## Local initialization
 
 | Scope | Initial behavior |

@@ -117,7 +117,9 @@ fn cleanup_interval_provider(
 pub fn interval_join_provider(
   limits : @storage.Limits,
   capacity : @execution.ExecutionCapacity,
+  bounded_constructor? : Bool = false,
 ) -> @local.ManagedProvider {
+  let workspace_slots = limits.max_workspace_slots
   @local.managed_provider(
     interval_provider_accepts,
     sequence => {
@@ -169,6 +171,15 @@ pub fn interval_join_provider(
           fn() { cleanup_interval_provider(state) },
         ),
       )
+    },
+    bounded_relation_capacity=if bounded_constructor {
+      Some(fn(sequence, execution, measurement) {
+        @execution.generated_bounded_interval_capacity(
+          sequence, execution, measurement, workspace_slots,
+        )
+      })
+    } else {
+      None
     },
   )
 }

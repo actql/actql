@@ -96,3 +96,66 @@ test "managed advance preserves the original Capture step and selected work allo
     assert_eq(local_managed_advance_capture_work(issue), None)
   }
 }
+
+///|
+test "original memory refusal retains failed delta remaining and policy without later ledger reads" {
+  let issue = ExecutionCapacityRefusal(@resources.RetentionLimit, 19L, 7L, 512L)
+  assert_eq(
+    local_managed_failure_resource_dimension(issue),
+    Some("retained_bytes"),
+  )
+  assert_eq(
+    local_managed_failure_budget(issue),
+    Some(("retained_bytes", true, 19L, 7L, 512L)),
+  )
+  assert_eq(
+    local_managed_failure_budget(
+      ExecutionCapacityRefusal(@resources.ExecutionLimit, 23L, 5L, 1024L),
+    ),
+    Some(("execution_bytes", true, 23L, 5L, 1024L)),
+  )
+  for
+    issue in [
+      ExecutionCapacityRefusal(@resources.ForeignOwner, 19L, 7L, 512L),
+      ExecutionCapacityRefusal(@resources.RetentionLimit, 7L, 7L, 512L),
+      ExecutionCapacityRefusal(@resources.RetentionLimit, 19L, -1L, 512L),
+      Execution(@strategy.Physical(@resources.RetentionLimit)),
+      Execution(@strategy.Stopped),
+    ] {
+    assert_eq(local_managed_failure_budget(issue), None)
+  }
+}
+
+///|
+test "original UTF8 work refusal retains remaining and only a proved demand lower bound" {
+  let issue = Configuration(
+    @connector.Execution(
+      @execution.Capture(41, @execution.CaptureWorkRefusal(100, 7)),
+    ),
+  )
+  assert_eq(local_managed_advance_capture_work(issue), Some([41, 100]))
+  assert_eq(
+    local_managed_failure_budget(issue),
+    Some(("value_capture_work", false, 8L, 7L, 100L)),
+  )
+  assert_eq(
+    local_managed_failure_budget(
+      Configuration(
+        @connector.Execution(
+          @execution.Capture(41, @execution.CaptureWorkLimit(100)),
+        ),
+      ),
+    ),
+    None,
+  )
+  assert_eq(
+    local_managed_failure_budget(
+      Configuration(
+        @connector.Execution(
+          @execution.Capture(41, @execution.CaptureWorkRefusal(7, 8)),
+        ),
+      ),
+    ),
+    None,
+  )
+}

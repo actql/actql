@@ -67,6 +67,12 @@ pub fn producer_read_matches_completed_output(
   input : ProducerRead,
   output : CompletedOutput,
 ) -> Bool {
+  // The same immutable output already receives both current observations in
+  // the occurrence check. Keep its post-callback check; a third observation
+  // of that very object adds no binding or representation proof.
+  if physical_equal(input.bound.output, output) {
+    return completed_output_same_occurrence(output, input.bound.output)
+  }
   producer_read_available(input) &&
   completed_output_same_occurrence(output, input.bound.output)
 }

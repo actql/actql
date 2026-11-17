@@ -292,6 +292,7 @@ test('private evidence: plaintext produced before failed GCM authentication '
     const final = decipher.final;
     decipher.update = function(...updateArgs) {
       plaintextBlock = Reflect.apply(update, this, updateArgs);
+      assert.deepEqual(plaintextBlock, Buffer.from(wire, 'utf8'));
       return plaintextBlock;
     };
     decipher.final = function(...finalArgs) {
@@ -311,7 +312,8 @@ test('private evidence: plaintext produced before failed GCM authentication '
     crypto.createDecipheriv = originalDecipher;
     syncBuiltinESMExports();
   }
-  assert.deepEqual(plaintextBlock, Buffer.from(wire, 'utf8'));
+  assert.deepEqual(plaintextBlock, Buffer.alloc(Buffer.byteLength(wire, 'utf8')),
+    'failed authentication retires the same unauthenticated backing');
   assert.equal(authenticationCalls, 1);
   assert.equal(escaped, undefined);
 });

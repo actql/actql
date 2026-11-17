@@ -8,6 +8,7 @@ pub fn prepared_client_effect_publication_policy_bodies(
   max_depth : Int,
   before_body? : ((Int, Int, Int) -> Bool)? = None,
   retained_body_keys? : Map[String, String]? = None,
+  retain_catalog? : Bool = true,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   guard prepared_client_effect_publication_data_policy_cid(value) is Some(cid) else {
     return Err(MissingDependency)
@@ -21,7 +22,7 @@ pub fn prepared_client_effect_publication_policy_bodies(
     max_bytes,
     max_nodes,
     max_depth,
-    retain_catalog=true,
+    retain_catalog~,
     before_body~,
     retained_body_keys~,
   )
@@ -115,6 +116,10 @@ fn checked_client_source_policy_bodies(
   retain_catalog? : Bool = false,
   retained_body_keys? : Map[String, String]? = None,
   before_body? : ((Int, Int, Int) -> Bool)? = None,
+  admitted_body? : ((@publication.CapturedEffectDependencyBody, Int) -> Result[
+    Unit,
+    @checked.LocalDependencyBodyIssue,
+  ])? = None,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   let mut remaining_work = work
   let cid = policy.cid
@@ -124,6 +129,10 @@ fn checked_client_source_policy_bodies(
   fn retain(
     identity : String,
     emit : (@encode.Writer) -> Unit raise @encode.EncodeFailure,
+    receive : ((@publication.CapturedEffectDependencyBody, Int) -> Result[
+      Unit,
+      @checked.LocalDependencyBodyIssue,
+    ])?,
   ) -> Result[Unit, @checked.LocalDependencyBodyIssue] {
     if retained_body_keys
       .map(keys => keys.contains("data_policy\u0000" + identity))
@@ -156,6 +165,37 @@ fn checked_client_source_policy_bodies(
     emit(writer) catch {
       issue => return Err(Encoding(issue))
     }
+    if receive is Some(receive) {
+      let (wire, bytes, nodes, depth) = @encode.finish_text_usage(writer) catch {
+        issue => return Err(Encoding(issue))
+      }
+      // Preserve the checked policy's original whole-body identity check.
+      if "sha256:" + @sha.hex(@utf8.encode(wire)) != identity {
+        return Err(ForeignBody)
+      }
+      if before_body is Some(prepare) && !prepare(bytes, nodes, depth) {
+        return Err(BudgetExceeded)
+      }
+      let body = match
+        @publication.admit_captured_effect_dependency_body(
+          "data_policy",
+          Some(identity),
+          wire,
+          remaining,
+          max_nodes,
+          max_depth,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(ForeignBody)
+      }
+      match receive(body, bytes) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      remaining -= bytes
+      seen[identity] = true
+      return Ok(())
+    }
     let wire = @encode.finish(writer) catch {
       issue => return Err(Encoding(issue))
     }
@@ -169,9 +209,11 @@ fn checked_client_source_policy_bodies(
     Ok(())
   }
   match
-    retain(cid, writer => {
-      @checked.emit_publication_source_policy(policy, writer)
-    }) {
+    retain(
+      cid,
+      writer => @checked.emit_publication_source_policy(policy, writer),
+      admitted_body,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -187,9 +229,13 @@ fn checked_client_source_policy_bodies(
       @checked.publication_policy_source_at(policy, index).unwrap(),
     )
     match
-      retain(source.response_policy_cid, writer => {
-        @checked.emit_source_response_policy(source.response_policy, writer)
-      }) {
+      retain(
+        source.response_policy_cid,
+        writer => {
+          @checked.emit_source_response_policy(source.response_policy, writer)
+        },
+        admitted_body,
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -230,6 +276,29 @@ fn checked_client_source_policy_bodies(
           }
           continue
         }
+        if admitted_body is Some(receive) {
+          let (body, bytes) = match
+            capture_checked_client_catalog_dependency(
+              program,
+              source.stage,
+              kind,
+              identity,
+              remaining,
+              max_nodes,
+              max_depth,
+              before_body,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          match receive(body, bytes) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+          remaining -= bytes
+          seen[identity] = true
+          continue
+        }
         let original = match
           @checked.checked_local_catalog_dependency_body(
             program,
@@ -262,10 +331,11 @@ fn checked_client_source_policy_bodies(
       }
     }
   }
-  // Filtered contributions reuse originals on the enclosing collector. They
-  // are not standalone closures; that caller validates the complete graph.
+  // Filtered contributions and admitted-body handoffs reuse originals on the
+  // enclosing collector. They are not standalone closures; that caller
+  // validates the complete graph.
   // Complete legacy projections retain their original self-contained check.
-  if retain_catalog && retained_body_keys is None {
+  if retain_catalog && retained_body_keys is None && admitted_body is None {
     let admitted : Array[@publication.CapturedEffectDependencyBody] = []
     for (kind, identity, wire) in bodies {
       match
@@ -341,5 +411,66 @@ pub fn client_compiled_run_publication_policy_bodies(
     ) {
     Ok(_) => Ok([("data_policy", cid, wire)])
     Err(_) => Err(BudgetExceeded)
+  }
+}
+
+///|
+/// One existing checked Catalog constructor followed by one strict dependency
+/// admission. The caller has funded fixed/depth controls; its SAME callback
+/// covers constructor and parser peaks before either operation. Nothing here
+/// issues execution, access, Store custody or a physical cleanup receipt.
+fn capture_checked_client_catalog_dependency(
+  program : @checked.CheckedProgram,
+  stage : Int,
+  kind : String,
+  identity : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  before_body : ((Int, Int, Int) -> Bool)?,
+) -> Result[
+  (@publication.CapturedEffectDependencyBody, Int),
+  @checked.LocalDependencyBodyIssue,
+] {
+  let mut bytes = 0
+  let mut nodes = 0
+  let mut depth = 0
+  let original = match
+    @checked.checked_local_catalog_dependency_body(
+      program,
+      stage,
+      kind,
+      identity,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      before_body=Some((b, n, d) => {
+        bytes = b
+        nodes = n
+        depth = d
+        match before_body {
+          Some(prepare) => prepare(b, n, d)
+          None => true
+        }
+      }),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if before_body is Some(prepare) && !prepare(bytes, nodes, depth) {
+    return Err(BudgetExceeded)
+  }
+  let wire = @checked.checked_local_dependency_body_json(original)
+  match
+    @publication.admit_captured_effect_dependency_body(
+      kind,
+      Some(identity),
+      wire,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(body) => Ok((body, bytes))
+    Err(_) => Err(ForeignBody)
   }
 }

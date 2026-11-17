@@ -243,22 +243,36 @@ pub fn client_captured_content_holding_cid(
 pub fn client_captured_content_workspace_capacity(
   max_bytes : Int,
   inventory_count? : Int = 0,
+  inventory_wire_units? : Int64? = None,
 ) -> (Int64, Int64)? {
   if max_bytes < 1 || max_bytes > 1048576 || inventory_count < 0 {
     return None
   }
   let wires = max_bytes.to_int64() * 8L
   let trees = 256L * 64L
-  let control_slots = 32L * 8L
-  // Original wire, admitted reference, index entry and snapshot copy overlap
-  // until the existing Model input receipt commits. This is the inventory
-  // capacity being admitted now, not a declaration that unseen keys exist.
-  // The original workspace grows before each new retained entry is built.
-  let inventory = inventory_count.to_int64() * (wires + trees + 1024L)
+  // Two returned-object reference slots forward the SAME keyed frame through
+  // the prefix and completed-computation projections. They coexist with the
+  // frame until its original cleanup; no wrapper, capability or bytes copy.
+  let owner_handoff = 2L * 8L
+  let control_slots = 32L * 8L + owner_handoff
+  // One full bounded constructor frame coexists with every retained Ref.
+  // Installed measured inventories supply actual canonical UTF-16 extents;
+  // unseen policy maxima are not allocated once per completed reference.
+  // Keep the complete legacy quote for callers without that measurement.
+  let units = inventory_wire_units.unwrap_or(
+    inventory_count.to_int64() * max_bytes.to_int64(),
+  )
+  if units < 0L || units > inventory_count.to_int64() * max_bytes.to_int64() {
+    return None
+  }
+  // Candidate/issued/row wire and snapshot aliases have the same eight-copy
+  // overlap. Each bounded Ref keeps all 256 tree slots and its original
+  // inventory/Map controls; actual Store bytes/holdings stay separately owned.
+  let inventory = 8L * units + inventory_count.to_int64() * (trees + 1024L)
   Some(
     (
       wires + trees + control_slots + inventory,
-      wires + trees + 4096L + inventory,
+      wires + trees + 4096L + owner_handoff + inventory,
     ),
   )
 }

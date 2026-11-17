@@ -1,4 +1,46 @@
 ///|
+test "Values command projects only the original typed row execution limit" {
+  local_command_diagnostic_reset()
+  local_values_command_diagnostic(
+    @local_host.Execution(Driver(Configuration(Execution(Rows(7, RowLimit))))),
+  )
+  let (code, message) = local_command_primary_diagnostic(
+    "private supplied query",
+  )
+  assert_eq(code, "ACTQL_E_EXECUTION_LIMIT")
+  assert_eq(
+    message, "Local row execution exceeded its admitted row or workspace limit.",
+  )
+  for json in [false, true] {
+    let rendered = local_command_failure_text("private supplied query", json)
+    assert_true(rendered.contains(code))
+    assert_false(rendered.contains("private supplied query"))
+  }
+  let other : Array[@local_host.NativeClientValuesWorkIssue] = [
+    @local_host.AuthorizationDenied,
+    @local_host.Configuration,
+    @local_host.Execution(Fenced),
+    @local_host.Execution(UnsupportedGraph),
+    @local_host.Journal(TransactionUnknown),
+  ]
+  for issue in other {
+    local_command_diagnostic_reset()
+    local_values_command_diagnostic(issue)
+    assert_eq(
+      local_command_primary_diagnostic("original primary"),
+      ("ACTQL_E_COMMAND_FAILED", "original primary"),
+    )
+    command_preparation_diagnostic.val = ParameterMissing
+    local_values_command_diagnostic(issue)
+    assert_eq(
+      local_command_primary_diagnostic("original primary").0,
+      "ACTQL_E_PARAMETER_MISSING",
+    )
+  }
+  local_command_diagnostic_reset()
+}
+
+///|
 test "Values failure diagnostics distinguish normalization budget from graph and current" {
   let fields : Map[Int, Int64] = Map([])
   let emit = (tag, value) => fields[tag] = value

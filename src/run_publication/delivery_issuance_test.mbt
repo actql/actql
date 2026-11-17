@@ -888,3 +888,42 @@ test "foreign index and manifest cannot issue read authority" {
     is Err(DeliveryIssuanceReferenceMismatch("result_manifest_cid")),
   )
 }
+
+///|
+test "read grant preserves finite Core Int byte and node boundaries" {
+  let (index, manifest, _) = delivery_test_root()
+  for
+    bounds in [
+      (8388608, 4096),
+      (2147483646, 4096),
+      (8388608, 2147483647),
+      (2147483646, 2147483646),
+    ] {
+    match
+      issue_result_read_grant(
+        index,
+        manifest,
+        ["answer"],
+        ["jsonl"],
+        "principal",
+        "download",
+        delivery_test_cid("a"),
+        2147483647,
+        1,
+        "2026-09-19T00:00:00.000Z",
+        delivery_test_cid("b"),
+        delivery_test_cid("c"),
+        bounds.0,
+        bounds.1,
+        64,
+      ) {
+      Ok(_) => ()
+      Err(issue) => {
+        println(
+          "wire=" + bounds.0.to_string() + ",nodes=" + bounds.1.to_string(),
+        )
+        assert_eq(Some(issue), None)
+      }
+    }
+  }
+}

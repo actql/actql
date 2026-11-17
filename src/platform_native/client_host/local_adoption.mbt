@@ -118,13 +118,30 @@ fn local_adoption_read(
   root : @filesystem.Root,
   name : String,
   max_bytes : Int64,
+  prepare? : ((Int64) -> Bool)? = None,
+) -> Result[(Bytes, @filesystem.NativeFileGeneration), NativeLocalAdoptionIssue] {
+  local_adoption_read_observed(root, name, Some(max_bytes), prepare~)
+}
+
+///|
+fn local_adoption_read_observed(
+  root : @filesystem.Root,
+  name : String,
+  max_bytes : Int64?,
+  prepare? : ((Int64) -> Bool)? = None,
 ) -> Result[(Bytes, @filesystem.NativeFileGeneration), NativeLocalAdoptionIssue] {
   let generation = match root.inspect_generation(name) {
     Ok(Some(value)) => value
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(Filesystem(issue))
   }
-  if generation.size < 0L || generation.size > max_bytes {
+  if generation.size < 0L ||
+    (max_bytes is Some(bound) && generation.size > bound) ||
+    // The destination uses an Int length; this is its representation bound.
+    generation.size > 2147483647L {
+    return Err(ConfigurationLimit)
+  }
+  if prepare is Some(original) && !original(generation.size) {
     return Err(ConfigurationLimit)
   }
   let reader = match
@@ -244,6 +261,7 @@ pub fn begin_native_local_host_adoption(
 ///|
 fn NativeLocalAdoptionSession::check_original(
   self : NativeLocalAdoptionSession,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   if self.closed {
     return Err(Closed)
@@ -255,13 +273,14 @@ fn NativeLocalAdoptionSession::check_original(
     return Err(failure.issue())
   }
   self
-  .check_original_after_read_custody()
+  .check_original_after_read_custody(construction~)
   .map_err(issue => self.retain_read_issue(issue))
 }
 
 ///|
 fn NativeLocalAdoptionSession::check_original_after_read_custody(
   self : NativeLocalAdoptionSession,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   if self.closed {
     return Err(Closed)
@@ -289,15 +308,29 @@ fn NativeLocalAdoptionSession::check_original_after_read_custody(
     ) {
     return Err(SourceChanged)
   }
-  let (source, _) = match
-    local_adoption_read(self.source_root, self.source_name, 1048576L) {
+  let (source, observed) = match
+    local_account_read(
+      self.source_root,
+      self.source_name,
+      Some(self.source_generation.size),
+      construction,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if source != self.source_body {
+  if source != self.source_body || observed != self.source_generation {
     return Err(SourceChanged)
   }
-  self.settings.check_source(self.source_root)
+  match self.settings.check_source(self.source_root) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.source_root.private_ownership() is Ok(current_source) &&
+    current_source == self.source_ownership &&
+    self.source_root.verify_generation(self.source_name, self.source_generation) else {
+    return Err(SourceChanged)
+  }
+  Ok(())
 }
 
 ///|
@@ -305,12 +338,13 @@ fn NativeLocalAdoptionSession::check_original_after_read_custody(
 /// exact creation witness stays ambiguous and cannot be overwritten or adopted.
 pub fn NativeLocalAdoptionSession::stage_configuration(
   self : NativeLocalAdoptionSession,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  match self.check_original() {
+  match self.check_original(construction~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  self.stage_configuration_after_original()
+  self.stage_configuration_after_original(construction~)
 }
 
 ///|
@@ -320,6 +354,7 @@ pub fn NativeLocalAdoptionSession::stage_configuration(
 // another source-admission boundary or cache an Allow decision.
 fn NativeLocalAdoptionSession::stage_configuration_after_original(
   self : NativeLocalAdoptionSession,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   if self.closed {
     return Err(Closed)
@@ -331,13 +366,14 @@ fn NativeLocalAdoptionSession::stage_configuration_after_original(
     return Err(failure.issue())
   }
   self
-  .stage_configuration_after_read_custody()
+  .stage_configuration_after_read_custody(construction~)
   .map_err(issue => self.retain_read_issue(issue))
 }
 
 ///|
 fn NativeLocalAdoptionSession::stage_configuration_after_read_custody(
   self : NativeLocalAdoptionSession,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   let existing = match self.root.inspect_generation("account.json") {
     Ok(value) => value
@@ -408,7 +444,12 @@ fn NativeLocalAdoptionSession::stage_configuration_after_read_custody(
     }
   }
   let (body, observed) = match
-    local_adoption_read(self.root, "account.json", 1048576L) {
+    local_account_read(
+      self.root,
+      "account.json",
+      Some(self.source_generation.size),
+      construction,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

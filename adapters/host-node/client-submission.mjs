@@ -282,9 +282,19 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       ...(Object.hasOwn(value, 'stopBefore') ? {stopBefore: value.stopBefore} : {}),
       ...(Object.hasOwn(value, 'readOnly') ? {readOnly: value.readOnly} : {})},
     {dataKeys: true});
-    const input = typeof journal.prepareSubmittedIntent === 'function' ?
-      journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon) :
-      moon.clientSubmittedIntent(wire, 1048576, 65536, 64);
+    let input;
+    if (typeof journal.prepareSubmittedIntent === 'function') {
+      input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);
+    } else {
+      // This same canonical wire is already retained. Its UTF16 length bounds
+      // UTF8 by three bytes per code unit and each JSON node by one code unit.
+      // Keep the original recursion guard and Core's +128-byte Int headroom;
+      // do not rescan/snapshot caller DATA or impose a second size policy.
+      const units = wire.length;
+      const bytes = 3 * units;
+      if (units < 1 || bytes > 2147483519) fail('ClientSubmittedIntentCapacity');
+      input = moon.clientSubmittedIntent(wire, bytes, units, 64);
+    }
     if (input === undefined || moon.clientSubmittedIntentCid(input) !== value.intentCid) {
       fail('InvalidClientSubmittedIntent');
     }

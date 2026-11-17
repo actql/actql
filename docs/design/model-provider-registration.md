@@ -397,8 +397,8 @@ so exact Task identifiers and instructions are not normalized by configuration
 encoding. The existing complete Environment checker then admits the result;
 the projection itself does not accept duplicate Task selectors or issue a Run.
 
-The initial Local reader selection is explicit: at most 128 Task files, each
-at most 65536 UTF8 bytes, 4096 decode nodes, depth 64 and 256 members; each
+The initial Local reader selection is explicit: each Task file has at most
+65536 UTF8 bytes, 4096 decode nodes, depth 64 and 256 members; each
 contract uses at most 4096 nodes, depth 64 and 65536 text bytes. Each bounded
 normalization/projection has a 2097152 work ceiling. These are installation
 reader ceilings, not Model execution fuel, capacity reservations or normal
@@ -414,8 +414,28 @@ The project identity index's V8 backing and all managed controls remain explicit
 Host/runtime responsibilities, not zero-byte or physical-release claims.
 The existing Host shutdown drops project/Task aliases only after its original
 child duties complete; Unknown or pending child cleanup retains responsibility.
-This connection supplies static checked materials, not execution dependencies,
-same-Run recovery, a physical Model supplier, permission or whole-phase funding.
+This connection supplies static checked materials. It does not supply execution
+dependencies, same-Run recovery, a physical Model supplier or permission.
+
+#### Funded project Task construction
+
+The ordinary funded Host selects the actual original registry cardinality;
+an explicit caller `maxTasks: 128` still refuses member129 before Task intake.
+Its SAME installation material reserves each file/decode, provider-defaults,
+normalization, selected-member and final Environment constructor before it
+runs. Retained prefixes coexist with active and failed scratch. Every member's
+actual normalized writer usage contributes once to final ordered material;
+unused per-document maxima are not billed as a repeated collection prefix.
+Defaults retain their actual canonical configuration/profile originals before
+resolution. Full Environment admission still checks all members and identities.
+
+The populated Task constructor has a separate quote and thin entry over the
+same complete checker. Both older empty-only guards/quotes retain their empty
+proof domain; empty/populated mismatch and foreign originals refuse. Explicit
+profile/graph/SGA/CID selections and per-document/contract/work bounds remain.
+Unknown physical close retains the existing original cleanup carrier. This is
+installation registration/materialization funding; it makes no claim about
+runtime Model/INFER inventory completion or normal installed acceptance.
 
 ### Original INFER materials in the installed Host
 
@@ -589,6 +609,17 @@ reference retirement are neither zero cost, GC evidence nor physical ACK.
 ### Original project profile choice
 
 #### Original mock answer materials
+
+Managed Mock registry selection borrows the installation's issued file inventory
+and the same Project original. Its original Source preparation reserves fixed
+control capacity before projecting the total registry count. This count is DATA,
+not answer allocation, provider permission or a larger selected Task budget.
+A foreign or retired inventory cannot fund the projection. Standalone intake
+keeps its legacy total-registry bound, and selected answers keep their independent
+128 policy; unused Tasks are not opened or decoded to obtain a count. Currentness,
+numerical refusal and failed cleanup remain duties of that same Source owner.
+The named registry controls are Source references, not installed acceptance.
+
 
 The portable Mock implementation is an exclusive invocation kind in the
 existing Model Owner. Its source-pinned fixture configuration, handling

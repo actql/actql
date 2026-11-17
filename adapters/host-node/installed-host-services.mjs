@@ -1,4 +1,8 @@
-import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition, bindInstalledEnvironmentConstruction} from './installed-funded-environment.mjs';
+import {createAccountConstruction} from './account-construction.mjs';
+import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition, bindInstalledEnvironmentConstruction,
+  assertInstalledEnvironmentPublicationOriginal} from './installed-funded-environment.mjs';
+import {installedEnvironmentDataWriterConstructionGeometry,
+  installedEnvironmentMemberSortConstructionGeometry} from './installed-check-environment-construction.mjs';
 // Standard installed Host service owner. This public cut retains the exact
 // original Source implementation/Site association; numerical DATA is neither
 // a Run admission nor permission. Other service facets extend this SAME owner.
@@ -6,7 +10,7 @@ import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceChec
   rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {authoredCommandProjection} from './installed-authored-command.mjs';
-import {sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry}
+import {sourceEnvironmentConstructionGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry, sourceDeclarationRetainedGeometry}
   from './installed-source-construction-geometry.mjs';
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
 import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
@@ -17,7 +21,7 @@ import {installedCheckEnvironmentInputs} from './installed-check-environment.mjs
 import {readSourceProfileJson, readBoundedConfigurationText, readBoundedConfigurationUtf8, installedConfigurationByteLimit,
   installedConfigurationChunkBytes, readOriginalConfigurationText, readOriginalConfigurationBytes,
   installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
-import {runtimeField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeTag, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {createInstalledCredentialSourceReader, installedJsonSourceReaderLimitNames,
   installedJsonSourceReaderProfileLimitNames} from './installed-credential-source-reader.mjs';
 import {types as nodeTypes} from 'node:util';
@@ -108,6 +112,38 @@ function sourceCall(original, material, name, args) {
   if (typeof material.methods?.[name] !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
   material.busy = true;
   try {return checked(Reflect.apply(material.methods[name], original.moon, args));}
+  catch (cause) {
+    // This fixed method name identifies the failed constructor, not its DATA.
+    // Preserve the original failure and cleanup carrier even when diagnostics
+    // cannot be attached to a frozen/non-Error thrown value.
+    try {
+      if (cause instanceof Error && !Object.hasOwn(cause, 'installedSourcePhase')) {
+        Object.defineProperty(cause, 'installedSourcePhase', {value: name, enumerable: true});
+        const issue = Object.getOwnPropertyDescriptor(cause, 'cause')?.value;
+        const tag = runtimeTag(issue);
+        if (Number.isSafeInteger(tag)) {
+          Object.defineProperty(cause, 'installedSourceIssueTag', {value: tag, enumerable: true});
+        }
+        if (name === 'ReserveInstalledSourceConstruction' && tag === 7) {
+          const resource = runtimeField(issue, 0);
+          if (Number.isSafeInteger(resource)) {
+            Object.defineProperty(cause, 'installedSourceResourceIssue', {value: resource, enumerable: true});
+          }
+        }
+        if (name === 'ReserveInstalledSourceConstruction' &&
+            typeof original.moon.clientProgramSerializationCapacityBytes === 'function') {
+          const amounts = original.moon.clientProgramSerializationCapacityBytes(args[2]);
+          for (const [key, index] of [['installedSourceRetainedBytes', 0], ['installedSourceExecutionBytes', 1]]) {
+            const amount = runtimeField(amounts, index);
+            if (typeof amount === 'bigint' && amount >= 0n) {
+              Object.defineProperty(cause, key, {value: String(amount), enumerable: true});
+            }
+          }
+        }
+      }
+    } catch { /* Diagnostics never replace the original failure. */ }
+    throw cause;
+  }
   finally {material.busy = false;}
 }
 
@@ -138,12 +174,19 @@ function sourceIo(original, material) {
   return io;
 }
 
-function sourceCapacityQuote(original, material, values) {
-  const base = sourceCall(original, material, 'InstalledSourceConstructionCapacity', values);
-  if (material.providers.length === 0) return base;
+function sourceCapacityQuote(original, material, values, pendingProvider) {
+  let base = sourceCall(original, material, 'InstalledSourceConstructionCapacity', values);
+  if (material.providers.length === 0 && pendingProvider === undefined) return base;
   if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') {
     fail('InstalledSourceInitializationRuntimeUnavailable');
   }
+  // A pure pending quote has not entered its native constructor. Fold its
+  // fixed singleton before admission without registering ungranted DATA or
+  // copying the retained provider population. Failed admitted prefixes stay.
+  if (pendingProvider !== undefined) {
+    base = sourceCall(original, material, 'ComposeInstalledSourceConstructionCapacity', [base, [pendingProvider]]);
+  }
+  if (material.providers.length === 0) return base;
   return sourceCall(original, material, 'ComposeInstalledSourceConstructionCapacity', [base, material.providers]);
 }
 
@@ -164,7 +207,7 @@ function releaseFinishedSourceWorkspaces(material) {
   }
 }
 
-function reserveSource(original, material, nodes = 0n, text = 0n, wire = 0n, workspace, retained) {
+function reserveSource(original, material, nodes = 0n, text = 0n, wire = 0n, workspace, retained, pendingProvider) {
   if (material.phase !== 'working') fail('InstalledSourceInitializationClosed');
   releaseFinishedSourceWorkspaces(material);
   let activeNodes = nodes, activeText = text, activeWire = wire;
@@ -182,7 +225,7 @@ function reserveSource(original, material, nodes = 0n, text = 0n, wire = 0n, wor
   // after the same parent has admitted the complete simultaneous quantities.
   const quote = sourceCapacityQuote(original, material,
     [material.nodes + retainedNodes, material.text + retainedText, material.wire + retainedWire,
-      activeNodes, activeText, activeWire]);
+      activeNodes, activeText, activeWire], pendingProvider);
   sourceCall(original, material, 'ReserveInstalledSourceConstruction',
     [material.capacity, material.input, quote]);
   if (workspace !== undefined) Object.assign(workspace, {nodes, text, wire, retained});
@@ -331,9 +374,11 @@ function prepareSourceNativeInput(original, material, projection, attempts, vali
   try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
   finally {material.busy = false;}
   if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceInputCapacityUnavailable');
+  // Register only after the SAME reservation admits the complete pending
+  // quantity. A refused pure quote creates no native holding or cleanup ACK.
+  reserveSource(original, material, 0n, 0n, 0n, undefined, undefined, quantity);
   const providerIndex = material.providers.length, projectionIndex = material.inputs.length;
   material.providers.push(quantity); material.inputs.push(projection);
-  reserveSource(original, material);
   validate();
   if (material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
   let value;
@@ -382,6 +427,82 @@ function retainCompletedSourceJson(original, material, workspace, value) {
           material.inputs[input] !== value) fail('ForeignInstalledSourceInitialization');
     });
   return value;
+}
+
+// Model metadata shares this SAME initialization material. One existing provider
+// slot holds its incremental retained total. Each call adds only THIS peak;
+// success replaces that peak with its original actual retained quantity. A
+// failed/current-refused constructor keeps its full debt and original inputs.
+function prepareModelTaskInput(original, material, projection, attempts, validate) {
+  if (material.modelFailure !== undefined) throw material.modelFailure.cause;
+  if (material.phase !== 'working' || material.busy || attempts.has(projection) ||
+      !projection || nodeTypes.isProxy(projection) || !Object.isFrozen(projection)) {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  const fields = Object.getOwnPropertyDescriptors(projection);
+  if (Reflect.ownKeys(fields).length !== 3 || ['capacity', 'project', 'retained'].some(name =>
+      !Object.hasOwn(fields[name] ?? {}, 'value') || typeof fields[name].value !== 'function' ||
+      nodeTypes.isProxy(fields[name].value) || nodeTypes.isAsyncFunction(fields[name].value))) {
+    fail('InvalidInstalledModelTaskProjection');
+  }
+  validate(); original.current();
+  attempts.add(projection);
+  const accumulate = original.moon.clientProgramAccumulateModelTaskConstructionCapacity;
+  if (typeof accumulate !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+  const add = (previous, current) => {
+    const value = checked(Reflect.apply(accumulate, original.moon, [previous, current]));
+    if (!value || typeof value !== 'object' || nodeTypes.isProxy(value)) {
+      fail('InstalledSourceInputCapacityUnavailable');
+    }
+    return value;
+  };
+  const previous = material.modelRetained;
+  let index = material.modelProviderIndex;
+  const inputIndex = material.inputs.length;
+  let peak;
+  try {
+    material.busy = true;
+    try {peak = add(previous, requireSynchronousSourceConstruction(material,
+      Reflect.apply(fields.capacity.value, projection, [])));}
+    finally {material.busy = false;}
+    if (index === undefined) {
+      index = material.modelProviderIndex = material.providers.length;
+      material.providers.push(peak);
+    } else material.providers[index] = peak;
+    material.inputs.push(projection);
+    reserveSource(original, material);
+    validate(); original.current();
+    let value, retained;
+    material.busy = true;
+    try {
+      value = requireSynchronousSourceConstruction(material, Reflect.apply(fields.project.value, projection, []));
+      material.inputs.push(value);
+      if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || 'then' in value) {
+        fail('InvalidInstalledSourceNativeInput');
+      }
+      validate(); original.current();
+      retained = add(previous, requireSynchronousSourceConstruction(material,
+        Reflect.apply(fields.retained.value, projection, [value])));
+      validate(); original.current();
+    } finally {material.busy = false;}
+    // Same original current/parent is checked while the full peak remains held.
+    reserveSource(original, material);
+    validate(); original.current();
+    material.providers[index] = retained;
+    material.modelRetained = retained;
+    material.inputs[inputIndex] = undefined;
+    reconcileSource(original, material);
+    return value;
+  } catch (cause) {
+    if (peak !== undefined && index !== undefined) {
+      material.providers[index] = peak;
+      material.modelRetained = previous;
+      material.inputs[inputIndex] = projection;
+    }
+    material.modelFailure = {cause};
+    retainSourceFailure(material, cause);
+    throw cause;
+  }
 }
 
 // This reader is created only by the real initializer, before the first
@@ -487,6 +608,7 @@ export function installedSourceConfigurationReader(services) {
     finally {material.ioPending--;}
   }
   const metadataProjections = new WeakSet();
+  const modelProjections = new WeakSet();
   const validateMetadataInput = () => {
     if (sourceMaterial(original) !== material || material.phase !== 'working') {
       fail('ForeignInstalledSourceInitialization');
@@ -510,6 +632,10 @@ export function installedSourceConfigurationReader(services) {
       }};
   };
   const reader = Object.freeze({
+    prepareModelTaskInput(projection) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      return prepareModelTaskInput(original, material, projection, modelProjections, validateMetadataInput);
+    },
     prepareNativeInput(projection) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
       return prepareSourceNativeInput(original, material, projection, metadataProjections,
@@ -575,7 +701,7 @@ export function installedSourceConfigurationReader(services) {
   material.configurationReader = reader;
   // The Common composer alone receives this capability. Provider readers have
   // no release method and cannot turn arbitrary returned values into refunds.
-  bindInstalledEnvironmentConstruction(services, reader, () => {
+  material.retainEnvironmentNativeOriginal = bindInstalledEnvironmentConstruction(services, reader, () => {
     original.current();
     if (material.phase !== 'working' || material.busy || material.ioPending !== 0) {
       fail('ForeignInstalledSourceInitialization');
@@ -671,6 +797,28 @@ function reserveInstalledTableConstruction(original, material, profile, construc
   // Return constructor DATA; the selected RowRun still reserves its own copies.
   return sourceCall(original, material, 'InstalledSourceConstructionCapacity',
     [allNodes, allText, allWire, allNodes, allText, allWire]);
+}
+
+function installedTableReaderConstruction(original, material, profile, construction, bridge) {
+  const field = Object.getOwnPropertyDescriptor(bridge, 'inspectReadSelectorConstruction');
+  if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
+      nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) {
+    fail('InstalledTableSourceConstructionUnavailable');
+  }
+  const facts = construction.inspect(() => {
+    const maximum = {nodes: 0n, wire: 0n, strings: 0n, serializerText: 0n};
+    for (const target of profile.targets) {
+      const next = Reflect.apply(field.value, bridge, [target.selector, inspectInstalledTableConstruction]);
+      for (const key of ['nodes', 'wire', 'strings', 'serializerText']) {
+        if (next[key] > maximum[key]) maximum[key] = next[key];
+      }
+    }
+    return Object.freeze(maximum);
+  });
+  const [nodes, text, wire] = sourceCall(original, material, 'InstalledTableConstructionInventory',
+    [facts.nodes, facts.wire, facts.strings, facts.serializerText]);
+  return sourceCall(original, material, 'InstalledSourceConstructionCapacity',
+    [nodes, text, wire, nodes, text, wire]);
 }
 
 // The checked Environment owns its complete parse/native projection already.
@@ -784,47 +932,36 @@ function createInstalledSourceContext(original, material, installation, connecto
   };
   const retainNativeInput = value => nativeInputOriginals.add(value);
   function prepareSourceEnvironment(declared, mappings = []) {
+    const reader = installedSourceConfigurationReader(services);
     const geometry = sourceEnvironmentConstructionGeometry(scope.baseEnvironmentWire, declared, mappings);
     const before = scope.prepared;
-    // Same material owner and same original reservation: record this pure
-    // phase before its constructor. A sibling reconciliation cannot forget it.
-    const workspace = {nodes: 0n, text: 0n, wire: 0n,
-      retained: {nodes: 0n, text: 0n, wire: 0n}};
-    material.workspaces.add(workspace);
-    let admitted = false;
-    try {
-      reserveSource(original, material, geometry.workspace.nodes, geometry.workspace.text,
-        geometry.workspace.wire, workspace, geometry.retained);
-      admitted = true;
+    const construct = (quantity, project) => {
       if (!scope.active || material.phase !== 'working' || scope.prepared !== before) {
         fail('ForeignInstalledSourceInitialization');
       }
-      let environment;
-      material.busy = true;
-      try {
-        environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared, mappings);
-        material.inputs.push(environment);
-        const retained = sourceEnvironmentRetainedGeometry(environment);
-        if (retained.nodes > geometry.retained.nodes || retained.text > geometry.retained.text ||
-            retained.wire > geometry.retained.wire) fail('InstalledSourceEnvironmentCapacityExceeded');
-        material.nodes += retained.nodes; material.text += retained.text; material.wire += retained.wire;
-      } finally {material.busy = false;}
-      // No callback or physical child escapes this synchronous pure producer.
-      // Retain its actual result before removing only this closed workspace.
-      material.workspaces.delete(workspace);
-      return environment;
-    } catch (cause) {
-      if (admitted) {
-        // A thrown producer keeps its full already-admitted inventory as
-        // failure debt. Transfer before removing the ended pure phase: there
-        // is no invented pending FD, and sibling reconciliation sees the debt.
-        material.nodes += geometry.retained.nodes + geometry.workspace.nodes;
-        material.text += geometry.retained.text + geometry.workspace.text;
-        material.wire += geometry.retained.wire + geometry.workspace.wire;
-      }
-      material.workspaces.delete(workspace);
-      throw cause;
-    }
+      return reader.prepareNativeInput(Object.freeze({capacity: () => {
+        const {retained: r, workspace: w} = quantity;
+        return checked(original.moon.clientProgramInstalledSourceConstructionCapacity(
+          r.nodes, r.text, r.wire, w.nodes, w.text, w.wire));
+      }, project}));
+    };
+    // Every phase has actually returned before the next quote. The SAME
+    // native-input Owner keeps each returned original and full failure debt;
+    // no busy constructor is discounted or replaced by a synthetic ACK.
+    return rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared, mappings,
+      (value, document, body) => {
+        material.retainEnvironmentNativeOriginal(original.moon, value, document, body);
+      }, {
+        freeze: freezeSourceProjection,
+        parse: project => construct(geometry.parsed, project),
+        sort: (values, project) => construct(installedEnvironmentMemberSortConstructionGeometry(values), project),
+        seal: body => construct({retained: {nodes: 2n, text: 0n, wire: 0n},
+          workspace: {nodes: geometry.parsed.retained.nodes, text: 0n, wire: 0n}},
+        () => freezeSourceProjection(body)),
+        hash: (body, project) => construct(installedEnvironmentDataWriterConstructionGeometry(body, true),
+          () => Object.freeze({cid: project()})).cid,
+        encode: (document, project) => construct(installedEnvironmentDataWriterConstructionGeometry(document), project),
+      });
   }
   function prepareOriginalDeclaration(restore, originalInput, basis, makeWire, expectedCatalogCid, finish) {
     if (typeof restore !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
@@ -847,14 +984,41 @@ function createInstalledSourceContext(original, material, installation, connecto
       material.nodes += 4n * basis; material.text += 8n * basis; material.wire += 8n * basis;
       scope.declarationBasis = basis;
     } finally {material.busy = false;}
+    const retainReturnedDeclaration = expectedPrepared => {
+      const retained = sourceDeclarationRetainedGeometry(wire, declaredWire);
+      // The old complete allowance remains held while observing the same
+      // original parent. Only a successful closed restore/export/parse may
+      // replace its temporary workspace with the actual coheld outputs.
+      reserveSource(original, material);
+      if (!scope.active || material.phase !== 'working' || scope.prepared !== expectedPrepared) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      const prior = {nodes:material.nodes, text:material.text, wire:material.wire};
+      material.nodes += retained.nodes - 4n * basis;
+      material.text += retained.text - 8n * basis;
+      material.wire -= 8n * basis;
+      try {reconcileSource(original, material);}
+      catch (cause) {Object.assign(material, prior);throw cause;}
+    };
     let prepared;
-    if (finish !== undefined) prepared = finish(declaration, declaredWire);
-    else {
+    if (finish !== undefined) {
+      prepared = finish(declaration, declaredWire);
+      // A preliminary declaration does not publish a prepared slot; a final
+      // Command does. In either case retain the exact original across the
+      // current callback, never another scope's or a reentrant replacement.
+      const expectedPrepared = scope.prepared;
+      if (expectedPrepared !== undefined && expectedPrepared !== prepared) fail('ForeignInstalledSourceInitialization');
+      retainReturnedDeclaration(expectedPrepared);
+    } else {
+      retainReturnedDeclaration(undefined);
+      // Use the SAME funded Environment constructor for authored and native
+      // declarations. Its exact frozen original, census and failed prefix
+      // stay with this Source material before any later semantic admission.
+      const environment = scope.role === 'effect' ? undefined
+        : prepareSourceEnvironment(declared);
       material.busy = true;
       try {
         // A Mapping or projected Command finishes its ONE Environment later.
-        const environment = scope.role === 'effect' ? undefined
-          : rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
         prepared = Object.freeze({declaration, declared, environment});
         scope.prepared = prepared; material.inputs.push(environment);
       } finally {material.busy = false;}
@@ -1022,6 +1186,38 @@ function createInstalledSourceContext(original, material, installation, connecto
       const prepared = scope.prepared;
       return prepareSourceNativeInput(original, material, projection, inputProjections,
         () => validateNativeInputContext(prepared), retainNativeInput);
+    },
+    prepareReadMetadata(declared, project) {
+      const prepared = scope.prepared;
+      if (this !== context || scope.role !== 'source' || scope.readMetadataAttempted ||
+          prepared?.declared !== declared || !Array.isArray(declared?.views) ||
+          typeof project !== 'function') fail('ForeignInstalledSourceInitialization');
+      scope.readMetadataAttempted = true;
+      // Quote the complete original range once, before either variable-sized
+      // metadata constructor. Strings and authority are borrowed originals.
+      // Two retained containers hold N keys and N four-field records (7N+2
+      // node slots), and the returned two-field metadata record takes three.
+      // Their later synchronous binding check overlaps one Set
+      // and one returned reference array (2N+2); keep that allowance with the
+      // SAME Source material instead of issuing per-access reservations.
+      const nodes = 9n * BigInt(declared.views.length) + 7n;
+      const quote = material.methods.InstalledSourceConstructionCapacity;
+      if (typeof quote !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+      const projection = Object.freeze({
+        capacity() {
+          // The existing native-input owner holds its synchronous busy fence.
+          // This pure recipe observes no owner or permission; reservation and
+          // current checks remain with prepareSourceNativeInput itself.
+          return checked(Reflect.apply(quote, original.moon, [nodes, 0n, 0n, 0n, 0n, 0n]));
+        },
+        project,
+      });
+      return prepareSourceNativeInput(original, material, projection, inputProjections,
+        () => {
+          if (!scope.active || scope.prepared !== prepared || scope.source !== undefined ||
+              material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+          original.current();
+        }, retainNativeInput);
     },
     prepareProviderEffect(site, provider, mappingOriginals) {
       if (this !== context || scope.role !== 'effect' || !scope.active || scope.prepared !== undefined ||
@@ -1655,7 +1851,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
       const input = domain(siteOptions, ['authorization','commonMoon','runtimeBundleCid','configurationReader','ownAuthorization']);
       owned.siteAttempted = true;
       const authorization = await Reflect.apply(authorizationConstructor, undefined, [{accountConfiguration,
-        root: original.root, principalId: original.principalId, gateOptions: {runtime: original.moon}}]);
+        root: original.root, principalId: original.principalId, gateOptions: {runtime: original.moon, accountConstruction: installedAccountConstruction(services)}}]);
       owned.authorization = authorization;
       current();
       const site = await Reflect.apply(siteConstructor, undefined, [siteArgument, {...input, authorization,
@@ -1743,12 +1939,17 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
           nodeTypes.isAsyncFunction(createBridge)) fail('InvalidInstalledTableBridgeConstructor');
       owned.attempted = true; owned.constructing = true;
       try {
-        const profileCapacity = reserveInstalledTableConstruction(original, material, checkedProfile, profileConstruction);
+        reserveInstalledTableConstruction(original, material, checkedProfile, profileConstruction);
         const bridge = requireSynchronousSourceConstruction(material, Reflect.apply(createBridge, undefined, []));
         owned.bridge = bridge; material.inputs.push(bridge);
         if (!bridge || typeof bridge !== 'object' || nodeTypes.isProxy(bridge) ||
             'then' in bridge) fail('InvalidInstalledTableBridge');
         current();
+        // Full installation construction remains retained above. A selected
+        // Reader only sends ONE first selector; later reply-derived payloads
+        // grow through that SAME RowRun before their actual allocation.
+        const readerProfileCapacity = installedTableReaderConstruction(original, material,
+          checkedProfile, profileConstruction, bridge);
         const prepared = context.prepareDeclaration(input.targets.map(target => ({
           resource: target.resource, resource_kind: 'table', schema_wire: target.schemaWire,
           schema_cid: target.selector.schema_cid,
@@ -1756,7 +1957,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         current();
         const authorization = await installRowSourceAuthorization({accountConfiguration,
           root: original.root, principalId: original.principalId,
-          connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon}});
+          connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon, accountConstruction: installedAccountConstruction(services)}});
         owned.authorization = authorization;
         current();
         const site = installedTableReadSite({connection: input.connection, authorization,
@@ -1769,7 +1970,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
           fail('InstalledTableSourceReaderUnavailable');
         }
         const columns = Math.max(...prepared.declared.views.map(view => view.fields.length));
-        const originalReaderCapacity = Reflect.apply(capacityMethod, original.moon, [columns, profileCapacity]);
+        const originalReaderCapacity = Reflect.apply(capacityMethod, original.moon, [columns, readerProfileCapacity]);
         // Preserve the original native reference Option for the existing typed
         // Source composition. Its canonical binding alone exposes the value;
         // Host never reconstructs a Some, tuple or scalar capacity.
@@ -1828,7 +2029,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         current();
         const authorization = await installRowSourceAuthorization({accountConfiguration,
           root: original.root, principalId: original.principalId,
-          connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon}});
+          connectorRegistration: scope.installation.registration, gateOptions: {runtime: original.moon, accountConstruction: installedAccountConstruction(services)}});
         owned.authorization = authorization;
         current();
         const adapter = await createInstalledTableEffect({...input, bridge, moon: original.moon,
@@ -2047,7 +2248,7 @@ export function reserveInstalledSourceRuntimeIdentity(services) {
   };
 }
 
-export function completeInstalledSourceInitialization(services, sourceOriginal, environment, environmentWire) {
+export function completeInstalledSourceInitialization(services, sourceOriginal, environment, environmentWire, environmentOriginal) {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
   const material = original.material;
@@ -2059,7 +2260,15 @@ export function completeInstalledSourceInitialization(services, sourceOriginal, 
   // The original final checker already constructed this body. Fund its actual
   // retained tree/text before adopting the SAME body; completion adds no parse,
   // canonicalization or second construction workspace.
-  const retained = sourceEnvironmentCompositionGeometry([environmentWire]).retained;
+  let retained;
+  if (environmentOriginal === undefined) retained = sourceEnvironmentCompositionGeometry([environmentWire]).retained;
+  else {
+    assertInstalledEnvironmentPublicationOriginal(services, original.moon, environmentOriginal, environment, environmentWire);
+    // Every native/Core constructor output is still retained by this SAME
+    // Source material. Completion adds only the original body association;
+    // it does not parse/copy/refund any of those already-charged originals.
+    retained = {nodes: 5n, text: 0n, wire: 0n};
+  }
   reserveSource(original, material, 0n, 0n, 0n, undefined, retained);
   material.inputs.push(environmentWire);
   material.nodes += retained.nodes; material.text += retained.text; material.wire += retained.wire;
@@ -2129,6 +2338,8 @@ export function retireInstalledSourceInitialization(services) {
     material.inputs.length = material.providers.length = material.contexts.length = material.cleanup.length = 0;
     material.workspaces.clear();
     material.io = material.configurationReader = material.sourceOriginal = material.environment = material.environmentWire = undefined;
+    material.retainEnvironmentNativeOriginal = undefined;
+    material.modelRetained = material.modelFailure = material.modelProviderIndex = undefined;
     material.input = material.unit = material.capacity = material.methods = undefined;
     original.initialPreparation = undefined;
     material.phase = 'retired';
@@ -2157,7 +2368,7 @@ export function captureInstalledSourceServices(receiver, unavailable) {
   });
 }
 
-export function createInstalledHostServices({root, principalId, moon, assertCurrent, receiver, initialPreparation}) {
+export function createInstalledHostServices({root, principalId, moon, assertCurrent, accountCurrent, receiver, initialPreparation}) {
   if (typeof root !== 'string' || !root || typeof principalId !== 'string' || !principalId ||
       !moon || typeof moon !== 'object' || typeof assertCurrent !== 'function') fail('InvalidInstalledHostServices');
   const selected = new WeakMap(), sites = new WeakMap(), siteInstallations = new WeakMap();
@@ -2448,6 +2659,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       return openInstalledRowSite({...options,
         ...(effectCredentialLimits === undefined ? {} : {runAcquisitionLimits: effectCredentialLimits}),
         root, principalId, commonMoon: moon, runtimeBundleCid, assertCurrent: current,
+        accountConstruction: installedAccountConstruction(services),
         configurationReader: installedSourceConfigurationReader(services)}).then(original => {
           sites.set(original.site, implementation);
           siteInstallations.set(original.site, selection);
@@ -2463,7 +2675,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
   const prepareUpdateMapping = moon.clientProgramRowSourcePrepareUpdateMapping;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
-    sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
+    sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, accountCurrent, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
     admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping});
   return services;
 }
@@ -2481,4 +2693,27 @@ export function retainInstalledHostServiceInstallation(services, installation, r
   if (previous !== undefined && previous !== runtimeBundleCid) fail(
     'InstalledHostServiceRuntimeChanged');
   original.selected.set(installation, runtimeBundleCid);
+}
+
+// Private Account facet on the SAME initial/continued Host material. A
+// nominal/control scope is insufficient; this entrance requires the actual
+// selected Core capacity retained by this installed service.
+export function installedAccountConstruction(services) {
+  const original = installations.get(services);
+  // Standalone legacy installers have no original numeric carrier. Ordinary
+  // Host construction always supplies its actual initialization preparation.
+  if (original !== undefined && original.initialPreparation === undefined) return undefined;
+  if (original === undefined || typeof original.accountCurrent !== 'function') fail('AccountConstructionUnavailable');
+  original.accountCurrent();
+  const material = sourceMaterial(original);
+  if (material === undefined || material.capacity === undefined || material.input === undefined) fail('AccountConstructionUnavailable');
+  return original.accountConstruction ??= createAccountConstruction({moon: original.moon,
+    current: original.accountCurrent,
+    prepareRead: () => original.moon.clientProgramPrepareInstalledAccountRead(material.capacity, material.input)});
+}
+
+export async function closeInstalledAccountConstruction(services) {
+  const original = installations.get(services);
+  if (original === undefined) fail('ForeignInstalledHostServices');
+  return original.accountConstruction === undefined || await original.accountConstruction.close();
 }
