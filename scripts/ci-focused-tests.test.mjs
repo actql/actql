@@ -76,9 +76,8 @@ function selection(changes = [change()], options = {}) {
   const paths = changes.map(entry => entry.path), {git} = gitFixture({changes});
   return selectTargets(paths, {focusedChanges: changes, focusedTests: readFocusedTests(paths, changes, git), ...options});
 }
-const results = value => Object.fromEntries(gateJobs.map(name => [name, {result:
-  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || name === 'focused-tests' && ['focused-tests', 'draft-focused'].includes(value.profile)
-    || name !== 'focused-tests' && value.profile === 'full' && (name !== 'native-macos' || value.macos) ? 'success' : 'skipped'}]));
+const results = value => Object.fromEntries(gateJobs.map(name =>
+  [name, {result: gateJobRequired(value, name) ? 'success' : 'skipped'}]));
 
 test('known maintenance and focused changes select their required job union', () => {
   const entries = [change(), change('docs/development.md')];
@@ -242,13 +241,25 @@ test('zero/missing/skipped-only file results fail despite other passing family t
 });
 test('aggregate requires focused success and legitimate explicit skips, bound to checkout/event', () => {
   const value = selection(), envelope = {sourceRevision: head, selection: value}, context = {sourceRevision: head, event: 'pull_request'};
+  assert.equal(gateJobRequired(value, 'rust-library'), true,
+    'A focused Core source edit still requires the same-source Rust consumer');
+  assert.equal(results(value)['rust-library'].result, 'success');
   assert.equal(verifyGate(envelope, results(value), context).length, gateJobs.length);
   for (const name of gateJobs) for (const bad of ['failure', 'cancelled', undefined]) {
     const needs = results(value); needs[name] = {result: bad};
     assert.throws(() => verifyGate(envelope, needs, context));
   }
-  for (const name of ['focused-tests', 'preflight', 'spec', 'lint']) {
+  for (const name of gateJobs.filter(name => gateJobRequired(value, name))) {
     const needs = results(value); needs[name].result = 'skipped'; assert.throws(() => verifyGate(envelope, needs, context));
+  }
+  const unrelated = selectTargets(['README.md']);
+  const unselected = {sourceRevision: head, selection: unrelated};
+  assert.equal(gateJobRequired(unrelated, 'rust-library'), false);
+  assert.equal(results(unrelated)['rust-library'].result, 'skipped');
+  assert.equal(verifyGate(unselected, results(unrelated), context).length, gateJobs.length);
+  for (const result of ['success', 'failure', 'cancelled', undefined]) {
+    const needs = results(unrelated); needs['rust-library'] = {result};
+    assert.throws(() => verifyGate(unselected, needs, context), /rust-library/u);
   }
   assert.throws(() => verifyGate(envelope, results(value), {...context, sourceRevision: old}));
 });
