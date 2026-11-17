@@ -7,7 +7,10 @@ npm install -g actql
 actql version
 ```
 
-The preview CLI targets macOS arm64 and Linux x64 with glibc. The current
+The preview CLI targets macOS arm64 and Linux x64 with **glibc 2.38 or newer**.
+Debian 13 meets the Linux requirement; Debian 12 (glibc 2.36) does not. This
+minimum comes from the bundled Local runtime, including Crypto, and applies
+even to `actql --version`. The current
 macOS qualification environment is 26; the final binary's ABI and installed
 acceptance must establish any earlier minimum. Intel Macs, Windows and musl
 are outside this release. Public APIs, command syntax, and
@@ -19,6 +22,9 @@ Node 22.22.0 or newer starts the launcher; the executable itself is Node-free.
 There is no install-time download, compiler or fallback engine. Keep optional
 dependencies enabled so npm installs the matching binary package. Exact source,
 binary digests and platform requirements belong to the fixed release manifest.
+Installation intentionally has no platform-check lifecycle script: npm can
+finish installing on an older glibc, but the launcher refuses execution with
+exit 64. Installation success does not establish runtime compatibility.
 
 ## Local projects and Remote Hosts
 

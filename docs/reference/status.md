@@ -45,6 +45,20 @@ The ceilings every Program runs under are on [Runtime limits](limits.md).
 "Node" is the `@actql/node` package; "Python" is the `actql` package. The
 CLI column covers the native `actql` command.
 
+## Native CLI platforms
+
+| Platform | Packaged runtime requirement | Distribution examples and qualification |
+| --- | --- | --- |
+| Linux x64/glibc | glibc **2.38 or newer**, including for `actql --version`; the bundled Local Crypto raises the minimum above that of the executable alone | Debian 13 meets the minimum; Debian 12 (glibc 2.36) is unsupported. The Debian 12 refusal and Debian 13 Local workflow were observed with x64 containers emulated on an arm64 host; those observations are not native-host qualification. |
+| macOS arm64 | The current release qualification environment is macOS 26; earlier minimum support requires the final artifact ABI and installed acceptance | Intel Macs, Windows and musl Linux are outside the release. |
+
+The Native npm package intentionally has no install-time platform-check script,
+download or compiler. An install can succeed on an older glibc; execution then
+refuses with exit 64. Compatibility checks remain at the launcher, including
+when npm lifecycle scripts are disabled. The exact release manifest retains
+the artifact-specific ABI and library requirements. See the
+[CLI reference](../cli.md) and [Native package](../../packages/native-cli/README.md).
+
 ## Python backends and platforms
 
 This is the canonical implementation matrix for the Python package READMEs.

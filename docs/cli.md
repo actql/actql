@@ -13,6 +13,18 @@ npm install -g actql
 actql version
 ```
 
+The packaged CLI supports macOS arm64 and Linux x64 with **glibc 2.38+**.
+Debian 13 meets this Linux minimum; Debian 12 (glibc 2.36) does not. The bundled
+Local runtime requires it even for `actql --version`. See the
+[platform matrix](reference/status.md#native-cli-platforms) for qualification limits.
+
+Installation deliberately remains free of platform-check lifecycle scripts.
+`npm install` may succeed on an unsupported glibc; the launcher checks the
+installed artifact and runtime requirements before execution and exits 64 on
+an unsupported platform. This preserves the no-download, no-compiler install
+path and works when lifecycle scripts are disabled; successful installation is
+not a compatibility check.
+
 ## The golden path
 
 ```sh
