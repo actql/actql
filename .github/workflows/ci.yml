@@ -1409,7 +1409,7 @@ jobs:
       - name: Prepare the shared Host runtime
         id: host-runtime-preparation
         if: ${{ !cancelled() && steps.host-toolchain.outcome == 'success' }}
-        run: moon build --target js --release src/connectors_builtin_node
+        run: moon build --target js --release src/connectors_builtin_node src/checkpoint_runtime_node
       - name: Test funded Model registry, Account and REST Common boundaries
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         env:

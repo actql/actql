@@ -86,6 +86,38 @@ for (const status of [0, 73]) test(`normal provider owner ${status === 0 ? 'cont
   assert.equal(jobs['client-distribution'].steps.filter(step => step.run === 'npm run check:provider-ai-sdk').length, 1);
 });
 
+test('shared Host preparation builds its original Common and signing checkpoint entry once before consumers', t => {
+  const preparation = jobs.host.steps.find(step => step.id === 'host-runtime-preparation');
+  const directory = mkdtempSync(join(tmpdir(), 'actql-host-preparation-')), bin = join(directory, 'bin');
+  t.after(() => rmSync(directory, {recursive: true, force: true}));mkdirSync(bin);
+  const calls = join(directory, 'calls');
+  writeFileSync(join(bin, 'moon'), '#!/bin/sh\nprintf "%s\\n" "$@" >> "$CALLS"\nexit "$CHECKPOINT_STATUS"\n', {mode: 0o755});
+  for (const status of [0, 73]) {
+    writeFileSync(calls, '');
+    const result = spawnSync('/bin/bash', ['-eo', 'pipefail', '-c', preparation.run], {
+      cwd: root, encoding: 'utf8', timeout: 3000,
+      env: {...process.env, PATH: bin, CALLS: calls, CHECKPOINT_STATUS: String(status)},
+    });
+    assert.equal(result.error, undefined);assert.equal(result.signal, null);assert.equal(result.status, status);
+    const args = readFileSync(calls, 'utf8').trim().split('\n');
+    assert.equal(args.filter(value => value === 'build').length, 1);
+    assert.equal(args[args.indexOf('--target') + 1], 'js');assert(args.includes('--release'));
+    for (const entry of ['src/connectors_builtin_node', 'src/checkpoint_runtime_node'])
+      assert.equal(args.filter(value => value === entry).length, 1, entry);
+  }
+  for (const file of ['adapters/host-node/normal-openai-http.actual.test.mjs',
+    'adapters/host-node/model-task-candidate-binding.actual.test.mjs', 'scripts/ci-rest-actual-common.mjs']) {
+    const selected = jobs.host.steps.filter(step => step.run?.split(/\s+/u).includes(file));
+    assert.equal(selected.length, 1);
+    assert.notEqual(selected[0]['continue-on-error'], true);
+    const expression = selected[0].if.slice(3, -3)
+      .replace(/steps\.([a-z][a-z0-9-]*)/gu, (_, name) => `steps[${JSON.stringify(name)}]`);
+    for (const outcome of ['success', 'failure', 'cancelled', 'skipped']) for (const cancelled of [false, true])
+      assert.equal(runInNewContext(expression, {cancelled: () => cancelled,
+        steps: {'host-runtime-preparation': {outcome}}}), outcome === 'success' && !cancelled);
+  }
+});
+
 test('normal Model Host HTTP retains its single prepared Common and required SDK and FD tools', t => {
   const steps=jobs.host.steps, file='adapters/host-node/normal-openai-http.actual.test.mjs';
   const selected=steps.filter(step=>step.run?.split(/\s+/u).includes(file));
