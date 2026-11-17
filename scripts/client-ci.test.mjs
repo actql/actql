@@ -74,14 +74,55 @@ for (const status of [0, 73]) test(`normal provider owner ${status === 0 ? 'cont
   const nodeIndex = calls.indexOf('exec:node');
   const typeArguments = calls.slice(1, nodeIndex === -1 ? calls.length : nodeIndex);
   for (const required of ['--noEmit', '--strict']) assert(typeArguments.includes(required), required);
-  assert.equal(typeArguments.filter(value => value ===
-    'packages/provider-ai-sdk/original-recipe.typecheck.mts').length, 1);
+  for (const file of ['packages/provider-ai-sdk/original-recipe.typecheck.mts',
+    'packages/provider-ai-sdk/normal-entry.typecheck.mts'])
+    assert.equal(typeArguments.filter(value => value === file).length, 1, file);
   assert.equal(calls.filter(value => value === 'exec:node').length, status === 0 ? 1 : 0);
   if (status === 0) {
     assert(calls.includes('scripts/local-checks.mjs') && calls.includes('--expose-gc'));
     assert(calls.some(value => value.startsWith('packages/provider-ai-sdk/') && value.endsWith('.test.mjs')));
   }
   assert.equal(jobs['client-distribution'].steps.filter(step => step.run === 'npm run check:provider-ai-sdk').length, 1);
+});
+
+test('normal Model Host HTTP retains its single prepared Common and required SDK and FD tools', t => {
+  const steps=jobs.host.steps, file='adapters/host-node/normal-openai-http.actual.test.mjs';
+  const selected=steps.filter(step=>step.run?.split(/\s+/u).includes(file));
+  assert.equal(selected.length,1);
+  const [gate]=selected, preparation=steps.find(step=>step.id==='host-runtime-preparation');
+  assert(steps.indexOf(preparation)<steps.indexOf(gate));
+  assert.equal(gate.if,"${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
+  assert.equal(gate['continue-on-error'],undefined);
+  assert.equal(steps.filter(step=>step.run?.includes('moon build')&&step.run.includes('src/connectors_builtin_node')).length,1);
+  const args=gate.run.trim().split('\n').at(-1).trim().split(/\s+/u);
+  assert.deepEqual(args.slice(0,4),['node','scripts/local-checks.mjs','test','node']);
+  assert.equal(args.filter(value=>value===file).length,1);
+  assert(!args.includes('--test-name-pattern'),'The actual file includes every required case without a partial selector');
+  const timeout=Number(args[args.indexOf('--timeout-seconds')+1]);
+  const grace=Number(args[args.indexOf('--kill-grace-seconds')+1]);
+  assert(Number.isSafeInteger(timeout)&&timeout>0);
+  assert(Number.isSafeInteger(grace)&&grace>=0);
+  assert(timeout+grace<=jobs.host['timeout-minutes']*60,
+    'The supervised child stays within the enclosing Host job budget');
+  const directory=mkdtempSync(join(tmpdir(),'actql-normal-model-ci-')),bin=join(directory,'bin');
+  t.after(()=>rmSync(directory,{recursive:true,force:true}));mkdirSync(bin);
+  const calls=join(directory,'calls');
+  writeFileSync(join(bin,'npm'),'#!/bin/sh\nprintf "npm:%s\\n" "$*" >> "$ACTQL_CI_CALLS"\nexit "$ACTQL_CI_NPM_STATUS"\n',{mode:0o755});
+  writeFileSync(join(bin,'node'),'#!/bin/sh\nprintf "node:%s\\n" "$*" >> "$ACTQL_CI_CALLS"\n',{mode:0o755});
+  for(const [lsof,status] of [[false,0],[true,73],[true,0]]) {
+    if(lsof)writeFileSync(join(bin,'lsof'),'#!/bin/sh\nexit 0\n',{mode:0o755});
+    writeFileSync(calls,'');
+    const result=spawnSync('/bin/bash',['-eo','pipefail','-c',gate.run],{cwd:root,
+      env:{...process.env,PATH:bin,ACTQL_CI_CALLS:calls,ACTQL_CI_NPM_STATUS:String(status)},
+      encoding:'utf8',timeout:3000});
+    assert.equal(result.error,undefined);assert.equal(result.signal,null);
+    assert.equal(result.status,lsof?status:1);
+    const recorded=readFileSync(calls,'utf8').trim().split('\n').filter(Boolean);
+    assert.equal(recorded.filter(value=>value.startsWith('npm:')).length,lsof?1:0);
+    assert.equal(recorded.filter(value=>value.startsWith('node:')).length,lsof&&status===0?1:0);
+    if(lsof)assert.equal(recorded[0],'npm:ci --prefix packages/provider-ai-sdk --ignore-scripts');
+    if(lsof&&status===0)assert(recorded[1].includes(file));
+  }
 });
 
 test('Host configuration controls share the prepared original Common and Resource prerequisite', () => {
