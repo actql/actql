@@ -288,12 +288,24 @@ fn start_text_function(
     !null_result &&
     !input.is_empty() &&
     repeat_count > 0.0 {
-    // A nonempty repetition must fit the exact UTF-16 workspace and builder
-    // representation. Divide integers first so float rounding cannot admit an
-    // overflowing product. Only this resource-derived bound permits narrowing;
-    // enormous valid counts for an empty String require no count-sized work.
-    let maximum = (workspace.limit - workspace.live).min(1073741823) /
-      input.length()
+    // The measured path funds UTF-16 payload bytes on this SAME live Task
+    // before StringBuilder construction; those units are not structural
+    // entries. Keep the explicit slot guard for unfunded/foreign callers.
+    // Both paths must fit the builder representation. Divide integers first
+    // so narrowing the count cannot admit an overflowing UTF-16 product.
+    // Logical byte/work guards still apply during the complete sizing pass.
+    let units = if scope is Some(scope) &&
+      !scope.budget.failed &&
+      scope.budget.growth is Some(growth) &&
+      workspace.growth is Some(same) &&
+      physical_equal(growth, same) &&
+      !growth.failed &&
+      !growth.busy {
+      1073741823
+    } else {
+      (workspace.limit - workspace.live).min(1073741823)
+    }
+    let maximum = units / input.length()
     if repeat_count > maximum.to_double() {
       return Err({ kind: WorkspaceLimit, expression, })
     }
