@@ -669,6 +669,13 @@ Dynamic limits retain their ordinary Number domain checks on demanded rows.
 Both children are demanded before NULL propagation, while an enclosing lazy
 conditional or coalesce keeps its existing row mask and first-failure order.
 
+Ordinary `ARRAY_AGG` and `STRING_AGG` require aggregate-local `ORDER BY`.
+Omitting it produces a syntax refusal naming that requirement; an analytic
+call instead obtains its order from the existing `OVER` profile. `ARRAY_AGG`
+accepts an optional `IGNORE NULLS` modifier before its filter and order. Both
+spellings use Common's existing NULL exclusion, candidate-key, item-limit and
+output rules; omission does not select GoogleSQL's NULL-retaining behavior.
+
 For `ARRAY_AGG` and `STRING_AGG` with DISTINCT and aggregate-local ORDER BY,
 each ordering expression must denote the aggregate argument in the same input
 scope. This follows the selected [GoogleSQL aggregate-call rule](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/aggregate-function-calls).

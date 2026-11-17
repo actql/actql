@@ -59,6 +59,18 @@ when npm lifecycle scripts are disabled. The exact release manifest retains
 the artifact-specific ABI and library requirements. See the
 [CLI reference](../cli.md) and [Native package](../../packages/native-cli/README.md).
 
+## SQL collection profile
+
+The collection syntax follows the [compatibility profile](sql-compatibility.md):
+explicit local order, existing NULL exclusion, and a candidate-key witness for
+`ARRAY_AGG`. `IGNORE NULLS` is optional syntax, not a switch to another NULL
+policy. Keyed scalar and grouped calls have focused Common compiler/execution
+coverage. This does not establish acceptance of an unkeyed literal-CTE query,
+or new ordinary installed-package acceptance on every environment. The ordered
+unkeyed form retains `UnresolvedOrder`; the unordered form retains its named
+syntax refusal. Final-candidate public Result and cause propagation must be
+qualified separately from these component checks.
+
 ## Python backends and platforms
 
 This is the canonical implementation matrix for the Python package READMEs.
