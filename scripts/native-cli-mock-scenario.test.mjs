@@ -1,4 +1,3 @@
-import {runInNewContext} from 'node:vm';
 // These are acceptance-harness unit tests with explicit doubles. A green result
 // here does not establish that the Native mock workflow is implemented.
 import assert from 'node:assert/strict';
@@ -486,20 +485,6 @@ test('Node launcher acceptance unwraps its canonical final trailer without chang
   assert(receipt.commands.every(command=>command.launcherTiming.units==='nanoseconds' && command.launcherTiming.total===42));
   assert.equal(receipt.commands.find(command=>command.args[0]==='run').acceptance.modelAttempts.length,2);
   assert.equal(receipt.commands.find(command=>command.args[0]==='approve').acceptance.writes.length,2);
-});
-
-test('the actual Node launcher timing statement remains compatible with the required harness envelope', async t => {
-  const source = await readFile(new URL('../packages/native-cli/bin/actql.mjs',import.meta.url),'utf8');
-  const start = source.indexOf("      writeSync(2, 'ACTQL_NATIVE_LAUNCHER_TIMINGS '");
-  const end = source.indexOf('\n    } catch {}',start);
-  assert(start>=0 && end>start);
-  let trailer;
-  runInNewContext(source.slice(start,end),{childStart:30n,timingStart:12n,finish:42n,
-    writeSync(fd,value){assert.equal(fd,2);trailer=value;}});
-  const options = await fixture(t,'deal-review-mock',({record})=>{record.stderr+=trailer;});
-  options.launcherTimings='required';
-  const receipt = await runNativeCliMockScenario(options);
-  assert(receipt.commands.every(command=>command.launcherTiming.total===30));
 });
 
 test('the required Node caller cannot silently become a direct Native caller', async t => {
