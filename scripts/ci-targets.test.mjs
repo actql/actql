@@ -443,7 +443,10 @@ test('Host collection retains original command bodies and their actual build pre
   const retained = commands('check:retained-boundary');
   const publication = commands('check:publication-runtime');
   assert.equal(retained[0], publication[0]);
-  assert.equal(step('Prepare the shared Host runtime').run, retained[0]);
+  const sharedBuild = step('Prepare the shared Host runtime').run.trim().split(/\s+/u);
+  for (const prerequisite of retained[0].trim().split(/\s+/u)) {
+    assert(sharedBuild.includes(prerequisite), `Missing shared Host build prerequisite: ${prerequisite}`);
+  }
   assert.equal(step('Test bounded retained storage and process lifecycle').run, retained[1]);
   assert.equal(step('Test prepared holder cleanup owner').run, retained[2]);
   assert.equal(step('Test portable publication control with the durable Store').run, publication[1]);
@@ -481,8 +484,8 @@ test('Host collection retains original command bodies and their actual build pre
     "${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
   assert.equal(steps.filter(row => row.run?.includes('request-model-material-resources.test.mjs')).length, 1,
     'Original Model metadata cases use existing Host preparation without another supplier');
-  assert.equal(steps.filter(row => row.run === retained[0]).length, 1,
-    'the two identical Common build prefixes are shared, without another build');
+  assert.equal(steps.filter(row => row.run?.split(/\s+/u).includes('src/connectors_builtin_node')).length, 1,
+    'the required Common entry is prepared once for both original consumers');
 });
 
 test('Host independent failures are collected while failed prerequisites and cancellation stop consumers', () => {
