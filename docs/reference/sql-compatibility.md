@@ -131,6 +131,9 @@ Timestamp casts require a valid canonical UTC value with `T`, a trailing `Z`
 and 3–9 fractional digits. For example, `2026-01-02T03:04:05.123Z` and
 `2026-01-02T03:04:05.123456789Z` are valid. Zero fractional digits, spaces,
 offset suffixes and surrounding whitespace are refused rather than normalized.
+An admitted program can fail when its runtime text is converted: this boundary
+reports `evaluation.timestamp_canonical_required`, rather than treating the
+canonical-form failure as a generic operand failure.
 
 Timestamp pattern functions require the text-time profile. Their existing
 grammar uses `yyyy`, `MM`, `dd`, `HH`, `mm`, `ss` and `SSS`, each at most once;

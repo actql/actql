@@ -159,3 +159,12 @@ Selected Filter tests exercise counted reclamation of an actual stopped,
 unpublished output and unchanged work/source availability. Provider and typed
 bridge tests retain the original continuation and exact resource constructor.
 These checks do not establish normal first-close or post-refusal recovery.
+
+## Canonical Timestamp conversion
+
+The original Common Text-to-Timestamp CAST failure projects the closed cause
+`evaluation.timestamp_canonical_required`. Its conversion owns canonical UTC
+spelling and calendar validation; the Host does not reinterpret the authored SQL
+or parse an exception message. A generic operand failure stays generic, and
+foreign or copied Host errors do not become an original typed cause. This adds
+no public Problem field, phase transition, value text, or resource quantity.
