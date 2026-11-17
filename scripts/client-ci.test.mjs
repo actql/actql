@@ -83,6 +83,31 @@ for (const status of [0, 73]) test(`normal provider owner ${status === 0 ? 'cont
   assert.equal(jobs['client-distribution'].steps.filter(step => step.run === 'npm run check:provider-ai-sdk').length, 1);
 });
 
+test('Host configuration controls share the prepared original Common and Resource prerequisite', () => {
+  const host = jobs.host, steps = host.steps;
+  const preparation = steps.find(step => step.id === 'host-runtime-preparation');
+  const selected = steps.filter(step => step.run?.split(/\s+/u)
+    .includes('adapters/host-node/model-task-candidate-binding.actual.test.mjs'));
+  assert.equal(selected.length, 1);
+  const [gate] = selected, args = gate.run.split(/\s+/u);
+  for (const file of ['adapters/host-node/installed-project-model-task-funding.actual.test.mjs',
+    'adapters/host-node/account-construction.test.mjs',
+    'adapters/host-node/installed-model-configuration.test.mjs',
+    'adapters/host-node/model-task-candidate-binding.actual.test.mjs']) {
+    assert.equal(args.filter(value => value === file).length, 1, file);
+    assert.equal(steps.filter(step => step.run?.split(/\s+/u).includes(file)).length, 1, file);
+  }
+  assert(args.includes('scripts/local-checks.mjs'));
+  assert.equal(gate['continue-on-error'], undefined);
+  assert(gate.if.includes("steps.host-runtime-preparation.outcome == 'success'"));
+  assert(steps.indexOf(preparation) < steps.indexOf(gate));
+  assert.equal(steps.filter(step => step.run?.includes('moon build') &&
+    step.run.includes('src/connectors_builtin_node')).length, 1);
+  const runtime = gate.env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME;
+  assert(runtime.startsWith('${{ github.workspace }}/_build/js/release/build/'));
+  assert.equal(gate.env.ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME, runtime);
+});
+
 test('packed INFER original preparation evidence excludes opaque values getters and proxy traps', () => {
   const project = inferPreparationFailureData;
   let getterReads = 0;
