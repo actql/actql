@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,6 +20,67 @@ NATIVE = load('native_binding', ROOT / 'scripts/generate-local-native-runtime-bi
 
 
 class BindingMutationTests(unittest.TestCase):
+    def test_common_contract_preserves_existing_scalar_roles_and_borrows(self):
+        import json
+
+        contract = json.loads(WASM.render_contract())
+        exports = {entry['name']: entry for entry in contract['exports']}
+        imports = {entry['name']: entry for entry in contract['imports']}
+        self.assertEqual(contract['import_module'], 'actql_host')
+        self.assertEqual(len(exports), len(contract['exports']))
+        self.assertEqual(len(imports), len(contract['imports']))
+        fill = exports['actql_buffer_fill']
+        self.assertEqual([(p['name'], p['type']) for p in fill['parameters']],
+                         [('nonce', 'i64'), ('handle', 'i32'),
+                          ('start', 'i32'), ('count', 'i32')])
+        self.assertEqual(fill['result'], 'i32')
+        self.assertEqual(fill['source'],
+                         {'path': 'src/client_host_wasm/buffers.mbt', 'symbol': 'fill'})
+        header = imports['journal_query_header']
+        borrowed = [p for p in header['parameters']
+                    if p['name'] in ('namespace_buffer', 'key_buffer', 'header_buffer')]
+        self.assertEqual(len(borrowed), 3)
+        self.assertTrue(all(p['type'] == 'i32' and
+                            'borrowed wasm32 byte-buffer payload offset' in p['unit']
+                            for p in borrowed))
+        self.assertEqual(WASM.CONTRACT_OUTPUT.read_text(), WASM.render_contract())
+        self.assertEqual(WASM.OUTPUT.read_text(), WASM.render())
+        self.assertEqual(WASM.COMPILER_OUTPUT.read_text(), WASM.render_compiler_header())
+
+    def test_common_contract_and_c_binding_do_not_depend_on_python_projection(self):
+        with mock.patch.object(WASM, 'render', side_effect=AssertionError(
+                'A Host-independent consumer must not parse Python bindings')):
+            self.assertIn('"actql_buffer_fill"', WASM.render_contract())
+            self.assertIn('"actql_buffer_fill", "i64 i32 i32 i32", "i32"',
+                          WASM.render_compiler_header())
+
+    def test_common_contract_retains_same_width_argument_order(self):
+        import json
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for path in [ROOT / 'src/client_host_wasm/moon.pkg',
+                         *sorted((ROOT / 'src/client_host_wasm').glob('*.mbt')),
+                         ROOT / 'src/physical_resources/imported_child_ledger_wasm.mbt',
+                         ROOT / 'src/physical_resources/platform_vm_capacity_wasm.mbt']:
+                target = root / path.relative_to(ROOT)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(path.read_bytes())
+            path = root / 'src/client_host_wasm/buffers.mbt'
+            source = path.read_text()
+            original = 'pub fn fill(nonce : Int64, handle : Int, start : Int, count : Int)'
+            changed = 'pub fn fill(nonce : Int64, handle : Int, count : Int, start : Int)'
+            self.assertEqual(source.count(original), 1)
+            path.write_text(source.replace(original, changed, 1))
+            contract = json.loads(WASM.render_contract(root))
+            fill = next(entry for entry in contract['exports']
+                        if entry['name'] == 'actql_buffer_fill')
+            self.assertEqual([p['type'] for p in fill['parameters']],
+                             ['i64', 'i32', 'i32', 'i32'])
+            self.assertEqual([p['name'] for p in fill['parameters']],
+                             ['nonce', 'handle', 'count', 'start'])
+            self.assertNotEqual(WASM.render_contract(root), WASM.render_contract())
+
     def test_scalar_width_and_same_type_order_change_generated_binding(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

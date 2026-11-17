@@ -80887,7 +80887,9 @@
     },
     {
       "exports": [
+        "BORROWED_IMPORTS",
         "COMPILER_OUTPUT",
+        "CONTRACT_OUTPUT",
         "FAMILIES",
         "IMPORT",
         "OUTPUT",
@@ -80898,10 +80900,12 @@
         "annotations",
         "argparse",
         "args",
-        "ast",
         "compiler_rendered",
+        "contract_rendered",
         "declaration_source",
+        "declarations",
         "hashlib",
+        "import_parameters",
         "json",
         "package_wasm_exports",
         "parameters",
@@ -80909,13 +80913,13 @@
         "re",
         "render",
         "render_compiler_header",
+        "render_contract",
         "rendered",
         "unit"
       ],
       "imports": [
         "__future__",
         "argparse",
-        "ast",
         "hashlib",
         "json",
         "pathlib",
@@ -80924,78 +80928,104 @@
       "module": "scripts/generate-local-wasm-abi.py",
       "operations": [
         {
-          "async": false,
           "name": "declaration_source",
           "parameters": [
             "text",
             "mask_literals"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "declaration_source/hide",
           "parameters": [
             "begin",
             "end"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
+          "name": "declarations",
+          "parameters": [
+            "root"
+          ],
+          "async": false
+        },
+        {
+          "name": "import_parameters",
+          "parameters": [
+            "raw",
+            "prefix",
+            "path",
+            "local",
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "package_wasm_exports",
           "parameters": [
             "path"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "package_wasm_exports/fields",
           "parameters": [
             "end"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "package_wasm_exports/take",
           "parameters": [
             "value"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "package_wasm_exports/value",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "parameters",
           "parameters": [
-            "raw"
-          ]
+            "raw",
+            "borrowed"
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "render",
           "parameters": [
             "root"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "render_compiler_header",
           "parameters": [
             "root"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
+          "name": "render_contract",
+          "parameters": [
+            "root"
+          ],
+          "async": false
+        },
+        {
           "name": "unit",
           "parameters": [
             "symbol",
             "name"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "a5d68393e45da8fff7e97d556a2ef3657ef49921d620960f84de26f42ee5c4b8",
+      "sha256": "fb8fa5c1349450854467b0654f4d142d5a54b21a4e71abfd4421c91e0686bbf9",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Local Core scalar generator and physical diagnostic fixture owners",
@@ -81006,6 +81036,8 @@
             "<module>",
             "declaration_source",
             "declaration_source/hide",
+            "declarations",
+            "import_parameters",
             "package_wasm_exports",
             "package_wasm_exports/fields",
             "package_wasm_exports/take",
@@ -81013,10 +81045,13 @@
             "parameters",
             "render",
             "render_compiler_header",
+            "render_contract",
             "unit"
           ],
           "exports": [
+            "BORROWED_IMPORTS",
             "COMPILER_OUTPUT",
+            "CONTRACT_OUTPUT",
             "FAMILIES",
             "IMPORT",
             "OUTPUT",
@@ -81027,10 +81062,12 @@
             "annotations",
             "argparse",
             "args",
-            "ast",
             "compiler_rendered",
+            "contract_rendered",
             "declaration_source",
+            "declarations",
             "hashlib",
+            "import_parameters",
             "json",
             "package_wasm_exports",
             "parameters",
@@ -81038,6 +81075,7 @@
             "re",
             "render",
             "render_compiler_header",
+            "render_contract",
             "rendered",
             "unit"
           ],
@@ -81050,6 +81088,10 @@
               {
                 "path": "scripts/generate-local-wasm-abi.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Declaration authority and language projections"
               }
             ],
             "inputsOutputs": [
@@ -81060,6 +81102,10 @@
               {
                 "path": "scripts/generate-local-wasm-abi.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Declaration authority and language projections"
               }
             ],
             "identity": [
@@ -81070,6 +81116,10 @@
               {
                 "path": "scripts/generate-local-wasm-abi.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Declaration authority and language projections"
               }
             ],
             "ownership": [
@@ -81080,6 +81130,10 @@
               {
                 "path": "scripts/generate-local-wasm-abi.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Declaration authority and language projections"
               }
             ],
             "synchronization": [
@@ -81090,6 +81144,10 @@
               {
                 "path": "scripts/generate-local-wasm-abi.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Declaration authority and language projections"
               }
             ],
             "failure": [
@@ -81100,6 +81158,10 @@
               {
                 "path": "scripts/generate-local-wasm-abi.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Declaration authority and language projections"
               }
             ],
             "cancellation": [
@@ -81110,6 +81172,10 @@
               {
                 "path": "scripts/generate-local-wasm-abi.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Declaration authority and language projections"
               }
             ],
             "resources": [
@@ -81120,6 +81186,10 @@
               {
                 "path": "scripts/generate-local-wasm-abi.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Declaration authority and language projections"
               }
             ],
             "extension": [
@@ -81130,6 +81200,10 @@
               {
                 "path": "scripts/generate-local-wasm-abi.py",
                 "anchor": "def render("
+              },
+              {
+                "path": "docs/design/common-wasm-abi.md",
+                "anchor": "## Declaration authority and language projections"
               }
             ],
             "verification": [
@@ -81140,6 +81214,10 @@
               {
                 "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
                 "anchor": "test \"platform VM capacity binds exact original Root"
+              },
+              {
+                "path": "scripts/test_local_abi_generation.py",
+                "anchor": "def test_common_contract_preserves_existing_scalar_roles_and_borrows("
               }
             ]
           }
