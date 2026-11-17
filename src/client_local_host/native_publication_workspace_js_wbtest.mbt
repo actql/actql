@@ -980,6 +980,15 @@ fn native_publication_read_funding_component(
     metadata_nodes += nodes
   }
   assert_true(metadata_nodes > 6 && metadata_nodes != rows)
+  // Cover every nominal contract occurrence in the explicit observer
+  // workspace, including captured metadata. This structural allowance is
+  // independent of the SAME Read's unchanged retained/execution budgets.
+  let (_, captured_nodes, _) = @publication.publication_contract_wire_usage(
+    recorded,
+  ).unwrap()
+  let visitor_workspace = @publication.publication_evidence_workspace(
+    metadata_nodes + captured_nodes,
+  )
   let old_quotes = (
     capture.publication.retained_quote,
     capture.publication.execution_quote,
@@ -1064,6 +1073,11 @@ fn native_publication_read_funding_component(
     }
     Ok(())
   }
+  let same_consumer_owner = Ref(false)
+  let same_consumer_checker = Ref(false)
+  let reentrant_consumer_refused = Ref(false)
+  let consumer_view_count = Ref(0)
+  let consumer_view_released = Ref(false)
   let checked = if mode >= 5 {
     let result = with_program_commit_validation_view_in_read(
       capture,
@@ -1081,7 +1095,7 @@ fn native_publication_read_funding_component(
       request,
       attempt,
       index,
-      16,
+      visitor_workspace,
       if mode == 9 {
         1
       } else {
@@ -1095,21 +1109,20 @@ fn native_publication_read_funding_component(
       fund,
       fn(owner, checker) {
         visited.val += 1
-        assert_true(
-          capture.validation is Some(original) &&
-          physical_equal(original, owner),
-        )
-        assert_true(
-          borrow_program_commit_validation(owner) is Some(original) &&
-          physical_equal(original, checker),
-        )
-        assert_true(
-          new_program_validation(capture, true) is Err(Owner(WrongPhase)),
-        )
-        let view = checker.finish_view().unwrap()
+        same_consumer_owner.val = capture.validation is Some(original) &&
+          physical_equal(original, owner)
+        same_consumer_checker.val = borrow_program_commit_validation(owner)
+          is Some(original) &&
+          physical_equal(original, checker)
+        reentrant_consumer_refused.val = new_program_validation(capture, true)
+          is Err(Owner(WrongPhase))
+        let view = match checker.finish_view() {
+          Ok(value) => value
+          Err(_) => return Err("consumer-view-unavailable")
+        }
         escaped.val = Some((checker, view))
-        assert_true(checker.view_count(view).unwrap() > 0)
-        checker.release_view(view).unwrap()
+        consumer_view_count.val = checker.view_count(view).unwrap_or(0)
+        consumer_view_released.val = checker.release_view(view) is Ok(_)
         if mode == 6 || mode == 7 {
           read_current.val = false
         }
@@ -1122,7 +1135,7 @@ fn native_publication_read_funding_component(
     )
     match mode {
       5 => {
-        assert_eq(result.unwrap().unwrap().unwrap(), 17)
+        assert_true(result is Ok(Some(Ok(17))))
         assert_eq(visited.val, 1)
       }
       6 => {
@@ -1130,7 +1143,7 @@ fn native_publication_read_funding_component(
         assert_eq(visited.val, 1)
       }
       7 => {
-        assert_eq(result.unwrap().unwrap(), Err("original-consumer-error"))
+        assert_true(result is Ok(Some(Err("original-consumer-error"))))
         assert_eq(visited.val, 1)
       }
       8 => {
@@ -1144,6 +1157,13 @@ fn native_publication_read_funding_component(
         assert_eq(visited.val, 0)
       }
       _ => fail("unknown actual Read visitor case")
+    }
+    if visited.val > 0 {
+      assert_true(same_consumer_owner.val)
+      assert_true(same_consumer_checker.val)
+      assert_true(reentrant_consumer_refused.val)
+      assert_true(consumer_view_count.val > 0)
+      assert_true(consumer_view_released.val)
     }
     if escaped.val is Some((checker, view)) {
       assert_true(checker.view_count(view) is Err(_))
