@@ -16,7 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('crypto_producer', ROOT / 'scripts/produce-native-crypto-component.py')
 P = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(P)
-MODES = ('bounded-search', 'split-merge-membership', 'partial')
+MODES = ('bounded-search', 'split-merge-membership', 'partial', 'callback-current',
+         'callback-invalid-interior', 'callback-invalid-protected')
 
 
 def check(args: argparse.Namespace) -> int:
@@ -125,7 +126,8 @@ def check(args: argparse.Namespace) -> int:
         common = [str(args.clang), '-std=c11', '-O2', '-Wall', '-Wextra', '-Werror', *dict.fromkeys(flags),
                   '-I' + str(derived), *['-I' + str(path) for path in includes]]
         provider = args.output / 'provider.o'
-        prepare([*common, *([] if linux else ['-D_DARWIN_C_SOURCE']), '-c', str(derived / 'owned_capacity.c'),
+        prepare([*common, '-Dgetpid=actql_crypto_fixture_getpid',
+                 *([] if linux else ['-D_DARWIN_C_SOURCE']), '-c', str(derived / 'owned_capacity.c'),
                  '-o', str(provider)], 'compile-provider')
         binary = args.output / 'allocator-conformance'
         prepare([*common, str(P.SOURCE / 'fixtures/allocator_conformance.c'), str(provider),
@@ -141,13 +143,18 @@ def check(args: argparse.Namespace) -> int:
             rows = [json.loads(line) for line in result.stdout.splitlines() if line.startswith('{')]
             selected = [row for row in rows if row.get('case') == mode]
             passed = result.returncode == 0 and len(selected) == 1 and selected[0].get('passed') is True
-            passed = passed and selected[0].get('original_cleanup') is True
+            if mode.startswith('callback-invalid-'):
+                passed = passed and selected[0].get('original_cleanup') is False
+                passed = passed and selected[0].get('failure_custody') is True
+                passed = passed and selected[0].get('physical_stop') == 'process-exit-required'
+            else:
+                passed = passed and selected[0].get('original_cleanup') is True
             report['cases'].append({'case': mode, 'passed': passed, 'observations': rows})
             save()
         P.verify_original_inputs(inputs)
         if subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() != source:
             raise ValueError('Allocator Source changed')
-        report['passed'] = len(report['cases']) == 3 and all(case['passed'] for case in report['cases'])
+        report['passed'] = len(report['cases']) == len(MODES) and all(case['passed'] for case in report['cases'])
         return 0 if report['passed'] else 1
     except Exception as error:
         report['error'] = str(error)
