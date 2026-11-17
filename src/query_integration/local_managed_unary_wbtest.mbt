@@ -1000,15 +1000,9 @@ fn assert_captured_keyed_count_chain_budget(
         )
       })
       .unwrap()
-    // The independent transient peak remains fourteen cursor-root slots.
-    // Keep the original exact/one-byte-short physical test, now for the
-    // combined cumulative DATA and missing workspace, not slots alone.
-    let workspace = @execution.execution_capacity_inventory_add(
-      0L,
-      @execution.CursorRootSlots,
-      (14 - max_entries).to_int64(),
-      1,
-    ).unwrap()
+    // The fourteen cursor-root slots are already prepaid by the admitted
+    // explicit workspace limit. Physical headroom cannot enlarge that limit.
+    assert_eq(max_entries, 14)
     // This all-bounded chain no longer prepays the generic live-value region.
     // The n > 0 predicate coholds the one-byte numeric operands, then
     // releases both before retaining the four-byte true result (both n=1).
@@ -1032,12 +1026,8 @@ fn assert_captured_keyed_count_chain_budget(
       })
       .unwrap()
     let required = @execution.checked_preparation_add_product(
-        persistent, workspace, 1L,
-      )
-      .bind(bytes => {
-        @execution.checked_preparation_add_product(bytes, logical, 1L)
-      })
-      .unwrap()
+      persistent, logical, 1L,
+    ).unwrap()
     let headroom = required - (if expected == "workspace" { 1L } else { 0L })
     let available = @resources.ledger_limits(ledger).execution_bytes -
       @resources.ledger_usage(ledger).reserved_execution_bytes
@@ -1067,7 +1057,10 @@ fn assert_captured_keyed_count_chain_budget(
           @local_driver.Configuration(
             @connector.Execution(@execution.Rows(_, @execution.RowLimit))
           )
-        ) => fail("prepaid workspace is not the task's physical growth limit")
+        ) => {
+          assert_eq(expected, "entries")
+          rejected = true
+        }
         Err(
           @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit))
         ) => rejected = expected == "workspace"
@@ -1136,6 +1129,21 @@ fn assert_captured_keyed_count_chain_budget(
           )
         ),
       )
+    } else if expected == "entries" {
+      for
+        refusal in [
+          (operations.advance)(1).map(fn(_) { () }),
+          (operations.execute)(),
+        ] {
+        assert_true(
+          refusal
+          is Err(
+            @local_driver.Configuration(
+              @connector.Execution(@execution.Rows(_, @execution.RowLimit))
+            )
+          ),
+        )
+      }
     } else if expected == "workspace" {
       for
         refusal in [
@@ -1196,26 +1204,43 @@ test "ordinary keyed count chain admits exact work and one-short limits" {
 }
 
 ///|
-test "ordinary keyed count chain grows prepaid workspace and preserves one-short physical limits" {
+test "ordinary keyed count chain enforces explicit workspace and one-short physical limits" {
   // COUNT holds eight metadata slots plus four sort slots for two rows.
   // Filter peaks at six metadata slots, two roots, two snapshot cells,
   // two output cells and two checked cells: 14. Select stays below this peak.
   // Retain this workspace fixture's original work allowance unchanged.
-  assert_captured_keyed_count_chain_budget(199, "complete", max_entries=14)
-  assert_captured_keyed_count_chain_budget(199, "complete", max_entries=13)
-  assert_captured_keyed_count_chain_budget(199, "complete", max_entries=12)
-  assert_captured_keyed_count_chain_budget(
-    199,
-    "workspace_exact",
-    max_entries=13,
-  )
-  assert_captured_keyed_count_chain_budget(199, "workspace", max_entries=13)
-  assert_captured_keyed_count_chain_budget(
-    199,
-    "workspace_exact",
-    max_entries=12,
-  )
-  assert_captured_keyed_count_chain_budget(199, "workspace", max_entries=12)
+  for quantum in [1, 7, 256] {
+    assert_captured_keyed_count_chain_budget(
+      199,
+      "complete",
+      max_entries=14,
+      quantum~,
+    )
+    assert_captured_keyed_count_chain_budget(
+      199,
+      "entries",
+      max_entries=13,
+      quantum~,
+    )
+    assert_captured_keyed_count_chain_budget(
+      199,
+      "entries",
+      max_entries=12,
+      quantum~,
+    )
+    assert_captured_keyed_count_chain_budget(
+      199,
+      "workspace_exact",
+      max_entries=14,
+      quantum~,
+    )
+    assert_captured_keyed_count_chain_budget(
+      199,
+      "workspace",
+      max_entries=14,
+      quantum~,
+    )
+  }
 }
 
 ///|
