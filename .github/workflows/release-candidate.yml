@@ -1,0 +1,812 @@
+name: Release candidate
+
+# Candidate construction and consumption only. Registry writes and release
+# promotion are separate owner actions over the retained exact artifacts.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: release-candidate-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  source:
+    if: ${{ startsWith(github.head_ref, 'release/') || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - name: Fix the immutable candidate source
+        id: source
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EVENT_SHA: ${{ github.sha }}
+        run: |
+          if ! [[ "$CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            echo 'Missing exact candidate source' >&2
+            exit 1
+          fi
+          printf 'sha=%s\n' "$CANDIDATE_SHA" >> "$GITHUB_OUTPUT"
+          python3 - <<'PY'
+          import json, os, pathlib
+          value = {"sourceSha": os.environ["CANDIDATE_SHA"], "eventSha": os.environ["EVENT_SHA"],
+                   "repository": os.environ["GITHUB_REPOSITORY"], "event": os.environ["GITHUB_EVENT_NAME"],
+                   "runId": os.environ["GITHUB_RUN_ID"], "runAttempt": os.environ["GITHUB_RUN_ATTEMPT"]}
+          pathlib.Path(os.environ["RUNNER_TEMP"], "release-source.json").write_text(json.dumps(value, indent=2) + "\n")
+          PY
+      - name: Retain the original candidate identity
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-source-${{ steps.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-source.json
+          if-no-files-found: error
+          retention-days: 14
+
+  node-native:
+    needs: [source]
+    name: Node native input (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            runner: ubuntu-24.04
+            platform: linux
+            arch: x64
+            binary: local-files-linux-x64.node
+          - target: darwin-arm64
+            runner: macos-26
+            platform: darwin
+            arch: arm64
+            binary: directory-darwin-arm64.node
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.22.0'
+          cache: npm
+      - run: npm ci
+      - name: Require the selected actual platform and source
+        env:
+          CANDIDATE_SHA: ${{ needs.source.outputs.sha }}
+          EXPECTED_PLATFORM: ${{ matrix.platform }}
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          node --input-type=module - <<'JS'
+          import assert from 'node:assert/strict';
+          assert.equal(process.versions.node, '22.22.0');
+          assert.equal(process.platform, process.env.EXPECTED_PLATFORM);
+          assert.equal(process.arch, process.env.EXPECTED_ARCH);
+          JS
+      - name: Build and export the original single-platform NAPI input
+        id: native
+        run: |
+          node scripts/build-node-directory-native.mjs
+          node scripts/build-node-directory-native.mjs --export "$RUNNER_TEMP/node-native-input"
+      - name: Retain all three original native input files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: node-native-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.target }}
+          path: |
+            ${{ runner.temp }}/node-native-input/native-input.json
+            ${{ runner.temp }}/node-native-input/directory-original.json
+            ${{ runner.temp }}/node-native-input/${{ matrix.binary }}
+          if-no-files-found: error
+          retention-days: 14
+
+  node-packages:
+    needs: [source, node-native]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      artifact-id: ${{ steps.artifact.outputs.artifact-id }}
+      artifact-digest: ${{ steps.artifact.outputs.artifact-digest }}
+      manifest-sha256: ${{ steps.release.outputs.manifest-sha256 }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+      - name: Download the exact same-run Darwin input
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: node-native-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-darwin-arm64
+          path: ${{ runner.temp }}/node-native-inputs/darwin
+      - name: Download the exact same-run Linux input
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: node-native-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-linux-x64
+          path: ${{ runner.temp }}/node-native-inputs/linux
+      - name: Pin both explicit native input manifests
+        env:
+          CANDIDATE_SHA: ${{ needs.source.outputs.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          node --input-type=module - <<'JS'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {readFileSync, writeFileSync, appendFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const cohort = JSON.parse(readFileSync('release/client-cohort.json'));
+          assert.equal(cohort.packageVersion, '0.0.2'); assert.equal(cohort.tag, 'latest');
+          const root = join(process.env.RUNNER_TEMP, 'node-native-inputs');
+          const inputs = ['darwin/native-input.json', 'linux/native-input.json'].map(path => {
+            const bytes = readFileSync(join(root, path)), value = JSON.parse(bytes);
+            assert.equal(value.source.revision, process.env.CANDIDATE_SHA);
+            assert.equal(value.source.packageVersion, '0.0.2');
+            return {path, sha256: createHash('sha256').update(bytes).digest('hex')};
+          });
+          const bytes = Buffer.from(JSON.stringify({version: 'actql-node-directory-native-selection/0.1', inputs}, null, 2) + '\n');
+          const selection = join(root, 'selection.json'); writeFileSync(selection, bytes, {flag: 'wx'});
+          appendFileSync(process.env.GITHUB_ENV, `ACTQL_NODE_DIRECTORY_NATIVE_INPUTS=${selection}\n` +
+            `ACTQL_NODE_DIRECTORY_NATIVE_INPUTS_SHA256=${createHash('sha256').update(bytes).digest('hex')}\n`);
+          JS
+      - name: Pack one ordinary combined Node cohort with normal lifecycle
+        run: |
+          node scripts/packed-client-packages.mjs "$RUNNER_TEMP/release-normal-node"
+          printf 'ACTQL_PACKED_CLIENT_PACKAGES=%s\n' "$RUNNER_TEMP/release-normal-node" >> "$GITHUB_ENV"
+      - name: Prepare and verify the fixed four public release archives
+        id: release
+        run: |
+          node scripts/package-release.mjs prepare "$RUNNER_TEMP/node-release-rc" release/0.0.2/node-cohort.json
+          node scripts/package-release.mjs verify "$RUNNER_TEMP/node-release-rc"
+          node --input-type=module - <<'JS'
+          import {createHash} from 'node:crypto';
+          import {readFileSync, appendFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const bytes = readFileSync(join(process.env.RUNNER_TEMP, 'node-release-rc/release.json'));
+          appendFileSync(process.env.GITHUB_OUTPUT, `manifest-sha256=${createHash('sha256').update(bytes).digest('hex')}\n`);
+          JS
+      # Keep the original raw JS/compiler inputs here for the strict interface
+      # verifier. This does not repack or substitute a released runtime.
+      - name: Test the full fixed release installation on its original producer
+        run: node scripts/test-package-release-install.mjs "$RUNNER_TEMP/node-release-rc"
+      - name: Retain the same fixed release, originals and native input pins
+        id: artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: node-release-rc-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/node-release-rc/release.json
+            ${{ runner.temp }}/node-release-rc/actql-client-wire-0.0.2.tgz
+            ${{ runner.temp }}/node-release-rc/actql-sdk-0.0.2.tgz
+            ${{ runner.temp }}/node-release-rc/actql-local-node-0.0.2.tgz
+            ${{ runner.temp }}/node-release-rc/actql-node-0.0.2.tgz
+            ${{ runner.temp }}/node-release-rc/development/packed-client-packages.json
+            ${{ runner.temp }}/node-release-rc/development/actql-client-wire-0.0.0-development.tgz
+            ${{ runner.temp }}/node-release-rc/development/actql-sdk-0.0.0-development.tgz
+            ${{ runner.temp }}/node-release-rc/development/actql-local-node-0.0.0-development.tgz
+            ${{ runner.temp }}/node-release-rc/development/actql-node-0.0.0-development.tgz
+            ${{ runner.temp }}/node-release-rc/install-*.json
+            ${{ runner.temp }}/node-native-inputs/selection.json
+            ${{ runner.temp }}/node-native-inputs/darwin/native-input.json
+            ${{ runner.temp }}/node-native-inputs/darwin/directory-original.json
+            ${{ runner.temp }}/node-native-inputs/darwin/directory-darwin-arm64.node
+            ${{ runner.temp }}/node-native-inputs/linux/native-input.json
+            ${{ runner.temp }}/node-native-inputs/linux/directory-original.json
+            ${{ runner.temp }}/node-native-inputs/linux/local-files-linux-x64.node
+          if-no-files-found: error
+          retention-days: 14
+
+  node-readme:
+    needs: [source, node-packages]
+    name: Public Node consumer (${{ matrix.target }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.22.0', '24']
+        target: [linux-x64, darwin-arm64]
+        include:
+          - runner: ubuntu-24.04
+            target: linux-x64
+            platform: linux
+            arch: x64
+          - runner: macos-26
+            target: darwin-arm64
+            platform: darwin
+            arch: arm64
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Require the exact release artifact and selected actual platform
+        env:
+          CANDIDATE_SHA: ${{ needs.source.outputs.sha }}
+          ARTIFACT_ID: ${{ needs.node-packages.outputs.artifact-id }}
+          EXPECTED_PLATFORM: ${{ matrix.platform }}
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          if ! [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then exit 1; fi
+          # Keep retained functional reports under this runner's directory;
+          # no Native performance measurement uses this job.
+          printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          node --input-type=module - <<'JS'
+          import assert from 'node:assert/strict';
+          assert.equal(process.platform, process.env.EXPECTED_PLATFORM);
+          assert.equal(process.arch, process.env.EXPECTED_ARCH);
+          JS
+      - name: Download the same immutable release cohort
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.node-packages.outputs.artifact-id }}
+          path: ${{ runner.temp }}/node-release-input
+          merge-multiple: true
+      - name: Bind the consumer to the original release manifest
+        env:
+          CANDIDATE_SHA: ${{ needs.source.outputs.sha }}
+          MANIFEST_SHA256: ${{ needs.node-packages.outputs.manifest-sha256 }}
+        run: |
+          node --input-type=module - <<'JS'
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          import {readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const bytes = readFileSync(join(process.env.RUNNER_TEMP, 'node-release-input/node-release-rc/release.json'));
+          assert.equal(createHash('sha256').update(bytes).digest('hex'), process.env.MANIFEST_SHA256);
+          assert.equal(JSON.parse(bytes).sourceSha, process.env.CANDIDATE_SHA);
+          JS
+      - name: Select the existing locked Table fixture interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Prepare locked physical dependencies for cold Effect restoration
+        run: |
+          python -m venv "$RUNNER_TEMP/readme-table-python"
+          "$RUNNER_TEMP/readme-table-python/bin/python" -m pip install --require-hashes -r adapters/connectors/local/iceberg/requirements.lock
+      - name: Test the original public README and File inventory lifecycles
+        env:
+          ACTQL_TABLE_PYTHON: ${{ runner.temp }}/readme-table-python/bin/python
+        run: node scripts/test-package-release-readme.mjs "$RUNNER_TEMP/node-release-input/node-release-rc" "$RUNNER_TEMP/node-readme-receipt.json"
+      - name: Preserve actual receipts, failures and original fixture observations
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: node-release-readme-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.target }}-${{ matrix.node }}
+          path: |
+            ${{ runner.temp }}/node-readme-receipt.json
+            ${{ runner.temp }}/actql-release-readme-*/raw/*
+            ${{ runner.temp }}/actql-release-readme-*/**/*.observation.json
+            ${{ runner.temp }}/actql-release-readme-*/**/*.pending.json
+            ${{ runner.temp }}/actql-release-readme-*/**/*.before-close.json
+            ${{ runner.temp }}/actql-release-readme-*/**/*.progress.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  node-check:
+    needs: [source, node-native, node-packages, node-readme]
+    if: ${{ always() && needs.source.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every selected Node producer and consumer
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          needs = json.loads(os.environ["RESULTS"])
+          failed = {name: value["result"] for name, value in needs.items() if value["result"] != "success"}
+          if failed:
+              raise SystemExit(f"Node release candidate requirements failed: {failed}")
+          PY
+
+# These jobs prepare and consume fixed bytes. They never publish or promote.
+# Hosted image references (observed 2026-11-17):
+# https://github.com/actions/runner-images/blob/main/README.md
+# https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md
+  native-production:
+    needs: [source]
+    name: Native normal producer (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64-gnu
+            runner: ubuntu-24.04
+            minutes: 50
+          - platform: darwin-arm64
+            runner: macos-26
+            minutes: 70
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ matrix.minutes }}
+    permissions:
+      contents: read
+    env:
+      NPM_TOKEN: ''
+      NODE_AUTH_TOKEN: ''
+      PYTHONDONTWRITEBYTECODE: '1'
+      SELECTED_SOURCE: ${{ needs.source.outputs.sha }}
+      SELECTED_PLATFORM: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Require exact clean selected source and version
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test "$(node --version)" = v22.22.0
+          python3 -c 'import sys; assert sys.version_info[:2] == (3, 12)'
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          assert.match(process.env.SELECTED_SOURCE, /^[a-f0-9]{40}$/u);
+          const cohort = JSON.parse(readFileSync('release/0.0.2/native-cli-cohort.json'));
+          assert.deepEqual(cohort, {packageVersion:'0.0.2',registry:'https://registry.npmjs.org/',access:'public',tag:'latest'});
+          NODE
+      - name: Install the selected normal Linux compiler
+        if: matrix.platform == 'linux-x64-gnu'
+        timeout-minutes: 5
+        shell: bash
+        run: bash scripts/ci-install-linux-clang.sh
+      - name: Select actual macOS 26 ARM CLT compiler and SDK without fallback
+        if: matrix.platform == 'darwin-arm64'
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          test "$(uname -s)" = Darwin
+          test "$(uname -m)" = arm64
+          test "$(sw_vers -productVersion | cut -d. -f1)" = 26
+          # The official macos-26 ARM image includes this CLT installation.
+          # Refuse absence; never select/install another Xcode, clang or SDK.
+          test -d /Library/Developer/CommandLineTools
+          test -x /Library/Developer/CommandLineTools/usr/bin/clang
+          test -x /Library/Developer/CommandLineTools/usr/bin/ar
+          /usr/sbin/pkgutil --pkg-info com.apple.pkg.CLTools_Executables
+          export DEVELOPER_DIR=/Library/Developer/CommandLineTools
+          clang="$(python3 -c 'import os,subprocess; print(os.path.realpath(subprocess.check_output(["xcrun","--find","clang"],text=True).strip()))')"
+          sdk="$(python3 -c 'import os,subprocess; print(os.path.realpath(subprocess.check_output(["xcrun","--show-sdk-path"],text=True).strip()))')"
+          test "$clang" = "$(python3 -c 'import os; print(os.path.realpath("/Library/Developer/CommandLineTools/usr/bin/clang"))')"
+          case "$clang" in /Library/Developer/CommandLineTools/*) ;; *) exit 1 ;; esac
+          case "$sdk" in /Library/Developer/CommandLineTools/*) ;; *) exit 1 ;; esac
+          test -f "$sdk/SDKSettings.json"
+          "$clang" --version
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+          echo "SELECTED_DARWIN_CLANG=$clang" >> "$GITHUB_ENV"
+          echo "SELECTED_DARWIN_SDK=$sdk" >> "$GITHUB_ENV"
+      - name: Install existing component-owner Python dependencies
+        timeout-minutes: 5
+        shell: bash
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
+      - name: Retain the original official archives with exact byte and SHA256 pins
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, time, urllib.error, urllib.request
+          platform = os.environ['SELECTED_PLATFORM']
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / ('native-release-' + platform)
+          inputs = root / 'inputs'
+          inputs.mkdir(parents=True, exist_ok=False)
+          sqlite = json.loads(pathlib.Path('packages/python-local-runtime/native/sqlite-component/source.json').read_text())['upstream']
+          crypto = json.loads(pathlib.Path('packages/python-local-runtime/native/crypto-component/source.json').read_text())
+          assert (sqlite['url'], sqlite['bytes'], sqlite['sha256']) == (
+              'https://www.sqlite.org/2025/sqlite-amalgamation-3510000.zip', 2874746,
+              '1caf7116f2910600d04473ad69d37ec538fa62fa36adccd37b5e0e43647c98be')
+          if platform == 'linux-x64-gnu':
+              target = crypto['source_targets']['x86_64-unknown-linux-gnu']
+              selected = [('sqlite.zip', sqlite), ('libssl-dev.deb', target['package']), ('libssl3t64.deb', target['license']['package'])]
+              assert (selected[1][1]['bytes'], selected[1][1]['sha256']) == (2408684, '2b4734df0475e305ac03abb0a2cc5659651ed37ef02d967a1c4033a154cf714b')
+              assert (selected[2][1]['bytes'], selected[2][1]['sha256']) == (1945300, '219f43b1cd836a4da550938db5fda93160d269d39a4edcf1f1ce698a470db797')
+              assert all(item['url'].startswith('https://security.ubuntu.com/ubuntu/pool/main/o/openssl/') for _, item in selected[1:])
+          else:
+              assert platform == 'darwin-arm64'
+              openssl = crypto['upstream']
+              assert (openssl['url'], openssl['bytes'], openssl['sha256']) == (
+                  'https://github.com/openssl/openssl/releases/download/openssl-3.6.2/openssl-3.6.2.tar.gz',
+                  54913556, 'aaf51a1fe064384f811daeaeb4ec4dce7340ec8bd893027eee676af31e83a04f')
+              selected = [('sqlite.zip', sqlite), ('openssl-3.6.2.tar.gz', openssl)]
+          observed = []
+          for name, original in selected:
+              assert 0 < original['bytes'] <= 128 * 1024 * 1024
+              deadline = time.monotonic() + 60
+              for attempt in range(3):
+                  remaining = deadline - time.monotonic()
+                  assert remaining > 0, 'Original component download budget exhausted'
+                  try:
+                      with urllib.request.urlopen(original['url'], timeout=remaining) as response:
+                          data = response.read(original['bytes'] + 1)
+                      break
+                  except (urllib.error.URLError, ConnectionResetError, TimeoutError) as error:
+                      reason = error.reason if isinstance(error, urllib.error.URLError) else error
+                      delay = attempt + 1
+                      if (isinstance(error, urllib.error.HTTPError) or not isinstance(reason, (ConnectionResetError, TimeoutError))
+                              or attempt == 2 or delay >= deadline - time.monotonic()):
+                          raise
+                      time.sleep(delay)
+              assert len(data) == original['bytes'] and hashlib.sha256(data).hexdigest() == original['sha256']
+              with (inputs / name).open('xb') as stream:
+                  stream.write(data)
+              observed.append({'file': name, 'url': original['url'], 'bytes': len(data), 'sha256': original['sha256']})
+          host = {'source': os.environ['SELECTED_SOURCE'], 'platform': platform, 'packageVersion': '0.0.2',
+                  'runId': os.environ['GITHUB_RUN_ID'], 'attempt': os.environ['GITHUB_RUN_ATTEMPT'], 'inputs': observed}
+          if platform == 'darwin-arm64':
+              host['observedHostProductVersion'] = subprocess.check_output(['sw_vers','-productVersion'], text=True).strip()
+              host['compiler'] = os.environ['SELECTED_DARWIN_CLANG']
+              host['sdk'] = os.environ['SELECTED_DARWIN_SDK']
+              host['sdkSettingsSha256'] = hashlib.sha256((pathlib.Path(host['sdk']) / 'SDKSettings.json').read_bytes()).hexdigest()
+              host['qualification'] = 'macOS 26 ARM producer host; installed acceptance is separate; binary ABI is recorded, not relabelled'
+          (root / 'input-identities.json').write_text(json.dumps(host, indent=2) + '\n')
+          PY
+      - name: Produce the exact normal Linux Local artifact with compiled 0.0.2
+        if: matrix.platform == 'linux-x64-gnu'
+        timeout-minutes: 40
+        shell: bash
+        run: |
+          test "$(node -p 'process.platform+"/"+process.arch')" = linux/x64
+          test -x /usr/bin/clang-19
+          node scripts/produce-native-cli-linux-local.mjs \
+            --source "$SELECTED_SOURCE" --package-version 0.0.2 \
+            --output "$RUNNER_TEMP/native-release-linux-x64-gnu/production" \
+            --clang "$(realpath /usr/bin/clang-19)" \
+            --sqlite-archive "$RUNNER_TEMP/native-release-linux-x64-gnu/inputs/sqlite.zip" \
+            --openssl-package-archive "$RUNNER_TEMP/native-release-linux-x64-gnu/inputs/libssl-dev.deb" \
+            --openssl-package-archive "$RUNNER_TEMP/native-release-linux-x64-gnu/inputs/libssl3t64.deb" \
+            --component-seconds 300 --compile-seconds 1800 \
+            2>&1 | tee "$RUNNER_TEMP/native-release-linux-x64-gnu/producer.log"
+      - name: Produce the exact normal Darwin Local artifact with compiled 0.0.2
+        if: matrix.platform == 'darwin-arm64'
+        timeout-minutes: 60
+        shell: bash
+        run: |
+          node scripts/produce-native-cli-darwin-local.mjs \
+            --source "$SELECTED_SOURCE" --package-version 0.0.2 \
+            --output "$RUNNER_TEMP/native-release-darwin-arm64/production" \
+            --clang "$SELECTED_DARWIN_CLANG" --sdk "$SELECTED_DARWIN_SDK" \
+            --sqlite-archive "$RUNNER_TEMP/native-release-darwin-arm64/inputs/sqlite.zip" \
+            --openssl-source-archive "$RUNNER_TEMP/native-release-darwin-arm64/inputs/openssl-3.6.2.tar.gz" \
+            --component-seconds 900 --compile-seconds 1800 \
+            2>&1 | tee "$RUNNER_TEMP/native-release-darwin-arm64/producer.log"
+      - name: Retain complete artifact payload and original producer evidence without compiler products
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {cp, mkdir, readdir, lstat, readFile, writeFile} from 'node:fs/promises';
+          import {join} from 'node:path';
+          import {createHash} from 'node:crypto';
+          import {admitNativeArtifact, requireNativePackageVersion} from './scripts/native-cli-artifact-reader.mjs';
+          const p = process.env.SELECTED_PLATFORM, root = join(process.env.RUNNER_TEMP,'native-release-'+p);
+          const artifact = join(root,'production/artifact');
+          const record = requireNativePackageVersion(await admitNativeArtifact(artifact,process.env.SELECTED_SOURCE),'0.0.2');
+          assert.equal(record.platform,p); assert(record.localRuntime);
+          const retained = join(root,'transport/native-originals'); await mkdir(retained,{recursive:true});
+          const target = join(retained,'production/artifact');
+          // Every runtime payload member and top-level artifact record is copied
+          // unchanged. Retain the compiler's original root receipts, not its
+          // emission, generated source tree or private driver directories.
+          await cp(artifact,target,{recursive:true,preserveTimestamps:true,
+            filter:path=>path!==join(artifact,'native-producer')});
+          const compiler=join(artifact,'native-producer'), compilerTarget=join(target,'native-producer');
+          await mkdir(compilerTarget);
+          for(const entry of await readdir(compiler,{withFileTypes:true})) {
+            if(entry.isFile())await cp(join(compiler,entry.name),join(compilerTarget,entry.name),{preserveTimestamps:true});
+          }
+          await cp(join(root,'production/recipe'),join(retained,'production/recipe'),{recursive:true,preserveTimestamps:true});
+          for(const path of ['input-identities.json','producer.log','production/sqlite/process-producer.json',
+              ...(p==='darwin-arm64'?['production/crypto/component/producer.json','production/crypto/static-source.json']:['production/crypto/producer.json'])]) {
+            const destination=join(retained,path);await mkdir(join(destination,'..'),{recursive:true});
+            await cp(join(root,path),destination,{preserveTimestamps:true});
+          }
+          const files=[];
+          async function walk(directory,prefix='') {
+            for(const name of(await readdir(directory)).sort()) {
+              const path=join(directory,name),st=await lstat(path),key=prefix+name;
+              assert(!st.isSymbolicLink(),'Original transport cannot introduce aliases');
+              if(st.isDirectory())await walk(path,key+'/');else{
+                assert(st.isFile());const bytes=await readFile(path);
+                files.push({path:key,bytes:bytes.length,mode:st.mode&0o777,sha256:createHash('sha256').update(bytes).digest('hex')});
+              }
+            }
+          }
+          await walk(retained);
+          await writeFile(join(retained,'transport.json'),JSON.stringify({source:process.env.SELECTED_SOURCE,platform:p,
+            packageVersion:'0.0.2',runId:process.env.GITHUB_RUN_ID,attempt:process.env.GITHUB_RUN_ATTEMPT,
+            abi:record.abi,testedHost:record.testedHost,files},null,2)+'\n',{flag:'wx'});
+          NODE
+          # Tar is only the mode-preserving transport envelope, never a new
+          # executable, release package, producer record or semantic admission.
+          tar -czf "$RUNNER_TEMP/native-release-${SELECTED_PLATFORM}/native-originals.tar.gz" \
+            -C "$RUNNER_TEMP/native-release-${SELECTED_PLATFORM}/transport" native-originals
+      - name: Upload full original Native payload and provenance transport
+        if: always()
+        timeout-minutes: 10
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-normal-${{ matrix.platform }}-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/native-release-${{ matrix.platform }}/native-originals.tar.gz
+            ${{ runner.temp }}/native-release-${{ matrix.platform }}/input-identities.json
+            ${{ runner.temp }}/native-release-${{ matrix.platform }}/producer.log
+          if-no-files-found: error
+          retention-days: 14
+
+  native-check:
+    needs: [source, native-production, native-packages, native-installed]
+    if: ${{ always() && needs.source.result != 'skipped' }}
+    name: Native release candidate required jobs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Require both producers, joint packages and both installed consumers
+        env:
+          SOURCE_RESULT: ${{ needs.source.result }}
+          PRODUCTION_RESULT: ${{ needs.native-production.result }}
+          PACKAGES_RESULT: ${{ needs.native-packages.result }}
+          INSTALLED_RESULT: ${{ needs.native-installed.result }}
+        shell: bash
+        run: |
+          test "$SOURCE_RESULT" = success
+          test "$PRODUCTION_RESULT" = success
+          test "$PACKAGES_RESULT" = success
+          test "$INSTALLED_RESULT" = success
+
+  native-packages:
+    needs: [source, native-production]
+    name: Joint same-source two-platform Native release packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      artifact-id: ${{ steps.artifact.outputs.artifact-id }}
+      artifact-digest: ${{ steps.artifact.outputs.artifact-digest }}
+      manifest-sha256: ${{ steps.manifest.outputs.sha256 }}
+    permissions:
+      contents: read
+      actions: read
+    env:
+      NPM_TOKEN: ''
+      NODE_AUTH_TOKEN: ''
+      SELECTED_SOURCE: ${{ needs.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: native-normal-linux-x64-gnu-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-joint/download-linux
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: native-normal-darwin-arm64-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-joint/download-darwin
+      - name: Admit both original payload roots and prepare the one joint fixed RC
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFile,stat} from 'node:fs/promises';
+          import {join} from 'node:path';
+          import {createHash} from 'node:crypto';
+          import {unpack} from './scripts/package-release.mjs';
+          import {admitNativeArtifact,requireNativePackageVersion} from './scripts/native-cli-artifact-reader.mjs';
+          const base=join(process.env.RUNNER_TEMP,'native-joint');
+          for(const [short,platform]of[['linux','linux-x64-gnu'],['darwin','darwin-arm64']]){
+            const root=await unpack(join(base,'download-'+short,'native-originals.tar.gz'),join(base,short),{rootName:'native-originals'});
+            const transport=JSON.parse(await readFile(join(root,'transport.json')));
+            assert.equal(transport.source,process.env.SELECTED_SOURCE);assert.equal(transport.platform,platform);
+            assert.equal(transport.packageVersion,'0.0.2');assert.equal(transport.runId,process.env.GITHUB_RUN_ID);
+            assert.equal(transport.attempt,process.env.GITHUB_RUN_ATTEMPT);
+            for(const file of transport.files){
+              const path=join(root,file.path),bytes=await readFile(path);
+              assert.equal(bytes.length,file.bytes);assert.equal((await stat(path)).mode&0o777,file.mode);
+              assert.equal(createHash('sha256').update(bytes).digest('hex'),file.sha256);
+            }
+            const original=requireNativePackageVersion(await admitNativeArtifact(join(root,'production/artifact'),process.env.SELECTED_SOURCE),'0.0.2');
+            assert.equal(original.platform,platform);assert(original.localRuntime);
+          }
+          NODE
+          node scripts/native-cli-release.mjs prepare-local "$RUNNER_TEMP/native-joint/release" \
+            release/0.0.2/native-cli-cohort.json \
+            "$RUNNER_TEMP/native-joint/linux/native-originals/production/artifact" \
+            "$RUNNER_TEMP/native-joint/darwin/native-originals/production/artifact"
+          node scripts/native-cli-release.mjs verify "$RUNNER_TEMP/native-joint/release"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+          const value=JSON.parse(await readFile(process.env.RUNNER_TEMP+'/native-joint/release/release.json'));
+          assert.equal(value.sourceSha,process.env.SELECTED_SOURCE);assert.equal(value.cohort.packageVersion,'0.0.2');
+          assert.deepEqual(Object.keys(value.platforms).sort(),['darwin-arm64','linux-x64-gnu']);
+          assert.deepEqual(value.packages.map(row=>row.name).sort(),['@actql/cli-darwin-arm64','@actql/cli-linux-x64-gnu','actql']);
+          NODE
+      - name: Pin the original joint Native release manifest
+        id: manifest
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync,appendFileSync} from 'node:fs';import {createHash} from 'node:crypto';
+          const bytes=readFileSync(process.env.RUNNER_TEMP+'/native-joint/release/release.json');
+          appendFileSync(process.env.GITHUB_OUTPUT,'sha256='+createHash('sha256').update(bytes).digest('hex')+'\n');
+          NODE
+      - name: Upload the same joint launcher plus two OS tarballs and original release manifest
+        id: artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-public-0.0.2-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-joint/release/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+
+  native-installed:
+    needs: [source, native-packages]
+    name: Native installed functional acceptance (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64-gnu
+            runner: ubuntu-24.04
+            minutes: 40
+          - platform: darwin-arm64
+            runner: macos-26
+            minutes: 65
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ matrix.minutes }}
+    permissions:
+      contents: read
+      actions: read
+    env:
+      NPM_TOKEN: ''
+      NODE_AUTH_TOKEN: ''
+      SELECTED_SOURCE: ${{ needs.source.outputs.sha }}
+      SELECTED_PLATFORM: ${{ matrix.platform }}
+      ACTQL_TEST_PRESERVE_SCRATCH: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.source.outputs.sha }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Require the exact joint Native artifact ID
+        env:
+          ARTIFACT_ID: ${{ needs.native-packages.outputs.artifact-id }}
+        shell: bash
+        run: |
+          if ! [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then exit 1; fi
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.native-packages.outputs.artifact-id }}
+          path: ${{ runner.temp }}/native-installed/release
+          merge-multiple: true
+      - name: Verify exact same joint RC and actual selected consumer platform
+        timeout-minutes: 3
+        env:
+          MANIFEST_SHA256: ${{ needs.native-packages.outputs.manifest-sha256 }}
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$SELECTED_SOURCE"
+          node scripts/native-cli-release.mjs verify "$RUNNER_TEMP/native-installed/release"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {createHash} from 'node:crypto';
+          import {platformKey} from './packages/native-cli/bin/actql.mjs';
+          const bytes=readFileSync(process.env.RUNNER_TEMP+'/native-installed/release/release.json');
+          assert.equal(createHash('sha256').update(bytes).digest('hex'),process.env.MANIFEST_SHA256);
+          assert.equal(JSON.parse(bytes).sourceSha,process.env.SELECTED_SOURCE);
+          const glibc=process.platform==='linux'?process.report.getReport().header.glibcVersionRuntime:undefined;
+          assert.equal(platformKey({platform:process.platform,arch:process.arch,glibc}),process.env.SELECTED_PLATFORM);
+          NODE
+          if [ "$SELECTED_PLATFORM" = darwin-arm64 ]; then
+            test "$(sw_vers -productVersion | cut -d. -f1)" = 26
+            test "$(uname -m)" = arm64
+          fi
+          mkdir "$RUNNER_TEMP/native-installed/scratch"
+          echo "TMPDIR=$RUNNER_TEMP/native-installed/scratch" >> "$GITHUB_ENV"
+      - name: Original fresh installed source-free Local corpus (20 cases)
+        timeout-minutes: 22
+        shell: bash
+        run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-installed/release"
+      - name: Functional README approval and recovery with OS resource observations
+        timeout-minutes: 30
+        shell: bash
+        # Explicit functional-only mode: preserve original business/current/
+        # cleanup oracles and CPU/RSS; do not add a Mac 3s smoke requirement.
+        # The Linux row separately assesses this same RC with the original
+        # formal30+30, p95<=2s/max<=3s. This receipt does not replace that gate.
+        run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-installed/release" --measure-approval-resources
+      - name: Assess thirty approvals per template from this exact Linux RC
+        id: approval_profile
+        if: matrix.platform == 'linux-x64-gnu'
+        timeout-minutes: 30
+        shell: bash
+        # Use the existing formal collector's OS-default temporary directory.
+        # The same successful producer artifact ID and manifest were checked
+        # above; the older normal-CI workflow inspector is not this supplier.
+        run: |
+          env -u TMPDIR -u TMP -u TEMP node scripts/test-native-approval-performance.mjs \
+            --normal "$RUNNER_TEMP/native-installed/release" \
+            --output "$RUNNER_TEMP/native-installed/release/approval-assessment.json" \
+            --runner ubuntu-24.04
+      - name: Diagnose one separate workflow after a failed Linux formal assessment
+        if: ${{ failure() && matrix.platform == 'linux-x64-gnu' && steps.approval_profile.outcome == 'failure' }}
+        timeout-minutes: 6
+        shell: bash
+        run: |
+          if [ ! -x /usr/bin/strace ]; then
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends strace
+          fi
+          env -u TMPDIR -u TMP -u TEMP timeout 300s node scripts/test-native-cli-mock-install.mjs \
+            "$RUNNER_TEMP/native-installed/release" \
+            --measure-approval-resources --diagnose-approval-syscalls
+      - name: Reverify original release payload after installed consumers
+        if: always()
+        shell: bash
+        run: node scripts/native-cli-release.mjs verify "$RUNNER_TEMP/native-installed/release"
+      - name: Retain actual installed receipts, commands, counters, phases and OS CPU/RSS
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-installed-${{ matrix.platform }}-0.0.2-${{ needs.source.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/native-installed/release/*.json
+            ${{ runner.temp }}/native-installed/release/approval-*.txt
+            ${{ runner.temp }}/native-installed/scratch/**/commands.json
+            ${{ runner.temp }}/native-installed/scratch/**/*.stderr
+            ${{ runner.temp }}/native-installed/scratch/**/approval-resources-*.txt
+            /tmp/actql-native-mock-install-*/commands.json
+            /tmp/actql-native-mock-install-*/*.stderr
+            /tmp/actql-native-mock-install-*/approval-resources-*.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  release-check:
+    needs: [source, node-check, native-check]
+    if: ${{ always() && needs.source.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require both complete selected platform cohorts
+        env:
+          SOURCE_RESULT: ${{ needs.source.result }}
+          NODE_RESULT: ${{ needs.node-check.result }}
+          NATIVE_RESULT: ${{ needs.native-check.result }}
+        run: |
+          node -e '
+            for (const name of ["SOURCE_RESULT", "NODE_RESULT", "NATIVE_RESULT"]) {
+              if (process.env[name] !== "success") {
+                console.error(`${name}=${process.env[name] || "missing"}`);
+                process.exitCode = 1;
+              }
+            }
+          '

@@ -87,9 +87,11 @@ export function assertPackedProjectFileStorePhase({selected, phase, actual, pid,
 }
 
 export async function runPackedProjectFileStoreInventory({prepared, root, repository, command,
-  report = {cases: []}, cleanup = []}) {
+  report = {cases: []}, cleanup = [],
+  verifyPreparedPackages = value => verifyNodeBenchmarkPackages(value.manifest, value.manifestPath, value.consumer)}) {
   assert(isAbsolute(root) && isAbsolute(repository));
   assert.equal(typeof command, 'function'); assert(Array.isArray(report.cases));
+  assert.equal(typeof verifyPreparedPackages, 'function');
   assert(!process.env.NODE_OPTIONS && !process.env.NODE_PATH &&
     !process.env.ACTQL_LOCAL_SOURCE_PROFILE && !process.env.ACTQL_LOCAL_EFFECT_PROFILE,
   'Require the unchanged normal runtime without ambient overlays');
@@ -117,7 +119,7 @@ export async function runPackedProjectFileStoreInventory({prepared, root, reposi
         report.cases.push(record);
         let observed;
         try {
-          await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
+          await verifyPreparedPackages(prepared);
           observed = await command(process.execPath, [join(application, fixtureMembers[0]),
             phase, selected.case, handoff], {cwd: application, env,
             name: `project-store-${selected.case}-${phase}`,
@@ -130,7 +132,7 @@ export async function runPackedProjectFileStoreInventory({prepared, root, reposi
           const original = JSON.parse(await readFile(handoff, 'utf8'));
           assertPackedProjectFileStorePhase({selected, phase, actual, pid: observed.pid, original, previous});
           previous.push(actual);
-          await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);
+          await verifyPreparedPackages(prepared);
           record.status = 'passed'; record.completed = true;
         } catch (error) {
           observed ??= error?.commandResult;
@@ -143,7 +145,7 @@ export async function runPackedProjectFileStoreInventory({prepared, root, reposi
       }
     } catch (error) {primary = error; throw error;} finally {
       const errors = [];
-      try {await verifyNodeBenchmarkPackages(prepared.manifest, prepared.manifestPath, prepared.consumer);}
+      try {await verifyPreparedPackages(prepared);}
       catch (error) {errors.push(error);}
       try {assert.equal(await readlink(alias), software); await unlink(alias);}
       catch (error) {errors.push(error);}

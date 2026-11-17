@@ -301,6 +301,10 @@ pub fn NativeLocalPackagedRuntime::observe_product_members(
     let launcher_original = local_product_open_root(
       self, launcher_root, diagnostic_ceiling,
     )
+    // The command supplier already matched this singular platform and source
+    // to the compiled Native image before acquisition. A shared launcher wire
+    // may cover the closed pair; the same physical reader still checks every
+    // original member and both independently bound descriptor digests.
     let launcher = local_product_read_descriptor(
       self, launcher_original, source, platform, "actql", launcher_descriptor_sha256,
     )

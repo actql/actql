@@ -165,3 +165,86 @@ test "formal product metadata refuses oversize intake and empty membership" {
     is Err(InvalidManifest),
   )
 }
+
+///|
+test "closed dual launcher wire keeps the selected singular platform and exact canonical bytes" {
+  let shared = product_inventory_fixture_0.replace(
+    old="\"platform\":\"darwin-arm64\"",
+    new="\"platform\":\"darwin-arm64+linux-x64-gnu\"",
+  )
+  for platform in ["darwin-arm64", "linux-x64-gnu"] {
+    let value = admit_client_native_product_members(
+      shared, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", platform, "actql",
+    ).unwrap()
+    assert_eq(client_native_product_members_platform(value), platform)
+    assert_eq(client_native_product_members_wire(value), shared)
+    assert_eq(client_native_product_members_count(value), 3)
+    assert_eq(client_native_product_members_package(value), "actql")
+    let os_wire = product_inventory_fixture_1
+      .replace(old="@actql/cli-darwin-arm64", new="@actql/cli-" + platform)
+      .replace(
+        old="\"platform\":\"darwin-arm64\"",
+        new="\"platform\":\"" + platform + "\"",
+      )
+    let os_members = admit_client_native_product_members(
+      os_wire,
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      platform,
+      "@actql/cli-" + platform,
+    ).unwrap()
+    let selected_root = "/installed/actql/node_modules/@actql/cli-" + platform
+    let placement = prepare_client_native_product_placement(
+      value, os_members, "/installed/actql", selected_root,
+    ).unwrap()
+    assert_eq(
+      client_native_product_placement_root(placement, PlatformProduct),
+      selected_root,
+    )
+  }
+  for
+    (wire, source, platform, name) in [
+      (
+        shared, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "darwin-arm64", "actql",
+      ),
+      (
+        shared, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "linux-arm64-gnu", "actql",
+      ),
+      (
+        shared, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "darwin-arm64", "@actql/cli-darwin-arm64",
+      ),
+      (
+        shared.replace(
+          old="darwin-arm64+linux-x64-gnu",
+          new="linux-x64-gnu+darwin-arm64",
+        ),
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "darwin-arm64",
+        "actql",
+      ),
+      (
+        shared.replace(
+          old="darwin-arm64+linux-x64-gnu",
+          new="darwin-arm64+darwin-arm64",
+        ),
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "darwin-arm64",
+        "actql",
+      ),
+      (
+        shared.replace(old="darwin-arm64+linux-x64-gnu", new="*"),
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "darwin-arm64",
+        "actql",
+      ),
+    ] {
+    assert_true(
+      admit_client_native_product_members(wire, source, platform, name)
+      is Err(_),
+    )
+  }
+  let os_package = product_inventory_fixture_1.replace(
+    old="darwin-arm64\",\"sourceSha",
+    new="darwin-arm64+linux-x64-gnu\",\"sourceSha",
+  )
+  assert_true(product_inventory_fixture(os_package) is Err(InvalidIdentity))
+}

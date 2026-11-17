@@ -40,8 +40,8 @@ test('public metadata keeps the exact standard closure and optional peer capabil
     scripts: {prepack: 'must-not-run-in-a-consumer'}, files: ['index.mjs', 'index.d.ts']};
   const metadata = releasePackageMetadata(original, 'local-node', cohort);
   assert.equal(metadata.private, false);
-  assert.equal(metadata.version, '0.0.1');
-  assert.deepEqual(metadata.dependencies, {'@actql/sdk': '0.0.1'});
+  assert.equal(metadata.version, '0.0.2');
+  assert.deepEqual(metadata.dependencies, {'@actql/sdk': '0.0.2'});
   assert.deepEqual(metadata.exports, original.exports);
   assert.deepEqual(metadata.peerDependencies, original.peerDependencies);
   assert.deepEqual(metadata.peerDependenciesMeta, original.peerDependenciesMeta);

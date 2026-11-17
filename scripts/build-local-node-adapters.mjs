@@ -6,7 +6,7 @@ import {build} from 'esbuild';
 import {adapterModuleGraph} from './adapter-module-graph.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
-import {buildNodeDirectoryNative} from './build-node-directory-native.mjs';
+import {assembleNodeDirectoryNative, buildNodeDirectoryNative} from './build-node-directory-native.mjs';
 import {initialControlPackageOriginal, renderInitialControlPackageOriginal}
   from './initial-control-package-images.mjs';
 
@@ -136,8 +136,12 @@ export async function localNodeAdapterSourceInputs({root = repository, inputs = 
 }
 
 export async function buildLocalNodeAdapters({root = repository,
-  destination = join(root, 'packages/local-node'), inputs = localNodePackageInputs(root), check = false} = {}) {
+  destination = join(root, 'packages/local-node'), inputs = localNodePackageInputs(root), check = false,
+  nativeInputs = process.env.ACTQL_NODE_DIRECTORY_NATIVE_INPUTS,
+  nativeInputsSha256 = process.env.ACTQL_NODE_DIRECTORY_NATIVE_INPUTS_SHA256} = {}) {
 const external = inputs.buildInputs;
+if ((nativeInputs === undefined) !== (nativeInputsSha256 === undefined) ||
+    external !== undefined && nativeInputs !== undefined) throw new Error('InvalidDirectoryNativeSelection');
 // Validate the publishable data directory before writing through any existing
 // path. In particular, never follow an old symlink before reporting it stale.
 const expectedConnectorData = new Set(inputs.dataFiles.filter(path =>
@@ -203,7 +207,10 @@ for (const {path, source} of sourcePaths) {
 const dataInputs = external === undefined
   ? inputs.dataFiles.map(path => ({source: join(root, path), destination: path})) : inputs.dataInputs;
 for (const entry of dataInputs) outputs.set(entry.destination, readFileSync(entry.source));
-const nativeOutputs = external === undefined ? buildNodeDirectoryNative({root, destination, check}) : new Map();
+const nativeOutputs = external !== undefined ? new Map()
+  : nativeInputs === undefined ? buildNodeDirectoryNative({root, destination, check})
+  : assembleNodeDirectoryNative({root, destination, check, selection: nativeInputs,
+    expectedSha256: nativeInputsSha256});
 if (outputs.has(initialControlPackageOriginal)) {
   outputs.set(initialControlPackageOriginal,
     renderInitialControlPackageOriginal({root, destination, inputs, outputs, nativeOutputs}));

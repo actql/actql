@@ -6,7 +6,7 @@ import {constants} from 'node:fs';
 import {chmod, lstat, open, opendir, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {inventory} from './package-release.mjs';
-import {PRODUCT_MEMBERS_FILE, productMembersBody, readProductMembers,
+import {PRODUCT_MEMBERS_FILE, DUAL_LOCAL_LAUNCHER_PLATFORM, productMembersBody, readProductMembers,
   productMembersCensus} from '../packages/native-cli/lib/product-members.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -95,12 +95,17 @@ export async function verifyStagedProductMembers(directory, selected, metadata) 
   return value;
 }
 
-// Current finite Local acceptance has one selected platform. Preserve ordinary
-// multi-platform Remote packaging rather than invent a platform wildcard or a
-// cyclic set of launcher descriptors. Multiple Local profiles have no complete
-// launcher witness until a separate exact format is admitted and verified.
+// Preserve singular legacy descriptors and ordinary multi-Remote packaging.
+// The only shared Local selector is the closed original Darwin/Linux pair.
 export function launcherMemberPlatform(records) {
+  assert(Array.isArray(records) && records.length > 0 && records.length <= 2);
+  assert(records.every(record => ['darwin-arm64', 'linux-x64-gnu'].includes(record.platform)));
+  assert.equal(new Set(records.map(record => record.platform)).size, records.length, 'Duplicate platform artifact');
   if (records.length === 1) return records[0].platform;
   const local = records.filter(v => v.localRuntime !== undefined);
+  if (local.length === 2) {
+    assert(local.every(record => record.localRuntime && typeof record.localRuntime === 'object'));
+    return DUAL_LOCAL_LAUNCHER_PLATFORM;
+  }
   return local.length === 1 ? local[0].platform : undefined;
 }

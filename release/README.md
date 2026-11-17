@@ -1,16 +1,29 @@
-# SDK / Node release preparation
+# v0.0.2 Initial Developer Preview release
 
-The formal version and finished product artifact cohort remain unselected.
-Legacy version numbers and retained fixtures below are historical inputs,
-not proposed replacement versions or publication instructions. Preparation
-commands produce local candidates. Staging, publication, tags and promotion
-still require the independently protected executor and the owner's explicit
-decision on the exact final version, bytes, scope and evidence.
+The selected release is **v0.0.2, Initial Developer Preview**, for
+TypeScript/Node and the Native CLI, with `latest` as the intended npm channel.
+The user entrypoints are:
+
+```sh
+npm install @actql/node
+npm install -g actql
+```
+
+Both Node and CLI target macOS arm64 and Linux x64/glibc at the same `0.0.2`
+version. The current macOS qualification host is 26; do not declare an older
+minimum without the final binary ABI and actual installed acceptance. Intel
+Macs, Windows, musl, Python, Explorer and managed Cloud deployment are outside
+this release. APIs, syntax and storage formats may
+change incompatibly during the preview; see [the release notes](notes/v0.0.2.md).
+Legacy version numbers and retained fixtures below remain historical inputs.
+Preparation commands produce local candidates, not registry availability.
+Staging, publication, tags and promotion retain the exact-byte, protected
+executor and owner-selected scope requirements below.
 
 The standard cohort is `@actql/client-wire`, `@actql/sdk`,
-`@actql/local-node`, and `@actql/node`, with one explicitly selected complete
-version and exact internal dependencies. The legacy `0.0.1` cohort file does
-not select a new release or authorize replacing an existing public version.
+`@actql/local-node`, and `@actql/node`, with the same selected `0.0.2` version
+and exact internal dependencies. The legacy `0.0.1` cohort file is not the
+v0.0.2 recipe and does not authorize replacing an existing public version.
 `@actql/sdk` remains a remote Client with no Local runtime or
 DuckDB. `@actql/node` includes the standard Local implementation; consumers do
 not assemble internal packages. `@actql/otel-node` is optional and independent.
@@ -251,10 +264,11 @@ authenticated execution and untested OS/CPU/libc/Node combinations are not
 claimed by this RC acceptance. Declare a support row only after that exact
 environment consumes the fixed artifacts successfully.
 
-Native CLI distribution follows separately as **Native Remote CLI**. It does
-not block the SDK/Node release, and it does not complete the adopted future
-standard Local CLI requirements. `actql@0.0.1` is an occupied placeholder;
-the real CLI uses a new immutable version.
+The v0.0.2 Native CLI supports Local projects and quick queries, plus explicit
+Remote transport. Its macOS arm64 and Linux x64/glibc artifacts and acceptance
+are separate from the Node archives; neither supplies the other's evidence. The existing
+`actql@0.0.1` placeholder remains immutable. Follow the
+[Native CLI procedure](native-cli.md) for the selected v0.0.2 bytes and scope.
 
 
 ## Optional standalone Explorer cohort
@@ -287,6 +301,9 @@ unavailable capability states and closure without cancelling borrowed work.
 It does not complete the Cloud adapter, Full Explorer or formal npm publication.
 
 ## Prepare a selected Python target on another host
+
+Python distribution is deferred from v0.0.2. The procedures in this section
+remain preparation mechanisms for a separately selected future release.
 
 Release preparation reads fixed artifact bytes; it does not need to execute
 that target. The existing Python component owner now keeps the full shared

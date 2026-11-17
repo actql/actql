@@ -79,6 +79,8 @@ export function requireLinuxLocalReleaseArtifacts(records) {
   assert.equal(linux.length, 1, 'Local release selection requires one Linux x64 artifact');
   assert(linux[0].localRuntime && typeof linux[0].localRuntime === 'object',
     'Local release selection cannot use a Remote-only Linux artifact');
+  for (const record of records) assert(record.localRuntime && typeof record.localRuntime === 'object',
+    'Every included platform in a Local release requires its admitted Local payload');
 }
 
 export async function prepareNativeCliLocalRelease(destination, artifacts, selected) {

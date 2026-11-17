@@ -4,11 +4,19 @@
 
 **The SQL-based data & workflow engine for AI agents.**
 
+**v0.0.2 — Initial Developer Preview.** Start with TypeScript/Node
+(`npm install @actql/node`) or the CLI (`npm install -g actql`). Both target
+macOS arm64 and Linux x64 with glibc. The macOS qualification environment is
+26; earlier macOS versions are not yet declared supported. Python distribution
+is deferred. Public APIs, syntax, and storage formats may change incompatibly
+during the preview. See
+the [release notes](release/notes/v0.0.2.md) for scope and limitations.
+
 Read across SaaS, databases, and files, join and transform the data, and
 write results back. When a judgment is needed, an LLM makes it inside the same
 program. What used to take a workflow SaaS and glue code, you write in SQL and
 run reliably as-is—from the CLI, by you or by a coding agent, or embedded in
-your TypeScript or Python app as a library.
+your TypeScript/Node app as a library.
 
 **ActQL lets you work with the systems you connect—a CRM, files, SaaS APIs, a
 warehouse—as if they were one database.**
@@ -139,26 +147,11 @@ try {
 }
 ```
 
-**Python**
-
-```sh
-pip install actql
-```
-
-```python
-import actql
-
-with actql.connect(mode="local", installation=".actql", profile="mock") as client:
-    source = open("deal-review.aql").read()
-    execution = client.start_source(source, format="aql", stop_before="commit")
-    state = execution.wait()
-    print(state.status)  # "waiting_checkpoint"
-```
-
-Both stop at a Checkpoint just like the CLI example, and a Run started from
+This stops at a Checkpoint just like the CLI example, and a Run started from
 code can be approved from the CLI by its Run ID. `.actql` holds the
 application's durable state; keep it out of version control. See
-[TypeScript and Node](docs/guides/node.md) and [Python](docs/guides/python.md).
+[TypeScript and Node](docs/guides/node.md). Python packaging is not part of
+this Initial Developer Preview.
 
 ## 3. Why build another engine?
 
@@ -260,8 +253,7 @@ $ actql explain churn-risk.aql
 Wherever work moves, the program means the same thing and never slips past
 permission boundaries.
 
-With ActQL Cloud, the same program runs in a managed environment—no Host of
-your own to operate—and takes on work too large for your local machine.
+Managed execution through ActQL Cloud is planned and is outside this preview.
 
 **The way it runs changes as the data grows. The program you write doesn't.**
 
@@ -283,7 +275,7 @@ available.
 
 ### 4.3 Embeddable: in your app, no server needed
 
-Just open the engine as a library from TypeScript or Python; the same API
+Just open the engine as a library from TypeScript/Node; the same API
 also connects to a remote engine. The core runs on JavaScript, WebAssembly,
 and native code, so the same engine goes anywhere from a server to the edge.
 
@@ -366,7 +358,9 @@ algebras: RelA, SGA, VecA, and TEA.)
 
 ## 5. Connectors
 
-Every Connector below both reads and writes.
+The Connector catalogue covers the integrations below. This preview does not
+claim live-service qualification for every provider; mock examples run without
+those services or credentials. Check each Connector's documented scope and setup.
 
 | | |
 | --- | --- |

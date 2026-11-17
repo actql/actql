@@ -1,8 +1,72 @@
 import assert from 'node:assert/strict';
-import {writeFile as writeReceiptFile} from 'node:fs/promises';
+import {open, writeFile as writeReceiptFile} from 'node:fs/promises';
+import {constants} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {basename} from 'node:path';
 import {latencySummary, resourceSummary, nativeApprovalTarget} from './operation-performance.mjs';
 import {peakRssBytes} from './layout-measurement-support.mjs';
 import {mockTemplates} from './native-cli-mock-scenario.mjs';
+
+// The ordinary and formal paths keep their original command. Tracing is an
+// explicit separate Linux diagnostic and cannot select a formal sample.
+export function nativeApprovalObservationOptions(extra, platform) {
+  const allowed = new Set(['--measure-approval-resources', '--diagnose-approval-syscalls']);
+  assert(Array.isArray(extra) && extra.every(value => allowed.has(value)) &&
+    new Set(extra).size === extra.length, 'Unknown or duplicate Native observation option');
+  const measureResources = extra.includes('--measure-approval-resources');
+  const diagnoseSyscalls = extra.includes('--diagnose-approval-syscalls');
+  assert(!diagnoseSyscalls || (measureResources && platform === 'linux'),
+    'Syscall diagnosis requires explicit Linux resource measurement');
+  return {measureResources, diagnoseSyscalls};
+}
+
+export function nativeApprovalObservedCommand(command, args, {platform, resources, syscalls} = {}) {
+  assert(!syscalls || (resources && platform === 'linux'), 'Syscall diagnosis requires Linux OS sampling');
+  assert(!resources || ['linux', 'darwin'].includes(platform), 'Unsupported OS resource sampler');
+  const observed = resources ? {command: '/usr/bin/time', args: [...(platform === 'darwin'
+    ? ['-l', '-p', '-o', resources] : ['--verbose', '--output', resources]), command, ...args]}
+    : {command, args};
+  return syscalls ? {command: '/usr/bin/strace', args: ['-f', '-c', '-o', syscalls, '--',
+    observed.command, ...observed.args]} : observed;
+}
+
+// Only the two original OS-tool text outputs are retained. Neither a private
+// Store nor a trace containing syscall arguments is part of this inventory.
+export async function retainNativeApprovalObservation(source, destination, kind) {
+  assert(['resources', 'syscalls'].includes(kind), 'Unknown Native observation kind');
+  const maximum = kind === 'resources' ? 64 * 1024 : 256 * 1024;
+  const fd = await open(source, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  try {
+    const before = await fd.stat();
+    assert(before.isFile() && before.size > 0 && before.size <= maximum, 'Invalid OS observation size');
+    const bytes = Buffer.alloc(before.size + 1);
+    let bytesRead = 0;
+    while (bytesRead < bytes.length) {
+      const next = await fd.read(bytes, bytesRead, bytes.length - bytesRead, bytesRead);
+      if (!next.bytesRead) break;
+      bytesRead += next.bytesRead;
+    }
+    const after = await fd.stat();
+    assert(bytesRead === before.size && before.size === after.size &&
+      before.mtimeMs === after.mtimeMs && before.ctimeMs === after.ctimeMs,
+    'OS observation changed after command exit');
+    const body = bytes.subarray(0, bytesRead);
+    await writeReceiptFile(destination, body, {flag: 'wx', mode: 0o600});
+    return {kind, file: basename(destination), bytes: body.length,
+      sha256: createHash('sha256').update(body).digest('hex')};
+  } finally {await fd.close();}
+}
+
+export function assertNativeApprovalObservation(approval) {
+  assert.notEqual(approval.measurement?.diagnosticOnly, true, 'Instrumented diagnosis is not a formal sample');
+  assert.equal(approval.resourceObservationIssue, undefined, 'Original OS observation was not retained');
+  const files = approval.observationFiles;
+  assert(Array.isArray(files) && files.length === 1 && files[0].kind === 'resources',
+    'One original OS resource file required');
+  assert(Number.isSafeInteger(files[0].bytes) && files[0].bytes > 0 && files[0].bytes <= 64 * 1024);
+  assert.match(files[0].file, /^approval-resources-[A-Za-z0-9._-]+\.txt$/u);
+  assert.match(files[0].sha256, /^[a-f0-9]{64}$/u);
+}
 
 // A diagnostic-only producer binding cannot authorize a formal campaign.
 // Local fixed-artifact campaigns without hosted provenance remain separate.

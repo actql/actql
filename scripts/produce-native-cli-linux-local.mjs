@@ -3,13 +3,13 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {accessSync, constants, closeSync, fstatSync, lstatSync, mkdirSync, openSync,
-  readSync, realpathSync, symlinkSync, writeFileSync} from 'node:fs';
+import {accessSync, constants, lstatSync, mkdirSync, realpathSync, symlinkSync, writeFileSync} from 'node:fs';
 import {delimiter, dirname, isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {nativeCliCompileBudget} from './native-cli-artifact.mjs';
 import {admitNativeArtifact, requireNativePackageVersion} from './native-cli-artifact-reader.mjs';
 import {nativePackageVersion} from './native-cli-version.mjs';
+import {original, requireNativeLocalHeader} from './native-cli-original-input.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const platform = 'linux-x64-gnu', target = 'x86_64-unknown-linux-gnu';
@@ -99,31 +99,7 @@ export function planNativeLinuxLocalProduction(options, {sourceRoot = resolve(re
     ]};
 }
 
-function original(path, maximum, capture = false) {
-  assert.equal(realpathSync(dirname(path)), dirname(path), `Original parent required: ${path}`);
-  const before = lstatSync(path);
-  assert(before.isFile() && !before.isSymbolicLink() && before.size > 0 && before.size <= maximum,
-    `Invalid original input: ${path}`);
-  const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
-  try {
-    const opened = fstatSync(fd), hash = createHash('sha256'), chunks = [];
-    assert.equal(opened.dev, before.dev); assert.equal(opened.ino, before.ino); assert.equal(opened.size, before.size);
-    const buffer = Buffer.alloc(65536);
-    let bytes = 0, count;
-    while ((count = readSync(fd, buffer, 0, Math.min(buffer.length, opened.size + 1 - bytes), null)) > 0) {
-      bytes += count; assert(bytes <= opened.size, `Original grew: ${path}`);
-      hash.update(buffer.subarray(0, count));
-      if (capture) chunks.push(Buffer.from(buffer.subarray(0, count)));
-    }
-    assert.equal(bytes, opened.size);
-    const after = fstatSync(fd), named = lstatSync(path);
-    for (const key of ['dev', 'ino', 'size', 'mtimeMs', 'ctimeMs']) {
-      assert.equal(after[key], opened[key]); assert.equal(named[key], opened[key]);
-    }
-    assert(named.isFile() && !named.isSymbolicLink());
-    return {identity: {bytes, sha256: hash.digest('hex')}, ...(capture ? {raw: Buffer.concat(chunks)} : {})};
-  } finally {closeSync(fd);}
-}
+
 const readJson = path => JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(original(path, 8 * 1024 * 1024, true).raw));
 
 // Bind the caller's selections to the completed component DATA. The existing
@@ -147,14 +123,7 @@ export function requireNativeLinuxLocalComponentSelection(plan, {sqlite, crypto}
   }
 }
 
-export function requireNativeLinuxLocalHeader(bytes, sqlite, sourceRecipe) {
-  const selected = {bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')};
-  const pin = sourceRecipe.upstream?.members?.['sqlite3.h'];
-  assert(pin, 'Original SQLite header pin required');
-  assert.deepEqual(selected, {bytes: pin.bytes, sha256: pin.sha256}, 'Original SQLite header mismatch');
-  assert.deepEqual(sqlite.stage?.outputs?.['sqlite3.h'], selected, 'Staged SQLite header receipt mismatch');
-  return selected;
-}
+export {requireNativeLocalHeader as requireNativeLinuxLocalHeader} from './native-cli-original-input.mjs';
 
 export function requireNativeLinuxLocalArtifact(record, plan) {
   assert.equal(record.sourceSha, plan.sourceSha); assert.equal(record.platform, platform);
@@ -203,7 +172,7 @@ export async function produceNativeCliLinuxLocal(options, {execute = execFileSyn
       requireNativeLinuxLocalComponentSelection(plan, {sqlite, crypto}, inputs);
       const staged = original(join(plan.directories.sqlite, 'source/sqlite3.h'), 16 * 1024 * 1024, true);
       const sourceRecipe = readJson(selections.at(-1)[0]);
-      header = requireNativeLinuxLocalHeader(staged.raw, sqlite, sourceRecipe);
+      header = requireNativeLocalHeader(staged.raw, sqlite, sourceRecipe);
       mkdirSync(plan.directories.include);
       writeFileSync(join(plan.directories.include, 'sqlite3.h'), staged.raw, {flag: 'wx', mode: 0o444});
     }

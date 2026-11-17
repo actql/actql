@@ -10,7 +10,7 @@ import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
-import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalPhases, assertNativeApprovalAcceptanceBinding} from './native-approval-performance.mjs';
+import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalPhases, assertNativeApprovalAcceptanceBinding, assertNativeApprovalObservation} from './native-approval-performance.mjs';
 
 const {values} = parseArgs({options: {normal: {type: 'string'}, output: {type: 'string'},
   runner: {type: 'string'}, binding: {type: 'string'}, diagnostic: {type: 'boolean', default: false}}});
@@ -69,6 +69,7 @@ for (let iteration = 0; iteration < count; iteration++) {
       const approvals = scenario.commands.filter(command => command.args.includes('approve'));
       assert.equal(approvals.length, 1, 'Approval must execute once per fresh workflow');
       const approval = approvals[0], calls = approvalCallCounts(approval);
+      assertNativeApprovalObservation(approval);
       assertApprovalCallCounts(calls, approval.acceptance.writes.length);
       assert(Number.isSafeInteger(approval.wallNs) && approval.wallNs > 0,
         'Actual monotonic approval timer missing');

@@ -213,6 +213,37 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
     else if (path === '_build/native/directory-original.json') images.set(path, bytes);
     else fail('InvalidInitialControlNativeImage');
   }
+  nativeImages.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+  let engineProfiles, nativeReleaseVersion;
+  const descriptorBytes = nativeOutputs.get('_build/native/directory-original.json');
+  if (descriptorBytes !== undefined) {
+    const descriptor = JSON.parse(descriptorBytes);
+    if (descriptor.version === 'actql-node-directory-native-cohort/0.1') {
+      nativeReleaseVersion = descriptor.source?.packageVersion;
+      if (!Array.isArray(descriptor.targets) ||
+          descriptor.targets.length !== 2 || nativeImages.length !== 2) fail('InvalidInitialControlNativeImage');
+      const targets = new Set();
+      engineProfiles = descriptor.targets.map(target => {
+        const name = `${target.platform}-${target.arch}`, engine = target.engine;
+        const path = name === 'darwin-arm64' ? '_build/native/directory-darwin-arm64.node'
+          : name === 'linux-x64' ? '_build/native/local-files-linux-x64.node' : undefined;
+        const original = target.original;
+        if (path === undefined || targets.has(name) || engine?.platform !== target.platform ||
+            engine?.arch !== target.arch || engine?.node !== '22.22.0' ||
+            engine?.libraries?.node !== engine.node || engine?.libraries?.v8 !== engine.v8 ||
+            engine?.libraries?.openssl !== engine.openssl ||
+            original?.platform !== target.platform || original?.arch !== target.arch ||
+            original?.binary?.path !== path || digest(Buffer.from(target.originalSource ?? '')) !== target.originalSha256 ||
+            JSON.stringify(JSON.parse(target.originalSource)) !== JSON.stringify(original) ||
+            !nativeImages.some(image => image.path === path && image.bytes === original.binary.bytes &&
+              image.sha256 === original.binary.sha256)) fail('InvalidInitialControlNativeImage');
+        targets.add(name);
+        return {engine: {...engine, eager: true}, ordinaryEngine: {...engine, eager: false}};
+      });
+      engineProfiles.sort((a, b) => `${a.engine.platform}-${a.engine.arch}` <
+        `${b.engine.platform}-${b.engine.arch}` ? -1 : 1);
+    }
+  }
   for (const file of inputs.runtimeFiles) {
     if (!concrete(file)) fail('InvalidInitialControlRuntimePath');
     const path = '_build/js/release/build/' + file, source = join(destination, path);
@@ -225,6 +256,9 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
   const manifest = JSON.parse(manifestBytes);
   const cohortPath = join(root, 'release/client-cohort.json');
   const cohort = existsSync(cohortPath) ? admitCohort(JSON.parse(readFileSync(cohortPath, 'utf8'))) : undefined;
+  if (engineProfiles !== undefined && nativeReleaseVersion !== cohort?.packageVersion) {
+    fail('InvalidInitialControlNativeImage');
+  }
   images.set('package.json', manifestBytes);
   function exported(value) {
     if (typeof value === 'string') {
@@ -252,12 +286,16 @@ export function renderInitialControlPackageOriginal({root, destination, inputs, 
       if (!concrete(path)) fail('InvalidInitialControlImage');
       return manifestFact(path, bytes, cohort);
     });
-  const recipe = {engine: {node: process.versions.node, v8: process.versions.v8,
+  // A combined normal payload has one deterministic legacy profile. The list
+  // retains both producers as DATA, not an operational runtime selection; a
+  // verifier on another OS must not rewrite either producer's engine facts.
+  const recipe = {engine: engineProfiles?.[0].engine ?? {node: process.versions.node, v8: process.versions.v8,
     openssl: process.versions.openssl, platform: process.platform, arch: process.arch, eager: true,
     libraries: {...process.versions}},
-  ordinaryEngine: {node: process.versions.node, v8: process.versions.v8,
+  ordinaryEngine: engineProfiles?.[0].ordinaryEngine ?? {node: process.versions.node, v8: process.versions.v8,
     openssl: process.versions.openssl, platform: process.platform, arch: process.arch, eager: false,
     libraries: {...process.versions}},
+  ...(engineProfiles === undefined ? {} : {engineProfiles}),
   images: facts, nativeImages, packages: dependencies.packages, dependencies: dependencies.bindings,
   localVersion: manifest.version,
   ...(releaseVersion(manifest, cohort).releaseVersion === undefined ? {} : {localReleaseVersion: cohort.packageVersion}),

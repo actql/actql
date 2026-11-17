@@ -11,6 +11,7 @@
       "module": "packages/native-cli/lib/product-members.mjs",
       "sha256": "6e7b8a1372ec23f2dfdbe83afac5df388b29df462fb41eea9379d6a13c938119",
       "exports": [
+        "DUAL_LOCAL_LAUNCHER_PLATFORM",
         "PRODUCT_MEMBERS_FILE",
         "installedProductCensus",
         "productMembersBody",
@@ -129,6 +130,7 @@
             "<module>"
           ],
           "exports": [
+            "DUAL_LOCAL_LAUNCHER_PLATFORM",
             "PRODUCT_MEMBERS_FILE"
           ],
           "attributes": {
@@ -240,6 +242,10 @@
               {
                 "path": "scripts/native-cli-common-product-census.test.mjs",
                 "anchor": "existing Node census agrees with independent Common root and child expectations"
+              },
+              {
+                "path": "scripts/native-cli-product-member-staging.test.mjs",
+                "anchor": "test('one dual launcher descriptor verifies the same strict payload on each exact platform'"
               }
             ]
           }

@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {dirname, join} from 'node:path';
 
 export const PRODUCT_MEMBERS_FILE = 'local-product-members.json';
+// One closed private launcher selector. OS-package selectors remain singular.
+export const DUAL_LOCAL_LAUNCHER_PLATFORM = 'darwin-arm64+linux-x64-gnu';
 const component = /^[A-Za-z0-9_.-]{1,128}$/u;
 const exact = (value, names) => {
   assert(value && typeof value === 'object' && !Array.isArray(value));
@@ -20,8 +22,9 @@ const parts = path => {
 };
 const selectors = value => {
   assert.match(value.sourceSha, /^[a-f0-9]{40}$/u);
-  assert(['darwin-arm64', 'linux-x64-gnu'].includes(value.platform));
-  assert(['actql', `@actql/cli-${value.platform}`].includes(value.packageName));
+  const single = ['darwin-arm64', 'linux-x64-gnu'].includes(value.platform);
+  assert(single || (value.platform === DUAL_LOCAL_LAUNCHER_PLATFORM && value.packageName === 'actql'));
+  assert(value.packageName === 'actql' || (single && value.packageName === `@actql/cli-${value.platform}`));
 };
 
 // The input entries are the existing formal inventory's path/bytes/mode/hash.
@@ -60,7 +63,10 @@ export function readProductMembers(wire, expected) {
   selectors(expected);
   const value = JSON.parse(wire);
   assert.equal(productMembersBody(value), wire);
-  for (const field of ['sourceSha', 'platform', 'packageName']) assert.equal(value[field], expected[field]);
+  for (const field of ['sourceSha', 'packageName']) assert.equal(value[field], expected[field]);
+  assert(value.platform === expected.platform || (value.platform === DUAL_LOCAL_LAUNCHER_PLATFORM &&
+    value.packageName === 'actql' && ['darwin-arm64', 'linux-x64-gnu'].includes(expected.platform)),
+  'Launcher descriptor does not include the exact selected platform');
   return value;
 }
 
@@ -119,10 +125,13 @@ export function installedProductCensus(launcher, platform, launcherRoot, platfor
   const launcherValue = JSON.parse(productMembersBody(launcher));
   const platformValue = JSON.parse(productMembersBody(platform));
   assert.equal(launcherValue.packageName, 'actql');
-  assert.equal(platformValue.packageName, `@actql/cli-${launcherValue.platform}`);
-  assert.equal(platformValue.platform, launcherValue.platform);
+  assert.equal(platformValue.packageName, `@actql/cli-${platformValue.platform}`);
   assert.equal(platformValue.sourceSha, launcherValue.sourceSha);
-  const placement = selectedPlatformPlacement(launcherRoot, platformRoot, launcherValue.platform);
+  // The platform package stays singular. Common launcher metadata can only
+  // cover this selected exact package; it cannot select another image.
+  readProductMembers(productMembersBody(launcherValue), {sourceSha: platformValue.sourceSha,
+    platform: platformValue.platform, packageName: 'actql'});
+  const placement = selectedPlatformPlacement(launcherRoot, platformRoot, platformValue.platform);
   const directories = productMembersCensus(launcherValue);
   if (placement.layout === 'nested') {
     const entries = directories[0].entries;
@@ -131,7 +140,7 @@ export function installedProductCensus(launcher, platform, launcherRoot, platfor
     entries.push({name: 'node_modules', kind: 'directory'});
     entries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
     directories.push({path: 'node_modules', entries: [{name: '@actql', kind: 'directory'}]},
-      {path: 'node_modules/@actql', entries: [{name: `cli-${launcherValue.platform}`, kind: 'directory'}]});
+      {path: 'node_modules/@actql', entries: [{name: `cli-${platformValue.platform}`, kind: 'directory'}]});
   }
   return {layout: placement.layout,
     launcher: {root: launcherRoot, directories},

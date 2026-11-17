@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync, mkdtempSync, writeFileSync, existsSync, rmSync} from 'node:fs';
+import {readFileSync, mkdtempSync, writeFileSync, existsSync, rmSync, symlinkSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
@@ -252,4 +252,97 @@ test('approval phases require complete actual boundaries and retain inclusive du
   assert.throws(() => approvalPhases(record()), /unfinished/u);
   rows.shift();
   assert.throws(() => approvalPhases(record()), /incomplete/u);
+});
+
+
+test('syscall diagnosis is a separate explicit Linux resource mode with closed options', () => {
+  assert.deepEqual(performance.nativeApprovalObservationOptions([], 'linux'),
+    {measureResources: false, diagnoseSyscalls: false});
+  assert.deepEqual(performance.nativeApprovalObservationOptions(['--measure-approval-resources'], 'darwin'),
+    {measureResources: true, diagnoseSyscalls: false});
+  assert.deepEqual(performance.nativeApprovalObservationOptions(
+    ['--measure-approval-resources', '--diagnose-approval-syscalls'], 'linux'),
+  {measureResources: true, diagnoseSyscalls: true});
+  for (const extra of [['--diagnose-approval-syscalls'], ['--unknown'],
+    ['--measure-approval-resources', '--measure-approval-resources']]) {
+    assert.throws(() => performance.nativeApprovalObservationOptions(extra, 'linux'));
+  }
+  assert.throws(() => performance.nativeApprovalObservationOptions(
+    ['--measure-approval-resources', '--diagnose-approval-syscalls'], 'darwin'));
+});
+
+test('ordinary and formal commands stay untraced while the separate diagnostic wraps the same OS sampled command', () => {
+  const command = '/original/node', args = ['/original/actql', 'approve', 'same-run', '--wait', '--json'];
+  assert.deepEqual(performance.nativeApprovalObservedCommand(command, args), {command, args});
+  const formal = performance.nativeApprovalObservedCommand(command, args,
+    {platform: 'linux', resources: '/owned/resources.txt'});
+  assert.deepEqual(formal, {command: '/usr/bin/time', args:
+    ['--verbose', '--output', '/owned/resources.txt', command, ...args]});
+  const diagnostic = performance.nativeApprovalObservedCommand(command, args,
+    {platform: 'linux', resources: '/owned/resources.txt', syscalls: '/owned/syscalls.txt'});
+  assert.deepEqual(diagnostic, {command: '/usr/bin/strace', args:
+    ['-f', '-c', '-o', '/owned/syscalls.txt', '--', formal.command, ...formal.args]});
+  assert.deepEqual(performance.nativeApprovalObservedCommand(command, args,
+    {platform: 'darwin', resources: '/owned/resources.txt'}), {command: '/usr/bin/time', args:
+    ['-l', '-p', '-o', '/owned/resources.txt', command, ...args]});
+  assert.throws(() => performance.nativeApprovalObservedCommand(command, args, {syscalls: '/owned/trace'}));
+  assert.throws(() => performance.nativeApprovalObservedCommand(command, args,
+    {platform: 'darwin', resources: '/owned/time', syscalls: '/owned/trace'}));
+});
+
+test('raw OS observations retain original faults filesystem blocks context switches and summary errors after scratch removal', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'native-resource-retention-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const text = ' User time (seconds): 0.30\n System time (seconds): 0.10\n' +
+    ' Maximum resident set size (kbytes): 4096\n Major (requiring I/O) page faults: 4\n' +
+    ' Minor (reclaiming a frame) page faults: 12\n Voluntary context switches: 3\n' +
+    ' Involuntary context switches: 2\n File system inputs: 8\n File system outputs: 24\n';
+  const source = join(root, 'original-time.txt'), output = join(root, 'approval-resources-case.txt');
+  writeFileSync(source, text);
+  const record = await performance.retainNativeApprovalObservation(source, output, 'resources');
+  assert.equal(record.file, 'approval-resources-case.txt');
+  assert.equal(record.bytes, Buffer.byteLength(text));
+  assert.equal(record.sha256, (await import('node:crypto')).createHash('sha256').update(text).digest('hex'));
+  rmSync(source); assert.equal(readFileSync(output, 'utf8'), text);
+  const summary = ' % time     seconds  usecs/call     calls    errors syscall\n 80.00 0.800000 1 800000 0 getpid\n';
+  writeFileSync(source, summary);
+  const syscallOutput = join(root, 'approval-syscalls-case.txt');
+  const syscallRecord = await performance.retainNativeApprovalObservation(source, syscallOutput, 'syscalls');
+  assert.equal(syscallRecord.kind, 'syscalls'); assert.equal(readFileSync(syscallOutput, 'utf8'), summary);
+  await assert.rejects(performance.retainNativeApprovalObservation(source, syscallOutput, 'syscalls'), {code: 'EEXIST'});
+  await assert.rejects(performance.retainNativeApprovalObservation(source, join(root, 'unknown'), 'store'));
+  const link = join(root, 'link'); symlinkSync(source, link);
+  await assert.rejects(performance.retainNativeApprovalObservation(link, join(root, 'linked'), 'resources'));
+  writeFileSync(source, Buffer.alloc(64 * 1024 + 1));
+  await assert.rejects(performance.retainNativeApprovalObservation(source, join(root, 'oversized'), 'resources'));
+  assert.equal(existsSync(join(root, 'oversized')), false);
+});
+
+test('formal samples reject instrumented diagnostics and unavailable original resource files', () => {
+  const approval = {measurement: {sampler: '/usr/bin/time', wallIncludesSampler: true},
+    observationFiles: [{kind: 'resources', file: 'approval-resources-original.txt', bytes: 100, sha256: 'a'.repeat(64)}]};
+  performance.assertNativeApprovalObservation(approval);
+  for (const change of [row => {row.measurement.diagnosticOnly = true;},
+    row => {row.resourceObservationIssue = 'retention failed';}, row => {row.observationFiles = [];},
+    row => {row.observationFiles[0].kind = 'syscalls';}, row => {row.observationFiles[0].sha256 = 'wrong';}]) {
+    const changed = structuredClone(approval); change(changed);
+    assert.throws(() => performance.assertNativeApprovalObservation(changed));
+  }
+});
+
+test('required CI preserves the formal failure and runs at most one separate fresh diagnostic against the same artifact', () => {
+  const job = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs['native-cli-linux-local-mock'];
+  const formal = job.steps.find(step => step.id === 'approval_profile');
+  assert(formal && !formal.run.includes('strace') && !formal.run.includes('--diagnose-approval-syscalls'));
+  assert.equal(formal['continue-on-error'], undefined);
+  const diagnostics = job.steps.filter(step => step.run?.includes('--diagnose-approval-syscalls'));
+  assert.equal(diagnostics.length, 1);
+  assert.equal(diagnostics[0].if, "${{ failure() && steps.approval_profile.outcome == 'failure' }}");
+  assert(diagnostics[0].run.includes('--measure-approval-resources'));
+  assert(diagnostics[0].run.includes('"$RUNNER_TEMP/native-cli-linux-local/release"'));
+  assert(diagnostics[0].run.includes('timeout 300s'));
+  assert.equal(diagnostics[0]['continue-on-error'], undefined);
+  const upload = job.steps.find(step => step.name === 'Retain complete Native approval samples and original Mock receipts');
+  for (const pattern of ['approval-resources-*.txt', 'approval-syscalls-*.txt', 'mock-syscalls-*.json']) assert(upload.with.path.includes(pattern));
+  assert.equal(upload.if, 'always()');
 });

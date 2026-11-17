@@ -35,7 +35,7 @@ test('Local CI uses the normal selected producer and Local-required packaging be
   assert(producer >= 0 && producer < pack && pack < install);
   assert(!commands.some(command => command.includes('node scripts/test-native-cli-mock-install.mjs')));
   const command = commands[producer];
-  for (const selected of ['--source "$(git rev-parse HEAD)"', '--package-version 0.0.2-rc.0',
+  for (const selected of ['--source "$(git rev-parse HEAD)"', '--package-version 0.0.2',
     '--clang "$(realpath /usr/bin/clang-19)"', '--sqlite-archive', '--component-seconds 300', '--compile-seconds 1800']) {
     assert(command.includes(selected), selected);
   }

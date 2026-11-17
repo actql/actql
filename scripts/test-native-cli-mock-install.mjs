@@ -6,7 +6,7 @@ import {execFile} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
@@ -14,14 +14,19 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
-import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases, publishNativeApprovalReceipt} from './native-approval-performance.mjs';
+import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases, publishNativeApprovalReceipt, nativeApprovalObservationOptions,
+  nativeApprovalObservedCommand, retainNativeApprovalObservation} from './native-approval-performance.mjs';
 import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario} from './native-cli-mock-scenario.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [input, ...extra] = process.argv.slice(2);
-const measureResources = extra.length === 1 && extra[0] === '--measure-approval-resources';
-assert(input && (extra.length === 0 || measureResources),
-  'usage: test-native-cli-mock-install.mjs <fixed-CLI-RC> [--measure-approval-resources]');
+const {measureResources, diagnoseSyscalls} = nativeApprovalObservationOptions(extra, process.platform);
+assert(input, 'usage: test-native-cli-mock-install.mjs <fixed-CLI-RC> [--measure-approval-resources] [--diagnose-approval-syscalls]');
+const syscallTool = diagnoseSyscalls ? {
+  path: '/usr/bin/strace',
+  sha256: createHash('sha256').update(await readFile('/usr/bin/strace')).digest('hex'),
+  version: (await promisify(execFile)('/usr/bin/strace', ['--version'], {encoding: 'utf8', timeout: 5000})).stdout.trim(),
+} : undefined;
 const directory = resolve(input), manifest = await verifyNativeCliRelease(directory);
 const source = checkoutState(repository);
 assert(source.clean, 'Installed mock acceptance requires clean source');
@@ -48,16 +53,15 @@ async function run(command, args, cwd = root, timeoutMs = 120_000) {
   const started = process.hrtime.bigint();
   const resources = measureResources && command === process.execPath && args[1] === 'approve'
     ? join(root, `approval-resources-${records.length}.txt`) : undefined;
-  const observedCommand = resources ? '/usr/bin/time' : command;
-  const observedArgs = resources ? [...(process.platform === 'darwin'
-    ? ['-l', '-p', '-o', resources] : ['--verbose', '--output', resources]), command, ...args] : args;
+  const syscalls = resources && diagnoseSyscalls ? join(root, `approval-syscalls-${records.length}.txt`) : undefined;
+  const observed = nativeApprovalObservedCommand(command, args, {platform: process.platform, resources, syscalls});
   let result;
   try {
     const options = {cwd, env, timeout: timeoutMs, killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024};
     const captured = command === process.execPath
-      ? await captureNativeMockCommand(observedCommand, observedArgs,
+      ? await captureNativeMockCommand(observed.command, observed.args,
         {...options, stderrPath: join(root, `command-${records.length}.stderr`)})
-      : await execute(observedCommand, observedArgs, options);
+      : await execute(observed.command, observed.args, options);
     result = {...captured, code: 0, signal: null};
   } catch (error) {
     result = {code: error.code ?? null, signal: error.signal ?? null,
@@ -67,10 +71,22 @@ async function run(command, args, cwd = root, timeoutMs = 120_000) {
   const wallNs = Number(process.hrtime.bigint() - started);
   assert(Number.isSafeInteger(wallNs) && wallNs >= 0);
   const record = {command, args, cwd, timeoutMs, elapsedMs: wallNs / 1e6, wallNs, ...result};
-  if (resources && result.code === 0 && result.signal === null) {
-    try { record.resources = approvalResources(await readFile(resources, 'utf8'), process.platform); }
-    catch (error) { record.resourceObservationIssue = error.message; }
-    record.measurement = {sampler: '/usr/bin/time', wallIncludesSampler: true};
+  if (resources) {
+    record.observationFiles = [];
+    for (const [kind, file] of [['resources', resources], ['syscalls', syscalls]]) {
+      if (!file) continue;
+      try {
+        record.observationFiles.push(await retainNativeApprovalObservation(file,
+          join(directory, `approval-${kind}-${basename(root)}-${records.length}.txt`), kind));
+      } catch (error) { record.resourceObservationIssue ??= error.message; }
+    }
+    if (result.code === 0 && result.signal === null) {
+      try { record.resources = approvalResources(await readFile(resources, 'utf8'), process.platform); }
+      catch (error) { record.resourceObservationIssue ??= error.message; }
+    }
+    record.measurement = {sampler: '/usr/bin/time', wallIncludesSampler: true,
+      ...(diagnoseSyscalls ? {diagnosticOnly: true, acceptanceEligible: false,
+        instrumentation: 'strace -f -c; Node launcher and waited Native child'} : {})};
   }
   records.push(record);
   // Persist before any assertion, including the first unsupported binding.
@@ -121,6 +137,9 @@ try {
     cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
     registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
     publicRegistryPublication: 'not-tested', scenarios, records,
+    ...(diagnoseSyscalls ? {diagnosticOnly: true, acceptanceEligible: false,
+      diagnostic: {purpose: 'native-approval-syscall-summary', tool: syscallTool,
+        qualification: 'one instrumented workflow; not formal latency or a replacement for failed samples'}} : {}),
     unverified: ['live providers', 'crash or power-loss fault injection', 'other platforms']};
 
 } finally {
@@ -128,5 +147,5 @@ try {
 }
 // Successful evidence is published only after every child has exited and the
 // private registry has confirmed closure. Cleanup failure is not acceptance.
-const receiptFile = join(directory, `mock-install-${platform}-${Date.now()}.json`);
+const receiptFile = join(directory, `${diagnoseSyscalls ? 'mock-syscalls' : 'mock-install'}-${platform}-${Date.now()}.json`);
 await publishNativeApprovalReceipt({receipt, receiptFile, measureResources, scratch});

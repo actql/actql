@@ -1,13 +1,25 @@
-# Native Remote CLI artifact and publication procedure
+# Native CLI v0.0.2 artifact and publication procedure
 
-This is the limited implemented Remote transport distribution, not the
-subsequent standard CLI with embedded Local execution. SDK/Node publication
-does not wait for CLI acceptance. The existing `actql@0.0.1` placeholder stays
-immutable. The owner selects a complete version explicitly; the source
-package's development metadata does not select the next published number.
+The selected **v0.0.2 Initial Developer Preview** includes Native Local
+project/quick-query execution and explicit Remote HTTPS/mTLS transport. Its
+release platforms are macOS arm64 and Linux x64/glibc. The current macOS
+qualification host is 26; an earlier minimum requires the final binary ABI
+and actual installed acceptance. Historical Darwin/Core evidence cannot replace
+that artifact's qualification. Intel Macs, Windows, musl and Python are outside
+this release. Public APIs, command syntax
+and storage formats may change incompatibly during the preview.
+
+The user entry is `npm install -g actql`, with `latest` as the selected release
+channel. The existing `actql@0.0.1` placeholder stays immutable. The explicit
+v0.0.2 version, source, artifacts and accepted scope must remain bound through
+the procedures below; package metadata alone cannot select or qualify a binary.
+See the [CLI README](../packages/native-cli/README.md) and
+[release notes](notes/v0.0.2.md) for the user-facing scope.
 
 Build from a clean fixed HEAD with the repository-pinned MoonBit compiler,
-under the existing local heavy guard. On each actual candidate platform:
+under the existing local heavy guard. A Local release requires the normal
+Local producer and its admitted runtime material. The generic artifact command
+below retains its Remote-artifact scope; it does not add a Local runtime:
 
 ```sh
 node scripts/native-cli-artifact.mjs .artifacts/native-cli-<platform>-<sha> \
@@ -59,26 +71,26 @@ The executable's greatest required GLIBC symbol version is its minimum bound,
 not a guarantee for arbitrary separately installed libcurl/transitive libraries.
 The tested OS/glibc/library set and an older untested bound are distinct.
 
-After both platform artifacts have the same clean source SHA:
+After both selected platform artifacts are qualified at the same clean source SHA:
 
 ```sh
-node scripts/native-cli-release.mjs prepare .artifacts/cli-rc-<sha> <explicit-cohort.json> \
+node scripts/native-cli-release.mjs prepare-local .artifacts/cli-rc-<sha> release/0.0.2/native-cli-cohort.json \
   .artifacts/native-cli-darwin-arm64-<sha> \
   .artifacts/native-cli-linux-x64-gnu-<sha>
 node scripts/native-cli-release.mjs verify .artifacts/cli-rc-<sha>
 node scripts/native-cli-release.mjs plan .artifacts/cli-rc-<sha>
 ```
 
-Preparation can accept a single platform to continue other distribution work
-when the other environment is unavailable. Missing platforms remain unverified
-and are not declared supported. No build or download runs during installation.
+Preparation accepts the selected platform set. Adding another platform needs
+its own real artifact and installation acceptance; missing platforms remain
+unverified and are not declared supported. No build or download runs during installation.
 The `actql` launcher uses npm optional OS binary packages and checks target,
 source, executable digest, macOS deployment bound and Linux glibc before starting Native. It never
 chooses another binary or executes a Node fallback engine.
 
 The cohort file has exactly `packageVersion`, `registry`, `access` and `tag`.
-Use the explicitly selected complete version, the public npm registry URL,
-`public` access and the selected candidate tag. The shared version parser
+Use `0.0.2`, the public npm registry URL, `public` access and the selected
+`latest` tag for this release. The shared version parser
 supports final, alpha, beta and RC spellings. These are local candidate inputs,
 not owner approval, registry availability or platform acceptance. Preparation
 clones metadata into its unique staging directory and preserves source files.
@@ -94,7 +106,7 @@ lookup with the original reference, never an automatic resend.
 
 Supply names, versions, registry, digests, source and acceptance to the
 owner for an explicit publication decision. Authenticated npm identity/ownership and
-both tested platform declarations must be settled before public publication.
+all selected platform declarations must be settled before public publication.
 The old `--publish` CLI is disabled before credentials or upload subprocesses.
 Publication also needs the separate protected executor and registry-side
 stage-only identity; a local cohort or a successful build cannot authorize it.
@@ -141,8 +153,8 @@ new npm names. Feed the result to the upper fixed release set as
 manifest stays bound as raw provenance in `native-standalone.json`.
 
 Requested profiles are not accepted profiles. A Local request requires the
-original admitted runtime material and the existing darwin-arm64 producer
-route. Linux Remote packaging does not qualify Linux Local. The separate
+original admitted runtime material from the qualified Local producer for that
+platform. Linux Remote packaging alone does not qualify Linux Local. The separate
 Native installation/bootstrap connection, actual CLI/README entry, real
 `--version`, successful Local/Remote behavior, close/failure handling and a
 Node-free environment must be accepted from the actual selected artifacts.
