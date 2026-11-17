@@ -80,6 +80,28 @@ individual job/step intervals separately; a shorter dependency path alone is
 not a measured speedup. The thirty approvals for each original Mock workflow,
 all source-free cases and their original limits remain unchanged.
 
+## Private cause diagnostics
+
+Ordinary packed acceptance does not attach an Inspector or depend on private
+source-line breakpoints. It retains the real Host failure observer and all
+publication, Run, Result, Saved and refusal assertions. The same bounded DATA
+collector has direct privacy, accessor, omission, cycle, depth and reentry tests;
+mocked Session controls retain first-observation, resume and cleanup checks.
+
+Private source-line instrumentation requires the explicit
+`ACTQL_TEST_PACKED_QUERY_INSPECTOR=1` diagnostic selection. Its finite plain-Error
+capability check is separate:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 30 -- scripts/packed-query-inspector.actual.test.mjs
+```
+
+Unavailable instrumentation, an abort or a failed diagnostic remains a failed
+capability observation; it is not skipped, retried into success or used to
+change the original product result. A successful diagnostic does not qualify
+the normal package, prove another platform's Inspector behavior or identify a
+historical product failure's cause.
+
 ## Change-scoped PR verification
 
 Main integration retains all runtime families. Ready PRs may use the existing

@@ -1,3 +1,4 @@
+import './packed-query-cause-data.test.mjs';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -8,7 +9,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {test} from 'node:test';
 import {createTransportOwner, requireCompleteInventory, sourceFixturePaths, observePackedSubmissionCause,
-  runSubmissionCauseObserver, createPackedHostFailureDiagnostics, selectAcceptanceTimeout}
+  runSubmissionCauseObserver, createPackedHostFailureDiagnostics, collectPackedFailureData, selectAcceptanceTimeout}
   from './fixtures/packed-query-transport-owner.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import {publicQueryResultOracles} from './fixtures/public-query-input.mjs';
@@ -681,25 +682,56 @@ async function fixture(t) {
   return directory;
 }
 
-async function diagnosticTarget(t) {
-  const directory = await fixture(t), path = join(directory, 'original-ingress.mjs');
-  await writeFile(path, `const publicFailure = error => error;
-function unusedResult(original) {
-  try {throw original;}
-  catch (error) {
-    throw publicFailure(error);
+test('private Inspector is off by default and cannot read the ordinary target or report', async () => {
+  let reads = 0;
+  const sourceURL = new Proxy({}, {get() {reads++; throw new Error('not selected');}});
+  for (const enabled of [undefined, false]) {
+    const observer = await observePackedSubmissionCause({sourceURL, enabled,
+      report() {reads++; throw new Error('not selected');}});
+    await observer.close(); await observer.close();
   }
-}
-export function originalIngress(original) {
-  try {throw original;}
-  catch (error) {
-    throw publicFailure(error);
-  }
-}
-`);
-  const sourceURL = pathToFileURL(path);
-  return {path, sourceURL, ...await import(sourceURL.href)};
-}
+  assert.equal(reads, 0);
+});
+
+test('packed cause observer captures only the first original DATA and resumes late notifications', {timeout: 5000}, async () => {
+  const session = new EventEmitter(), port = new EventEmitter(), messages = [], calls = [];
+  const source = 'original diagnostic boundary', url = 'file:///original-boundary.mjs';
+  let original = Object.assign(new Error('private-original'), {code: 'EIO'}), inspections = 0;
+  let notifyClosed;
+  const closed = new Promise(resolve => {notifyClosed = resolve;});
+  session.connectToMainThread = () => {};
+  session.disconnect = () => calls.push('disconnect');
+  port.postMessage = value => messages.push(value);
+  port.close = () => notifyClosed();
+  session.post = (method, params, callback) => queueMicrotask(() => {
+    calls.push(method);
+    if (method === 'Debugger.enable') session.emit('Debugger.scriptParsed', {params: {url, scriptId: 'original-script'}});
+    let result = {};
+    if (method === 'Debugger.getScriptSource') result = {scriptSource: source};
+    if (method === 'Debugger.setBreakpointByUrl') result = {breakpointId: 'original-breakpoint'};
+    if (method === 'Debugger.evaluateOnCallFrame') {
+      inspections++;
+      result = {result: {value: collectPackedFailureData(original).originalCauseTypes[0]}};
+    }
+    callback(null, result);
+  });
+  await runSubmissionCauseObserver({session, parentPort: port, workerData: {url, frame: 0,
+    lineNumber: 0, sha256: createHash('sha256').update(source).digest('hex')}});
+  try {
+    const pause = () => session.emit('Debugger.paused', {params: {callFrames: [
+      {callFrameId: 'original-frame', location: {scriptId: 'original-script'}},
+    ]}});
+    pause(); await new Promise(resolve => setImmediate(resolve));
+    original = new Proxy({}, {getPrototypeOf() {throw new Error('later original read');}});
+    pause(); await new Promise(resolve => setImmediate(resolve));
+    assert.equal(inspections, 1);
+    assert.deepEqual(messages.filter(value => value.kind === 'primary'), [
+      {kind: 'primary', types: [{edge: 'original', type: 'Error', code: 'EIO'}]},
+    ]);
+    assert.equal(calls.filter(value => value === 'Debugger.resume').length, 2);
+  } finally {port.emit('message', {kind: 'close'}); await closed;}
+  assert.equal(calls.filter(value => value === 'disconnect').length, 1);
+});
 
 test('packed cause observer drains the original resume acknowledgement before session retirement', {timeout: 5000}, async () => {
   const source = 'original diagnostic fixture', url = 'file:///original-diagnostic-fixture.mjs';
@@ -873,469 +905,6 @@ test('packed cause observer retains its Worker until the disconnect callback tur
   port.emit('message', {kind: 'close'});
   await closed;
   assert.deepEqual(calls, ['disconnect', 'disconnect.callback', 'port.close']);
-});
-
-test('packed cause observer captures bounded original DATA and always resumes the same throw', async t => {
-  const target = await diagnosticTarget(t), reports = [];
-  const original = Object.assign(new TypeError('private-message-never-reported'), {
-    code: 'ClientProgramUnsupported', requestId: 'private-request-never-reported',
-    cause: Object.assign(new Error('private-inner-never-reported'), {code:'ForeignRequestOriginal'}),
-  });
-  let reads = 0, enumerations = 0;
-  Object.defineProperty(original, '_0', {get() {reads++; throw new Error('accessor invoked');}});
-  Object.defineProperty(original, 'unrelatedPrivateField', {get() {reads++; throw new Error('private field read');}});
-  const reflected = [];
-  const primary = new Proxy(original, {
-    ownKeys() {enumerations++; throw new Error('private fields enumerated');},
-    getOwnPropertyDescriptor(target, key) {
-      reflected.push(key);
-      assert.ok(['code','cause','primaryFailure','_0','_1','_2'].includes(key));
-      return Reflect.getOwnPropertyDescriptor(target, key);
-    },
-  });
-  original.cause.primaryFailure = primary;
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  try {
-    assert.throws(() => target.originalIngress(primary), error => error === primary);
-    assert.throws(() => target.originalIngress(primary), error => error === primary);
-  } finally {await observer.close();}
-  await observer.close();
-  assert.equal(reports.length, 1);
-  assert.equal(reports[0].available, true);
-  assert.equal(reports[0].originalCauseTypes.length, 1, 'only the first original boundary is observed');
-  assert.deepEqual(reports[0].originalCauseTypes[0], [
-    {edge:'original',type:'TypeError',code:'ClientProgramUnsupported'},
-    {edge:'cause',type:'Error',code:'ForeignRequestOriginal'},
-    {edge:'_0',type:'Accessor'},
-  ]);
-  assert.equal(reads, 0);
-  assert.equal(enumerations, 0);
-  assert.ok(reflected.length > 0);
-  assert.ok(!reflected.includes('stack') && !reflected.includes('unrelatedPrivateField'));
-  assert.doesNotMatch(JSON.stringify(reports), /private-|requestId|message|stack/u);
-});
-
-test('packed cause observer report failure cannot replace the original exception or cleanup', async t => {
-  const target = await diagnosticTarget(t);
-  const primary = new RangeError('original'), diagnostic = new Error('report unavailable');
-  let reports = 0, caught;
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report() {reports++;throw diagnostic;}});
-  try {target.originalIngress(primary);}
-  catch (error) {caught=error;}
-  finally {await observer.close();}
-  assert.equal(caught, primary);
-  assert.equal(reports, 1);
-  assert.throws(() => target.originalIngress(primary), error => error === primary);
-});
-
-test('packed cause observer refuses a loaded Source mismatch without changing the original result', async t => {
-  const target = await diagnosticTarget(t), reports = [];
-  await writeFile(target.path, (await readFile(target.path, 'utf8'))+'\n// changed after original import\n');
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  const primary = new Error('unchanged original');
-  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
-  finally {await observer.close();}
-  assert.equal(reports.length, 1);
-  assert.equal(reports[0].available, false);
-});
-
-test('packed cause observer inspection failure resumes and preserves the original exception', async t => {
-  const target = await diagnosticTarget(t), reports = [];
-  const primary = new Proxy(new Error('original'), {
-    getOwnPropertyDescriptor() {throw new Error('descriptor inspection unavailable');},
-  });
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
-  finally {await observer.close();}
-  assert.equal(reports.length, 1);
-  assert.equal(reports[0].available, false);
-});
-
-test('packed cause observer never sends a private inspection exception to Inspector formatting', async t => {
-  const target = await diagnosticTarget(t), reports = [];
-  let reads = 0;
-  const privateFailure = new Error('private-inspection-failure');
-  for (const name of ['stack', 'message', 'name']) Object.defineProperty(privateFailure, name,
-    {get() {reads++;throw new Error('private-inspection-getter');}});
-  const primary = new Proxy(new Error('original'), {
-    getOwnPropertyDescriptor() {throw privateFailure;},
-  });
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
-  finally {await observer.close();}
-  assert.equal(reads, 0, 'Reflection failure must stay inside the bounded inspection expression');
-  assert.equal(reports.length, 1);
-  assert.equal(reports[0].available, false);
-  assert.deepEqual(reports[0].originalCauseTypes, []);
-  assert.doesNotMatch(JSON.stringify(reports), /private-|message|stack/u);
-});
-
-test('packed cause observer discards partial DATA when nested reflection fails', async t => {
-  const target = await diagnosticTarget(t), reports = [];
-  let reads = 0;
-  const privateFailure = new Error('private-nested-inspection-failure');
-  Object.defineProperty(privateFailure, 'stack', {get() {reads++;throw new Error('private-getter');}});
-  const primary = Object.assign(new Error('original'), {code:'ClientProgramUnsupported',
-    cause:new Proxy({}, {getOwnPropertyDescriptor() {throw privateFailure;}})});
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
-  finally {await observer.close();}
-  assert.equal(reads, 0);
-  assert.equal(reports[0].available, false);
-  assert.deepEqual(reports[0].originalCauseTypes, [], 'The earlier original row is not a complete observation');
-  assert.doesNotMatch(JSON.stringify(reports), /private-|ClientProgramUnsupported|message|stack/u);
-});
-
-test('packed cause observer retains a closed Node failure code without collecting its message', async t => {
-  const target = await diagnosticTarget(t), reports = [];
-  const primary = Object.assign(new Error('private-SQL-never-reported'), {code:'ERR_SQLITE_ERROR'});
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
-  finally {await observer.close();}
-  assert.equal(reports[0].available, true);
-  assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'Error',code:'ERR_SQLITE_ERROR'}]]);
-  assert.doesNotMatch(JSON.stringify(reports), /private-SQL/u);
-});
-
-test('packed cause observer omits a plausible private code and forged MoonBit constructor name', async t => {
-  const target = await diagnosticTarget(t), reports = [];
-  class _MPrivateInputSecret extends Error {}
-  const primary = Object.assign(new _MPrivateInputSecret('private-message'), {code:'ClientPrivateInputSecret'});
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
-  finally {await observer.close();}
-  assert.equal(reports[0].available, true);
-  assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'MoonBit',codeOmitted:true,codeType:'String'}]]);
-  assert.doesNotMatch(JSON.stringify(reports), /PrivateInputSecret|private-message/u);
-});
-
-test('packed cause observer retains exact factory codes and primitive edge types without their values', async t => {
-  const target = await diagnosticTarget(t), reports = [];
-  const primary = Object.assign(new Error('private-factory-message'), {
-    code:'MoonBitHostFailure', cause:9234567, _0:undefined, _1:null,
-    _2:{code:'NodeManagedRunAdmissionUnavailable', cause:'private-primitive-string', primaryFailure:()=> 'private-function',
-      _0:true, _1:9234568n, _2:Symbol('private-symbol')},
-  });
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  try {assert.throws(() => target.originalIngress(primary), error => error === primary);}
-  finally {await observer.close();}
-  assert.equal(reports[0].available, true);
-  assert.deepEqual(reports[0].originalCauseTypes, [[
-    {edge:'original',type:'Error',code:'MoonBitHostFailure'},
-    {edge:'cause',type:'Number'}, {edge:'_0',type:'Undefined'}, {edge:'_1',type:'Null'},
-    {edge:'_2',type:'Object',code:'NodeManagedRunAdmissionUnavailable'}, {edge:'cause',type:'String'},
-    {edge:'primaryFailure',type:'Function'}, {edge:'_0',type:'Boolean'},
-    {edge:'_1',type:'BigInt'}, {edge:'_2',type:'Symbol'},
-  ]]);
-  assert.doesNotMatch(JSON.stringify(reports), /9234567|9234568|private-/u);
-});
-
-test('packed cause observer retains reviewed Local preparation factory codes with an undefined cause', async t => {
-  const codes = ['RunHostCompilationRejected', 'RunHostTaskCompilationRejected',
-    'RunHostAdmissionRejected', 'RunHostStaticPlanRejected', 'RunHostOriginalPlanRejected'];
-  const factory = await readFile(new URL('../adapters/host-common/runtime-core.mjs', import.meta.url), 'utf8');
-  assert(factory.includes("new Error(code, {cause: error.cause})"));
-  for (const code of codes) assert(factory.includes(`'${code}'`), code);
-  const target = await diagnosticTarget(t), reports = [];
-  const error = code => Object.assign(new Error('private-factory-message'), {code, cause:undefined});
-  const original = error(codes[0]);
-  original.primaryFailure = error(codes[1]); original._0 = error(codes[2]);
-  original._1 = error(codes[3]); original._2 = error(codes[4]);
-  original._2.cause = error('RunHostPrivateInputSecret');
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  try {assert.throws(() => target.originalIngress(original), value => value === original);}
-  finally {await observer.close();}
-  assert.equal(reports[0].available, true);
-  const rows = reports[0].originalCauseTypes.flat();
-  assert.deepEqual(rows.flatMap(row => row.code === undefined ? [] : [row.code]).sort(), [...codes].sort());
-  assert.equal(rows.filter(row => row.type === 'Undefined').length, 5);
-  assert(rows.some(row => row.type === 'Error' && row.codeOmitted === true));
-  assert.doesNotMatch(JSON.stringify(reports), /PrivateInputSecret|private-factory-message|message|stack/u);
-});
-
-test('packed cause observer retains closed compiled-Run submission factory codes', async t => {
-  const codes = [
-    'RunHostResultPolicyRejected', 'RunHostResultSelectionRejected',
-    'RunHostTaskDefinitionRejected', 'RunHostSourceFreeDefinitionRejected',
-    'RunHostSourceFreeAdmissionRejected', 'RunHostTaskInvocationRejected', 'RunHostInvocationRejected',
-  ];
-  const factory = await readFile(new URL('../adapters/host-common/runtime-core.mjs', import.meta.url), 'utf8');
-  assert(factory.includes('new Error(code, {cause: error.cause})'));
-  for (const code of codes) assert(factory.includes(`'${code}'`), code);
-  const target = await diagnosticTarget(t), reports = [];
-  const errors = codes.map(code => Object.assign(new Error('private-submit-boundary'),
-    {code, cause:undefined}));
-  for (let index = 1; index < errors.length; index++) errors[index - 1].primaryFailure = errors[index];
-  let reads = 0;
-  Object.defineProperty(errors.at(-1), '_0', {get() {reads++;throw new Error('private-getter');}});
-  errors.at(-1)._1 = {code:'RunHostPrivateInputSecret'};
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  try {assert.throws(() => target.originalIngress(errors[0]), error => error === errors[0]);}
-  finally {await observer.close();}
-  assert.equal(reads, 0);
-  assert.equal(reports[0].available, true);
-  const rows = reports[0].originalCauseTypes.flat();
-  assert.deepEqual(rows.flatMap(row => row.code === undefined ? [] : [row.code]), codes);
-  assert.equal(rows.filter(row => row.type === 'Undefined').length, codes.length);
-  assert(rows.some(row => row.type === 'Accessor'));
-  assert(rows.some(row => row.codeOmitted === true && row.codeType === 'String'));
-  assert.doesNotMatch(JSON.stringify(reports), /PrivateInputSecret|private-|message|stack/u);
-});
-
-test('packed cause observer classifies omitted code descriptors without getters or values', async t => {
-  const target = await diagnosticTarget(t), reports = [];
-  let reads = 0;
-  const original = Object.assign(new Error('private-code-description'), {
-    code:undefined, _0:{code:'PrivateCodeSecret'}, _1:{code:9234567}, _2:{code:{}},
-    cause:Object.defineProperty({}, 'code', {get() {reads++;throw new Error('private-getter');}}),
-  });
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    report:value=>reports.push(value)});
-  try {assert.throws(() => target.originalIngress(original), value => value === original);}
-  finally {await observer.close();}
-  assert.equal(reads, 0);
-  assert.equal(reports[0].available, true);
-  assert.deepEqual(reports[0].originalCauseTypes, [[
-    {edge:'original',type:'Error',codeOmitted:true,codeType:'Undefined'},
-    {edge:'cause',type:'Object',codeOmitted:true,codeType:'Accessor'},
-    {edge:'_0',type:'Object',codeOmitted:true,codeType:'String'},
-    {edge:'_1',type:'Object',codeOmitted:true,codeType:'Number'},
-    {edge:'_2',type:'Object',codeOmitted:true,codeType:'Other'},
-  ]]);
-  assert.doesNotMatch(JSON.stringify(reports), /PrivateCodeSecret|9234567|private-|message|stack/u);
-});
-
-test('packed cause observer preserves its fixed allowlist while omitting unlisted production codes', {timeout: 30_000}, async t => {
-  const {parse} = await import('acorn');
-  const modules = [
-    'adapters/host-node/in-process-client.mjs', 'adapters/host-node/client-http.mjs',
-    'adapters/host-node/client-request-journal.mjs', 'adapters/host-node/client-submission.mjs',
-    'adapters/host-node/client-program-preparation.mjs', 'adapters/host-node/client-submit.mjs',
-    'adapters/host-node/ordinary-source-managed.mjs', 'adapters/host-node/source-managed-original-input.mjs',
-    'adapters/host-node/embedded-local.mjs', 'adapters/host-node/local-account-config.mjs',
-    'adapters/host-node/ordinary-local-account.mjs', 'adapters/host-node/ordinary-mock-account.mjs',
-    'adapters/host-node/ordinary-host-control.mjs', 'adapters/host-node/ordinary-host-journal.mjs',
-    'adapters/host-node/node-host-journal-installation.mjs', 'adapters/host-node/node-source-managed-installation.mjs',
-    'adapters/host-node/client-source-operation.mjs', 'adapters/host-node/installed-row-source.mjs',
-    'adapters/host-node/bounded-continuation-metadata.mjs', 'adapters/host-node/bounded-continuation-directory.mjs',
-    'adapters/host-common/runtime-core.mjs', 'adapters/host-common/runtime-result.mjs',
-    'adapters/host-common/sqlite-format-inspection.mjs', 'adapters/host-common/sqlite-transaction.mjs',
-  ];
-  const syntax = source => parse(source, {ecmaVersion:'latest', sourceType:'module'});
-  const helperSource = await readFile(new URL('./fixtures/packed-query-transport-owner.mjs', import.meta.url), 'utf8');
-  const declaration = syntax(helperSource).body.flatMap(node => node.declarations ?? [])
-    .find(node => node.id.name === 'originalFailureCodes');
-  assert.equal(declaration.init.callee.object.name, 'Object');
-  assert.equal(declaration.init.callee.property.name, 'freeze');
-  const entries = declaration.init.arguments[0];
-  assert.equal(entries.type, 'ArrayExpression');
-  assert(entries.elements.every(node => node.type === 'Literal' && typeof node.value === 'string'));
-  const codes = entries.elements.map(node => node.value), fixed = new Set(codes);
-  assert.equal(codes.length, fixed.size);
-  const selected = new Set(), factoryArguments = {fail:0, invalid:0,
-    clientOperationError:0, compiledRunResult:1, rejectSubmission:0, failure:0};
-  const literal = node => {
-    if (node?.type === 'Literal' && typeof node.value === 'string' && /^[A-Z][A-Za-z0-9_]+$/u.test(node.value)) {
-      selected.add(node.value);
-    } else if (node?.type === 'ConditionalExpression') {
-      literal(node.consequent); literal(node.alternate);
-    } else if (node?.type === 'LogicalExpression') {
-      literal(node.left); literal(node.right);
-    }
-  };
-  const visit = node => {
-    if (node === null || typeof node !== 'object') return;
-    if (node.type === 'CallExpression' && Object.hasOwn(factoryArguments, node.callee.name)) {
-      literal(node.arguments[factoryArguments[node.callee.name]]);
-    }
-    if (node.type === 'AssignmentExpression' && node.left.type === 'MemberExpression' && node.left.property.name === 'code') {
-      literal(node.right);
-    }
-    if (node.type === 'Property' && ['code', 'unavailableCode', 'cleanupCode'].includes(node.key.name ?? node.key.value)) {
-      literal(node.value);
-    }
-    if (node.type === 'VariableDeclarator' && ['issueCodes', 'effectIssueCodes'].includes(node.id.name)) {
-      assert.equal(node.init.callee.object.name, 'Object');
-      assert.equal(node.init.callee.property.name, 'freeze');
-      assert.equal(node.init.arguments[0].type, 'ObjectExpression');
-      for (const entry of node.init.arguments[0].properties) literal(entry.value);
-    }
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value !== null && typeof value === 'object') visit(value);
-    }
-  };
-  for (const path of modules) visit(syntax(await readFile(new URL('../' + path, import.meta.url), 'utf8')));
-  // This actual transaction factory has exactly two selected Journal callers.
-  // Expand only their Source-pinned prefixes, never an arbitrary runtime prefix.
-  const transaction = await readFile(new URL('../adapters/host-common/sqlite-transaction.mjs', import.meta.url), 'utf8');
-  const journal = await readFile(new URL('../adapters/host-node/client-request-journal.mjs', import.meta.url), 'utf8');
-  for (const prefix of ['ClientRequestJournal', 'ClientObservation']) {
-    assert(journal.includes(`'${prefix}'`));
-    for (const suffix of ['ConnectionUnusable', 'CommitOutcomeUnknown', 'RollbackFailed']) {
-      assert(transaction.includes('${prefix}' + suffix));
-      selected.add(prefix + suffix);
-    }
-  }
-  const http = await readFile(new URL('../adapters/host-node/client-http.mjs', import.meta.url), 'utf8');
-  assert(http.includes("responseCode(error) === 500 ? 'ClientHostFailure'"));
-  selected.add('ClientHostFailure');
-  // The observer's privacy policy is a closed allowlist, not an inventory of
-  // every internal failure. New internal codes must remain safely omitted
-  // without forcing an expansion of what the diagnostic is allowed to expose.
-  const probes = [...new Set([...codes, ...selected])];
-  for (let offset = 0; offset < probes.length; offset += 7) {
-    const batch = probes.slice(offset, offset + 7), target = await diagnosticTarget(t), reports = [];
-    const originals = batch.map(code => Object.assign(new Error('private-original-message'), {code, cause:undefined}));
-    for (let index = 1; index < originals.length; index++) originals[index - 1].primaryFailure = originals[index];
-    let reads = 0;
-    Object.defineProperty(originals.at(-1), '_0', {get() {reads++;throw new Error('private-getter');}});
-    originals.at(-1)._1 = {code:'ClientPrivateFactoryPayload'};
-    const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL, report:value=>reports.push(value)});
-    try {assert.throws(() => target.originalIngress(originals[0]), error => error === originals[0]);}
-    finally {await observer.close();}
-    assert.equal(reads, 0); assert.equal(reports[0].available, true);
-    const rows = reports[0].originalCauseTypes.flat();
-    assert.deepEqual(rows.flatMap(row => row.code === undefined ? [] : [row.code]),
-      batch.filter(code => fixed.has(code)));
-    assert.equal(rows.filter(row => row.codeOmitted === true && row.codeType === 'String').length,
-      batch.filter(code => !fixed.has(code)).length + 1);
-    assert(rows.some(row => row.type === 'Accessor'));
-    assert(rows.some(row => row.codeOmitted === true && row.codeType === 'String'));
-    assert.doesNotMatch(JSON.stringify(reports), /private-|PrivateFactoryPayload|message|stack/u);
-  }
-});
-
-async function statusDiagnosticTarget(t, transport, {foreignCaller = false} = {}) {
-  const caller = foreignCaller ? 'foreignFailure' : 'publicFailure';
-  const directory = await fixture(t), path = join(directory, 'status-ingress.mjs');
-  const shared = `const statuses = new WeakMap(); let reads = 0;
-const responseCode = error => { reads++; return statuses.get(error); };
-export const statusReads = () => reads;
-`;
-  const source = transport === 'http' ? shared + `
-function sendError(response, error) {
-  const status = responseCode(error);
-  response.writeHead(status, {'content-type': 'application/json'});
-}
-export function originalIngress(original, status) {
-  statuses.set(original, status);
-  try {throw original;}
-  catch (error) {sendError({writeHead() {}}, error); throw error;}
-}
-` : shared + `
-class ClientError extends Error {
-  constructor(code, {status}) {super(code); this.code = code; this.status = status;}
-}
-const localErrors = new WeakSet();
-const publicClientErrorStatus = responseCode;
-const publicClientErrorCode = error => statuses.get(error) === 500 ? 'ClientHostFailure' : 'ClientProgramUnsupported';
-const publicError = (code, status) => {
-  const error = new ClientError(code, {status});
-  delete error.stack;
-  return error;
-};
-const ${caller} = error => localErrors.has(error) ? error
-  : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
-const host = {perform(operation, original, status) {
-  statuses.set(original, status);
-  try {throw original;}
-  catch (error) {throw ${caller}(error);}
-}};
-export function originalIngress(original, status, operation = 'submit-intent') {
-  return host.perform(operation, original, status);
-}
-`;
-  await writeFile(path, source);
-  const sourceURL = pathToFileURL(path);
-  return {sourceURL, ...await import(sourceURL.href)};
-}
-
-for (const transport of ['http', 'local']) {
-  test(`packed cause observer captures only the first ${transport} 500 from its computed status and original frame`, async t => {
-    const target = await statusDiagnosticTarget(t, transport), reports = [];
-    const expected = Object.assign(new Error('private-decline'), {code:'ClientProgramUnsupported'});
-    const original = Object.assign(new Error('private-primary'), {code:'MoonBitHostFailure'});
-    let reflected = 0;
-    const later = new Proxy(new Error('private-later'), {
-      getPrototypeOf() {reflected++; throw new Error('Later original must not be inspected');},
-    });
-    const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-      boundary:transport + '-500', report:value=>reports.push(value)});
-    const unchanged = (error, primary, status) => transport === 'http' ? error === primary
-      : error !== primary && error.code === (status === 500 ? 'ClientHostFailure' : 'ClientProgramUnsupported') && error.status === status;
-    try {
-      assert.throws(() => target.originalIngress(expected, 422), error => unchanged(error, expected, 422));
-      assert.throws(() => target.originalIngress(original, 500), error => unchanged(error, original, 500));
-      assert.throws(() => target.originalIngress(later, 500), error => unchanged(error, later, 500));
-    } finally {await observer.close();}
-    assert.equal(target.statusReads(), 3, 'the breakpoint condition must not repeat status classification');
-    assert.equal(reflected, 0, 'later errors are not reflected after the first 500');
-    assert.equal(reports.length, 1);
-    assert.equal(reports[0].available, true);
-    assert.deepEqual(reports[0].originalCauseTypes, [[{edge:'original',type:'Error',code:'MoonBitHostFailure'}]]);
-    assert.doesNotMatch(JSON.stringify(reports), /private-|decline|later|message|stack/u);
-  });
-}
-
-test('packed cause observer refuses a different Local caller and still resumes its public outcome', async t => {
-  const target = await statusDiagnosticTarget(t, 'local', {foreignCaller:true}), reports = [];
-  const original = Object.assign(new Error('private-foreign-caller'), {code:'MoonBitHostFailure'});
-  const observer = await observePackedSubmissionCause({sourceURL:target.sourceURL,
-    boundary:'local-500', report:value=>reports.push(value)});
-  try {
-    assert.throws(() => target.originalIngress(original, 500), error =>
-      error !== original && error.code === 'ClientHostFailure' && error.status === 500);
-  } finally {await observer.close();}
-  assert.equal(target.statusReads(), 1);
-  assert.equal(reports.length, 1);
-  assert.equal(reports[0].available, false);
-  assert.equal(reports[0].unavailableReason, 'original-caller-unavailable');
-  assert.deepEqual(reports[0].originalCauseTypes, []);
-  assert.doesNotMatch(JSON.stringify(reports), /private-|foreignFailure|message|stack/u);
-});
-
-test('packed submission cause ignores earlier non-submission failures without inspecting their errors', async t => {
-  for (const operation of ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent']) {
-    const target = await statusDiagnosticTarget(t, 'local'), reports = [];
-    let reflected = 0;
-    const unrelated = new Proxy(new Error('private-unrelated'), {
-      getPrototypeOf() {reflected++; throw new Error('Unrelated error must not be inspected');},
-    });
-    const original = Object.assign(new Error('private-submission'), {code: 'RunHostOriginalPlanRejected'});
-    const observer = await observePackedSubmissionCause({sourceURL: target.sourceURL,
-      boundary: 'local-submission-500', report: value => reports.push(value)});
-    try {
-      assert.throws(() => target.originalIngress(unrelated, 422, operation),
-        {code: 'ClientProgramUnsupported', status: 422});
-      for (const prior of ['read', 'result-describe', 'private-operation']) {
-        assert.throws(() => target.originalIngress(unrelated, 500, prior),
-          {code: 'ClientHostFailure', status: 500});
-      }
-      assert.throws(() => target.originalIngress(original, 500, operation),
-        {code: 'ClientHostFailure', status: 500});
-      assert.throws(() => target.originalIngress(unrelated, 500, operation),
-        {code: 'ClientHostFailure', status: 500});
-    } finally {await observer.close();}
-    assert.equal(target.statusReads(), 6, 'Observation never repeats status classification');
-    assert.equal(reflected, 0, 'Unrelated and later errors remain uninspected');
-    assert.equal(reports.length, 1);
-    assert.equal(reports[0].available, true);
-    assert.deepEqual(reports[0].originalCauseTypes,
-      [[{edge: 'original', type: 'Error', code: 'RunHostOriginalPlanRejected'}]]);
-    assert.doesNotMatch(JSON.stringify(reports), /private-|message|stack/u);
-  }
 });
 
 test('complete transport inventory rejects missing, duplicate, extra and reordered identities', () => {

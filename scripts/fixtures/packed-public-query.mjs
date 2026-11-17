@@ -1375,7 +1375,7 @@ if (transport === undefined || transport === 'local') {
 let localAcceptedRuns = 0, submissionCause;
 const hostFailures = createPackedHostFailureDiagnostics();
 try {
-  submissionCause = await observePackedSubmissionCause({boundary: 'local-submission-500', sourceURL: new URL(
+  submissionCause = await observePackedSubmissionCause({enabled: process.env.ACTQL_TEST_PACKED_QUERY_INSPECTOR === '1', boundary: 'local-submission-500', sourceURL: new URL(
     './adapters/host-node/in-process-client.mjs', import.meta.resolve('@actql/local-node'))});
 } catch { /* A missing diagnostic cannot replace the original test outcome. */ }
 try {
@@ -1412,7 +1412,7 @@ const beforeRemote = sourceIo;
 let remoteAcceptedRuns = 0, submissionCause;
 const hostFailures = createPackedHostFailureDiagnostics();
 try {
-  submissionCause = await observePackedSubmissionCause({boundary: 'http-500', sourceURL: new URL(
+  submissionCause = await observePackedSubmissionCause({enabled: process.env.ACTQL_TEST_PACKED_QUERY_INSPECTOR === '1', boundary: 'http-500', sourceURL: new URL(
     './adapters/host-node/client-http.mjs', import.meta.resolve('@actql/local-node'))});
 } catch { /* A missing diagnostic cannot replace the original test outcome. */ }
 try {
