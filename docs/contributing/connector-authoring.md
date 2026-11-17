@@ -338,6 +338,35 @@ mapping receives an identity over the fixed declaration and exact transport.
 There is no separate author `requestFacts`, `writeOperation`, `footprint`, send
 or CID callback for that path.
 
+The public `createInstalledRowEffect` options require exactly one of `write`
+and `driver`. Both supplied together, or neither supplied, are rejected by the
+public types and runtime. `RowEffectCreateWrite<Request>` describes the standard
+declaration; for example, a provider's pure implementation can be:
+
+```ts
+import type {RowEffectCreateWrite} from '@actql/local-node/connector-installation';
+
+type Request = Readonly<{path: string; body: string}>;
+const write: RowEffectCreateWrite<Request> = {
+  kind: 'create',
+  operation: 'items.create',
+  resourceKind: 'items',
+  boundaryCid, // The original installed provider boundary identity.
+  http: {
+    origin: 'https://api.example.invalid', method: 'POST', path: '/v1/items',
+    maxRequestBytes: 4096, maxResponseBytes: 4096,
+  },
+  request: ({value}) => ({path: '/v1/items', body: JSON.stringify(value)}),
+  classify: ({request, observation}) => classifyItemResponse(request, observation),
+};
+```
+
+The provider supplies its own response classifier and original boundary CID;
+the example does not infer success from an HTTP status. Pass `write` with the
+same Host-owned installation options used by `createInstalledRowEffect`.
+Neither callback receives credentials or a dispatch grant. Request mapping and
+classification are synchronous; async transport remains with the Host.
+
 The standard transformation receives only frozen `{resource, value}` DATA.
 Classification receives `{resource, value, request, observation}` and the
 original `headers` field when present. The resource and value come from the

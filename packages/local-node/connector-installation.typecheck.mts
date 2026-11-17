@@ -8,7 +8,7 @@ import type {
   ConnectorJsonObject, ConnectorRuntimeHandle, ConnectorRuntimeOwner,
   CredentialResponse, RowSourceCredentialProfile, RowSourceDeclarationFacts,
   InstalledRowProviderReader, RowProviderReaderRequest,
-  RowEffectDriver, RowEffectRequestChild,
+  RowEffectDriver, RowEffectRequestChild, RowEffectCreateWrite, InstalledRowEffectOptions,
   RestSourceInstallationDefinition, RestSourceTransform, InstallationCloseOwner,
 } from '@actql/local-node/connector-installation';
 import type {HostRequestValuePolicyVerifier} from '@actql/local-node';
@@ -118,6 +118,66 @@ const effect = await createInstalledRowEffect<Request>({
       boundaryCid: bindingCid}),
   },
 });
+
+// Standard CREATE uses the same factory without implementing Host-owned hooks.
+type CreateRequest = Readonly<{path: string; body: string}>;
+const standardWrite: RowEffectCreateWrite<CreateRequest> = {
+  kind: 'create', operation: 'items.create', resourceKind: 'items', boundaryCid: bindingCid,
+  http: {origin: 'https://example.invalid', method: 'POST', path: '/items',
+    maxRequestBytes: 4096, maxResponseBytes: 4096},
+  request({resource, value}) {
+    if (resource !== 'items') throw new Error('UndeclaredResource');
+    return {path: '/items', body: JSON.stringify(value)};
+  },
+  classify({request, observation}) {
+    const body: string = request.body;
+    const status: number = observation.statusCode;
+    void [body, status];
+    return {kind: 'unclassified-response'};
+  },
+  confirmation: {resource: 'items', operation: 'items.read',
+    http: {origin: 'https://example.invalid', method: 'GET', path: '/items',
+      query: [['limit', '1']], maxRequestBytes: 4096, maxResponseBytes: 4096},
+    body: () => undefined,
+    // No matching provider evidence remains Unknown, not a fabricated success.
+    project: () => undefined,
+  },
+};
+declare const standardHostOptions: Omit<InstalledRowEffectOptions<CreateRequest, unknown, 'create'>,
+  'driver' | 'write'>;
+const standardCreate = createInstalledRowEffect({...standardHostOptions, write: standardWrite});
+declare const originalCreateDriver: RowEffectDriver<CreateRequest, unknown, 'create'>;
+// @ts-expect-error Standard CREATE: Exactly one implementation is selected.
+const conflictingCreate = createInstalledRowEffect({...standardHostOptions, write: standardWrite, driver: originalCreateDriver});
+// @ts-expect-error Standard CREATE: An implementation cannot be absent.
+const missingCreate = createInstalledRowEffect<CreateRequest>({...standardHostOptions});
+const asynchronousWrite: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
+  // @ts-expect-error Standard CREATE: Request mapping is synchronous DATA work.
+  request: async input => standardWrite.request(input),
+};
+const asynchronousClassifier: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
+  // @ts-expect-error Standard CREATE: Classification is synchronous provider DATA.
+  classify: async input => standardWrite.classify(input),
+};
+// @ts-expect-error Standard CREATE: The standard declaration does not implement DELETE.
+const standardDelete = createInstalledRowEffect<CreateRequest, unknown, 'delete'>({...standardHostOptions, write: standardWrite});
+const invalidWriteMethod: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
+  // @ts-expect-error Standard CREATE: A read verb cannot dispatch a CREATE.
+  http: {...standardWrite.http, method: 'GET'},
+};
+const ignoredWriteQuery: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
+  // @ts-expect-error Standard CREATE: Write query belongs to the mapped original request.
+  http: {...standardWrite.http, query: [['ignored', 'value']]},
+};
+const requestDataOnly: RowEffectCreateWrite<CreateRequest> = {...standardWrite,
+  request(input) {
+    // @ts-expect-error Standard CREATE: Pure author mapping receives no authorization.
+    input.authorization;
+    return standardWrite.request(input);
+  },
+};
+void [standardCreate, conflictingCreate, missingCreate, asynchronousWrite,
+  asynchronousClassifier, standardDelete, invalidWriteMethod, ignoredWriteQuery, requestDataOnly];
 
 const failure = await retainInstalledHostInitializationFailure(new Error('fixture'),
   {sourceProfile: source, installedEffect: effect});

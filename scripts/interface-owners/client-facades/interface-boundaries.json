@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "e5b274e08e833670907b535bb5911811de67883b5ade05663ede37815e06eeeb",
+      "sha256": "de1918d6dbac8bd582c66a2c2cd290aa1ad4cc70d90440397fe66b4da7e0d859",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -35,6 +35,7 @@
         "InstallationFailure",
         "InstalledConnectorBinding",
         "InstalledRowEffect",
+        "InstalledRowEffectOptions",
         "InstalledRowProviderReader",
         "InstalledRowSource",
         "InvocationAuthorization",
@@ -46,6 +47,7 @@
         "RestSourceTransform",
         "RowEffectCommand",
         "RowEffectCommandMember",
+        "RowEffectCreateWrite",
         "RowEffectDriver",
         "RowEffectEntry",
         "RowEffectFootprint",
@@ -62,6 +64,9 @@
         "RowEffectTargetObservation",
         "RowEffectValue",
         "RowEffectValueKind",
+        "RowEffectWriteHttp",
+        "RowEffectWriteInput",
+        "RowEffectWriteObservation",
         "RowMappingSource",
         "RowPageRequest",
         "RowProviderReaderRequest",
@@ -164,7 +169,7 @@
         {
           "name": "createInstalledRowEffect",
           "parameters": [
-            "options: Readonly<{\n    moon: ConnectorRuntimeOwner;\n    mappings: readonly RowEffectMapping[];\n    commands?: readonly RowEffectCommand[];\n    environmentWire: string;\n    connectorId: string;\n    connectorRegistration: string;\n    connectorRevision: string;\n    connection: string;\n    site: RowSourceCredentialSite;\n    authorization: InstallationAuthorization;\n    runtimeBundleCid: string;\n    bindingCid: string;\n    driver: RowEffectDriver<Request, Current, Kind>;\n    ledgerRoot: string;\n    /** The exact generated installation-table entry, never a reconstructed copy. */\n    installation?: object;\n    continuationBinding?: string;\n    /** Nested limit objects replace their defaults as complete objects. */\n    limits?: Partial<RowEffectLimits>;\n  }>"
+            "options: InstalledRowEffectOptions<Request, Current, Kind>"
           ],
           "result": "Promise<InstalledRowEffect>"
         },
@@ -366,6 +371,69 @@
           "name": "retainInstalledHostInitializationFailure/stop",
           "parameters": [],
           "result": "Awaitable<unknown>"
+        },
+        {
+          "name": "RowEffectCreateWrite/body",
+          "parameters": [
+            "input: Readonly<RowEffectWriteInput & {request: Request}>"
+          ],
+          "result": "string | undefined"
+        },
+        {
+          "name": "RowEffectCreateWrite/body#2",
+          "parameters": [
+            "input: Readonly<RowEffectWriteInput & {\n      request: Request; providerEvidence: unknown;\n    }>"
+          ],
+          "result": "string | undefined"
+        },
+        {
+          "name": "RowEffectCreateWrite/classify",
+          "parameters": [
+            "input: RowEffectWriteObservation<Request>"
+          ],
+          "result": "RowEffectProjection"
+        },
+        {
+          "name": "RowEffectCreateWrite/finalize",
+          "parameters": [
+            "input: Readonly<RowEffectWriteInput & {\n      request: Request; requestTag: string;\n    }>"
+          ],
+          "result": "Request & Readonly<{then?: never}>"
+        },
+        {
+          "name": "RowEffectCreateWrite/project",
+          "parameters": [
+            "input: RowEffectWriteObservation<Request> & Readonly<{accepted: boolean}>"
+          ],
+          "result": "undefined"
+        },
+        {
+          "name": "RowEffectCreateWrite/project#2",
+          "parameters": [
+            "input: RowEffectWriteObservation<Request> & Readonly<{\n      accepted: boolean; providerEvidence: unknown;\n    }>"
+          ],
+          "result": "RowEffectProjection | undefined"
+        },
+        {
+          "name": "RowEffectCreateWrite/request",
+          "parameters": [
+            "input: RowEffectWriteInput"
+          ],
+          "result": "Request & Readonly<{then?: never}>"
+        },
+        {
+          "name": "RowEffectCreateWrite/request#2",
+          "parameters": [
+            "input: RowEffectInvocation<Request, unknown, 'create'>"
+          ],
+          "result": "Awaitable<unknown>"
+        },
+        {
+          "name": "RowEffectCreateWrite/restore",
+          "parameters": [
+            "input: Readonly<RowEffectWriteInput & {\n      request: Request; logical: Request; requestTag: string;\n    }>"
+          ],
+          "result": "Request & Readonly<{then?: never}>"
         },
         {
           "name": "RowEffectDriver/admitTargetReadApproval",
@@ -690,7 +758,16 @@
             "RowSourceCredentialSite/issueEffectGrant",
             "RowSourceCredentialSite/issueReadGrant",
             "rowSourceMapping",
-            "RowEffectDriver/recoverMemberRequests"
+            "RowEffectDriver/recoverMemberRequests",
+            "RowEffectCreateWrite/body",
+            "RowEffectCreateWrite/body#2",
+            "RowEffectCreateWrite/classify",
+            "RowEffectCreateWrite/finalize",
+            "RowEffectCreateWrite/project",
+            "RowEffectCreateWrite/project#2",
+            "RowEffectCreateWrite/request",
+            "RowEffectCreateWrite/request#2",
+            "RowEffectCreateWrite/restore"
           ],
           "exports": [
             "AuthorizationBoundary",
@@ -761,7 +838,12 @@
             "retainInstalledHostInitializationFailure",
             "rowSourceCheckEnvironment",
             "rowSourceMapping",
-            "RowEffectTargetObservation"
+            "RowEffectTargetObservation",
+            "InstalledRowEffectOptions",
+            "RowEffectCreateWrite",
+            "RowEffectWriteHttp",
+            "RowEffectWriteInput",
+            "RowEffectWriteObservation"
           ],
           "attributes": {
             "responsibility": [
@@ -1090,6 +1172,14 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "- Verification: `installed-composed-recovery.integration.test.mjs` exercises"
+              },
+              {
+                "path": "scripts/row-effect-create-types.test.mjs",
+                "anchor": "standard CREATE and existing driver consumers use the same public exclusive factory"
+              },
+              {
+                "path": "scripts/row-effect-create-types.test.mjs",
+                "anchor": "standard CREATE rejects conflicting/missing implementations and invalid pure callbacks"
               }
             ]
           }
