@@ -95,7 +95,8 @@ async function checkSourceInterfaces(root, options) {
 }
 
 export async function prepareRuntimePackages(requested,
-  {checkInterfaces = checkSourceInterfaces} = {}) {
+  {checkInterfaces = checkSourceInterfaces, jobs} = {}) {
+if (jobs !== undefined && jobs !== 1) throw new Error('Runtime package construction requires one selected build slot');
 const inventory = JSON.parse(readFileSync(join(root,
   'scripts/owned-contract-version-legacy.json'), 'utf8'));
 const source = repositoryOccurrences(root);
@@ -107,6 +108,7 @@ const selected = new Set(requested.length ? requested : Object.keys(packages));
 const entries = [...selected].map(name => packages[name]);
 await checkInterfaces(root, {manifests: [...selected].map(name => `packages/${name}/package.json`)});
 execFileSync('moon', ['build', '--target', 'js', '--release',
+  ...(jobs === undefined ? [] : ['-j', String(jobs)]),
   ...new Set(entries.flatMap(item => item.sources.map(path => `src/${path}`)))],
 {cwd: root, stdio: 'inherit'});
 for (const item of entries) {
@@ -122,6 +124,19 @@ const generated = entries.flatMap(item => item.files.flatMap(path =>
 assertGeneratedOwnedContracts({source, generated, inventory});
 }
 
+// The actual CLI and scheduling controls share this closed argument boundary.
+// Its default still resolves the real source-side interface gate.
+export async function runRuntimePackageCommand(args, options = {}) {
+  const requested = [...args];
+  let jobs;
+  if (requested[0] === '--moon-jobs') {
+    if (requested[1] !== '1') throw new Error('Runtime package construction requires one selected build slot');
+    jobs = 1;
+    requested.splice(0, 2);
+  }
+  await prepareRuntimePackages(requested, {...options, jobs});
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await prepareRuntimePackages(process.argv.slice(2));
+  await runRuntimePackageCommand(process.argv.slice(2));
 }

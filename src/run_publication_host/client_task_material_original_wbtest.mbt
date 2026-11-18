@@ -108,3 +108,124 @@ test "Run task-material pointer is optional exact DATA and rejects null malforme
     )
   }
 }
+
+///|
+test "single-pass materials retain independent raw Unicode CID vectors" {
+  // Independently SHA256-hashed raw UTF8 preimages, not product output.
+  assert_eq(
+    client_task_material_original_cid("original task materials").unwrap(),
+    "sha256:999ffd0893e091d256f0094891b3a4e04c5a0ee224d42139336bf403a970c170",
+  )
+  assert_eq(
+    client_task_material_original_cid("é\r\n😀").unwrap(),
+    "sha256:91f2dd4a4804cafa6fccf3d25d73607f80a4e9f2e3edf83640f7dcdd04c57bd5",
+  )
+  assert_true(client_task_material_original_cid("") is Err(CapacityExceeded))
+  assert_true(
+    client_task_material_original_chunks("foreign", "") is Err(Encoding),
+  )
+}
+
+///|
+test "single-pass fresh reader hashes once per read and retains every physical probe" {
+  let key = "sha256:" + "a".repeat(64)
+  let wire = "original task materials"
+  let cid = "sha256:999ffd0893e091d256f0094891b3a4e04c5a0ee224d42139336bf403a970c170"
+  let reads : Array[String] = []
+  let hashes = Ref(0)
+  let changed = Ref(false)
+  let read = (table, name) => {
+    if table != "client_task_run_materials" {
+      return Err("foreign table")
+    }
+    reads.push(name)
+    if name == key + ":0" {
+      Ok(
+        Some(
+          inventory_row(
+            name,
+            if changed.val {
+              b"changed task materials"
+            } else {
+              @utf8.encode(wire)
+            },
+          ),
+        ),
+      )
+    } else {
+      Ok(None)
+    }
+  }
+  let digest = bytes => {
+    hashes.val += 1
+    @sha.hex(bytes)
+  }
+  for _ in 0..<2 {
+    let details = read_task_material_original_details(
+      key,
+      cid,
+      read,
+      "custody",
+      digest~,
+    ).unwrap()
+    assert_eq(details.0, wire)
+    assert_eq(details.1, [(key + ":0", wire)])
+  }
+  assert_eq(hashes.val, 2)
+  assert_eq(reads, [
+    key + ":0",
+    key + ":1",
+    key + ":2",
+    key + ":3",
+    key + ":0",
+    key + ":1",
+    key + ":2",
+    key + ":3",
+  ])
+  changed.val = true
+  assert_true(
+    read_task_material_original_details(key, cid, read, "custody", digest~)
+    is Err("custody"),
+  )
+  assert_eq(hashes.val, 3)
+  assert_eq(reads.length(), 12)
+}
+
+///|
+test "single-pass reader rejects foreign revised malformed and noncanonical chunks" {
+  let key = "sha256:" + "a".repeat(64)
+  let cid = "sha256:999ffd0893e091d256f0094891b3a4e04c5a0ee224d42139336bf403a970c170"
+  // Identical concatenated bytes/CID do not authorize a different split.
+  let split = [
+    ("client_task_run_materials", inventory_row(key + ":0", b"original ")),
+    ("client_task_run_materials", inventory_row(key + ":1", b"task materials")),
+  ]
+  assert_true(
+    read_client_task_material_original(
+      key,
+      cid,
+      (table, name) => inventory_read(split, table, name),
+      "custody",
+    )
+    is Err("custody"),
+  )
+  for
+    row in [
+      inventory_row(
+        "sha256:" + "b".repeat(64) + ":0",
+        b"original task materials",
+      ),
+      inventory_row(key + ":0", b"original task materials", revision=1L),
+      inventory_row(key + ":0", b"\xff"),
+    ] {
+    assert_true(
+      read_client_task_material_original(
+        key,
+        cid,
+        (_, name) => if name == key + ":0" { Ok(Some(row)) } else { Ok(None) },
+        "custody",
+      )
+      is Err("custody"),
+    )
+  }
+}

@@ -23,7 +23,10 @@ function files(directory, excluded = new Set()) {
       return statSync(path).isDirectory() ? files(path, excluded) : [path];
     });
 }
-function selection(repository, env) {
+function selection(repository, env, jobs) {
+  assert(jobs === undefined || jobs === 1, 'Portable construction requires its one selected build slot');
+  const buildJobs = jobs === undefined ? [] : ['-j', String(jobs)];
+  const ownerJobs = jobs === undefined ? [] : ['--moon-jobs', String(jobs)];
   repository = verifyWorkspacePackageLinks(repository);
   const git = args => execFileSync('git', args, {cwd: repository, encoding: 'utf8'}).trim();
   assert.equal(git(['status', '--porcelain']), '', 'Portable preparation requires unchanged clean source');
@@ -50,7 +53,8 @@ function selection(repository, env) {
   return {repository, source, moonHome, nodeVersion: process.version,
     environment: Object.fromEntries(Object.entries(env).filter(([key]) =>
       /^MOON_/u.test(key) || ['NODE_OPTIONS', 'NODE_PATH', 'CC', 'CXX'].includes(key)).sort()),
-    commands: [[join(moonHome, 'bin/moon'), coreArgs], [process.execPath, ownerArgs]],
+    commands: [[join(moonHome, 'bin/moon'), [...coreArgs, ...buildJobs]],
+      [process.execPath, [ownerArgs[0], ...ownerJobs, ...ownerArgs.slice(1)]]],
     inputs: [...new Set(inputs)].sort(), artifacts: [...new Set(artifacts)].sort()};
 }
 function describe(paths) {
@@ -73,12 +77,17 @@ function identity(selected) {
   return value;
 }
 
-export function verifyNativeResidentPortablePreparation(repository, receiptPath, {env = process.env} = {}) {
-  const selected = selection(repository, env);
+function verifySelectedPreparation(selected, receiptPath) {
   const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
   assert.deepEqual(receipt.identity, identity(selected), 'Foreign portable preparation');
   verify(selected.inputs, receipt.inputs);
   verify(selected.artifacts, receipt.artifacts);
+}
+
+export function verifyNativeResidentPortablePreparation(repository, receiptPath, {env = process.env} = {}) {
+  const mode = env.ACTQL_TEST_NATIVE_PORTABLE_PREPARATION_JOBS;
+  assert(mode === undefined || mode === '1', 'Invalid portable preparation construction mode');
+  verifySelectedPreparation(selection(repository, env, mode === undefined ? undefined : 1), receiptPath);
 }
 
 // Reuse the original immutable same-job module before importing its URL. A
@@ -99,21 +108,22 @@ export function prepareNativeResidentPortableCore(repository, {
 }
 
 export function prepareNativeResidentPortableRuntime(repository, receiptPath,
-  {env = process.env, execute = execFileSync} = {}) {
+  {env = process.env, execute = execFileSync, jobs} = {}) {
+  const selected = selection(repository, env, jobs);
   if (existsSync(receiptPath)) {
-    verifyNativeResidentPortablePreparation(repository, receiptPath, {env});
+    verifySelectedPreparation(selected, receiptPath);
     return;
   }
-  const selected = selection(repository, env), inputs = describe(selected.inputs);
+  const inputs = describe(selected.inputs);
   for (const [command, args] of selected.commands) {
     execute(command, args, {cwd: selected.repository, env, stdio: 'inherit'});
   }
-  const after = selection(repository, env);
+  const after = selection(repository, env, jobs);
   assert.deepEqual(after, selected, 'Portable build inputs changed during preparation');
   verify(selected.inputs, inputs);
   writeFileSync(receiptPath, JSON.stringify({identity: identity(selected), inputs,
     artifacts: describe(selected.artifacts)}) + '\n', {flag: 'wx', mode: 0o600});
-  verifyNativeResidentPortablePreparation(repository, receiptPath, {env});
+  verifySelectedPreparation(selection(repository, env, jobs), receiptPath);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -42,8 +42,8 @@ function verify(paths,records) {
   }
 }
 function selection(repository,env,jobs) {
-  assert(jobs===undefined||jobs===1,'Query construction requires one selected job');
-  const selectedCommand=jobs===undefined?command:[...command,'-j','1'];
+  assert(jobs===undefined||jobs===1||jobs===2,'Query construction requires a bounded selected job count');
+  const selectedCommand=jobs===undefined?command:[...command,'-j',String(jobs)];
   repository=realpathSync(repository);
   const git=args=>run(repository,env,'git',args);
   assert.equal(git(['status','--porcelain']),'','Query preparation requires unchanged clean source');
@@ -161,8 +161,8 @@ export function preparedNativeQuerySoftware(repository,env=process.env) {
   for(const directory of [body.home,body.target])assert.equal(realpathSync(directory),directory);
   const check=()=>{
     const jobs=env.ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS;
-    assert(jobs===undefined||jobs==='1','Invalid Query preparation construction mode');
-    const selected=selection(repository,env,jobs===undefined?undefined:1);
+    assert(jobs===undefined||jobs==='1'||jobs==='2','Invalid Query preparation construction mode');
+    const selected=selection(repository,env,jobs===undefined?undefined:Number(jobs));
     assert.deepEqual(selected.identity,body.identity,'Foreign Query source/toolchain/compiler settings');
     verify(selected.paths,body.inputs);
     verify(body.tools.map(item=>item.selectedPath),body.tools);

@@ -46,7 +46,7 @@ function portablePreparationFixture(t) {
   };
   mkdirSync(join(root, '_build'), {recursive: true});
   const receipt = join(root, '_build/portable.json');
-  const prepare = () => prepareNativeResidentPortableRuntime(root, receipt, {env, execute});
+  const prepare = (options = {}) => prepareNativeResidentPortableRuntime(root, receipt, {env, execute, ...options});
   const verify = () => verifyNativeResidentPortablePreparation(root, receipt, {env});
   return {root, env, receipt, artifacts, calls, put, prepare, verify, names};
 }
@@ -66,6 +66,28 @@ test('Native portable preparation builds once and verifies original software bef
   const original = readFileSync(f.receipt);
   f.verify();
   assert(readFileSync(f.receipt).equals(original));
+  const bounded = portablePreparationFixture(t);
+  bounded.prepare({jobs:1});
+  const [core,owner] = bounded.calls;
+  assert.equal(core.args[core.args.indexOf('-j')+1],'1');
+  assert.equal(owner.args[owner.args.indexOf('--moon-jobs')+1],'1');
+  for(const name of bounded.names)assert(owner.args.includes(name));
+  const env={...bounded.env,ACTQL_TEST_NATIVE_PORTABLE_PREPARATION_JOBS:'1'};
+  verifyNativeResidentPortablePreparation(bounded.root,bounded.receipt,{env});
+  bounded.prepare({jobs:1});
+  assert.equal(bounded.calls.length,2,'Both original construction commands execute only once');
+  assert.throws(bounded.verify,/Foreign portable preparation/u);
+  assert.throws(()=>verifyNativeResidentPortablePreparation(bounded.root,bounded.receipt,
+    {env:{...env,ACTQL_TEST_NATIVE_PORTABLE_PREPARATION_JOBS:'2'}}));
+  for(const jobs of [0,2,'1'])assert.throws(()=>bounded.prepare({jobs}));
+  const bytes=readFileSync(bounded.receipt),body=JSON.parse(bytes);
+  const nested=body.identity.commands[1][1];
+  nested.splice(nested.indexOf('--moon-jobs'),2);
+  writeFileSync(bounded.receipt,JSON.stringify(body));
+  assert.throws(()=>verifyNativeResidentPortablePreparation(bounded.root,bounded.receipt,{env}));
+  writeFileSync(bounded.receipt,bytes);
+  verifyNativeResidentPortablePreparation(bounded.root,bounded.receipt,{env});
+  assert.equal(bounded.calls.length,2,'Foreign modes cannot rebuild original software');
 });
 
 test('Native portable preparation refuses changed source, dependencies, tools, flags and artifacts', t => {
@@ -96,7 +118,7 @@ test('Native portable preparation rejects foreign receipts and never seals a fai
     /Foreign portable preparation/u);
   const original = new Error('Original portable producer failure');
   assert.throws(() => prepareNativeResidentPortableRuntime(other.root, other.receipt,
-    {env: other.env, execute: () => {throw original;}}), error => error === original);
+    {env: other.env, jobs:1, execute: () => {throw original;}}), error => error === original);
   assert.equal(existsSync(other.receipt), false);
   assert.throws(other.verify, /ENOENT/u);
 });

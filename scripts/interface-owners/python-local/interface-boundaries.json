@@ -1,6 +1,6 @@
 {
-  "source": "ae9fd75e203c4170f73d1aa0bbb4827cc6ebfb0b",
-  "syntaxProjectionSha256": "c903cc4b2a33d459867bbc808e6763d64a4f3ca7778abf945b16ace7ce974e83",
+  "source": "4d1101809b7b244830db2bfd86e9b067276d3162",
+  "syntaxProjectionSha256": "b04b1cce98ab7ed4d8777084da383d4ed334b48d1af21c688fd752b89ac5ff3e",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -90446,6 +90446,293 @@
               {
                 "path": ".github/workflows/ci.yml",
                 "anchor": "sdk_row_original_wbtest.mbt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_task_material_original.mbt",
+      "sha256": "4c141e45d85975f8d38e325ed9fe69014daf6bca13171624d6807e1e1d003e23",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[E]read_client_task_material_original",
+          "declaration": "[ E ] read_client_task_material_original ( key : String , cid : String , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , ) - > Result [ String , E ]"
+        },
+        {
+          "name": "[E]read_task_material_original_details",
+          "declaration": "[ E ] read_task_material_original_details ( key : String , cid : String , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , digest ? : ( Bytes ) - > String"
+        },
+        {
+          "name": "client_task_material_original_chunks",
+          "declaration": "client_task_material_original_chunks ( key : String , wire : String , ) - > Result [ Array [ ( String , String ) ] , ClientJournalEncodingIssue ]"
+        },
+        {
+          "name": "client_task_material_original_cid",
+          "declaration": "client_task_material_original_cid ( wire : String , ) - > Result [ String , ClientJournalEncodingIssue ]"
+        },
+        {
+          "name": "task_material_original_chunk_bytes",
+          "declaration": "task_material_original_chunk_bytes ( key : String , bytes : Bytes , ) - > Result [ Array [ ( String , String ) ] , ClientJournalEncodingIssue ]"
+        },
+        {
+          "name": "task_material_original_cid_bytes",
+          "declaration": "task_material_original_cid_bytes ( bytes : Bytes , digest ? : ( Bytes ) - > String"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common task-material codec and Run/Journal transaction Owners; transient same-read DATA only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[E]read_client_task_material_original",
+            "[E]read_task_material_original_details",
+            "client_task_material_original_chunks",
+            "client_task_material_original_cid",
+            "task_material_original_chunk_bytes",
+            "task_material_original_cid_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Fresh task-material validation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "fn[E] read_task_material_original_details("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "Ok(\"sha256:\" + digest(bytes))"
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "row.revision != 0L"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "it adds no retained cell, capacity reservation or asynchronous owner."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "let check = () => submission_append_current(value, record, configuration)"
+              },
+              {
+                "path": "src/run_publication_host/client_journal_inventory.mbt",
+                "anchor": "inspect_client_run_journal_inventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "Err(issue) => return Err(issue)"
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "expected[index].1 != observed[index]"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_cancellation_journal_inventory("
+              },
+              {
+                "path": "src/run_publication_host/client_journal_inventory.mbt",
+                "anchor": "confirm_cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "for index in 0..<4"
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "row.body.length() > 131072"
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "@remote.REMOTE_RUN_MATERIALS_MAX_BYTES"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing material and Run construction purposes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "A later reader starts again from its"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_task_material_original_wbtest.mbt",
+                "anchor": "test \"single-pass fresh reader hashes once per read and retains every physical probe\""
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original_wbtest.mbt",
+                "anchor": "test \"whole Run inventory requires every original task chunk and rejects unattached rows\""
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot_wbtest.mbt",
+                "anchor": "test \"single-pass nominal saved reader keeps construction fences and fresh material\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_journal_inventory.mbt",
+      "sha256": "e5b3ff127e61ac37cdb55ab74776bce22d79334e0cfed2343c63c4f79b5dd4d5",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[E]inspect_client_run_journal_inventory",
+          "declaration": "[ E ] inspect_client_run_journal_inventory ( max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_run : ( ClientJournalPhysicalRow ) - > Result [ ClientRunJournalInspection , E , ] , confirm_cancellation : ( ) - > Result [ Unit , E ] , custody_lost : E , ) - > Result [ ( Int , Int64 ) , E ]"
+        },
+        {
+          "name": "[E]inspect_client_submitted_journal_inventory",
+          "declaration": "[ E ] inspect_client_submitted_journal_inventory ( max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_submission : ( ClientJournalPhysicalRow ) - > Result [ ClientSubmittedJournalEncoding , E , ] , custody_lost : E , ) - > Result [ ( Int , Int64 , Int64 ) , E ]"
+        },
+        {
+          "name": "[E]journal_inventory_count",
+          "declaration": "[ E ] journal_inventory_count ( table_name : String , max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , ) - > Result [ ( Int , Int64 ) , E ]"
+        },
+        {
+          "name": "[E]journal_issuance_anchor",
+          "declaration": "[ E ] journal_issuance_anchor ( table_name : String , max_records : Int , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , ) - > Result [ ( Int , Int64 ) , E ]"
+        },
+        {
+          "name": "journal_retained_intent_bytes_add",
+          "declaration": "journal_retained_intent_bytes_add ( retained : Int64 , wire_bytes : Int , ) - > Int64 ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common task-material codec and Run/Journal transaction Owners; transient same-read DATA only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[E]inspect_client_run_journal_inventory",
+            "[E]inspect_client_submitted_journal_inventory",
+            "[E]journal_inventory_count",
+            "[E]journal_issuance_anchor",
+            "journal_retained_intent_bytes_add"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Fresh task-material validation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_journal_inventory.mbt",
+                "anchor": "pub fn[E] inspect_client_run_journal_inventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "Ok(\"sha256:\" + digest(bytes))"
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "row.revision != 0L"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "it adds no retained cell, capacity reservation or asynchronous owner."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "let check = () => submission_append_current(value, record, configuration)"
+              },
+              {
+                "path": "src/run_publication_host/client_journal_inventory.mbt",
+                "anchor": "inspect_client_run_journal_inventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "Err(issue) => return Err(issue)"
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "expected[index].1 != observed[index]"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_cancellation_journal_inventory("
+              },
+              {
+                "path": "src/run_publication_host/client_journal_inventory.mbt",
+                "anchor": "confirm_cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "for index in 0..<4"
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "row.body.length() > 131072"
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "@remote.REMOTE_RUN_MATERIALS_MAX_BYTES"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing material and Run construction purposes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "A later reader starts again from its"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_task_material_original_wbtest.mbt",
+                "anchor": "test \"single-pass fresh reader hashes once per read and retains every physical probe\""
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original_wbtest.mbt",
+                "anchor": "test \"whole Run inventory requires every original task chunk and rejects unattached rows\""
+              },
+              {
+                "path": "src/run_publication_host/client_saved_submission_snapshot_wbtest.mbt",
+                "anchor": "test \"single-pass nominal saved reader keeps construction fences and fresh material\""
               }
             ]
           }

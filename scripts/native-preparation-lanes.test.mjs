@@ -3,7 +3,7 @@ import test from 'node:test';
 import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,symlinkSync,lstatSync,existsSync,chmodSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {copyNativePreparationTools,prepareNativeConstructionLane,prepareNativeParallel} from './native-preparation-lanes.mjs';
+import {copyNativePreparationTools,prepareNativeConstructionLane,prepareNativeParallel,nativePreparationConsumerJobs} from './native-preparation-lanes.mjs';
 import {installationFiles} from './moonbit-installation.mjs';
 
 function fixture(t) {
@@ -152,6 +152,7 @@ test('Darwin preparation assigns portable and bounded Query work to the same two
         calls.push('portable');assert.equal(repository,f.repository);
         assert.equal(path,join(f.destination,'portable-runtime.json'));
         assert.equal(options.env.MOON_HOME,f.moonHome);
+        assert.equal(options.jobs,1);
       },
     });
   assert.deepEqual(calls,['compiled','received','compiled','received','portable']);
@@ -162,13 +163,22 @@ test('Darwin preparation assigns portable and bounded Query work to the same two
     portable:()=>assert.fail('Portable work belongs to the original command owner'),
     query:(repository,path,options)=>{
       calls.push('query');assert.equal(repository,f.repository);assert.equal(path,f.destination);
-      assert.equal(options.moonHome,f.moonHome);assert.equal(options.jobs,1);
+      assert.equal(options.moonHome,f.moonHome);assert.equal(options.jobs,2);
       return join(path,'query-software.json');
     },
   });
   assert.deepEqual(calls,['libraries','http','query']);
   assert.equal(components.queryReceipt,join(f.destination,'query-software.json'));
   assert.equal(components.portableReceipt,undefined);
+  const selected={...f,lanes:2,queryReceipt:components.queryReceipt,portableReceipt:commands.portableReceipt};
+  assert.deepEqual(nativePreparationConsumerJobs(selected),{
+    ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'2',
+    ACTQL_TEST_NATIVE_PORTABLE_PREPARATION_JOBS:'1',
+  });
+  for(const changed of [{target:'linux-x64'},{lanes:1},{selection:'bundle'}])
+    assert.deepEqual(nativePreparationConsumerJobs({...selected,...changed}),{});
+  for(const changed of [{queryReceipt:undefined},{portableReceipt:undefined},{queryReceipt:'/foreign/query-software.json'}])
+    assert.throws(()=>nativePreparationConsumerJobs({...selected,...changed}));
 });
 
 test('Darwin Query or portable refusal still joins the other actual construction owner without Ready',async t=>{

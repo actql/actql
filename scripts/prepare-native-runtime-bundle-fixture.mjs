@@ -9,7 +9,7 @@ import {prepareNativeResidentHttpComponent,prepareNativeResidentSite,prepareNati
   from './native-runtime-bundle-fixture.mjs';
 import {originalDescriptor} from './native-preparation-originals.mjs';
 import {prepareNativeResidentPortableRuntime} from './native-resident-portable-preparation.mjs';
-import {prepareNativeParallel} from './native-preparation-lanes.mjs';
+import {prepareNativeParallel,nativePreparationConsumerJobs} from './native-preparation-lanes.mjs';
 import {prepareNativeQuerySoftware} from './native-query-preparation.mjs';
 import {withNativePreparationResources} from './native-preparation-resources.mjs';
 
@@ -114,6 +114,7 @@ assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
 assert.equal(run('git',['status','--porcelain']),'');
 return {entries,components,httpReceipt,portableReceipt,queryReceipt};
 },({entries,components,httpReceipt,portableReceipt,queryReceipt})=>{
+const jobs=nativePreparationConsumerJobs({target,selection,lanes,destination,queryReceipt,portableReceipt});
 writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target,moon_home:moonHome,
   clang,sdk,entries,components:originalDescriptor(join(components,'bundle-components.json')),
   http:httpReceipt===undefined?null:originalDescriptor(join(destination,'http/preparation.json'))},null,2)+'\n',
@@ -121,7 +122,7 @@ writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target
 if(process.env.GITHUB_ENV!==undefined)appendFileSync(process.env.GITHUB_ENV,
   'ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION='+destination+'\n'+
   (queryReceipt===undefined?'':'ACTQL_TEST_NATIVE_QUERY_PREPARATION='+queryReceipt+'\n')+
-  (queryReceipt!==undefined&&lanes===2?'ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS=1\n':'')+
+  Object.entries(jobs).map(([name,value])=>name+'='+value+'\n').join('')+
   (portableReceipt===undefined?'':'ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION='+portableReceipt+'\n')+
   (httpReceipt===undefined?'':'ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT='+httpReceipt+'\n'));
 console.log(JSON.stringify({source,target,preparation:destination,entries:Object.keys(entries)}));
