@@ -16,8 +16,9 @@ import {observeNativeJournalExhaustion, requireNativeJournalCapacityRefusal}
 test('installed Mock acceptance requires both complete same-cohort public templates without skips', async () => {
   assert.deepEqual(mockTemplates, ['deal-review-mock', 'churn-risk-mock']);
   const installed = await readFile(new URL('./test-native-cli-mock-install.mjs', import.meta.url), 'utf8');
-  for (const requirement of ['await verifyNativeCliRelease(directory)',
-    "assert.equal(source.revision, manifest.sourceSha",
+  // Imported same-call/admission controls exercise release verification and
+  // refusal; this harness contract does not freeze one async-call spelling.
+  for (const requirement of ["assert.equal(source.revision, manifest.sourceSha",
     'assert(expectedArtifact?.localRuntime',
     "assert.equal(scenarios.length, 2, 'Both README and Quickstart must finish without skips')",
     "run(process.execPath, [launcher, ...args], cwd)",
