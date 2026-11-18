@@ -15,7 +15,11 @@ test('short ROWS independent control distinguishes moving cumulative and current
   assert.notDeepEqual(cases.get('short-rows-sql-preceding').expected,
     cases.get('short-rows-current-row').expected);
   assert.deepEqual(cases.get('short-rows-typed-empty').columns, cases.get('short-rows-sql-preceding').columns);
-  assert.ok(shortRowsRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+  const undeclared = shortRowsRefusals.find(item => item.name === 'short-rows-refuse-undeclared-parameter');
+  assert.equal(undeclared.expectedCode, 'ClientProgramParameterUndeclared');
+  assert.equal(undeclared.parameterDeclarations, undefined);
+  assert.ok(shortRowsRefusals.filter(item => item !== undeclared)
+    .every(item => item.expectedCode === 'ClientProgramInvalidInput'));
 });
 
 test('ordinary packed corpus and narrow short ROWS selection retain the same cases', async () => {
