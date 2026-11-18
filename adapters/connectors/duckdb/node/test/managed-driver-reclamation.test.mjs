@@ -53,7 +53,7 @@ test('installed DuckDB cleanup retires large admission without another native at
     const program = {version: 'actql/0.1', id: 'managed-reclamation',
       params: {minimum: {type: 'number', nullable: false}},
       stages: [
-        {id: 'a', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+        {id: 'a', inputs: {remote: {connector: 'crm/main', resource: 'r', view: 'v'}},
           steps: [{filter: 'id > $minimum', as: 'filtered'},
             {select: ['id'], as: 'out'}],
           results: {r: {from: 'out', fields: ['id']}}},
