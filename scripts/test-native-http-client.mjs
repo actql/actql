@@ -1467,7 +1467,7 @@ verification: try {
     // harness. Each original case runs once in its own process/Store namespace.
     const selected = [
       ['resident-review-local', 'local_client_source_wbtest.mbt',
-        'Native Local original sole-view completion is refused before acquisition or durable start claim'],
+        'Native Local original sole-view completion retains its journal through Source Result and cleanup'],
       ['resident-review-provider', 'acquisition_runtime_wbtest.mbt',
         'Effect original holders retain physical Provider review and Checkpoint without reacquisition'],
       ['resident-review-checkpoint', 'acquisition_runtime_wbtest.mbt',
