@@ -13,7 +13,7 @@ import {fileURLToPath} from 'node:url';
 import {observeOwnScopedStateFds} from './conformance.mjs';
 
 const phase = process.argv[2];
-assert(['warm', 'cold', 'usage-reported', 'usage-zero', 'usage-absent', 'timeout-headers', 'timeout-body'].includes(phase));
+assert(['warm', 'cold', 'usage-reported', 'usage-zero', 'usage-absent', 'timeout-headers', 'timeout-body', 'timeout-call'].includes(phase));
 const fresh = phase !== 'cold';
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
 assert.equal(realpathSync(modules), modules, 'The fresh node_modules must not redirect to another installation');
@@ -39,13 +39,14 @@ const selection = fresh ? {
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
 assert.deepEqual(Object.keys(selection).sort(), ['timeout', 'usage']);
 assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
-assert([null, 'headers', 'body'].includes(selection.timeout));
+assert([null, 'headers', 'body', 'call'].includes(selection.timeout));
 assert(selection.usage === null || selection.timeout === null);
 const usageMode = selection.usage ?? undefined, timeoutMode = selection.timeout ?? undefined;
 const expectedCalls = usageMode === undefined && timeoutMode === undefined ? 2 : 1;
 const transportTimeouts = timeoutMode === undefined ? undefined : {
   connectMs: 1000, headersMs: timeoutMode === 'headers' ? 30 : 1000,
   bodyMs: timeoutMode === 'body' ? 30 : 1000,
+  ...(timeoutMode === 'call' ? {callMs: 100} : {}),
 };
 
 if (fresh) {
@@ -74,6 +75,9 @@ if (fresh) {
 const certificate = await readFile('provider.crt', 'utf8');
 setDefaultCACertificates([...getCACertificates('default'), certificate]);
 let calls = 0, egressChecks = 0;
+let pulse, continuousWrites = 0, responseClosedBeforeFirstClose = false, finishContinuousResponse;
+const continuousResponseClosed = fresh && timeoutMode === 'call'
+  ? new Promise(resolve => {finishContinuousResponse = resolve;}) : undefined;
 const schemas = [];
 const server = createServer({cert: certificate, key: await readFile('provider.key')}, async (request, response) => {
   calls++;
@@ -92,6 +96,14 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   response.setHeader('content-type', 'application/json');
   response.setHeader('x-request-id', 'installed-' + calls);
   if (timeoutMode === 'body') {response.write('{'); return;} // Partial original, no EOF.
+  if (timeoutMode === 'call') {
+    // Stay far below the original 128-chunk/64KiB profile. Continuous data
+    // prevents the 1000ms idle-body timeout from being this case's cause.
+    response.write('{'); continuousWrites++;
+    pulse = setInterval(() => {response.write(' '); continuousWrites++;}, 25);
+    response.once('close', () => {clearInterval(pulse); finishContinuousResponse();});
+    return;
+  }
 
   response.end(JSON.stringify({id: 'installed-' + calls, object: 'chat.completion', created: 1,
     model: 'fixture-chat', choices: [{index: 0,
@@ -203,6 +215,18 @@ try {
         const current = await run.status();
         assert.equal(current.status, 'needs_reconciliation');
         assert.equal(current.control.cancellation_requested, false, 'Physical timeout is not Run cancellation');
+        if (timeoutMode === 'call') {
+          let closeGuard;
+          try {
+            await Promise.race([continuousResponseClosed, new Promise((_, reject) => {
+              closeGuard = setTimeout(() => reject(Error('WholeCallPeerCloseNotObserved')), 1000);
+            })]);
+          } finally {clearTimeout(closeGuard);}
+          assert(continuousWrites >= 2 && continuousWrites < 128);
+          // Observe the peer close before the fixture invokes public close or
+          // closes its own server. This is not a native/remote operation ACK.
+          responseClosedBeforeFirstClose = true;
+        }
       }
       const lookup = await client.lookupSubmission(submissionRef);
       assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, run.ref);
@@ -240,6 +264,7 @@ try {
 } catch (cause) {primary = cause;}
 finally {
   try {await client?.close();} catch (cause) {primary ??= cause;}
+  clearInterval(pulse);
   server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
 }
 const close = observeOwnScopedStateFds([resolve('.state')]);
@@ -251,4 +276,5 @@ console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedF
     ...(timeoutMode === undefined ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
     : {tasks: expectedCalls, requests: expectedCalls, ...(usageMode === undefined ? {} : {usageMode, usageCaptures})}),
   ...(timeoutMode === undefined ? {} : {timeoutMode, preserveOriginalState: true}),
+  ...(timeoutMode === 'call' && fresh ? {continuousWrites, responseClosedBeforeFirstClose} : {}),
   node: process.versions.node, platform: process.platform, arch: process.arch}));
