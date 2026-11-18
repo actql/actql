@@ -18,9 +18,21 @@ test "installed identity RowSource retains distinct Whole and keyed static reque
 }
 
 ///|
+test "finished keyed left identity retires scan scratch while retaining its original receipt and body" {
+  run_original_source_completion(true, audit_scan_retention=true)
+}
+
+///|
+test "completed Whole scan adopts its original identity before metadata on the same lookup" {
+  run_original_source_completion(true, scan_whole_source=true)
+}
+
+///|
 fn run_original_source_completion(
   installed_rows : Bool,
   distinct_requests? : Bool = false,
+  audit_scan_retention? : Bool = false,
+  scan_whole_source? : Bool = false,
 ) -> Unit raise {
   // Installation-owned policy leaves are outside each lookup's cached bodies,
   // just as in ordinary publication. Use their real preimages and identities.
@@ -183,11 +195,30 @@ fn run_original_source_completion(
   ).unwrap()
   let settled = Ref(false)
   let stopped = Ref(false)
+  // Bounded test-only observation through the original Source current port.
+  // Observe this lookup's two amounts separately, never a global Ledger peak.
+  let scan_lookup : Ref[ClientKeyedLookupInput?] = Ref(None)
+  let scan_peak_retained = Ref(0L)
+  let scan_peak_execution = Ref(0L)
+  let scan_finished_retained = Ref(0L)
+  let scan_finished_execution = Ref(0L)
   let run = @row_host.start_accounted_row_input_acquisition(
     selected,
     None,
     "generic-source",
-    _ => settled.val,
+    _ => {
+      if scan_lookup.val is Some(lookup) {
+        scan_peak_retained.val = Int64::max(
+          scan_peak_retained.val,
+          lookup.retained_bytes,
+        )
+        scan_peak_execution.val = Int64::max(
+          scan_peak_execution.val,
+          lookup.execution_bytes,
+        )
+      }
+      settled.val
+    },
     ledger,
     4096L,
     4096L,
@@ -328,6 +359,11 @@ fn run_original_source_completion(
   @row_host.close_accounted_row_run(foreign_run).unwrap()
   assert_eq(@resources.ledger_usage(foreign_ledger).held_bytes, 0L)
   let retention = if installed_rows {
+    if audit_scan_retention {
+      scan_lookup.val = Some(lookup)
+      scan_peak_retained.val = lookup.retained_bytes
+      scan_peak_execution.val = lookup.execution_bytes
+    }
     require_source_fixture(
       prepare_client_keyed_native_left_identity(
         lookup,
@@ -347,6 +383,14 @@ fn run_original_source_completion(
       "left identity",
     )
     |> ignore
+    if audit_scan_retention {
+      scan_finished_retained.val = lookup.retained_bytes
+      scan_finished_execution.val = lookup.execution_bytes
+      scan_lookup.val = None
+      assert_true(lookup.native_left_receipt is Some(_))
+      assert_true(lookup.native_left_identity is Some(_))
+      assert_true(lookup.identity_scan is None)
+    }
     let retention = match
       prepare_client_keyed_declared_file_retention(
         lookup,
@@ -365,23 +409,66 @@ fn run_original_source_completion(
         fail("installed retention physical: " + @debug.to_string(issue))
       Err(_) => fail("installed retention: other typed refusal")
     }
-    // The distinct-request component selects a finite codec envelope for its
-    // tiny metadata; the existing ledger and ordinary fixture stay unchanged.
-    let source_metadata_bytes = if distinct_requests { 8192 } else { 1000000 }
-    let source_metadata_nodes = if distinct_requests { 1024 } else { 100000 }
-    match
-      bind_client_keyed_whole_source_metadata(
-        lookup, 0, identity, logical, observation, request, retention, source_metadata_bytes,
-        source_metadata_nodes, 100,
-      ) {
-      Ok(_) => ()
-      Err(Assembly(reason)) => fail("installed source metadata: " + reason)
-      Err(Physical(issue)) =>
-        fail("installed source metadata physical: " + @debug.to_string(issue))
-      Err(SourceLogical(Admission(issue))) =>
-        fail("installed source logical: " + @debug.to_string(issue))
-      Err(SourceLogical(_)) => fail("installed source logical")
-      Err(_) => fail("installed source metadata: other typed refusal")
+    // These two authored components select the existing finite codec envelope
+    // for tiny metadata; the original ledger/policy ceilings stay unchanged.
+    let source_metadata_bytes = if distinct_requests || scan_whole_source {
+      8192
+    } else {
+      1000000
+    }
+    let source_metadata_nodes = if distinct_requests || scan_whole_source {
+      1024
+    } else {
+      100000
+    }
+    if scan_whole_source {
+      require_source_fixture(
+        prepare_client_keyed_native_whole_source_evidence(
+          lookup,
+          0,
+          original,
+          selected,
+          capture,
+          request,
+          retention,
+          "2026-11-15T00:00:01.000Z",
+          1,
+          {
+            max_nodes: 10000,
+            max_text_bytes: 20000,
+            max_depth: 20,
+            max_work: 1000000,
+          },
+          wire,
+          wire,
+          { max_fields: 10, max_bytes: 20000, max_nodes: 10000, max_depth: 20, },
+          1000000,
+          100000,
+          source_metadata_bytes,
+          source_metadata_nodes,
+          100,
+        ),
+        "actual scanned Whole source metadata",
+      )
+      |> ignore
+      let state = lookup.native_sources.unwrap()
+      assert_true(state.source_scan is None && state.source_identity is None)
+      assert_true(state.sources[0].identity_custody is ScannedHere)
+    } else {
+      match
+        bind_client_keyed_whole_source_metadata(
+          lookup, 0, identity, logical, observation, request, retention, source_metadata_bytes,
+          source_metadata_nodes, 100,
+        ) {
+        Ok(_) => ()
+        Err(Assembly(reason)) => fail("installed source metadata: " + reason)
+        Err(Physical(issue)) =>
+          fail("installed source metadata physical: " + @debug.to_string(issue))
+        Err(SourceLogical(Admission(issue))) =>
+          fail("installed source logical: " + @debug.to_string(issue))
+        Err(SourceLogical(_)) => fail("installed source logical")
+        Err(_) => fail("installed source metadata: other typed refusal")
+      }
     }
     require_source_fixture(
       prepare_client_keyed_native_left_relation(
@@ -720,9 +807,14 @@ fn run_original_source_completion(
     client_effect_keyed_cached_dependency_bodies(parent, lookup, retention)
     is None,
   )
-  while !cleanup_client_keyed_lookup_input(lookup, 64).unwrap() {
-
+  let mut cleaned = false
+  for _ in 0..<10000 {
+    if cleanup_client_keyed_lookup_input(lookup, 64).unwrap() {
+      cleaned = true
+      break
+    }
   }
+  assert_true(cleaned)
   assert_true(parent.generic is None)
   assert_false(@execution.supplied_relation_read_available(read))
   stopped.val = true
@@ -733,6 +825,12 @@ fn run_original_source_completion(
   )
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  if audit_scan_retention {
+    assert_true(scan_peak_retained.val > 0L)
+    assert_true(scan_peak_execution.val > 0L)
+    assert_true(scan_finished_retained.val < scan_peak_retained.val)
+    assert_true(scan_finished_execution.val < scan_peak_execution.val)
+  }
 }
 
 ///|

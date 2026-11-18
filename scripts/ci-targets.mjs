@@ -48,7 +48,7 @@ export const maintenanceFiles = Object.freeze([
 const maintenance = new Set(maintenanceFiles);
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
   'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'spec', 'session-evidence', 'session-controls', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
-  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance', 'health-quick', 'client-readme-packed', 'rust-library']);
+  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance', 'health-quick', 'client-readme-packed']);
 const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
   && !path.startsWith('/') && !path.split('/').some(part => ['', '.', '..'].includes(part));
 // Canonical identity, runtime ownership, platform/FFI and build changes keep
@@ -88,7 +88,6 @@ export function gateJobRequired(selection, name) {
   if (name === 'health-quick') return selection.event === 'push';
   if (name === 'focused-tests') return ['focused-tests', 'draft-focused'].includes(selection.profile);
   if (name === 'python-wheels') return pythonWheelAcceptanceRequired(selection);
-  if (name === 'rust-library') return rustLibraryRequired(selection);
   if (['session-evidence', 'session-controls', 'pipeline-evidence'].includes(name)) return deepProofRequired(selection);
   return selection.profile === 'full' && (name !== 'native-macos' || selection.macos);
 }
@@ -125,39 +124,6 @@ export function pythonWheelAcceptanceRequired(selection) {
     || /^packages\/python-(?:product|sdk|local-runtime)\//u.test(path));
 }
 
-// The initial Rust library gate compiles its same-source Core fixture once.
-// Unrelated PRs do not acquire a Rust toolchain or repeat that compilation.
-// Selection runs before npm preparation. Keep its reviewed command inputs
-// bootstrap-safe; the test derives the actual bounded module graph and checks
-// that every transitive input remains selected, including the supervisor asset.
-const rustCommandInputs = new Set([
-  'proofs/relation-pipeline/proof-parts.mjs',
-  'scripts/adapter-module-graph.mjs', 'scripts/check-connector-dispatch-boundary.mjs',
-  'scripts/check-rust-interface-owners.mjs', 'scripts/distribution-interface-roots.mjs',
-  'scripts/executable-test-cases.mjs', 'scripts/generate-credential-scope-binding.mjs',
-  'scripts/generate-js-action-bindings.mjs', 'scripts/generate-js-compiler-bindings.mjs',
-  'scripts/interface-generation-freshness.mjs', 'scripts/interface-inventory.mjs',
-  'scripts/interface-owner-coverage.mjs', 'scripts/interface-owner-discovery.mjs',
-  'scripts/js-action-boundaries.mjs', 'scripts/local-checks-guard.mjs',
-  'scripts/local-checks-policy.mjs', 'scripts/local-checks-supervisor.mjs',
-  'scripts/local-checks.mjs', 'scripts/moonbit-installation.mjs',
-  'scripts/packed-query-evidence.mjs', 'scripts/rust-interface-sources.mjs',
-  'scripts/setup-moonbit.mjs', 'scripts/test-execution.mjs',
-]);
-export function rustLibraryRequired(selection) {
-  validateSelection(selection);
-  if (selection.event !== 'pull_request' || !selection.paths.length) return true;
-  return selection.paths.some(path => /^(?:src|vendor|packages\/rust)\//u.test(path)
-    || /^(?:toolchain\.json|moon\.mod|package(?:-lock)?\.json)$/u.test(path)
-    || path === '.github/workflows/ci.yml'
-    || path === 'spec/contracts/core-wasm-abi.generated.json'
-    || rustCommandInputs.has(path)
-    || /^scripts\/(?:ci-targets|local-checks|test-execution)(?:\.test)?\.mjs$/u.test(path)
-    || path === 'scripts/generate-local-wasm-abi.py'
-    || /^scripts\/(?:interface-|check-interface-)[^/]+\.mjs$/u.test(path)
-    || /^scripts\/[^/]*rust[^/]*\.(?:mjs|py)$/u.test(path)
-    || path.startsWith('scripts/interface-owners/rust/'));
-}
 export function pullRequestDraft(event, payload) {
   if (event !== 'pull_request') return null;
   assert(['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft'].includes(payload?.action), 'Unsupported PR lifecycle event');
@@ -438,7 +404,7 @@ async function main() {
   const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
   assert(sha.test(sourceRevision) && sourceRevision === process.env.GITHUB_SHA, 'Unexpected tested checkout');
   const plan = {sourceRevision, selection: selected};
-  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\nmoon_test_selection=${Boolean(selected.moonTests)}\ndeep_proofs=${deepProofRequired(selected)}\npython_wheels=${pythonWheelAcceptanceRequired(selected)}\nrust_library=${rustLibraryRequired(selected)}\nplan=${JSON.stringify(plan)}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\nmoon_test_selection=${Boolean(selected.moonTests)}\ndeep_proofs=${deepProofRequired(selected)}\npython_wheels=${pythonWheelAcceptanceRequired(selected)}\nplan=${JSON.stringify(plan)}\n`);
   console.log(JSON.stringify(selected, null, 2));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
     `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nNative macOS diagnostic: ${selected.macos ? 'required' : 'not applicable for this run'}\n\nPython wheel acceptance: ${pythonWheelAcceptanceRequired(selected) ? "required" : "not selected"}\n\n${selected.reason}\n\nDeep proof campaigns: ${deepProofRequired(selected) ? "required" : "not applicable to changed inputs"}.\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);

@@ -1606,14 +1606,16 @@ test "Request Plan quote backs original checked node proof frames before factory
       data +
       retained +
       direct_selector_field +
-      providers.retained_bytes,
+      providers.retained_bytes +
+      2L * 8L,
       before.1 +
       data +
       retained +
       scratch +
       original_tail_field +
       direct_selector_field +
-      providers.execution_bytes,
+      providers.execution_bytes +
+      4L * 8L,
     ),
   )
   // The old data-only allowance is deliberately insufficient. The original
@@ -2099,11 +2101,11 @@ test "explicit retained output keeps its original exporter beside the default ma
   let retained_configuration = retained.configuration.unwrap()
   assert_false(managed_configuration.retained_output)
   assert_true(retained_configuration.retained_output)
-  let ordinary = @local_driver.local_dispatch_preparation_task_capacity(
+  let ordinary = @local_driver.local_dispatch_preparation_managed_task_capacity(
     managed_configuration.dispatch,
     0,
   ).unwrap()
-  let explicit = @local_driver.local_dispatch_preparation_task_capacity(
+  let explicit = @local_driver.local_dispatch_preparation_managed_task_capacity(
     retained_configuration.dispatch,
     0,
   ).unwrap()
@@ -2114,4 +2116,49 @@ test "explicit retained output keeps its original exporter beside the default ma
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_true(parent.input is None)
   ignore(input)
+}
+
+///|
+test "ordinary Core constructor retains work origin while equal legacy limits remain unspecified" {
+  let calls = Ref(0)
+  let (parent, input, prepared) = request_program_body_fixture(current=() => {
+    calls.val += 1
+    true
+  })
+  reserve_request_program_plan(parent, input).unwrap()
+  let original = request_program_installed_plan(prepared)
+  let dispatch = original.configuration.unwrap().dispatch
+  let before = calls.val
+  assert_eq(
+    @local_driver.local_dispatch_preparation_work_policy(dispatch),
+    SourceFreeInstallation,
+  )
+  assert_eq(calls.val, before)
+  let assets = @publication_host.client_local_product_assets()
+  let legacy = source_free_installed_managed_preparation_owned(
+    Pure(prepared),
+    request_program_module_contracts(),
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    false,
+  ).unwrap()
+  let legacy = configure_installed_source_free_preparation(
+    prepared,
+    legacy,
+    true,
+    _ => [],
+  ).unwrap()
+  assert_eq(
+    @local_driver.local_dispatch_preparation_work_policy(
+      legacy.configuration.unwrap().dispatch,
+    ),
+    Unspecified,
+  )
+  assert_eq(
+    original.capacity_plan.execution.max_work,
+    legacy.capacity_plan.execution.max_work,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }

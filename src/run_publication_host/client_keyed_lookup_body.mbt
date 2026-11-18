@@ -167,17 +167,89 @@ fn build_keyed_lookup_identity_bodies(
     is Some(start) else {
     return Err(Assembly("body_start_capacity"))
   }
-  match
-    keyed_lookup_body_grow(
+  let receipt = match
+    with_keyed_body_construction(
       lookup,
-      basis_retained,
-      basis_execution,
-      controls,
-      Some(start),
+      start,
+      // The returning receipt/body pair coexists with the retained body tuple.
+      @execution.preparation_representation_cost({
+        record_headers: 1L,
+        reference_slots: 2L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }).unwrap(),
+      grow => scan_keyed_lookup_identity_bodies(lookup, output, read, grow),
+      value => {
+        let (receipt, body) = value
+        let schema = @execution.completed_relation_export_schema_identity(
+          receipt,
+        )
+        lookup.identity_bodies = Some(
+          (body, @execution.relation_schema_wire(schema)),
+        )
+        Ok(())
+      },
+      value => keyed_identity_retained_capacity(value.0, value.1),
     ) {
+    Ok(settled) => settled.value.0
     Err(issue) => return Err(issue)
-    Ok(_) => ()
   }
+  if native_completion is Some((at, now_ms, max_bytes, max_nodes, max_depth)) {
+    match
+      prepare_native_keyed_lookup_completion(
+        lookup,
+        at,
+        now_ms,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        defer_catalog~,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  if generic_completion is Some((at, max_bytes, max_nodes, max_depth)) {
+    match
+      prepare_client_effect_keyed_generic_completion(
+        lookup, at, max_bytes, max_nodes, max_depth,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  if lookup.closed || lookup.left.lookup_issue is Some(_) {
+    return Err(Assembly("retired_publication_input"))
+  }
+  let holding = match
+    @resources.retain_allocation(
+      lookup.ledger,
+      lookup.reservation,
+      lookup.retained_bytes,
+    ) {
+    Ok(holding) => holding
+    Err(issue) => return Err(Physical(issue))
+  }
+  lookup.holding = Some(holding)
+  lookup.identity = Some(
+    @execution.output_stream_identity(
+      @execution.completed_relation_export_content(receipt),
+    ).0,
+  )
+  Ok(())
+}
+
+///|
+fn scan_keyed_lookup_identity_bodies(
+  lookup : ClientKeyedLookupInput,
+  output : @execution.CompletedOutput,
+  read : @execution.SuppliedRelationRead,
+  grow : (@execution.ExecutionCapacity) -> Result[Unit, ClientKeyedRequestIssue],
+) -> Result[
+  (@execution.CompletedRelationExportReceipt, String),
+  ClientKeyedRequestIssue,
+] {
   if lookup.max_work > 2147483647 / 16 {
     return Err(Assembly("body_workspace_limit"))
   }
@@ -223,14 +295,7 @@ fn build_keyed_lookup_identity_bodies(
       is Some(next) else {
       return Err(Assembly("body_next_capacity"))
     }
-    match
-      keyed_lookup_body_grow(
-        lookup,
-        basis_retained,
-        basis_execution,
-        controls,
-        Some(next),
-      ) {
+    match grow(next) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
@@ -266,52 +331,9 @@ fn build_keyed_lookup_identity_bodies(
   if logical_bytes > 16777216 || schema_bytes > 16777216 - logical_bytes {
     return Err(Assembly("body_dependency_limit"))
   }
-  lookup.identity_bodies = Some((body, @execution.relation_schema_wire(schema)))
   @execution.cancel_completed_relation_identity_scan(scan) |> ignore
   lookup.identity_scan = None
-  if native_completion is Some((at, now_ms, max_bytes, max_nodes, max_depth)) {
-    match
-      prepare_native_keyed_lookup_completion(
-        lookup,
-        at,
-        now_ms,
-        max_bytes,
-        max_nodes,
-        max_depth,
-        defer_catalog~,
-      ) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-  }
-  if generic_completion is Some((at, max_bytes, max_nodes, max_depth)) {
-    match
-      prepare_client_effect_keyed_generic_completion(
-        lookup, at, max_bytes, max_nodes, max_depth,
-      ) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-  }
-  if lookup.closed || lookup.left.lookup_issue is Some(_) {
-    return Err(Assembly("retired_publication_input"))
-  }
-  let holding = match
-    @resources.retain_allocation(
-      lookup.ledger,
-      lookup.reservation,
-      lookup.retained_bytes,
-    ) {
-    Ok(holding) => holding
-    Err(issue) => return Err(Physical(issue))
-  }
-  lookup.holding = Some(holding)
-  lookup.identity = Some(
-    @execution.output_stream_identity(
-      @execution.completed_relation_export_content(receipt),
-    ).0,
-  )
-  Ok(())
+  Ok((receipt, body))
 }
 
 ///|

@@ -1,4 +1,53 @@
 ///|
+test "Request supplied declaration code retains original binder root and nested distinctions" {
+  let environment = keyed_source_environment()
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  for
+    (source, parameters, expected) in [
+      (
+        "{\"format\":\"sql\",\"text\":\"SELECT @n AS n\"}", "{\"n\":42}", "ClientProgramParameterUndeclared",
+      ),
+      (
+        "{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\"}", "{\"extra\":42}", "ClientSuppliedParameterUndeclared",
+      ),
+      (
+        "{\"format\":\"sql\",\"text\":\"SELECT @n AS n\",\"parameterDeclarations\":{\"n\":{\"type\":\"object\",\"fields\":{\"allowed\":{\"type\":\"number\"}}}}}",
+        "{\"n\":{\"allowed\":1,\"extra\":42}}", "check_invalid_input",
+      ),
+    ] {
+    let (parent, receipt) = request_diagnostic_test_parent()
+    let foreign = client_program_prepare_request_source_computation(
+      parent,
+      request_diagnostic_test_receipt(),
+      request_diagnostic_test_json(source),
+      request_diagnostic_test_json(parameters),
+      environment,
+      publication,
+      None,
+    )
+    assert_true(foreign is Err(_))
+    assert_true(request_diagnostic_checked_issue_code(foreign) is None)
+    let result = client_program_prepare_request_source_computation(
+      parent,
+      receipt,
+      request_diagnostic_test_json(source),
+      request_diagnostic_test_json(parameters),
+      environment,
+      publication,
+      None,
+    )
+    assert_true(result is Err(_))
+    assert_eq(request_diagnostic_checked_issue_code(result), Some(expected))
+    client_program_abort_request_preparation(parent).unwrap()
+  }
+}
+
+///|
 test "Request compatible work code forwards only the same original Common issue" {
   let environment = keyed_source_environment()
   let publication = @source_publication.prepare_published_query_environment(

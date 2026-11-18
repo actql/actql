@@ -89,7 +89,8 @@ export const shortRowsRefusals = [
   {name: 'unbounded-following-start', text: sql('UNBOUNDED FOLLOWING')},
   {name: 'fractional-parameter', text: sql('@before PRECEDING'),
     parameterDeclarations: {before: number}, parameters: {before: 1.5}},
-  {name: 'undeclared-parameter', text: sql('@missing PRECEDING')},
+  {name: 'undeclared-parameter', text: sql('@missing PRECEDING'),
+    expectedCode: 'ClientProgramParameterUndeclared'},
   {name: 'missing-boundary', text: sql('')},
-].map(item => ({format: 'sql', ...item, name: 'short-rows-refuse-' + item.name,
-  expectedCode: 'ClientProgramInvalidInput'}));
+].map(({expectedCode = 'ClientProgramInvalidInput', ...item}) => ({format: 'sql', ...item,
+  name: 'short-rows-refuse-' + item.name, expectedCode}));

@@ -261,3 +261,30 @@ pub fn captured_source_cell_identity_work(
 ) -> Int64 {
   value.work
 }
+
+///|
+/// Actual retained identity/body DATA after the cell scanner has returned.
+/// The original captured Source is borrowed, not copied or re-admitted. No
+/// current, row traversal, hash or Reference observation occurs in this getter.
+pub fn captured_source_relation_identity_retained_capacity(
+  identity : CapturedSourceRelationIdentity,
+) -> @execution.ExecutionCapacity? {
+  guard identity.dependency_bodies is Some(usage) &&
+    usage.bodies is Some((body, schema)) &&
+    @execution.preparation_representation_cost({
+      // Identity1H4R1W; usage1H1R4W; two Some2H2R2W; body tuple1H2R;
+      // two CIDs and two preimage Texts4H. Source backing remains original.
+      record_headers: 9L,
+      reference_slots: 9L,
+      scalar_words: 7L,
+      owned_utf16_units: identity.logical_relation_cid.length().to_int64() +
+      identity.schema_cid.length().to_int64() +
+      body.length().to_int64() +
+      schema.length().to_int64(),
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) else {
+    return None
+  }
+  @execution.execution_capacity(bytes, bytes)
+}

@@ -1,6 +1,9 @@
 """Independent declaration mutations fail at the named source boundary."""
 import importlib.util
 from pathlib import Path
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -363,6 +366,114 @@ class BindingMutationTests(unittest.TestCase):
                                                      'foreign_runtime_roots(', 1))
             with self.assertRaisesRegex(ValueError, 'MoonBit Runtime callback'):
                 NATIVE.outputs(root)
+
+
+class BindingCliTests(unittest.TestCase):
+    def fixture(self):
+        temporary = tempfile.TemporaryDirectory(prefix='actql-neutral-abi-cli-')
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        neutrals = [WASM.OUTPUT.relative_to(ROOT), WASM.COMPILER_OUTPUT.relative_to(ROOT),
+                    WASM.CONTRACT_OUTPUT.relative_to(ROOT)]
+        paths = [Path('scripts/generate-local-wasm-abi.py'),
+                 Path('src/client_host_wasm/moon.pkg'),
+                 *[p.relative_to(ROOT) for p in sorted((ROOT / 'src/client_host_wasm').glob('*.mbt'))],
+                 Path('src/physical_resources/imported_child_ledger_wasm.mbt'),
+                 Path('src/physical_resources/platform_vm_capacity_wasm.mbt'), *neutrals]
+        for path in paths:
+            target = root / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / path, target)
+        return root, [root / p for p in neutrals], root / WASM.RUST_OUTPUT.relative_to(ROOT)
+
+    def cli(self, root, *args):
+        return subprocess.run([sys.executable, '-B', root / 'scripts/generate-local-wasm-abi.py', *args],
+            cwd=root, capture_output=True, text=True, timeout=20, check=False)
+
+    def test_neutral_modes_accept_missing_rust_without_creating_it(self):
+        root, neutrals, rust = self.fixture()
+        before = [p.read_bytes() for p in neutrals]
+        for args in (('--check',), ()):
+            result = self.cli(root, *args)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(rust.exists())
+            self.assertEqual([p.read_bytes() for p in neutrals], before)
+
+    def test_neutral_modes_never_read_or_overwrite_excluded_rust_sentinel(self):
+        root, neutrals, rust = self.fixture()
+        rust.parent.mkdir(parents=True)
+        sentinel = b'\xffexcluded frozen mirror\n'
+        rust.write_bytes(sentinel)
+        before = [p.read_bytes() for p in neutrals]
+        for args in ((), ('--check',)):
+            result = self.cli(root, *args)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(rust.read_bytes(), sentinel)
+            self.assertEqual([p.read_bytes() for p in neutrals], before)
+
+    def test_neutral_check_refuses_each_stale_or_missing_neutral_output(self):
+        root, neutrals, rust = self.fixture()
+        for path in neutrals:
+            original = path.read_bytes()
+            for missing in (False, True):
+                with self.subTest(path=path.relative_to(root), missing=missing):
+                    if missing:
+                        path.unlink()
+                    else:
+                        path.write_bytes(original + b'\nstale\n')
+                    result = self.cli(root, '--check')
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('is stale', result.stderr)
+                    self.assertFalse(rust.exists())
+                    self.assertEqual(path.exists(), not missing)
+                    if not missing:
+                        self.assertEqual(path.read_bytes(), original + b'\nstale\n')
+                    path.write_bytes(original)
+
+    def test_explicit_rust_check_requires_exact_frozen_mirror(self):
+        root, neutrals, rust = self.fixture()
+        rust.parent.mkdir(parents=True)
+        frozen = WASM.RUST_OUTPUT.read_bytes()
+        rust.write_bytes(frozen)
+        result = self.cli(root, '--check', '--rust')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(rust.read_bytes(), frozen)
+        before = [p.read_bytes() for p in neutrals]
+        for missing in (False, True):
+            with self.subTest(missing=missing):
+                if missing:
+                    rust.unlink()
+                else:
+                    rust.write_bytes(b'stale explicit mirror\n')
+                result = self.cli(root, '--check', '--rust')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('Rust Core Wasm ABI binding is stale', result.stderr)
+                self.assertEqual([p.read_bytes() for p in neutrals], before)
+                self.assertEqual(rust.exists(), not missing)
+                if not missing:
+                    self.assertEqual(rust.read_bytes(), b'stale explicit mirror\n')
+
+    def test_explicit_rust_check_also_checks_neutral_outputs(self):
+        root, neutrals, rust = self.fixture()
+        rust.parent.mkdir(parents=True)
+        frozen = WASM.RUST_OUTPUT.read_bytes()
+        rust.write_bytes(frozen)
+        neutrals[0].write_bytes(b'stale neutral\n')
+        result = self.cli(root, '--check', '--rust')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Local Wasm ABI binding is stale', result.stderr)
+        self.assertEqual(neutrals[0].read_bytes(), b'stale neutral\n')
+        self.assertEqual(rust.read_bytes(), frozen)
+
+    def test_unknown_flags_refuse_before_touching_any_output(self):
+        root, neutrals, rust = self.fixture()
+        rust.parent.mkdir(parents=True)
+        rust.write_bytes(b'untouched excluded mirror\n')
+        before = [p.read_bytes() for p in [*neutrals, rust]]
+        for arg in ('--unknown', '--rust=false'):
+            result = self.cli(root, arg)
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual([p.read_bytes() for p in [*neutrals, rust]], before)
 
 
 if __name__ == '__main__':

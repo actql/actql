@@ -1466,14 +1466,37 @@ fn[I, P] original_request_plan_construction_quote(
     @local.local_module_provider_field_inventory(tasks) is Some(providers) else {
     return Err(Policy)
   }
+  let policy = @local_driver.local_dispatch_preparation_work_policy_capacity()
   let (r, e) = match
     @resources.preparation_capacity_working_extents(capacity, input) {
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
-  guard @execution.checked_preparation_add_product(bytes, proof_retained, 1L)
+  guard @execution.checked_preparation_add_product(
+      bytes,
+      if tasks > 0 {
+        policy.retained_bytes
+      } else {
+        0L
+      },
+      1L,
+    )
     is Some(retained) &&
-    @execution.checked_preparation_add_product(retained, proof_scratch, 1L)
+    @execution.checked_preparation_add_product(retained, proof_retained, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      bytes,
+      if tasks > 0 {
+        policy.execution_bytes
+      } else {
+        0L
+      },
+      1L,
+    )
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(execution, proof_retained, 1L)
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(execution, proof_scratch, 1L)
     is Some(execution) &&
     @execution.checked_preparation_add_product(
       retained,

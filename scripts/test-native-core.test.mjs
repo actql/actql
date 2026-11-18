@@ -1668,7 +1668,7 @@ test('two local native verification invocations own fresh roots', t => {
   const results = [run(f, {}, true), run(f, {}, true)];
   const paths = [];
   for (const result of results) {
-    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.status, 0, result.stderr + result.stdout);
     const invocationPaths = [...result.stdout.matchAll(/Native core SQLite namespace: (.*)/gu)]
       .map(match => match[1]);
     assert.equal(invocationPaths.length, 2);
@@ -1905,12 +1905,16 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
   }
   writeFileSync(join(bin,'getconf'),'#!/bin/sh\nprintf "3\\n"\n');
   chmodSync(join(bin,'getconf'),0o755);
+  // Exercise the supported full local entrance without a hosted plan. Hosted
+  // partitions use the actual selector in the separate workflow command ports.
+  const environment={...process.env,PATH:bin+':'+process.env.PATH,
+    MOONBIT_NEW_NATIVE:'1',CI_PLAN:'',CI_PLAN_PATH:''};
   for(const target of ['native','js','wasm']){
     const command=coreStep.run.replaceAll('${{ matrix.target }}',target)
-      .replaceAll('${{ matrix.partition }}','1/4')
+      .replaceAll('${{ matrix.partition }}','')
       .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}','false');
     const result=spawnSync('bash',['-eo','pipefail','-c',command],{
-      cwd:root,encoding:'utf8',timeout:5000,env:{...process.env,PATH:bin+':'+process.env.PATH,MOONBIT_NEW_NATIVE:'1'},
+      cwd:root,encoding:'utf8',timeout:5000,env:environment,
     });
     assert.equal(result.error,undefined);assert.equal(result.signal,null);assert.equal(result.status,0,result.stderr);
     const records=result.stdout.trim().split('\n').map(line=>JSON.parse(line));
@@ -1923,7 +1927,7 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
       assert.deepEqual(records.map(record=>record.native),['1','0']);
       const failed=spawnSync('bash',['-eo','pipefail','-c',command],{
         cwd:root,encoding:'utf8',timeout:5000,
-        env:{...process.env,PATH:bin+':'+process.env.PATH,ACTQL_FIXTURE_FAIL_FULL:'1'},
+        env:{...environment,ACTQL_FIXTURE_FAIL_FULL:'1'},
       });
       assert.equal(failed.error,undefined);assert.equal(failed.signal,null);assert.equal(failed.status,7);
     }else{

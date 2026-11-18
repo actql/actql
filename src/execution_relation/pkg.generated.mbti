@@ -606,6 +606,8 @@ pub fn completed_relation_export_original_source(CompletedRelationExportReceipt)
 
 pub fn completed_relation_export_receipt_live(CompletedRelationExportReceipt) -> Bool
 
+pub fn completed_relation_export_retained_capacity(CompletedRelationExportReceipt) -> ExecutionCapacity?
+
 pub fn completed_relation_export_scalar_geometry(CompletedRelationExportReceipt) -> (Int, Int, Int, Int, Int)
 
 pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt) -> RelationSchemaIdentity
@@ -863,6 +865,8 @@ pub fn generated_sequence_all_steps(GeneratedSequence, (@lowering_relation.Prepa
 pub fn generated_sequence_capacity(GeneratedSequence, SequenceExecutionLimits, FixedInputGuardMeasureLimits) -> ExecutionCapacity?
 
 pub fn generated_sequence_is_projection_only(GeneratedSequence) -> Bool
+
+pub fn generated_sequence_logical_work_limit(GeneratedSequence, Int) -> Int64?
 
 pub fn generated_sequence_match_limits(GeneratedSequence, Int) -> (Int64, Int64)?
 
@@ -1471,6 +1475,8 @@ pub fn reuse_retained_scan_values(RetainedProducerScan) -> Bool
 pub fn[T] revoke_unpublished_managed_completed_output(ManagedCompletedOutput[T]) -> Bool
 
 pub fn row_failure_diagnostic_cause(RowIssue) -> String?
+
+pub fn row_failure_is_logical_work_limit(RowIssue) -> Bool
 
 pub fn row_wire_cid(RowWireIdentity) -> String
 
@@ -2148,6 +2154,7 @@ pub(all) enum EvalIssueKind {
   QueryEvaluationTimeUnavailable
   TextBounds(@text_time_bounds.Issue)
   NumberConversion(@source_value.ParseIssue)
+  TimestampCanonicalRequired
 } derive(Eq, @debug.Debug)
 
 pub struct ExecutionCapacity {

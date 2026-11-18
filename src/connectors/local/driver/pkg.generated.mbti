@@ -12,6 +12,7 @@ import {
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_host",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -45,11 +46,17 @@ pub fn local_dispatch_predecessor_is_carrier(LocalDispatchModule, Int) -> Bool
 
 pub fn local_dispatch_preparation_input_scan_work(LocalDispatchPreparation, Int) -> Int?
 
+pub fn local_dispatch_preparation_managed_task_capacity(LocalDispatchPreparation, Int) -> @physical_strategy_host.PhysicalEnvelope?
+
 pub fn local_dispatch_preparation_retained_bytes(LocalDispatchPreparation) -> Int64?
 
 pub fn local_dispatch_preparation_task_capacity(LocalDispatchPreparation, Int) -> @physical_strategy_host.PhysicalEnvelope?
 
 pub fn local_dispatch_preparation_transfer_bytes(LocalDispatchPreparation) -> Int64?
+
+pub fn local_dispatch_preparation_work_policy(LocalDispatchPreparation) -> LocalWorkPolicy
+
+pub fn local_dispatch_preparation_work_policy_capacity() -> @execution_relation.ExecutionCapacity
 
 pub fn local_dispatch_registration(LocalDispatchModule) -> @connector_sdk.CapabilityRegistration
 
@@ -60,6 +67,8 @@ pub fn local_dispatch_work_slots() -> Int
 pub fn local_managed_advance_capture_work(LocalDispatchIssue) -> Array[Int]?
 
 pub fn local_managed_advance_control_work_limit(LocalDispatchIssue) -> Int?
+
+pub fn local_managed_advance_logical_work_policy(LocalDispatchIssue) -> (Int, Int64, String)?
 
 pub fn[T] local_managed_captured_relation_input() -> LocalManagedAvailableOutput[T]
 
@@ -89,7 +98,7 @@ pub fn prepare_local_dispatch(LocalDispatchModule, Int, @physical_strategy_host.
 
 pub fn prepare_local_dispatch_module(@physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[@local.ManagedProvider]) -> Result[LocalDispatchModule, LocalDispatchIssue]
 
-pub fn prepare_local_dispatch_plan(@physical_strategy.CheckedDAG, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[@local.ManagedProvider], inputs? : (@local.LocalImportLimits, Int64?)?, metadata? : LocalManagedMetadataLimits?, output? : (@local.LocalExportLimits, Int64?)?) -> Result[LocalDispatchPreparation, LocalDispatchIssue]
+pub fn prepare_local_dispatch_plan(@physical_strategy.CheckedDAG, @connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[@local.ManagedProvider], inputs? : (@local.LocalImportLimits, Int64?)?, metadata? : LocalManagedMetadataLimits?, output? : (@local.LocalExportLimits, Int64?)?, work_policy? : LocalWorkPolicy) -> Result[LocalDispatchPreparation, LocalDispatchIssue]
 
 pub fn prepare_local_estimate_module(LocalDispatchModule, Array[@physical_cost.RateSchedule], Int, eligible? : Array[Bool]) -> Result[LocalEstimateModule, LocalEstimateIssue]
 
@@ -132,6 +141,7 @@ pub(all) enum LocalDispatchIssue {
   IdentityExport(@execution_relation.CompletedExportIssue)
   CarrierSnapshot(@managed_carrier_runtime.SnapshotIssue)
   ControlWorkLimit(Int)
+  LogicalWorkLimit(Int, Int64, LocalWorkPolicy)
   ExecutionCapacityRefusal(@physical_resources.LedgerIssue, Int64, Int64, Int64)
 }
 
@@ -299,6 +309,11 @@ pub struct LocalRetainedRepresentation {
   material : @execution_relation.RetainedOutputMaterial
   readable : (@execution_relation.ProducerRead) -> Bool
 }
+
+pub(all) enum LocalWorkPolicy {
+  Unspecified
+  SourceFreeInstallation
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

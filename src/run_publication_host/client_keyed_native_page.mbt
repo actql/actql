@@ -300,81 +300,30 @@ fn build_client_keyed_native_captured_page(
     is Some(start) else {
     return Err(Assembly("native_page_identity_start_capacity"))
   }
-  match keyed_lookup_body_grow(state, basis_r, basis_e, controls, Some(start)) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  // Structural workspace slots are not a preallocated byte buffer. Keep the
-  // actual parent start/next growth and all selected wire/value limits intact.
-  let workspace = match workspace {
-    Some(selected) => selected
-    None => {
-      guard @execution.completed_relation_identity_scan_workspace_slots(
-          output, values, payload_wire, logical_wire,
+  let body = match
+    with_keyed_body_construction(
+      state,
+      start,
+      0L,
+      grow => {
+        scan_client_keyed_native_page(
+          state, partial, output, read, actual_rows, values, payload_wire, logical_wire,
+          schema, max_work, workspace, grow,
         )
-        is Some(slots) else {
-        return Err(Assembly("native_page_workspace_geometry"))
-      }
-      slots
-    }
-  }
-  let scan = match
-    @execution.start_completed_relation_identity_scan(
-      output,
-      actual_rows,
-      values,
-      payload_wire,
-      logical_wire,
-      schema,
-      max_work,
-      workspace,
-      incremental_metadata=true,
-      retain_body=true,
-      source_input=Some(read),
+      },
+      _ => Ok(()),
+      body => {
+        match partial.receipt {
+          Some(receipt) => keyed_identity_retained_capacity(receipt, body)
+          None => None
+        }
+      },
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(CompletedIdentity(issue))
+    Ok(settled) => settled.value
+    Err(issue) => return Err(issue)
   }
-  partial.scan = Some(scan)
-  let mut previous_work = 0L
-  while true {
-    guard @execution.completed_relation_identity_scan_next_construction_capacity(
-        scan,
-      )
-      is Some(next) else {
-      return Err(Assembly("native_page_identity_next_capacity"))
-    }
-    match
-      keyed_lookup_body_grow(state, basis_r, basis_e, controls, Some(next)) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-    let advanced = @execution.advance_completed_relation_identity_scan(
-      scan,
-      31,
-      construction_capacity=Some(next),
-    )
-    let work = @execution.completed_relation_identity_scan_work(scan)
-    let delta = work - previous_work
-    if delta < 0L || delta > 9223372036854775807L - state.native_left_work {
-      return Err(Assembly("native_page_identity_work_overflow"))
-    }
-    state.native_left_work += delta
-    previous_work = work
-    match advanced {
-      Err(issue) => return Err(CompletedIdentity(issue))
-      Ok((false, _)) => ()
-      Ok((true, _)) => break
-    }
-  }
-  let receipt = match @execution.finish_completed_relation_identity_scan(scan) {
-    Ok(value) => value
-    Err(issue) => return Err(CompletedIdentity(issue))
-  }
-  partial.receipt = Some(receipt)
-  guard @execution.completed_relation_identity_scan_body(scan, receipt)
-    is Some(body) else {
-    return Err(Assembly("native_page_identity_body"))
+  guard partial.receipt is Some(receipt) else {
+    return Err(Assembly("native_page_identity_receipt"))
   }
   let logical = @execution.completed_relation_export_identity(receipt)
   let schema = @execution.completed_relation_export_schema_identity(receipt)
@@ -534,8 +483,6 @@ fn build_client_keyed_native_captured_page(
     },
     result => {
       partial.result = Some(result)
-      @execution.cancel_completed_relation_identity_scan(scan) |> ignore
-      partial.scan = None
       Ok(())
     },
     copies=3,
@@ -556,6 +503,97 @@ fn build_client_keyed_native_captured_page(
     return Err(Assembly("retired_native_captured_page"))
   }
   Ok(result)
+}
+
+///|
+fn scan_client_keyed_native_page(
+  state : ClientKeyedLookupInput,
+  partial : ClientKeyedNativePageState,
+  output : @execution.CompletedOutput,
+  read : @execution.SuppliedRelationRead,
+  actual_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema : @execution.RelationSchemaIdentityLimits,
+  max_work : Int,
+  workspace : Int?,
+  grow : (@execution.ExecutionCapacity) -> Result[Unit, ClientKeyedRequestIssue],
+) -> Result[String, ClientKeyedRequestIssue] {
+  // Structural workspace slots are not a preallocated byte buffer. Keep the
+  // actual parent start/next growth and all selected wire/value limits intact.
+  let workspace = match workspace {
+    Some(selected) => selected
+    None => {
+      guard @execution.completed_relation_identity_scan_workspace_slots(
+          output, values, payload_wire, logical_wire,
+        )
+        is Some(slots) else {
+        return Err(Assembly("native_page_workspace_geometry"))
+      }
+      slots
+    }
+  }
+  let scan = match
+    @execution.start_completed_relation_identity_scan(
+      output,
+      actual_rows,
+      values,
+      payload_wire,
+      logical_wire,
+      schema,
+      max_work,
+      workspace,
+      incremental_metadata=true,
+      retain_body=true,
+      source_input=Some(read),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(CompletedIdentity(issue))
+  }
+  partial.scan = Some(scan)
+  let mut previous_work = 0L
+  while true {
+    guard @execution.completed_relation_identity_scan_next_construction_capacity(
+        scan,
+      )
+      is Some(next) else {
+      return Err(Assembly("native_page_identity_next_capacity"))
+    }
+    match grow(next) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    let advanced = @execution.advance_completed_relation_identity_scan(
+      scan,
+      31,
+      construction_capacity=Some(next),
+    )
+    let work = @execution.completed_relation_identity_scan_work(scan)
+    let delta = work - previous_work
+    if delta < 0L || delta > 9223372036854775807L - state.native_left_work {
+      return Err(Assembly("native_page_identity_work_overflow"))
+    }
+    state.native_left_work += delta
+    previous_work = work
+    match advanced {
+      Err(issue) => return Err(CompletedIdentity(issue))
+      Ok((false, _)) => ()
+      Ok((true, _)) => break
+    }
+  }
+  let receipt = match @execution.finish_completed_relation_identity_scan(scan) {
+    Ok(value) => value
+    Err(issue) => return Err(CompletedIdentity(issue))
+  }
+  partial.receipt = Some(receipt)
+  guard @execution.completed_relation_identity_scan_body(scan, receipt)
+    is Some(body) else {
+    return Err(Assembly("native_page_identity_body"))
+  }
+  @execution.cancel_completed_relation_identity_scan(scan) |> ignore
+  partial.scan = None
+  Ok(body)
 }
 
 ///|

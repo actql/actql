@@ -8,6 +8,7 @@ import {prepareNativeHttpCompilerScope} from './native-http-compiler-scope.mjs';
 import * as httpScope from './native-http-compiler-scope.mjs';
 import {parse as parseYaml} from 'yaml';
 import {parse} from 'acorn';
+import {nativeCoreHostedPartitions} from './ci-core-partitions.mjs';
 
 const groups = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url)));
 
@@ -52,8 +53,13 @@ test('Source coverage redistribution requires current Linux HTTP and complete Da
   }
   for (const value of ['', '[]', '["js","wasm"]', 'null', 'invalid'])
     assert.notEqual(run({...success, CORE_TARGETS: value}).status, 0);
-  assert(workflow.jobs['core-darwin'].strategy.matrix.partition.includes('source'));
-  assert(!(workflow.jobs['core-darwin'].strategy.matrix.exclude ?? []).some(row => row.target === 'native' && row.partition === 'source'));
+  const darwin = workflow.jobs['core-darwin'];
+  assert(darwin.strategy.matrix.target.includes('native'));
+  const hosted = darwin.strategy.matrix.partition.filter(partition =>
+    !(darwin.strategy.matrix.exclude ?? []).some(row => row.target === 'native' && row.partition === partition));
+  const profiles = hosted.flatMap(nativeCoreHostedPartitions);
+  assert.deepEqual(profiles.sort(), ['1/2', '2/2', 'source', 'scoped-runtime', 'scoped-review'].sort(),
+    'Current hosted jobs must execute every original logical profile exactly once');
   const core = workflow.jobs['core-darwin'].steps.find(step => step.name === 'Test common core');
   assert(core.run.includes('MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose'));
   const linux = workflow.jobs['native-http'];

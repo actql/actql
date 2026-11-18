@@ -104571,7 +104571,7 @@
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "da08eb1a3f44df24927c55d1a822e7a8472264ec8acf0b6a52f9fbcdefa987ce",
+      "sha256": "120193ea3520c00661cf3fbd9466432df1258478146dcd9ebb919ed77ccffa22",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -105149,6 +105149,10 @@
               {
                 "path": "adapters/local-node/carrier-snapshot.test.mjs",
                 "anchor": "retains export custody until the actual seal promise settles"
+              },
+              {
+                "path": "adapters/local-node/finalization-diagnostic.test.mjs",
+                "anchor": "test('finalization diagnostic never projects a foreign checker error from Ok or malformed DATA'"
               }
             ]
           }

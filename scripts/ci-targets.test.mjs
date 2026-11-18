@@ -10,9 +10,7 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired, rustLibraryRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
-import {cargoTestArguments} from './test-execution.mjs';
-import {localModuleGraphInputs} from './adapter-module-graph.mjs';
+import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
 import {readCiInput} from './ci-input.mjs';
@@ -790,27 +788,110 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
   const artifact = core.steps.find(step => step.name === 'Retain only sanitized current Native compiler diagnostics');
   assert(artifact.with.name.includes('${{ strategy.job-index }}'));
   assert(!artifact.with.name.includes('${{ matrix.partition }}'), 'Partition slashes are invalid artifact names');
-  const root = mkdtempSync(join(tmpdir(), 'actql-native-partition-workflow-'));
-  t.after(() => rmSync(root, {recursive: true, force: true}));
-  writeFileSync(join(root, 'node'), '#!/bin/sh\nprintf "%s|%s|%s\\n" "$ACTQL_TEST_NATIVE_CORE_PARTITION" "$MOONBIT_NEW_NATIVE" "$*"\nexit "$ACTQL_FIXTURE_EXIT"\n');
-  chmodSync(join(root, 'node'), 0o755);
+  const f = nativeCoreCommandPort(t, command.run);
   for (const partition of partitions) for (const status of [0, 7]) {
-    const run = command.run.replaceAll('${{ matrix.target }}', 'native')
-      .replaceAll('${{ matrix.partition }}', String(partition));
-    const env = {...process.env, PATH: root + ':' + process.env.PATH, ACTQL_FIXTURE_EXIT: String(status)};
-    env.ACTQL_TEST_NATIVE_CORE_PARTITION = partition.startsWith('linux-common-') ? '' : partition; delete env.MOONBIT_NEW_NATIVE;
-    const result = spawnSync('bash', ['-eo', 'pipefail', '-c', run], {cwd: root, env, encoding: 'utf8', timeout: 5000});
+    const {result, calls} = f.run(partition, {clock: status, ordinary: status});
     assert.equal(result.error, undefined); assert.equal(result.signal, null);
     assert.equal(result.status, status, result.stderr);
-    const lines = result.stdout.trim().split('\n');
     if (partition.startsWith('linux-common-')) {
-      assert.deepEqual(lines, [`|0|scripts/test-native-core-linux-common.mjs ${partition}`]);
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].entry, 'scripts/test-native-core-linux-common.mjs');
+      assert.equal(calls[0].args[0], partition); assert.equal(calls[0].backend, '0');
       continue;
     }
-    assert.equal(lines[0], '||scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock');
-    assert.equal(lines.length, status === 0 ? 2 : 1);
-    if (status === 0) assert.equal(lines[1], `${partition}|0|scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose`);
+    assert.equal(calls[0].phase, 'clock'); assert.equal(calls[0].partition, '');
+    assert(calls[0].args.includes('platform_native/trusted_clock'));
+    const profiles = calls.filter(call => call.phase === 'profile');
+    assert.deepEqual(profiles.map(call => call.partition), status ? [] :
+      partition === '1/2' ? [partition, 'source'] : [partition]);
+    for (const call of profiles) {
+      assert.equal(call.entry, 'scripts/test-native-core.mjs'); assert.equal(call.backend, '0');
+      for (const flag of ['--deny-warn', '--release', '--strip', '--no-parallelize']) assert(call.args.includes(flag));
+      assert.equal(Number(call.args[call.args.indexOf('-j') + 1]), 2);
+      assert(!call.args.some(arg => /^(?:--filter|--index|--test-name-pattern)(?:=|$)/u.test(arg)));
+    }
   }
+});
+
+
+// Execute the actual YAML recipe with its public partition module. Only the
+// compiler entrances are command ports; no test/runtime compiler is started.
+function nativeCoreCommandPort(t, command) {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-partition-workflow-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  mkdirSync(join(root, 'scripts'));
+  writeFileSync(join(root, 'scripts/ci-core-partitions.mjs'),
+    readFileSync(new URL('./ci-core-partitions.mjs', import.meta.url)));
+  const log = join(root, 'commands.jsonl');
+  writeFileSync(join(root, 'node'), '#!' + process.execPath + '\n' + `
+    const {appendFileSync}=require('node:fs'),{spawnSync}=require('node:child_process');
+    const args=process.argv.slice(2),entry=args.shift();
+    if(entry==='--input-type=module') {
+      const result=spawnSync(process.execPath,[entry,...args],{stdio:'inherit',env:process.env});
+      process.exit(result.status??1);
+    }
+    const phase=entry==='scripts/test-native-core-linux-common.mjs'?'linux':args.includes('--release')?'profile':'clock';
+    const partition=process.env.ACTQL_TEST_NATIVE_CORE_PARTITION??'';
+    appendFileSync(${JSON.stringify(log)},JSON.stringify({entry,args,phase,partition,pid:process.pid,
+      backend:process.env.MOONBIT_NEW_NATIVE,cache:process.env.ACTQL_TEST_NATIVE_CORE_CCACHE,
+      cacheDirectory:process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR})+'\\n');
+    if(phase==='profile'&&partition!=='source'&&process.env.ACTQL_FIXTURE_SIGNAL==='ordinary')process.kill(process.pid,'SIGTERM');
+    else process.exit(Number(process.env[phase==='clock'?'ACTQL_FIXTURE_CLOCK_EXIT':
+      partition==='source'?'ACTQL_FIXTURE_SOURCE_EXIT':'ACTQL_FIXTURE_ORDINARY_EXIT']??0));
+  `);
+  chmodSync(join(root, 'node'), 0o755);
+  return {run(partition, {clock = 0, ordinary = 0, source = 0, signal = '', readonlyCache = false, hostedPlan = false} = {}) {
+    writeFileSync(log, '');
+    const run = command.replaceAll('${{ matrix.target }}', 'native')
+      .replaceAll('${{ matrix.partition }}', partition);
+    const result = spawnSync('bash', ['-eo', 'pipefail', '-c',
+      (readonlyCache ? 'readonly ACTQL_TEST_NATIVE_CORE_CCACHE\n' : '') + run], {cwd: root,
+      encoding: 'utf8', timeout: 5000, env: {...process.env,
+        PATH: root + ':' + process.env.PATH, CI_PLAN: '',
+        CI_PLAN_PATH: hostedPlan ? join(root, 'original-hosted-plan.json') : '',
+        ACTQL_TEST_NATIVE_CORE_PARTITION: partition.startsWith('linux-common-') ? '' : partition,
+        ACTQL_TEST_NATIVE_CORE_CCACHE: '/explicit-original-cache',
+        ACTQL_TEST_NATIVE_CORE_CCACHE_DIR: '/explicit-original-cache-directory',
+        ACTQL_FIXTURE_CLOCK_EXIT: String(clock), ACTQL_FIXTURE_ORDINARY_EXIT: String(ordinary),
+        ACTQL_FIXTURE_SOURCE_EXIT: String(source), ACTQL_FIXTURE_SIGNAL: signal}});
+    return {result, calls: readFileSync(log, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line))};
+  }};
+}
+
+test('Darwin Source co-location retains independent failures and its original non-cache child', t => {
+  const command = jobs['core-darwin'].steps.find(step => step.name === 'Test common core');
+  const f = nativeCoreCommandPort(t, command.run);
+  for (const ordinary of [0, 7]) {
+    const local = f.run('', {ordinary});
+    assert.equal(local.result.status, ordinary, local.result.stderr);
+    assert.deepEqual(local.calls.map(call => [call.phase, call.partition]),
+      [['clock', ''], ['profile', '']], 'local Core keeps one complete original invocation');
+  }
+  const missingHostedPartition = f.run('', {hostedPlan: true});
+  assert.notEqual(missingHostedPartition.result.status, 0);
+  assert.match(missingHostedPartition.result.stderr, /Unknown hosted Native Core partition/u);
+  assert.equal(missingHostedPartition.calls.filter(call => call.phase === 'profile').length, 0);
+  for (const [ordinary, source] of [[0, 0], [7, 0], [0, 9], [7, 9]]) {
+    const {result, calls} = f.run('1/2', {ordinary, source});
+    assert.ifError(result.error); assert.equal(result.signal, null);
+    assert.equal(result.status, ordinary || source, result.stderr);
+    const selected = calls.filter(call => call.phase === 'profile');
+    assert.deepEqual(selected.map(call => call.partition), ['1/2', 'source']);
+    assert.notEqual(selected[0].pid, selected[1].pid, 'each original entrance is a fresh process');
+    assert.equal(selected[0].cache, '/explicit-original-cache');
+    assert.equal(selected[0].cacheDirectory, '/explicit-original-cache-directory');
+    assert.equal(selected[1].cache, undefined); assert.equal(selected[1].cacheDirectory, undefined);
+  }
+  const stopped = f.run('1/2', {signal: 'ordinary'});
+  assert.equal(stopped.result.status, 143, stopped.result.stderr);
+  assert.deepEqual(stopped.calls.filter(call => call.phase === 'profile').map(call => call.partition), ['1/2']);
+  const retainedCache = f.run('1/2', {readonlyCache: true});
+  assert.notEqual(retainedCache.result.status, 0, 'cannot select Source if cache isolation failed');
+  assert.deepEqual(retainedCache.calls.filter(call => call.phase === 'profile').map(call => call.partition), ['1/2']);
+  const invalid = f.run('foreign');
+  assert.notEqual(invalid.result.status, 0);
+  assert.match(invalid.result.stderr, /Unknown hosted Native Core partition/u);
+  assert.equal(invalid.calls.filter(call => call.phase === 'profile').length, 0);
 });
 
 test('required aggregate rejects failed, cancelled, skipped and missing selected jobs', () => {
@@ -1646,97 +1727,23 @@ test('main CLI selects full checks from a fresh checkout without API token or pr
   assert.deepEqual(plan.selection.paths, []);
 });
 
-test('Rust library selects same-source inputs, not unrelated PRs, and remains mandatory on main', () => {
-  for (const path of ['packages/rust/src/abi.rs', 'packages/rust/Cargo.lock',
-    'src/client_host_wasm/host.mbt', 'src/value_admission/value.mbt', 'vendor/dependency/moon.pkg',
-    'moon.mod', 'toolchain.json', 'package-lock.json', 'spec/contracts/core-wasm-abi.generated.json',
-    'scripts/generate-local-wasm-abi.py', 'scripts/local-checks.mjs', 'scripts/test-execution.mjs',
-    'scripts/ci-targets.mjs', 'scripts/check-rust-interface-owners.mjs',
-    'scripts/interface-owner-coverage.mjs', 'scripts/interface-owners/rust/interface-boundaries.json',
-    '.github/workflows/ci.yml']) {
-    const selection = selectTargets([path], {draft: true});
-    assert.equal(rustLibraryRequired(selection), true, path);
-    assert.equal(gateJobRequired(selection, 'rust-library'), true, path);
-    for (const result of ['failure', 'skipped', 'cancelled', undefined]) {
-      assert.throws(() => verifyGate(plan(selection), {...results(selection), 'rust-library': {result}},
-        {...context, draft: true}), /rust-library/u, `${path}/${result}`);
-    }
-  }
-  for (const path of ['README.md', 'docs/ci-client.md', 'packages/sdk/README.md',
-    'adapters/connectors/github/node/reader.mjs']) {
+test('neutral ABI and existing Host source changes retain required current families and unknown fallback', () => {
+  for (const path of ['src/client_host_wasm/host.mbt', 'spec/contracts/core-wasm-abi.generated.json',
+    'scripts/generate-local-wasm-abi.py', 'packages/python-sdk/src/actql_sdk/_local_wasm_abi.py',
+    'unclassified/future-abi-input']) {
     const selection = selectTargets([path]);
-    assert.equal(rustLibraryRequired(selection), false, path);
+    assert.equal(selection.profile, 'full', path);
+    assert.deepEqual(selection.targets, ['js', 'wasm', 'native'], path);
+    assert.equal(selection.macos, true, path);
+    assert.equal(pythonWheelAcceptanceRequired(selection), true, path);
+    for (const name of ['select-targets', 'preflight', 'lint', 'core', 'host', 'client', 'native', 'python-wheels']) {
+      assert.equal(gateJobRequired(selection, name), true, `${path}/${name}`);
+      for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+        assert.throws(() => verifyGate(plan(selection), {...results(selection), [name]: {result}}, context));
+      }
+    }
     verifyGate(plan(selection), results(selection), context);
   }
-  for (const event of ['push', 'schedule', 'workflow_dispatch']) {
-    assert.equal(rustLibraryRequired(selectTargets(['README.md'], {event})), true, event);
-  }
-  assert.equal(rustLibraryRequired(selectTargets([])), true);
-  assert.equal(rustLibraryRequired(selectTargets(['README.md'], {failure: 'Unavailable exact diff'})), true);
-  assert.equal(rustLibraryRequired(selectTargets(['README.md', 'packages/rust/src/lib.rs'])), true);
-});
-
-test('Rust selection covers the actual JS command module closure and compiler admission inputs', () => {
-  const entrances = [...new Set(jobs['rust-library'].steps.flatMap(step =>
-    [...(step.run ?? '').matchAll(/^\s*node\s+(scripts\/[A-Za-z0-9_.-]+\.mjs)(?=\s|$)/gmu)]
-      .map(match => match[1])))];
-  assert(entrances.length > 0);
-  // The original supervisor is a URL-referenced fork asset, not an ESM import.
-  const inputs = localModuleGraphInputs(fileURLToPath(new URL('../', import.meta.url)),
-    [...entrances, 'scripts/local-checks-supervisor.mjs']);
-  for (const indirect of ['scripts/adapter-module-graph.mjs',
-    'scripts/check-connector-dispatch-boundary.mjs', 'scripts/executable-test-cases.mjs',
-    'scripts/moonbit-installation.mjs']) assert(inputs.includes(indirect), indirect);
-  for (const path of inputs) {
-    const selected = selectTargets([path], {draft: true});
-    assert.equal(rustLibraryRequired(selected), true, path);
-    assert.equal(gateJobRequired(selected, 'rust-library'), true, path);
-    assert.equal(scheduled('rust-library', {'select-targets': {outputs: {
-      rust_library: String(rustLibraryRequired(selected))}}}), true, path);
-  }
-});
-
-test('Rust CI builds one same-source fixture and executes a bounded locked library gate', () => {
-  const job = jobs['rust-library'];
-  assert.deepEqual(job.needs, ['select-targets']);
-  assert(jobs.check.needs.includes('rust-library'));
-  for (const selected of [true, false, undefined]) {
-    assert.equal(scheduled('rust-library', {'select-targets': {outputs: {rust_library: String(selected)}}}),
-      selected === true);
-  }
-  assert.equal(scheduled('rust-library', {'select-targets': {outputs: {rust_library: 'true'}}},
-    {performance_matrix: true}), false);
-  assert.equal(job['continue-on-error'], undefined);
-  const builds = job.steps.filter(step => step.run?.includes('build moon'));
-  assert.equal(builds.length, 1);
-  assert(builds[0].run.includes('src/client_host_wasm'));
-  assert(builds[0].run.includes('git rev-parse HEAD') && builds[0].run.includes('"$GITHUB_SHA"'));
-  assert(builds[0].run.includes('sha256sum "$ACTQL_CORE_WASM"'));
-  const installation = job.steps.find(step => step.run?.includes('rustup toolchain install'));
-  assert(installation.run.includes('ACTQL_CORE_WASM=$RUNNER_TEMP/rust-library/core/'));
-  assert(installation.run.includes('>> "$GITHUB_ENV"'));
-  const gates = job.steps.filter(step => step.run?.includes('test cargo'));
-  const selected = manifest => {
-    const matches = gates.filter(step => step.run.trim().split(/\s+/u).includes(manifest));
-    assert.equal(matches.length, 1, manifest);
-    const args = matches[0].run.trim().split(/\s+/u), separator = args.indexOf('--');
-    cargoTestArguments(args.slice(separator + 1));
-    assert(args.includes('--allow-heavy'));
-    const seconds = Number(args[args.indexOf('--timeout-seconds') + 1]);
-    assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= job['timeout-minutes'] * 60);
-    return matches[0];
-  };
-  const runtime = selected('packages/rust/Cargo.toml');
-  const reader = selected('packages/rust/tools/source-inventory/Cargo.toml');
-  const owners = job.steps.find(step => step.run?.split(/\s+/u).includes('scripts/check-rust-interface-owners.mjs'));
-  assert(owners);
-  assert(job.steps.indexOf(reader) < job.steps.indexOf(owners));
-  assert(job.steps.indexOf(owners) < job.steps.indexOf(builds[0]));
-  assert(job.steps.indexOf(builds[0]) < job.steps.indexOf(runtime));
-  const evidence = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
-  assert.equal(evidence.if, 'always()');
-  assert(evidence.with.path.includes('_build/focused-evidence'));
-  assert(evidence.with.path.includes('${{ runner.temp }}/rust-library'));
 });
 
 test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {

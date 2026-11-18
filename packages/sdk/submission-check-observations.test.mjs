@@ -239,3 +239,66 @@ for(const phase of ['not_accepted','preparation_failed']) {
     assert.deepEqual(calls,['connect','submit-intent','connect','lookup-submission']);
   });
 }
+
+for (const [problemCode, classification, source, reason] of [
+  ['ClientProgramTimestampPatternInvalid', 'invalid_input',
+    "SELECT PARSE_TIMESTAMP('%Y-%m-%d', '2026-01-02') AS x", 'query_expression_invalid'],
+  ['ClientProgramAggregateOrderRequired', 'invalid_input',
+    "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT STRING_AGG(s, ',') AS x FROM t", 'query_syntax_invalid'],
+  ['ClientProgramOrderUnresolved', 'operation_failed',
+    "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) SELECT ARRAY_AGG(n ORDER BY n) AS x FROM t", 'program_invalid'],
+]) {
+  test(`SQL cause ${problemCode} stays public with its original report phase and retained identity`, async t => {
+    // Explicit Host wire ports qualify the public SDK binding/presentation,
+    // not a new Common parser, Host admission or durable Saved execution.
+    for (const phase of ['not_accepted', 'preparation_failed']) {
+      const calls = [], problem = {code: problemCode, classification};
+      const reference = originalSubmission(`${problemCode}-${phase}`);
+      let saved;
+      const checked = observation();
+      checked.report.inputs[0].byte_length = new TextEncoder().encode(source).byteLength;
+      checked.report.reasons = [{code: reason,
+        ...(reason === 'query_expression_invalid' ? {facts: {issue: 'invalid_arguments'}} : {})}];
+      checked.report.runnable.reasons = [{code: reason}];
+      assert.equal(validCheckOutcome(checked), true);
+      const port = {perform(operation, body) {
+        calls.push(operation);
+        if (operation === 'connect') return profile;
+        if (operation === 'close') return;
+        if (operation === 'lookup-submission') {
+          assert.deepEqual(body.submissionRef, reference);
+          return structuredClone(saved);
+        }
+        assert.equal(operation, 'submit-intent');
+        assert.deepEqual(body.submissionRef, reference); assert.equal(body.input.text, source);
+        saved = {kind: phase, submissionRef: body.submissionRef, intentCid: body.intentCid, problem};
+        return submissionAttempt(body, {...saved,
+          ...(phase === 'not_accepted' ? {checkObservation: checked} : {})});
+      }};
+      const first = await sdk.connectInProcess({mode: 'local', owner: 'local'}, port);
+      t.after(() => first.close());
+      const pending = first.startSource(source, {format: 'sql', submissionRef: reference});
+      assert.deepEqual(sdk.getSubmissionInput(pending).submissionRef, reference);
+      let error;
+      await assert.rejects(pending, cause => {error = cause; return cause.code ===
+        (phase === 'not_accepted' ? 'SubmissionNotAccepted' : 'SubmissionPreparationFailed');});
+      assert.deepEqual(sdk.getSubmissionOutcome(error), saved);
+      assert.deepEqual(sdk.explainSubmission(error).problem, problem);
+      assert.equal(error.message.includes(`problem=${problemCode}`), true);
+      for (const format of ['text', 'html', 'json']) {
+        assert.equal(sdk.formatSubmission(error, {format}).includes(problemCode), true);
+      }
+      if (phase === 'not_accepted') {
+        const report = sdk.getSubmissionCheckObservation(error);
+        assert.deepEqual(report, checked);
+        assert.equal(sdk.getCheckInput(report, 'source', revision).text, source);
+      } else assert.equal(sdk.getSubmissionCheckObservation(error), undefined);
+      assert.equal(sdk.getSubmissionOutcome({...error}), undefined);
+      const second = await sdk.connectInProcess({mode: 'local', owner: 'local'}, port);
+      t.after(() => second.close());
+      const retained = await second.lookupSubmission(reference);
+      assert.deepEqual(retained, saved); assert.equal(retained.checkObservation, undefined);
+      assert.deepEqual(calls, ['connect', 'submit-intent', 'connect', 'lookup-submission']);
+    }
+  });
+}

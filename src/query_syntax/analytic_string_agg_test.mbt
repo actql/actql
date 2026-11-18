@@ -30,6 +30,6 @@ test "window STRING_AGG uses OVER order and the ordinary literal decoder" {
 test "ordinary STRING_AGG retains its explicit order profile" {
   assert_true(
     parse_query("SELECT STRING_AGG(name) AS names FROM records", query_limits())
-    is Err({ issue: Syntax("STRING_AGG requires aggregate ORDER BY"), .. }),
+    is Err({ issue: AggregateOrderRequired, .. }),
   )
 }

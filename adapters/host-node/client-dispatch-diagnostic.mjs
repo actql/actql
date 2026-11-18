@@ -43,6 +43,17 @@ export function dispatchFailureSnapshot(error) {
         !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
         valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
         Number.isSafeInteger(valueLimit.value) && valueLimit.value >= 0 && valueLimit.value <= 2147483647;
+      const setting = Object.getOwnPropertyDescriptor(field.value, 'setting');
+      const logicalWork = data.phase === 'local_managed_advance' && data.kind === 'logical_work' &&
+        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+        Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647 &&
+        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
+        !Object.hasOwn(field.value, 'dimension') && !Object.hasOwn(field.value, 'budget') &&
+        valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
+        typeof valueLimit.value === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(valueLimit.value) &&
+        BigInt(valueLimit.value) <= 9223372036854775807n &&
+        setting !== undefined && Object.hasOwn(setting, 'value') &&
+        (setting.value === 'installation.sourceFreeMaxWork' || setting.value === 'unavailable');
       const dimension = Object.getOwnPropertyDescriptor(field.value, 'dimension');
       const resource = data.phase === 'local_managed_advance' && data.kind === 'resource' &&
         Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
@@ -51,23 +62,27 @@ export function dispatchFailureSnapshot(error) {
         dimension !== undefined && Object.hasOwn(dimension, 'value') &&
         (dimension.value === 'retained_bytes' || dimension.value === 'execution_bytes');
       const cause = Object.getOwnPropertyDescriptor(field.value, 'cause');
-      const rowFailure = data.phase === 'local_managed_advance' && data.kind === 'row_failure' &&
+      const originalCause = data.phase === 'local_managed_advance' &&
         Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
-        Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647 &&
         !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'dimension') &&
         !Object.hasOwn(field.value, 'controlWorkLimit') && !Object.hasOwn(field.value, 'workLimit') &&
         !Object.hasOwn(field.value, 'budget') && cause && Object.hasOwn(cause, 'value') &&
         typeof cause.value === 'string' && cause.value.length <= 96 &&
         /^[a-z_]+(?:\.[a-z_]+)*$/u.test(cause.value);
+      const rowFailure = originalCause && data.kind === 'row_failure' &&
+        Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647;
+      const localIssue = originalCause && data.kind === 'local_issue' &&
+        !Object.hasOwn(field.value, 'step');
       if (data.code === 'MoonBitHostFailure' &&
           (['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact', 'original_infer_component'].includes(data.phase) &&
-            validOrdinals || localWork || valueWork || resource || rowFailure) &&
+            validOrdinals || localWork || valueWork || logicalWork || resource || rowFailure || localIssue) &&
           typeof data.kind === 'string' && data.kind.length <= 96 &&
           /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind)) {
         if (localWork) data.controlWorkLimit = workLimit.value;
         if (valueWork) data.workLimit = valueLimit.value;
+        if (logicalWork) { data.workLimit = valueLimit.value; data.setting = setting.value; }
         if (resource) data.dimension = dimension.value;
-        if (rowFailure) data.cause = cause.value;
+        if (rowFailure || localIssue) data.cause = cause.value;
         // Preserve only closed inert quantities supplied by that original
         // failed reserve/probe. A later ledger sample is not this failure.
         const budgetField = Object.getOwnPropertyDescriptor(field.value, 'budget');
@@ -120,8 +135,16 @@ export function dispatchFailureSnapshot(error) {
 export function publicBudgetFailureMessage(error) {
   const data = dispatchFailureSnapshot(error)?.primaryDiagnostic;
   if (data?.phase !== 'local_managed_advance') return undefined;
+  if (data.kind === 'logical_work') {
+    return `Budget exceeded: phase=${data.phase}; task=${data.task}; step=${data.step}; dimension=logical_work; requested_delta=unavailable; remaining=unavailable; policy=${data.workLimit}; unit=work_units; setting=${data.setting}. ` +
+      'Runtime logical work; requested and remaining quantities were not retained.';
+  }
   if (data.kind === 'row_failure') {
     return `Execution failed: phase=${data.phase}; task=${data.task}; step=${data.step}; cause=${data.cause}. ` +
+      'Original execution failure; resource quantities were not retained.';
+  }
+  if (data.kind === 'local_issue') {
+    return `Execution failed: phase=${data.phase}; task=${data.task}; cause=${data.cause}. ` +
       'Original execution failure; resource quantities were not retained.';
   }
   const memory = data.kind === 'resource';
@@ -155,8 +178,12 @@ export function retainedBudgetFailureMessage(key, state, runId, control) {
   const message = previous.terminal_error.message;
   if (typeof message !== 'string') return undefined;
   const cause = message.length <= 512 &&
-    /^Execution failed: phase=local_managed_advance; task=(0|[1-9][0-9]{0,9}); step=(0|[1-9][0-9]{0,9}); cause=([a-z_]+(?:\.[a-z_]+)*)\. Original execution failure; resource quantities were not retained\.$/u.exec(message);
-  if (cause && Number(cause[1]) <= 2147483647 && Number(cause[2]) <= 2147483647 && cause[3].length <= 96) return message;
+    /^Execution failed: phase=local_managed_advance; task=(0|[1-9][0-9]{0,9}); (?:step=(0|[1-9][0-9]{0,9}); )?cause=([a-z_]+(?:\.[a-z_]+)*)\. Original execution failure; resource quantities were not retained\.$/u.exec(message);
+  if (cause && Number(cause[1]) <= 2147483647 &&
+      (cause[2] === undefined || Number(cause[2]) <= 2147483647) && cause[3].length <= 96) return message;
+  const logical = /^Budget exceeded: phase=local_managed_advance; task=(0|[1-9][0-9]{0,9}); step=(0|[1-9][0-9]{0,9}); dimension=logical_work; requested_delta=unavailable; remaining=unavailable; policy=(0|[1-9][0-9]{0,18}); unit=work_units; setting=(?:installation\.sourceFreeMaxWork|unavailable)\. Runtime logical work; requested and remaining quantities were not retained\.$/u.exec(message);
+  if (message.length <= 512 && logical && Number(logical[1]) <= 2147483647 &&
+      Number(logical[2]) <= 2147483647 && BigInt(logical[3]) <= 9223372036854775807n) return message;
   const amount = '(?:0|[1-9][0-9]{0,18}|unavailable)';
   const prefix = 'Budget exceeded: phase=local_managed_advance; dimension=';
   const memory = new RegExp('^' + prefix + '(retained_bytes|execution_bytes); requested_delta=' + amount +

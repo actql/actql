@@ -63,11 +63,11 @@ export const groupByAllSuccesses = [
     [], ['id', 'n']),
 ];
 export const groupByAllRefusals = [
-  'SELECT missing FROM records GROUP BY ALL',
-  'SELECT COUNT(*) AS n, n + 1 AS next FROM records GROUP BY ALL',
-  'SELECT records.id FROM records AS current GROUP BY ALL',
-  'SELECT id, COUNT(*) AS n FROM records GROUP BY ALL ORDER BY amount',
-  'SELECT id, @missing AS marker FROM records GROUP BY ALL',
-  'SELECT id FROM records GROUP BY ALL, id',
-].map((text, index) => ({name: 'group-by-all-refuse-' + index, format: 'sql', text,
-  expectedCode: 'ClientProgramInvalidInput'}));
+  ['SELECT missing FROM records GROUP BY ALL', 'ClientProgramInvalidInput'],
+  ['SELECT COUNT(*) AS n, n + 1 AS next FROM records GROUP BY ALL', 'ClientProgramInvalidInput'],
+  ['SELECT records.id FROM records AS current GROUP BY ALL', 'ClientProgramInvalidInput'],
+  ['SELECT id, COUNT(*) AS n FROM records GROUP BY ALL ORDER BY amount', 'ClientProgramInvalidInput'],
+  ['SELECT id, @missing AS marker FROM records GROUP BY ALL', 'ClientProgramParameterUndeclared'],
+  ['SELECT id FROM records GROUP BY ALL, id', 'ClientProgramInvalidInput'],
+].map(([text, expectedCode], index) => ({name: 'group-by-all-refuse-' + index,
+  format: 'sql', text, expectedCode}));
