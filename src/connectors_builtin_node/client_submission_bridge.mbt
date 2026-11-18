@@ -125,3 +125,29 @@ pub fn client_submitted_intent_transition(
 ) -> Bool {
   @publication_host.client_submitted_intent_transition(before, after)
 }
+
+///|
+/// The Host supplies its already authenticated original journal observation.
+/// This private action projection does not authenticate a row or grant retry.
+#export_name("clientSubmittedIntentObservation")
+pub fn client_submitted_intent_observation(
+  expected : @publication_host.ClientSubmittedIntent,
+  retained : @publication_host.ClientSubmittedIntent?,
+  phase : String?,
+  inserted : Bool,
+) -> String? {
+  let original = match (retained, phase) {
+    (None, None) => None
+    (Some(original), Some(phase)) => Some((original, phase))
+    _ => return None
+  }
+  match @publication_host.observe_client_submitted_intent(expected, original) {
+    Err(_) => None
+    Ok(observation) =>
+      Some(
+        @publication_host.client_submitted_intent_observation_action(
+          observation, inserted,
+        ),
+      )
+  }
+}

@@ -79,8 +79,9 @@ for (const phase of ['check', 'record']) {
     }
     assert.deepEqual(f.custody(), {rows: 1, issued: 1});
     f.restart();
-    const {inserted, ...retained} = original.submission;
+    const {inserted, observation, ...retained} = original.submission;
     assert.equal(inserted, true);
+    assert.equal(observation, 'recorded', 'a retained preparing original is not already satisfied');
     assert.deepEqual(f.journal.lookupSubmittedIntent(f.ref, fields, moon), retained);
   });
 }

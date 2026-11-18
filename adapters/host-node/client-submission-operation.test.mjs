@@ -166,6 +166,43 @@ test('request-key selected rows bind only through the same accepted original Run
   assert.equal(f.submissions(), 1);
 });
 
+test('submission attempt uses actual Common retained-original actions', async t => {
+  const f = await fixture(t);
+  const decisions = [];
+  const observe = f.runtime.clientSubmittedIntentObservation;
+  f.runtime.clientSubmittedIntentObservation = function(...args) {
+    const action = Reflect.apply(observe, this, args);
+    decisions.push(action);
+    return action;
+  };
+  f.now(start + 10);
+  const first = await f.service.submitAttempt(f.request);
+  assert.equal(first.kind, 'recorded');
+  assert.equal(first.outcome.kind, 'ready');
+  const later = await f.service.submitAttempt({...f.request,
+    attemptRef: {operation: 'submit', attemptId: 'later-operation'}});
+  assert.equal(later.kind, 'already_satisfied');
+  assert.deepEqual(later.outcome, first.outcome);
+  assert(decisions.includes('recorded'));
+  assert(decisions.includes('already_satisfied'));
+});
+
+test('shared observation compares the selected journal original rather than a repeated incoming alias', async t => {
+  const f = await fixture(t);
+  f.now(start + 10);
+  const first = await f.service.submitAttempt(f.request);
+  assert.equal(first.kind, 'recorded');
+  const foreign = moon.clientSubmittedIntent(JSON.stringify({
+    kind: f.request.kind, input: {...f.request.input, text: 'SELECT 2 AS value'}, parameters: null,
+  }), 1048576, 65536, 64);
+  assert.ok(foreign);
+  const observed = f.journal.lookupSubmittedIntent(f.request.submissionRef, fields, moon, foreign);
+  assert.equal(observed.observation, 'conflict');
+  assert.notEqual(observed.intentCid, moon.clientSubmittedIntentCid(foreign));
+  assert.equal(f.submissions(), 1);
+  assert.equal((await f.service.lookupSubmission(f.request)).kind, 'ready');
+});
+
 test('one submit admits each unchanged intent wire once through preparation and original Run acceptance', async t => {
   const f = await fixture(t);
   f.now(start + 10);
