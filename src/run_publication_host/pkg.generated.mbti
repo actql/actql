@@ -2681,6 +2681,8 @@ pub fn read_client_local_initial_signing_payload(Bytes) -> Result[ClientLocalIni
 
 pub fn read_client_local_runtime_successor_metadata(Bytes) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue]
 
+pub fn read_client_logical_task_boundary(ClientStructuralExplanationOriginal, ClientCompiledRun, PreparedClientProgram, @physical_strategy_host.CapturedDAG, @physical_strategy_host.CapturedTaskBoundaryPhase, Int) -> Result[ClientLogicalTaskBoundaryProjection, ClientLogicalTaskBoundaryIssue]
+
 pub fn read_client_model_provider_defaults(String, String, String, String, @check_environment.Limits, Int) -> Result[ClientModelProviderDefaults, ClientModelProviderDefaultsIssue]
 
 pub fn read_client_native_product_identity(String) -> Result[ClientNativeProductIdentity, ClientNativeLocalRuntimeIssue]
@@ -4359,6 +4361,7 @@ pub(all) enum ClientLogicalBoundaryUnavailable {
 type ClientLogicalTaskBoundary
 
 pub(all) enum ClientLogicalTaskBoundaryIssue {
+  NoCurrentBoundary
   ForeignOriginal
   StaleBoundary
   InvalidReadLimits

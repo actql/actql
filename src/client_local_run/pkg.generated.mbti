@@ -178,6 +178,8 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(LocalPublicationPreflight, 
 
 pub fn prepare_captured_source_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String, submitted? : @client_local_preparation.LocalSubmittedPreparation?) -> Result[LocalRunPlan, LocalRunIssue]
 
+pub fn prepare_local_compute_task_boundaries(LocalComputeHost) -> Result[@physical_strategy_host.CapturedTaskBoundaryHooks, @physical_strategy_host.CapturedTaskBoundaryIssue]
+
 pub fn prepare_local_preflight_commit_candidate(LocalPublicationPreflight, LocalRunManifest, LocalRunNormalization, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], String, @execution_authorization.AdmittedAccountConfiguration, LocalPublicationIntentLimits, Int) -> Result[(@run_publication.PublicationContract, @run_publication.PublicationCommitPreparation), LocalPublicationIntentIssue]
 
 pub fn prepare_local_preflight_payload_replay(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRequest, @execution_authorization.AdmittedAccountConfiguration) -> Result[@run_publication_host.PublicationOutputReplay, LocalPublicationPayloadIssue]
@@ -233,6 +235,8 @@ pub fn prepare_local_submitted_run_rows(LocalRunPlan, @client_local_preparation.
 pub fn prepare_source_free_local_publication_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String, (String, String), submitted? : @client_local_preparation.LocalSubmittedPreparation?) -> Result[LocalRunPlan, LocalRunIssue]
 
 pub fn prepare_source_free_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String, submitted? : @client_local_preparation.LocalSubmittedPreparation?) -> Result[LocalRunPlan, LocalRunIssue]
+
+pub fn read_local_compute_logical_boundary(LocalComputeHost, @run_publication_host.ClientStructuralExplanationOriginal, @physical_strategy_host.CapturedTaskBoundaryPhase, Int) -> Result[@run_publication_host.ClientLogicalTaskBoundaryProjection, @run_publication_host.ClientLogicalTaskBoundaryIssue]
 
 pub fn restore_captured_source_local_run_from_materials(@client_local_preparation.LocalPreparedInput, @run_publication_host.ClientTaskRunMaterials, String, @run_publication_host.ClientRequestIdentity, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, submitted? : @client_local_preparation.LocalSubmittedPreparation?) -> Result[LocalRunPlan, LocalRunIssue]
 
