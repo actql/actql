@@ -251,7 +251,7 @@ test "Whole prepared refusal diagnostic stays in the SAME Read constructor quote
       {
         resource: "records",
         resource_kind: "record",
-        fields: [{ name: "id", value_type: "number", nullable: false, }],
+        fields: [{ name: "id", value_type: "string", nullable: false, }],
       },
     ],
     {
