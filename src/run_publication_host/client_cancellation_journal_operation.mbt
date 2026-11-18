@@ -171,7 +171,7 @@ pub fn[R, E] prepare_client_cancellation_journal_append(
       let record : ClientCancellationJournalEncoding = {
         namespace_id, cancel_id, expected_revision, request,
         definition: original_run.definition, identity, action,
-        observed_revision: original_run.revision + if action == AcceptCancellation { 1L } else { 0L },
+        observed_revision: original_run.revision + (if action == AcceptCancellation { 1L } else { 0L }),
       }
       Ok(AppendCancellation({ run, record, key, issued, issued_revision, }))
     }
