@@ -5995,7 +5995,7 @@ An actual backing refusal is retained in the existing command primary before
 either scope return can fail. The same pending physical owner remains cleanup
 duty; a later return failure cannot overwrite the primary or reset the Native
 window issue. This ordering never retries a failed entry. The new fixed Read
-capture/Option/return frontier adds H8/R11/S4 (248 logical bytes at the existing
+capture/Option/return frontier adds H8/R11/S10 (296 logical bytes at the existing
 tariff) to the same Whole Read recipe; it changes no facility limit, reservation
 owner or measured heap/RSS claim. The selected Native regression requires an
 actual demand above the initial window and observes unchanged logical usage

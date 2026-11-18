@@ -142,16 +142,16 @@ pub fn native_relation_file_entry_outer_capacity() -> @execution.ExecutionCapaci
 ///|
 // Only the new Journal-Read caller frontier. The entered business adapter
 // reuses the original prepared-current/backing frame, not this Read allowance.
-// Quote+Some H2/R1/S2; original-admission getter's two Options H2/R2;
+// Quote+Some H2/R1/S3; original-admission getter's two Options H2/R2/S2;
 // callback captures Self/Host/execution/admission/Prepared and two byte words
-// H1/R5/S2; stage Option H1/R1; mapped Command/Err H2/R2. Count success and
+// H1/R5/S2; stage Option H1/R1/S1; mapped Command/Err H2/R2/S2. Count success and
 // refusal carriers together without temporal reuse. No copied wire/String,
 // retained field, second reservation or constructor authority is introduced.
 fn native_relation_whole_file_preback_read_capacity() -> @execution.ExecutionCapacity? {
   guard @execution.preparation_representation_cost({
       record_headers: 8L,
       reference_slots: 11L,
-      scalar_words: 4L,
+      scalar_words: 10L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })

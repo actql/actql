@@ -236,7 +236,65 @@ test "Whole prepared refusal diagnostic stays in the SAME Read constructor quote
   // New-only caller frontier, independent of the original three failure
   // envelopes above. Business backing itself stays on its original owner.
   let preback = native_relation_whole_file_preback_read_capacity().unwrap()
-  assert_eq(8L * 16L + 11L * 8L + 4L * 8L, 248L)
-  assert_eq(@execution.execution_capacity_retained_bytes(preback), 248L)
-  assert_eq(@execution.execution_capacity_execution_bytes(preback), 248L)
+  assert_eq(8L * 16L + 11L * 8L + 10L * 8L, 296L)
+  assert_eq(@execution.execution_capacity_retained_bytes(preback), 296L)
+  assert_eq(@execution.execution_capacity_execution_bytes(preback), 296L)
+  // Exercise the actual composed Whole quote with original typed provider
+  // and checked graph DATA. Neither constructor performs Source IO or admits
+  // physical backing, an Account, a Run or execution permission.
+  let (_, limits) = relation_work_capacity_inputs()
+  let declaration = @rows.generate_row_declaration(
+    "native-file-fixture",
+    "fixture",
+    "fixture/0.1",
+    [
+      {
+        resource: "records",
+        resource_kind: "record",
+        fields: [{ name: "id", value_type: "number", nullable: false, }],
+      },
+    ],
+    {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 20,
+      max_views: 1,
+      max_fields: 1,
+    },
+  ).unwrap()
+  let provider = @row_file.prepare_native_relation_file_provider(
+    declaration, selection, limits,
+  ).unwrap()
+  guard prepare_native_client_program(
+      preparation_values_document(),
+      Json,
+      preparation_environment(),
+      None,
+      None,
+      [],
+      @host.client_standard_effect_computation_limits(),
+    )
+    is Ok(Computation(prepared)) else {
+    fail("Whole quote: original finite graph unavailable")
+  }
+  let graph = @host.prepared_client_graph(prepared)
+  assert_eq(@strategy.graph_captured_prefix(graph), 0)
+  let work = native_relation_whole_file_work_control_capacity(
+    selection, limits, provider, graph,
+  ).unwrap()
+  let whole_read = native_relation_whole_file_entry_read_capacity(
+    selection, limits, provider, graph,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(whole_read),
+    @execution.execution_capacity_retained_bytes(diagnostic) +
+    @execution.execution_capacity_retained_bytes(work) +
+    296L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(whole_read),
+    @execution.execution_capacity_execution_bytes(diagnostic) +
+    @execution.execution_capacity_execution_bytes(work) +
+    296L,
+  )
 }
