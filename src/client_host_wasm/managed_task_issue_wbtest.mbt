@@ -78,3 +78,121 @@ test "managed task issue projects memory refusal without replacing its original 
   @resources.settle_shared_capacity(capacity).unwrap()
   instance.val = None
 }
+
+///|
+// Lookup-only fixture with real instance/buffer custody. These records grant
+// no task activation or completed input; callers still check those originals.
+test "managed producer lookup distinguishes source-free task zero from the captured prefix" {
+  let root = @resources.create_ledger({
+    planning_work: 100,
+    attempts: 16,
+    holdings: 16,
+    transfer_bytes: 65536L,
+    retained_bytes: 65536L,
+    execution_bytes: 16781312L,
+  }).unwrap()
+  let capacity = @resources.reserve_shared_capacity(root, 16777216L).unwrap()
+  let pool = @buffers.open_pool_on_ledger(root, 4096L, 16, 1048576).unwrap()
+  let nonce = 7142L
+  assert_eq(
+    install_buffer_instance(
+      nonce,
+      root,
+      capacity,
+      None,
+      pool,
+      16,
+      prepare_product_sequence_contracts().unwrap(),
+    ),
+    0,
+  )
+  let value = selected(nonce).unwrap()
+  let slot = @buffers.reserve_output_buffer(pool, 2, 0L, () => true).unwrap()
+  @buffers.supply_buffer_output(pool, slot, b"{}").unwrap()
+  let borrows = []
+  for (handle, origin) in [(11, SourceFree(1, 2)), (12, Captured(3))] {
+    let borrow = @buffers.borrow_buffer(pool, slot, () => true).unwrap()
+    borrows.push(borrow)
+    value.computes[handle] = {
+      origin,
+      borrow,
+      current_configuration: None,
+      invoked: false,
+      pending: false,
+      closing: false,
+      outcome: None,
+      host: None,
+      start: None,
+      capture: None,
+    }
+  }
+  let records : Array[StoredManagedTask] = []
+  for
+    (handle, compute, task) in [
+      (21, 11, 0),
+      (22, 12, 0),
+      (23, 12, 1),
+      (24, 13, 0),
+    ] {
+    let record : StoredManagedTask = {
+      compute,
+      current_configuration: 2,
+      task,
+      invoked: false,
+      pending: false,
+      closing: false,
+      issue: None,
+      cleanup_issue: None,
+      operations: None,
+      progress: None,
+      producers: [],
+      positions: [],
+      finished_inputs: [],
+      live: Ref(true),
+      completed: None,
+      finalization_invoked: false,
+      execution_settled: false,
+    }
+    value.tasks[handle] = record
+    records.push(record)
+  }
+  let before = @buffers.buffer_pool_usage(pool)
+  let source_free = stored_producer(value, 11, 0)
+  let captured = stored_producer(value, 12, 0)
+  let positive = stored_producer(value, 12, 1)
+  let foreign = stored_producer(value, 13, 0)
+  let negative = stored_producer(value, 11, -1)
+  assert_eq(@buffers.buffer_pool_usage(pool).allocated, before.allocated)
+  assert_eq(@buffers.buffer_pool_usage(pool).capacity, before.capacity)
+  assert_eq(@buffers.buffer_pool_usage(pool).closing, before.closing)
+  assert_true(
+    records.all(record => {
+      !record.invoked && record.live.val && record.completed is None
+    }),
+  )
+  for handle in [21, 22, 23, 24] {
+    value.tasks.remove(handle) |> ignore
+  }
+  for handle in [11, 12] {
+    value.computes.remove(handle) |> ignore
+  }
+  for borrow in borrows {
+    @buffers.return_buffer_borrow(pool, borrow).unwrap()
+  }
+  @buffers.close_buffer(pool, slot).unwrap()
+  @buffers.close_pool(pool).unwrap()
+  @resources.close_shared_capacity(capacity).unwrap()
+  @resources.settle_shared_capacity(capacity).unwrap()
+  instance.val = None
+  assert_true(
+    source_free
+    .map(record => physical_equal(record, records[0]))
+    .unwrap_or(false),
+  )
+  assert_true(
+    positive.map(record => physical_equal(record, records[2])).unwrap_or(false),
+  )
+  assert_true(captured is None)
+  assert_true(foreign is None)
+  assert_true(negative is None)
+}

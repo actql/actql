@@ -132,3 +132,127 @@ test "ordinary Python insufficient original root refuses without a replacement o
   @resources.settle_shared_capacity(wasm).unwrap()
   assert_eq(@resources.ledger_usage(root).reserved_execution_bytes, 0L)
 }
+
+///|
+test "packaged Local task activation retains the completed producer through a quantum-one join" {
+  let original = plan(
+    prepared(
+      @input.Aql(
+        "WITH seed AS (SELECT 1 AS n) FROM seed AS l |> JOIN seed AS r ON l.n = r.n MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS n |> RESULT answer",
+      ),
+    ),
+    "ordinary-packaged-join",
+  )
+  let assets = @host.client_local_product_assets()
+  let installed = @local.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let root = @resources.create_ledger({
+    planning_work: 1000000,
+    attempts: 4096,
+    holdings: 4096,
+    transfer_bytes: 67108864L,
+    retained_bytes: 536870912L,
+    execution_bytes: 603979776L,
+  }).unwrap()
+  let wasm = @resources.reserve_shared_capacity(root, 16777216L).unwrap()
+  let transfers = @resources.reserve_shared_capacity(root, 12582912L).unwrap()
+  let setup = @resources.reserve_shared_capacity(root, 8388608L).unwrap()
+  let host = configure_source_free_local_compute_on_ledger(
+    original,
+    root,
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let run = local_compute_run(host)
+  let current = account(Allow)
+  let allowed = permit(original.input, current)
+  let start = compute_start(host)
+  let outputs : Map[Int, @execution.ManagedCompletedOutput[Int]] = Map([])
+  let retained : Map[Int, @managed.LocalManagedDispatchOperations[Int]] = Map([])
+  let available = Ref(true)
+  let tasks : Array[Int] = []
+  while @strategy.next_captured_task(run) is Some(task) {
+    assert_true(tasks.length() < 10)
+    let producers = local_compute_producers(host)
+    let inputs = producers.map(index => outputs.get(index).unwrap())
+    let operations = match
+      start_local_compute_task(
+        host,
+        start,
+        inputs,
+        allowed,
+        current,
+        tuple(),
+        context_cid(),
+      ) {
+      Ok(Some(operations)) => operations
+      Err(Dispatch(Implementation(Implementation(error)))) =>
+        fail("packaged task dispatch: " + error.to_string())
+      Err(Dispatch(Implementation(MissingOutput))) =>
+        fail("packaged task dispatch: MissingOutput")
+      Err(Dispatch(Implementation(ForeignCandidate))) =>
+        fail("packaged task dispatch: ForeignCandidate")
+      _ => fail("packaged task activation refused before its input transfer")
+    }
+    for index, transfer in operations.inputs {
+      let source = retained.get(producers[index]).unwrap()
+      for row in 0..<(source.output_rows)() {
+        (transfer.append)((source.output_row)(row).unwrap()).unwrap()
+      }
+      (transfer.finish)().unwrap()
+    }
+    let mut executed = false
+    for _ in 0..<1000 {
+      if (operations.advance)(1).unwrap().complete {
+        executed = true
+        break
+      }
+    }
+    assert_true(executed)
+    (operations.prepare_finalization)(task, operations.storage_bytes, () => {
+      available.val
+    }).unwrap()
+    let mut finalized = false
+    for _ in 0..<1000 {
+      if (operations.advance_finalization)(1).unwrap().complete {
+        finalized = true
+        break
+      }
+    }
+    assert_true(finalized)
+    (operations.settle)().unwrap()
+    outputs[task] = (operations.complete)(task, operations.storage_bytes, () => {
+      available.val
+    }).unwrap()
+    retained[task] = operations
+    tasks.push(task)
+  }
+  assert_true(tasks.length() >= 2)
+  let last = retained.get(tasks[tasks.length() - 1]).unwrap()
+  assert_eq((last.output_rows)(), 1)
+  assert_eq((last.output_row)(0).unwrap(), "{\"n\":2}")
+  available.val = false
+  for offset in 0..<tasks.length() {
+    let task = tasks[tasks.length() - offset - 1]
+    (retained.get(task).unwrap().close)()
+    @strategy.close_captured_task_output(run, task)
+    assert_true((retained.get(task).unwrap().cleanup_refresh)())
+  }
+  @strategy.stop_captured_dag(run)
+  @strategy.refresh_captured_retention(run)
+  for capacity in [setup, transfers, wasm] {
+    @resources.close_shared_capacity(capacity).unwrap()
+    @resources.settle_shared_capacity(capacity).unwrap()
+  }
+  let usage = @resources.ledger_usage(root)
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_transfer_bytes, 0L)
+}

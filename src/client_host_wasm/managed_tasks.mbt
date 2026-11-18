@@ -27,6 +27,10 @@ fn stored_producer(
   compute : Int,
   task : Int,
 ) -> StoredManagedTask? {
+  guard value.computes.get(compute) is Some(original) &&
+    (task > 0 || (task == 0 && original.origin is SourceFree(_, _))) else {
+    return None
+  }
   for record in value.tasks.values() {
     if record.compute == compute && record.task == task {
       return Some(record)
@@ -152,7 +156,9 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
   record.invoked = true
   let completed : Array[@execution.ManagedCompletedOutput[Int]] = []
   for producer in record.producers {
-    if producer == 0 {
+    // Only captured Compute uses zero as its already-retained Source prefix.
+    // Source-free task zero is an actual completed producer, not that prefix.
+    if producer == 0 && compute.origin is Captured(_) {
       continue
     }
     guard stored_producer(value, record.compute, producer)
@@ -401,7 +407,7 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
     }
     let transfer = operations.inputs[port]
     let input = @execution.managed_producer_read_input_index(transfer.input)
-    guard record.producers.get(input) is Some(producer) && producer > 0 else {
+    guard record.producers.get(input) is Some(producer) && producer >= 0 else {
       record.issue = Some(@local_run.UnsupportedCapability)
       return -32
     }
