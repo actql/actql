@@ -4,10 +4,11 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "99ad92018df1ddcbef741bbd40fedfb7cb4742c28b1eb9f77372416fc7f382ac",
+      "sha256": "fa7478fa13fa8f2b9be7484f9572ff3a5a7e22acde93e399e5de67473eae2094",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
+        "NOTION_USER_LIST_REQUEST",
         "NotionUserListReadFailure",
         "prepareNotionUserListPages"
       ],
@@ -25,6 +26,7 @@
             "moon",
             "names",
             "limits",
+            "capturedRequest",
             "applySynchronousProjection"
           ],
           "async": false
@@ -84,8 +86,10 @@
         }
       ],
       "imports": [
+        "../../../../src/connectors/notion/user-list-request.json",
         "../../../host-common/http-exchange.mjs",
-        "../../../host-common/runtime-result.mjs"
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/rest-source-request.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -110,7 +114,8 @@
             "NOTION_USER_LIST_API_VERSION",
             "NOTION_USER_LIST_OPERATION",
             "NotionUserListReadFailure",
-            "prepareNotionUserListPages"
+            "prepareNotionUserListPages",
+            "NOTION_USER_LIST_REQUEST"
           ],
           "attributes": {
             "responsibility": [
@@ -174,11 +179,11 @@
             "verification": [
               {
                 "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
-                "anchor": "Notion users constructs through the same current Host Source services without external reader capacity"
+                "anchor": "Notion constructor captures original services and provider before configuration await"
               },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
-                "anchor": "Notion standard loader retains original implementation refusal and failed Source children"
+                "anchor": "Notion constructor keeps the original implementation refusal before any Site or reader"
               },
               {
                 "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
@@ -1418,7 +1423,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "b78a492ac84483b4951fc287b535f4db8ff6b62f15074395757733600278eb69",
+      "sha256": "35bf2c72210d6fca39421bfe7dc809154f768770dcbb421d435986590efc5dfc",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1529,6 +1534,16 @@
           "async": false
         },
         {
+          "name": "loadInstalledNotionSource/request/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledNotionSource/request/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledNotionSource/services/services",
           "parameters": [],
           "async": false
@@ -1560,6 +1575,7 @@
         "../../../host-node/installed-finite-page-source.mjs",
         "../../../host-node/installed-host-services.mjs",
         "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/rest-source-request.mjs",
         "../../../host-node/source-profile-json.mjs",
         "../site/user-list-read.mjs",
         "node:crypto",
@@ -1590,7 +1606,9 @@
             "loadInstalledNotionSource/services/services",
             "loadInstalledNotionSource/target/target",
             "readInputs/binding/binding",
-            "readInputs/reads/reads"
+            "readInputs/reads/reads",
+            "loadInstalledNotionSource/request/init:capacity/init:capacity",
+            "loadInstalledNotionSource/request/init:project/init:project"
           ],
           "exports": [
             "INSTALLED_NOTION_SITE_VERSION",

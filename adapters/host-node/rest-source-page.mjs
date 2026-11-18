@@ -4,6 +4,7 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeIsError, runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {types} from 'node:util';
+import {captureRestSourceRead, restSourcePageRequest} from './rest-source-request.mjs';
 
 const isProxy = types.isProxy;
 
@@ -41,7 +42,7 @@ const names = ['clientProgramRowSourceProjectJsonPage', 'clientProgramRowSourceJ
   'clientProgramRowSourceCursorHasNext', 'clientProgramRowSourceCursorNext',
   'clientProgramRowSourceCursorIssueCode'];
 
-export function restSourcePageReader({moon, source, decodePage}) {
+export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}) {
   const original = Object.freeze(Object.fromEntries(names.map(name => {
     const method = moon?.[name];
     if (typeof method !== 'function') fail('RestSourcePageProjectionUnavailable');
@@ -50,11 +51,12 @@ export function restSourcePageReader({moon, source, decodePage}) {
   if (decodePage !== undefined && typeof decodePage !== 'function') fail('InvalidRestSourceTransform');
   const transform = decodePage;
   const bound = Object.freeze({...source.limits});
-  const resource = source.resource, path = source.read.path;
+  const resource = source.resource;
   const items = Object.freeze([...source.pagination.items]);
   const nextPath = source.pagination.kind === 'none' ? undefined
     : Object.freeze([...source.pagination.next]);
   const parameter = source.pagination.parameter;
+  const request = capturedRequest ?? captureRestSourceRead({method: 'GET', ...source.read}, parameter);
   const columns = Object.freeze(source.fields.map(field => field.name));
   const transformContext = Object.freeze({resource, columns});
   const cursorResult = result => {
@@ -90,13 +92,11 @@ export function restSourcePageReader({moon, source, decodePage}) {
       bound.maxPages, bound.maxRows, bound.maxPageRows, bound.maxCursorBytes));
     return Object.freeze({
       fetchPage({pageIndex, rowCount}) {
-        cursorResult(original.clientProgramRowSourceCursorRemainingRows(progress, pageIndex, rowCount));
+        const remaining = cursorResult(original.clientProgramRowSourceCursorRemainingRows(progress, pageIndex, rowCount));
         const hasNext = original.clientProgramRowSourceCursorHasNext(progress);
         if (typeof hasNext !== 'boolean') fail('RestSourceCursorRuntimeBindingMismatch');
         const cursor = hasNext ? cursorResult(original.clientProgramRowSourceCursorNext(progress)) : undefined;
-        return Object.freeze({method: 'GET', path,
-          query: cursor === undefined ? [] : [[parameter, cursor]],
-          headers: [['accept', 'application/json']], responseHeaders: []});
+        return Object.freeze(restSourcePageRequest(request, parameter, remaining, cursor));
       },
       decodePage(response, {pageIndex, rowCount}) {
         if (!response.accepted || response.statusCode !== 200) fail('RestSourceProviderRejected');

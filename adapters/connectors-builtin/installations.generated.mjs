@@ -185,6 +185,7 @@ export const installedConnectors = Object.freeze([
     implementationFiles: Object.freeze([
       Object.freeze({path: "adapters/connectors/notion/host/installed-notion-source.mjs", href: new URL("../connectors/notion/host/installed-notion-source.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/notion/site/user-list-read.mjs", href: new URL("../connectors/notion/site/user-list-read.mjs", import.meta.url).href}),
+      Object.freeze({path: "src/connectors/notion/user-list-request.json", href: new URL("../../src/connectors/notion/user-list-request.json", import.meta.url).href}),
     ]),
     providerBundle: "connectors/notion/host_node",
     responseHeaders: Object.freeze([]),

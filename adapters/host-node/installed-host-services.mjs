@@ -2429,6 +2429,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const sourceProfile = moon.clientProgramInstalledJsonSourceReaderProfile;
   const sourceCapacity = moon.clientProgramInstalledJsonSourceReaderCapacity;
   const cursorSourceCapacity = moon.clientProgramInstalledJsonCursorSourceReaderCapacity;
+  const cursorSourceRequestCapacity = moon.clientProgramInstalledJsonCursorSourceReaderCapacityWithRequest;
   const sourceRequestCapacity = moon.clientProgramInstalledJsonSourceReaderCapacityWithRequest;
   const preservingSourceRequestCapacity = moon.clientProgramInstalledPreservingJsonSourceReaderCapacityWithRequest;
   const current = () => {
@@ -2494,7 +2495,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       // DATA and Account policy do not choose a cheaper quote or another mode.
       const cursorProgress = Object.hasOwn(fields, 'cursorProgress');
       if (cursorProgress && (!Object.hasOwn(fields.cursorProgress, 'value') ||
-          fields.cursorProgress.value !== true || Object.hasOwn(fields, 'requestConstruction') ||
+          fields.cursorProgress.value !== true ||
           preservingResponse || Object.hasOwn(fields, 'readSequenceConstruction'))) {
         fail('InvalidInstalledSourceReaderSelection');
       }
@@ -2561,7 +2562,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
             supplied[name].value > profile.value[name]))) {
         fail('InstalledSourceReaderImplementationBoundsExceeded');
       }
-      const selectedRequestCapacity = preservingResponse ? preservingSourceRequestCapacity : sourceRequestCapacity;
+      const selectedRequestCapacity = cursorProgress ? cursorSourceRequestCapacity
+        : preservingResponse ? preservingSourceRequestCapacity : sourceRequestCapacity;
       const selectedPageCapacity = cursorProgress ? cursorSourceCapacity : sourceCapacity;
       if (typeof sourcePolicy !== 'function' || readSequenceConstruction === undefined &&
           typeof (requestConstruction === undefined ? selectedPageCapacity : selectedRequestCapacity) !== 'function') fail('InstalledSourceReaderRuntimeUnavailable');

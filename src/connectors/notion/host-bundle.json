@@ -3,6 +3,7 @@
     "registration": "notion",
     "revision": "notion/0.1",
     "providerBundle": "connectors/notion/host_node",
+    "assets": ["src/connectors/notion/user-list-request.json"],
     "responseHeaders": [],
     "source": {
       "profileVersion": "actql-installed-notion-source/0.1",

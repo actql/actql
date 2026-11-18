@@ -93,7 +93,7 @@ test('finite provider-page opening failure retains its original partial child wi
 
 // Direct loader selection controls stop at an explicit constructor refusal.
 // They do not replace createInstalledRowSource or issue a nominal Core value.
-async function loaderFixture({changeAfterRead = false, implementationFailure} = {}) {
+async function loaderFixture({changeAfterRead = false, implementationFailure, requestFailure} = {}) {
   const {loadInstalledNotionSource} = await import('../host/installed-notion-source.mjs');
   const events = [], sentinel = new Error('original reader constructor refusal');
   const limits = {maxResponseBytes: 8192, maxTotalResponseBytes: 24576, maxNodes: 512,
@@ -110,6 +110,10 @@ async function loaderFixture({changeAfterRead = false, implementationFailure} = 
     assert.equal(this, sourceInitialization);events.push('declaration');
     assert.equal(views[0].resource, 'users');assert.equal(views[0].resource_kind, 'notion_users');
     return {declaration: {}, declared: {views: [{fields: ['id', 'name']}]}, environment: {wire: 'original'}};
+  },prepareReadTarget(projection){
+    assert.equal(this,sourceInitialization);events.push('request.reserve');projection.capacity();
+    if(requestFailure)throw requestFailure;
+    events.push('request.project');return projection.project();
   }};
   const provider = {
     notionUserListSchemaWire() {assert.equal(this, provider);events.push('schema');return {$tag: 1, _0: 'schema'};},
@@ -140,10 +144,14 @@ async function loaderFixture({changeAfterRead = false, implementationFailure} = 
       for (const key of Object.keys(services)) services[key] = () => assert.fail('Replaced service');
       for (const key of Object.keys(provider)) provider[key] = () => assert.fail('Replaced provider');
       sourceInitialization.prepareDeclaration = () => assert.fail('Replaced Source constructor');
+      sourceInitialization.prepareReadTarget = () => assert.fail('Replaced Source request constructor');
     }
     return siteProfile;
   }, readText() {assert.fail('No CA selected');}};
-  const options = {moon: {}, installation: {}, sourceInitialization, installationServices: services,
+  const options = {moon: {clientProgramInstalledSourceConstructionCapacity(...units){
+    assert.equal(units.length,6);assert(units.every(value=>typeof value==='bigint'&&value>=0n));
+    return {$tag:1,_0:{}};
+  }}, installation: {}, sourceInitialization, installationServices: services,
     providerMoon: provider, configurationReader, resolveSecret() {assert.fail('No credential resolution');}};
   return {events, options, sentinel, get readerInput() {return readerInput;},
     get implementationInput() {return implementationInput;}, load: overrides =>
@@ -153,7 +161,8 @@ async function loaderFixture({changeAfterRead = false, implementationFailure} = 
 test('Notion constructor captures original services and provider before configuration await', async () => {
   const f = await loaderFixture({changeAfterRead: true});
   await assert.rejects(f.load(), cause => cause.primaryFailure === f.sentinel);
-  assert.deepEqual(f.events, ['configuration', 'policy', 'implementation', 'schema', 'declaration', 'site', 'reader', 'site.close']);
+  assert.deepEqual(f.events, ['configuration', 'policy', 'implementation', 'schema', 'declaration',
+    'request.reserve', 'request.project', 'site', 'reader', 'site.close']);
   assert.equal(f.readerInput.operation, 'notion:users:list');
   assert.throws(() => f.readerInput.preparePageReader({resource: 'foreign', columns: []}, () => {}),
     {code: 'UndeclaredNotionResource'});
@@ -176,6 +185,16 @@ test('Notion constructor keeps the original implementation refusal before any Si
   const f = await loaderFixture({implementationFailure: original});
   await assert.rejects(f.load(), cause => cause === original);
   assert.deepEqual(f.events, ['configuration', 'policy', 'implementation']);
+});
+
+test('Notion declarative request reservation refuses before snapshot Site and page construction', async () => {
+  const original=new Error('original Source request reservation refused');
+  const f=await loaderFixture({requestFailure:original});
+  await assert.rejects(f.load(),cause=>cause===original);
+  assert.deepEqual(f.events,['configuration','policy','implementation','schema','declaration','request.reserve']);
+  assert.equal(f.readerInput,undefined);
+  assert(Object.isFrozen(f.implementationInput.requestConstruction));
+  assert.equal(f.implementationInput.cursorProgress,undefined);
 });
 
 test('finite provider-page foreign capacity refuses publication and retires only the returned reader', async () => {

@@ -17,6 +17,7 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {captureInstalledSourceServices} from './installed-host-services.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {restSourcePageReader} from './rest-source-page.mjs';
+import {captureRestSourceRead, restSourceReadConstructionUnits, restSourceRequestConstructionUnits} from './rest-source-request.mjs';
 import {installedJsonSourceReaderLimitNames} from './installed-credential-source-reader.mjs';
 import {projectRestConnector} from '../../scripts/connector-authoring.mjs';
 
@@ -136,7 +137,7 @@ test('REST factory forwards the same managed CA bytes to its original Site servi
     }, createSourceReader() {assert.fail('No Reader before original Site');},
   };
   await assert.rejects(createInstalledRestSource(definition).load(profile, {installationServices: services,
-    sourceInitialization, installation, moon: {clientProgramInstalledSourceConstructionCapacity() {assert.fail('No capacity before Site refusal');}}, resolveSecret() {},
+    sourceInitialization, installation, moon: {clientProgramInstalledSourceConstructionCapacity() {return {$tag:1,_0:{}};}}, resolveSecret() {},
     configurationReader: {readJson: async () => site, readText() {}, readOriginalBytes: async () => ca}}),
     cause => cause === sentinel);
 });
@@ -167,10 +168,11 @@ function demandFactory(finalConstructor) {
     .map(node => text.slice((node.declaration ?? node).start, node.end)).join('\n');
   return new Function('createHash', 'types', 'canonicalJson', 'captureInstalledSourceServices',
     'createInstalledRowSource', 'retainInstalledHostInitializationFailure', 'createRestSourceMetadata',
-    'restSourcePageReader', 'installedJsonSourceReaderLimitNames','checked', body + ';return createInstalledRestSource;')(
+    'restSourcePageReader', 'installedJsonSourceReaderLimitNames','checked',
+    'captureRestSourceRead','restSourceReadConstructionUnits','restSourceRequestConstructionUnits', body + ';return createInstalledRestSource;')(
     createHash, types, canonicalJson, captureInstalledSourceServices, finalConstructor,
     retainInstalledHostInitializationFailure, createRestSourceMetadata, restSourcePageReader,
-    installedJsonSourceReaderLimitNames,checked);
+    installedJsonSourceReaderLimitNames,checked,captureRestSourceRead,restSourceReadConstructionUnits,restSourceRequestConstructionUnits);
 }
 
 function demandFixture(authored) {
@@ -303,9 +305,20 @@ test('REST target DATA uses the same Source original quote before construction a
   }});
   await probe.run();const o=probe.observations();
   const slots=1n+o.prepared.declared.views.reduce((sum,view)=>sum+9n+BigInt(view.fields.length),0n);
-  assert.deepEqual(o.quantityArgs,[slots,0n,0n,slots,0n,0n]);
-  assert.deepEqual(o.construction,['quote','reserve','project']);
-  assert.equal(o.rowSource.physicalTarget,o.retainedTarget);
+  const units=[0n,0n,0n,0n,0n,0n];
+  for(const source of f.definition.sources){
+    const selected=restSourceReadConstructionUnits(source.read,source.pagination.parameter);
+    selected.forEach((value,index)=>units[index]+=value);
+  }
+  const wrapper=4n+BigInt(f.definition.sources.length);
+  units[0]+=slots+wrapper;units[3]+=slots+wrapper;
+  assert.deepEqual(o.quantityArgs,units);
+  assert.deepEqual(o.construction,['quote','quote','reserve','project']);
+  assert.equal(o.rowSource.physicalTarget,o.retainedTarget.targets);
+  assert.deepEqual(o.retainedTarget.requests,f.definition.sources.map(source=>captureRestSourceRead(source.read,source.pagination.parameter)));
+  assert(Object.isFrozen(o.retainedTarget.requests));
+  assert(o.implementation.requestConstruction.capacity);
+  assert.equal(o.implementation.requestConstruction.maxRequestBytes,f.policy.maxTargetBytes);
   assert(Object.isFrozen(o.retainedTarget));
 });
 
@@ -314,6 +327,6 @@ test('REST same Source reservation refusal cannot project target DATA or enter t
   const refusal=new Error('original Source reservation refused'),probe=await observeDemand(demandFixture(authored),{refusal});
   await assert.rejects(probe.run(),cause=>cause.code==='InstalledHostInitializationFailed'&&
     cause.primaryFailure===refusal&&cause.cleanupHandle.status().pending===true);
-  const o=probe.observations();assert.deepEqual(o.construction,['quote','reserve']);
+  const o=probe.observations();assert.deepEqual(o.construction,['quote','quote','reserve']);
   assert.equal(o.retainedTarget,undefined);assert.equal(o.rowSource,undefined);
 });

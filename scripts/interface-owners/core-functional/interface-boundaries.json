@@ -41399,7 +41399,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "cbf3e8a20ca368cdf3b838c51935ec03317ceca164ce03cd9aecf88f3b5ca486",
+      "sha256": "e94244e7cb105f7438f10e02da33c8e6f70cd9f394c772007d33b7653749cafd",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -41408,6 +41408,10 @@
         {
           "name": "installed_json_cursor_source_reader_capacity",
           "declaration": "installed_json_cursor_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_json_cursor_source_reader_capacity_with_request",
+          "declaration": "installed_json_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "installed_json_source_reader_capacity",
@@ -41911,7 +41915,8 @@
         {
           "operations": [
             "installed_json_cursor_source_reader_capacity",
-            "installed_source_cursor_progress_inventory"
+            "installed_source_cursor_progress_inventory",
+            "installed_json_cursor_source_reader_capacity_with_request"
           ],
           "exports": [],
           "attributes": {
@@ -61577,7 +61582,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "48c6466bcbcfce40f78c9868602d375243809564dfe34204f79e9a9a8d0b82a7",
+      "sha256": "4bcd171b7688ab1ffe97417a43d5e3ba7b82b38be95e7532b0165749dc3ee802",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -61586,6 +61591,10 @@
         {
           "name": "client_program_installed_json_cursor_source_reader_capacity",
           "declaration": "client_program_installed_json_cursor_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_cursor_source_reader_capacity_with_request",
+          "declaration": "client_program_installed_json_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_json_source_reader_capacity",
@@ -62223,7 +62232,8 @@
         },
         {
           "operations": [
-            "client_program_installed_json_cursor_source_reader_capacity"
+            "client_program_installed_json_cursor_source_reader_capacity",
+            "client_program_installed_json_cursor_source_reader_capacity_with_request"
           ],
           "exports": [],
           "attributes": {
@@ -103524,7 +103534,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_installed_source_reader_bridge.mbt",
-      "sha256": "e963e8360182c19db432fca29dbf9942f1b94f546f03de425a7dfaffcbfb6ebe",
+      "sha256": "b59144da5be23edaf36461a57f8eeca5fc169bb3218a764258072ea232b2d1bc",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -103533,6 +103543,10 @@
         {
           "name": "client_program_installed_json_cursor_source_reader_capacity",
           "declaration": "client_program_installed_json_cursor_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_json_cursor_source_reader_capacity_with_request",
+          "declaration": "client_program_installed_json_cursor_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_json_source_reader_capacity",
@@ -104170,7 +104184,8 @@
         },
         {
           "operations": [
-            "client_program_installed_json_cursor_source_reader_capacity"
+            "client_program_installed_json_cursor_source_reader_capacity",
+            "client_program_installed_json_cursor_source_reader_capacity_with_request"
           ],
           "exports": [],
           "attributes": {

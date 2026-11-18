@@ -4,6 +4,80 @@ import {pathToFileURL} from 'node:url';
 import {runtimeField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {restSourcePageReader} from './rest-source-page.mjs';
 import {createInstalledCredentialSourceReader} from './installed-credential-source-reader.mjs';
+import {captureRestSourceRead, restSourcePageRequest, restSourceReadConstructionUnits,
+  restSourceRequestConstructionUnits} from './rest-source-request.mjs';
+import {requestTarget} from '../host-common/http-exchange.mjs';
+import {prepareNotionUserListPages} from '../connectors/notion/site/user-list-read.mjs';
+
+test('declarative request inventory pins retained DATA and full original query escape overlap', () => {
+  const read={method:'GET',path:'/v1/users',pageSize:{parameter:'page_size',limit:100},
+    versionHeader:{name:'notion-version',value:'2026-03-11'}};
+  // Independent output/descriptor inventories. Neither vector supplies a
+  // limit/grant, and no returned capacity is inspected as an untyped record.
+  assert.deepEqual(restSourceReadConstructionUnits(read,'start_cursor'),[11n,114n,0n,172n,160n,0n]);
+  assert.deepEqual(restSourceRequestConstructionUnits(read,'start_cursor'),[38n,8232n,0n,72n,49212n,0n]);
+  const fixed={...read,query:[['filter','é'.repeat(16)],['label','x y']]};
+  const units=restSourceReadConstructionUnits(fixed,'start_cursor');
+  assert(units[0]>11n);assert(units[1]>114n);assert(units[3]>172n);
+  const request=restSourcePageRequest(captureRestSourceRead(fixed,'start_cursor'),'start_cursor',1,'');
+  assert.equal(requestTarget(request.path,request.query),
+    '/v1/users?filter='+('%C3%A9'.repeat(16))+'&label=x%20y&page_size=1&start_cursor=');
+});
+
+test('declarative read request preserves literal query order version and remaining page size', () => {
+  const definition = {method: 'GET', path: '/v1/records', query: [['kind', 'person+bot'], ['label', 'e\u0301']],
+    pageSize: {parameter: 'page_size', limit: 100}, versionHeader: {name: 'api-version', value: '2026-03-11'}};
+  const read = captureRestSourceRead(definition, 'after');
+  definition.query[0][1] = 'foreign';definition.versionHeader.value = 'changed';
+  const request = restSourcePageRequest(read, 'after', 3, '');
+  assert.equal(requestTarget(request.path, request.query),
+    '/v1/records?kind=person%2Bbot&label=e%CC%81&page_size=3&after=');
+  assert.deepEqual(request.headers, [['accept', 'application/json'], ['api-version', '2026-03-11']]);
+  assert.deepEqual(restSourcePageRequest(captureRestSourceRead({method: 'GET', path: '/legacy'}, 'after'),
+    'after', 1, undefined), {method: 'GET', path: '/legacy', query: [],
+    headers: [['accept', 'application/json']], responseHeaders: []});
+  assert.throws(() => restSourcePageRequest(read, 'after', 0, undefined), {code: 'InvalidRestSourceRead'});
+});
+
+test('declarative read request refuses ambiguous and accessor input without invoking it', () => {
+  const base = {method: 'GET', path: '/rows'};
+  for (const value of [
+    {...base, query: [['after', 'borrowed-cursor']]},
+    {...base, query: [['kind', 'a'], ['kind', 'b']]},
+    {...base, query: [['size', '1']], pageSize: {parameter: 'size', limit: 2}},
+    {...base, pageSize: {parameter: 'after', limit: 2}},
+    {...base, pageSize: {parameter: 'size', limit: 0}},
+    {...base, versionHeader: {name: 'authorization', value: 'forbidden'}},
+    {...base, versionHeader: {name: 'api-version', value: 'bad\r\nvalue'}},
+  ]) assert.throws(() => captureRestSourceRead(value, 'after'), {code: 'InvalidRestSourceRead'});
+  let touched = 0;
+  const query = [['kind', 'value']];
+  Object.defineProperty(query, 'map', {get() {touched++;throw new Error('Do not invoke');}});
+  assert.throws(() => captureRestSourceRead({...base, query}, 'after'), {code: 'InvalidRestSourceRead'});
+  const pair = ['kind', 'value'];Object.defineProperty(pair, '1', {get() {touched++;return 'foreign';}});
+  assert.throws(() => captureRestSourceRead({...base, query: [pair]}, 'after'), {code: 'InvalidRestSourceRead'});
+  const value = {...base};Object.defineProperty(value, 'versionHeader', {get() {touched++;return {};}});
+  assert.throws(() => captureRestSourceRead(value, 'after'), {code: 'InvalidRestSourceRead'});
+  assert.equal(touched, 0);
+});
+
+test('declarative Notion request keeps original version and caps requested rows before any projection', () => {
+  // These are primitive request-selection ports, not fake parsed-page handles.
+  // Actual Catalog decoding/HTTP remains a separately required boundary.
+  const unused = () => {assert.fail('No page projection in a request-only control');};
+  const moon = {notionUserListColumnNames: () => ['id', 'name', 'type', 'email'],
+    notionProjectUserList: unused, notionUserListIds: unused, notionUserListRowsWire: unused,
+    notionUserListMetadataJson: unused};
+  const limits = Object.fromEntries(['maxResponseBytes', 'maxTotalResponseBytes', 'maxNodes', 'maxDepth',
+    'maxRows', 'maxPages', 'maxCursorBytes', 'maxIdentityBytes', 'maxTargetBytes', 'maxValueNodes',
+    'maxValueTextBytes', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'].map(name => [name, 100]));
+  const pages = prepareNotionUserListPages({moon, names: ['id'], limits: {...limits, maxTotalRows: 3, pageSize: 10}},
+    (method, receiver, args) => Reflect.apply(method, receiver, args));
+  const request = pages.fetchPage({pageIndex: 0, rowCount: 2});
+  assert.equal(requestTarget(request.path, request.query), '/v1/users?page_size=1');
+  assert.deepEqual(request.headers, [['accept', 'application/json'], ['notion-version', '2026-03-11']]);
+  assert.throws(() => pages.fetchPage({pageIndex: 1, rowCount: 3}), {code: 'NotionUserListRowLimit'});
+});
 
 // Actual pure page adapter; compiled parsing/schema results are explicit
 // component ports. The shared-reader case below retains its actual JS lifecycle

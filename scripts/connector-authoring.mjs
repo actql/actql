@@ -3,6 +3,7 @@
 import {existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {dirname, join, parse, resolve, sep} from 'node:path';
 import {checkHostBundle, generateInstallations} from './connector-host-bundles.mjs';
+import {captureRestSourceRead} from '../adapters/host-node/rest-source-request.mjs';
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const shape = (value, required, optional = []) => record(value) &&
@@ -42,7 +43,7 @@ export function projectRestConnector(definition, {hostPackageVersion = selectedH
   const sources = Object.entries(definition.sources).map(([resource, source]) => {
     if (!name(resource) || !shape(source, ['fields', 'read', 'pagination', 'limits']) ||
         !Array.isArray(source.fields) || source.fields.length === 0 ||
-        !shape(source.read, ['method', 'path']) || source.read.method !== 'GET' ||
+        !shape(source.read, ['method', 'path'], ['query', 'pageSize', 'versionHeader']) || source.read.method !== 'GET' ||
         typeof source.read.path !== 'string' || !source.read.path.startsWith('/') ||
         source.read.path.startsWith('//') || /[\\?#\u0000-\u0020\u007f]/u.test(source.read.path)) fail('source');
     const target = new URL(source.read.path, origin);
@@ -54,6 +55,9 @@ export function projectRestConnector(definition, {hostPackageVersion = selectedH
       /^[a-zA-Z][a-zA-Z0-9_]*$/u.test(p.parameter);
     const single = shape(p, ['kind', 'items']) && p.kind === 'none';
     if ((!cursor && !single) || !propertyPath(p.items)) fail('pagination');
+    let read;
+    try {read = captureRestSourceRead(source.read, cursor ? p.parameter : undefined);}
+    catch {fail('read');}
     const limits = source.limits;
     const keys = ['maxPageRows', 'maxPageBytes', 'maxPages', 'maxRows',
       'maxNodes', 'maxDepth', 'maxCursorBytes'];
@@ -62,7 +66,7 @@ export function projectRestConnector(definition, {hostPackageVersion = selectedH
     // Pass the original typed schema DATA to Common. This is not a second
     // schema/type checker, no generated hash or independent business oracle.
     return {resource, resource_kind: 'record', fields: source.fields,
-      read: source.read, pagination: p, limits};
+      read, pagination: p, limits};
   });
   const id = definition.id, profileVersion = `actql-installed-${id.replaceAll('_', '-')}-rest-source/0.1`;
   const module = `adapters/connectors/${id}/host/installation.mjs`;

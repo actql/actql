@@ -6,6 +6,35 @@ RowRun, Resource and the installed Site retain their existing responsibilities.
 No user-page constructor issues a workspace selection, token, grant, Reference,
 KeySet, physical cleanup acknowledgement or complete acquisition.
 
+## Closed request DATA and original funding
+
+The provider declaration keeps GET `/v1/users`, operation `notion:users:list`,
+`page_size` capped by remaining rows, opaque `start_cursor`, and the exact
+`notion-version: 2026-03-11` header. The shared finite request projector accepts
+ordered fixed query literals, an optional page-size parameter and an optional
+version header. It rejects duplicate or colliding parameter names and reserved
+headers. Encoding preserves original Unicode and query order; empty cursor text
+is distinct from absence. These fields carry no secret, permission or endpoint
+override. The existing Host retains credential resolution, TLS and send.
+
+The Source initializer reserves the request snapshot before its descriptor
+capture, then retains that same immutable request DATA for each page. The page
+constructor borrows the snapshot's original strings; it does not copy them into
+a new authority or cache entry. Its quantity includes returned request/query and
+header vectors, decimal page-size text, full bounded percent-encoding and target
+strings, header validation and failed-construction overlap. The unchanged HTTP
+query ceiling bounds construction; it is not funding or a permission grant.
+These are conservative logical Host inventories, not measured backend/RSS.
+
+The existing JSON reader keeps its identity/cursor Sets and physical frames.
+The row-only REST reader keeps its separate Core cursor-progress representation.
+For that mode the existing capacity owner adds the original request quantity on
+both retained and execution axes. Neither component lends its live backing to
+the other. The same Source selection/cache identity retains that original
+request quantity and mode. Exact backing may enter construction; either
+one-short dimension refuses first. There is no budget increase, second Owner,
+retirement inference or fallback to the legacy geometry.
+
 ## Original vendor page
 
 `project_notion_user_list` consumes original response bytes with explicit byte,

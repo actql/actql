@@ -2,10 +2,23 @@
 // authentication, accounting, current checks, cancellation and physical cleanup.
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {requestTarget} from '../../../host-common/http-exchange.mjs';
+import {captureRestSourceRead, restSourcePageRequest} from '../../../host-node/rest-source-request.mjs';
+import userListRequest from '../../../../src/connectors/notion/user-list-request.json' with {type: 'json'};
+
+// Immutable provider-authored DATA. Production captures its request snapshot
+// under the original Source initializer; importing this asset issues no grant.
+Object.freeze(userListRequest.read.pageSize);
+Object.freeze(userListRequest.read.versionHeader);
+Object.freeze(userListRequest.read);
+Object.freeze(userListRequest.pagination.items);
+Object.freeze(userListRequest.pagination.next);
+Object.freeze(userListRequest.pagination);
+export const NOTION_USER_LIST_REQUEST = Object.freeze(userListRequest);
+const cursorParameter = userListRequest.pagination.parameter;
 
 export const NOTION_USER_LIST_OPERATION = 'notion:users:list';
 // Reviewed vendor request version, not an ActQL identity/version authority.
-export const NOTION_USER_LIST_API_VERSION = '2026-03-11';
+export const NOTION_USER_LIST_API_VERSION = userListRequest.read.versionHeader.value;
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
 const providerExports = ['notionProjectUserList','notionUserListIds','notionUserListRowsWire',
@@ -22,7 +35,7 @@ export class NotionUserListReadFailure extends Error {
   }
 }
 
-export function prepareNotionUserListPages({moon, names, limits}, applySynchronousProjection) {
+export function prepareNotionUserListPages({moon, names, limits, request: capturedRequest}, applySynchronousProjection) {
   if (!Array.isArray(names) || !limits || typeof limits !== 'object') fail('InvalidNotionUserListRead');
   if (typeof applySynchronousProjection !== 'function') fail('InvalidNotionUserListRead');
   const provider = Object.freeze(Object.fromEntries(providerExports.map(name => {
@@ -31,7 +44,8 @@ export function prepareNotionUserListPages({moon, names, limits}, applySynchrono
     return [name, (...args) => applySynchronousProjection(original, moon, args)];
   })));
   const bound = Object.freeze({...limits});
-  if (!limitFields.every(name => positive(bound[name])) || bound.pageSize > 100) fail('InvalidNotionUserListRead');
+  const request = capturedRequest ?? captureRestSourceRead(userListRequest.read, cursorParameter);
+  if (!limitFields.every(name => positive(bound[name])) || bound.pageSize > request.pageSize.limit) fail('InvalidNotionUserListRead');
   const columns = Object.freeze(provider.notionUserListColumnNames().slice());
   if (names.length > columns.length || new Set(names).size !== names.length ||
       names.some(name => !columns.includes(name))) fail('InvalidNotionUserListRead');
@@ -43,12 +57,10 @@ export function prepareNotionUserListPages({moon, names, limits}, applySynchrono
       if (pageIndex >= bound.maxPages) fail('NotionUserListPageLimit');
       const remaining = bound.maxTotalRows - rowCount;
       if (remaining <= 0) fail('NotionUserListRowLimit');
-      const query = [['page_size', String(Math.min(bound.pageSize, remaining))]];
-      if (cursor !== undefined) query.push(['start_cursor', cursor]);
-      const path = '/v1/users';
-      if (Buffer.byteLength(requestTarget(path, query)) > bound.maxTargetBytes) fail('NotionUserListTargetLimit');
-      return {method: 'GET', path, query, headers: [['accept','application/json'],
-        ['notion-version',NOTION_USER_LIST_API_VERSION]], responseHeaders: []};
+      const target = restSourcePageRequest(request, cursorParameter,
+        Math.min(bound.pageSize, remaining), cursor);
+      if (Buffer.byteLength(requestTarget(target.path, target.query)) > bound.maxTargetBytes) fail('NotionUserListTargetLimit');
+      return target;
     },
     decodePage(response, {pageIndex, rowCount, receivedBodyBytes}) {
       // The Host retains and charges this exact body before entering here.

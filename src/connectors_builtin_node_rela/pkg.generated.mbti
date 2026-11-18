@@ -1085,6 +1085,8 @@ pub fn client_program_installed_gmail_thread_reader_capacity(Array[Int], Int, In
 
 pub fn client_program_installed_json_cursor_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_json_cursor_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_json_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?

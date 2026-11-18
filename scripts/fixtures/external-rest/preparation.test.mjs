@@ -9,7 +9,31 @@ import {loadExternalRestModules, resolveExternalRestModules, verifyExternalRestT
 import * as normalCohort from './installed-modules.mjs';
 import {externalRestConfiguration} from './configuration.mjs';
 import {externalRestProvider} from './provider.fixture.mjs';
+import {notionUsersProvider,notionUsersProgram} from './notion-users.fixture.mjs';
 import {installedFamilyProviderRoute} from './fixture-source/adapters/host-node/fixtures/installed-family-scenario.fixture.mjs';
+
+test('Notion normal fixture refuses wrong query and unobserved version before claiming its wire oracle', () => {
+  const provider=notionUsersProvider();
+  assert.throws(()=>provider.handle({method:'GET',target:'/v1/users?page_size=100'}));
+  assert.deepEqual(provider.requests(),[]);
+  const first=JSON.parse(provider.handle({method:'GET',target:'/v1/users?page_size=2'}).body);
+  assert.equal(first.object,'list');assert.equal(first.has_more,true);
+  assert.equal(first.next_cursor,'next e\u0301+東京');
+  const second=JSON.parse(provider.handle({method:'GET',
+    target:'/v1/users?page_size=1&start_cursor=next%20e%CC%81%2B%E6%9D%B1%E4%BA%AC'}).body);
+  assert.equal(second.has_more,false);assert.equal(second.next_cursor,null);
+  assert.throws(()=>provider.assertRequests([{authorized:true,headers:{}},{authorized:true,headers:{}}]));
+  provider.assertRequests([{authorized:true,headers:{'notion-version':'2026-03-11'}},
+    {authorized:true,headers:{'notion-version':'2026-03-11'}}]);
+  assert.equal(notionUsersProgram('notion-users').stages[0].inputs.users.resource,'users');
+});
+
+test('Notion normal built-in resolution is explicit and never substitutes an external package', async t => {
+  const f=await fixture(t);
+  const selected=await resolveExternalRestModules({consumerRoot:f.consumerRoot,builtin:'notion'});
+  assert.equal(selected.connector,undefined);assert(selected.node.includes('/node_modules/@actql/node/'));
+  await assert.rejects(resolveExternalRestModules({consumerRoot:f.consumerRoot,builtin:'notion',connectorPackage:'@actql-connectors/acme'}));
+});
 
 async function fixture(t) {
   const root = await mkdtemp(join(await realpath(tmpdir()), 'actql-rest-module-resolution-'));

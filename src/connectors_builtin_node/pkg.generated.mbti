@@ -2042,6 +2042,8 @@ pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedC
 
 pub fn client_program_installed_json_cursor_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_json_cursor_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_json_effect_request_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_json_effect_response_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?

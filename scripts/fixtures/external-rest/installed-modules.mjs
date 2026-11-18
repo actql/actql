@@ -95,9 +95,10 @@ export async function prepareExternalRestCohort({manifestPath, manifestSha256, s
   }
 }
 
-export async function resolveExternalRestModules({consumerRoot, connectorPackage}) {
+export async function resolveExternalRestModules({consumerRoot, connectorPackage, builtin}) {
   assert(isAbsolute(consumerRoot), 'An actual installed consumer root is required');
-  assert(/^@actql-connectors\/[a-z][a-z0-9-]*$/u.test(connectorPackage), 'An explicit generated connector package is required');
+  assert(builtin===undefined ? /^@actql-connectors\/[a-z][a-z0-9-]*$/u.test(connectorPackage)
+    : builtin==='notion'&&connectorPackage===undefined, 'An explicit generated or selected built-in connector is required');
   const moduleRoot = join(consumerRoot, 'node_modules');
   const moduleStat = await lstat(moduleRoot);
   assert(moduleStat.isDirectory() && !moduleStat.isSymbolicLink(),
@@ -112,11 +113,11 @@ export async function resolveExternalRestModules({consumerRoot, connectorPackage
   };
   const node = await resolveNormal(consumer, '@actql/node');
   const host = await resolveNormal(consumer, '@actql/local-node');
-  const connector = await resolveNormal(consumer, connectorPackage);
+  const connector = builtin===undefined ? await resolveNormal(consumer, connectorPackage) : undefined;
   const nodeRequire = createRequire(node), hostRequire = createRequire(host);
   const sdk = await resolveNormal(nodeRequire, '@actql/sdk');
   assert.equal(await resolveNormal(hostRequire, '@actql/sdk'), sdk, 'StandardRestSdkNamespaceMismatch');
-  assert.equal(await resolveNormal(createRequire(connector), '@actql/local-node'), host,
+  if(connector!==undefined)assert.equal(await resolveNormal(createRequire(connector), '@actql/local-node'), host,
     'StandardRestConnectorHostMismatch');
   return Object.freeze({node, host, sdk, connector});
 }
@@ -126,6 +127,14 @@ export async function loadExternalRestModules(options) {
   const paths = await resolveExternalRestModules(options);
   const node = await import(pathToFileURL(paths.node).href);
   const host = await import(pathToFileURL(paths.host).href);
+  if(options.builtin==='notion'){
+    assert.equal(typeof node.connect,'function');
+    // No replacement table: connect selects the original normally packaged
+    // built-in installation and its actual provider/Common namespace.
+    return Object.freeze({connect:options=>Reflect.apply(node.connect,node,[options]),
+      publicSdk:createRequire(paths.node)('@actql/sdk'),paths,
+      loadedInstallationExports:Object.freeze([]),builtin:'notion'});
+  }
   const connector = await import(pathToFileURL(paths.connector).href);
   assert.equal(typeof node.connect, 'function');
   assert.equal(typeof host.createInstalledConnectorTable, 'function');

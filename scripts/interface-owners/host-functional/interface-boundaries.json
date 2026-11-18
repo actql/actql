@@ -125079,7 +125079,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "2bb81f222f0a5f20b429cf2f6e8b30a3d82e09fece3e8a123f1e750a7bfe4409",
+      "sha256": "d0e0dd21c38dd3c6c0cf0dc891c62a6f632d5fe1f91480b2716ceb283fa49b17",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -128321,7 +128321,7 @@
     {
       "module": "adapters/host-node/installed-rest-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "711be67fa57a7287e2913bb9bbf7d93bb975074610dae50bb50aa027e9c9c8e4",
+      "sha256": "bf5bd686bf63089a494edeafb2d28c5c9411aed11e35702d5b016557931fdd80",
       "role": "physical-io",
       "owner": "Existing installed Host Source initialization, Credential Site, managed Reader and RowRun Owners; facade retains only its selected original author declaration/service composition.",
       "exports": [
@@ -128343,6 +128343,14 @@
           "async": false
         },
         {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:capacity/init:capacity/init:capacity",
+          "parameters": [
+            "units",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project",
           "parameters": [],
           "async": false
@@ -128358,6 +128366,13 @@
           "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project/init:project",
           "parameters": [
             "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project#2",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -128478,7 +128493,8 @@
         {
           "name": "createInstalledRestSource/load/pages/pages",
           "parameters": [
-            "source"
+            "source",
+            "index"
           ],
           "async": false
         },
@@ -128534,6 +128550,7 @@
         "./installed-row-source.mjs",
         "./rest-source-metadata.mjs",
         "./rest-source-page.mjs",
+        "./rest-source-request.mjs",
         "node:crypto",
         "node:util"
       ],
@@ -128569,7 +128586,9 @@
             "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project",
             "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project",
             "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project/init:project",
-            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/view/view"
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/view/view",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:capacity/init:capacity/init:capacity",
+            "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:project/init:project/init:project#2"
           ],
           "exports": [
             "createInstalledRestSource"
@@ -129343,7 +129362,7 @@
     {
       "module": "adapters/host-node/rest-source-page.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "74ff01026a0cbddccc251a9494188bc8cbaa30cb690e140c4b97ebc49db12865",
+      "sha256": "a7e40ee38ceadc03ab99162cb860cbc0cada31a5ae855cc3f86d47d03b2c7a95",
       "role": "connector-semantics",
       "owner": "Existing Common JSON/row projection and pagination DATA with Host ManagedReader owners; REST adapter forwards original pages/progress and authored request/pure transform without an independent cursor engine",
       "exports": [
@@ -129362,7 +129381,8 @@
           "parameters": [
             "moon",
             "source",
-            "decodePage"
+            "decodePage",
+            "capturedRequest"
           ],
           "async": false
         },
@@ -129416,6 +129436,7 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "./rest-source-request.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -129453,7 +129474,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "export function restSourcePageReader({moon, source, decodePage}) {"
+                "anchor": "export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}) {"
               },
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
@@ -129475,7 +129496,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "const resource = source.resource, path = source.read.path;"
+                "anchor": "const resource = source.resource;"
               },
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
@@ -129665,7 +129686,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "export function restSourcePageReader({moon, source, decodePage}) {"
+                "anchor": "export function restSourcePageReader({moon, source, decodePage, request: capturedRequest}) {"
               },
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
@@ -129679,7 +129700,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
-                "anchor": "const resource = source.resource, path = source.read.path;"
+                "anchor": "const resource = source.resource;"
               },
               {
                 "path": "adapters/host-node/rest-source-page.mjs",
@@ -135311,6 +135332,303 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
                 "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/rest-source-request.mjs",
+      "sha256": "548e60124ca6e23978b2f47ff1556ca63407bfd8808c88cf4dd043b98c2f81f7",
+      "exports": [
+        "captureRestSourceRead",
+        "restSourcePageRequest",
+        "restSourceReadConstructionUnits",
+        "restSourceRequestConstructionUnits"
+      ],
+      "operations": [
+        {
+          "name": "captureRestSourceRead",
+          "parameters": [
+            "value",
+            "cursorParameter"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestSourceRead/captureRestSourceRead",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestSourceRead/captureRestSourceRead#2",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestSourceRead/captureRestSourceRead#3",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields/fields/fields",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields/fields/fields#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fields/fields/fields#3",
+          "parameters": [
+            "key",
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "parameter/parameter",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourcePageRequest",
+          "parameters": [
+            "read",
+            "cursorParameter",
+            "remainingRows",
+            "cursor"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourceReadConstructionUnits",
+          "parameters": [
+            "read",
+            "cursorParameter"
+          ],
+          "async": false
+        },
+        {
+          "name": "restSourceRequestConstructionUnits",
+          "parameters": [
+            "read",
+            "cursorParameter"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/http-exchange.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Source initializer, reader capacity and provider request DATA owners; no physical or permission owner",
+      "contracts": [
+        {
+          "operations": [
+            "captureRestSourceRead",
+            "captureRestSourceRead/captureRestSourceRead",
+            "captureRestSourceRead/captureRestSourceRead#2",
+            "captureRestSourceRead/captureRestSourceRead#3",
+            "fields/fields/fields",
+            "fields/fields/fields#2",
+            "fields/fields/fields#3",
+            "parameter/parameter",
+            "restSourcePageRequest",
+            "restSourceReadConstructionUnits",
+            "restSourceRequestConstructionUnits",
+            "<module>"
+          ],
+          "exports": [
+            "captureRestSourceRead",
+            "restSourcePageRequest",
+            "restSourceReadConstructionUnits",
+            "restSourceRequestConstructionUnits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "## Closed request DATA and original funding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/rest-source-request.mjs",
+                "anchor": "export function captureRestSourceRead(value, cursorParameter)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "Encoding preserves original Unicode and query order"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The Source initializer reserves the request snapshot"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-rest-source.mjs",
+                "anchor": "const material = preparePhysicalTargets"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/rest-source-request.mjs",
+                "anchor": "const fail = () =>"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "retirement inference or fallback to the legacy geometry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/rest-source-request.mjs",
+                "anchor": "export function restSourceRequestConstructionUnits(read, cursorParameter)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-user-reader.md",
+                "anchor": "The row-only REST reader keeps its separate Core cursor-progress representation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "test('declarative request inventory pins retained DATA"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Source contracts and focused evidence only; no normal HTTP/Result/Saved or physical acknowledgement inferred"
+    },
+    {
+      "module": "adapters/host-node/installed-finite-page-source.mjs",
+      "sha256": "116fe1d549c679a722b889b1a1c91eb795fcd3ceab9e3c4dad5cca09d9e74560",
+      "exports": [
+        "installFinitePageSource"
+      ],
+      "operations": [
+        {
+          "name": "installFinitePageSource",
+          "parameters": [
+            "services",
+            "siteInput",
+            "implementation",
+            "operation",
+            "preparePageReader",
+            "implementationMismatch",
+            "publish"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "./installed-host-cleanup.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing installed Site, ManagedReader and Source original lifetime; no second engine or Owner",
+      "contracts": [
+        {
+          "operations": [
+            "installFinitePageSource",
+            "<module>"
+          ],
+          "exports": [
+            "installFinitePageSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "anchor": "// Private standard Host assembly for finite provider-page Sources."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "anchor": "export async function installFinitePageSource("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "anchor": "opened = await services"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "anchor": "{sourceReader: providerReader, sourceProfile: opened?.site}"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "anchor": "return await publish(opened, providerReader)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "anchor": "if (providerReader.capacity !== implementation.capacity)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "anchor": "finite provider-page capacity getter failure retains reader before Site cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "anchor": "implementation, site: opened.site, operation, preparePageReader"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "anchor": "// meaning stays in preparePageReader;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs",
+                "anchor": "finite provider-page publication refusal keeps its original cause"
               }
             ]
           }

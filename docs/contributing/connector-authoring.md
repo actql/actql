@@ -81,6 +81,18 @@ credential resolvers stay in the ordinary Account/Site setup, outside this
 file and every author callback.
 
 For a root array without pagination, use `{"kind":"none","items":[]}`.
+The closed `read` DATA can also supply ordered `query` pairs, a
+`pageSize: {parameter, limit}` entry and a `versionHeader: {name, value}` entry.
+For example, `pageSize: {parameter: "page_size", limit: 100}` requests at most
+the remaining rows, and `versionHeader: {name: "api-version", value: "2026-03-11"}`
+keeps an explicit nonsecret version pin. Query names must be distinct from each
+other, the cursor parameter and the page-size parameter. Only a canonical
+version-header name is accepted; transport and credential headers remain Host
+owned. The Host encodes query literals without normalization or reordering.
+These are finite request DATA, not a callback, permission or capacity setting.
+The Node Source constructor retains and funds the captured DATA and request
+workspace through its existing Owner. This authoring connection does not by
+itself establish a matching compiled normal installation or Wasm Host parity.
 The standard projector already preserves JSON row bytes and cursor identity;
 an identity projection needs no extra JavaScript file. If a projection is
 needed, `transform` names one relative `.mjs` file exporting synchronous
