@@ -56,8 +56,9 @@ class OrchestrationTests(unittest.TestCase):
         self.assertEqual(request.call_count, 3)
         self.assertEqual(sleep.call_args_list, [unittest.mock.call(2), unittest.mock.call(4)])
 
-    def test_linux_is_not_reported_as_local_acceptance(self):
-        with patch.object(ci.sys, 'platform', 'linux'), self.assertRaisesRegex(ValueError, 'darwin-arm64'):
+    def test_unselected_linux_architecture_is_not_reported_as_local_acceptance(self):
+        with patch.object(ci.sys, 'platform', 'linux'), patch.object(ci.platform, 'machine', return_value='aarch64'), \
+                self.assertRaisesRegex(ValueError, 'darwin-arm64'):
             ci.run_acceptance(Path('/unused'))
 
     def test_timeout_keeps_diagnostics_and_never_creates_acceptance(self):
@@ -134,6 +135,105 @@ class OrchestrationTests(unittest.TestCase):
                     ci.extract_duckdb(archive, Path(tmp) / 'library')
 
 
+class LinuxOrchestrationTests(unittest.TestCase):
+    def test_linux_release_keeps_its_original_url_digest_and_unique_member(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive = root / 'original.zip'
+            with zipfile.ZipFile(archive, 'w') as zipped:
+                zipped.writestr('libduckdb.so', b'explicit inert Linux library port')
+                zipped.writestr('libduckdb.dylib', b'foreign profile, never selected')
+            with patch.object(ci, 'LINUX_DUCKDB_BYTES', archive.stat().st_size), patch.object(
+                    ci, 'LINUX_DUCKDB_SHA256', hashlib.sha256(archive.read_bytes()).hexdigest()), patch.object(
+                    ci.urllib.request, 'urlopen', return_value=io.BytesIO(archive.read_bytes())) as request:
+                with ci.open_duckdb_release('linux-x64') as response:
+                    self.assertEqual(response.read(), archive.read_bytes())
+                request.assert_called_once_with(
+                    'https://github.com/duckdb/duckdb/releases/download/v1.4.3/libduckdb-linux-amd64.zip',
+                    timeout=120)
+                library = ci.extract_duckdb(archive, root / 'selected.so', target_platform='linux-x64')
+                self.assertEqual(library.read_bytes(), b'explicit inert Linux library port')
+                archive.write_bytes(archive.read_bytes() + b'changed')
+                with self.assertRaisesRegex(ValueError, 'pinned'):
+                    ci.extract_duckdb(archive, root / 'changed.so', target_platform='linux-x64')
+            self.assertFalse((root / 'changed.so').exists())
+
+    def test_linux_recipe_reaches_same_cohort_after_one_original_core(self):
+        import subprocess
+        class ReachedOriginalCohort(RuntimeError):
+            pass
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = (Path(tmp) / 'acceptance').resolve()
+            commands = []
+            builds = []
+            observed = []
+            source = 'a' * 40
+            def git(args, **options):
+                return b'' if 'status' in args else source + '\n'
+            def extract(archive, target, **options):
+                self.assertEqual(options, {'target_platform': 'linux-x64'})
+                self.assertEqual(target.name, 'libduckdb.so')
+                target.write_bytes(b'explicit physical port; not a native library')
+                return target
+            def command(args, **options):
+                commands.append(args)
+                if args[0] == 'moon':
+                    directory = Path(args[args.index('--target-dir') + 1])
+                    module = directory / 'wasm/release/build/client_host_wasm/client_host_wasm.wasm'
+                    module.parent.mkdir(parents=True)
+                    module.write_bytes(b'explicit compiler port; not executable Wasm')
+                    builds.append(module)
+                if '--record-module-original' in args:
+                    receipt = Path(args[args.index('--destination') + 1])
+                    receipt.write_text(json.dumps({'module': str(builds[0]), 'source_sha': source,
+                        'module_sha256': hashlib.sha256(builds[0].read_bytes()).hexdigest()}))
+                return subprocess.CompletedProcess(args, 0, stdout=b'{}', stderr=b'')
+            def component(run, python, module, receipt, selected):
+                self.assertEqual(builds, [module])
+                self.assertEqual(Path(json.loads(receipt.read_text())['module']), module)
+                observed.append(module)
+            with patch.object(ci.sys, 'platform', 'linux'), patch.object(ci.platform, 'machine', return_value='x86_64'), \
+                    patch.dict(ci.os.environ, {'MOON_HOME': '/explicit/original/moon'}), \
+                    patch.object(ci.subprocess, 'check_output', side_effect=git), \
+                    patch.object(ci.subprocess, 'run', side_effect=command), \
+                    patch.object(ci, 'open_duckdb_release', return_value=io.BytesIO(b'archive port')) as download, \
+                    patch.object(ci, 'extract_duckdb', side_effect=extract), \
+                    patch.object(ci, 'accept_submission_observation', side_effect=component), \
+                    patch.object(ci, 'verify_built_cohort', side_effect=ReachedOriginalCohort):
+                with self.assertRaises(ReachedOriginalCohort):
+                    ci.run_acceptance(destination)
+            download.assert_called_once_with('linux-x64')
+            self.assertEqual(len(builds), 1)
+            self.assertEqual(observed, builds)
+            image = next(args for args in commands if '--compile-platform' in args)
+            runtime = next(args for args in commands if '--platform-runtime' in args)
+            wheel = next(args for args in commands if 'scripts/build-python-product-wheels.py' in args[1])
+            self.assertEqual(image[image.index('--core-receipt') + 1],
+                             runtime[runtime.index('--core-receipt') + 1])
+            self.assertEqual(wheel[wheel.index('--target-platform') + 1], 'linux-x64')
+            self.assertLess(commands.index(image), commands.index(runtime))
+            self.assertLess(commands.index(runtime), commands.index(wheel))
+            self.assertFalse((destination / 'acceptance.json').exists())
+
+    def test_supported_python_refuses_foreign_wheels_before_creating_consumer(self):
+        supported = load('ci_supported_python_linux_control', SCRIPTS / 'ci-supported-python.py')
+        with tempfile.TemporaryDirectory() as tmp:
+            cohort = Path(tmp) / 'cohort'
+            cohort.mkdir()
+            (cohort / 'cohort.json').write_text(json.dumps({'package_version': '0.0.0.dev0'}))
+            destination = Path(tmp) / 'consumer'
+            def git(args, **options):
+                return b'' if 'status' in args else 'a' * 40 + '\n'
+            with patch.object(supported.platform, 'python_version', return_value='3.11.0'), \
+                    patch.object(supported.EXISTING, 'normal_target', return_value='linux-x64'), \
+                    patch.object(supported.subprocess, 'check_output', side_effect=git), \
+                    patch.object(supported, 'verify_built_cohort', return_value={'cohort': {'platform': 'darwin-arm64'}}), \
+                    patch.object(supported.subprocess, 'run', side_effect=AssertionError('No foreign consumer')):
+                with self.assertRaisesRegex(ValueError, 'same original wheel platform'):
+                    supported.accept(cohort, destination, '3.11.0')
+            self.assertFalse(destination.exists())
+
+
 class SubmissionObservationTests(unittest.TestCase):
     def test_normal_recipe_reaches_component_with_its_single_original_build(self):
         import subprocess
@@ -146,7 +246,7 @@ class SubmissionObservationTests(unittest.TestCase):
             source = 'a' * 40
             def git(args, **options):
                 return b'' if 'status' in args else source + '\n'
-            def extract(archive, target):
+            def extract(archive, target, **options):
                 target.write_bytes(b'explicit library transport port; not a library')
                 return target
             def command(args, **options):

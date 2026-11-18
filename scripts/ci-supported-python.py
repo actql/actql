@@ -1,4 +1,4 @@
-"""Consume the SAME normal darwin-arm64 wheels on a selected interpreter.
+"""Consume the SAME normal wheels with a selected platform and interpreter.
 
 No builder, source path resolution, wheel repair, ABI override or fallback.
 """
@@ -26,8 +26,7 @@ SPEC.loader.exec_module(EXISTING)
 def accept(cohort_directory: Path, destination: Path, version: str) -> None:
     if version not in ('3.11.0', '3.15.2') or platform.python_version() != version:
         raise ValueError('Select the exact supported Python interpreter')
-    if (sys.platform, platform.machine()) != ('darwin', 'arm64'):
-        raise ValueError('Normal Python Local wheels support darwin-arm64 only')
+    target_platform = EXISTING.normal_target()
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT).strip():
         raise ValueError('Supported Python acceptance requires clean source')
@@ -35,6 +34,8 @@ def accept(cohort_directory: Path, destination: Path, version: str) -> None:
     original = (cohort_directory / 'cohort.json').read_bytes()
     declared = json.loads(original)
     cohort = verify_built_cohort(cohort_directory, source, declared['package_version'])['cohort']
+    if cohort.get('platform') != target_platform:
+        raise ValueError('Supported interpreter requires the same original wheel platform')
     destination = EXISTING.external_destination(destination)
     destination.mkdir(parents=True)
     venv = destination / 'venv'
@@ -78,7 +79,7 @@ def accept(cohort_directory: Path, destination: Path, version: str) -> None:
             or subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() != source):
         raise ValueError('Source changed during supported Python acceptance')
     (destination / 'acceptance.json').write_text(json.dumps({'python': version, 'source': source,
-        'cohort_sha256': hashlib.sha256(original).hexdigest(), 'platform': 'darwin-arm64',
+        'cohort_sha256': hashlib.sha256(original).hexdigest(), 'platform': target_platform,
         'installer': PIP_VERSION, 'installer_sha256': PIP_SHA256,
         'fresh_wheel_install': True, 'local_open_query_close': True, 'published': False}, indent=2) + '\n')
 

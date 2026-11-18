@@ -1,4 +1,4 @@
-"""Build the normal macOS arm64 cohort and accept it in an external fresh venv.
+"""Build the selected normal macOS arm64 or Linux x64 cohort and accept it in an external fresh venv.
 
 This is CI acceptance, not publication. Component receipts remain component-only;
 only a successful installed consumer produces acceptance.json.
@@ -25,6 +25,9 @@ ROOT = Path(__file__).resolve().parents[1]
 DUCKDB_URL = 'https://github.com/duckdb/duckdb/releases/download/v1.4.3/libduckdb-osx-universal.zip'
 DUCKDB_SHA256 = 'efd0c2424589f0d5743ffdc0de22ce84b99bf307c330752f44277cffa3406e43'
 DUCKDB_BYTES = 34189615
+LINUX_DUCKDB_URL = 'https://github.com/duckdb/duckdb/releases/download/v1.4.3/libduckdb-linux-amd64.zip'
+LINUX_DUCKDB_SHA256 = '3c7bb8d586d39ccce56442c3f6bafa97f53d7b6bb5405dac827442fcb31494aa'
+LINUX_DUCKDB_BYTES = 36042490
 BUILD_REQUIREMENTS = ('build==1.3.0', 'setuptools==80.10.2', 'wheel==0.45.1',
                       'wasmtime==38.0.0', 'httpx==0.28.1', 'rfc8785==0.1.4')
 
@@ -43,13 +46,35 @@ def external_destination(value: Path) -> Path:
     return path
 
 
-def open_duckdb_release():
+def normal_target() -> str:
+    """Select only a physical packaging/consumer route, never a Run authority.
+
+    The original component/image owners still admit libc, exact dependencies,
+    Engine settings and source before loading or construction.
+    """
+    selected = {('darwin', 'arm64'): 'darwin-arm64',
+                ('linux', 'x86_64'): 'linux-x64'}.get((sys.platform, platform.machine()))
+    if selected is None:
+        raise ValueError('Normal Python Local wheels require darwin-arm64 or linux-x64')
+    return selected
+
+
+def duckdb_release(target_platform: str) -> tuple[str, str, int, str]:
+    if target_platform == 'darwin-arm64':
+        return DUCKDB_URL, DUCKDB_SHA256, DUCKDB_BYTES, 'libduckdb.dylib'
+    if target_platform == 'linux-x64':
+        return LINUX_DUCKDB_URL, LINUX_DUCKDB_SHA256, LINUX_DUCKDB_BYTES, 'libduckdb.so'
+    raise ValueError('No selected normal DuckDB release target')
+
+
+def open_duckdb_release(target_platform: str = 'darwin-arm64'):
     # Retry only transient HTTP rejection of this same pinned, read-only GET.
     # Size/digest validation below remains mandatory; no alternate release or
     # partially read archive is accepted or retried here.
+    url, _, _, _ = duckdb_release(target_platform)
     for attempt in range(3):
         try:
-            return urllib.request.urlopen(DUCKDB_URL, timeout=120)
+            return urllib.request.urlopen(url, timeout=120)
         except urllib.error.HTTPError as error:
             if error.code not in (408, 429, 500, 502, 503, 504) or attempt == 2:
                 raise
@@ -57,11 +82,12 @@ def open_duckdb_release():
             time.sleep(2 ** (attempt + 1))
 
 
-def extract_duckdb(archive: Path, destination: Path) -> Path:
-    if archive.stat().st_size != DUCKDB_BYTES or hashlib.sha256(archive.read_bytes()).hexdigest() != DUCKDB_SHA256:
+def extract_duckdb(archive: Path, destination: Path, *, target_platform: str = 'darwin-arm64') -> Path:
+    _, digest, size, member = duckdb_release(target_platform)
+    if archive.stat().st_size != size or hashlib.sha256(archive.read_bytes()).hexdigest() != digest:
         raise ValueError('DuckDB release archive differs from the pinned official release')
     with zipfile.ZipFile(archive) as zipped:
-        matches = [item for item in zipped.infolist() if item.filename == 'libduckdb.dylib']
+        matches = [item for item in zipped.infolist() if item.filename == member]
         if len(matches) != 1 or not 0 < matches[0].file_size <= 200_000_000:
             raise ValueError('Unavailable unique bounded DuckDB library')
         body = zipped.read(matches[0])
@@ -103,8 +129,8 @@ def accept_submission_observation(run, python: Path, module: Path, receipt: Path
 
 
 def run_acceptance(destination: Path) -> None:
-    if (sys.platform, platform.machine()) != ('darwin', 'arm64'):
-        raise ValueError('Normal Python Local wheels currently support darwin-arm64 only')
+    target_platform = normal_target()
+    _, _, archive_bytes, library_name = duckdb_release(target_platform)
     destination = external_destination(destination)
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     def clean():
@@ -139,10 +165,10 @@ def run_acceptance(destination: Path) -> None:
                                 '--index-url', 'https://pypi.org/simple', *BUILD_REQUIREMENTS])
     run('platform-vm-original', [python, ROOT / 'scripts/fixtures/python-local-platform-vm-original.py'])
     archive = destination / 'duckdb.zip'
-    with open_duckdb_release() as response, archive.open('xb') as target:
-        body = response.read(DUCKDB_BYTES + 1)
+    with open_duckdb_release(target_platform) as response, archive.open('xb') as target:
+        body = response.read(archive_bytes + 1)
         target.write(body)
-    library = extract_duckdb(archive, destination / 'libduckdb.dylib')
+    library = extract_duckdb(archive, destination / library_name, target_platform=target_platform)
     run('duckdb-physical', [python, ROOT / 'scripts/fixtures/python-local-duckdb-physical.py', library,
                           '--digest', hashlib.sha256(library.read_bytes()).hexdigest(), '--version', 'v1.4.3'])
     moon = destination / 'moon'
@@ -165,7 +191,7 @@ def run_acceptance(destination: Path) -> None:
     version = select_release_version(semver)['pythonVersion']
     cohort_directory = destination / 'cohort'
     run('wheels', [python, ROOT / 'scripts/build-python-product-wheels.py', '--artifact-directory', artifact,
-                   '--destination', cohort_directory, '--version', semver])
+                   '--destination', cohort_directory, '--version', semver, '--target-platform', target_platform])
     cohort = verify_built_cohort(cohort_directory, source, version)['cohort']
     venv = destination / 'consumer'
     run('consumer-venv', [sys.executable, '-m', 'venv', venv])
@@ -204,7 +230,7 @@ def run_acceptance(destination: Path) -> None:
     verify_built_cohort(cohort_directory, source, version)
     clean()
     (destination / 'acceptance.json').write_text(json.dumps({
-        'source_sha': source, 'platform': 'darwin-arm64', 'package_version': version,
+        'source_sha': source, 'platform': target_platform, 'package_version': version,
         'cohort_sha256': hashlib.sha256((cohort_directory / 'cohort.json').read_bytes()).hexdigest(),
         'normal_wheel_install': True, 'public_local_accepted': True,
         'separate_process_saved': True, 'typed_refusal_and_health': True,

@@ -22,8 +22,10 @@ class SupportedPythonTests(unittest.TestCase):
                 ci.accept(Path('/no-cohort-read'), Path('/no-directory'), '3.11.0')
             run.assert_not_called()
         with patch.object(ci.platform, 'python_version', return_value='3.11.0'), \
-                patch.object(ci.sys, 'platform', 'linux'), patch.object(ci.subprocess, 'run') as run:
-            with self.assertRaisesRegex(ValueError, 'darwin-arm64 only'):
+                patch.object(ci.sys, 'platform', 'linux'), \
+                patch.object(ci.platform, 'machine', return_value='aarch64'), \
+                patch.object(ci.subprocess, 'run') as run:
+            with self.assertRaisesRegex(ValueError, 'darwin-arm64 or linux-x64'):
                 ci.accept(Path('/no-cohort-read'), Path('/no-directory'), '3.11.0')
             run.assert_not_called()
 
@@ -32,7 +34,7 @@ class SupportedPythonTests(unittest.TestCase):
             root = Path(temp).resolve()
             cohort_directory = root / 'cohort'
             cohort_directory.mkdir()
-            cohort = {'package_version': '0.0.0.dev0', 'wheels': [
+            cohort = {'package_version': '0.0.0.dev0', 'platform': 'darwin-arm64', 'wheels': [
                 {'distribution': name, 'file': name + '.whl'}
                 for name in ('actql-sdk', 'actql-local-runtime', 'actql')]}
             (cohort_directory / 'cohort.json').write_text(json.dumps(cohort))
