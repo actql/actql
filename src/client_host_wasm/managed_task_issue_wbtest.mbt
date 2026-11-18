@@ -34,6 +34,7 @@ test "managed task issue projects memory refusal without replacing its original 
     pending: false,
     closing: false,
     issue: None,
+    cleanup_issue: None,
     operations: None,
     progress: None,
     producers: [],

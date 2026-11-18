@@ -9,6 +9,7 @@ priv struct StoredManagedTask {
   mut pending : Bool
   mut closing : Bool
   mut issue : @local_run.LocalComputeIssue?
+  mut cleanup_issue : @managed.LocalDispatchIssue?
   mut operations : @managed.LocalManagedDispatchOperations[Int]?
   mut progress : @managed.LocalManagedAdvance?
   producers : Array[Int]
@@ -31,6 +32,38 @@ fn stored_producer(
     }
   }
   None
+}
+
+///|
+/// Reobserve the same SDK physical-start claim at every bounded task boundary.
+/// A later cancellation changes its original Run row; no further provider work
+/// may use the old claim. Refusal is not cancellation completion or physical
+/// stop. The same operations remain available to their existing cleanup Owner.
+fn managed_task_run_current(
+  value : Instance,
+  record : StoredManagedTask,
+) -> Int {
+  guard value.computes.get(record.compute) is Some(compute) &&
+    !compute.closing &&
+    stored_compute_original_run(value, compute) is Some(original) &&
+    value.run_configurations.get(original.configuration) is Some(configuration) &&
+    value.run_configurations.get(record.current_configuration) is Some(current) else {
+    return -2
+  }
+  if configuration.sdk is None {
+    return 0
+  }
+  guard current.sdk is Some(_) &&
+    original.outcome is Some(Ok(plan)) &&
+    compute.origin is SourceFree(_, start) &&
+    value.physical_starts.get(start) is Some({ sdk_step: Some(step), .. }) else {
+    return -2
+  }
+  match run_configuration_current(value, current) {
+    Err(code) => return code
+    Ok(_) => ()
+  }
+  validate_sdk_start_claim(value, step, plan)
 }
 
 ///|
@@ -66,6 +99,7 @@ pub fn reserve_managed_task(
     pending: false,
     closing: false,
     issue: None,
+    cleanup_issue: None,
     operations: None,
     progress: None,
     producers: @local_run.local_compute_producers(host),
@@ -93,6 +127,10 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
   }
   if value.closing || record.closing || compute.closing {
     return -5
+  }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
   }
   // Fix original publication scope before the activation Owner is invoked.
   // Current Run/Source access is separate from the task dispatch permit.
@@ -210,6 +248,10 @@ pub fn advance_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   if record.finished_inputs.any(finished => !finished) {
     return -7
   }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
   record.pending = true
   match (operations.advance)(quantum) {
     Ok(progress) => record.progress = Some(progress)
@@ -271,7 +313,31 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
         record.task,
       )
     }
-    if !(operations.execution_stopped)() || !(operations.cleanup_refresh)() {
+    if !(operations.execution_stopped)() {
+      // Disposal already fenced activation. The SAME existing provider still
+      // needs its bounded stop poll; a cancel request alone is no stop ACK.
+      // Its operations retain their original failure independently of this
+      // observation. No new provider may be started by the disposed driver.
+      match (operations.advance)(1) {
+        Err(@managed.Execution(@strategy.Stopped)) | Ok(_) => ()
+        Err(issue) =>
+          if record.cleanup_issue is None {
+            record.cleanup_issue = Some(issue)
+          }
+      }
+      if !(operations.execution_stopped)() {
+        return -9
+      }
+    }
+    // Supply the observed stop only to the original execution reservation.
+    // Cleanup can remain pending after this; neither step is a Run terminal.
+    if (operations.settle)() is Err(issue) {
+      if record.cleanup_issue is None {
+        record.cleanup_issue = Some(issue)
+      }
+      return -9
+    }
+    if !(operations.cleanup_refresh)() {
       return -9
     }
   }
@@ -300,6 +366,10 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   }
   // Captured and supplied reads are already bound by the existing driver.
   // Only managed completed-output ports require a row transfer here.
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
   if record.positions.length() != operations.inputs.length() {
     record.issue = Some(@local_run.Configuration)
     return -32
@@ -375,6 +445,10 @@ pub fn prepare_managed_task_finalization(nonce : Int64, handle : Int) -> Int {
   if record.finalization_invoked {
     return 0
   }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
   record.finalization_invoked = true
   record.pending = true
   record.progress = None
@@ -418,6 +492,10 @@ pub fn advance_managed_task_finalization(
   if !record.finalization_invoked {
     return -7
   }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
   record.pending = true
   match (operations.advance_finalization)(quantum) {
     Ok(progress) => record.progress = Some(progress)
@@ -446,6 +524,10 @@ pub fn complete_managed_task(nonce : Int64, handle : Int) -> Int {
   }
   if record.completed is Some(_) {
     return 0
+  }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
   }
   if !record.finalization_invoked || record.progress is None {
     return -7
