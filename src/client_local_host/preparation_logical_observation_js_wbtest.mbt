@@ -93,6 +93,60 @@ test "logical metadata holds SAME Request through pending delivery and original 
 }
 
 ///|
+test "completed original Compute keeps hook return pending until its explicit owner close" {
+  let (parent, run, prepared, compiled, definition) = original_explanation_capture_fixture()
+  let observation = prepare_installed_logical_observation(
+    run, prepared, compiled, definition, 4096, 128, 16,
+  ).unwrap()
+  let plan = run.source_free_preparation.unwrap()
+  let setup = open_installed_managed_source_free_host(
+      run,
+      prepared,
+      run.request,
+      plan.installed_contracts,
+      plan.values_body,
+      plan.fragment_body,
+      plan.ordered_body,
+      true,
+    )
+    .unwrap()
+    .unwrap()
+  let captured = run.source_free_captured.unwrap()
+  attach_installed_logical_observation(observation, captured).unwrap()
+  let execution = execute_source_free_local_tasks_guarded(setup, 64, 100000, () => {
+    true
+  }).unwrap()
+  assert_eq(execution.rows().unwrap(), [])
+  assert_true(@strategy.next_captured_task(captured) is None)
+  let held = @resources.ledger_usage(parent.ledger)
+  // Completion is not stop. The original hook and preparation loans must not
+  // be refunded merely because no next task remains or outputs are readable.
+  assert_true(
+    return_installed_logical_observation(observation)
+    is Err(LogicalObservationCleanupPending),
+  )
+  assert_true(observation.attached is Some(_))
+  assert_eq(@resources.ledger_usage(parent.ledger), held)
+  // This actual execution owner stops SAME captured DAG, then closes outputs.
+  // Its existing close is the Common counterpart of the installed JS driver.
+  assert_true(execution.close())
+  // False means the parent has not retired, not that this loan remains live.
+  // Its SAME Run still owns the preparation until explicit retirement below.
+  assert_true(return_installed_logical_observation(observation) is Ok(false))
+  assert_true(observation.attached is None)
+  assert_true(
+    @resources.preparation_body_borrow_value(observation.cleanup.holder) is None,
+  )
+  assert_true(@resources.ledger_usage(parent.ledger).live_reservations > 0)
+  assert_true(return_installed_logical_observation(observation) is Ok(false))
+  retire_installed_managed_run(run).unwrap()
+  let closed = @resources.ledger_usage(parent.ledger)
+  assert_eq(closed.live_reservations, 0)
+  assert_eq(closed.reserved_retention_bytes, 0L)
+  assert_eq(closed.reserved_execution_bytes, 0L)
+}
+
+///|
 test "logical metadata refuses one-short before retention cells and foreign issued Compute without attaching" {
   for retention in [true, false] {
     let (parent, run, prepared, compiled, definition) = original_explanation_capture_fixture()

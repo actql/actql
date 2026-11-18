@@ -1398,6 +1398,14 @@ export async function runInstalledStrategy({
         closeFailed = true;
         rememberOwnedReleaseFailure(error, owner);
       };
+      // Successful output remains usable until this owner closes. Stop the
+      // completed original DAG before returning outputs and observation loans;
+      // finishing Compute alone does not close its retained boundary hooks.
+      // A checkpoint wait keeps its existing dispatch-stop/resume semantics.
+      if (runFinished) {
+        try { core.stop(setup); }
+        catch (error) { releaseFailed(error, core); }
+      }
       try {
         const result = transfers.close();
         if (result != null && typeof result.then === 'function') {
