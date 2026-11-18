@@ -122,6 +122,8 @@ fn start_local_managed_test_task_operations(
     Err(IdentityExport(_)) => fail("Local managed identity export failed")
     Err(CarrierSnapshot(_)) =>
       fail("Unexpected Carrier snapshot during Relation setup")
+    Err(@local_driver.LogicalWorkLimit(_, _, _)) =>
+      fail("Local managed setup exhausted logical work")
     Err(@local_driver.ControlWorkLimit(_)) =>
       fail("Local managed setup exhausted control work")
     Err(@local_driver.ExecutionCapacityRefusal(_, needed, available, policy)) =>
@@ -201,6 +203,8 @@ fn start_local_managed_test_task_operations(
     Err(IdentityExport(_)) => fail("Local managed identity export failed")
     Err(CarrierSnapshot(_)) =>
       fail("Unexpected Carrier snapshot during Relation start")
+    Err(@local_driver.LogicalWorkLimit(_, _, _)) =>
+      fail("Local managed start exhausted logical work")
     Err(@local_driver.ControlWorkLimit(_)) =>
       fail("Local managed start exhausted control work")
     Err(@local_driver.ExecutionCapacityRefusal(_, needed, available, policy)) =>
@@ -242,6 +246,8 @@ fn start_local_managed_test_task_operations(
         Err(IdentityExport(_)) => fail("Local managed identity export failed")
         Err(CarrierSnapshot(_)) =>
           fail("Unexpected Carrier snapshot during Relation transfer")
+        Err(@local_driver.LogicalWorkLimit(_, _, _)) =>
+          fail("Local managed transfer exhausted logical work")
         Err(@local_driver.ControlWorkLimit(_)) =>
           fail("Local managed transfer exhausted control work")
         Err(
@@ -455,6 +461,8 @@ fn run_local_managed_test_task(
       fail("Local managed identity export failed")
     Err(@local_driver.CarrierSnapshot(_)) =>
       fail("Unexpected Carrier snapshot during Relation execution")
+    Err(@local_driver.LogicalWorkLimit(_, _, _)) =>
+      fail("Local managed execution exhausted logical work")
     Err(@local_driver.ControlWorkLimit(_)) =>
       fail("Local managed execution exhausted control work")
     Err(@local_driver.ExecutionCapacityRefusal(_, needed, available, policy)) =>
@@ -515,6 +523,8 @@ fn run_local_managed_test_task(
       Err(IdentityExport(_)) => fail("Local managed identity export failed")
       Err(CarrierSnapshot(_)) =>
         fail("Unexpected Carrier snapshot during Relation finalization")
+      Err(@local_driver.LogicalWorkLimit(_, _, _)) =>
+        fail("Local managed finalization exhausted logical work")
       Err(@local_driver.ControlWorkLimit(_)) =>
         fail("Local managed finalization exhausted control work")
       Err(@local_driver.ExecutionCapacityRefusal(_, needed, available, policy)) =>
