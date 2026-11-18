@@ -26,7 +26,7 @@ fn cancellation_saved_rows() -> Array[(String, @host.ClientJournalPhysicalRow)] 
     @host.client_request_authority_scope_cid(original.0),
     "saved-cancel",
   ).unwrap()
-  let actual = rows.map(pair => {
+  let actual : Array[(String, @host.ClientJournalPhysicalRow)] = rows.map(pair => {
     if pair.0 == "client_cancel_custody" {
       (pair.0, { key: "issued", revision: 1L, body: b"1", })
     } else {
