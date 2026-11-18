@@ -431,3 +431,58 @@ test "remaining original typed row causes reach the actual imported Node ABI wit
     )
   }
 }
+
+///|
+#cfg(target="js")
+extern "js" fn original_logical_work_node_abi(
+  original : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+  project : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> (Int, Int64, String)?,
+  policy : String,
+  setting : String,
+) -> Bool =
+  #|(original, project, policy, setting) => {
+  #| const require = process.getBuiltinModule('module').createRequire(process.cwd()+'/package.json');
+  #| const {checkedLocalManagedAdvance} = require('./adapters/local-node/managed-advance-diagnostic.mjs');
+  #| const {checked} = require('./adapters/host-common/runtime-result.mjs');
+  #| const {publicBudgetFailureMessage} = require('./adapters/host-node/client-dispatch-diagnostic.mjs');
+  #| let primary, calls=0;
+  #| const moon={strategyModule_local_ManagedAdvanceLogicalWorkPolicy(value) {
+  #|   if(this!==moon || value!==original)throw new Error('ForeignOriginalResult');
+  #|   calls++;return project(value);
+  #| }};
+  #| try { checkedLocalManagedAdvance(moon,original,value=> {
+  #|   try{return checked(value);}catch(error){primary=error;throw error;}
+  #| },43);return false;}catch(error) {
+  #|   return error===primary && calls===1 && error.code==='MoonBitHostFailure' &&
+  #|     error.primaryDiagnostic?.workLimit===policy && error.primaryDiagnostic?.setting===setting &&
+  #|     publicBudgetFailureMessage(error).includes('policy='+policy+'; unit=work_units; setting='+setting+'.');
+  #| }
+  #|}
+
+///|
+#cfg(target="js")
+test "original logical work Option tuple reaches the imported Node helper without an ABI reconstruction" {
+  for
+    (limit, origin, setting) in [
+      (
+        20000000L,
+        @local_driver.SourceFreeInstallation,
+        "installation.sourceFreeMaxWork",
+      ),
+      (10000000L, @local_driver.Unspecified, "unavailable"),
+    ] {
+    assert_true(
+      original_logical_work_node_abi(
+        Err(@local_driver.LogicalWorkLimit(43, limit, origin)),
+        local_managed_advance_logical_work_policy,
+        limit.to_string(),
+        setting,
+      ),
+    )
+  }
+}

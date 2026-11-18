@@ -80,6 +80,9 @@ pub(all) enum LocalDispatchIssue {
   IdentityExport(@execution.CompletedExportIssue)
   CarrierSnapshot(@carrier_runtime.SnapshotIssue)
   ControlWorkLimit(Int)
+  // The SAME generated Fragment supplied this limit and diagnostic origin.
+  // These are not retained demand/remaining quantities or another allowance.
+  LogicalWorkLimit(Int, Int64, LocalWorkPolicy)
   // Exact failed reservation DATA; the original quota cause stays distinct
   // from current/foreign/cleanup and generic physical failures.
   ExecutionCapacityRefusal(@resources.LedgerIssue, Int64, Int64, Int64)

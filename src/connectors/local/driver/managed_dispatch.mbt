@@ -390,6 +390,38 @@ fn local_managed_finalization_diagnostic_control_capacity() -> Int64? {
 }
 
 ///|
+// The new original issue (1H/3W), Node DATA (1H/5R/2W) and <=19-digit
+// policy String (1H/19 UTF16) remain live through the existing failure owner.
+// Temporary projection: policy pair+Some and bridge tuple+Some never overlap;
+// the latter is 2H/2R/2W. Three fixed local references/two words and the
+// defineProperty argument's 1H/1R can coexist with the new DATA. These are
+// explicit same-task controls, not
+// new metadata ceilings or a replacement reservation/cleanup acknowledgement.
+fn local_managed_logical_work_diagnostic_capacity() -> (Int64, Int64)? {
+  guard @execution.preparation_representation_cost({
+      record_headers: 3L,
+      reference_slots: 5L,
+      scalar_words: 5L,
+      owned_utf16_units: 19L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    @execution.preparation_representation_cost({
+      record_headers: 3L,
+      reference_slots: 6L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(temporary) &&
+    @execution.checked_preparation_add_product(retained, temporary, 1L)
+    is Some(execution) else {
+    return None
+  }
+  Some((retained, execution))
+}
+
+///|
 fn local_managed_scalar_overlap_control_capacity() -> Int64? {
   @execution.preparation_representation_cost(
     local_managed_scalar_overlap_controls,
@@ -795,6 +827,8 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     return Err(Configuration(InvalidLimits))
   }
   guard local_managed_scalar_overlap_control_capacity() is Some(controls) &&
+    local_managed_logical_work_diagnostic_capacity()
+    is Some((diagnostic_retained, diagnostic_execution)) &&
     local_managed_finalization_diagnostic_control_capacity()
     is Some(finalization_controls) &&
     @execution.checked_preparation_add_product(
@@ -802,6 +836,10 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     )
     is Some(controls) &&
     @execution.checked_preparation_add_product(imported, controls, 1L)
+    is Some(imported) &&
+    @execution.checked_preparation_add_product(
+      imported, diagnostic_execution, 1L,
+    )
     is Some(imported) else {
     return Err(Configuration(InvalidLimits))
   }
@@ -810,6 +848,10 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   guard local_retained_with_metadata(
       base.retained_bytes,
       metadata.retained_bytes,
+    )
+    is Some(retained_with_metadata) &&
+    @execution.checked_preparation_add_product(
+      retained_with_metadata, diagnostic_retained, 1L,
     )
     is Some(retained_with_metadata) else {
     return Err(Configuration(InvalidLimits))
@@ -2008,7 +2050,15 @@ pub fn[T] start_local_managed_dispatch(
         }
         match poll {
           Err(issue) =>
-            Err(local_managed_provider_failure(issue, setup.execution.max_work))
+            Err(
+              local_managed_provider_failure_for_sequence(
+                issue,
+                setup.execution.max_work,
+                setup.installation,
+                setup.task,
+                setup.sequence,
+              ),
+            )
           Ok(@local.Continue(progress~, work~)) =>
             if progress < 0L || work <= 0L || work > quantum.to_int64() {
               Err(Configuration(InvalidLimits))
@@ -2105,7 +2155,15 @@ pub fn[T] start_local_managed_dispatch(
             @strategy.fail_task_execution(setup.run, execution, Compute(issue))
             |> ignore
             execution_finished.val = true
-            Err(local_managed_provider_failure(issue, setup.execution.max_work))
+            Err(
+              local_managed_provider_failure_for_sequence(
+                issue,
+                setup.execution.max_work,
+                setup.installation,
+                setup.task,
+                setup.sequence,
+              ),
+            )
           }
           Ok(@local.Stopped(progress~, work~)) => {
             if progress < 0L || work < 0L || work > quantum.to_int64() {

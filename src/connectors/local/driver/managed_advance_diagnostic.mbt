@@ -38,6 +38,7 @@ pub fn local_managed_failure_cause(issue : LocalDispatchIssue) -> String? {
     IdentityExport(_) => Some("local.identity_export")
     CarrierSnapshot(_) => Some("local.carrier_snapshot")
     ControlWorkLimit(_) => Some("local.control_work_limit")
+    LogicalWorkLimit(_, _, _) => Some("logical.work_limit")
     ExecutionCapacityRefusal(resource, _, _, _) =>
       Some(local_managed_resource_failure_cause(resource))
   }
@@ -172,6 +173,7 @@ fn local_managed_resource_failure_cause(
 /// This ordinal DATA is not a current proof, retry or execution permission.
 pub fn local_managed_failure_row_step(issue : LocalDispatchIssue) -> Int {
   match issue {
+    LogicalWorkLimit(step, _, _) if step >= 0 => step
     Configuration(@connector.Execution(@execution.Rows(step, _)))
     | Execution(
       @strategy.Compute(@connector.Execution(@execution.Rows(step, _)))
@@ -190,6 +192,66 @@ fn local_managed_provider_failure(
   match issue {
     @connector.ControlWorkLimit => ControlWorkLimit(initial_work_limit)
     _ => Configuration(issue)
+  }
+}
+
+///|
+// Retain immutable policy DATA before the original provider/sequence aliases
+// can be retired. No later Ledger observation, shape test or equal max_work
+// value establishes which installation selected this Fragment's policy.
+fn local_managed_provider_failure_for_sequence(
+  issue : @connector.FixedComputeIssue,
+  initial_work_limit : Int,
+  installed : LocalDispatchModule,
+  task : Int,
+  sequence : @execution.GeneratedSequence,
+) -> LocalDispatchIssue {
+  let preparation = installed.preparation
+  let slot = task - @strategy.graph_captured_prefix(preparation.graph)
+  if !physical_equal(
+      preparation.graph,
+      @strategy.captured_dag_graph(installed.run),
+    ) ||
+    !physical_equal(preparation.implementation, installed.implementation) ||
+    !@local.local_module_original_occurrence(
+      preparation.implementation,
+      slot,
+      sequence,
+    ) {
+    return local_managed_provider_failure(issue, initial_work_limit)
+  }
+  match issue {
+    @connector.Execution(@execution.Rows(step, original)) if @execution.row_failure_is_logical_work_limit(
+        original,
+      ) =>
+      match @execution.generated_sequence_logical_work_limit(sequence, step) {
+        Some(limit) => LogicalWorkLimit(step, limit, preparation.work_policy)
+        None => Configuration(issue)
+      }
+    _ => local_managed_provider_failure(issue, initial_work_limit)
+  }
+}
+
+///|
+/// Core selects the explanatory setting from the original construction path.
+/// Other and legacy origins keep an honest unavailable setting. In particular,
+/// an acquired 10M policy never becomes the source-free installation knob.
+pub fn local_managed_advance_logical_work_policy(
+  issue : LocalDispatchIssue,
+) -> (Int, Int64, String)? {
+  match issue {
+    LogicalWorkLimit(step, limit, origin) if step >= 0 && limit >= 0L =>
+      Some(
+        (
+          step,
+          limit,
+          match origin {
+            SourceFreeInstallation => "installation.sourceFreeMaxWork"
+            Unspecified => "unavailable"
+          },
+        ),
+      )
+    _ => None
   }
 }
 

@@ -195,7 +195,12 @@ units, and installation setting. `retained_bytes` maps to
 `installation.requestMemory.executionBytes`. These are logical byte quotas,
 not process RSS. `value_capture_work` and `control_work` map to
 `installation.sourceFreeMaxWork`, which does not change Program parsing or
-checking limits. The original bounded UTF8 probe can prove only a lower bound
+checking limits. A Fragment's cumulative `logical_work` failure reports the
+actual limit retained by that same original sequence. Its setting is
+`installation.sourceFreeMaxWork` only when the fixed source-free Core
+constructor retained that origin; other or legacy paths report `unavailable`,
+even if their numeric limit equals the source-free default. Requested and
+remaining work are unavailable when the original failure did not retain them. The original bounded UTF8 probe can prove only a lower bound
 on additional work; the message labels that bound instead of rescanning the
 input. If the original failure did not retain quantities, they are explicitly
 unavailable. Diagnostics do not grant a retry, success, cancellation or cleanup

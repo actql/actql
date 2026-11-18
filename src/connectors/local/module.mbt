@@ -331,7 +331,9 @@ pub fn local_module_managed_provider(
 }
 
 ///|
-fn local_module_original_occurrence(
+/// Read only the existing original/refinement association. This does not
+/// recalculate capacity, execute a provider or observe external currentness.
+pub fn local_module_original_occurrence(
   installed : LocalComputeModule,
   slot : Int,
   sequence : @execution.GeneratedSequence,

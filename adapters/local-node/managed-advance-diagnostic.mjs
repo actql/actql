@@ -87,9 +87,24 @@ export function checkedLocalManagedAdvance(moon, result, checked, task) {
       }
       if (!Object.hasOwn(error, 'primaryDiagnostic') && Number.isSafeInteger(task) && task >= 0 && task <= 2147483647 &&
           Object.getOwnPropertyDescriptor(error, 'code')?.value === 'MoonBitHostFailure') {
+        const projectLogical = moon.strategyModule_local_ManagedAdvanceLogicalWorkPolicy;
+        if (typeof projectLogical === 'function') {
+          const logical = runtimeUnboxedReferenceOption(Reflect.apply(projectLogical, moon, [result]));
+          if (logical != null && typeof logical === 'object' && !Array.isArray(logical)) {
+            const step = runtimeField(logical, 0), limit = runtimeField(logical, 1), setting = runtimeField(logical, 2);
+            if (Number.isSafeInteger(step) && step >= 0 && step <= 2147483647 &&
+                typeof limit === 'bigint' && limit >= 0n && limit <= 9223372036854775807n &&
+                (setting === 'installation.sourceFreeMaxWork' || setting === 'unavailable')) {
+              Object.defineProperty(error, 'primaryDiagnostic', {value: Object.freeze({
+                code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'logical_work',
+                task, step, workLimit: limit.toString(), setting,
+              })});
+            }
+          }
+        }
         const projectCause = moon.strategyModule_local_ManagedAdvanceCause;
         const projectStep = moon.strategyModule_local_ManagedAdvanceRowStep;
-        if (typeof projectCause === 'function' && typeof projectStep === 'function') {
+        if (!Object.hasOwn(error, 'primaryDiagnostic') && typeof projectCause === 'function' && typeof projectStep === 'function') {
           const cause = Reflect.apply(projectCause, moon, [result]);
           const step = Reflect.apply(projectStep, moon, [result]);
           if (typeof cause === 'string' && cause.length <= 96 &&

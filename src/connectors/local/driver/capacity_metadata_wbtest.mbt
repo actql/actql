@@ -76,8 +76,12 @@ test "missing input copy quote preserves original scratch metadata export and ex
     let actual = local_dispatch_copy_capacity(
       base, 7L, 11L, 13L, 37L, copies, true,
     ).unwrap()
-    assert_eq(actual.retained_bytes, retained)
-    assert_eq(actual.execution_bytes, execution)
+    // Independent changed-record census: 3 headers/5 references/5 words,
+    // policy String maximum19 UTF16. Projection/locals/descriptor add3H6R4W.
+    let diagnostic = 3L * 16L + 5L * 8L + 5L * 8L + 19L * 2L
+    let temporary = 3L * 16L + 6L * 8L + 4L * 8L
+    assert_eq(actual.retained_bytes, retained + diagnostic)
+    assert_eq(actual.execution_bytes, execution + diagnostic + temporary)
     assert_eq(actual.transfer_bytes, transfer)
   }
   assert_true(
@@ -86,6 +90,43 @@ test "missing input copy quote preserves original scratch metadata export and ex
   assert_true(
     local_dispatch_copy_capacity(
       base, 9223372036854775807L, 11L, 13L, 37L, 0, true,
+    )
+    is None,
+  )
+}
+
+///|
+test "logical work diagnostic quote retains fixed fields and preserves explicit metadata ceilings" {
+  let (retained, execution) = local_managed_logical_work_diagnostic_capacity().unwrap()
+  assert_eq(retained, 3L * 16L + 5L * 8L + 5L * 8L + 19L * 2L)
+  assert_eq(execution - retained, 3L * 16L + 6L * 8L + 4L * 8L)
+  let origin = local_dispatch_preparation_work_policy_capacity()
+  assert_eq(origin.retained_bytes, 2L * 8L)
+  assert_eq(origin.execution_bytes, 4L * 8L)
+  assert_true(
+    local_dispatch_copy_capacity(
+      @execution.execution_capacity(
+        9223372036854775807L - retained + 1L,
+        9223372036854775807L,
+      ).unwrap(),
+      0L,
+      0L,
+      0L,
+      0L,
+      0,
+      false,
+    )
+    is None,
+  )
+  assert_true(
+    local_dispatch_copy_capacity(
+      @execution.execution_capacity(0L, 9223372036854775807L - execution + 1L).unwrap(),
+      0L,
+      0L,
+      0L,
+      0L,
+      0,
+      false,
     )
     is None,
   )
