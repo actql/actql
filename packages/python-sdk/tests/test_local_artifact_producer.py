@@ -91,7 +91,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
                        'public_local_acceptance': False, 'wheel_acceptance': False}
         self.image_path = self.root / 'original.cwasm'
         self.image_path.write_bytes(IMAGE)
-        self.image = {'source_sha': self.head, 'module_sha256': digest, 'core_abi': 87,
+        self.image = {'source_sha': self.head, 'module_sha256': digest, 'core_abi': 88,
             'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
             'provider_library_sha256': json.loads(ORIGINAL)['provider_library_sha256'],
             'engine_sha256': descriptor(self.head, '0.0.0.dev0', digest)['engine_sha256'],
@@ -304,6 +304,14 @@ class LocalArtifactProducerTests(unittest.TestCase):
                 native_libraries=self.root / 'fixed-native-libraries')
         self.assertEqual(prepared['source_sha'], self.head)
         self.assertFalse(prepared['runtime_executed'])
+
+    def test_stale_87_image_receipt_refuses_before_destination_creation(self):
+        self.image['core_abi'] = 87
+        self.write_receipts()
+        with self.assertRaisesRegex(ValueError,
+                                    'Compiled image receipt does not match the selected original recipe'):
+            self.run_producer()
+        self.assertFalse(self.output.exists())
 
     def test_foreign_or_incomplete_image_provenance_is_not_copied(self):
         for key, value in [('source_sha', '0' * 40), ('module_sha256', '0' * 64),
