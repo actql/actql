@@ -7740,7 +7740,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
+                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -14752,7 +14752,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
+                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -17045,7 +17045,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
+                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -19259,7 +19259,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
+                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -20539,7 +20539,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
+                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -21819,7 +21819,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
+                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -23099,7 +23099,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
+                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
