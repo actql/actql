@@ -199,6 +199,40 @@ def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
     return result
 
 
+def accept_installed_cancellation(run, consumer: Path, destination: Path,
+                                  version: str, env: dict[str, str]) -> None:
+    """Use this same normal install for public cancellation and saved reads.
+
+    Each facade owns one fresh public state directory. The consumer refuses a
+    missed active window instead of retrying work or accepting already_terminal.
+    """
+    for facade in ('sync', 'async'):
+        work = destination / (facade + '-cancellation')
+        work.mkdir()
+        previous_pid = None
+        for phase in ('initial', 'resume'):
+            observed = json.loads(run(f'{facade}-cancellation-{phase}',
+                [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+                 destination / 'python-product-installed.py',
+                 '--version', version, '--mode', 'local', '--facade', facade,
+                 '--phase', phase, '--case', 'cancellation', '--receipt', work / 'original.json'],
+                cwd=work, env=env, timeout=180))
+            if (observed.get('mode') != 'local' or observed.get('version') != version
+                    or observed.get('case') != 'cancellation' or observed.get('facade') != facade
+                    or observed.get('phase') != phase or type(observed.get('actualCases')) is not int
+                    or observed['actualCases'] != 1 or type(observed.get('pid')) is not int
+                    or observed['pid'] <= 0 or observed['pid'] == previous_pid
+                    or observed.get('reported_physical_stop') not in ('unknown', 'confirmed')):
+                raise ValueError('Incomplete installed cancellation consumer')
+            expected = {'admitted_inflight': phase == 'initial', 'original_cancel_accepted': True,
+                        'cancel_lookup_same': True, 'original_run_reused': phase == 'resume',
+                        'same_host_healthy_after_cancel': phase == 'initial',
+                        'saved_read_only': phase == 'resume', 'first_close': True, 'closed': True}
+            if any(observed.get(key) is not value for key, value in expected.items()):
+                raise ValueError('Incomplete installed cancellation consumer')
+            previous_pid = observed['pid']
+
+
 def run_acceptance(destination: Path) -> None:
     target_platform = normal_target()
     _, _, archive_bytes, library_name = duckdb_release(target_platform)
@@ -298,6 +332,7 @@ def run_acceptance(destination: Path) -> None:
     health.mkdir()
     run('health', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                    destination / 'ci-python-installed-health.py'], cwd=health, env=env, timeout=180)
+    accept_installed_cancellation(run, consumer, destination, version, env)
     audit('installed-after')
     verify_built_cohort(cohort_directory, source, version)
     clean()
@@ -306,7 +341,9 @@ def run_acceptance(destination: Path) -> None:
         'cohort_sha256': hashlib.sha256((cohort_directory / 'cohort.json').read_bytes()).hexdigest(),
         'normal_wheel_install': True, 'public_local_accepted': True,
         'separate_process_saved': True, 'typed_refusal_and_health': True,
-        'context_close': True, 'physical_release_observed': False,
+        'context_close': True, 'installed_active_cancellation': True,
+        'cancelled_saved_recovery': True, 'first_cancel_case_close': True,
+        'physical_release_observed': False,
         'published': False, 'steps': steps}, indent=2) + '\n')
 
 

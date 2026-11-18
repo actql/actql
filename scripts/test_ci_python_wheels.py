@@ -649,5 +649,185 @@ class FailureLocationTests(unittest.TestCase):
         self.assertEqual(len(stream.getvalue().splitlines()), 1)
 
 
+class InstalledCancellationTests(unittest.TestCase):
+    """Receipt and command harness checks, never installed runtime acceptance."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.consumer = load('installed_cancellation_harness', SCRIPTS / 'fixtures/python-product-installed.py')
+
+    def original(self):
+        reference = {'namespaceId': 'harness', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'b' * 64}
+        cancellation = {'ref': reference, 'kind': 'accepted', 'revision': 8,
+                        'cancelRef': reference | {'cancelId': 'original-cancel', 'expectedRevision': 7}}
+        terminal = {'version': 1, 'run_id': 'original-run', 'status': 'cancelled',
+                    'result_available': False, 'control': {'revision': 8,
+                    'cancellation_requested': True, 'physical_stop': 'unknown'}}
+        return reference, cancellation, terminal
+
+    def test_original_active_revision_cancel_and_lookup_remain_correlated(self):
+        reference, cancellation, _ = self.original()
+        self.assertEqual(self.consumer._active_revision({'status': 'running',
+            'control': {'revision': 7, 'cancellation_requested': False}}), ('running', 7))
+        accepted = self.consumer._accepted_cancellation({'kind': 'accepted',
+            'cancellation': cancellation}, reference)
+        self.assertEqual(accepted, cancellation)
+        self.consumer._same_cancellation_lookup({'kind': 'found', 'cancellation': cancellation}, accepted)
+        foreign = dict(cancellation['cancelRef'], cancelId='another-cancel')
+        with self.assertRaises(AssertionError):
+            self.consumer._same_cancellation_lookup({'kind': 'found',
+                'cancellation': cancellation | {'cancelRef': foreign}}, accepted)
+
+    def test_missed_active_window_or_foreign_control_cannot_count_as_coverage(self):
+        reference, cancellation, _ = self.original()
+        with self.assertRaises(self.consumer.ActiveCancellationCoverageUnavailable):
+            self.consumer._active_revision({'status': 'succeeded'})
+        with self.assertRaises(self.consumer.ActiveCancellationCoverageUnavailable):
+            self.consumer._accepted_cancellation({'kind': 'already_satisfied',
+                'cancellation': cancellation | {'kind': 'already_terminal'}}, reference)
+        for revision in (True, -1, 2147483648):
+            with self.subTest(revision=revision), self.assertRaises(AssertionError):
+                self.consumer._active_revision({'status': 'running',
+                    'control': {'revision': revision, 'cancellation_requested': False}})
+        for changed in (cancellation | {'ref': reference | {'namespaceId': 'foreign'}},
+                        cancellation | {'revision': 7},
+                        cancellation | {'cancelRef': cancellation['cancelRef'] | {'expectedRevision': True}}):
+            with self.subTest(changed=changed), self.assertRaises(AssertionError):
+                self.consumer._cancellation_payload(changed, reference)
+
+    def test_saved_status_preserves_original_control_without_inventing_physical_ack(self):
+        _, _, terminal = self.original()
+        saved = {'terminal': terminal}
+        self.assertEqual(self.consumer._same_saved_cancelled(terminal, saved), terminal)
+        confirmed = terminal | {'control': terminal['control'] | {'physical_stop': 'confirmed'}}
+        self.assertEqual(self.consumer._same_saved_cancelled(confirmed, saved), confirmed)
+        for changed in (terminal | {'status': 'succeeded'},
+                        terminal | {'run_id': 'replacement'},
+                        terminal | {'control': terminal['control'] | {'revision': 9}},
+                        terminal | {'control': terminal['control'] | {'physical_stop': 'assumed'}}):
+            with self.subTest(changed=changed), self.assertRaises(AssertionError):
+                self.consumer._same_saved_cancelled(changed, saved)
+        with self.assertRaises(AssertionError):
+            self.consumer._same_saved_cancelled(terminal, {'terminal': confirmed})
+
+    def test_private_cancel_receipt_is_read_by_an_actual_different_python_process(self):
+        import subprocess
+        reference, cancellation, terminal = self.original()
+        body = {'version': '0.0.0.dev0', 'facade': 'sync', 'submission': {'harness': 'submission'},
+                'run': reference, 'details': {'case': 'cancellation', 'initial_status': 'running',
+                                            'cancellation': cancellation, 'terminal': terminal}}
+        program = ('import importlib.util,json,sys; from pathlib import Path; '
+                   's=importlib.util.spec_from_file_location("fixture",sys.argv[1]); '
+                   'm=importlib.util.module_from_spec(s);s.loader.exec_module(m); '
+                   'm._record(Path(sys.argv[2]),**json.loads(sys.argv[3]))')
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'original.json'
+            child = subprocess.run([sys.executable, '-I', '-B', '-c', program,
+                str(SCRIPTS / 'fixtures/python-product-installed.py'), str(path), json.dumps(body)],
+                capture_output=True, text=True, timeout=5)
+            self.assertEqual(child.returncode, 0, child.stderr)
+            captured = path.read_bytes()
+            saved = self.consumer._cancel_saved(path, body['version'], 'sync')
+            self.assertNotEqual(saved['producer_pid'], self.consumer.os.getpid())
+            self.assertEqual(saved['run'], reference)
+            self.assertEqual(saved['cancellation'], cancellation)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            for version, facade in (('different', 'sync'), (body['version'], 'async')):
+                with self.subTest(version=version, facade=facade), self.assertRaises(AssertionError):
+                    self.consumer._cancel_saved(path, version, facade)
+            invalid = (saved | {'producer_pid': self.consumer.os.getpid()}, saved | {'extra': True})
+            for changed in invalid:
+                path.write_text(json.dumps(changed))
+                with self.assertRaises(AssertionError):
+                    self.consumer._cancel_saved(path, body['version'], 'sync')
+            path.write_bytes(captured[:-2] + b',"version":"duplicate"}\n')
+            with self.assertRaisesRegex(AssertionError, 'Duplicate'):
+                self.consumer._cancel_saved(path, body['version'], 'sync')
+            path.write_bytes(captured)
+            path.chmod(0o644)
+            with self.assertRaisesRegex(AssertionError, 'private'):
+                self.consumer._cancel_saved(path, body['version'], 'sync')
+
+    def test_receipt_writer_cannot_replace_originals_or_reuse_a_receipt(self):
+        reference, _, _ = self.original()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'original.json'
+            args = {'version': '0.0.0.dev0', 'facade': 'sync', 'submission': {}, 'run': reference}
+            with self.assertRaises(AssertionError):
+                self.consumer._record(path, **args, details={'run': {}})
+            self.assertFalse(path.exists())
+            self.consumer._record(path, **args)
+            self.assertEqual(set(json.loads(path.read_text())), self.consumer._RECORD_FIELDS)
+            with self.assertRaises(FileExistsError):
+                self.consumer._record(path, **args)
+            with self.assertRaises(AssertionError):
+                self.consumer._saved(path, args['version'])
+
+    def report(self, args, pid):
+        facade = args[args.index('--facade') + 1]
+        phase = args[args.index('--phase') + 1]
+        return {'mode': 'local', 'version': '0.0.0.dev0', 'case': 'cancellation', 'actualCases': 1,
+                'facade': facade, 'phase': phase, 'pid': pid, 'reported_physical_stop': 'unknown',
+                'admitted_inflight': phase == 'initial', 'original_cancel_accepted': True,
+                'cancel_lookup_same': True, 'original_run_reused': phase == 'resume',
+                'same_host_healthy_after_cancel': phase == 'initial',
+                'saved_read_only': phase == 'resume', 'first_close': True, 'closed': True}
+
+    def test_same_installed_consumer_has_four_fresh_bounded_phase_commands(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            destination, consumer, env = Path(tmp), Path('/installed/bin/python'), {'PATH': '/installed/bin'}
+            calls = []
+            def run(name, args, **options):
+                calls.append((name, args, options))
+                return json.dumps(self.report(args, 100 + len(calls)))
+            ci.accept_installed_cancellation(run, consumer, destination, '0.0.0.dev0', env)
+            self.assertEqual([name for name, _, _ in calls], [f'{facade}-cancellation-{phase}'
+                for facade in ('sync', 'async') for phase in ('initial', 'resume')])
+            for index, (_, args, options) in enumerate(calls):
+                facade, phase = ('sync' if index < 2 else 'async'), ('initial' if index % 2 == 0 else 'resume')
+                work = destination / (facade + '-cancellation')
+                self.assertEqual(args[:5], [consumer, '-I', '-B',
+                    destination / 'ci-python-installed-run.py', destination / 'python-product-installed.py'])
+                self.assertEqual(args[args.index('--case') + 1], 'cancellation')
+                self.assertEqual(args[args.index('--phase') + 1], phase)
+                self.assertEqual(args[-2:], ['--receipt', work / 'original.json'])
+                self.assertEqual(options, {'cwd': work, 'env': env, 'timeout': 180})
+                self.assertIs(options['env'], env)
+
+    def test_incomplete_control_close_or_process_report_stops_without_retry(self):
+        for field, value in (('actualCases', True), ('admitted_inflight', False),
+                             ('cancel_lookup_same', False), ('first_close', False),
+                             ('closed', False), ('reported_physical_stop', 'assumed')):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as tmp:
+                calls = []
+                def run(name, args, **options):
+                    calls.append(name)
+                    return json.dumps(self.report(args, 100) | {field: value})
+                with self.assertRaises(ValueError):
+                    ci.accept_installed_cancellation(run, Path('/python'), Path(tmp), '0.0.0.dev0', {})
+                self.assertEqual(calls, ['sync-cancellation-initial'])
+        with tempfile.TemporaryDirectory() as tmp:
+            calls = []
+            def repeated_process(name, args, **options):
+                calls.append(name)
+                return json.dumps(self.report(args, 100))
+            with self.assertRaises(ValueError):
+                ci.accept_installed_cancellation(repeated_process, Path('/python'), Path(tmp), '0.0.0.dev0', {})
+            self.assertEqual(calls, ['sync-cancellation-initial', 'sync-cancellation-resume'])
+
+    def test_original_consumer_failure_stays_primary_and_is_not_retried(self):
+        original = RuntimeError('explicit command-port failure')
+        with tempfile.TemporaryDirectory() as tmp:
+            calls = []
+            def failed(name, args, **options):
+                calls.append(name)
+                raise original
+            with self.assertRaises(RuntimeError) as observed:
+                ci.accept_installed_cancellation(failed, Path('/python'), Path(tmp), '0.0.0.dev0', {})
+            self.assertIs(observed.exception, original)
+            self.assertEqual(calls, ['sync-cancellation-initial'])
+
+
 if __name__ == '__main__':
     unittest.main()
