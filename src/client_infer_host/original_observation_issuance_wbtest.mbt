@@ -416,9 +416,11 @@ test "original observation issuance keeps same funding through binding and calle
   assert_eq(@resources.ledger_usage(ledger), after)
   assert_false(cleanup(active).unwrap())
   assert_true(release_original_infer_publication_capacity(capacity).unwrap())
+  // Retire the metadata payload and the carrier's one additional 8-byte
+  // optional reference, which was admitted even while it contained None.
   assert_eq(
     @resources.ledger_usage(ledger).reserved_retention_bytes,
-    after.reserved_retention_bytes - 65664L,
+    after.reserved_retention_bytes - 65672L,
   )
   assert_true(cleanup(active).unwrap())
 }

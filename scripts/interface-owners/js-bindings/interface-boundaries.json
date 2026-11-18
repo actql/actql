@@ -67773,7 +67773,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "46edea0203446b104cdc706dc6e75fba3ee6bcaa7a23b7532b002d47892ba555",
+      "sha256": "e44bfd2d08faefc6cb43450e95f9c50e3e1aaa66deba26127a5d2539c2d78678",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -67842,6 +67842,14 @@
           "async": true
         },
         {
+          "name": "openNodeInferCaptureCustody/init:beginUsage/init:beginUsage",
+          "parameters": [
+            "maxBytes",
+            "current"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferCaptureCustody/init:completedCallCount/init:completedCallCount",
           "parameters": [],
           "async": false
@@ -67888,15 +67896,6 @@
             "entry"
           ],
           "async": true
-        },
-        {
-          "name": "openNodeInferCaptureCustody/init:projectUsage/init:projectUsage",
-          "parameters": [
-            "slot",
-            "maxBytes",
-            "current"
-          ],
-          "async": false
         },
         {
           "name": "openNodeInferCaptureCustody/init:usageInventory/init:usageInventory",
@@ -67960,6 +67959,7 @@
             "openNodeInferCaptureCustody/cleanupPublication/cleanupPublication/cleanupPublication#2",
             "openNodeInferCaptureCustody/custody/custody",
             "openNodeInferCaptureCustody/custody/init:close/init:close",
+            "openNodeInferCaptureCustody/init:beginUsage/init:beginUsage",
             "openNodeInferCaptureCustody/init:completedInventoryReceipt/init:completedInventoryReceipt",
             "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal",
             "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal/init:configureModelJournal",
@@ -67967,15 +67967,14 @@
             "openNodeInferCaptureCustody/init:modelEvidence/init:modelEvidence",
             "openNodeInferCaptureCustody/init:persist/init:persist",
             "openNodeInferCaptureCustody/init:persistSettlement/init:persistSettlement",
+            "openNodeInferCaptureCustody/init:usageInventory/init:usageInventory",
             "openNodeInferCaptureCustody/openNodeInferCaptureCustody",
             "openNodeInferCaptureCustody/persistSettlement",
             "openNodeInferCaptureCustody/persistStoppedAttempts",
             "openNodeInferCaptureCustody/retainCompleted",
             "openNodeInferCaptureCustody/retirePublication/retirePublication",
             "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication",
-            "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication#2",
-            "openNodeInferCaptureCustody/init:projectUsage/init:projectUsage",
-            "openNodeInferCaptureCustody/init:usageInventory/init:usageInventory"
+            "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication#2"
           ],
           "exports": [
             "openNodeInferCaptureCustody"
@@ -67989,6 +67988,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "inputsOutputs": [
@@ -67999,6 +68002,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "identity": [
@@ -68013,6 +68020,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "ownership": [
@@ -68027,6 +68038,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "synchronization": [
@@ -68037,6 +68052,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "failure": [
@@ -68051,6 +68070,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "cancellation": [
@@ -68065,6 +68088,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "resources": [
@@ -68079,6 +68106,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "extension": [
@@ -68089,6 +68120,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "verification": [
@@ -68103,6 +68138,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ]
           }
@@ -68435,7 +68474,7 @@
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "01806815c5b54aacacfe43f1ec37240a33813ce20cc4b6dff5e10403562c290e",
+      "sha256": "2dc302273675d9c879943e4cc72c8fa8f4a9e537d7aa78ac94939623b715938c",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -68572,26 +68611,14 @@
           "async": false
         },
         {
-          "name": "projectInferUsage/projectInferUsage",
+          "name": "projectInferUsage/child/child",
           "parameters": [],
           "async": false
         },
         {
-          "name": "projectInferUsage/projectInferUsage#2",
+          "name": "projectInferUsage/cleanup/cleanup",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "projectInferUsage/projectInferUsage#3",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "projectInferUsage/unavailable/unavailable",
-          "parameters": [
-            "item"
-          ],
-          "async": false
         },
         {
           "name": "withPreparedInferEvidence",
@@ -68630,10 +68657,8 @@
           "operations": [
             "canonicalJson/canonicalJson",
             "projectInferUsage/check/check",
-            "projectInferUsage/projectInferUsage",
-            "projectInferUsage/projectInferUsage#2",
-            "projectInferUsage/projectInferUsage#3",
-            "projectInferUsage/unavailable/unavailable"
+            "projectInferUsage/child/child",
+            "projectInferUsage/cleanup/cleanup"
           ],
           "exports": [],
           "attributes": {
@@ -68645,6 +68670,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "inputsOutputs": [
@@ -68655,6 +68684,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "identity": [
@@ -68669,6 +68702,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "ownership": [
@@ -68683,6 +68720,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "synchronization": [
@@ -68693,6 +68734,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "failure": [
@@ -68707,6 +68752,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "cancellation": [
@@ -68721,6 +68770,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "resources": [
@@ -68735,6 +68788,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "extension": [
@@ -68745,6 +68802,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "verification": [
@@ -68759,6 +68820,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ]
           }
@@ -69708,8 +69773,10 @@
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
         "./infer-operation.mjs",
-        "node:crypto"
+        "node:crypto",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -69724,10 +69791,10 @@
           "operations": [
             "finishNodeInferOriginalReadScopes",
             "finishNodeInferOriginalReadScopes/current/current/current",
-            "retireNodeInferOriginalRead",
             "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit",
+            "openNodeInferOperation/operation/init:beginOriginalUsage/init:beginOriginalUsage",
             "openNodeInferOperation/operation/init:prepareOriginalUsage/init:prepareOriginalUsage",
-            "openNodeInferOperation/operation/init:projectOriginalUsage/init:projectOriginalUsage"
+            "retireNodeInferOriginalRead"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -69746,6 +69813,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "inputsOutputs": [
@@ -69760,6 +69831,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "identity": [
@@ -69774,6 +69849,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "ownership": [
@@ -69788,6 +69867,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "synchronization": [
@@ -69802,6 +69885,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "failure": [
@@ -69816,6 +69903,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "cancellation": [
@@ -69830,6 +69921,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "resources": [
@@ -69844,6 +69939,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "extension": [
@@ -69858,6 +69957,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "verification": [
@@ -69872,6 +69975,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ]
           }
@@ -72913,6 +73020,16 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:beginOriginalUsage/init:beginOriginalUsage",
+          "parameters": [
+            "source",
+            "capture",
+            "count",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture",
           "parameters": [
             "registration",
@@ -73109,17 +73226,6 @@
             "source",
             "capture",
             "count"
-          ],
-          "async": false
-        },
-        {
-          "name": "openNodeInferOperation/operation/init:projectOriginalUsage/init:projectOriginalUsage",
-          "parameters": [
-            "source",
-            "capture",
-            "slot",
-            "count",
-            "maxBytes"
           ],
           "async": false
         },
@@ -73807,7 +73913,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "25db7dd8b7f1499b9148886a60c9bc158ae0af3503ec0d9fbc212ecd82e20f57"
+      "sha256": "fc17396ba2dc1218d2e4c41f6337d4d9b2249a2e35f879d1aa9af7d15dba3bd1"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",

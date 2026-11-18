@@ -161,3 +161,46 @@ Checked input, item/work and request limits remain immutable. Startup controls
 and later physical-attempt/output duties are charged separately on the same
 original Ledger, within the already quoted total. No cancellation, absence or
 unused allowance acknowledges physical cleanup or refunds consumed work.
+
+## Optional usage publication on the original capacity
+
+Optional usage publication continues on the existing Model publication capacity.
+The original INFER facade retains the exact Execution and rechecks its claimed
+Read before selecting another physical action. A current Model/Scope by itself
+is insufficient after that Read has stopped. The facade is a funded reference
+carrier, not another Ledger, execution Owner or grant.
+
+Common selects the single outstanding retain, authorize, capture, record or
+retire action. A physical observation consumes that exact nominal action and
+original facade; stale, foreign and out-of-order observations refuse. The Node
+binding snapshots only the Sink's own DATA completion field, executes callbacks
+and awaits their actual settlement. It does not independently aggregate usage
+availability or select another slot. Token absence stays distinct from zero;
+optional failure cannot alter Model completion/Unknown or authorize a resend.
+
+The added optional reference in the publication carrier is charged before the
+initial reserve even when it remains None. Existing complete payload quotes and
+actual admitted extents are distinct: convert a payload once; never add the
+carrier delta to an already absolute extent. The Native pre-open observation
+Plan includes this actual extent, and identity-scan headroom subtracts the same
+actual fixed base. The initial constructor, grow and release use one reservation
+and the original Request ceiling.
+
+The continuation and action/item backing are funded before construction, then
+the existing bounded seven-field usage writer grows the same capacity for its
+actual output. Normal retirement reuses the exact manifest/items passed to
+record. If a later current loss changes Common completion, only one closed outer
+manifest and its getter alias coexist with the recorded one (1H/7R); that overlap
+is included in the original window and borrows the same items. The adopted
+call/attempt references used in completion items are
+retained before awaiting a callback; a current loss does not trigger another
+original read while building an incomplete receipt. A stop request leaves an
+outstanding callback owned. Publication release remains pending until its
+matching child reports actual local cleanup. Cleanup after Read revocation is
+release-only and does not reacquire live read authority.
+
+This is the explicit usage-aware local Sink DATA contract. It is not a new
+version of full invocation evidence. Full and typed-input projection retain
+their existing paths. The selected implementation exports the Node family;
+matching generated Wasm/Python entrances and normal installed acceptance remain
+separate obligations, not consequences of this source declaration.

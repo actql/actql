@@ -454,6 +454,8 @@ pub fn client_program_begin_installed_effect_model_unit_managed_export(@client_l
 
 pub fn client_program_begin_installed_source_io(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], ClientLocalPreparationInputOriginal, Int64) -> Result[@physical_resources.PreparationIo, @physical_resources.PreparationCapacityIssue]
 
+pub fn client_program_begin_original_infer_usage_publication(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, @model_execution.VerifiedModelCapture, Int64, Int64, Int) -> Result[@client_infer_host.OriginalInferUsagePublication, @client_infer_host.Issue]
+
 pub fn client_program_begin_request_explanation_read(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue]
 
 pub fn client_program_begin_request_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]
@@ -3170,6 +3172,8 @@ pub fn client_program_native_decision_request_matches(@model_execution.NativeDec
 
 pub fn client_program_native_decision_request_wires(@model_execution.NativeDecisionRequest) -> (String, String)?
 
+pub fn client_program_next_original_infer_usage_action(@client_infer_host.OriginalInferUsagePublication) -> Result[@model_execution.ModelUsageAction?, @client_infer_host.Issue]
+
 pub fn client_program_node_effect_managed_plan_cleanup(@physical_resources.NodeManagedRunAdmission[@client_local_host.ClientInstalledEffectManagedPlan]) -> Result[Unit, @physical_resources.ImportedChildLedgerIssue]
 
 pub fn client_program_node_local_content_run_prepare(@physical_resources.OriginalNodeManagedRunReference, @run_publication_host.PreparedClientProgram) -> Result[@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @physical_resources.ImportedChildLedgerIssue]
@@ -3207,6 +3211,8 @@ pub fn client_program_notion_project_database(Bytes, @actql/actql/connectors/not
 pub fn client_program_notion_property_write_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/notion/catalog.NotionPropertyWriteLimits
 
 pub fn client_program_observe_infer_raw_capture(@model_execution.ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[@model_execution.ModelRawCaptureSave, @model_execution.ModelRawCaptureSaveIssue]
+
+pub fn client_program_observe_original_infer_usage_action(@client_infer_host.OriginalInferUsagePublication, @model_execution.ModelUsageAction, String) -> Result[Unit, @client_infer_host.Issue]
 
 pub fn client_program_open_captured_composed_infer_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
@@ -3275,6 +3281,26 @@ pub fn client_program_original_explanation_facts_wire(@client_local_host.ClientO
 pub fn client_program_original_explanation_plan_wire(@client_local_host.ClientOriginalExplanationCapture) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
 pub fn client_program_original_infer_capture_inventory_capacity(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity) -> Result[(Int, Int64, Int64), @client_infer_host.Issue]
+
+pub fn client_program_original_infer_publication_execution_bytes(@model_execution.OriginalModelPublicationCapacity) -> Int64
+
+pub fn client_program_original_infer_publication_retained_bytes(@model_execution.OriginalModelPublicationCapacity) -> Int64
+
+pub fn client_program_original_infer_usage_action_kind(@model_execution.ModelUsageAction) -> String?
+
+pub fn client_program_original_infer_usage_action_slot(@model_execution.ModelUsageAction) -> Int?
+
+pub fn client_program_original_infer_usage_action_wire(@model_execution.ModelUsageAction) -> String?
+
+pub fn client_program_original_infer_usage_binding_matches(@client_infer_host.OriginalInferUsagePublication, @model_execution.ModelUsageAction, String, String) -> Bool
+
+pub fn client_program_original_infer_usage_completion(@client_infer_host.OriginalInferUsagePublication) -> String
+
+pub fn client_program_original_infer_usage_item(@client_infer_host.OriginalInferUsagePublication, Int) -> (Int, String)?
+
+pub fn client_program_original_infer_usage_item_attempt(@client_infer_host.OriginalInferUsagePublication, Int) -> String?
+
+pub fn client_program_original_infer_usage_item_count(@client_infer_host.OriginalInferUsagePublication) -> Int
 
 pub fn client_program_original_infer_usage_projection(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, @model_execution.VerifiedModelCapture, Int, Int64, Int64, Int) -> Result[(String, Int64, Int64), @client_infer_host.Issue]
 
@@ -4639,6 +4665,8 @@ pub fn client_program_start_validation(@client_local_host.ClientProgramValidatio
 pub fn client_program_stop_infer_node_read_state(@run_publication_host.ClientNodeModelStateWriter, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[Unit, @run_publication_host.ClientModelReadPreparationIssue]
 
 pub fn client_program_stop_infer_original_read_preparation(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[Unit, @run_publication_host.ClientModelReadPreparationIssue]
+
+pub fn client_program_stop_original_infer_usage_publication(@client_infer_host.OriginalInferUsagePublication) -> Unit
 
 pub fn client_program_stored_generated_content_candidate(String, String, Int, Int, Int, Int) -> Result[@run_publication.StoredGeneratedContentReference, @run_publication.GeneratedContentReferenceIssue]
 
