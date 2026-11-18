@@ -1,11 +1,15 @@
 // Compiler-driver ownership, shared by the Native selector and checkpoint
 // inventory. The workflow's literal matrix is checked against this inventory.
 export const nativeCoreCiPartitions = Object.freeze([
-  '1/2', '2/2', 'source', 'scoped-runtime', 'scoped-review',
+  '1/2', '2/2', 'scoped-runtime', 'scoped-review',
 ]);
-// Profiles are distinct from hosted jobs: the first Darwin ordinary job also
-// executes the original HTTP profile. Source and both original scoped allocation
-// profiles have separate runners; the combined scoped profile remains local.
+// Logical profiles are distinct from runner acquisitions. The first ordinary
+// job retains HTTP and then runs the unchanged Source entrance in a fresh child.
+// Scoped allocation profiles retain their separate original runners.
+export function nativeCoreHostedPartitions(partition) {
+  if (!nativeCoreCiPartitions.includes(partition)) throw new Error('Unknown hosted Native Core partition');
+  return partition === '1/2' ? [partition, 'source'] : [partition];
+}
 export const nativeCoreScopedCiProfiles = Object.freeze({
   'scoped-runtime': 'runtime-values', 'scoped-review': 'scoped-review-values',
 });

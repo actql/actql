@@ -2,7 +2,8 @@
 
 This reads declarations, not function bodies or transition rules. Unsupported
 syntax/types fail closed; actual compiled imports/exports remain an independent
-check. Run with --check for read-only freshness validation.
+check. Default generation and --check cover Python, C and the neutral contract.
+The frozen Rust projection is selected only by the explicit --rust option.
 """
 from __future__ import annotations
 
@@ -477,23 +478,22 @@ def render_compiler_header(root: Path = ROOT) -> str:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--rust', action='store_true',
+                        help='also select the existing frozen Rust projection')
     args = parser.parse_args()
     rendered = render()
-    compiler_rendered = render_compiler_header()
-    contract_rendered = render_contract()
-    rust_rendered = render_rust()
+    outputs = [
+        (OUTPUT, rendered, 'Local Wasm ABI binding is stale'),
+        (COMPILER_OUTPUT, render_compiler_header(), 'Local image compiler ABI binding is stale'),
+        (CONTRACT_OUTPUT, render_contract(), 'Common Core Wasm ABI contract is stale'),
+    ]
+    if args.rust:
+        outputs.append((RUST_OUTPUT, render_rust(), 'Rust Core Wasm ABI binding is stale'))
     if args.check:
-        if OUTPUT.read_text() != rendered:
-            raise SystemExit('Local Wasm ABI binding is stale')
-        if COMPILER_OUTPUT.read_text() != compiler_rendered:
-            raise SystemExit('Local image compiler ABI binding is stale')
-        if not CONTRACT_OUTPUT.is_file() or CONTRACT_OUTPUT.read_text() != contract_rendered:
-            raise SystemExit('Common Core Wasm ABI contract is stale')
-        if not RUST_OUTPUT.is_file() or RUST_OUTPUT.read_text() != rust_rendered:
-            raise SystemExit('Rust Core Wasm ABI binding is stale')
+        for path, body, issue in outputs:
+            if not path.is_file() or path.read_text() != body:
+                raise SystemExit(issue)
     else:
-        OUTPUT.write_text(rendered)
-        COMPILER_OUTPUT.write_text(compiler_rendered)
-        CONTRACT_OUTPUT.write_text(contract_rendered)
-        RUST_OUTPUT.write_text(rust_rendered)
+        for path, body, _ in outputs:
+            path.write_text(body)
     print('Local Wasm ABI binding SHA256 ' + hashlib.sha256(rendered.encode()).hexdigest())

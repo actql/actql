@@ -126,8 +126,6 @@ fn build_client_keyed_native_left_identity(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
-  let basis_retained = lookup.retained_bytes
-  let basis_execution = lookup.execution_bytes
   guard @execution.completed_relation_identity_scan_start_construction_capacity(
       output,
       retain_body=true,
@@ -140,17 +138,43 @@ fn build_client_keyed_native_left_identity(
     is Some(start) else {
     return Err(Assembly("native_left_start_capacity"))
   }
-  match
-    keyed_lookup_body_grow(
-      lookup,
-      basis_retained,
-      basis_execution,
-      controls,
-      Some(start),
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
+  with_keyed_body_construction(
+    lookup,
+    start,
+    controls,
+    grow => {
+      scan_client_keyed_native_left_identity(
+        lookup, original, component, output, max_rows, values, payload_wire, logical_wire,
+        schema, max_work, workspace, grow,
+      )
+    },
+    value => {
+      // The builder has returned: its scan/writer aliases no longer survive.
+      // Retain this SAME result before the fallible original reconciliation.
+      lookup.native_left_identity = Some(value)
+      Ok(())
+    },
+    value => {
+      keyed_identity_retained_capacity(value._retained_receipt, value.body)
+    },
+  ).map(settled => settled.value)
+}
+
+///|
+fn scan_client_keyed_native_left_identity(
+  lookup : ClientKeyedLookupInput,
+  original : ClientComposedKeyedOriginal,
+  component : ClientKeyedPlanComponent,
+  output : @execution.CompletedOutput,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema : @execution.RelationSchemaIdentityLimits,
+  max_work : Int,
+  workspace : Int?,
+  grow : (@execution.ExecutionCapacity) -> Result[Unit, ClientKeyedRequestIssue],
+) -> Result[ClientKeyedNativeLeftIdentity, ClientKeyedRequestIssue] {
   // RowWorkspace is a structural-entry counter, not an allocated buffer or
   // parent byte debit. Keep all selected writer/value limits unchanged. The
   // actual scan still grows its original parent before each construction.
@@ -195,14 +219,7 @@ fn build_client_keyed_native_left_identity(
       is Some(next) else {
       return Err(Assembly("native_left_next_capacity"))
     }
-    match
-      keyed_lookup_body_grow(
-        lookup,
-        basis_retained,
-        basis_execution,
-        controls,
-        Some(next),
-      ) {
+    match grow(next) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
@@ -255,9 +272,9 @@ fn build_client_keyed_native_left_identity(
   @execution.cancel_completed_relation_identity_scan(scan) |> ignore
   lookup.identity_scan = None
   // Original Ref emission/current callbacks may reenter retirement. After the
-  // LAST external boundary retain only pure identity/phase comparisons.
-  guard client_keyed_left_available(lookup.left) &&
-    !lookup.closed &&
+  // LAST external boundary retain only pure identity/phase comparisons. The
+  // managed owner observes original current after adoption, before settlement.
+  guard !lookup.closed &&
     lookup.left.lookup_issue is None &&
     lookup.native_left_identity is None &&
     lookup.native_left_receipt is Some(same) &&
@@ -266,7 +283,6 @@ fn build_client_keyed_native_left_identity(
     physical_equal(same_original, original) else {
     return Err(Assembly("retired_native_left_identity"))
   }
-  lookup.native_left_identity = Some(result)
   Ok(result)
 }
 

@@ -96,7 +96,6 @@ jobs:
       deep_proofs: ${{ steps.select.outputs.deep_proofs }}
       plan: ${{ steps.select.outputs.plan }}
       python_wheels: ${{ steps.select.outputs.python_wheels }}
-      rust_library: ${{ steps.select.outputs.rust_library }}
       moon_test_selection: ${{ steps.select.outputs.moon_test_selection }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -569,10 +568,39 @@ jobs:
             # backend; production and the focused debug prerequisite are unchanged.
             # Compile two independent C units concurrently, while keeping
             # physical test execution serial under the original fixture roots.
-            # Partition whole ordinary test packages before C generation. Each
-            # runner keeps its own source/toolchain/build and original fixtures;
-            # physical profiles have independent runners and original fixtures.
-            MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
+            # Every invocation keeps its original Source/toolchain and fresh
+            # scratch/peer processes. Source follows ordinary work sequentially,
+            # without another delayed macOS runner acquisition or cache trust.
+            run_core_profile() {
+              MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
+            }
+            # The supported local runner clears both authenticated plan inputs
+            # and keeps one complete, unpartitioned original Core invocation.
+            if [ -z "${{ matrix.partition }}" ] && [ -z "${CI_PLAN_PATH:-}" ] && [ -z "${CI_PLAN:-}" ]; then
+              run_core_profile
+              exit $?
+            fi
+            profiles="$(node --input-type=module -e '
+              import {nativeCoreHostedPartitions} from "./scripts/ci-core-partitions.mjs";
+              console.log(nativeCoreHostedPartitions(process.argv[1]).join(" "));
+            ' "${{ matrix.partition }}")"
+            test -n "$profiles"
+            status=0
+            for profile in $profiles; do
+              result=0
+              if [ "$profile" = source ]; then
+                # A fresh Node entrance selects the original non-cache Source
+                # compiler, not an ordinary job's optional cached PATH wrapper.
+                (unset ACTQL_TEST_NATIVE_CORE_CCACHE ACTQL_TEST_NATIVE_CORE_CCACHE_DIR &&
+                 ACTQL_TEST_NATIVE_CORE_PARTITION="$profile" run_core_profile) || result=$?
+              else
+                ACTQL_TEST_NATIVE_CORE_PARTITION="$profile" run_core_profile || result=$?
+              fi
+              # A cancelled/signal-stopped child is never restarted or replayed.
+              if [ "$result" -ge 128 ]; then exit "$result"; fi
+              if [ "$status" -eq 0 ] && [ "$result" -ne 0 ]; then status=$result; fi
+            done
+            exit "$status"
           else
             if [ "${{ needs.select-targets.outputs.moon_test_selection }}" = true ]; then
               node scripts/ci-moon-tests.mjs "${{ matrix.target }}"
@@ -660,8 +688,8 @@ jobs:
       max-parallel: 4
       matrix:
         target: [native]
-        # Start the longest observed partitions first; all five remain required.
-        partition: [scoped-runtime, '2/2', scoped-review, '1/2', source]
+        # Source stays required in the first ordinary job; all logical profiles remain.
+        partition: [scoped-runtime, '2/2', scoped-review, '1/2']
     runs-on: macos-15
     timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
     steps: *core_steps
@@ -2968,7 +2996,7 @@ jobs:
   check:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native-cli-linux-local-installed, native-cli-linux-local-mock, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
-      native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed, rust-library]
+      native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -3189,67 +3217,6 @@ jobs:
               }
             }
           '
-  # One same-source Core fixture for the initial locked Rust library gate.
-  # This component is selected by its actual inputs, not for every unrelated PR.
-  rust-library:
-    needs: [select-targets]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.rust_library == 'true' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    env:
-      RUSTUP_TOOLCHAIN: 1.90.0
-      CARGO_BUILD_JOBS: 2
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 22.22.0
-          cache: npm
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: '3.12'
-      - run: npm ci
-      - name: Install the pinned MoonBit and Rust compilers
-        run: |
-          node scripts/setup-moonbit.mjs
-          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
-          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
-          echo "$toolchain/bin" >> "$GITHUB_PATH"
-          echo "ACTQL_CORE_WASM=$RUNNER_TEMP/rust-library/core/wasm/release/build/client_host_wasm/client_host_wasm.wasm" >> "$GITHUB_ENV"
-          rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal --no-self-update
-          rustc --version
-          cargo --version
-      - name: Execute the locked Rust syntax-reader controls
-        run: node scripts/local-checks.mjs test cargo --allow-heavy --timeout-seconds 300 --kill-grace-seconds 5 -- --locked --manifest-path packages/rust/tools/source-inventory/Cargo.toml --lib -- --nocapture
-      - name: Check Cargo source responsibility and generated scalar bindings
-        timeout-minutes: 3
-        run: node scripts/check-rust-interface-owners.mjs
-      - name: Build the actual same-source Core Wasm once
-        run: |
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          node scripts/local-checks.mjs build moon --allow-heavy --timeout-seconds 600 --kill-grace-seconds 5 -- --target wasm --release src/client_host_wasm --target-dir "$RUNNER_TEMP/rust-library/core"
-          sha256sum "$ACTQL_CORE_WASM" > "$RUNNER_TEMP/rust-library/core.sha256"
-          git rev-parse HEAD > "$RUNNER_TEMP/rust-library/source-revision.txt"
-          rustc --version > "$RUNNER_TEMP/rust-library/rustc-version.txt"
-          cargo --version > "$RUNNER_TEMP/rust-library/cargo-version.txt"
-      - name: Execute every locked Rust library case with nonzero evidence
-        run: node scripts/local-checks.mjs test cargo --allow-heavy --timeout-seconds 900 --kill-grace-seconds 5 -- --locked --manifest-path packages/rust/Cargo.toml --lib -- --nocapture
-      - name: Verify that checks did not rewrite tracked source
-        run: git diff --exit-code
-      - name: Retain the exact fixture, tool versions and original bounded execution evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: rust-library-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
-          path: |
-            ${{ runner.temp }}/rust-library/core/wasm/release/build/client_host_wasm/client_host_wasm.wasm
-            ${{ runner.temp }}/rust-library/core.sha256
-            ${{ runner.temp }}/rust-library/*.txt
-            _build/local-checks/attempts
-            _build/focused-evidence
-          if-no-files-found: error
   python-wheels:
     needs: [select-targets, lint, core-js]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.lint.result == 'success' && ((needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') && needs.core-js.result == 'success') || ((needs.select-targets.outputs.profile != 'full' || !contains(fromJSON(needs.select-targets.outputs.targets), 'js')) && needs.core-js.result == 'skipped')) && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}

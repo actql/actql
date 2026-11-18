@@ -13,8 +13,9 @@ import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 
 export function checkRustInterfaceOwners(root) {
   root = resolve(root);
+  // Neutral ABI freshness does not qualify this explicitly selected Rust mirror.
   execFileSync(process.env.ACTQL_PYTHON ?? 'python3', ['-B',
-    'scripts/generate-local-wasm-abi.py', '--check'], {cwd: root, timeout: 15000, stdio: 'pipe'});
+    'scripts/generate-local-wasm-abi.py', '--check', '--rust'], {cwd: root, timeout: 15000, stdio: 'pipe'});
   const source = rustInterfaceSources(root);
   for (const module of ['scripts/rust-interface-sources.mjs', 'scripts/check-rust-interface-owners.mjs']) {
     const bytes = readFileSync(join(root, module));

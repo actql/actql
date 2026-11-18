@@ -19,6 +19,77 @@ fn identity_scan_capacity(
 }
 
 ///|
+/// Retained DATA of one completed export after its scan/writers have returned.
+/// The original completed output, Values and field-name Text stay borrowed at
+/// their existing owner. Only the new receipt, summaries, indexes and identity
+/// Strings are counted here. This invokes no current/Reference callback and
+/// re-encodes, hashes or admits no row. The optional logical body is separate.
+pub fn completed_relation_export_retained_capacity(
+  receipt : CompletedRelationExportReceipt,
+) -> ExecutionCapacity? {
+  if receipt.rows.source is None || receipt.rows.binding {
+    return None
+  }
+  let summary = receipt.measurement
+  let scalar_slots = summary.column_rows.capacity().to_int64() +
+    summary.column_bytes.capacity().to_int64() +
+    summary.column_nodes.capacity().to_int64() +
+    summary.column_max_value_bytes.capacity().to_int64() +
+    summary.column_null_rows.capacity().to_int64() +
+    summary.column_admitted_depths.capacity().to_int64()
+  guard @shape.reference_array_retained_extent(
+      2L,
+      receipt.fields.capacity().to_int64() +
+      receipt.schema.field_names.capacity().to_int64(),
+    )
+    is Some(names) &&
+    @shape.reference_array_retained_extent(6L, 0L) is Some(scalars) else {
+    return None
+  }
+  // Relation/row receipt, original export identity, content/usage, logical
+  // identity, schema, summaries, original-source Some and four owned Texts.
+  let mut h = 13L + names.record_headers + scalars.record_headers
+  let mut r = 28L + names.reference_slots + scalars.reference_slots
+  let mut w = 20L + names.scalar_words + scalars.scalar_words + scalar_slots
+  if receipt.rows.references is Some(references) {
+    if !references.complete || references.revoked {
+      return None
+    }
+    // Keep the existing conservative original-reference index envelope.
+    // It is a live child of this receipt, not disposable scan/writer scratch.
+    // Its bounded slot census avoids walking Source rows or reissuing refs.
+    let live = references.workspace.live.to_int64()
+    guard @shape.collection_construction_extent({
+        records: 3L + live,
+        record_references: 4L + live,
+        record_words: 6L + live,
+        reference_arrays: live + 1L,
+        reference_items: live,
+        scalar_arrays: 0L,
+        scalar_items: 0L,
+        maps: 0L,
+        map_entries: 0L,
+      })
+      is Some(index) else {
+      return None
+    }
+    h += index.record_headers
+    r += index.reference_slots
+    w += index.scalar_words
+  }
+  identity_scan_capacity({
+    record_headers: h,
+    reference_slots: r,
+    scalar_words: w,
+    owned_utf16_units: receipt.rows.content.cid.length().to_int64() +
+    receipt.logical.cid.length().to_int64() +
+    receipt.schema.cid.length().to_int64() +
+    receipt.schema.wire.length().to_int64(),
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
 /// Before starting the incremental metadata mode: copy only the actual owned
 /// name array and create empty preparation/control/summary arrays. Schema,
 /// writer, row and value materialization occur in later original transitions.

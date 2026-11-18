@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {actionsReader, fullCheckpointJobs, policyPaths, resolveMainBaseline} from './ci-main-base.mjs';
 import {gateJobs} from './ci-targets.mjs';
+import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import {parse} from 'yaml';
 const sha = char => char.repeat(40);
 const head = sha('d'), previous = sha('c'), base = sha('b');
@@ -44,8 +45,8 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 // Independent full-workflow inventory: focused-tests runs only in its own
 // narrow profile and is skipped alongside the successful full families.
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
-  'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'core (native source)', 'core (native scoped-runtime)', 'core (native scoped-review)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native-cli-linux-local-installed', 'native',
-  'spec', 'session-evidence', 'session-controls', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels', 'rust-library',
+  'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'core (native scoped-runtime)', 'core (native scoped-review)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native-cli-linux-local-installed', 'native',
+  'spec', 'session-evidence', 'session-controls', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
   'native-separated-network (direct)', 'native-separated-network (store)', 'workers', 'connector-addition', 'duckdb-node',
   'client-readme-packed (22.22.0)', 'client-readme-packed (24)'];
 function fullWorkflowFixture() {
@@ -90,12 +91,13 @@ test('full checkpoint refuses missing failed skipped or cancelled README matrix 
   }
 });
 test('full checkpoint requires all original Native partitions and physical profiles and refuses missing failed cancelled or skipped coverage', async () => {
-  for (const name of ['core (native 1/2)', 'core (native 2/2)', 'core (native source)',
-    'core (native scoped-runtime)', 'core (native scoped-review)']) {
+  for (const name of nativeCoreCiPartitions.map(partition => `core (native ${partition})`)) {
     for (const outcome of ['missing', 'failure', 'cancelled', 'skipped']) {
       const f = fullWorkflowFixture();
       if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);
       else f.state.jobs.jobs.find(job => job.name === name).conclusion = outcome;
+      if (name === 'core (native 1/2)') f.state.jobs.jobs.push({name: 'core (native source)', run_id: 101,
+        run_attempt: 1, head_sha: base, status: 'completed', conclusion: 'success'});
       if (name.startsWith('core (native scoped-')) f.state.jobs.jobs.push({name: 'core (native scoped)', run_id: 101,
         run_attempt: 1, head_sha: base, status: 'completed', conclusion: 'success'});
       f.state.jobs.total_count = f.state.jobs.jobs.length;
