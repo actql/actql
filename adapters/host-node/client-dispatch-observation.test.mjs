@@ -911,16 +911,19 @@ test('required installed preparation forwards only its same funded callback with
   const environment = {}, prepared = {}, request = {kind: 'program', input: {
     toJSON() {assert.fail('Funded caller must not serialize a second document');}}, parameters: null};
   let calls = 0;
-  const preparation = {fundedPreparation(actual, selected) {
+  const journal = {};
+  const preparation = {fundedPreparation(actual, selected, verifier, signal, originalJournal) {
     assert.strictEqual(this, preparation); assert.strictEqual(actual, request); assert.strictEqual(selected, environment);
+    assert.strictEqual(originalJournal, journal);
+    assert.equal(verifier, undefined); assert.equal(signal, undefined);
     calls++; return {kind: 'effect_free', prepared, originalInputs: {environment}};
   }};
   const names = ['moon', 'environment', 'sourcePublication', 'valuesMaxRows', 'check', 'preparation',
     'preparedSourceEnvironment', 'getPreparedSourceEnvironment', 'verifyRequestValuePolicy',
-    'updateTargetOriginals', 'control', 'calendarArtifact', 'localContractLimits', 'effectInstallation'];
+    'updateTargetOriginals', 'control', 'calendarArtifact', 'localContractLimits', 'effectInstallation', 'journal'];
   const selected = compileFunction('return (' + text.slice(options.start, options.end) + ');', names)(
     {}, environment, undefined, undefined, undefined, preparation, undefined, undefined, undefined,
-    {}, {}, undefined, {}, undefined);
+    {}, {}, undefined, {}, undefined, journal);
   assert.equal(typeof selected.getFundedPreparation, 'function');
   const {installNodeClientProgramPreparation} = await import('./client-program-preparation.mjs');
   const prepare = installNodeClientProgramPreparation(selected);
