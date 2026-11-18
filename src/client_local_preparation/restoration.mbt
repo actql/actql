@@ -21,7 +21,7 @@ pub fn restore_local_submitted_input(
     Err(issue) => return Err(SubmittedInput(issue))
   }
   guard @decode.closed_object(cursor, [
-      "kind", "input", "parameters", "stopBefore", "readOnly",
+      "kind", "input", "parameters", "stopBefore", "readOnly", "executionProfile",
     ])
     is Ok(root) &&
     @decode.lookup(root, "kind").bind(value => @decode.text(value).to_option())

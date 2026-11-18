@@ -45437,7 +45437,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_check_domain.mbt",
-      "sha256": "5992cd72310ea4296e6130aee0a97e20face8322573dd104c42b531ba2e6163a",
+      "sha256": "d7094333470d167ce2dd7a8624445914c4f32b517323d0ba93129a7505ec8b4c",
       "exports": [],
       "operations": [
         {
@@ -45632,12 +45632,20 @@
     },
     {
       "module": "src/client_local_host/preparation_program_compile.mbt",
-      "sha256": "561ded1b0382ca2cd30557a2865bd1beede3c69e571f081636d1890e7e4470d2",
+      "sha256": "779f1cdac6c90289bcf8d4e76bd8f751941fc829657c24786d1de7735c95313b",
       "exports": [],
       "operations": [
         {
+          "name": "[I,P]begin_debug_program_compilation_work",
+          "declaration": "[ I , P ] begin_debug_program_compilation_work ( owner : ClientProgramCheckPreparation [ I , P ] , input : I , checked : @ checked . CheckedProgram , data : @ checked . ParsedCheckDataEstimate , limits : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ ( @ resources . PreparationPhaseWorkContinuation64 , Int ) , ClientProgramCheckPreparationIssue , ]"
+        },
+        {
           "name": "[I,P]begin_program_compilation_work",
           "declaration": "[ I , P ] begin_program_compilation_work ( owner : ClientProgramCheckPreparation [ I , P ] , input : I , checked : @ checked . CheckedProgram , data : @ checked . ParsedCheckDataEstimate , limits : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ @ resources . PreparationPhaseWork64 , ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "[I,P]compile_debug_program_check_preparation_owned",
+          "declaration": "[ I , P ] compile_debug_program_check_preparation_owned ( owner : ClientProgramCheckPreparation [ I , P ] , input : I , checked : @ checked . CheckedProgram , data : @ checked . ParsedCheckDataEstimate , limits : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ @ publication_host . PreparedClientProgram , ClientProgramCheckPreparationIssue , ]"
         },
         {
           "name": "[I,P]compile_effect_program_check_preparation",
@@ -45649,11 +45657,19 @@
         },
         {
           "name": "[I,P]compile_program_check_preparation",
-          "declaration": "[ I , P ] compile_program_check_preparation ( owner : ClientProgramCheckPreparation [ I , P ] , limits : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ @ publication_host . PreparedClientProgram , ClientProgramCheckPreparationIssue , ]"
+          "declaration": "[ I , P ] compile_program_check_preparation ( owner : ClientProgramCheckPreparation [ I , P ] , limits : @ publication_host . ClientProgramPreparationLimits , execution_profile ? : @ publication_host . ClientExecutionProfile"
         },
         {
           "name": "[I,P]compile_program_check_preparation_owned",
           "declaration": "[ I , P ] compile_program_check_preparation_owned ( owner : ClientProgramCheckPreparation [ I , P ] , input : I , checked : @ checked . CheckedProgram , data : @ checked . ParsedCheckDataEstimate , limits : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ @ publication_host . PreparedClientProgram , ClientProgramCheckPreparationIssue , ]"
+        },
+        {
+          "name": "[I,P]finish_debug_compilation_observation",
+          "declaration": "[ I , P ] finish_debug_compilation_observation ( owner : ClientProgramCheckPreparation [ I , P ] , work : @ resources . PreparationPhaseWorkContinuation64 , ) - > Result [ Unit , ClientProgramCheckPreparationIssue ]"
+        },
+        {
+          "name": "[I,P]reserve_program_compilation_quote",
+          "declaration": "[ I , P ] reserve_program_compilation_quote ( owner : ClientProgramCheckPreparation [ I , P ] , input : I , checked : @ checked . CheckedProgram , data : @ checked . ParsedCheckDataEstimate , limits : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ Unit , ClientProgramCheckPreparationIssue ]"
         },
         {
           "name": "[I,P]take_program_compilation_preparation",
@@ -45683,7 +45699,11 @@
             "[I,P]compile_program_check_preparation_owned",
             "[I,P]take_program_compilation_preparation",
             "[T]same_effect_publication",
-            "program_effect_selection_extent_cost"
+            "program_effect_selection_extent_cost",
+            "[I,P]begin_debug_program_compilation_work",
+            "[I,P]compile_debug_program_check_preparation_owned",
+            "[I,P]finish_debug_compilation_observation",
+            "[I,P]reserve_program_compilation_quote"
           ],
           "exports": [],
           "attributes": {
@@ -45695,6 +45715,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
               }
             ],
             "inputsOutputs": [
@@ -45705,6 +45729,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
               }
             ],
             "identity": [
@@ -45715,6 +45743,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
               }
             ],
             "ownership": [
@@ -45725,6 +45757,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
               }
             ],
             "synchronization": [
@@ -45745,6 +45781,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
               }
             ],
             "cancellation": [
@@ -45765,6 +45805,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
               }
             ],
             "extension": [
@@ -45775,6 +45819,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
               }
             ],
             "verification": [
@@ -45793,6 +45841,14 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_program_compile_js_wbtest.mbt",
+                "anchor": "test \"explicit Debug original Values graph is reserved at exact and one-short before its single compiler call\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_program_compile_js_wbtest.mbt",
+                "anchor": "test \"explicit Debug selected graph grow fences callback reentry on the same original compiler\" {"
               }
             ]
           }
@@ -52569,7 +52625,7 @@
     {
       "module": "src/client_local_host/preparation_request_terminal.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "386eb38931dd2e55482cc1f4d8a6c327717dbe7165a206ecef5763b8f7182c2a",
+      "sha256": "7d9ac88f3b1841f018aba168baaf5ddaeb5e4177d662a2d501ff988b4704d172",
       "role": "common-semantics",
       "owner": "Existing Request checking compiler and preparation capacity owners",
       "exports": [],
@@ -67414,7 +67470,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "e47e397ce655eac77578cdc6f6da626ecbb61dd91279b19ec22e04742de8915b",
+      "sha256": "22bb917f70a85a74d29f6a71457f56633903e1910e4d4830e2cc802d1e87f190",
       "exports": [],
       "operations": [
         {
@@ -81871,7 +81927,7 @@
           }
         }
       ],
-      "sha256": "c6cd786048bd175e5b575d36393d80ab8e86ebe5ed00e95159d9380db9cca047",
+      "sha256": "0199b66790ddf214c325f44c6b0a02de40a30d00a94149d52d76328c2ca881ed",
       "exports": [],
       "operations": [
         {
@@ -88644,7 +88700,7 @@
           }
         }
       ],
-      "sha256": "aa4928a5be7bacc447f0d24c5ceef41fb1cee9d2781f9502d3f6dfe2db08befc",
+      "sha256": "f4f64395733d84e6ca7e3cea58e1deca770d97c051bcb8765169eff1969bfba4",
       "operations": [
         {
           "name": "[T]source_result",
@@ -101227,7 +101283,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "8c43cdc57b90f01c95392927b485d6f860aab279ebce01e3d3e7ab836b07e530",
+      "sha256": "73076c9efcbacbb0503383d92dab4673b221802fbc38735b7b1ecc8cd0263c72",
       "exports": [],
       "operations": [
         {
@@ -108603,6 +108659,146 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/run_publication_host/client_debug_graph_construction.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "b63e7109bc2e7806dcc73a17ed0ce96c9e7c4517d194e46ee31de5872f7c6f63",
+      "role": "common-semantics",
+      "owner": "Existing checked compiler and same-Request preparation capacity Owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_debug_graph_collection_inventory",
+          "declaration": "client_debug_graph_collection_inventory ( stages : Int64 , tasks : Int64 , imports : Int64 , inputs : Int64 , gates : Int64 , obligations : Int64 , numeric : Int64 , results : Int64 , ) - > @ shape . CollectionConstructionInventory"
+        },
+        {
+          "name": "client_debug_graph_quotation_control_bytes",
+          "declaration": "client_debug_graph_quotation_control_bytes ( ) - > Int64"
+        },
+        {
+          "name": "measure_client_debug_graph_construction",
+          "declaration": "measure_client_debug_graph_construction ( checked : @ checked . CheckedProgram , max_tasks : Int , max_work : Int , observed_work : Ref [ Int64 ] , ) - > Result [ ( Int64 , Int ) , ClientProgramPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_debug_graph_collection_inventory",
+            "client_debug_graph_quotation_control_bytes",
+            "measure_client_debug_graph_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Explicit first-Plan Debug execution profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
+              },
+              {
+                "path": "src/run_publication_host/client_debug_graph_construction.mbt",
+                "anchor": "pub fn measure_client_debug_graph_construction("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Explicit first-Plan Debug execution profile"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
+              },
+              {
+                "path": "src/run_publication_host/client_debug_graph_construction.mbt",
+                "anchor": "pub fn measure_client_debug_graph_construction("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
+              },
+              {
+                "path": "src/client_local_host/preparation_program_compile_js_wbtest.mbt",
+                "anchor": "test \"explicit Debug selected graph grow fences callback reentry on the same original compiler\" {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
+              },
+              {
+                "path": "src/client_local_host/preparation_program_compile_js_wbtest.mbt",
+                "anchor": "test \"explicit Debug original Values graph is reserved at exact and one-short before its single compiler call\" {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
+              },
+              {
+                "path": "src/run_publication_host/client_debug_graph_construction.mbt",
+                "anchor": "pub fn measure_client_debug_graph_construction("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
+              },
+              {
+                "path": "src/run_publication_host/client_debug_graph_construction.mbt",
+                "anchor": "pub fn measure_client_debug_graph_construction("
+              },
+              {
+                "path": "src/client_local_host/preparation_program_compile_js_wbtest.mbt",
+                "anchor": "test \"explicit Debug original Values graph is reserved at exact and one-short before its single compiler call\" {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Original execution profile"
+              },
+              {
+                "path": "docs/design/semantic-decisions.md",
+                "anchor": "## Explicit first-Plan Debug execution profile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_program_compile_js_wbtest.mbt",
+                "anchor": "test \"explicit Debug original Values graph is reserved at exact and one-short before its single compiler call\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_program_compile_js_wbtest.mbt",
+                "anchor": "test \"explicit Debug selected graph grow fences callback reentry on the same original compiler\" {"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Actual checked-geometry and same-capacity construction controls only; no installed Host, normal supplier, execution permission or physical-parent certificate."
     }
   ]
 }

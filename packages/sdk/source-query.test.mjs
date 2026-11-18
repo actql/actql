@@ -10,6 +10,7 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {CLIENT_PACKAGES, packedClientPackage, packedNpmCache} from '../../scripts/packed-client-packages.mjs';
 import {connect, getSubmissionInput, getSubmissionOutcome, explainSubmission, RequestHeld} from './index.mjs';
 import {validRunState, validRunWaitContract} from '@actql/client-wire';
+import {performClientSubmit} from '../../adapters/host-node/client-submit.mjs';
 
 const cid = x => `sha256:${x.repeat(64)}`;
 const ref = {namespaceId: 'query-test', authorityScopeCid: cid('a'),
@@ -50,6 +51,84 @@ async function fixture(t, overrides = {}, token = 'token') {
   t.after(() => client.close());
   return {client, calls, count: name => calls.filter(x => x.operation === name).length};
 }
+
+// Public SDK/wire protocol controls with the existing explicit remote double;
+// these do not qualify a compiler, operational funding or installed Debug.
+test('explicit Debug submission retains its original choice and independent intent CID while omission stays Normal', async t => {
+  const f = await fixture(t, {connect: () => Response.json({...profile,
+    capabilities: ['debug-operation-boundaries']})});
+  for (const debug of [false, true]) {
+    let reads = 0;
+    const options = {format: 'sql', readOnly: true, stopBefore: 'commit',
+      submissionRef: originalSubmission(debug ? 'debug-original' : 'normal-original')};
+    if (debug) Object.defineProperty(options, 'executionProfile', {enumerable: true,
+      get() {reads++; return 'debug';}});
+    const pending = f.client.startSource('SELECT 1 AS n', options);
+    const original = getSubmissionInput(pending);
+    assert.equal(original.executionProfile, debug ? 'debug' : undefined);
+    assert.equal(Object.hasOwn(original, 'executionProfile'), debug);
+    await pending;
+    const packet = f.calls.filter(call => call.operation === 'submit-intent').at(-1).body;
+    assert.equal(Object.hasOwn(packet, 'executionProfile'), debug);
+    assert.equal(packet.executionProfile, debug ? 'debug' : undefined);
+    assert.equal(packet.readOnly, true); assert.equal(packet.stopBefore, 'commit');
+    assert.equal(packet.intentCid, debug
+      ? 'sha256:bfa01f3b76c303208c7546f9d74a5ce8abd90b04df73c484a7c81f6f739e7025'
+      : 'sha256:0aa55a072363007cad8e682096bd13eb9202879a08e43803f394ad251ffd45a7');
+    assert.equal(reads, debug ? 1 : 0);
+  }
+  assert.equal(f.count('wait'), 0); assert.equal(f.count('read'), 0);
+});
+
+test('explicit Debug short query captures before credentials and preserves its original read-only request', async t => {
+  let notify, release, choice = 'debug', reads = 0, tokens = 0;
+  const started = new Promise(resolve => {notify = resolve;});
+  const paused = new Promise(resolve => {release = resolve;});
+  const f = await fixture(t, {connect: () => Response.json({...profile,
+    capabilities: ['debug-operation-boundaries']})}, async () => {
+    if (++tokens === 2) {notify(); await paused;} return 'token';
+  });
+  const query = f.client.sql('SELECT 1 AS n', undefined, {
+    submissionRef: originalSubmission('debug-query'),
+    get executionProfile() {reads++; return choice;},
+  });
+  assert.equal(getSubmissionInput(query).executionProfile, 'debug');
+  choice = undefined;
+  await started; release(); await query;
+  const packet = f.calls.find(call => call.operation === 'submit-intent').body;
+  assert.equal(packet.executionProfile, 'debug'); assert.equal(packet.readOnly, true);
+  assert.equal(reads, 1); assert.equal(f.count('submit-intent'), 1);
+  assert.equal(f.count('wait'), 1); assert.equal(f.count('read'), 0);
+});
+
+test('unsupported Debug negotiation sends nothing and retains the original pending submission', async t => {
+  const f = await fixture(t);
+  const pending = f.client.startSource('SELECT 1 AS n', {format: 'sql',
+    submissionRef: originalSubmission('unsupported-debug'), executionProfile: 'debug'});
+  const original = getSubmissionInput(pending);
+  assert.equal(original.executionProfile, 'debug');
+  await assert.rejects(pending, error => {
+    assert.equal(error.code, 'SubmissionNotSent');
+    assert.equal(error.cause?.code, 'ClientExecutionProfileUnsupported');
+    assert.equal(getSubmissionInput(error), original);
+    return true;
+  });
+  assert.equal(f.count('submit-intent'), 0); assert.equal(f.count('wait'), 0); assert.equal(f.count('read'), 0);
+});
+
+test('legacy submit refuses explicit Debug before preparation without changing omitted-profile dispatch', async () => {
+  let prepared = 0, submitted = 0;
+  const connection = {mode: 'remote', owner: 'remote', consentRefs: [], runners: []};
+  const original = {};
+  const options = {connection, requestId: 'legacy-profile',
+    prepare() {prepared++; return original;},
+    submit(value) {assert.equal(value, original); submitted++; return {ref, durability: 'durable', revision: 1};}};
+  await assert.rejects(performClientSubmit({...options, executionProfile: 'debug'}),
+    {code: 'ClientProgramUnsupported'});
+  assert.equal(prepared, 0); assert.equal(submitted, 0);
+  assert.deepEqual((await performClientSubmit(options)).ref, ref);
+  assert.equal(prepared, 1); assert.equal(submitted, 1);
+});
 
 test('short queries eagerly submit once and share a native Promise Result', async t => {
   const f = await fixture(t);

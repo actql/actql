@@ -996,6 +996,51 @@ authorization, egress and resource requirements. General startSource behavior
 without the field is unchanged. Node and Python short queries select the field
 on that same original submit packet, not through a separate preflight request.
 
+### Original execution profile
+
+<!-- requirement-block: original-execution-profile.closed-selection -->
+The existing submit packet and submitted intent MUST admit only the optional
+`executionProfile: "debug"` selection, with omission retaining the original
+Normal bytes, canonical fingerprint and compiler path. Explicit `normal`, null,
+Boolean and unknown profile values are not aliases for omission.
+
+<!-- requirement-block: original-execution-profile.first-plan-identity -->
+The selection MUST belong to the same immutable original intent before its
+first compiled Plan, including named submission, restart and recovery conflict
+checks. Observation configuration, matching values and static Explanation Facts
+do not select Debug or change an already compiled graph.
+
+<!-- requirement-block: original-execution-profile.construction-admission -->
+Debug strategy construction MUST use the same checked compiler owner and
+Request capacity, with complete simultaneous graph, scratch and wrapper quotes
+admitted before allocation. Original operation/port mappings, task/work limits,
+currentness and cleanup remain in force without a separate Run or scheduler.
+
+<!-- requirement-block: original-execution-profile.unsupported-before-work -->
+An unsupported explicit selection MUST produce its actual typed implementation
+capability refusal before the selected constructor or Provider execution I/O,
+without silently executing Normal or relabeling valid language as invalid.
+The first Node profile supports the admitted source-free Pure Values path;
+other preparation paths retain their explicit implementation boundary.
+Legacy raw `submit` has no retained intent before compilation and does not
+select this profile.
+
+<!-- requirement-block: original-execution-profile.separate-authority -->
+The profile MUST preserve the existing distinct Account, read/egress, Sample,
+control and Resource admission rules. Static structural Facts admission on new
+Normal Runs remains independent of this execution selection.
+
+<!-- requirement-block: original-execution-profile.saved-original -->
+Saved reads MUST consume the original retained Plan, Facts and selected intent,
+without recompilation, Source reacquisition or repair. Existing absent originals
+retain their authorized NotProjected behavior rather than acquiring Debug.
+
+<!-- requirement-block: original-execution-profile.truthful-capability -->
+A Host MUST advertise `debug-operation-boundaries` in the existing extensible
+capability list only when its actual compiled implementation and same-owner
+admission route supply it. This feature adds no field to existing closed control
+capability outputs and provides no execution, disclosure or control permission.
+
 <a id="client-cancellation-observations"></a>
 
 ### Client cancellation observations

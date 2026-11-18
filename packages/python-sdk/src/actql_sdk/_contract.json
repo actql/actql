@@ -200,6 +200,9 @@
       },
       "readOnly": {
         "const": true
+      },
+      "executionProfile": {
+        "const": "debug"
       }
     },
     "submit-intent": {
@@ -208,6 +211,9 @@
       },
       "readOnly": {
         "const": true
+      },
+      "executionProfile": {
+        "const": "debug"
       }
     },
     "submit-named-intent": {
@@ -216,6 +222,9 @@
       },
       "readOnly": {
         "const": true
+      },
+      "executionProfile": {
+        "const": "debug"
       }
     },
     "restart-intent": {
@@ -224,6 +233,9 @@
       },
       "readOnly": {
         "const": true
+      },
+      "executionProfile": {
+        "const": "debug"
       }
     }
   },
@@ -1619,6 +1631,9 @@
         },
         "readOnly": {
           "const": true
+        },
+        "executionProfile": {
+          "const": "debug"
         }
       }
     },

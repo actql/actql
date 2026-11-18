@@ -144,6 +144,8 @@ export type SubmissionInput = Readonly<{
   kind: 'program' | 'aql';
   input: unknown;
   parameters: unknown;
+  /** Original first-Plan selection; absent on unchanged Normal input. */
+  executionProfile?: 'debug';
   connection: Readonly<WireConnection>;
   lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
 }>;
@@ -478,6 +480,8 @@ export type QueryOptions = SubmissionIdentityOptions & Readonly<{
   signal?: AbortSignal;
   result?: string;
   parameterDeclarations?: Record<string, unknown>;
+  /** Select real operation boundaries before the original Plan; no Sample/control grant. */
+  executionProfile?: 'debug';
 }>;
 
 export type ReadOptions = {
@@ -584,6 +588,8 @@ export type SubmissionOptions = SubmissionIdentityOptions & Readonly<{
   stopBefore?: 'commit';
   /** Retained read-only continuation choice; never an Account grant. */
   readOnly?: true;
+  /** Explicit first-Plan physical strategy; omission preserves Normal. */
+  executionProfile?: 'debug';
   signal?: AbortSignal;
 }>;
 

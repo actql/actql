@@ -12,6 +12,13 @@ const execution: Execution = result.execution;
 const rows: DynamicRow[] = await query.all({maxRows: 100});
 for await (const row of result.rows()) {const value: unknown = row.id; void value;}
 const low: Execution = await client.startSource('{}', {format: 'json', submissionRef: client.newSubmission({nonce: request})});
+const debug: Execution = await client.startSource('{}', {format: 'json', executionProfile: 'debug'});
+const debugQuery: ResultPromise = client.sql('SELECT 1 AS id', undefined, {executionProfile: 'debug'});
+const originalProfile: 'debug' | undefined = getSubmissionInput(debugQuery)?.executionProfile;
+// @ts-expect-error Normal is omission, not another profile spelling.
+client.startSource('{}', {format: 'json', executionProfile: 'normal'});
+// @ts-expect-error Debug is an original closed choice, not a control Boolean.
+client.sql('SELECT 1 AS id', undefined, {executionProfile: true});
 try { await client.sql('SELECT 1 AS id'); }
 catch (error: unknown) {
   const failure = explainRunObservationFailure(error);
@@ -35,4 +42,4 @@ query.all<{id: number}>();
 client.sql('SELECT 1', undefined, {format: 'json'});
 // @ts-expect-error No second state-directory spelling in an open installation.
 open({stateDir: 'one', installation: {directory: 'two'}});
-void [rows, execution, low, stateDir, old];
+void [rows, execution, low, debug, debugQuery, originalProfile, stateDir, old];

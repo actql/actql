@@ -2407,7 +2407,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // second serializer, native hash operation or no-owner fallback.
         const value = {kind: body.kind, input: body.input, parameters: body.parameters,
           ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
-          ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})};
+          ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {}),
+      ...(Object.hasOwn(body, 'executionProfile') ? {executionProfile: body.executionProfile} : {})};
         const moon = state.context.runtime;
         const cid = checked(moon.clientProgramPrepareRequestSubmittedIntent(state.parent, receipt, value));
         // The original native/canonical/writer stack has returned. Only now

@@ -23050,7 +23050,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "52e8eb49d2be999991785e9a2ce78fdb5f83a7e59d6ae4de27a1043129934252",
+      "sha256": "9eb34e5a65ec6a7c2eaec2f889aa974affb7557ba186ec1aec6dd5a80fa21bb6",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -26415,7 +26415,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4e02636bb39347cde0bc4930bc7a94c916d42547a870e9798bac6a7c8fa4710f",
+      "sha256": "8c8ede5015d10a6d3c9457f3f43748a04228f3fd8e05fc6670f6298b12cdc8e3",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -35405,7 +35405,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "951dbfe14ecd3d87c82cb6525882eccdada63318505cf9263a2c55342c06d949",
+      "sha256": "53bf302e4583a464bcde465b90027ab2026ed2a4e5ac89a4a2cec46c8f5d83c1",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -36787,7 +36787,7 @@
     {
       "module": "adapters/host-node/client-submit.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "586c562b77e97ae4bf11769fdae1003d4d3c2c26e043be083df1a45e20e95072",
+      "sha256": "cd2ccc128d505fe381c9c7ae53f02a2f8f6c1bde470c0f3465b162c1a9cf3b37",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -36800,7 +36800,8 @@
             "connection",
             "requestId",
             "prepare",
-            "submit"
+            "submit",
+            "executionProfile"
           ],
           "async": true
         }
@@ -47919,7 +47920,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "988dfa092e2c760431d40ce7b63d4009bbcb10aaf0a2778e90c30cc5cd1ddecb",
+      "sha256": "10ad2ba0b7000648c342ff806274c1b6fa98d7454b3236d4155421d7d1488881",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -114669,7 +114670,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "526fbf8447d934b0ef5e283016bd4e9af24abad7e6b7c2d81e849b122ca58f56"
+      "sha256": "3f0e6d36117e646edf940002c65143daafaa08c0b8cef9e53005b1f757d478d1"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

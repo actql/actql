@@ -1,4 +1,34 @@
 ///|
+test "legacy source preparation refuses original Debug before parsing or selecting a different compiler" {
+  let original = @host.prepare_client_submitted_intent(
+    "{\"kind\":\"aql\",\"input\":{\"text\":\"SELECT 1 AS n\",\"format\":\"sql\"},\"parameters\":null,\"executionProfile\":\"debug\"}",
+    65536, 8192, 64,
+  ).unwrap()
+  // Deliberately unavailable publication/context proves the capability check
+  // precedes these constructors; it is not an alternative admitted setup.
+  let result = prepare_local_source_computation(
+    original,
+    environment(),
+    "unavailable-publication",
+  )
+  assert_true(result is Err(Pure(@host.DebugProfileUnsupported)))
+  assert_true(
+    @host.client_submitted_intent_execution_profile(original) == Debug,
+  )
+  let wire = @host.client_submitted_intent_wire(original)
+  assert_true(
+    prepare_local_submitted_input(
+      wire,
+      environment(),
+      None,
+      @host.client_standard_program_preparation_limits(),
+    )
+    is Err(Preparation(@host.DebugProfileUnsupported)),
+  )
+  assert_eq(@host.client_submitted_intent_wire(original), wire)
+}
+
+///|
 fn source_computation_intent(
   text : String,
   format? : String = "sql",

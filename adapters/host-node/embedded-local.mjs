@@ -1252,7 +1252,8 @@ export function sourceManagedSubmittedIntentCid(originals, originalSourceInstall
   const wire = canonicalValueJson({kind: body.kind, input: body.input,
     parameters: body.parameters,
     ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
-    ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})}, {dataKeys: true});
+    ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {}),
+      ...(Object.hasOwn(body, 'executionProfile') ? {executionProfile: body.executionProfile} : {})}, {dataKeys: true});
   const intent = moon.clientSubmittedIntent(wire, 1048576, 65536, 64);
   if (intent === undefined) throw clientOperationError('NodeSourceManagedIntentUnavailable');
   const cid = moon.clientSubmittedIntentCid(intent);
@@ -1273,7 +1274,8 @@ export function managedComputeSubmittedIntentCid(originals, originalComputeInsta
   const wire = canonicalValueJson({kind: body.kind, input: body.input,
     parameters: body.parameters,
     ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
-    ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})}, {dataKeys: true});
+    ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {}),
+      ...(Object.hasOwn(body, 'executionProfile') ? {executionProfile: body.executionProfile} : {})}, {dataKeys: true});
   const intent = moon.clientSubmittedIntent(wire, 1048576, 65536, 64);
   if (intent === undefined) throw clientOperationError('NodeManagedComputeIntentUnavailable');
   const cid = moon.clientSubmittedIntentCid(intent);
@@ -2522,7 +2524,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       ...(hostConnection(value) ? {submissionEpoch: await issueNodeClientSubmissionEpoch({
         journal,moon,authorizedScope: request => hostConnection(request)
           ? authorizedScope(request) : undefined},value)} : {}),
-      capabilities: ['result-jsonl'], limits: resultReadLimits});
+      capabilities: preparation !== undefined && typeof moon.clientSubmittedIntentRequestsDebug === 'function'
+        ? ['result-jsonl', 'debug-operation-boundaries'] : ['result-jsonl'], limits: resultReadLimits});
     const initializePublicationServices = async () => {
     try {
     if (preparation !== undefined) {
@@ -4935,9 +4938,11 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
-    if (Object.hasOwn(submission, 'readOnly')) {
+    if (Object.hasOwn(submission, 'readOnly') || Object.hasOwn(submission, 'executionProfile')) {
       const intent = moon.clientSubmittedIntent(canonicalValueJson({kind, input,
-        parameters, readOnly: submission.readOnly,
+        parameters,
+        ...(Object.hasOwn(submission, 'readOnly') ? {readOnly: submission.readOnly} : {}),
+        ...(Object.hasOwn(submission, 'executionProfile') ? {executionProfile: submission.executionProfile} : {}),
         ...(Object.hasOwn(submission, 'stopBefore') ? {stopBefore: submission.stopBefore} : {})},
       {dataKeys: true}), 1048576, 65536, 64);
       if (intent === undefined) throw clientOperationError('ClientProgramInvalidInput');

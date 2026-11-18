@@ -257,14 +257,17 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     try {
       const stopBefore = options.stopBefore;
       const readOnly = options.readOnly;
+      const executionProfile = options.executionProfile;
       if (stopBefore !== undefined && stopBefore !== 'commit') fail('InvalidClientPayload');
       if (Object.hasOwn(options, 'readOnly') && readOnly !== true) fail('InvalidClientPayload');
+      if (Object.hasOwn(options, 'executionProfile') && executionProfile !== 'debug') fail('InvalidClientPayload');
       original = {submissionRef: options.submissionRef,
         attemptRef: {operation: 'submit', attemptId: options.attemptId ?? crypto.randomUUID()},
         ...(requestName === undefined ? {} : {requestName}),
         kind, input, parameters: options.parameters ?? null,
         ...(stopBefore === undefined ? {} : {stopBefore}),
         ...(readOnly === undefined ? {} : {readOnly}),
+        ...(executionProfile === undefined ? {} : {executionProfile}),
         ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})};
     } catch {fail('InvalidClientPayload');}
     let snapshotCalled = false, originalSnapshot;
@@ -313,11 +316,18 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       lookupContext: context.lookupContext});
     submissionContexts.set(context, snapshot);
     const pending = (async () => {
+      if (body.executionProfile === 'debug' &&
+          !confirmed.capabilities.includes('debug-operation-boundaries')) {
+        // The original input remains observable. This local negotiated
+        // capability refusal sends nothing and claims no Host acceptance.
+        throw submissionNotSent(context, new ClientError('ClientExecutionProfileUnsupported'));
+      }
       let intentCid;
       try {intentCid = sourceProducer === undefined ? await bytesCid(new TextEncoder().encode(canonicalJson({
         intent: {kind, input: body.input, parameters: body.parameters,
           ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
-          ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})},
+          ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {}),
+          ...(Object.hasOwn(body, 'executionProfile') ? {executionProfile: body.executionProfile} : {})},
         version: 'actql-submitted-intent/0.1'}, {dataKeys: true}))) :
         await sourcePreparation.intentCid(sourceProducer.receipt, body);}
       catch (cause) {throw submissionNotSent(context, cause);}

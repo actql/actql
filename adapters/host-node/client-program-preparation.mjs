@@ -13,6 +13,11 @@ const issueCodes = Object.freeze({
   program_syntax: 'ClientProgramInvalidInput',
   effect_not_supported: 'ClientProgramUnsupported',
   values_profile_unsupported: 'ClientProgramUnsupported',
+  debug_profile_unsupported: 'ClientProgramUnsupported',
+  debug_graph_construction_overflow: 'ClientProgramAnalysisLimit',
+  // Only explicit capability/extent variants above prove a preparation
+  // refusal. A foreign or invalid selected graph remains an actual failure.
+  debug_graph_rejected: 'ClientProgramPreparationFailure',
   needs_inputs: 'ClientProgramNeedsInputs',
   check_invalid_input: 'ClientProgramInvalidInput',
   ClientProgramParameterUndeclared: 'ClientProgramInvalidInput',

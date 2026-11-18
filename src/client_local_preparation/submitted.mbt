@@ -42,8 +42,11 @@ pub fn prepare_local_submitted_input(
     Ok(parts) => parts
     Err(issue) => return Err(SubmittedInput(issue))
   }
+  if @host.client_submitted_intent_execution_profile(intent) == Debug {
+    return Err(Preparation(@host.DebugProfileUnsupported))
+  }
   guard @decode.closed_object(cursor, [
-      "kind", "input", "parameters", "stopBefore", "readOnly",
+      "kind", "input", "parameters", "stopBefore", "readOnly", "executionProfile",
     ])
     is Ok(root) &&
     @decode.required(root, "kind") is Ok(kind_cursor) &&

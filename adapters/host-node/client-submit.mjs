@@ -7,7 +7,10 @@ function invalid(code) {
 }
 
 export async function performClientSubmit({connection, requestId, prepare,
-  submit}) {
+  submit, executionProfile}) {
+  // Legacy submit has no retained original intent before compilation. Only
+  // the existing intent entrances may select a first-Plan Debug strategy.
+  if (executionProfile === 'debug') invalid('ClientProgramUnsupported');
   const prepared = prepare === undefined ? undefined : await prepare();
   if (prepare !== undefined && prepared === undefined) {
     invalid('InvalidClientHostPreparation');

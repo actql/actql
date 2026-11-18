@@ -3,7 +3,7 @@ import {captureQueryResultRead, collectCapturedResult} from './internal/result-r
 // A query composes existing admission, observation and Result owners. It never
 // resubmits, reconciles a Run, answers a Checkpoint, or retries a Result read.
 const queryOptionNames = new Set(['requestId', 'submissionRef', 'attemptId', 'signal', 'result',
-  'parameterDeclarations']);
+  'parameterDeclarations', 'executionProfile']);
 
 function executionError(ClientError, retainFailure, code, execution, requestId, state, cause) {
   const error = new ClientError(code, {requestId,
@@ -60,9 +60,14 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
       throw new ClientError('InvalidQueryParameters');
     }
     signal = options.signal;
+    const executionProfile = options.executionProfile;
+    if (Object.hasOwn(options, 'executionProfile') && executionProfile !== 'debug') {
+      throw new ClientError('InvalidQueryOptions');
+    }
     // startSource captures JSON source/declarations/parameters synchronously,
     // before credentials or I/O. Do not serialize caller-owned inputs twice.
     return submit(text, {format, parameters, signal, readOnly: true,
+      ...(executionProfile === undefined ? {} : {executionProfile}),
       ...(options.attemptId === undefined ? {} : {attemptId: options.attemptId}),
       ...(options.requestId === undefined ? {} : {requestId: options.requestId}),
       ...(options.submissionRef === undefined ? {} : {submissionRef: options.submissionRef}),

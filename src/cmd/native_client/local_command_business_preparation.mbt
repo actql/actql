@@ -73,6 +73,13 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   } else if original_input is Some(_) {
     stop("LocalBusinessOriginalReferenceRequired")
   }
+  // A retained original cannot be downgraded into this Native profile. Refuse
+  // before configuration binding, input construction or the first compiler.
+  if original_input is Some((_, intent)) &&
+    @run_host.client_submitted_intent_execution_profile(intent) == Debug {
+    self.retain_primary(CommandApplication("LocalExecutionProfileUnsupported"))
+    stop("LocalExecutionProfileUnsupported")
+  }
   let configuration_name = configuration.configuration_name
   let configuration_body = configuration.configuration_body
   let settings = configuration.settings

@@ -1611,6 +1611,8 @@ pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
 pub fn client_submitted_intent_effect_compatible(ClientSubmittedIntent, PreparedClientEffectComputation) -> Bool
 
+pub fn client_submitted_intent_execution_profile(ClientSubmittedIntent) -> ClientExecutionProfile
+
 pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?, run_state_observation? : (Int64, String?)?, preparation_problem? : (String, String)?, before_construction? : ((Int, Int, Int) -> Result[Unit, ClientJournalEncodingIssue])?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_submitted_intent_observation_action(ClientSubmittedIntentObservation, Bool) -> String

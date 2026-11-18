@@ -7,8 +7,9 @@ struct ClientSubmittedIntent {
   // inventory must not allocate another complete UTF8 body just to count it.
   wire_bytes : Int
   cid : String
-  stop_before_commit : Bool
-  read_only : Bool
+  // Closed original choices: bit0 commit stop, bit1 read-only, bit2 Debug.
+  // Replace two scalar flags with one word; no new Normal holder/Option.
+  choices : Int
 } derive(Eq, Debug)
 
 ///|
@@ -111,7 +112,7 @@ pub fn client_submitted_intent_observation_action(
 pub fn client_submitted_intent_requests_commit_stop(
   value : ClientSubmittedIntent,
 ) -> Bool {
-  value.stop_before_commit
+  (value.choices & 1) != 0
 }
 
 ///|
@@ -119,7 +120,19 @@ pub fn client_submitted_intent_requests_commit_stop(
 pub fn client_submitted_intent_requests_read_only(
   value : ClientSubmittedIntent,
 ) -> Bool {
-  value.read_only
+  (value.choices & 2) != 0
+}
+
+///|
+/// Original first-Plan selection only, not read/control/Resource authority.
+pub fn client_submitted_intent_execution_profile(
+  value : ClientSubmittedIntent,
+) -> ClientExecutionProfile {
+  if (value.choices & 4) != 0 {
+    Debug
+  } else {
+    Normal
+  }
 }
 
 ///|
@@ -130,7 +143,7 @@ pub fn client_submitted_intent_effect_compatible(
   intent : ClientSubmittedIntent,
   prepared : PreparedClientEffectComputation,
 ) -> Bool {
-  !intent.read_only ||
+  !client_submitted_intent_requests_read_only(intent) ||
   @syntax.effect_header_count(
     @checked.effect_program_static_headers(prepared.candidate),
   ) ==
@@ -307,9 +320,15 @@ fn prepare_client_submitted_intent_value(
     Some(@canonical.Bool(true)) => true
     _ => return Err(InvalidEnvelope)
   }
+  let debug = match @canonical.object_field(value, "executionProfile") {
+    None => false
+    Some(@canonical.String("debug")) => true
+    _ => return Err(InvalidEnvelope)
+  }
   let expected_fields = 3 +
     (if stop_before_commit { 1 } else { 0 }) +
-    (if read_only { 1 } else { 0 })
+    (if read_only { 1 } else { 0 }) +
+    (if debug { 1 } else { 0 })
   if @canonical.object_field_count(value) != Some(expected_fields) {
     return Err(InvalidEnvelope)
   }
@@ -347,8 +366,9 @@ fn prepare_client_submitted_intent_value(
       wire,
       wire_bytes: bytes,
       cid: "sha256:" + @encode.finish_hash(writer),
-      stop_before_commit,
-      read_only,
+      choices: (if stop_before_commit { 1 } else { 0 }) +
+      (if read_only { 2 } else { 0 }) +
+      (if debug { 4 } else { 0 }),
     })
   } catch {
     _ => Err(Encoding)

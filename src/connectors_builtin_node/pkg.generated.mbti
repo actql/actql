@@ -4982,6 +4982,8 @@ pub fn client_submitted_intent_observation(@run_publication_host.ClientSubmitted
 
 pub fn client_submitted_intent_requests_commit_stop(@run_publication_host.ClientSubmittedIntent) -> Bool
 
+pub fn client_submitted_intent_requests_debug(@run_publication_host.ClientSubmittedIntent) -> Bool
+
 pub fn client_submitted_intent_requests_read_only(@run_publication_host.ClientSubmittedIntent) -> Bool
 
 pub fn client_submitted_intent_transition(String, String) -> Bool

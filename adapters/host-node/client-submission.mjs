@@ -233,7 +233,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
   const assertOriginalPreparation = (prepared, input, value) => {
     if (typeof prepareSubmit.assertSubmittedIntent === 'function') {
       prepareSubmit.assertSubmittedIntent(preparedValue(prepared), input);
-    } else if (Object.hasOwn(value, 'readOnly')) {
+    } else if (Object.hasOwn(value, 'readOnly') || Object.hasOwn(value, 'executionProfile')) {
       // An installation without the original Common boundary cannot accept
       // this continuation choice. Older unselected installations are unchanged.
       fail('ClientProgramUnsupported');
@@ -293,7 +293,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     const wire = canonicalJson({kind: value.kind, input: value.input,
       parameters: value.parameters,
       ...(Object.hasOwn(value, 'stopBefore') ? {stopBefore: value.stopBefore} : {}),
-      ...(Object.hasOwn(value, 'readOnly') ? {readOnly: value.readOnly} : {})},
+      ...(Object.hasOwn(value, 'readOnly') ? {readOnly: value.readOnly} : {}),
+      ...(Object.hasOwn(value, 'executionProfile') ? {executionProfile: value.executionProfile} : {})},
     {dataKeys: true});
     let input;
     if (typeof journal.prepareSubmittedIntent === 'function') {

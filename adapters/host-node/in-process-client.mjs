@@ -212,6 +212,7 @@ export function createNodeInProcessClientHost({
       }
       if (operation === 'submit') {
         return await performClientSubmit({connection, requestId: body.requestId,
+          executionProfile: body.executionProfile,
           prepare: prepareSubmit === undefined ? undefined :
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, prepared)});

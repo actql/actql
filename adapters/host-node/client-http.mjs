@@ -367,6 +367,7 @@ export function createClientHttpHandler({
       } else if (operation === 'submit') {
         const admission = await performClientSubmit({connection,
           requestId: body.requestId,
+          executionProfile: body.executionProfile,
           prepare: prepareSubmit === undefined ? undefined :
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, undefined, prepared)});

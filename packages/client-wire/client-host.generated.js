@@ -21720,6 +21720,9 @@ const optionalRequestFields = {
     },
     "readOnly": {
       "const": true
+    },
+    "executionProfile": {
+      "const": "debug"
     }
   },
   "submit-intent": {
@@ -21728,6 +21731,9 @@ const optionalRequestFields = {
     },
     "readOnly": {
       "const": true
+    },
+    "executionProfile": {
+      "const": "debug"
     }
   },
   "submit-named-intent": {
@@ -21736,6 +21742,9 @@ const optionalRequestFields = {
     },
     "readOnly": {
       "const": true
+    },
+    "executionProfile": {
+      "const": "debug"
     }
   },
   "restart-intent": {
@@ -21744,6 +21753,9 @@ const optionalRequestFields = {
     },
     "readOnly": {
       "const": true
+    },
+    "executionProfile": {
+      "const": "debug"
     }
   }
 };

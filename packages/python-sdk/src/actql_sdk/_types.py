@@ -104,7 +104,7 @@ NamedSubmissionAttempt2 = TypedDict("NamedSubmissionAttempt2", {"kind": Required
 
 NamedSubmissionAttempt = NamedSubmissionAttempt0 | NamedSubmissionAttempt1 | NamedSubmissionAttempt2
 
-SubmittedIntent = TypedDict("SubmittedIntent", {"kind": Required["Literal[\"program\", \"aql\"]"], "input": Required["dict[str, Any]"], "parameters": Required["None | dict[str, Any]"], "stopBefore": NotRequired["Literal[\"commit\"]"], "readOnly": NotRequired["Literal[True]"]}, total=False)
+SubmittedIntent = TypedDict("SubmittedIntent", {"kind": Required["Literal[\"program\", \"aql\"]"], "input": Required["dict[str, Any]"], "parameters": Required["None | dict[str, Any]"], "stopBefore": NotRequired["Literal[\"commit\"]"], "readOnly": NotRequired["Literal[True]"], "executionProfile": NotRequired["Literal[\"debug\"]"]}, total=False)
 
 InstalledEffectContinuationRequestedStop = TypedDict("InstalledEffectContinuationRequestedStop", {"intent_cid": Required["str"]}, total=False)
 

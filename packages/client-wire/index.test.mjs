@@ -21,6 +21,34 @@ const ref = Object.freeze({namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 
+test('original execution profile stays closed across all existing submission wire variants', () => {
+  const old = {epoch: {version: 'actql-submission-epoch/0.1', authorityScopeCid: ref.authorityScopeCid,
+    epochNonce: 'c'.repeat(64), notBefore: 1800000000000, expiresAt: 1800000001000,
+    authenticator: 'd'.repeat(64)}, nonce: 'original-profile'};
+  const fresh = {...old, epoch: {...old.epoch, epochNonce: 'e'.repeat(64),
+    notBefore: 1800000001000, expiresAt: 1800000002000}, nonce: 'fresh-profile'};
+  const original = {connection, kind: 'program', input: {}, parameters: null};
+  const intent = {...original, submissionRef: old, intentCid: `sha256:${'f'.repeat(64)}`,
+    attemptRef: {operation: 'submit', attemptId: 'profile-attempt'}};
+  for (const [operation, body] of [
+    ['submit', {...original, requestId: 'original-profile'}],
+    ['submit-intent', intent], ['submit-named-intent', {...intent, requestName: 'original-name'}],
+    ['restart-intent', {...intent, submissionRef: fresh,
+      unresolvedHistory: {submissionRef: old, acknowledgement: 'possible_prior_execution_and_effects'}}],
+  ]) {
+    assert.equal(validClientBody(operation, body), true);
+    assert.equal(Object.hasOwn(prepareClientHostRequest(operation, body).body, 'executionProfile'), false);
+    const selected = {...body, executionProfile: 'debug'};
+    assert.equal(validClientBody(operation, selected), true);
+    assert.equal(prepareClientHostRequest(operation, selected).body.executionProfile, 'debug');
+    for (const value of [undefined, null, false, true, 1, '', 'normal', {}, []]) {
+      assert.equal(validClientBody(operation, {...body, executionProfile: value}), false);
+    }
+  }
+  assert.equal(validClientBody('plan', {...original, executionProfile: 'debug',
+    maxWireBytes: 4096, maxNodes: 128, maxDepth: 16}), false);
+});
+
 test('registered Explanation read captures the original ref and rejects malformed bounds', () => {
   const request = {connection, ref, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
   assert.equal(clientHostOperations.includes('run-explanation'), true);

@@ -33,6 +33,10 @@ const report = {requestKind, phase, counters: {installedResolutionAttempts: 0, p
   performanceAcceptance: false};
 let client, primary, observation, countedClose, logicalObservation, originalExplanation, originalRef, originalRunId;
 try {
+  if (Object.hasOwn(configuration, 'executionProfile')) {
+    assert.equal(configuration.executionProfile, 'debug');
+    assert.equal(requestKind, 'values');
+  }
   if (Object.hasOwn(configuration, 'logicalObservation')) {
     assert.equal(configuration.logicalObservation, true);
     assert.equal(requestKind, 'values', 'LogicalMetadataSelectionIsSourceFreeOnly');
@@ -112,7 +116,11 @@ try {
     if (phase === 'read') {
       const program = requestKind === 'values' ? timedValuesProgram() : timedSourceProgram(configuration.connectorId);
       let pending;
-      if (requestKind === 'values') {report.counters.publicStart++; pending = client.start(program);}
+      if (requestKind === 'values') {
+        report.counters.publicStart++;
+        pending = Object.hasOwn(configuration, 'executionProfile')
+          ? client.start(program, {executionProfile: configuration.executionProfile}) : client.start(program);
+      }
       else {report.counters.publicStartSource++; pending = client.startSource(JSON.stringify(program), {format: 'json'});}
       const settled = Promise.resolve(pending).then(value => ({value}), cause => ({failed: true, cause}));
       let input;
