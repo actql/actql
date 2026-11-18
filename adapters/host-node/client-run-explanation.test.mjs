@@ -278,3 +278,70 @@ test('current read loss after an Account callback refuses before the original Jo
   await assert.rejects(f.service(request()), error => error === primary);
   assert.equal(f.calls.includes('probe'), false); assert.equal(f.held.size, 0);
 });
+
+// A test-only observer exposes the actual closure before startup is acquired.
+// The entire Host module and its method execute unchanged; no private function
+// is reconstructed, and no runtime, resource admission or cleanup ACK is issued.
+test('actual Host explanation getter refuses a loan changed by its current callback', async () => {
+  const {registerHooks} = await import('node:module');
+  const hostUrl = new URL('./embedded-local.mjs?explanation-current-fence', import.meta.url).href;
+  const observerKey = Symbol.for('actql.test.explanation-current-fence');
+  const stop = new Error('StopBeforeHostStartup');
+  let observed = false;
+  globalThis[observerKey] = ({preparation, record, selectRuntime}) => {
+    observed = true;
+    const runtime = {}, prepared = {}, original = {};
+    selectRuntime(runtime);
+    const changes = {
+      unchanged() {},
+      deleted(run) {record.computeRuns.delete(prepared);},
+      replacement(run) {record.computeRuns.set(prepared, {...run});},
+      runtime(run) {run.runtime = {};},
+      hostRuntime() {selectRuntime({});},
+      unfunded(run) {run.preparationFunded = false;},
+      closed(run) {run.closed = true;},
+      prepared(run) {run.prepared = {};},
+      failed(run) {run.failure = undefined;},
+    };
+    for (const [name, change] of Object.entries(changes)) {
+      selectRuntime(runtime);
+      let reads = 0;
+      const run = {prepared, runtime, preparationFunded: true, closed: false,
+        manager: {originalExplanationPreparation(value) {
+          assert.strictEqual(value, prepared);
+          reads++;
+          change(run);
+          return original;
+        }}};
+      record.computeRuns = new WeakMap([[prepared, run]]);
+      if (name === 'unchanged') {
+        assert.strictEqual(preparation.managedComputeExplanationPreparation(runtime, prepared), original);
+      } else {
+        assert.throws(() => preparation.managedComputeExplanationPreparation(runtime, prepared),
+          {code: 'ForeignInstalledComputeRun'}, name);
+      }
+      assert.equal(reads, 1, `${name}: do not re-read or reissue the original loan`);
+    }
+    record.computeRuns = undefined;
+    selectRuntime(undefined);
+    throw stop;
+  };
+  const hooks = registerHooks({load(url, context, next) {
+    const loaded = next(url, context);
+    if (url !== hostUrl) return loaded;
+    const source = String(loaded.source);
+    const beforeStartup = '  const sourceInitializationBorrow = preparation.borrowSourceInitializationMaterial;';
+    assert.equal(source.split(beforeStartup).length, 2, 'observe the complete Host before startup');
+    return {...loaded, source: source.replace(beforeStartup,
+      `  globalThis[Symbol.for('actql.test.explanation-current-fence')]({preparation, record,\n` +
+      '    selectRuntime(value) {moon = value;}});\n' + beforeStartup)};
+  }});
+  try {
+    const {connectEmbeddedLocal} = await import(hostUrl);
+    await assert.rejects(connectEmbeddedLocal({}), error => error === stop);
+    assert.equal(observed, true);
+  } finally {
+    hooks.deregister();
+    delete globalThis[observerKey];
+  }
+});
