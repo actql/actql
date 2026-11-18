@@ -136296,6 +136296,10 @@
                 "anchor": "portable GET Reader composes one active request peak with same transport quantity"
               },
               {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "REST actual checked GET capacity preserves original reference Options"
+              },
+              {
                 "path": "packages/local-node/connector-installation.typecheck.mts",
                 "anchor": "competingRestReads"
               },
@@ -136307,7 +136311,7 @@
           }
         }
       ],
-      "sha256": "b65c846dc16c8cda0414d810c1637c111e3221263367245952e2033f456884b2",
+      "sha256": "338ef4fcf11872ba6d3df865c45e872e37fe998f06756d0ef8431e322c22fd2d",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/http-exchange.mjs",

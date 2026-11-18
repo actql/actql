@@ -8,6 +8,8 @@ import {captureRestSourceRead, restSourcePageRequest, restSourceReadConstruction
   restSourceRequestConstructionUnits} from './rest-source-request.mjs';
 import {requestTarget} from '../host-common/http-exchange.mjs';
 import {prepareNotionUserListPages} from '../connectors/notion/site/user-list-read.mjs';
+import {captureRestReadOriginals, restReadOriginalControlUnits,
+  restReadTransportConstructionUnits} from './rest-read-original.mjs';
 
 test('declarative request inventory pins retained DATA and full original query escape overlap', () => {
   const read={method:'GET',path:'/v1/users',pageSize:{parameter:'page_size',limit:100},
@@ -367,6 +369,41 @@ test('REST changed author wire preserves the original Core schema refusal', () =
 // qualify a runtime. Every nominal value below comes from this ONE namespace.
 const selectedCommon = process.env.ACTQL_METADATA_COMMON_RUNTIME;
 const actualCommon = selectedCommon === undefined ? undefined : import(pathToFileURL(selectedCommon));
+
+test('REST actual checked GET capacity preserves original reference Options',
+  {skip: selectedCommon === undefined}, async () => {
+    const moon = await actualCommon;
+    const originals = captureRestReadOriginals(moon);
+    const wire = JSON.stringify({method: 'GET', path: '/v1/users',
+      pageSize: {parameter: 'page_size', limit: 2},
+      versionHeader: {name: 'notion-version', value: '2026-03-11'}});
+    const profile = {maxDeclarationBytes: 4096, maxDeclarationNodes: 1000,
+      maxDepth: 16, maxTargetBytes: 1024};
+    const quote = originals.quote(wire, 'start_cursor', profile);
+    // Pure quantity composition only: this test creates no Source reservation,
+    // physical reader, Account, HTTP request or Run.
+    const construction = originals.composeConstruction(restReadOriginalControlUnits(1), 1, () => quote);
+    const read = originals.project(wire, 'start_cursor', profile);
+    const originalOption = read.capacityOption();
+    const page = runtimeUnboxedReferenceOption(originalOption);
+    assert(page !== undefined && page !== null);
+    assert.strictEqual(read.capacityOption(), originalOption);
+    const units = restReadTransportConstructionUnits(read);
+    const request = originals.requestCapacity(units, [read]);
+    // The opaque values go back to their actual typed namespace; never inspect
+    // their record fields or reconstruct an Option from quantity scalars.
+    for (const capacity of [construction, page, request]) {
+      const bytes = moon.clientProgramSerializationCapacityBytes(capacity);
+      assert(runtimeField(bytes, 0) > 0n);
+      assert(runtimeField(bytes, 1) >= runtimeField(bytes, 0));
+    }
+    assert.deepEqual(read.page(3, 2, undefined), {method: 'GET', path: '/v1/users',
+      query: [['page_size', '2']],
+      headers: [['accept', 'application/json'], ['notion-version', '2026-03-11']], responseHeaders: []});
+    assert.throws(() => originals.requestCapacity(units, []),
+      {code: 'RestReadOriginalCapacityUnavailable'});
+    assert.strictEqual(read.capacityOption(), originalOption);
+  });
 
 // A genuinely new caller boundary for the next matching normal Common. It is
 // deliberately outside the old two-case selector; its CI owner can add it to

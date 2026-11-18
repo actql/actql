@@ -2,7 +2,7 @@
 // The capsule hides Core parser/Bytes backing in captured functions; the JSON
 // projection freezer never traverses or freezes foreign opaque objects.
 import {types} from 'node:util';
-import {runtimeField, runtimeIsOk, runtimeIsError, runtimeIsBoxedSome}
+import {runtimeField, runtimeIsOk, runtimeIsError, runtimeUnboxedReferenceOption}
   from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {exchangeLimits} from '../host-common/http-exchange.mjs';
@@ -32,8 +32,13 @@ export function captureRestReadOriginals(moon) {
     fail('RestReadOriginalRuntimeUnavailable');
   };
   const quantity = option => {
-    if (!runtimeIsBoxedSome(option)) fail('RestReadOriginalCapacityUnavailable');
-    return runtimeField(option, 0);
+    // These exact compiled capacity exports use the canonical reference Option,
+    // not the boxed Result/Some layout. Keep the original for typed composition.
+    const capacity = runtimeUnboxedReferenceOption(option);
+    if (capacity === undefined || capacity === null || typeof capacity !== 'object') {
+      fail('RestReadOriginalCapacityUnavailable');
+    }
+    return capacity;
   };
   const limitsFor = (readWire, cursorParameter, profile) => {
     if (typeof readWire !== 'string' || !readWire.isWellFormed() ||
