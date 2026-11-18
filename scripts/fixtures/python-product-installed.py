@@ -4,12 +4,14 @@ from __future__ import annotations
 import argparse
 import asyncio
 from collections.abc import Mapping
+from contextlib import nullcontext
 from importlib import metadata
 import json
 import os
 from pathlib import Path
 import stat
 import sys
+import threading
 from typing import Any
 
 
@@ -21,6 +23,127 @@ _CANCEL_SOURCE = 'SELECT n FROM UNNEST([' + ','.join(str(n) for n in range(512))
 
 class ActiveCancellationCoverageUnavailable(AssertionError):
     """A single legal race missed active coverage; never retry the submission."""
+
+
+class _ClosedTaskDriveObservation:
+    """One installed initial case; observe calls without replacing an entrance."""
+
+    def __init__(self, host):
+        from actql_sdk._local_core import LocalCore, _ClosedWasmExports
+        from actql_sdk._local_product import InstalledLocalHost
+        from actql_sdk._local_host_binding import _InvocationObservation
+        from actql_sdk._local_work import OriginalLocalWork
+        if type(host) is not InstalledLocalHost or type(host._core) is not LocalCore:
+            raise AssertionError('Closed task control requires the original installed Host')
+        core = host._core
+        receipt = core._closed_wasm_exports
+        export = core._exports['actql_task_drive']
+        if (type(receipt) is not _ClosedWasmExports
+                or not receipt._matches('actql_task_drive', export, full=True)
+                or 'drive_task' in vars(core) or '_call' in vars(core)):
+            raise AssertionError('Closed task control requires original runtime methods')
+        self.host, self.core, self.receipt, self.export = host, core, receipt, export
+        self.work_type = OriginalLocalWork
+        self.span_type = _InvocationObservation
+        self.drive_method, self.call_method = LocalCore.drive_task, LocalCore._call
+        self.drive_code = self.drive_method.__code__
+        self.export_code = type(export).__call__.__code__
+        self.counts = [0, 0, 0, 0, 0]
+        self.valid = True
+        self.failure = None
+        self.restored = False
+        self.profile = self._profile
+        self.previous = (sys.getprofile(), threading.getprofile())
+
+    def _profile(self, frame, event, argument):
+        # No Core/Wasmtime/SQLite call, fuel operation, payload copy or formatter
+        # runs here. Python disables recursive profiling inside this callback.
+        try:
+            code = frame.f_code
+            if event not in ('call', 'return'):
+                return
+            if code is self.drive_code and frame.f_locals.get('self') is self.core:
+                self.counts[0 if event == 'call' else 1] += 1
+            elif code is self.export_code and frame.f_locals.get('self') is self.export:
+                self.counts[2 if event == 'call' else 3] += 1
+                span = self.core._invocation_observation
+                original = (object.__getattribute__(span, 'wasm_export')
+                            if type(span) is self.span_type else None)
+                retained = self.core._host_retained_work
+                works, rows = self.host._physical_work, self.host._run_rows
+                same = (type(original) is tuple and len(original) == 4
+                        and original[0] is self.receipt and original[1] == 'actql_task_drive'
+                        and original[2] is self.export and original[3] is self.export._func
+                        and type(retained) is tuple and len(retained) == 3
+                        and type(retained[0]) is self.work_type
+                        and type(works) is list and type(rows) is list
+                        and len(works) <= 16 and len(rows) <= 16
+                        and any(work is retained[0] for work in works)
+                        and any(run is retained[0]._owner for run, _ in rows))
+                self.valid = self.valid and same
+                if event == 'call' and same:
+                    self.counts[4] += 1
+            if any(count > 1024 for count in self.counts):
+                self.valid = False
+                self.counts[:] = [min(count, 1025) for count in self.counts]
+        except BaseException as failure:
+            self.valid = False
+            if self.failure is None:
+                self.failure = failure
+
+    def __enter__(self):
+        if any(previous is not None for previous in self.previous):
+            raise AssertionError('Closed task control cannot replace another profiler')
+        try:
+            sys.setprofile(self.profile)
+            threading.setprofile(self.profile)
+        except BaseException:
+            self._finish()
+            raise
+        return self
+
+    def _finish(self):
+        try:
+            if (self.core.drive_task.__func__ is not self.drive_method
+                    or self.core._call.__func__ is not self.call_method
+                    or self.core._closed_wasm_exports is not self.receipt
+                    or not self.receipt._matches('actql_task_drive', self.export, full=True)):
+                self.valid = False
+        except BaseException as failure:
+            self.valid = False
+            if self.failure is None:
+                self.failure = failure
+        finally:
+            # Both restorations are attempted even if one fails. No observer
+            # failure replaces an in-flight execution or cleanup primary.
+            for restore, previous in ((sys.setprofile, self.previous[0]),
+                                      (threading.setprofile, self.previous[1])):
+                try:
+                    restore(previous)
+                except BaseException as failure:
+                    self.valid = False
+                    if self.failure is None:
+                        self.failure = failure
+            self.restored = (sys.getprofile() is self.previous[0]
+                             and threading.getprofile() is self.previous[1])
+            # Do not retain extra runtime/Host references into public close.
+            self.host = self.core = self.receipt = self.export = None
+
+    def __exit__(self, kind, primary, trace):
+        self._finish()
+        return False
+
+    def result(self):
+        entered, returned, wasm_entered, wasm_returned, retained = self.counts
+        if (not self.valid or not self.restored or self.failure is not None or not 0 < entered <= 1024
+                or entered != returned or entered != wasm_entered
+                or entered != wasm_returned or entered != retained):
+            raise AssertionError('Closed task drive observation is unqualified')
+        return {'actual_closed_task_drive': True, 'drive_calls': entered,
+                'drive_returns': returned, 'wasm_entries': wasm_entered,
+                'wasm_returns': wasm_returned, 'retained_holder_checks': retained,
+                'methods_unchanged': True, 'profilers_restored': True,
+                'per_drive_fuel_observed': False, 'hash_count_observed': False}
 
 
 def _plain(value: Any) -> Any:
@@ -82,43 +205,48 @@ def _saved(path: Path, version: str, *, fields: set[str] | None = None) -> dict[
     return body
 
 
-def _sync(version: str, phase: str, receipt: Path) -> None:
+def _sync(version: str, phase: str, receipt: Path) -> dict[str, Any] | None:
     from actql import Client
     saved = _saved(receipt, version) if phase == 'resume' else None
     with Client.open() as client:
-        if saved is None:
-            submission = client.new_submission()
-            run = client.start_source('SELECT 1 AS n', format='sql', submission_ref=submission)
-        else:
-            submission = saved['submission']
-            observed = client.lookup_submission(submission)
-            if observed['kind'] != 'ready' or _plain(observed['admission']['ref']) != saved['run']:
-                raise AssertionError('Lookup did not return the original admitted Run')
-            run = client.attach(saved['run'])
-        if saved is None:
-            _record(receipt.with_name(receipt.name + '.submitted'), version=version,
-                    facade='sync', submission=submission, run=_plain(run.ref))
-        state = run.wait()
-        if state['status'] != 'succeeded':
-            raise AssertionError('Original Run did not succeed')
-        _rows(run.result('answer').all(max_rows=1))
-        _rows(run.result('answer').all(max_rows=1))
-        original = _plain(run.ref)
-        if saved is not None and original != saved['run']:
-            raise AssertionError('Attach replaced the original Run')
-        if saved is None:
-            second_submission = client.new_submission()
-            if _plain(second_submission) == _plain(submission):
-                raise AssertionError('Second submission must have a distinct original reference')
-            second = client.start_source('SELECT 1 AS n', format='sql', submission_ref=second_submission)
-            _record(receipt.with_name(receipt.name + '.second.submitted'), version=version,
-                    facade='sync', submission=second_submission, run=_plain(second.ref))
-            if _plain(second.ref) == original or second.wait()['status'] != 'succeeded':
-                raise AssertionError('Second distinct Run did not succeed on the same Host')
-            # all() consumes through EOF and refuses any extra row at this bound.
-            _rows(second.result('answer').all(max_rows=1))
+        with (_ClosedTaskDriveObservation(client._client._local_host)
+              if saved is None else nullcontext(None)) as control:
+            if saved is None:
+                submission = client.new_submission()
+                run = client.start_source('SELECT 1 AS n', format='sql', submission_ref=submission)
+            else:
+                submission = saved['submission']
+                observed = client.lookup_submission(submission)
+                if observed['kind'] != 'ready' or _plain(observed['admission']['ref']) != saved['run']:
+                    raise AssertionError('Lookup did not return the original admitted Run')
+                run = client.attach(saved['run'])
+            if saved is None:
+                _record(receipt.with_name(receipt.name + '.submitted'), version=version,
+                        facade='sync', submission=submission, run=_plain(run.ref))
+            state = run.wait()
+            if state['status'] != 'succeeded':
+                raise AssertionError('Original Run did not succeed')
+            _rows(run.result('answer').all(max_rows=1))
+            _rows(run.result('answer').all(max_rows=1))
+            original = _plain(run.ref)
+            if saved is not None and original != saved['run']:
+                raise AssertionError('Attach replaced the original Run')
+            if saved is None:
+                second_submission = client.new_submission()
+                if _plain(second_submission) == _plain(submission):
+                    raise AssertionError('Second submission must have a distinct original reference')
+                second = client.start_source('SELECT 1 AS n', format='sql', submission_ref=second_submission)
+                _record(receipt.with_name(receipt.name + '.second.submitted'), version=version,
+                        facade='sync', submission=second_submission, run=_plain(second.ref))
+                if _plain(second.ref) == original or second.wait()['status'] != 'succeeded':
+                    raise AssertionError('Second distinct Run did not succeed on the same Host')
+                # all() consumes through EOF and refuses any extra row at this bound.
+                _rows(second.result('answer').all(max_rows=1))
+    observed = control.result() if control is not None else None
     if saved is None:
         _record(receipt, version=version, facade='sync', submission=submission, run=original)
+
+    return observed
 
 
 async def _async(version: str, phase: str, receipt: Path) -> None:
@@ -354,13 +482,15 @@ def installed(version: str, mode: str, *, facade: str | None = None,
             'first_close': True, 'closed': True,
             'reported_physical_stop': terminal['control']['physical_stop']}))
         return
+    closed_drive = None
     if facade == 'sync':
-        _sync(version, phase, receipt)
+        closed_drive = _sync(version, phase, receipt)
     else:
         asyncio.run(_async(version, phase, receipt))
     print(json.dumps({'mode': mode, 'version': version, 'facade': facade, 'phase': phase,
         'pid': os.getpid(), 'select1': phase == 'initial', 'reread': True,
-        'original_run_reused': phase == 'resume', 'same_host_second_run': phase == 'initial', 'closed': True}))
+        'original_run_reused': phase == 'resume', 'same_host_second_run': phase == 'initial', 'closed': True,
+        **({'closed_task_drive': closed_drive} if closed_drive is not None else {})}))
 
 
 def _observe_closed() -> None:
