@@ -286,3 +286,74 @@ test "whole saved observation preserves unresolved complete empty history and ca
     is Err("cancel-custody"),
   )
 }
+
+///|
+test "single-pass nominal saved reader keeps construction fences and fresh material" {
+  let wire = "original task materials"
+  let cid = "sha256:999ffd0893e091d256f0094891b3a4e04c5a0ee224d42139336bf403a970c170"
+  let original = { ..saved_snapshot_run(), task_materials_cid: Some(cid), }
+  let key = client_request_scope_cid(original.request)
+  let rows = saved_snapshot_rows(saved_submission_ready)
+  rows.push(
+    ("client_task_run_materials", inventory_row(key + ":0", @utf8.encode(wire))),
+  )
+  let stages = Ref(0)
+  let chunk_reads = Ref(0)
+  let changed = Ref(false)
+  let read = (table, name) => {
+    if table == "client_task_run_materials" {
+      chunk_reads.val += 1
+      if changed.val && name == key + ":0" {
+        return Ok(None)
+      }
+    }
+    inventory_read(rows, table, name)
+  }
+  let snapshot = read_client_saved_submission(
+      saved_snapshot_reference(),
+      read,
+      _ => Ok(original),
+      "custody",
+      before_construction=Some(_ => {
+        stages.val += 1
+        Ok(())
+      }),
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    client_saved_submission_task_materials_original(snapshot),
+    Some(wire),
+  )
+  // Existing observed decoding admits Parse and Canonical once each.
+  assert_eq(stages.val, 2)
+  assert_eq(chunk_reads.val, 4)
+  changed.val = true
+  assert_true(
+    read_client_saved_submission(
+      saved_snapshot_reference(),
+      read,
+      _ => Ok(original),
+      "custody",
+      before_construction=Some(_ => {
+        stages.val += 1
+        Ok(())
+      }),
+    )
+    is Err("custody"),
+  )
+  assert_eq(stages.val, 4)
+  assert_eq(chunk_reads.val, 8)
+  let before = chunk_reads.val
+  assert_true(
+    read_client_saved_submission(
+      saved_snapshot_reference(),
+      read,
+      _ => Ok(original),
+      "custody",
+      before_construction=Some(_ => Err(CustodyLost)),
+    )
+    is Err("custody"),
+  )
+  assert_eq(chunk_reads.val, before)
+}

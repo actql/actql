@@ -4114,3 +4114,31 @@ success releases temporary scratch while retaining the immutable result's charge
 The original Run close refuses while its existing children remain and then
 settles this cell before returning the original input borrow. It does not
 acknowledge physical work, cancel a Run, clear a trap or reset fuel.
+
+
+### Fresh task-material validation
+
+Each task-material read still observes the original four bounded physical chunk
+positions in the same caller-owned transaction. Missing, foreign, revised,
+malformed, extra or noncanonical chunks refuse through the existing error path.
+The unchanged logical bound is 262144 bytes and each physical row is bounded at
+131072 bytes. Raw UTF8 bytes, including decomposed text and line endings, remain
+the SHA256 preimage; neither normalization nor another CID domain is introduced.
+
+Within that one fresh read, the reader encodes the assembled wire once, computes
+its CID once and constructs the canonical chunks from that same byte vector.
+Its private result passes those already checked chunks to the enclosing complete
+inventory instead of reconstructing them. A later reader starts again from its
+own physical observations. Full table scans, cancellation inspection, nested Run
+validation and current callbacks remain mandatory. No inventory, physical row,
+authority or earlier successful read is reused across calls.
+
+The existing material and Run construction purposes cover these synchronous
+values. The private tuple carries references to the already constructed wire and
+chunks; it adds no retained cell, capacity reservation or asynchronous owner.
+The byte vector and checked chunk array remain confined to the existing read and
+inventory call. Redundant encodings, hashes and chunk reconstructions are removed;
+no input limit, fuel, execution quantum or admitted capacity is increased. The
+original before-construction callbacks and physical current fences still run,
+and constructor refusal prevents subsequent material reads. Public signatures,
+wire bodies, error precedence and cleanup obligations are unchanged.

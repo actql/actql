@@ -116,14 +116,10 @@ pub fn[E] inspect_client_run_journal_inventory(
       return Err(custody_lost)
     }
     if record.task_materials_cid is Some(cid) {
-      let wire = match
-        read_client_task_material_original(row.key, cid, read, custody_lost) {
+      let (_, chunks) = match
+        read_task_material_original_details(row.key, cid, read, custody_lost) {
         Ok(value) => value
         Err(issue) => return Err(issue)
-      }
-      let chunks = match client_task_material_original_chunks(row.key, wire) {
-        Ok(value) => value
-        Err(_) => return Err(custody_lost)
       }
       for (key, _) in chunks {
         task_chunks[key] = true
