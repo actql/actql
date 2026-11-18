@@ -38,6 +38,7 @@ class LocalSubmissionLookupTests(unittest.TestCase):
         with TemporaryDirectory(prefix='actql-ready-submit-') as directory:
             host, _, calls, counters, reference = self.fixture(directory, {
                 'kind': 'ready', 'intentCid': identity,
+                'observation': 'already_satisfied', 'expectedIntentCid': identity,
                 'admission': json.dumps(admission, separators=(',', ':'))})
             body = self.submit_body(reference)
             async def submit():
@@ -70,7 +71,8 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             'durability': 'durable', 'revision': 7}
         for kind in ('ready', 'preparing'):
             with self.subTest(kind=kind), TemporaryDirectory(prefix='actql-intent-conflict-') as directory:
-                observed = {'kind': kind, 'intentCid': 'sha256:' + 'e' * 64}
+                observed = {'kind': kind, 'intentCid': 'sha256:' + 'e' * 64,
+                    'observation': 'conflict', 'expectedIntentCid': self.submit_body({})['intentCid']}
                 if kind == 'ready':
                     observed['admission'] = json.dumps(admission)
                 host, _, _, counters, reference = self.fixture(directory, observed)
@@ -239,6 +241,13 @@ class LocalSubmissionLookupTests(unittest.TestCase):
                 expected = ({'reference': json.dumps(reference, ensure_ascii=False, separators=(',', ':'))}
                             if run_reference is None else run_reference if result_name is None else
                             {**run_reference, "resultName": result_name})
+                if 'expectedIntentCid' in observed:
+                    submitted = self.submit_body(reference)
+                    transported = json.loads(source)
+                    expected['intent'] = transported['intent']
+                    expected['intentCid'] = submitted['intentCid']
+                    self.assertEqual(json.loads(transported['intent']),
+                        {key: submitted[key] for key in ('kind', 'input', 'parameters')})
                 self.assertEqual(json.loads(source), expected)
                 outputs[args[0]] = json.dumps(observed, separators=(',', ':')).encode()
                 return 0

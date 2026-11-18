@@ -414,3 +414,25 @@ reference; a newly issued connection epoch cannot replace it. Historical
 bare-request observations remain in their existing identity domain and are not
 reinterpreted as epoch-bound receipts. Starting new work with a bare historical
 request ID or a Host without an epoch does not select a legacy execution path.
+## Shared binding observation of original intents
+
+The existing Common submitted-intent family classifies an admitted incoming
+intent against the admitted original selected by the authenticated journal:
+missing, conflicting, still preparing, or already satisfied. It compares the
+complete canonical wire and its identity, and rejects an unknown retained phase.
+The invocation projection also consumes the journal's actual insertion fact;
+an initial recorded terminal remains `recorded`, while an existing satisfied
+original is `already_satisfied`.
+
+Node obtains this decision while its journal still holds both admitted originals.
+The Python/Wasm lookup admits the supplied intent and checks its claimed CID
+inside Common before reading saved history, then revalidates the same bounded
+observation around transfer. Observation uses the actual input extent rather
+than imposing the fresh-append profile on an older valid retained intent.
+
+These are observations under the existing Owners. The Host still authenticates
+the epoch and reference, checks current authority, and owns physical transactions,
+COMMIT/rollback uncertainty and cleanup. Missing history is not proof of
+nonexecution or permission to resend. Saved-ready Python lookup remains DATA;
+this shared classification neither constructs an executable Run nor changes
+Node's existing explicitly requested ready replay.
