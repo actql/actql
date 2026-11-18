@@ -144,7 +144,10 @@ such as `%Y` are not part of this grammar. Parsing requires a complete date,
 consumes the whole input and validates the calendar. Missing time components
 default to zero; the result has millisecond precision. Formatting `SSS` selects
 the millisecond digits of an admitted timestamp without rounding. Input,
-pattern, output and execution limits still apply.
+pattern, output and execution limits still apply. An original authored pattern
+failure has the cause-bearing Problem code `ClientProgramTimestampPatternInvalid`
+when its existing current-audience disclosure is available. This is distinct
+from a missing text-time profile or an execution-time input-value failure.
 
 ```sql
 SELECT PARSE_TIMESTAMP('yyyy-MM-dd', '2026-01-02') AS parsed;

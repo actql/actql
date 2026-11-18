@@ -2202,3 +2202,30 @@ The retained publication array, callback, receiver, selected references and
 context/canonical-encoding workspace overlap with the installed check lifetime.
 These references and their bounds are not capacity reservations or physical
 cleanup acknowledgements.
+
+## Original timestamp-pattern rejection
+
+The existing Timestamp parser owns the pattern grammar and Parse/Format mode
+checks. Its original empty-pattern, invalid-component, duplicate-token,
+missing-date and time-dependency failures are invalid input. They project through
+the existing `query_expression_invalid` / `invalid_arguments` fact, without a
+new Reason schema, CID, message field or Host-side inspection of SQL/error text.
+The original diagnostic is retained; its validation-site ordinal does not prove
+an authored range, so this projection omits a location. The same typed Request
+cause also selects the open Problem code `ClientProgramTimestampPatternInvalid`,
+carried by the existing `ClientProgramInvalidInput` refusal and its nominal
+`{problemCode, refusalCode}` association. No additional getter, registry or
+wire field is introduced. A copied error cannot issue this cause; unavailable
+or no-longer-authorized disclosure cannot reveal it.
+
+The bridge borrows the same existing diagnostic cause once and returns its
+existing Option/String result. The Node adapter uses the already admitted
+original refusal record, and the same Journal's nonacceptance/failure and
+current-audience boundaries remain responsible for recording and disclosure.
+This adds no retained diagnostic copy or new allocation carrier.
+
+Missing policy/bindings, configured work or byte limits and foreign/internal
+correspondence retain their existing distinct handling. The same report writer
+and existing finding frame are used; this adds no Source read, recheck, Graph,
+Run or execution authority. Canonical Timestamp value conversion remains a
+separate boundary from these pattern arguments.

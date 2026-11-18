@@ -16,6 +16,7 @@ const issueCodes = Object.freeze({
   needs_inputs: 'ClientProgramNeedsInputs',
   check_invalid_input: 'ClientProgramInvalidInput',
   ClientProgramParameterUndeclared: 'ClientProgramInvalidInput',
+  ClientProgramTimestampPatternInvalid: 'ClientProgramInvalidInput',
   ClientSuppliedParameterUndeclared: 'ClientParametersInvalid',
   // A typed checker configuration refusal precedes submission and Run admission.
   check_invalid_configuration: 'ClientProgramRejected',
@@ -144,11 +145,11 @@ export function checkedRequestProgramPreparation(moon, result,
     if (code !== undefined) {
       const error = Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
       if (category === 'ClientSuppliedParameterUndeclared' ||
-          category === 'ClientProgramParameterUndeclared') {
-        // Core has proved the original query or supplied-map declaration failure
-        // and its invalid-input
-        // category. Keep both original facts; mutable error properties cannot
-        // turn this into a work failure or a different refusal classification.
+          category === 'ClientProgramParameterUndeclared' ||
+          category === 'ClientProgramTimestampPatternInvalid') {
+        // Core has proved the original declaration or timestamp-pattern failure
+        // and its invalid-input category. Keep both original facts; mutable error
+        // properties cannot change the original refusal classification.
         capacityRefusals.set(error, Object.freeze({problemCode: category, refusalCode: code}));
       }
       throw error;
