@@ -346,6 +346,37 @@ export function declaredProjectWritableInventoryConstructionGeometry(sources) {
  * function environments; each Source is loaded once, never once per target.
  * Mapping/name/row DATA and per-Run children have their separate original
  * constructor/physical recipes. These are logical Host allowances, not RSS. */
+// Workspace of one synchronous exact-row footprint callback. The original
+// requests and Catalog paths are borrowed. Each request's already-enforced
+// canonical wire limit bounds its selector token; do not expand that escaped
+// bound a second time. All returned CID Strings coexist, but only one target
+// canonical writer/hash Buffer is live at a time. This is a logical lifetime
+// cut, not a GC or physical-memory acknowledgement.
+export function declaredProjectMockFootprintConstructionGeometry(writables, maxRows, maxRequestBytes) {
+  if (!Number.isSafeInteger(maxRows) || maxRows < 1 ||
+      !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes < 1) invalidGeometry();
+  let pathItems = 0n, pathUnits = 0n;
+  for (const target of writables) {
+    const physical = target.physical;
+    let units = stringUnits(physical.primaryIdentity);
+    const count = BigInt(physical.itemsPath.length + physical.keyPath.length);
+    for (const part of physical.itemsPath) units += stringUnits(part);
+    for (const part of physical.keyPath) units += stringUnits(part);
+    if (count > pathItems) pathItems = count;
+    if (units > pathUnits) pathUnits = units;
+  }
+  const rows = BigInt(maxRows);
+  const wireBytes = BigInt(maxRequestBytes) + 6n * pathUnits + 4n * pathItems + 128n;
+  // Four-field preimage/keys/pairs, two path vectors and their canonical
+  // traversal/sort cohorts, scheme metadata, selectors and returned CID vector.
+  // Six complete UTF16 writer/output cohorts conservatively overlap, plus all
+  // 71-unit CIDs. Existing parent capture retains the completed Preview forest.
+  return stage({nodes: 0n, text: 0n, wire: 0n},
+    {nodes: 128n + 24n * pathItems + 8n * rows,
+      text: 12n * wireBytes + 142n * rows + 4096n,
+      wire: wireBytes + 128n}, {pathItems, pathUnits, rows, wireBytes});
+}
+
 export function declaredProjectWritableRuntimeConstructionGeometry(sources, writables, phase, selected) {
   if (phase === 'root') {
     let connections = 0n;
@@ -359,38 +390,45 @@ export function declaredProjectWritableRuntimeConstructionGeometry(sources, writ
     targets++;aliases += BigInt(target.write.aliases.length);
   }
   if (phase === 'source') {
+    const pluralFootprint = writables.length > 1;
     const operation = stringUnits(ownData(selected.writes[0], 'permission'));
     const read = stringUnits(ownData(selected.writes[0], 'observe_permission'));
     // The physical recipe owns capture/request names and its three target
     // read phase names. Their input names are borrowed; concatenated results
     // and the builder's preceding prefix coexist separately.
-    const operationUnits = 2n * operation + 3n * read + 80n;
+    const operationUnits = 2n * operation + 3n * read + 80n + (pluralFootprint ? operation + 10n : 0n);
     // The selected physical recipe has 2 member + 5 row operations and 3
-    // owned target-read slots. Its public JS normalization inspects 18
-    // records/arrays containing 46 properties (including array lengths).
+    // owned target-read slots. Plural selection adds one member extent/role.
+    // Legacy normalization inspects 18 records/arrays with 46 properties;
+    // the added operation record, role and member-array index add 3/9.
     // Each descriptor is a record plus value/writable/enumerable/configurable.
     // Keep BOTH raw and normalized recipe records until this call returns.
     // These are quantities in the existing Source allowance, not VM/RSS sizes.
-    const descriptorCalls = 18n, descriptorProperties = 46n;
+    const descriptorCalls = 18n + (pluralFootprint ? 3n : 0n);
+    const descriptorProperties = 46n + (pluralFootprint ? 9n : 0n);
     const descriptorRecords = descriptorCalls + 5n * descriptorProperties;
     const descriptorNamesAndKeys = 2n * (descriptorCalls + descriptorProperties) + 14n + 9n;
     const descriptorCallbacks = 4n * descriptorCalls + 15n;
     // Two Set controls, the three-slot index seed, and the 3 phase + 6 index
     // entries. Keep their entry and old/new construction slots together.
-    const validationSets = 2n + 4n + 3n * (3n + 6n);
-    const rawRecipeOverlap = 66n;
+    const validationSets = 2n + 4n + 3n * (3n + 6n + (pluralFootprint ? 1n : 0n));
+    const rawRecipeOverlap = 66n + (pluralFootprint ? 16n : 0n);
     // Provider input: dimension/phase vectors, selected/inner arrays, 8
     // property descriptors, both phase-key vectors, root keys and limit
     // vocabulary. Include its callbacks and raw zero/workspace constructors.
     const providerValidation = 4n + 3n + 15n + 10n + 8n + 30n + 3n + 6n + 19n + 15n;
     // Three six-argument capacity vectors, two one-item composition arrays,
     // three 15-argument quotes and their optional request-capacity arrays.
-    const nativeArgumentVectors = 3n * 7n + 4n + 3n * 16n + 3n * 2n;
+    const nativeArgumentVectors = 3n * 7n + 4n + 3n * 16n + 3n * 2n + (pluralFootprint ? 13n : 0n);
     // Numeric array-key Strings created by the 2+5 operation-index maps.
-    const indexStrings = 7n;
+    const indexStrings = 7n + (pluralFootprint ? 1n : 0n);
     const recipeWorkspace = descriptorRecords + descriptorNamesAndKeys + descriptorCallbacks +
       validationSets + rawRecipeOverlap + providerValidation + nativeArgumentVectors + indexStrings;
-    return stage({nodes: 768n + 2n * targets, text: 2n * operationUnits, wire: 0n},
+    // The real codec adds one record, one method and its borrowed Catalog/
+    // Common links. Plural selection additionally owns one typed footprint
+    // capacity/extent/role and its argument/cohort controls, never a new owner.
+    const codec = 16n, footprint = pluralFootprint ? 32n : 0n;
+    return stage({nodes: 768n + 2n * targets + codec + footprint, text: 2n * operationUnits, wire: 0n},
       {nodes: recipeWorkspace + 2n * targets, text: 4n * operationUnits + 2n * indexStrings, wire: 0n},
       {targets, descriptorCalls, descriptorProperties});
   }

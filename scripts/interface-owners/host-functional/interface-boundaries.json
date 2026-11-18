@@ -113030,9 +113030,12 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "37931ecbf3387479d0a3075ac966c827611ebbd6573f34b5dea0668aa0a3ae02",
+      "sha256": "094b3c70322311d0202a829e79602aca5cfccd64f677ae940dbf40a8202d5265",
       "exports": [
+        "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
+        "mockFileEffectPlanRecipe",
+        "mockFileRowFootprint",
         "observeInstalledMockEffectResources"
       ],
       "operations": [
@@ -113040,6 +113043,41 @@
           "name": "cid/cid",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileRowCodec",
+          "parameters": [
+            "bundle",
+            "original",
+            "call"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileRowCodec/admit/admit",
+          "parameters": [
+            "bytes",
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileRowCodec/init:update/init:update",
+          "parameters": [
+            "bytes",
+            "target",
+            "record",
+            "physicalOperation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileRowCodec/observe/observe",
+          "parameters": [
+            "document",
+            "target"
           ],
           "async": false
         },
@@ -113180,10 +113218,43 @@
           "async": false
         },
         {
+          "name": "mockFileEffectPlanRecipe",
+          "parameters": [
+            "moon",
+            "bundle",
+            "operation",
+            "targetReadOperation"
+          ],
+          "async": false
+        },
+        {
           "name": "mockFileEffectPlanRecipe/projections/projections",
           "parameters": [
             "sum",
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockFileRowFootprint",
+          "parameters": [
+            "bindingCid",
+            "target",
+            "selectors"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockFileRowFootprint/mockFileRowFootprint",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockFileRowFootprint/mockFileRowFootprint#2",
+          "parameters": [
+            "identity"
           ],
           "async": false
         },
@@ -113251,9 +113322,17 @@
           "async": false
         },
         {
-          "name": "mockRowEffectDriver/driver/driver#3",
+          "name": "mockRowEffectDriver/driver/init:footprint/init:footprint",
           "parameters": [
-            "member"
+            "member",
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:footprint/init:footprint/selectors/selectors",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -113528,6 +113607,7 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/runtime-result.mjs",
+        "../host-node/declared-project-catalog-construction.mjs",
         "../host-node/installed-effect-inventory.mjs",
         "../host-node/installed-effect-plan.mjs",
         "../host-node/installed-host-cleanup.mjs",
@@ -113558,7 +113638,6 @@
             "mockRowEffectDriver/describe/describe",
             "mockRowEffectDriver/driver/driver",
             "mockRowEffectDriver/driver/driver#2",
-            "mockRowEffectDriver/driver/driver#3",
             "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets",
             "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild",
             "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/child/child",
@@ -113592,11 +113671,24 @@
             "mockRowEffectDriver/site/site#2",
             "observeInstalledMockEffectResources",
             "synchronous/synchronous/synchronous",
-            "wire/wire"
+            "wire/wire",
+            "createMockFileRowCodec",
+            "createMockFileRowCodec/admit/admit",
+            "createMockFileRowCodec/init:update/init:update",
+            "createMockFileRowCodec/observe/observe",
+            "mockFileEffectPlanRecipe",
+            "mockFileRowFootprint",
+            "mockFileRowFootprint/mockFileRowFootprint",
+            "mockFileRowFootprint/mockFileRowFootprint#2",
+            "mockRowEffectDriver/driver/init:footprint/init:footprint",
+            "mockRowEffectDriver/driver/init:footprint/init:footprint/selectors/selectors"
           ],
           "exports": [
             "installPreparedProjectMockEffects",
-            "observeInstalledMockEffectResources"
+            "observeInstalledMockEffectResources",
+            "createMockFileRowCodec",
+            "mockFileEffectPlanRecipe",
+            "mockFileRowFootprint"
           ],
           "attributes": {
             "responsibility": [
@@ -131087,8 +131179,8 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5502,
-    "exports": 1191,
+    "operations": 5511,
+    "exports": 1194,
     "explicitContractGroups": 550
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."

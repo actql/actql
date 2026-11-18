@@ -20303,7 +20303,8 @@
             "construction",
             "requestConstruction",
             "physicalConstruction",
-            "targetReadOperation"
+            "targetReadOperation",
+            "footprintCapacity"
           ],
           "async": false
         },
@@ -20410,7 +20411,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "c1f300569fbd647e7377b5d71ed9fa7f232a816bef070466f0fb128cca9cb999",
+      "sha256": "6a75414f468cf7e417df30335c189bf28fe7190748bf7102aa80711ac1d041ab",
       "contracts": [
         {
           "operations": [

@@ -11,6 +11,7 @@ import {prepareInstalledPhysicalWritePlanRecipe} from '../host-node/installed-ef
 import {installedUpdateTargets, composeInstalledEffects} from '../host-node/installed-effect-inventory.mjs';
 import {createMockFileTarget} from '../host-node/mock-file-target.mjs';
 import {retainInstalledHostInitializationFailure} from '../host-node/installed-host-cleanup.mjs';
+import {declaredProjectMockFootprintConstructionGeometry} from '../host-node/declared-project-catalog-construction.mjs';
 
 const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
 const wire = value => canonicalJson(value, {dataKeys: true});
@@ -48,6 +49,68 @@ const ports = Object.freeze({
   update: 'clientProgramRelationPrepareTargetUpdate',
   construction: 'clientProgramInstalledSourceConstructionCapacity',
 });
+
+// Internal DATA codec, shared by the actual locked writer and its component
+// controls. It borrows the original Catalog/Common; it owns no file, Account,
+// request admission, dispatch claim or current/cleanup capability.
+export function createMockFileRowCodec({bundle, original, call}) {
+  const admit = (bytes, target) => {
+    const originalDocument = checked(call('admit', bytes, targetLimits.maxFileBytes,
+      targetLimits.maxNodes, targetLimits.maxDepth, targetLimits.maxRows, targetLimits.maxWork));
+    const projections = new Map();
+    for (const source of bundle.sources) for (const model of source.physical) {
+      const writable = source === original && model === target.physical ? target.write.writable_fields : model.writableFields;
+      projections.set(model, checked(call('project', originalDocument, model.declaration,
+        model.resource, model.itemsPath, model.keyPath, model.primaryIdentity, writable)));
+    }
+    const selected = projections.get(target.physical);
+    if (selected === undefined) fail('InvalidInstalledMockEffect');
+    return {originalDocument, projections, selected};
+  };
+  const observe = (document, target) => {
+    const row = checked(call('observe', document.selected, original.declaration, target));
+    const beforeWire = call('before', row), versionCid = call('version', row);
+    if (typeof beforeWire !== 'string' || !cid(versionCid)) fail('InvalidMockTargetObservation');
+    const before = snapshot(JSON.parse(beforeWire));
+    return {row, before, versionCid, beforeWire};
+  };
+  return Object.freeze({admit, observe,
+    update(bytes, target, record, physicalOperation) {
+      // Re-admit the latest WHOLE document supplied by the SAME locked file
+      // owner, then replace only the original row's admitted Mapping spans.
+      physicalOperation?.chargeBytes(BigInt(bytes.length));
+      const document = admit(bytes, target), observed = observe(document, record.target);
+      if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {
+        fail('MockTargetVersionConflict');
+      }
+      const replacement = checked(call('update', document.selected, observed.row,
+        record.version, wire(record.value), targetLimits.maxWork));
+      physicalOperation?.chargeBytes(BigInt(replacement.length));
+      return replacement;
+    },
+  });
+}
+
+// Complete logical row identities inside ONE unchanged physical boundary.
+// The checked Catalog has already refused overlapping collection paths.
+// Resource/Mapping aliases and values/versions are deliberately absent from
+// the object identity: aliases cannot disguise the same physical row.
+export function mockFileRowFootprint({bindingCid, target, selectors}) {
+  if (!cid(bindingCid) || !Array.isArray(selectors) || selectors.length > targetLimits.maxRows ||
+      selectors.some(value => typeof value !== 'string' || !value.isWellFormed())) {
+    fail('InvalidMockEffectFootprint');
+  }
+  const physical = target.physical;
+  const scheme = {kind: 'mock-file-row-update',
+    identity_fields: ['items_path', 'key_path', 'primary_identity', 'identity']};
+  return Object.freeze({kind: 'exact_targets', provider_namespace: 'local-mock-file',
+    provider_boundary_cid: bindingCid, resource_kind: target.write.resource,
+    resource_identity_scheme_cid: hash(scheme),
+    provider_object_identity_cids: Object.freeze(selectors.map(identity => hash({
+      items_path: physical.itemsPath, key_path: physical.keyPath,
+      primary_identity: physical.primaryIdentity, identity}))),
+  });
+}
 
 export async function installPreparedProjectMockEffects({moon, mockPreparation,
   baseEnvironmentWire, authorizationFor, principalId, runtimeBundleCid, bindingCid, bindingFor,
@@ -154,7 +217,7 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
 // One finite file operation window. Common supplies parser/control tariffs;
 // only the actual declared projections and file/replacement buffers vary here.
 // Returned request/response DATA has the existing JSON recipe and output guard.
-function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOperation) {
+export function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOperation) {
   const bytes = BigInt(targetLimits.maxFileBytes), nodes = BigInt(targetLimits.maxNodes);
   const projections = BigInt(bundle.sources.reduce((sum, source) => sum + source.physical.length, 0));
   const workspace = Object.freeze({nodes: 4n * nodes * projections,
@@ -172,8 +235,15 @@ function mockFileEffectPlanRecipe(moon, bundle, operation, targetReadOperation) 
   const construction = Object.freeze({retained: zero,
     workspace: Object.freeze({...workspace, wire: 2n * bytes})});
   const inputLimits = installedRowEffectConstructionLimits({maxRows: targetLimits.maxRows});
+  let footprintCapacity;
+  if (bundle.writables.length > 1) {
+    const geometry = declaredProjectMockFootprintConstructionGeometry(bundle.writables,
+      targetLimits.maxRows, targetLimits.maxFileBytes);
+    footprintCapacity = capacity(geometry.workspace);
+  }
   return prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputLimits,
     construction, physicalConstruction: decode, requestConstruction, targetReadOperation,
+    ...(footprintCapacity === undefined ? {} : {footprintCapacity}),
     limits: Object.freeze({maxRequestBytes: targetLimits.maxFileBytes,
       maxRecoveryBytes: targetLimits.maxFileBytes, maxResponseBytes: targetLimits.maxResponseBytes,
       maxOutcomeBytes: targetLimits.maxResponseBytes, maxTransferBytes: 2 * targetLimits.maxFileBytes})});
@@ -198,6 +268,8 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
   const changes = (value, target) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
     Object.keys(value).length > 0 && Object.keys(value).every(name => target.write.writable_fields.includes(name));
   const requests = new WeakMap(), descriptions = new WeakMap(), grants = new WeakMap();
+  const codec = createMockFileRowCodec({bundle, original, call});
+  const {admit, observe} = codec;
   const retainedRuns = new WeakSet();
   // A plural member description adds ONE borrowed target link. The existing
   // same-Run control constructor admits its explicit logical allowance before
@@ -318,26 +390,6 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
   }
   const useCurrent = use => {if (use !== undefined) decisionCurrent(use.grant.decision,
     use.grant.kind, targetForResource(use.grant.decision.tuple.resource));};
-  function admit(bytes, target) {
-    const originalDocument = checked(call('admit', bytes, maximum,
-      targetLimits.maxNodes, targetLimits.maxDepth, targetLimits.maxRows, work));
-    const projections = new Map();
-    for (const source of bundle.sources) for (const model of source.physical) {
-      const writable = source === original && model === target.physical ? target.write.writable_fields : model.writableFields;
-      projections.set(model, checked(call('project', originalDocument, model.declaration,
-        model.resource, model.itemsPath, model.keyPath, model.primaryIdentity, writable)));
-    }
-    const selected = projections.get(target.physical);
-    if (selected === undefined) fail('InvalidInstalledMockEffect');
-    return {originalDocument, projections, selected};
-  }
-  function observe(document, target) {
-    const row = checked(call('observe', document.selected, original.declaration, target));
-    const beforeWire = call('before', row), versionCid = call('version', row);
-    if (typeof beforeWire !== 'string' || !cid(versionCid)) fail('InvalidMockTargetObservation');
-    const before = snapshot(JSON.parse(beforeWire));
-    return {row, before, versionCid, beforeWire};
-  }
   function own(request, runOriginal) {
     current();
     const record = requests.get(request);
@@ -497,8 +549,17 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
       }
       return result;
     },
-    footprint: ({member}) => ({providerNamespace: 'local-mock-file',
-      resourceKind: memberCurrent(member).write.resource, boundaryCid: bindingCid}),
+    footprint({member, entries}) {
+      const target = memberCurrent(member);
+      if (bundle.writables.length === 1) return {providerNamespace: 'local-mock-file',
+        resourceKind: target.write.resource, boundaryCid: bindingCid};
+      const selectors = entries.map(entry => {
+        const {record} = own(entry.request);
+        if (targetForRecord(record) !== target) fail('ForeignMockEffectRequest');
+        return record.target;
+      });
+      return mockFileRowFootprint({bindingCid, target, selectors});
+    },
     recoveryEntry({entries}) {
       const data = {binding: bindingCid, requests: entries.map(entry => own(entry.request).record)};
       const body = wire(data);
@@ -515,14 +576,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
         assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
         authorize() {use = consume('write', supplied, selected, target);},
         replace(bytes) {
-          physicalOperation?.chargeBytes(BigInt(bytes.length));
-          const document = admit(bytes, target), observed = observe(document, record.target);
-          if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {
-            fail('MockTargetVersionConflict');
-          }
-          const replacement = checked(call('update', document.selected, observed.row, record.version, wire(record.value), work));
-          physicalOperation?.chargeBytes(BigInt(replacement.length));
-          return replacement;
+          return codec.update(bytes, target, record, physicalOperation);
         }});
       try {
         physicalOperation?.retainPhysicalChild(child);
