@@ -11,7 +11,7 @@ import {parse as parseJavaScript} from 'acorn';
 import {nativeCoreCCachePin} from './native-core-c-compiler.mjs';
 import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets.mjs';
 import {validateGroups} from './ci-native-background-groups.mjs';
-import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
+import {nativeCoreCiPartitions, nativeCoreHostedPartitions} from './ci-core-partitions.mjs';
 import {nativeCoreLinuxCommonPartitions} from './test-native-core-linux-common.mjs';
 import {inventory as verificationInventory} from './verification-actions.mjs';
 import {spawnSync} from 'node:child_process';
@@ -93,12 +93,17 @@ test('Core runner split caps only Darwin and retains the complete original matri
   assert.deepEqual(common.strategy.matrix.partition, ['1/4', ...nativeCoreLinuxCommonPartitions]);
   const rows = job => ['js', 'wasm', 'native'].flatMap(target => job.strategy.matrix.partition.map(partition => ({target, partition})))
     .filter(row => !job.strategy.matrix.exclude.some(x => x.target === row.target && x.partition === row.partition));
-  const selected = [{target: 'js', partition: '1/4'}, ...rows(common), ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))];
-  assert.equal(selected.length, 15);
-  assert.equal(new Set(selected.map(row => JSON.stringify(row))).size, 15);
-  assert.deepEqual(selected, [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
+  const selected = [{target: 'js', partition: '1/4'}, ...rows(common),
+    ...darwin.strategy.matrix.partition.flatMap(partition => nativeCoreHostedPartitions(partition)
+      .map(partition => ({target: 'native', partition})))];
+  assert.equal(new Set(selected.map(row => JSON.stringify(row))).size, selected.length,
+    'Each logical Core profile must execute exactly once');
+  const required = [{target: 'js', partition: '1/4'}, {target: 'wasm', partition: '1/4'},
     ...nativeCoreLinuxCommonPartitions.map(partition => ({target: 'native', partition})),
-    ...nativeCoreCiPartitions.map(partition => ({target: 'native', partition}))]);
+    ...['1/2', '2/2', 'source', 'scoped-runtime', 'scoped-review']
+      .map(partition => ({target: 'native', partition}))];
+  assert.deepEqual(selected.map(row => JSON.stringify(row)).sort(), required.map(row => JSON.stringify(row)).sort(),
+    'Runner sharing must retain the complete Linux and Darwin logical union');
   assert.equal(common.steps, darwin.steps, 'One YAML-anchored step owner preserves all original commands and environments');
   assert.deepEqual(js.needs, ['select-targets']);
   assert.deepEqual(common.needs, ['select-targets']);
@@ -256,8 +261,8 @@ test('actual Native cache preparation admits only selected halves and Scoped whi
       contains: (values, value) => values.includes(value),
     }));
   assert.deepEqual([...selected].sort(), ['1/2', '2/2', 'scoped-review', 'scoped-runtime']);
-  assert.deepEqual(parts.filter(partition => !selected.includes(partition)), ['source'],
-    'Only the explicitly uncached Source profile may omit this actual entry');
+  assert.deepEqual(parts.flatMap(nativeCoreHostedPartitions).filter(partition => !selected.includes(partition)), ['source'],
+    'Only the logical Source profile remains uncached inside its selected hosted job');
   const prefixes = new Set();
   for (const partition of selected) {
     const actual = invoke(partition); assert.ifError(actual.error);
