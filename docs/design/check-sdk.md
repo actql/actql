@@ -2289,3 +2289,56 @@ change current/Account/Source authority, or establish ordinary ABI/normal
 acceptance. Independent preimages, Common exact/one-short/foreign/current controls,
 actual Node bridge/Runtime consumption and imported manager/publication/retirement
 controls qualify their respective boundaries separately.
+
+## Original timestamp-pattern rejection
+
+The existing Timestamp parser owns the pattern grammar and Parse/Format mode
+checks. Its original empty-pattern, invalid-component, duplicate-token,
+missing-date and time-dependency failures are invalid input. They project through
+the existing `query_expression_invalid` / `invalid_arguments` fact, without a
+new Reason schema, CID, message field or Host-side inspection of SQL/error text.
+The original diagnostic is retained; its validation-site ordinal does not prove
+an authored range, so this projection omits a location. The same typed Request
+cause also selects the open Problem code `ClientProgramTimestampPatternInvalid`,
+carried by the existing `ClientProgramInvalidInput` refusal and its nominal
+`{problemCode, refusalCode}` association. No additional getter, registry or
+wire field is introduced. A copied error cannot issue this cause; unavailable
+or no-longer-authorized disclosure cannot reveal it.
+
+The bridge borrows the same existing diagnostic cause once and returns its
+existing Option/String result. The Node adapter uses the already admitted
+original refusal record, and the same Journal's nonacceptance/failure and
+current-audience boundaries remain responsible for recording and disclosure.
+This adds no retained diagnostic copy or new allocation carrier.
+
+Missing policy/bindings, configured work or byte limits and foreign/internal
+correspondence retain their existing distinct handling. The same report writer
+and existing finding frame are used; this adds no Source read, recheck, Graph,
+Run or execution authority. Canonical Timestamp value conversion remains a
+separate boundary from these pattern arguments.
+
+
+## Original collection-order causes
+
+The ordinary collection parser rejects missing local order with its closed
+`AggregateOrderRequired` issue at the same authored token span and work point.
+Its private exception retains only the existing offset; compared with the old
+message/offset exception it drops the borrowed message reference. The resulting
+payload-free issue replaces `Syntax(message)` in the same Diagnostic and span
+construction after unwinding, without adding a failure carrier or earlier
+Diagnostic lifetime. The existing parser's before-call/failure envelope remains
+a bound; no limit, phase, allocation margin or new Owner is introduced.
+
+The Source bridge projects only that typed issue as
+`ClientProgramAggregateOrderRequired`. Separately, its original
+`LocalProgram(Order(_, PipelineOrder(UnresolvedOrder)))`, including the
+existing SourceProgram/retained-Source wrappers of that same cause, selects the
+correctly general `ClientProgramOrderUnresolved`, preserving the existing
+`ClientProgramRejected` / `operation_failed` category. It does not infer an
+aggregate site, a missing key name, a row-order witness or an implicit key.
+
+Both use the already funded fixed-code result and nominal code/refusal record.
+Original Request identity, current audience, original refusal phase and retained
+lookup remain unchanged. Check facts stay on the existing schema and reason
+CID; syntax messages are not classification evidence. No public message field,
+reason family, recheck, Source read, implicit order or execution grant is added.

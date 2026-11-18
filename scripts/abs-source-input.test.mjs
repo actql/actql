@@ -33,7 +33,11 @@ test('absolute-value fixtures distinguish NULL, lazy demand, type refusal and ch
   assert.equal(zero.sourceReadCount, 0);
   assert.equal(zero.sourceReadSessionCount, 0);
   assert(!absRefusals.some(item => item.name === zero.name));
-  assert.ok(absRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+  const undeclared = absRefusals.find(item => item.name === 'abs-undeclared-parameter');
+  assert.equal(undeclared.expectedCode, 'ClientProgramParameterUndeclared');
+  assert.equal(undeclared.parameterDeclarations, undefined);
+  assert.ok(absRefusals.filter(item => item !== undeclared)
+    .every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   assert.equal(absExecutionFailures.length, 2);
   assert.deepEqual(absExecutionFailures.find(item => item.name === 'abs-failure-after-valid-row').sourceRows,
     [{id: 1, amount: -2}, {id: 2, amount: 0}]);

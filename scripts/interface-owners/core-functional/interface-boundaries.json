@@ -2960,7 +2960,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4044,7 +4044,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6566,7 +6566,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -8779,7 +8779,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9619,7 +9619,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -27064,7 +27064,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "da08eb1a3f44df24927c55d1a822e7a8472264ec8acf0b6a52f9fbcdefa987ce",
+      "sha256": "120193ea3520c00661cf3fbd9466432df1258478146dcd9ebb919ed77ccffa22",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -27653,6 +27653,10 @@
               {
                 "path": "adapters/local-node/carrier-snapshot.test.mjs",
                 "anchor": "retains export custody until the actual seal promise settles"
+              },
+              {
+                "path": "adapters/local-node/finalization-diagnostic.test.mjs",
+                "anchor": "test('finalization diagnostic never projects a foreign checker error from Ok or malformed DATA'"
               }
             ]
           }
@@ -36281,7 +36285,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -37875,7 +37879,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -38113,7 +38117,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -39619,7 +39623,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -39907,7 +39911,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -41988,7 +41992,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -48592,7 +48596,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "873bf755913611809ebbc4ec7e53470db94377b5d28fd8516acd71003af4db40",
+      "sha256": "4e8bc915c164c58620ca7cf756f8dd79f3f1ba6f5c5df3731f13244078acd519",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -52102,7 +52106,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -52198,7 +52202,7 @@
       "sha256": "c2b6127bfff44e9c3f59fd0a2a4f75d8ab1ed8960110ed73289a392949016d1e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -52507,7 +52511,7 @@
       "sha256": "af85920af4da377b630cdbd29a6f6596313fe03015e8c366414a42b9a8ab2d3a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -55946,7 +55950,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -56080,7 +56084,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -56337,7 +56341,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -56435,7 +56439,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -56803,7 +56807,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -57064,7 +57068,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -57237,7 +57241,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -57350,7 +57354,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -57458,7 +57462,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "12f4862242cc5ff6b4121bc8d37b65a9aa86405253b9c17f8f1f1ce26d143e62",
+      "sha256": "5392250ec9a681c38aa29d8d6e3094f52b26efb153d0930513264194ad2315c2",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -57513,11 +57517,15 @@
         },
         {
           "name": "[T]start_local_managed_dispatch",
-          "declaration": "[ T ] start_local_managed_dispatch ( setup : LocalManagedDispatchConfiguration [ T ] , ) - > Result [ LocalManagedDispatchOperations [ T ] , LocalDispatchIssue ]"
+          "declaration": "[ T ] start_local_managed_dispatch ( setup : LocalManagedDispatchConfiguration [ T ] , retained_relation ? : Bool"
         },
         {
           "name": "bind_physical_operation_input",
           "declaration": "bind_physical_operation_input ( run : @ strategy . CapturedDAG , index : Int , binding : @ execution . ManagedInputBinding , ) - > @ execution . ManagedInputBinding ?"
+        },
+        {
+          "name": "local_managed_finalization_diagnostic_control_capacity",
+          "declaration": "local_managed_finalization_diagnostic_control_capacity ( ) - > Int64 ?"
         },
         {
           "name": "local_managed_import_next_extent",
@@ -57549,7 +57557,7 @@
         },
         {
           "name": "start_local_managed_dispatch_node",
-          "declaration": "start_local_managed_dispatch_node ( setup : LocalManagedDispatchConfiguration [ Int ] , ) - > Result [ LocalManagedDispatchOperations [ Int ] , LocalDispatchIssue ]"
+          "declaration": "start_local_managed_dispatch_node ( setup : LocalManagedDispatchConfiguration [ Int ] , retained_relation ? : Bool"
         }
       ],
       "exports": [],
@@ -57576,7 +57584,8 @@
             "local_managed_snapshot_reload_extent",
             "local_relation_snapshot_reload_capacity",
             "managed_row_transfer_bytes",
-            "start_local_managed_dispatch_node"
+            "start_local_managed_dispatch_node",
+            "local_managed_finalization_diagnostic_control_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -58170,6 +58179,10 @@
               {
                 "path": "adapters/local-node/carrier-snapshot.test.mjs",
                 "anchor": "retains export custody until the actual seal promise settles"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_import_scalar_overlap_wbtest.mbt",
+                "anchor": "test \"finalization diagnostic retains original module and task slots before the adapter call\""
               }
             ]
           }
@@ -58738,7 +58751,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -59454,7 +59467,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -62273,7 +62286,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -65977,7 +65990,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "62c9854043040ad8b9dac72a3c4bf63be8f3bdddbc5d4591ecc51be31d625daa",
+      "sha256": "e47e397ce655eac77578cdc6f6da626ecbb61dd91279b19ec22e04742de8915b",
       "exports": [],
       "operations": [
         {
@@ -70672,7 +70685,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -94464,7 +94477,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -94917,7 +94930,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -96720,7 +96733,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "99294867696772295548d2bf173ce6fa78f33173f001205f264c7a86c714a9fd",
+      "sha256": "abfdb55325483453d6bff5b10598ae0158374c454532095344a02b3c3ca105a6",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -96852,6 +96865,10 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
                 "anchor": "test('managed failure snapshot preserves original diagnostic through the existing owned primary wrapper only'"
+              },
+              {
+                "path": "adapters/local-node/finalization-diagnostic.test.mjs",
+                "anchor": "test('finalization diagnostic never projects a foreign checker error from Ok or malformed DATA'"
               }
             ]
           }
@@ -96933,7 +96950,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
-      "sha256": "d0d52578d108c2d8fe041fba3c8a24b53d53077290c09f53249f034ed1eafa26",
+      "sha256": "b3f5bdf5ac57ec64551a827919c2ea1c4003f0bec0d2246746a52fb93f9c50bc",
       "exports": [],
       "operations": [
         {
@@ -96943,6 +96960,14 @@
         {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( issue : LocalDispatchIssue , ) - > Int ?"
+        },
+        {
+          "name": "local_managed_capture_failure_cause",
+          "declaration": "local_managed_capture_failure_cause ( issue : @ execution . CaptureIssue , ) - > String"
+        },
+        {
+          "name": "local_managed_compute_failure_cause",
+          "declaration": "local_managed_compute_failure_cause ( issue : @ connector . FixedComputeIssue , ) - > String ?"
         },
         {
           "name": "local_managed_failure_budget",
@@ -96963,12 +96988,20 @@
         {
           "name": "local_managed_provider_failure",
           "declaration": "local_managed_provider_failure ( issue : @ connector . FixedComputeIssue , initial_work_limit : Int , ) - > LocalDispatchIssue"
+        },
+        {
+          "name": "local_managed_resource_failure_cause",
+          "declaration": "local_managed_resource_failure_cause ( issue : @ resources . LedgerIssue , ) - > String"
+        },
+        {
+          "name": "local_managed_sequence_failure_cause",
+          "declaration": "local_managed_sequence_failure_cause ( issue : @ execution . SequenceRunIssue , ) - > String ?"
         }
       ],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
       "owner": "Existing Local managed execution and original dispatch failure owner; diagnostic DATA grants no authority or cleanup acknowledgement",
-      "referenceQualification": "Original control-work diagnostic source/component correspondence only",
+      "referenceQualification": "Original typed cause projection; closed constructor DATA only, no ordinary runtime or quota cause claim",
       "contracts": [
         {
           "operations": [
@@ -97137,7 +97170,11 @@
         {
           "operations": [
             "local_managed_failure_cause",
-            "local_managed_failure_row_step"
+            "local_managed_failure_row_step",
+            "local_managed_capture_failure_cause",
+            "local_managed_compute_failure_cause",
+            "local_managed_resource_failure_cause",
+            "local_managed_sequence_failure_cause"
           ],
           "exports": [],
           "attributes": {
@@ -97203,6 +97240,10 @@
               {
                 "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
                 "anchor": "test('original typed row cause reaches"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original nonrow cause ABI reaches imported Node"
               }
             ]
           }
@@ -103093,7 +103134,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-diagnostic.mjs",
-      "sha256": "6a5378016107730e9f0fb959907de0ae8683c1d3d273a73da4562b9055924eb8",
+      "sha256": "458c8999dd132476fda1d5d4b69a7629f1d48e1a8775447843b69746b0aefbc4",
       "exports": [
         "dispatchFailureSnapshot",
         "publicBudgetFailureMessage",
@@ -103232,12 +103273,16 @@
     },
     {
       "module": "src/execution_relation/row_failure_diagnostic.mbt",
-      "sha256": "d64debbc95663f04a527a08359c14539b956f7d805ec8f42a5080f1da5d70cdd",
+      "sha256": "05ed007f9196f43f5afc00eeb360e3c953c2ffb32ff7f0ee855636bec5d4a1a3",
       "exports": [],
       "operations": [
         {
           "name": "row_failure_diagnostic_cause",
           "declaration": "row_failure_diagnostic_cause ( issue : RowIssue ) - > String ?"
+        },
+        {
+          "name": "row_logical_failure_diagnostic_cause",
+          "declaration": "row_logical_failure_diagnostic_cause ( issue : LogicalBudgetIssue ) - > String"
         }
       ],
       "role": "observation-presentation",
@@ -103248,7 +103293,8 @@
         {
           "operations": [
             "<module>",
-            "row_failure_diagnostic_cause"
+            "row_failure_diagnostic_cause",
+            "row_logical_failure_diagnostic_cause"
           ],
           "exports": [],
           "attributes": {
@@ -103314,6 +103360,14 @@
               {
                 "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
                 "anchor": "test('original typed row cause reaches"
+              },
+              {
+                "path": "src/execution_relation/row_failure_diagnostic_wbtest.mbt",
+                "anchor": "closed row diagnosis preserves"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "remaining original typed row causes reach"
               }
             ]
           }

@@ -293,23 +293,52 @@ pub fn client_program_preparation_issue_code(
               ValuesProfileUnsupported => "values_profile_unsupported"
               NeedsInputs(_) => "needs_inputs"
               Check(diagnostic) =>
-                if @program_check.diagnostic_cause(diagnostic)
-                  is Source(Registration(Selection(issue))) &&
-                  issue.kind is (Unresolved | Ambiguous(_)) {
-                  // The existing Source Owner could not resolve the authored
-                  // selector. This is a nonacceptance, not a Host installation
-                  // failure or proof that the caller's input is invalid.
-                  "source_unresolved"
+                if @program_check.diagnostic_undeclared_parameter(diagnostic)
+                  is Some(_) {
+                  "ClientProgramParameterUndeclared"
+                } else if @program_check.diagnostic_supplied_parameter_undeclared(
+                    diagnostic,
+                  ) {
+                  "ClientSuppliedParameterUndeclared"
                 } else {
-                  match @program_check.diagnostic_category(diagnostic) {
-                    @program_check.InvalidInput => "check_invalid_input"
-                    @program_check.InvalidConfiguration =>
-                      "check_invalid_configuration"
-                    @program_check.UnsupportedImplementation =>
-                      "check_unsupported"
-                    @program_check.CompileLimit => "check_compile_limit"
-                    @program_check.MissingInput => "check_missing_input"
-                    @program_check.UnclassifiedFailure => "check_unclassified"
+                  let cause = @program_check.diagnostic_cause(diagnostic)
+                  if cause
+                    is Source(
+                      Checks(
+                        Patterns(
+                          Timestamp(
+                            Pattern(
+                              _,
+                              EmptyPattern
+                              | InvalidComponent(_)
+                              | DuplicateToken(_)
+                              | MissingDate
+                              | InvalidTimeDependencies
+                            )
+                          )
+                        )
+                      )
+                    ) {
+                    // Preserve only the original parser's authored failure.
+                    // Missing policy, budgets and foreign originals remain
+                    // separate existing categories; this is not a recheck.
+                    "ClientProgramTimestampPatternInvalid"
+                  } else if cause is Source(Registration(Selection(issue))) &&
+                    issue.kind is (Unresolved | Ambiguous(_)) {
+                    // The original Source Owner could not resolve the authored
+                    // selector. No invalid-input or installation fact is added.
+                    "source_unresolved"
+                  } else {
+                    match @program_check.diagnostic_category(diagnostic) {
+                      @program_check.InvalidInput => "check_invalid_input"
+                      @program_check.InvalidConfiguration =>
+                        "check_invalid_configuration"
+                      @program_check.UnsupportedImplementation =>
+                        "check_unsupported"
+                      @program_check.CompileLimit => "check_compile_limit"
+                      @program_check.MissingInput => "check_missing_input"
+                      @program_check.UnclassifiedFailure => "check_unclassified"
+                    }
                   }
                 }
               MissingCheckedStage(_) => "missing_checked_stage"

@@ -253,10 +253,15 @@ test "fixed Request control envelope preserves original upper bound through the 
     8L * 3L +
     8L +
     // Original authoring view1H plus the four original proof references.
-    // The selected baseline retains Fragment controls but has no separate
-    // frozen diagnostic pair or query-name projection constructors.
     16L +
-    8L * 4L
+    8L * 4L +
+    // Same nominal error's frozen code/category record, both literals borrowed.
+    16L +
+    8L * 2L +
+    // Existing typed query-issue and original-name Some carriers, no copied name.
+    16L * 2L +
+    8L * 2L +
+    8L * 2L
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,

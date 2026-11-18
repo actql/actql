@@ -310,13 +310,19 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // no new Request field, callback or policy is introduced on the failure path.
   // One returned fixed-code Some (1H/1R/1W) and the existing nominal
   // error WeakMap's key/value2R. The code is a borrowed Core constant;
-  // no owned text, diagnostic record or new Request field is constructed.
+  // no owned text or new Request field is constructed.
+  // The same nominal association now retains one frozen code/refusal-category
+  // record (1H/2R) beside that Some and original error on either failure path.
+  // It borrows both closed literals; no name, value or second registry is held.
+  // The existing query diagnostic getter returns its original pipeline issue
+  // Some and parameter-name Some (2H/2R/2W), conservatively coheld during
+  // projection before the outer code returns. The original name stays internal.
   // Authoring adds one bounded pre-Run Model/Content view1H and four same
   // proof references: Core Request, manager, borrowed view and Task admission.
   // This is independent of the existing Fragment refusal quote above.
-  record_headers: 260L,
-  reference_slots: 479L,
-  scalar_words: 527L,
+  record_headers: 263L,
+  reference_slots: 483L,
+  scalar_words: 529L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

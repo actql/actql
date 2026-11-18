@@ -67,8 +67,9 @@ export const lowerRefusals = [
   {name: 'decimal', text: "SELECT LOWER(CAST('4' AS DECIMAL(8,0))) AS value"},
   {name: 'number-parameter', text: 'SELECT LOWER(@value) AS value',
     parameterDeclarations: {value: {type: 'number', nullable: false}}, parameters: {value: 4}},
-  {name: 'undeclared-parameter', text: 'SELECT LOWER(@missing) AS value'},
-].map(value => ({...value, name: 'lower-' + value.name, format: 'sql', expectedCode: 'ClientProgramInvalidInput'}));
+  {name: 'undeclared-parameter', text: 'SELECT LOWER(@missing) AS value', expectedCode: 'ClientProgramParameterUndeclared'},
+].map(({expectedCode = 'ClientProgramInvalidInput', ...value}) => ({...value,
+  name: 'lower-' + value.name, format: 'sql', expectedCode}));
 export const lowerExecutionFailures = [{
   name: 'lower-demanded-operand', text: 'SELECT LOWER(CAST(1 / 0 AS STRING)) AS value',
   format: 'sql', resultNames: ['main'], sourceReadSessionCount: 0,

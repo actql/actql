@@ -372,7 +372,7 @@ test('managed advance diagnostic has one exact reviewed pure Workers closure', a
   assert.equal(imports.length, 1);
   assert.equal(imports[0].source.value, '../host-common/compiler-binding.generated.mjs');
   assert.deepEqual(imports[0].specifiers.map(node => [node.imported.name, node.local.name]),
-    [['runtimeIsBoxedSome', 'runtimeIsBoxedSome'], ['runtimeField', 'runtimeField'],
+    [['runtimeIsError', 'runtimeIsError'], ['runtimeIsBoxedSome', 'runtimeIsBoxedSome'], ['runtimeField', 'runtimeField'],
       ['runtimeOptionalField', 'runtimeOptionalField'], ['runtimeUnboxedReferenceOption', 'runtimeUnboxedReferenceOption']]);
   checkPureRuntime(source.slice(0, imports[0].start) + source.slice(imports[0].end));
   checkPureRuntime(readFileSync(new URL(binding, root), 'utf8'));

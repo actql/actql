@@ -742,6 +742,7 @@ pub fn query_work(query : Query) -> Int {
 ///|
 priv suberror QueryAbort {
   QueryAbort(String, Int)
+  QueryAggregateOrderRequired(Int)
   QueryExpression(Diagnostic)
 }
 
@@ -1070,6 +1071,13 @@ fn QueryParser::aggregate_expression(
       Ok(Some((name, parser.index, parser.work, parser.expression_nodes)))
     } catch {
       QueryExpression(error) => Err(error)
+      QueryAggregateOrderRequired(at) =>
+        Err({
+          issue: AggregateOrderRequired,
+          span: Some(
+            @origin.span(@origin.range(self.source.document, at, at).unwrap()),
+          ),
+        })
       QueryAbort(message, at) =>
         Err({
           issue: Syntax(message),
@@ -1927,11 +1935,12 @@ fn QueryParser::aggregate(
       .unwrap_or(false) {
       []
     } else {
-      if !self.has("ORDER") {
-        raise QueryAbort(
-          function_name + " requires aggregate ORDER BY",
-          token.start,
-        )
+      if !self.has("ORDER") && self.peek().value == Symbol(41) {
+        // Only a completed call can omit this required clause. An unexpected
+        // modifier/tail still reaches the original keyword syntax refusal.
+        // The original parser owns the typed order requirement; a Host never
+        // classifies the authored diagnostic text.
+        raise QueryAggregateOrderRequired(token.start)
       }
       self.keyword("ORDER")
       self.keyword("BY")
@@ -3902,6 +3911,13 @@ fn parse_query_tokens(
     Ok({ ..query, commands, work: parser.work, })
   } catch {
     QueryExpression(error) => Err(error)
+    QueryAggregateOrderRequired(at) =>
+      Err({
+        issue: AggregateOrderRequired,
+        span: Some(
+          @origin.span(@origin.range(source.document, at, at).unwrap()),
+        ),
+      })
     QueryAbort(message, at) =>
       Err({
         issue: Syntax(message),

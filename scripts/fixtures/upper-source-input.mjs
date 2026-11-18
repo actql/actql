@@ -62,7 +62,9 @@ export const upperRefusals = [
   {name: 'number-parameter', text: 'SELECT UPPER(@value) AS value',
     parameterDeclarations: {value: {type: 'number', nullable: false}}, parameters: {value: 4}},
   {name: 'undeclared-parameter', text: 'SELECT UPPER(@missing) AS value'},
-].map(value => ({...value, name: 'upper-' + value.name, format: 'sql', expectedCode: 'ClientProgramInvalidInput'}));
+].map(value => ({...value, name: 'upper-' + value.name, format: 'sql',
+  expectedCode: value.name === 'undeclared-parameter'
+    ? 'ClientProgramParameterUndeclared' : 'ClientProgramInvalidInput'}));
 export const upperExecutionFailures = [{
   name: 'upper-demanded-operand', text: 'SELECT UPPER(CAST(1 / 0 AS STRING)) AS value',
   format: 'sql', resultNames: ['main'], sourceReadSessionCount: 0,

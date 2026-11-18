@@ -979,6 +979,27 @@ fn check_program_finding(
   program? : @syntax.Program? = None,
   diagnostic_source? : @frontend.DiagnosticSource? = None,
 ) -> CheckFinding {
+  if @checked.diagnostic_cause(diagnostic)
+    is Source(
+      Checks(
+        Patterns(
+          Timestamp(
+            Pattern(
+              _,
+              EmptyPattern
+              | InvalidComponent(_)
+              | DuplicateToken(_)
+              | MissingDate
+              | InvalidTimeDependencies
+            )
+          )
+        )
+      )
+    ) {
+    // The original typed parser owns this finite grammar refusal. Its site
+    // ordinal is not an authored range; do not fabricate a source location.
+    return ExpressionViolation("invalid_arguments", None)
+  }
   if check_operation_scalar_finding(
       diagnostic,
       bindings,

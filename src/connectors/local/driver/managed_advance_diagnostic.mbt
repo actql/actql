@@ -1,13 +1,169 @@
 ///|
-// Keep the original failure wrapper and its original sequence step. Neither
-// branch re-executes a task, checks current or reads a later Ledger snapshot.
+// Closed constructor DATA only. The static literals borrow no payload, name,
+// expression or exception text. Projection never executes, checks current or
+// reads a later Ledger; a composite refusal is not a work/memory diagnosis.
 pub fn local_managed_failure_cause(issue : LocalDispatchIssue) -> String? {
   match issue {
-    Configuration(@connector.Execution(@execution.Rows(step, original)))
-    | Execution(
-      @strategy.Compute(@connector.Execution(@execution.Rows(step, original)))
-    ) if step >= 0 => @execution.row_failure_diagnostic_cause(original)
-    _ => None
+    Configuration(original) | Execution(@strategy.Compute(original)) =>
+      local_managed_compute_failure_cause(original)
+    Execution(original) =>
+      Some(
+        match original {
+          @strategy.UnsupportedGraph => "execution.unsupported_graph"
+          @strategy.ForeignCapture => "execution.foreign_capture"
+          @strategy.NotReady => "execution.not_ready"
+          @strategy.Stopped => "execution.stopped"
+          @strategy.ForeignCandidate => "execution.foreign_candidate"
+          @strategy.PreviewWorkLimit => "execution.preview_work_limit"
+          @strategy.MissingOutput => "execution.missing_output"
+          @strategy.Capture(_) => "execution.capture"
+          @strategy.Binding(_) => "execution.binding"
+          @strategy.Read(_) => "execution.read"
+          @strategy.Compute(compute) =>
+            return local_managed_compute_failure_cause(compute)
+          @strategy.Implementation(_) => "execution.implementation"
+          @strategy.Physical(resource) =>
+            local_managed_resource_failure_cause(resource)
+          @strategy.ActivationNotAuthorized =>
+            "execution.activation_not_authorized"
+        },
+      )
+    Preparation(_) => Some("local.preparation")
+    Dispatch(_) => Some("local.dispatch")
+    Search(_) => Some("local.search")
+    ManagedValues(_) => Some("local.managed_values")
+    ManagedCopy(_) => Some("local.managed_copy")
+    ManagedRetention(_) => Some("local.managed_retention")
+    ManagedCompletion(_) => Some("local.managed_completion")
+    IdentityExport(_) => Some("local.identity_export")
+    CarrierSnapshot(_) => Some("local.carrier_snapshot")
+    ControlWorkLimit(_) => Some("local.control_work_limit")
+    ExecutionCapacityRefusal(resource, _, _, _) =>
+      Some(local_managed_resource_failure_cause(resource))
+  }
+}
+
+///|
+fn local_managed_compute_failure_cause(
+  issue : @connector.FixedComputeIssue,
+) -> String? {
+  Some(
+    match issue {
+      @connector.UnsupportedInputShape => "compute.unsupported_input_shape"
+      @connector.InputUnavailable => "compute.input_unavailable"
+      @connector.ForeignPreparation => "compute.foreign_preparation"
+      @connector.ForeignRequest(_) => "compute.foreign_request"
+      @connector.ForeignCapability(_) => "compute.foreign_capability"
+      @connector.CapabilityClosed => "compute.capability_closed"
+      @connector.ComputeUnsupported => "compute.unsupported"
+      @connector.NotSelected => "compute.not_selected"
+      @connector.InvalidLimits => "compute.invalid_limits"
+      @connector.CapacityContract => "compute.capacity_contract"
+      @connector.CommonInputRows => "compute.common_input_rows"
+      @connector.CommonFragmentUnsupported =>
+        "compute.common_fragment_unsupported"
+      @connector.LogicalIdentityUnsupported =>
+        "compute.logical_identity_unsupported"
+      @connector.PlanningLimit => "compute.planning_limit"
+      @connector.NegativeQuantity => "compute.negative_quantity"
+      @connector.Cost(_) => "compute.cost"
+      @connector.Guard(_) => "compute.guard"
+      @connector.ControlWorkLimit => "compute.control_work_limit"
+      @connector.Execution(original) =>
+        return local_managed_sequence_failure_cause(original)
+    },
+  )
+}
+
+///|
+fn local_managed_sequence_failure_cause(
+  issue : @execution.SequenceRunIssue,
+) -> String? {
+  Some(
+    match issue {
+      @execution.InvalidLimits => "sequence.invalid_limits"
+      @execution.InputOwnership => "sequence.input_ownership"
+      @execution.InputSet => "sequence.input_set"
+      @execution.InputExecutionEvidencePending(_) =>
+        "sequence.input_execution_evidence_pending"
+      @execution.InputRepresentationRequired(_) =>
+        "sequence.input_representation_required"
+      @execution.InputLimit => "sequence.input_limit"
+      @execution.InputKey(_, _) => "sequence.input_key"
+      @execution.InputScore(_, _) => "sequence.input_score"
+      @execution.Wiring(_) => "sequence.wiring"
+      @execution.Capture(_, original) =>
+        local_managed_capture_failure_cause(original)
+      @execution.Rows(step, original) => {
+        if step < 0 {
+          return None
+        }
+        let cause = @execution.row_failure_diagnostic_cause(original)
+        // Return the existing Some unchanged; do not cohold a second carrier.
+        return match cause {
+          Some(_) => cause
+          None => Some("sequence.rows")
+        }
+      }
+      @execution.Store(_) => "sequence.store"
+      @execution.OrderedContext(_, _) => "sequence.ordered_context"
+      @execution.FragmentContext(_, _) => "sequence.fragment_context"
+      @execution.MissingFragmentContext(_) =>
+        "sequence.missing_fragment_context"
+      @execution.MixedExecutionConfiguration =>
+        "sequence.mixed_execution_configuration"
+      @execution.UnsupportedRowComparison(_, _) =>
+        "sequence.unsupported_row_comparison"
+    },
+  )
+}
+
+///|
+fn local_managed_capture_failure_cause(
+  issue : @execution.CaptureIssue,
+) -> String {
+  match issue {
+    @execution.InvalidCaptureLimits => "capture.invalid_limits"
+    @execution.CaptureLimit => "capture.capture_limit"
+    @execution.NotValuesNode => "capture.not_values_node"
+    @execution.MissingParameter(_) => "capture.missing_parameter"
+    @execution.InvalidCheckedRow => "capture.invalid_checked_row"
+    @execution.NotRelationInput => "capture.not_relation_input"
+    @execution.NotRelationOutput => "capture.not_relation_output"
+    @execution.ScopedInputNotImplemented =>
+      "capture.scoped_input_not_implemented"
+    @execution.ConditionalInputRequiresPresence =>
+      "capture.conditional_input_requires_presence"
+    @execution.InputValue(_, _) => "capture.input_value"
+    @execution.ClosedCapture => "capture.closed"
+    @execution.ForeignCheckedValue(_, _) => "capture.foreign_checked_value"
+    @execution.CaptureWorkLimit(_) => "capture.work_limit"
+    @execution.CaptureWorkRefusal(_, _) => "capture.work_refusal"
+  }
+}
+
+///|
+fn local_managed_resource_failure_cause(
+  issue : @resources.LedgerIssue,
+) -> String {
+  match issue {
+    @resources.InvalidLimits => "resource.invalid_limits"
+    @resources.PlanningLimit => "resource.planning_limit"
+    @resources.AttemptLimit => "resource.attempt_limit"
+    @resources.HoldingLimit => "resource.holding_limit"
+    @resources.TransferLimit => "resource.transfer_limit"
+    @resources.RetentionLimit => "resource.retention_limit"
+    @resources.ExecutionLimit => "resource.execution_limit"
+    @resources.ForeignOwner => "resource.foreign_owner"
+    @resources.ClosedReservation => "resource.closed_reservation"
+    @resources.ClosedHolding => "resource.closed_holding"
+    @resources.InvalidCharge => "resource.invalid_charge"
+    @resources.IdentityOverflow => "resource.identity_overflow"
+    @resources.TokenLimit => "resource.token_limit"
+    @resources.CostLimit => "resource.cost_limit"
+    @resources.DurationLimit => "resource.duration_limit"
+    @resources.ResourceParked => "resource.resource_parked"
+    @resources.ChildFundingUnavailable => "resource.child_funding_unavailable"
   }
 }
 

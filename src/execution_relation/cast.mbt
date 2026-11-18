@@ -226,17 +226,16 @@ fn cast_expression_value(
       match value {
         Captured(@admitted.Timestamp(_)) => Some(value)
         Text(text) =>
-          @admitted.checked_timestamp_value(
-            text,
-            if timestamp_failure_null {
-              @contract.with_nullability(
-                @lower.expression_contract(expression),
-                false,
-              )
-            } else {
-              @lower.expression_contract(expression)
-            },
-          ).map(fn(v) { capture(v.value) })
+          match
+            @admitted.checked_timestamp_conversion(
+              text,
+              @lower.expression_contract(expression),
+            ) {
+            Some(checked) => Some(capture(checked.value))
+            None if timestamp_failure_null => None
+            None =>
+              return Err({ kind: TimestampCanonicalRequired, expression, })
+          }
         _ => None
       }
     Text(_) => {
