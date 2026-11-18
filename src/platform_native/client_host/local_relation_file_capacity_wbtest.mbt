@@ -233,4 +233,10 @@ test "Whole prepared refusal diagnostic stays in the SAME Read constructor quote
     @execution.execution_capacity_execution_bytes(diagnostic),
     @execution.execution_capacity_execution_bytes(original) + 96L,
   )
+  // New-only caller frontier, independent of the original three failure
+  // envelopes above. Business backing itself stays on its original owner.
+  let preback = native_relation_whole_file_preback_read_capacity().unwrap()
+  assert_eq(8L * 16L + 11L * 8L + 4L * 8L, 248L)
+  assert_eq(@execution.execution_capacity_retained_bytes(preback), 248L)
+  assert_eq(@execution.execution_capacity_execution_bytes(preback), 248L)
 }

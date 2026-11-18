@@ -5981,6 +5981,27 @@ borrower/isolation fences reject reentry or changed custody. Any acquired
 physical peak remains the same owner's cleanup duty after failure; preflight
 success is neither an execution grant nor a physical retirement acknowledgment.
 
+The installed Native File caller encapsulates this ordering inside its existing
+`prepare_file_work_entry` operation. After backing the original Whole Read
+constructor envelope, it derives the exact Work quote and enters the same
+business child through `with_business_request`. The installed adapter borrows
+only that entered child's original Ledger, checks that no Work entry has been
+selected, and adds the Work quote to the original prepared-body extent using
+checked arithmetic. After the same business/Journal return, the unchanged
+Journal entry performs its canonical current/isolation check and sole resize.
+No outer File caller must remember a separate backing operation.
+
+An actual backing refusal is retained in the existing command primary before
+either scope return can fail. The same pending physical owner remains cleanup
+duty; a later return failure cannot overwrite the primary or reset the Native
+window issue. This ordering never retries a failed entry. The new fixed Read
+capture/Option/return frontier adds H8/R11/S4 (248 logical bytes at the existing
+tariff) to the same Whole Read recipe; it changes no facility limit, reservation
+owner or measured heap/RSS claim. The selected Native regression requires an
+actual demand above the initial window and observes unchanged logical usage
+before the later Journal debit. Source/types alone do not establish that
+physical regression or ordinary installed File acceptance.
+
 The physical issuer must reserve the complete original region, provisioning
 attempts, admission/frame/controller captures, output and failed-constructor
 coexistence before creating them. Shared region bytes remain suballocations of

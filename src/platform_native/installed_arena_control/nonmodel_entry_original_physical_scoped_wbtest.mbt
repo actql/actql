@@ -130,6 +130,7 @@ fn nonmodel_physical_entry_case(
   windowed? : Bool = false,
   prepared_body? : Bool = false,
   prepared_refusal? : Bool = false,
+  prepared_backing_growth? : Bool = false,
   publication? : Bool = false,
   publication_window? : Int = 0,
 ) -> Unit raise {
@@ -304,7 +305,7 @@ fn nonmodel_physical_entry_case(
   host.return_backing_borrow(backing).unwrap()
   host.prepare_domain_read(read_domain).unwrap()
   host.prepare_domain_read(sqlite_domain).unwrap()
-  if publication_window > 0 {
+  if publication_window > 0 || prepared_backing_growth {
     host
     .prepare_domain_read(business_domain, execution_ceiling=business_extent)
     .retained_execution_value("publication window: prepare business Read")
@@ -375,6 +376,7 @@ fn nonmodel_physical_entry_case(
       original,
       input,
       refuse=prepared_refusal,
+      backing_growth=prepared_backing_growth,
     )
   } else if windowed {
     nonmodel_windowed_original_work(host, pair, read, execution)
@@ -770,25 +772,71 @@ fn nonmodel_prepared_original_work(
   initial : @resources.BackedPreparationAdmission[Ref[Int]],
   input : Ref[Int],
   refuse? : Bool = false,
+  backing_growth? : Bool = false,
 ) -> Bool raise {
   let ledger = @resources.start_backed_preparation_admission(initial, input).unwrap()
+  let page = domain_page_bytes()
+  let preparation_bytes = if backing_growth { page } else { 16384L }
+  let body_bytes = if backing_growth { page } else { 4096L }
   let capacity : @resources.PreparationCapacity[Ref[Int], Ref[Int]] = @resources.reserve_preparation_capacity_inventory(
     ledger,
     input,
-    16384L,
-    16384L,
+    preparation_bytes,
+    preparation_bytes,
     max_borrowers=4,
   ).unwrap()
   let body = Ref(73)
-  @resources.complete_preparation_capacity(capacity, input, body, 4096L, 4096L).unwrap()
+  @resources.complete_preparation_capacity(
+    capacity, input, body, body_bytes, body_bytes,
+  ).unwrap()
   let (original, same, retirement, holder) = @resources.adopt_backed_preparation_admission(
     initial, input, capacity, body,
   ).unwrap()
   assert_true(physical_equal(ledger, same))
   let admission = @resources.backed_prepared_run_admission(original)
   let before = @resources.ledger_usage(ledger)
+  let work_bytes = if refuse {
+    1048576L
+  } else if backing_growth {
+    4L * page
+  } else {
+    240L
+  }
+  if backing_growth {
+    assert_true(2L * (body_bytes + work_bytes) > 4L * page)
+    host.enter_local_host_phase(pair, HostRead).unwrap()
+    assert_true(
+      host.prepare_domain_nonmodel_prepared_work_backing(
+        execution, admission, body, work_bytes, work_bytes,
+      )
+      is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending))),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    host.leave_local_host_phase(pair).unwrap()
+    host.enter_domain_retained_execution(execution).unwrap()
+    let physical_before = host
+      .observe_domain_inventory(execution.domain)
+      .unwrap().capacity_bytes
+    host
+    .prepare_domain_nonmodel_prepared_work_backing(
+      execution, admission, body, work_bytes, work_bytes,
+    )
+    .unwrap()
+    // Physical backing is charged to the same parent, but the original body
+    // debit, history and constructor selection have not changed here.
+    assert_eq(@resources.ledger_usage(ledger), before)
+    assert_eq(
+      @resources.prepared_run_native_capacity(admission, body, ledger).unwrap(),
+      (body_bytes, body_bytes),
+    )
+    assert_false(execution.nonmodel_prepared_work_selected)
+    assert_true(
+      host.observe_domain_inventory(execution.domain).unwrap().capacity_bytes >
+      physical_before,
+    )
+    host.leave_domain_retained_execution(execution).unwrap()
+  }
   host.enter_local_host_phase(pair, HostRead).unwrap()
-  let work_bytes = if refuse { 1048576L } else { 240L }
   let entry = match
     host.prepare_domain_nonmodel_prepared_work_entry(
       pair, read, execution, admission, body, work_bytes, work_bytes,
@@ -847,22 +895,26 @@ fn nonmodel_prepared_original_work(
   assert_eq(after.live_reservations, before.live_reservations)
   assert_eq(
     after.reserved_retention_bytes,
-    before.reserved_retention_bytes + 240L,
+    before.reserved_retention_bytes + work_bytes,
   )
   assert_eq(
     after.reserved_execution_bytes,
-    before.reserved_execution_bytes + 240L,
+    before.reserved_execution_bytes + work_bytes,
   )
   assert_eq(after.attempts, before.attempts)
   assert_eq(after.planning_work, before.planning_work)
   host.leave_local_host_phase(pair).unwrap()
   host.enter_domain_retained_execution(execution).unwrap()
-  assert_true(copy.take_entered_ledger(execution, 240L, 240L) is None)
   assert_true(
-    entry.take_entered_ledger(execution, 240L, 240L) is Some(actual) &&
+    copy.take_entered_ledger(execution, work_bytes, work_bytes) is None,
+  )
+  assert_true(
+    entry.take_entered_ledger(execution, work_bytes, work_bytes) is Some(actual) &&
     physical_equal(actual, ledger),
   )
-  assert_true(entry.take_entered_ledger(execution, 240L, 240L) is None)
+  assert_true(
+    entry.take_entered_ledger(execution, work_bytes, work_bytes) is None,
+  )
   assert_true(entry.matches_business_scope(false))
   assert_true(entry.finish_business_cleanup())
   // Logical completion cuts its heavy original binding, never settles the
@@ -895,6 +947,16 @@ test "prepared Native Work borrows SAME body and leaves physical retirement to o
 ///|
 test "refused prepared Native Work keeps original debit and cannot reissue its entry" {
   nonmodel_physical_entry_case(true, prepared_body=true, prepared_refusal=true)
+}
+
+///|
+test "prepared Native Work prebacks growth in business before its original Journal reservation" {
+  nonmodel_physical_entry_case(
+    true,
+    windowed=true,
+    prepared_body=true,
+    prepared_backing_growth=true,
+  )
 }
 
 ///|

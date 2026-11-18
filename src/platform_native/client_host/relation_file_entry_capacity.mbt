@@ -140,6 +140,28 @@ pub fn native_relation_file_entry_outer_capacity() -> @execution.ExecutionCapaci
 }
 
 ///|
+// Only the new Journal-Read caller frontier. The entered business adapter
+// reuses the original prepared-current/backing frame, not this Read allowance.
+// Quote+Some H2/R1/S2; original-admission getter's two Options H2/R2;
+// callback captures Self/Host/execution/admission/Prepared and two byte words
+// H1/R5/S2; stage Option H1/R1; mapped Command/Err H2/R2. Count success and
+// refusal carriers together without temporal reuse. No copied wire/String,
+// retained field, second reservation or constructor authority is introduced.
+fn native_relation_whole_file_preback_read_capacity() -> @execution.ExecutionCapacity? {
+  guard @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 11L,
+      scalar_words: 4L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) else {
+    return None
+  }
+  @execution.execution_capacity(bytes, bytes)
+}
+
+///|
 /// Complete conservative original-Read envelope for the fixed Whole entry.
 /// Sum the existing entry and Whole caller frontiers without temporal reuse.
 /// Their distinct business reservation is still owned by the original body;
@@ -161,15 +183,28 @@ pub fn native_relation_whole_file_entry_read_capacity(
       prepared_diagnostic=true,
     )
     is Some(entry) &&
+    native_relation_whole_file_preback_read_capacity() is Some(preback) &&
     @execution.checked_preparation_add_product(
       @execution.execution_capacity_retained_bytes(entry),
       @execution.execution_capacity_retained_bytes(whole),
+      1L,
+    )
+    is Some(base_r) &&
+    @execution.checked_preparation_add_product(
+      base_r,
+      @execution.execution_capacity_retained_bytes(preback),
       1L,
     )
     is Some(r) &&
     @execution.checked_preparation_add_product(
       @execution.execution_capacity_execution_bytes(entry),
       @execution.execution_capacity_execution_bytes(whole),
+      1L,
+    )
+    is Some(base_e) &&
+    @execution.checked_preparation_add_product(
+      base_e,
+      @execution.execution_capacity_execution_bytes(preback),
       1L,
     )
     is Some(e) else {

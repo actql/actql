@@ -208,6 +208,46 @@ pub fn InstalledArenaHost::prepare_domain_nonmodel_work_entry(
 }
 
 ///|
+/// Back the exact additional constructor demand while this SAME original
+/// business child is entered. This neither selects the Work nor changes its
+/// prepared-body debit. The later original Journal Read still owns the one
+/// canonical reservation and constructor admission.
+pub fn[P] InstalledArenaHost::prepare_domain_nonmodel_prepared_work_backing(
+  self : InstalledArenaHost,
+  execution : InstalledArenaRetainedExecution,
+  admission : @resources.PreparedRunAdmission[P],
+  prepared : P,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, InstalledArenaRetainedExecutionIssue] {
+  if execution.nonmodel_prepared_work_selected ||
+    retained_bytes <= 0L ||
+    execution_bytes <= 0L {
+    return Err(Child(@resources.Unavailable))
+  }
+  let ledger = match self.borrow_domain_retained_execution_ledger(execution) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let (base_r, base_e) = match
+    @resources.prepared_run_native_capacity(admission, prepared, ledger) {
+    Err(issue) => return Err(Child(issue))
+    Ok(value) => value
+  }
+  if retained_bytes > 9223372036854775807L - base_r ||
+    execution_bytes > 9223372036854775807L - base_e {
+    return Err(Child(@resources.Unavailable))
+  }
+  @resources.prepare_prepared_run_native_work_backing(
+    admission,
+    prepared,
+    ledger,
+    base_r + retained_bytes,
+    base_e + execution_bytes,
+  ).map_err(issue => Child(issue))
+}
+
+///|
 /// Borrow the SAME prepared body's reservation for one fixed Native Work.
 /// The complete additional Work envelope is supplied before its constructor.
 /// No second reservation, admission, attempt or physical cleanup owner exists.
