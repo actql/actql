@@ -121,8 +121,8 @@ export async function loadInstalledNotionSource(profile,{moon,providerMoon,runti
     [[{resource,resource_kind:'notion_users',schema_wire:wire,schema_cid:sha(wire),
       facts_wire:provider.notionUserListRelationFactsWire()}],undefined]);
   const request=Reflect.apply(targetConstructor.value,sourceInitialization,[Object.freeze({
-    capacity(){return originals.composeConstruction(restReadOriginalControlUnits(1),[originals.quote(
-      notionUserListReadWire,NOTION_USER_LIST_REQUEST.pagination.parameter,limits)]);},
+    capacity(){return originals.composeConstruction(restReadOriginalControlUnits(1),1,()=>originals.quote(
+      notionUserListReadWire,NOTION_USER_LIST_REQUEST.pagination.parameter,limits));},
     project(){return originals.project(notionUserListReadWire,NOTION_USER_LIST_REQUEST.pagination.parameter,limits);},
   })]);
   const requestConstruction=Object.freeze({capacity:originals.requestCapacity(

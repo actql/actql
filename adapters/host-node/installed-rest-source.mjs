@@ -88,8 +88,10 @@ function captureCoreTargetConstruction(sourceInitialization, moon, originals) {
     // Array, plus pending/growth references, alongside the retained target.
     units[3] += 3n * targets;
     return Reflect.apply(method.value, sourceInitialization, [Object.freeze({
-      capacity() {return originals.composeConstruction(units, sources.map(source => originals.quote(
-        source.readWire, source.pagination.parameter, policy)));},
+      capacity() {return originals.composeConstruction(units, sources.length, index => {
+        const source = sources[index];
+        return originals.quote(source.readWire, source.pagination.parameter, policy);
+      });},
       project() {
         const requests = Object.freeze(sources.map(source => originals.project(
           source.readWire, source.pagination.parameter, policy)));

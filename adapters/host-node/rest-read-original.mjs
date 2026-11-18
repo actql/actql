@@ -77,11 +77,20 @@ export function captureRestReadOriginals(moon) {
           return Object.freeze({method, path, query, headers, responseHeaders: []});
         }});
     },
-    composeConstruction(units, quotes) {
-      const base = checked(ports.clientProgramInstalledSourceConstructionCapacity(...units));
-      // Pass actual Some quantities from this SAME namespace. Neither the
-      // Source projection freezer nor a caller-created Option touches them.
-      return checked(ports.clientProgramComposeInstalledSourceConstructionCapacity(base, quotes));
+    composeConstruction(units, count, quoteAtIndex) {
+      if (!Number.isSafeInteger(count) || count < 0 || typeof quoteAtIndex !== 'function') fail('InvalidRestReadOriginal');
+      let total = checked(ports.clientProgramInstalledSourceConstructionCapacity(...units));
+      // This is the existing constructor's bounded sizing frame, BEFORE its
+      // resulting quantity is reserved. Never build/retain N limits/Some
+      // outputs or an N-quote vector and charge them retrospectively.
+      // Each pure call closes with amount-only DATA: no limits/read/physical
+      // alias escapes. Only old+new totals and one actual Some coexist across
+      // the SAME original Compose call; no caller-created Option is used.
+      for (let index = 0; index < count; index++) {
+        const quote = quoteAtIndex(index);
+        total = checked(ports.clientProgramComposeInstalledSourceConstructionCapacity(total, [quote]));
+      }
+      return total;
     },
     requestCapacity(units, originals) {
       const transport = checked(ports.clientProgramInstalledSourceConstructionCapacity(...units));
@@ -113,7 +122,8 @@ export function restReadOriginalControlUnits(count) {
   // Each original: limits vector9, input Buffer control1, returned capsule
   // record7, two closures (2+4 slots), native page quantity/Some5.
   const originals = n * (9n + 1n + 7n + 2n + 4n + 5n);
-  // Original quote, request and target vectors, plus the two-field wrapper.
+  // Post-admission Reader capacity, request and target vectors, plus the
+  // two-field wrapper. Pre-admission quote sizing uses only a fixed singleton.
   const vectors = 3n * (1n + n) + 3n;
   const retained = originals + vectors;
   // Source's existing deep freezer walks the wrapper/request/target fields.

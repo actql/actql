@@ -128466,7 +128466,7 @@
     {
       "module": "adapters/host-node/installed-rest-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "24e93ee712cb59a9aa28e04a2fe003bcfa0a12b0add906861ac47522dc400c44",
+      "sha256": "0f3e9ec6cec22551723ddc5fb2c6b9a36a008b4076db26f50d7f3d284127ee0b",
       "role": "physical-io",
       "owner": "Existing installed Host Source initialization, Credential Site, managed Reader and RowRun Owners; facade retains only its selected original author declaration/service composition.",
       "exports": [
@@ -128491,7 +128491,7 @@
         {
           "name": "captureCoreTargetConstruction/captureCoreTargetConstruction/init:capacity/init:capacity/init:capacity",
           "parameters": [
-            "source"
+            "index"
           ],
           "async": false
         },
@@ -136007,7 +136007,8 @@
           "name": "captureRestReadOriginals/init:composeConstruction/init:composeConstruction",
           "parameters": [
             "units",
-            "quotes"
+            "count",
+            "quoteAtIndex"
           ],
           "async": false
         },
@@ -136229,7 +136230,7 @@
           }
         }
       ],
-      "sha256": "08d069e0ecb03a29ddc2b3ca45dc3c7c1bbf3862b67b056d0d5419892236659c",
+      "sha256": "b65c846dc16c8cda0414d810c1637c111e3221263367245952e2033f456884b2",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/http-exchange.mjs",
