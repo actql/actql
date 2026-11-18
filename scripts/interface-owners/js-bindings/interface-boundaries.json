@@ -19715,8 +19715,8 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               }
             ],
             "ownership": [
@@ -19783,8 +19783,8 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
               }
             ],
             "verification": [

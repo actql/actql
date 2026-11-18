@@ -20492,8 +20492,8 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               },
               {
                 "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
@@ -20696,8 +20696,8 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -20798,8 +20798,8 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               }
             ],
             "ownership": [
@@ -20862,8 +20862,8 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
               }
             ],
             "verification": [
@@ -21181,8 +21181,8 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               },
               {
                 "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
@@ -21381,8 +21381,8 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -64422,8 +64422,8 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               }
             ],
             "ownership": [
@@ -64486,8 +64486,8 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
               }
             ],
             "verification": [
@@ -77830,8 +77830,8 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               },
               {
                 "path": "adapters/host-node/local-continuation-evidence.mjs",
@@ -78002,8 +78002,8 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -78087,8 +78087,8 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               }
             ],
             "ownership": [
@@ -78151,8 +78151,8 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
               }
             ],
             "verification": [
@@ -78356,8 +78356,8 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               },
               {
                 "path": "adapters/host-node/local-continuation-evidence.mjs",
@@ -78528,8 +78528,8 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
               },
               {
                 "path": "docs/design/reference-host.md",

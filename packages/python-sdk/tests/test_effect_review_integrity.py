@@ -35,6 +35,13 @@ def effect_body():
 
 
 class EffectReviewIntegrityTests(unittest.IsolatedAsyncioTestCase):
+    async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):
+        path = (Path(__file__).resolve().parents[3] / 'scripts/fixtures/'
+                'checkpoint-review-identity.json')
+        for original in json.loads(path.read_text()):
+            self.assertEqual(digest(original['preimage'].encode()), original['cid'])
+            self.assertTrue(review_bytes_match_cid(original['wire'].encode(), original['cid']))
+
     async def exchange(self, raw, cid, *, summary=True):
         operations, credentials = [], []
         checkpoint = deepcopy(VECTOR['expected']['checkpoint'])

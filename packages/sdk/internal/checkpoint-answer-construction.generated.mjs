@@ -726,6 +726,18 @@ const contract = {
     [
       "preparedInvocationCid"
     ]
+  ],
+  "reviews": [
+    {
+      "version": "actql-run-review-projection/0.1",
+      "selfField": "review_projection_cid",
+      "dataKeys": false
+    },
+    {
+      "version": "actql-review-projection/0.1",
+      "selfField": "review_projection_cid",
+      "dataKeys": true
+    }
   ]
 };
 function finiteWireNumber(value) {
@@ -1010,6 +1022,26 @@ export function createCheckpointAnswerCodec(primitives) {
     return Object.freeze({checkpointCid: value.context.summary.checkpointCid,
       resolutionWire: frame(signed, value.limits), approvalEvidenceWire: value.approvalEvidenceWire});
   }
+  async function reviewBytesMatchCid(raw, expected, selectedLimits) {
+    try {
+      const limits = limitsOf(selectedLimits);
+      const view = ArrayBuffer.isView(raw) ? new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength)
+        : raw instanceof ArrayBuffer ? new Uint8Array(raw) : undefined;
+      if (view === undefined || view.byteLength > limits.maxWireBytes ||
+          typeof expected !== 'string' || !cidPattern.test(expected)) return false;
+      // Preserve the bounded original before the first asynchronous digest.
+      const bytes = Uint8Array.prototype.slice.call(view);
+      if (await bytesCid.call(primitives, bytes) === expected) return true;
+      const wire = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes);
+      const value = capture(JSON.parse(wire), limits);
+      const profile = contract.reviews.find(item => item.version === value?.version);
+      if (profile === undefined || value[profile.selfField] !== expected ||
+          canonicalJson.call(primitives, value, {dataKeys: profile.dataKeys}) !== wire) return false;
+      const body = Object.fromEntries(Object.entries(value).filter(([key]) => key !== profile.selfField));
+      return await bytesCid.call(primitives, encoder.encode(
+        canonicalJson.call(primitives, body, {dataKeys: profile.dataKeys}))) === expected;
+    } catch { return false; }
+  }
   return Object.freeze({prepareAnswerCandidate, answerCandidateApprovalPreimage,
-    prepareAnswerResolution, answerResolutionPreimage, finishAnswerCandidate});
+    prepareAnswerResolution, answerResolutionPreimage, finishAnswerCandidate, reviewBytesMatchCid});
 }

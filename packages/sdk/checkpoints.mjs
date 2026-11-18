@@ -80,19 +80,11 @@ const answerCodec = createCheckpointAnswerCodec({canonicalJson, bytesCid});
 // review envelopes retain their full-byte digest. Never strip an arbitrary
 // field or accept a noncanonical encoding as a semantic-CID proof.
 export async function reviewBytesMatchCid(bytes, artifactCid) {
-  if (await bytesCid(bytes) === artifactCid) return true;
-  try {
-    const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-    const value = JSON.parse(wire);
-    const effect = value?.version === 'actql-review-projection/0.1';
-    if (!(effect || value?.version === 'actql-run-review-projection/0.1') ||
-        value.review_projection_cid !== artifactCid ||
-        canonicalJson(value, {dataKeys: effect}) !== wire) return false;
-    const {review_projection_cid: ignored, ...body} = value;
-    void ignored;
-    return await bytesCid(encoder.encode(canonicalJson(body,
-      {dataKeys: effect}))) === artifactCid;
-  } catch { return false; }
+  // Review transport already enforces its caller's byte ceiling. The wire
+  // length also bounds every possible node/container; add no new profile cap.
+  const extent = Math.max(2, bytes.byteLength);
+  return answerCodec.reviewBytesMatchCid(bytes, artifactCid,
+    {maxWireBytes: extent, maxNodes: extent, maxDepth: extent});
 }
 
 const base64 = bytes => {

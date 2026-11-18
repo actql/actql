@@ -1,12 +1,11 @@
 """Existing Checkpoint artifact preimages, signed by an application callback."""
 import base64
 from dataclasses import dataclass
-import hashlib
 import inspect
 import re
 from collections.abc import Callable
 from ._errors import ClientError
-from ._values import bytes_cid, canonical_bytes, content_cid, decode_json
+from ._values import bytes_cid, canonical_bytes
 from ._checkpoint_answer_codec import create_checkpoint_answer_codec, CheckpointCandidateError
 
 # Existing resolve-item wire ceiling; every value node consumes wire bytes.
@@ -54,21 +53,10 @@ async def _signature(signer, cid):
 
 
 def review_bytes_match_cid(raw, cid):
-    if 'sha256:' + hashlib.sha256(raw).hexdigest() == cid:
-        return True
-    try:
-        value = decode_json(raw)
-        # Effect display DATA preserves exact member keys. Model reviews keep
-        # their existing identifier-key domain; neither path issues approval.
-        effect = value.get('version') == 'actql-review-projection/0.1'
-        if (not (effect or value.get('version') == 'actql-run-review-projection/0.1')
-                or value.get('review_projection_cid') != cid
-                or canonical_bytes(value, data_keys=effect) != raw):
-            return False
-        return content_cid({key: item for key, item in value.items() if key != 'review_projection_cid'},
-                           data_keys=effect) == cid
-    except (ClientError, AttributeError):
-        return False
+    # Retain the existing Python JSON node/depth policy. Review transport owns
+    # its caller's byte ceiling; this is identity DATA, never Host admission.
+    return _ANSWER_CODEC.review_bytes_match_cid(raw, cid, {
+        'maxWireBytes': max(2, memoryview(raw).nbytes), 'maxNodes': 100000, 'maxDepth': 64})
 
 
 def _candidate_error(cause):
