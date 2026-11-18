@@ -11,8 +11,8 @@ import {resolveInstalledCompletionModules} from '../../../scripts/fixtures/exter
 
 const contentBytes = Buffer.from('{"id":1}\n{"id":2}\n');
 const inferRows = [
-  {id: '001Acme', risk: {outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
-  {id: '001Globex', risk: {outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
+  {id: '001Acme', risk: {input_key: {id: '001Acme'}, outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
+  {id: '001Globex', risk: {input_key: {id: '001Globex'}, outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
 ];
 
 export function terminalMockScenario(variant) {
@@ -56,7 +56,7 @@ export function checkTerminalMockSavedRows(variant, rows, originalRows) {
   assert.deepEqual(rows, originalRows, 'Saved preserves the complete original rows/envelope, not only Content bytes');
 }
 
-export function assertTerminalMockObservation(value, {variant, phase, pid, capturedPid}) {
+export function assertTerminalMockObservation(value, {variant, phase, pid, capturedPid, fromStarted = false}) {
   const selected = terminalMockScenario(variant);
   assert.equal(value.variant, variant);assert.equal(value.phase, phase);
   assert.equal(value.pid, pid);assert(Number.isSafeInteger(pid) && pid > 0);
@@ -74,18 +74,29 @@ export function assertTerminalMockObservation(value, {variant, phase, pid, captu
   if (phase === 'recover') {
     assert(Number.isSafeInteger(capturedPid) && capturedPid > 0);assert.notEqual(pid, capturedPid);
     assert.equal(value.originalInputsAbsent, true);
+    if (fromStarted) {
+      assert.equal(variant, 'terminal-infer');
+      assert.equal(value.recoveryOrigin, 'started');
+      assert.equal(value.originalRowsCompared, false);
+      assert.equal(value.normalCaptureComplete, false);
+    } else assert.notEqual(value.recoveryOrigin, 'started', 'Started-only evidence cannot qualify the complete capture workflow');
   } else assert.equal(phase, 'capture');
 }
 
 export async function runTerminalMockWorkflow({phase, variant, handoffPath, connect,
-  directory = process.cwd(), createWorkObservation = workflowWorkObservation,
+  fromStarted = false, directory = process.cwd(), createWorkObservation = workflowWorkObservation,
   observeDescriptors = observeRecordApprovalDescriptors}) {
   assert(['capture', 'recover'].includes(phase));
+  assert.equal(typeof fromStarted, 'boolean');
+  if (fromStarted) {assert.equal(phase, 'recover');assert.equal(variant, 'terminal-infer');}
   const selected = terminalMockScenario(variant), state = resolve(directory, '.actql');
   const roots = [state, resolve(directory, 'mock')];
   const report = {phase, variant, pid: process.pid, status: 'running', complete: false,
     submits: 0, resultReads: 0, originalRefBeforeWait: false, savedFirst: false, lookupOriginal: false,
     firstClose: {attempted: false, returned: false, calls: 0}};
+  const recordPhase = fromStarted ? 'recover-from-started' : phase;
+  if (fromStarted) Object.assign(report, {recoveryOrigin: 'started', originalRowsCompared: false,
+    normalCaptureComplete: false, qualification: 'SAME started original Saved only; independent complete rows, not a successful capture handoff'});
   const save = (path, value, exclusive = false) => writeFile(path, JSON.stringify(value) + '\n',
     {mode: 0o600, ...(exclusive ? {flag: 'wx'} : {})});
   let client, failed = false, primary, closeFailed = false, closeFailure;
@@ -97,6 +108,8 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
       installation: {directory: state, observation: work.connection}});
     if (phase === 'capture') {
       const submissionRef = client.newSubmission({nonce: variant});
+      await save(handoffPath + '.submission', {variant, submissionRef, pid: process.pid}, true);
+      report.submissionRecordedBeforeStart = true;
       report.submits++;
       const run = await client.startSource(await readFile(resolve(directory, selected.path), 'utf8'),
         {format: selected.format, submissionRef});
@@ -109,7 +122,7 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
       assert.equal(lookup.kind, 'ready');assert.deepEqual(lookup.admission.ref, run.ref);report.lookupOriginal = true;
       await save(handoffPath, {variant, ref: run.ref, submissionRef, rows, pid: process.pid}, true);
     } else {
-      const original = JSON.parse(await readFile(handoffPath, 'utf8'));
+      const original = JSON.parse(await readFile(handoffPath + (fromStarted ? '.started' : ''), 'utf8'));
       assert.equal(original.variant, variant);
       await assert.rejects(access(resolve(directory, selected.path)), {code: 'ENOENT'});
       await assert.rejects(access(resolve(directory, 'mock/churn-risk.v1.answers.yaml')), {code: 'ENOENT'});
@@ -117,7 +130,11 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
       const run = await client.attach(original.ref);assert.deepEqual(run.ref, original.ref);
       // No wait/status/lookup before this SAME original Saved Result.
       const rows = await run.result(selected.result).all();report.resultReads++;report.savedFirst = true;
-      checkTerminalMockSavedRows(variant, rows, original.rows);
+      if (fromStarted) checkTerminalMockRows(variant, rows);
+      else {
+        checkTerminalMockSavedRows(variant, rows, original.rows);
+        report.recoveryOrigin = 'complete-capture';report.originalRowsCompared = true;
+      }
       assert.equal((await run.status()).status, 'succeeded');
       const lookup = await client.lookupSubmission(original.submissionRef);
       assert.equal(lookup.kind, 'ready');assert.deepEqual(lookup.admission.ref, original.ref);report.lookupOriginal = true;
@@ -126,7 +143,7 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
   } catch (cause) {failed = true;primary = cause;}
   if (client !== undefined) {report.firstClose.attempted = true;report.firstClose.calls++;}
   // Persist pending BEFORE the first close. Exit never acknowledges cleanup.
-  try {await save(resolve(directory, `${phase}.pending.json`), report);}
+  try {await save(resolve(directory, `${recordPhase}.pending.json`), report);}
   catch (cause) {if (!failed) {failed = true;primary = cause;}}
   if (client !== undefined) {
     try {await client.close();report.firstClose.returned = true;}
@@ -141,12 +158,12 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
     }
     if (!failed && !closeFailed) {
       report.status = 'passed';report.complete = true;
-      assertTerminalMockObservation(report, {variant, phase, pid: process.pid, capturedPid: report.capturedPid});
+      assertTerminalMockObservation(report, {variant, phase, pid: process.pid, capturedPid: report.capturedPid, fromStarted});
     }
   } catch (cause) {if (!failed) {failed = true;primary = cause;}}
   if (failed || closeFailed) {report.status = 'failed';report.complete = false;}
   report.code = primary?.code;report.cleanupCode = closeFailure?.code;
-  try {await save(resolve(directory, `${phase}.pending.json`), report);}
+  try {await save(resolve(directory, `${recordPhase}.pending.json`), report);}
   catch (cause) {
     if (!failed && !closeFailed) {failed = true;primary = cause;report.status = 'failed';report.complete = false;}
   }
@@ -161,7 +178,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const modules = await realpath(resolve('node_modules'));
   const original = await resolveInstalledCompletionModules(dirname(modules), {observation: true});
   const {connect} = await import(pathToFileURL(original.node));
-  const [phase, variant, handoffPath] = process.argv.slice(2);
-  try {console.log(JSON.stringify(await runTerminalMockWorkflow({phase, variant, handoffPath, connect})));}
+  const [selectedPhase, variant, handoffPath] = process.argv.slice(2);
+  const fromStarted = selectedPhase === 'recover-from-started', phase = fromStarted ? 'recover' : selectedPhase;
+  try {console.log(JSON.stringify(await runTerminalMockWorkflow({phase, variant, handoffPath, connect, fromStarted})));}
   catch (cause) {if (cause.observation) console.log(JSON.stringify(cause.observation));throw cause;}
 }

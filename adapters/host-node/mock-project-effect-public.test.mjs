@@ -17,8 +17,8 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 
 const terminalRiskRows = [
-  {id: '001Acme', risk: {outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
-  {id: '001Globex', risk: {outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
+  {id: '001Acme', risk: {input_key: {id: '001Acme'}, outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
+  {id: '001Globex', risk: {input_key: {id: '001Globex'}, outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
 ];
 
 test('terminal Mock declarations and independent rows cannot substitute an Effect or another output', () => {
@@ -34,6 +34,10 @@ test('terminal Mock declarations and independent rows cannot substitute an Effec
   assert.throws(() => checkTerminalMockRows('terminal-infer', terminalRiskRows.slice(1)));
   const foreign = structuredClone(terminalRiskRows);foreign[1].risk.value.reason = 'other original';
   assert.throws(() => checkTerminalMockRows('terminal-infer', foreign));
+  const wrongKey = structuredClone(terminalRiskRows);wrongKey[0].risk.input_key.id = '001Globex';
+  assert.throws(() => checkTerminalMockRows('terminal-infer', wrongKey));
+  const missingKey = structuredClone(terminalRiskRows);delete missingKey[0].risk.input_key;
+  assert.throws(() => checkTerminalMockRows('terminal-infer', missingKey));
   assert.throws(() => terminalMockScenario('unknown'));
 });
 
@@ -67,6 +71,9 @@ test('terminal original observation refuses repeats, unknown, same process and i
     workObservation: {complete: true, sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0}};
   const expected = {phase: 'recover', variant: 'terminal-infer', pid: 202, capturedPid: 101};
   assertTerminalMockObservation(actual, expected);
+  const started = {...actual, recoveryOrigin: 'started', originalRowsCompared: false, normalCaptureComplete: false};
+  assertTerminalMockObservation(started, {...expected, fromStarted: true});
+  assert.throws(() => assertTerminalMockObservation(started, expected));
   assert.throws(() => assertTerminalMockObservation(actual, {...expected, capturedPid: 202}));
   for (const mutate of [v => {v.savedFirst = false;}, v => {v.submits++;}, v => {v.status = 'needs_reconciliation';},
     v => {v.workObservation.sourceAcquisitionStarts++;}, v => {v.workObservation.modelCallStarts++;},
@@ -87,12 +94,13 @@ async function terminalScratch(t) {
 }
 
 test('terminal imported consumer preserves ref before wait, Saved first and thrown undefined at first close', async t => {
-  for (const phase of ['capture', 'recover', 'failure']) {
+  for (const phase of ['capture', 'recover', 'from-started', 'unknown-start', 'failure']) {
     const root = await terminalScratch(t), path = join(root, 'handoff.json'), events = [];
     const ref = {runDefinitionCid: 'sha256:' + 'a'.repeat(64)}, submissionRef = {request: 'authored-port'};
-    if (phase !== 'recover') await terminalFs.writeFile(join(root, 'terminal.aql'), terminalMockScenario('terminal-infer').source);
-    else await terminalFs.writeFile(path, JSON.stringify({variant: 'terminal-infer', ref, submissionRef,
-      rows: terminalRiskRows, pid: process.pid + 1}));
+    const recovering = phase === 'recover' || phase === 'from-started';
+    if (!recovering) await terminalFs.writeFile(join(root, 'terminal.aql'), terminalMockScenario('terminal-infer').source);
+    else await terminalFs.writeFile(path + (phase === 'from-started' ? '.started' : ''), JSON.stringify({variant: 'terminal-infer', ref, submissionRef,
+      ...(phase === 'recover' ? {rows: terminalRiskRows} : {}), pid: process.pid + 1}));
     const run = {ref, async wait() {
       events.push('wait');const saved = JSON.parse(await terminalFs.readFile(path + '.started', 'utf8'));
       assert.deepEqual(saved.ref, ref);
@@ -101,16 +109,28 @@ test('terminal imported consumer preserves ref before wait, Saved first and thro
     }, result() {events.push('result');return {all: async () => terminalRiskRows};},
     async status() {events.push('status');return {status: 'succeeded'};}};
     let closes = 0;
-    const ports = {phase: phase === 'recover' ? 'recover' : 'capture', variant: 'terminal-infer', directory: root, handoffPath: path,
+    const ports = {phase: recovering ? 'recover' : 'capture', fromStarted: phase === 'from-started',
+      variant: 'terminal-infer', directory: root, handoffPath: path,
       observeDescriptors: async () => ({pid: process.pid, openPaths: []}),
       createWorkObservation: () => ({connection: {}, snapshot: () => ({complete: true,
-        sourceAcquisitionStarts: phase === 'recover' ? 0 : 2, modelCallStarts: phase === 'recover' ? 0 : 2, effectReplacementReturns: 0})}),
+        sourceAcquisitionStarts: recovering ? 0 : 2, modelCallStarts: recovering ? 0 : 2, effectReplacementReturns: 0})}),
       connect: async () => ({newSubmission() {events.push('new');return submissionRef;},
-        async startSource() {events.push('start');assert.notEqual(phase, 'recover');return run;},
+        async startSource() {
+          events.push('start');assert.equal(recovering, false);
+          const submitted = JSON.parse(await terminalFs.readFile(path + '.submission', 'utf8'));
+          assert.deepEqual(submitted.submissionRef, submissionRef);
+          if (phase === 'unknown-start') throw Object.assign(Error('OriginalUnknown'), {code: 'SubmissionUnknown'});
+          return run;
+        },
         async attach(actual) {events.push('attach');assert.deepEqual(actual, ref);return run;},
         async lookupSubmission(actual) {events.push('lookup');assert.deepEqual(actual, submissionRef);return {kind: 'ready', admission: {ref}};},
         async close() {closes++;events.push('close');if (phase === 'failure') throw Error('LaterCloseFailure');}})};
-    if (phase === 'failure') {
+    if (phase === 'unknown-start') {
+      await assert.rejects(runTerminalMockWorkflow(ports), error => error.cause.code === 'SubmissionUnknown');
+      assert.deepEqual(events, ['new', 'start', 'close']);
+      await assert.rejects(terminalFs.access(path + '.started'), {code: 'ENOENT'});
+      assert.deepEqual(JSON.parse(await terminalFs.readFile(path + '.submission', 'utf8')).submissionRef, submissionRef);
+    } else if (phase === 'failure') {
       await assert.rejects(runTerminalMockWorkflow(ports), error => error.cause === undefined &&
         error.observation.status === 'failed' && error.observation.firstClose.returned === false);
       assert.deepEqual(events, ['new', 'start', 'wait', 'close']);
@@ -118,6 +138,11 @@ test('terminal imported consumer preserves ref before wait, Saved first and thro
       const observation = await runTerminalMockWorkflow(ports);assert.equal(observation.complete, true);
       assert.deepEqual(events, phase === 'capture' ? ['new', 'start', 'wait', 'result', 'lookup', 'close']
         : ['attach', 'result', 'status', 'lookup', 'close']);
+      if (phase === 'from-started') {
+        assert.equal(observation.recoveryOrigin, 'started');assert.equal(observation.originalRowsCompared, false);
+        assert.equal(observation.normalCaptureComplete, false);
+        await assert.rejects(terminalFs.access(path), {code: 'ENOENT'});
+      }
     }
     assert.equal(closes, 1);
   }
