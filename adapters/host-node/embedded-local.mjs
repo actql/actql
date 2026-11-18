@@ -2723,8 +2723,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
     restoreInferOriginal: (original, definition, request, evidence, restorationRequest) =>
       preparation.restoreManagedModelOriginal(moon, restorationRequest, original, definition, request,
-        () => control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
-          [false, true, true, true, true, calendarArtifact !== undefined, false], localContractLimits)),
+        (parent, input) => control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
+          [false, true, true, true, true, calendarArtifact !== undefined, false], localContractLimits,
+          {parent, input})),
     allowEffects: effectInstallation !== undefined});
   // The same complete dispatch retirement predicate covers installed ordinary
   // Sources using this Host's managed parent. Other purposes keep their owner.

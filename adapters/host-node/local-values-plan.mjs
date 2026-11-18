@@ -1022,6 +1022,7 @@ export function restoreInferTaskRunAdmission({control, preparedProgram, restored
   const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
   return Object.freeze({...compiled, compiled, runDefinition, requestIdentity,
     ...queryTime,
+    authoringContextOriginal: restored.authoringContextOriginal,
     createdAt: JSON.parse(runDefinition.wire).created_at, inferGraph: restored.graph});
 }
 
