@@ -457,7 +457,7 @@ pub fn closed_values_preparation_capacity_refusal(ClientClosedValuesPreparationI
 
 pub fn[I, P] compile_effect_program_check_preparation(ClientProgramCheckPreparation[I, P], update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?, source_input? : @run_publication_host.ClientSourceInput?) -> Result[@run_publication_host.PreparedClientEffectComputation, ClientProgramCheckPreparationIssue]
 
-pub fn[I, P] compile_program_check_preparation(ClientProgramCheckPreparation[I, P], @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.PreparedClientProgram, ClientProgramCheckPreparationIssue]
+pub fn[I, P] compile_program_check_preparation(ClientProgramCheckPreparation[I, P], @run_publication_host.ClientProgramPreparationLimits, execution_profile? : @run_publication_host.ClientExecutionProfile) -> Result[@run_publication_host.PreparedClientProgram, ClientProgramCheckPreparationIssue]
 
 pub fn complete_client_broad_query_residual(ClientQueryResidual, @acquisition.DuckDBQueryIssuer, @acquisition.DuckDBBroadAttempt, @acquisition.DuckDBBroadCompletionLimits) -> Result[@acquisition.DuckDBBroadObservation, @acquisition.DuckDBEvidenceIssue]
 

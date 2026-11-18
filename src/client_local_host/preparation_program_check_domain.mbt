@@ -39,6 +39,8 @@ priv enum ProgramCheckPreparationPhase {
   SemanticCheckRejected
   PreparationRejected
   CompilationQuoted
+  DebugCompilationInspecting
+  DebugCompilationQuoted(Int)
   CompilationComplete
   CompilationFailed
   SourceRegistrationQuoted

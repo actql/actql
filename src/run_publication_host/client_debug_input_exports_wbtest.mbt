@@ -39,6 +39,11 @@ test "mixed Input and computed Results keep originals and refuse unavailable Deb
       fail("Original normal MissingStageIdentity " + stage.to_string())
     Err(Lowering(_)) => fail("Original normal Lowering")
     Err(Binding(_)) => fail("Original normal Binding")
+    Err(DebugGraph(_)) => fail("Normal cannot select a Debug Graph")
+    Err(DebugProfileUnsupported) =>
+      fail("Normal cannot request a Debug profile")
+    Err(DebugGraphConstructionOverflow) =>
+      fail("Normal cannot construct Debug metadata")
   }
   let normal = prepared_client_graph(prepared)
   assert_eq(@strategy.graph_task_count(normal), 4)

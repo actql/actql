@@ -525,6 +525,8 @@ pub fn client_composed_keyed_request_model_rows(ClientKeyedRequest, ClientCompil
 
 pub fn client_composed_keyed_request_retained_model_parent(ClientKeyedRequest, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger) -> Bool
 
+pub fn client_debug_graph_quotation_control_bytes() -> Int64
+
 pub fn client_direct_acquisition_occurrence_at(ClientDirectAcquisitionOccurrences, Int) -> (Int, Int, Int)?
 
 pub fn client_direct_acquisition_occurrence_count(ClientDirectAcquisitionOccurrences) -> Int
@@ -2177,6 +2179,8 @@ pub fn measure_client_compiled_explanation_facts(ClientCompiledRun, PreparedClie
 
 pub fn measure_client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
+pub fn measure_client_debug_graph_construction(@program_check.CheckedProgram, Int, Int, @ref.Ref[Int64]) -> Result[(Int64, Int), ClientProgramPreparationIssue]
+
 pub fn measure_client_effect_generic_keyed_plan_construction(PreparedClientEffectComputation, ClientKeyedAcquisition, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientEffectKeyedPlanConstruction, ClientInferPlanGraphIssue]
 
 pub fn measure_client_effect_keyed_plan_construction(PreparedClientEffectComputation, ClientKeyedAcquisition, @run_publication.PublicationContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientEffectKeyedPlanConstruction, ClientInferPlanGraphIssue]
@@ -2245,7 +2249,7 @@ pub fn observe_prepare_checked_client_effect_computation(@program_check.EffectCo
 
 pub fn observe_prepare_checked_client_source_effect_computation(ClientSourceInput, @program_check.EffectComputationCandidate, ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> Result[(Result[PreparedClientEffectComputation, ClientEffectComputationIssue], Int64), ClientSourcePreparationIssue]
 
-pub fn observe_prepare_checked_effect_free_client_program(@program_check.CheckedProgram, @lowering_relation.Limits, max_parameters~ : Int, max_parameter_name_bytes~ : Int, max_tasks~ : Int, max_graph_work~ : Int, values_max_rows? : Int?, calls_out? : @ref.Ref[Int64]?) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64)
+pub fn observe_prepare_checked_effect_free_client_program(@program_check.CheckedProgram, @lowering_relation.Limits, max_parameters~ : Int, max_parameter_name_bytes~ : Int, max_tasks~ : Int, max_graph_work~ : Int, values_max_rows? : Int?, calls_out? : @ref.Ref[Int64]?, execution_profile? : ClientExecutionProfile) -> (Result[PreparedClientProgram, ClientProgramPreparationIssue], Int64)
 
 pub fn observe_prepare_client_local_normalization(PreparedClientProgram, ClientLocalNormalizationLimits) -> (Result[ClientLocalNormalizationPreparation, ClientLocalNormalizationIssue], Int)
 
@@ -3702,6 +3706,11 @@ pub(all) enum ClientExecutionMaterialIssue {
   InferTemplate(ClientInferBoundTemplateIssue)
 }
 
+pub(all) enum ClientExecutionProfile {
+  Normal
+  Debug
+} derive(Eq, @debug.Debug)
+
 pub(all) struct ClientExplanationFactsConstruction {
   body : (Int, Int, Int)
   complete : (Int, Int, Int)
@@ -4569,6 +4578,9 @@ pub(all) enum ClientProgramPreparationIssue {
   Lowering(@lowering_relation.Issue)
   Binding(@lowering_relation.BindingIssue)
   Graph(@physical_strategy.GraphIssue)
+  DebugGraph(@physical_strategy.DebugTaskGraphIssue)
+  DebugProfileUnsupported
+  DebugGraphConstructionOverflow
 }
 
 pub(all) struct ClientProgramPreparationLimits {
