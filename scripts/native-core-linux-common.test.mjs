@@ -5,10 +5,12 @@ import {join} from 'node:path';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {nativeCoreFocusedTestCount} from './native-core-test-selection.mjs';
+import {nativeCoreTestCaseInventory} from './native-core-test-selection.mjs';
 import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import {partitionNativeCorePlatformPackages} from './native-core-platform-packages.mjs';
 import {nativeCoreLinuxCommonArguments, nativeCoreLinuxCommonPartitions, runNativeCoreLinuxCommon} from './test-native-core-linux-common.mjs';
+import {reviewedNativeCoreNames, reviewedNativeCoreSource, selectReviewedNativeCoreCases,
+  verifyReviewedNativeCoreOutput, runReviewedNativeCoreSuite} from './native-core-reviewed-suite.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 
@@ -104,7 +106,7 @@ test('Linux common Native metadata counts original native runnable cases without
   writeFileSync(join(root, 'selected/cases_test.mbt'), 'Original compiler metadata fixture\n');
   const calls = [];
   const args = ['--release', '--strip', '--deny-warn', 'selected'];
-  const count = nativeCoreFocusedTestCount(root, args, {execute: (command, values) => {
+  const inventory = nativeCoreTestCaseInventory(root, args, {execute: (command, values) => {
     assert.equal(command, 'moon'); calls.push(values[0]);
     if (values[0] === 'test') {
       assert.deepEqual(values, ['test', '--target', 'native', ...args, '--dry-run']);
@@ -119,8 +121,103 @@ test('Linux common Native metadata counts original native runnable cases without
     }));
     return '';
   }});
-  assert.equal(count, 1);
+  assert.equal(inventory.runnableCases, 1);
+  assert(inventory.records.some(record => record.entry[2].name === 'skipped'));
+  assert(inventory.records.some(record => record.entry[2].name === 'benchmark' && record.benchmark));
+  assert(inventory.records.every(record => record.source === 'selected/cases_test.mbt'));
   assert.deepEqual(calls, ['test', 'generate-test-driver']);
+});
+
+test('reviewed Native child follows only the successful first Linux shard and preserves failures', async () => {
+  const events = [], original = {PATH: '/original/tool', RUNNER_TEMP: '/original/scratch'};
+  for (const partition of nativeCoreLinuxCommonPartitions) {
+    events.length = 0;
+    const status = await runNativeCoreLinuxCommon({platform: 'linux', partition, env: original,
+      executeProfile: () => {events.push('original'); return 0;},
+      executeReviewedSuite: ({env}) => {
+        events.push('reviewed');
+        assert.equal(env.PATH, original.PATH); assert.equal(env.RUNNER_TEMP, original.RUNNER_TEMP);
+        assert.equal(env.MOONBIT_NEW_NATIVE, '0');
+        assert.equal(env.ACTQL_TEST_NATIVE_CORE_PARTITION, undefined);
+        assert.equal(env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE, undefined);
+        return 29;
+      }});
+    assert.deepEqual(events, partition === 'linux-common-1/8' ? ['original', 'reviewed'] : ['original']);
+    assert.equal(status, partition === 'linux-common-1/8' ? 29 : 0);
+  }
+  for (const status of [1, 130, 124]) {
+    assert.equal(await runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8',
+      executeProfile: () => status, executeReviewedSuite: () => assert.fail('Failed predecessor')}), status);
+  }
+  const failure = new Error('reviewed execution failed');
+  await assert.rejects(runNativeCoreLinuxCommon({platform: 'linux', partition: 'linux-common-1/8',
+    executeProfile: () => 0, executeReviewedSuite: () => {throw failure;}}), error => error === failure);
+  assert.deepEqual(original, {PATH: '/original/tool', RUNNER_TEMP: '/original/scratch'});
+});
+
+const reviewedRecords = () => reviewedNativeCoreNames.map((name, index) => ({
+  source: reviewedNativeCoreSource, directory: 'src/platform_native/row_source', benchmark: false,
+  entry: [JSON.stringify(['actql/actql/platform_native/row_source', 'whitebox']), 'capacity_wbtest.mbt',
+    {name, index, attrs: []}],
+}));
+
+test('reviewed compiler selection refuses changed cases without adopting physical siblings', () => {
+  const records = reviewedRecords();
+  const sibling = {...records[0], source: 'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'};
+  assert.deepEqual(selectReviewedNativeCoreCases({records: [sibling, ...records]}), records);
+  const mutations = [
+    values => values.pop(), values => values.push(structuredClone(values[0])),
+    values => {values[0].entry[2].name = 'unreviewed replacement';},
+    values => {values[0].entry[2].attrs = ['skip'];},
+    values => {values[0].benchmark = true;},
+    values => {values[0].entry[0] = JSON.stringify(['foreign/package', 'whitebox']);},
+    values => {values[0].entry[2].index = values[1].entry[2].index;},
+  ];
+  for (const mutate of mutations) {
+    const changed = structuredClone(records); mutate(changed);
+    assert.throws(() => selectReviewedNativeCoreCases({records: changed}));
+  }
+  assert.throws(() => selectReviewedNativeCoreCases({records: []}), /Missing/u);
+});
+
+test('reviewed Native proof requires every actual original name beyond the nonzero total', () => {
+  const records = reviewedRecords();
+  const lines = records.map(({entry}) => '[actql/actql] test platform_native/row_source/capacity_wbtest.mbt:1 (' +
+    JSON.stringify(entry[2].name) + ') ok');
+  verifyReviewedNativeCoreOutput(records, lines.join('\n'));
+  for (const output of ['', lines.slice(1).join('\n'), [...lines, lines[0]].join('\n'),
+    lines.join('\n').replace(') ok', ') failed'), lines.join('\n').replace('Native transport', 'Changed transport'),
+    [...lines, '[actql/actql] test platform_native/row_source/physical_wbtest.mbt:1 ("other") ok'].join('\n')])
+    assert.throws(() => verifyReviewedNativeCoreOutput(records, output));
+});
+
+test('reviewed Native entry uses the existing finite supervisor and preserves cancellation', async () => {
+  const root = realpathSync(new URL('../', import.meta.url));
+  let calls = 0;
+  const original = {PATH: '/pinned/bin', ACTQL_TEST_NATIVE_CORE_PARTITION: '1/8',
+    ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: 'linux-common-importers'};
+  for (const status of [0, 17, 130]) {
+    assert.equal(await runReviewedNativeCoreSuite({root, env: original, platform: 'linux', arch: 'x64',
+      execute: async config => {
+        calls++;
+        assert.equal(config.root, root); assert.equal(config.heavy, true);
+        assert(Number.isSafeInteger(config.timeoutSeconds) && config.timeoutSeconds > 0);
+        const jobMinutes = runInNewContext(workflow.jobs['core-common']['timeout-minutes'].slice(3, -2),
+          {matrix: {target: 'native'}});
+        assert(config.timeoutSeconds + config.graceSeconds < jobMinutes * 60);
+        assert.equal(config.steps.length, 1);
+        assert.equal(config.steps[0].command, process.execPath);
+        assert(config.steps[0].args.some(value => value.includes('executeReviewedNativeCoreSuite')));
+        assert.equal(config.steps[0].env.PATH, original.PATH);
+        assert.equal(config.steps[0].env.ACTQL_TEST_NATIVE_CORE_PARTITION, undefined);
+        assert.equal(config.steps[0].env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE, undefined);
+        return status;
+      }}), status);
+  }
+  for (const options of [{platform: 'darwin', arch: 'x64'}, {platform: 'linux', arch: 'arm64'}])
+    await assert.rejects(runReviewedNativeCoreSuite({...options, execute: () => assert.fail('Foreign platform')}));
+  assert.equal(calls, 3);
+  assert.equal(original.ACTQL_TEST_NATIVE_CORE_PARTITION, '1/8');
 });
 
 test('Native platform classes separate original FFI owners from every source and test importer', () => {

@@ -370,10 +370,16 @@ export function nativeCoreFocusedTestCount(repository, args, options = {}) {
   return compilerTestSelection(repository, args, options, 'native', true).runnableCases;
 }
 
+// Discovery DATA only. A file input can still produce a whole package driver;
+// callers must select and verify the actual executed cases independently.
+export function nativeCoreTestCaseInventory(repository, args, options = {}) {
+  return compilerTestSelection(repository, args, {...options, includeRecords: true}, 'native', true);
+}
+
 function compilerTestSelection(repository, args, {
   env = process.env, execute = execFileSync, partitionProfiles: splitProfiles = false,
   ordinaryPartitions = false, timeoutMs = 60_000, now = Date.now, executionPackages,
-  allowNestedFileInputs = false, measuredCompilerWeights = false,
+  allowNestedFileInputs = false, measuredCompilerWeights = false, includeRecords = false,
 } = {}, target, countOnly) {
   assert.equal(typeof measuredCompilerWeights, 'boolean', 'Invalid Native compiler scheduling selection');
   assert(!countOnly || (!splitProfiles && !ordinaryPartitions && executionPackages === undefined));
@@ -487,7 +493,7 @@ function compilerTestSelection(repository, args, {
       // class and explicit skip attribute are excluded from runnable counts.
       const runnableCases = records.filter(runnableCompilerCase).length;
       remaining(); complete = true;
-      return {runnableCases};
+      return {runnableCases, ...(includeRecords ? {records} : {})};
     }
     let executionScope, scopedInputs;
     if (executionPackages !== undefined) {
