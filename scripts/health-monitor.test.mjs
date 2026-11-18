@@ -109,6 +109,9 @@ test('terminal Mock harness protects a changed consumer alias before the cold ch
     }}), error => error instanceof AggregateError && error.cause.code === 'ERR_ASSERTION');
   assert.equal(calls, 1);
   assert.equal(await readlink(join(project, 'node_modules')), '/unselected/component-only');
+  assert.equal(await readFile(join(project, 'terminal.program.json'), 'utf8'), terminalMockScenario('terminal-content').source);
+  assert.equal(await readFile(join(project, 'mock/churn-risk.v1.answers.yaml'), 'utf8'),
+    projectTemplateFiles('churn-risk-mock')['mock/churn-risk.v1.answers.yaml']);
 });
 
 const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.json', import.meta.url)));

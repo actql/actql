@@ -585,6 +585,7 @@ async function terminalMockWorkflowMetrics({prepared, root, repository, command,
           assertTerminalMockObservation(record.summary, {variant, phase, pid: observed.pid, capturedPid});
           if (phase === 'capture') {
             capturedPid = observed.pid;
+            assert.equal(await readlink(join(project, 'node_modules')), join(prepared.consumer, 'node_modules'));
             // Only these fresh authored inputs, after actual FIRST close/FD
             // checks. Their original Run/DB/key/Store and fixture config stay.
             for (const input of inputs) {
