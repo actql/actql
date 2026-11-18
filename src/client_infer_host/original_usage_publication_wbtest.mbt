@@ -408,3 +408,164 @@ test "usage stop during actual writer growth cannot expose its wire through the 
   assert_true(release_original_infer_publication_capacity(capacity).unwrap())
   assert_true(cleanup(active).unwrap())
 }
+
+///|
+// Execute the actual Node bridge codec on the existing original Resource.
+// This is JS-backend component coverage, not normal Node/Wasm/Python acceptance.
+test "Node usage action codec preserves original identity order and pending cleanup" {
+  let calls = Ref(0)
+  let (active, ledger, _) = original_observation_test_start(
+    provider=original_funded_start_provider(calls),
+  )
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  let entered = calls.val
+  let capture = acquire_capture(active).unwrap()
+  let capacity = @node_fixture.client_program_reserve_original_infer_publication_capacity(
+    active, 1L, 1L,
+  ).unwrap()
+  assert_eq(
+    @node_fixture.client_program_original_infer_publication_retained_bytes(
+      capacity,
+    ),
+    9L,
+  )
+  assert_eq(
+    @node_fixture.client_program_original_infer_publication_execution_bytes(
+      capacity,
+    ),
+    9L,
+  )
+  let value = @node_fixture.client_program_begin_original_infer_usage_publication(
+    active, capacity, capture, 9L, 9L, 4096,
+  ).unwrap()
+  let quantities = @resources.quantity_usage(ledger)
+  let retain = @node_fixture.client_program_next_original_infer_usage_action(
+      value,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    @node_fixture.client_program_original_infer_usage_action_kind(retain),
+    Some("retain"),
+  )
+  // A receipt status is not an observation discriminant, and an actual but
+  // out-of-order capture observation cannot consume the retained action.
+  assert_true(
+    @node_fixture.client_program_observe_original_infer_usage_action(
+      value, retain, "complete",
+    )
+    is Err(Model(@model.OutputIdentity)),
+  )
+  assert_true(
+    @node_fixture.client_program_observe_original_infer_usage_action(
+      value, retain, "captured",
+    )
+    is Err(Model(@model.OutputIdentity)),
+  )
+  @node_fixture.client_program_observe_original_infer_usage_action(
+    value, retain, "retained",
+  ).unwrap()
+  let authorize = @node_fixture.client_program_next_original_infer_usage_action(
+      value,
+    )
+    .unwrap()
+    .unwrap()
+  let slot = @publication.run_evidence_value_identity(
+    @model.verified_model_capture_call_at(capture, 0).unwrap(),
+  )
+  let attempt = @publication.run_evidence_value_identity(
+    @model.model_attempt_identity(
+      @model.model_execution_attempt_evidence(active.model.unwrap(), 0).unwrap(),
+    ),
+  )
+  assert_true(
+    @node_fixture.client_program_original_infer_usage_binding_matches(
+      value, authorize, slot, attempt,
+    ),
+  )
+  @node_fixture.client_program_observe_original_infer_usage_action(
+    value, authorize, "authorized",
+  ).unwrap()
+  let copying = @node_fixture.client_program_next_original_infer_usage_action(
+      value,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    @node_fixture.client_program_original_infer_usage_action_kind(copying),
+    Some("capture"),
+  )
+  assert_eq(
+    @node_fixture.client_program_original_infer_usage_action_slot(copying),
+    Some(0),
+  )
+  let wire = @node_fixture.client_program_original_infer_usage_action_wire(
+    copying,
+  ).unwrap()
+  assert_true(wire.contains(slot))
+  assert_true(wire.length() <= 4096)
+  @node_fixture.client_program_observe_original_infer_usage_action(
+    value, copying, "captured",
+  ).unwrap()
+  let record = @node_fixture.client_program_next_original_infer_usage_action(
+      value,
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    @node_fixture.client_program_original_infer_usage_action_kind(record),
+    Some("record"),
+  )
+  assert_eq(
+    @node_fixture.client_program_original_infer_usage_completion(value),
+    "complete",
+  )
+  assert_eq(
+    @node_fixture.client_program_original_infer_usage_item_count(value),
+    1,
+  )
+  assert_eq(
+    @node_fixture.client_program_original_infer_usage_item(value, 0),
+    Some((0, "complete")),
+  )
+  assert_eq(
+    @node_fixture.client_program_original_infer_usage_item_attempt(value, 0),
+    Some(attempt),
+  )
+  @node_fixture.client_program_observe_original_infer_usage_action(
+    value, record, "recorded",
+  ).unwrap()
+  let retire = @node_fixture.client_program_next_original_infer_usage_action(
+      value,
+    )
+    .unwrap()
+    .unwrap()
+  @node_fixture.client_program_observe_original_infer_usage_action(
+    value, retire, "pending",
+  ).unwrap()
+  assert_false(
+    @node_fixture.client_program_release_original_infer_publication_capacity(
+      capacity,
+    ).unwrap(),
+  )
+  @node_fixture.client_program_observe_original_infer_usage_action(
+    value, retire, "cleaned",
+  ).unwrap()
+  assert_true(
+    @node_fixture.client_program_next_original_infer_usage_action(value).unwrap()
+    is None,
+  )
+  assert_eq(
+    @node_fixture.client_program_original_infer_usage_action_kind(retire),
+    None,
+  )
+  assert_true(@model.release_verified_model_capture(capture))
+  assert_true(
+    @node_fixture.client_program_release_original_infer_publication_capacity(
+      capacity,
+    ).unwrap(),
+  )
+  assert_eq(calls.val, entered)
+  assert_eq(@resources.quantity_usage(ledger), quantities)
+  assert_true(cleanup(active).unwrap())
+}
