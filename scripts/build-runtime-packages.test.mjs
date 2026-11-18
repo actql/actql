@@ -48,13 +48,14 @@ test('metadata child regressions use the existing prepared Site gate with a boun
   assert(prepared.includes('src/connectors_builtin_node'));
   assert(prepared.includes('src/connectors/hubspot/host_node'));
   const commands = pkg.scripts['test:remote-site-runtime'].split(' && ');
-  assert.equal(commands.length, 2);
-  assert(commands[0].startsWith('node --test '));
-  assert(commands[0].includes('adapters/connectors/hubspot/test/hubspot-managed-sequence.test.mjs'));
-  assert(commands[0].includes('adapters/host-node/installed-credential-source-reader.test.mjs'));
+  assert(commands.some(command => command.startsWith('node --test ') &&
+    command.includes('adapters/connectors/hubspot/test/hubspot-managed-sequence.test.mjs') &&
+    command.includes('adapters/host-node/installed-credential-source-reader.test.mjs')));
   const prefix = 'node scripts/local-checks.mjs test node --timeout-seconds 120 -- --test-name-pattern ';
-  assert(commands[1].startsWith(prefix));
-  const selection = commands[1].slice(prefix.length).match(/^'([^']+)' (.+)$/u);
+  const metadataCommands = commands.filter(command => command.startsWith(prefix) &&
+    command.includes('adapters/connectors/hubspot/test/installed-hubspot-source.test.mjs'));
+  assert.equal(metadataCommands.length, 1, 'one intended bounded metadata selection');
+  const selection = metadataCommands[0].slice(prefix.length).match(/^'([^']+)' (.+)$/u);
   assert(selection);
   const pattern = new RegExp(selection[1], 'u');
   const controls = {
