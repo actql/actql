@@ -116,7 +116,8 @@ for(const kind of ['values','source-free-tasks','acquired-tasks']){
 
 test('saved Infer admission restores query time from its original definition without a clock sample',()=>{
   const prepared={},request={},graph={},context={},queryPreparation={};
-  const compiled={kind:'infer'},restored={compiled,graph,runDefinition:definition};let restores=0;
+  const authoringContextOriginal = Object.freeze({});
+  const compiled={kind:'infer'},restored={compiled,graph,runDefinition:definition,authoringContextOriginal};let restores=0;
   const control={
     checkRestoredClientInferRunOwner(value,owner){assert.strictEqual(value,restored);assert.strictEqual(owner,prepared);},
     checkedClientCompiledInferOriginal(value,owner,run){assert.strictEqual(value,compiled);
@@ -129,6 +130,7 @@ test('saved Infer admission restores query time from its original definition wit
   };
   const actual=restoreInferTaskRunAdmission({control,preparedProgram:prepared,restored,requestIdentity:request});
   assert.equal(restores,1);assert.strictEqual(actual.queryTime,context);
+  assert.strictEqual(actual.authoringContextOriginal,authoringContextOriginal);
   assert.strictEqual(actual.runDefinition,definition);assert.strictEqual(actual.inferGraph,graph);
   assert.throws(()=>restoreInferTaskRunAdmission({control,preparedProgram:prepared,restored}),
     {message:'OriginalClientQueryRequestRequired'});

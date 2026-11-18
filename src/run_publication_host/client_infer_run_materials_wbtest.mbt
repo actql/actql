@@ -69,6 +69,107 @@ fn infer_run_materials_admit(
 }
 
 ///|
+test "saved INFER material retains its original Common journal without changing legacy absence" {
+  let (prepared, compiled, definition, legacy) = infer_run_materials_fixture()
+  assert_true(prepared_client_local_normalization_original(prepared) is None)
+  let original = issue_prepared_client_local_normalization(prepared).unwrap()
+  assert_eq(
+    @publication.run_evidence_value_json(
+      prepared_client_local_normalization_evidence(prepared, original).unwrap(),
+    ),
+    common_local_empty_journal,
+  )
+  let (_, environment) = client_infer_prefix_test_environment()
+  let wire = issue_prepared_client_infer_run_materials(
+    compiled,
+    definition,
+    environment,
+    None,
+    run_materials_limits(),
+  ).unwrap()
+  assert_true(wire != legacy)
+  let restored = infer_run_materials_admit(wire, definition).unwrap()
+  let restored_original = prepared_client_local_normalization_original(
+    restored.prepared,
+  ).unwrap()
+  assert_false(physical_equal(restored.prepared, prepared))
+  assert_eq(
+    prepared_client_identity(restored.prepared),
+    prepared_client_identity(prepared),
+  )
+  assert_eq(
+    @publication.run_evidence_value_json(
+      prepared_client_local_normalization_evidence(
+        restored.prepared,
+        restored_original,
+      ).unwrap(),
+    ),
+    common_local_empty_journal,
+  )
+  assert_true(
+    prepared_client_local_normalization_evidence(prepared, restored_original)
+    is Err(ForeignPreparation),
+  )
+  assert_eq(
+    @publication.publication_contract_json(restored.run_definition),
+    @publication.publication_contract_json(definition),
+  )
+  // Legacy admission remains available. Absence is not a replacement journal
+  // or proof that an unpublished legacy Run can perform new publication.
+  let old = infer_run_materials_admit(legacy, definition).unwrap()
+  assert_true(
+    prepared_client_local_normalization_original(old.prepared) is None,
+  )
+}
+
+///|
+test "saved Common journal admission refuses changed integrity catalogue and occurrence inventory" {
+  let prepared = client_infer_prefix_test_program()
+  let (audit, _) = observe_prepare_client_local_normalization(prepared, {
+    max_work: 10000,
+    max_wire_bytes: 1024,
+    max_nodes: 32,
+    max_depth: 8,
+  })
+  let audit = audit.unwrap()
+  let invalid = common_local_empty_journal.replace(
+    old="e245b445e5014e5764dab4bf1b9ddc3b3abdf821ddf75950f9bee9df29007164",
+    new="a".repeat(64),
+  )
+  assert_true(
+    admit_prepared_client_local_normalization(audit, invalid)
+    is Err(Evidence(@publication.RunEvidenceIdentityMismatch)),
+  )
+  assert_true(prepared_client_local_normalization_original(prepared) is None)
+  // A valid self hash does not establish this preparation's audited catalogue
+  // or occurrence pairs. These negative bodies are independently selected.
+  let foreign_catalog = @publication.seal_run_evidence_value(
+    "normalization_journal",
+    "{\"entries\":[],\"rule_catalog_cid\":\"sha256:" +
+    "a".repeat(64) +
+    "\",\"version\":\"actql-normalization-journal/0.1\"}",
+    1024,
+    32,
+    8,
+  ).unwrap()
+  assert_true(
+    admit_prepared_client_local_normalization(
+      audit,
+      @publication.run_evidence_value_json(foreign_catalog),
+    )
+    is Err(SubstitutedJournal),
+  )
+  assert_true(prepared_client_local_normalization_original(prepared) is None)
+  // A journal with additional entries exceeds this SAME audited profile's
+  // measured shape and is refused before allocating a larger evidence tree.
+  assert_true(
+    admit_prepared_client_local_normalization(audit, common_local_sort_journal)
+    is Err(Evidence(@publication.RunEvidenceInvalidWire)),
+  )
+  assert_true(prepared_client_local_normalization_original(prepared) is None)
+}
+
+///|
 fn composed_infer_run_materials_fixture() -> (
   PreparedClientProgram,
   ClientCompiledRun,
@@ -885,5 +986,75 @@ test "plural saved inventory uses original checked Model occurrences beyond128 a
       bounds,
     )
     is Err(Binding(UnsupportedProgram)),
+  )
+}
+
+///|
+test "funded warm INFER projection counts the original journal before the outer writer" {
+  let (prepared, compiled, definition, legacy) = infer_run_materials_fixture()
+  let without_journal = Ref(0)
+  let legacy_funded = issue_original_client_infer_run_materials(
+    compiled,
+    definition,
+    None,
+    (purpose, bytes, _nodes, _depth) => {
+      if purpose == "run_materials" {
+        without_journal.val = bytes
+      }
+      true
+    },
+  ).unwrap()
+  assert_eq(legacy_funded, legacy)
+  let original = issue_prepared_client_local_normalization(prepared).unwrap()
+  let journal = @publication.run_evidence_value_json(
+    prepared_client_local_normalization_evidence(prepared, original).unwrap(),
+  )
+  assert_eq(journal, common_local_empty_journal)
+  let calls : Array[String] = []
+  let with_journal = Ref(0)
+  let wire = issue_original_client_infer_run_materials(
+    compiled,
+    definition,
+    None,
+    (purpose, bytes, nodes, depth) => {
+      calls.push(purpose)
+      if purpose == "run_materials" {
+        with_journal.val = bytes
+        assert_true(nodes > 0 && depth > 0) catch {
+          _ => abort("invalid constructor geometry")
+        }
+      }
+      true
+    },
+  ).unwrap()
+  assert_eq(with_journal.val - without_journal.val, 6 * journal.length())
+  assert_eq(calls, [
+    "program", "environment", "model_execution", "run_definition_read", "run_materials",
+  ])
+  let (_, environment) = client_infer_prefix_test_environment()
+  assert_eq(
+    wire,
+    issue_prepared_client_infer_run_materials(
+      compiled,
+      definition,
+      environment,
+      None,
+      run_materials_limits(),
+    ).unwrap(),
+  )
+  assert_true(
+    issue_original_client_infer_run_materials(compiled, definition, None, (
+      purpose,
+      _,
+      _,
+      _,
+    ) => purpose != "run_materials")
+    is Err(Input(MaterialsConstructionRefused("run_materials"))),
+  )
+  assert_true(
+    physical_equal(
+      prepared_client_local_normalization_original(prepared).unwrap(),
+      original,
+    ),
   )
 }

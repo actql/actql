@@ -52,13 +52,10 @@ fn request_authoring_targets(
 }
 
 ///|
-fn[I] grow_request_authoring(
+fn[I, O] grow_request_authoring(
   input : I,
   state : ClientRequestProgramAuthoring,
-  capacity : @resources.PreparationCapacity[
-    I,
-    @publication_host.PreparedClientProgram,
-  ],
+  capacity : @resources.PreparationCapacity[I, O],
   retained : Int64,
   execution : Int64,
 ) -> Result[Unit, ClientRequestAuthoringIssue] {
@@ -124,9 +121,29 @@ pub fn[I] prepare_request_program_authoring_context(
     owner.computation_limits is Some(compiler) else {
     return Err(Preparation(WrongPhase))
   }
+  prepare_request_authoring_in_capacity(
+    owner, input, prepared, compiler, capacity,
+  )
+}
+
+///|
+// Warm preparation and cold material Read use the SAME authoring constructor,
+// representation/work laws, partial state and cleanup. The output type of the
+// existing Resource reservation differs; no reservation or compiler is issued.
+fn[I, O] prepare_request_authoring_in_capacity(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  compiler : @publication_host.ClientProgramPreparationLimits,
+  capacity : @resources.PreparationCapacity[I, O],
+) -> Result[
+  @publication_host.ClientAuthoringContextPreparation,
+  ClientRequestAuthoringIssue,
+] {
+  let phase = owner.phase
   owner.phase = Selecting
   defer {
-    owner.phase = ProgramCompiled
+    owner.phase = phase
   }
   if owner.program_authoring is None {
     let base = match
@@ -195,14 +212,11 @@ pub fn[I] prepare_request_program_authoring_context(
 }
 
 ///|
-fn[I] prepare_request_program_authoring_owned(
+fn[I, O] prepare_request_program_authoring_owned(
   owner : ClientRequestPreparation[I],
   input : I,
   state : ClientRequestProgramAuthoring,
-  capacity : @resources.PreparationCapacity[
-    I,
-    @publication_host.PreparedClientProgram,
-  ],
+  capacity : @resources.PreparationCapacity[I, O],
 ) -> Result[
   @publication_host.ClientAuthoringContextPreparation,
   ClientRequestAuthoringIssue,

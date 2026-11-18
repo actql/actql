@@ -403,6 +403,36 @@ pub fn[I, A] construct_request_effect_materials(
     physical_equal(original, input) else {
     return Err(Preparation(ForeignOriginal))
   }
+  construct_request_original_materials_owned(
+    owner,
+    input,
+    capacity,
+    () => {
+      owner.phase == Selecting &&
+      owner.input is Some(original) &&
+      physical_equal(original, input) &&
+      owner.compiled_effect is Some(current) &&
+      physical_equal(current, prepared)
+    },
+    fund => construct(fund).map_err(issue => EffectMaterials(issue)),
+  )
+}
+
+///|
+// Same fixed control inventory, accumulating retained bodies, active nested
+// writer and scratch peak for both original material families. The typed
+// family supplies its original-binding fence before entering this private loop.
+fn[I, O, A] construct_request_original_materials_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[I, O],
+  original_is_current : () -> Bool,
+  construct : ((String, Int, Int, Int) -> Bool) -> Result[
+    A,
+    ClientRequestProgramPlanIssue,
+  ],
+) -> Result[A, ClientRequestProgramPlanIssue] {
+  let previous_phase = owner.phase
   let base = match
     @resources.preparation_capacity_working_extents(capacity, input) {
     Err(issue) => return Err(Preparation(Capacity(issue)))
@@ -432,11 +462,7 @@ pub fn[I, A] construct_request_effect_materials(
         Err(issue) => return Err(Preparation(Capacity(issue)))
         Ok(_) => ()
       }
-      guard owner.phase == Selecting &&
-        owner.input is Some(original) &&
-        physical_equal(original, input) &&
-        owner.compiled_effect is Some(current) &&
-        physical_equal(current, prepared) else {
+      guard original_is_current() else {
         return Err(Preparation(ForeignOriginal))
       }
       let retained : Array[Int64] = Array::make(15, 0L)
@@ -452,11 +478,7 @@ pub fn[I, A] construct_request_effect_materials(
         if failed.val is Some(_) {
           return false
         }
-        if !(owner.phase == Selecting &&
-          owner.input is Some(original) &&
-          physical_equal(original, input) &&
-          owner.compiled_effect is Some(current) &&
-          physical_equal(current, prepared)) {
+        if !original_is_current() {
           failed.val = Some(Preparation(ForeignOriginal))
           return false
         }
@@ -516,11 +538,7 @@ pub fn[I, A] construct_request_effect_materials(
         let result = @resources.reserve_working_preparation_phase(
           capacity, input, prefix, execution,
         )
-        guard owner.phase == Selecting &&
-          owner.input is Some(original) &&
-          physical_equal(original, input) &&
-          owner.compiled_effect is Some(current) &&
-          physical_equal(current, prepared) else {
+        guard original_is_current() else {
           failed.val = Some(Preparation(ForeignOriginal))
           return false
         }
@@ -541,15 +559,11 @@ pub fn[I, A] construct_request_effect_materials(
       if failed.val is Some(issue) {
         return Err(issue)
       }
-      guard owner.phase == Selecting &&
-        owner.input is Some(original) &&
-        physical_equal(original, input) &&
-        owner.compiled_effect is Some(current) &&
-        physical_equal(current, prepared) else {
+      guard original_is_current() else {
         return Err(Preparation(ForeignOriginal))
       }
       let output = match result {
-        Err(issue) => return Err(EffectMaterials(issue))
+        Err(issue) => return Err(issue)
         Ok(value) => value
       }
       // The closed codec and all of its parser/writer stacks have returned.
@@ -580,15 +594,11 @@ pub fn[I, A] construct_request_effect_materials(
         Err(issue) => return Err(Preparation(Capacity(issue)))
         Ok(_) => ()
       }
-      guard owner.phase == Selecting &&
-        owner.input is Some(original) &&
-        physical_equal(original, input) &&
-        owner.compiled_effect is Some(current) &&
-        physical_equal(current, prepared) else {
+      guard original_is_current() else {
         return Err(Preparation(ForeignOriginal))
       }
       Ok(output)
     },
-    () => if owner.phase == Selecting { owner.phase = EffectPlanReserved },
+    () => if owner.phase == Selecting { owner.phase = previous_phase },
   )
 }

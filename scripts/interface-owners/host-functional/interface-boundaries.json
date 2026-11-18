@@ -29955,11 +29955,11 @@
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -30795,11 +30795,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
               }
             ],
             "identity": [
@@ -31650,11 +31650,11 @@
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -108555,6 +108555,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -108585,6 +108589,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -108615,6 +108623,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -108641,6 +108653,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -108667,6 +108683,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -108693,6 +108713,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -108719,6 +108743,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -108749,6 +108777,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -108775,6 +108807,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -108809,6 +108845,10 @@
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
                 "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -109803,7 +109843,9 @@
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#2",
-            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#3"
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#3",
+            "prepareOrdinaryManagedInstallation/view/init:captureModelOriginal/init:captureModelOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:captureModelOriginal/init:captureModelOriginal/init:captureModelOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -109835,6 +109877,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -109869,6 +109915,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -109899,6 +109949,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -109929,6 +109983,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -109959,6 +110017,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -109989,6 +110051,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -110019,6 +110085,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -110049,6 +110119,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -110079,6 +110153,10 @@
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
                 "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -110133,6 +110211,10 @@
               {
                 "path": "src/client_local_host/preparation_request_effect_keyed_js_wbtest.mbt",
                 "anchor": "fn request_source_keyed_graph_fixture(\n  generic? : Bool = false,\n) -> ("
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -113470,6 +113552,20 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureModelOriginal/init:captureModelOriginal",
+          "parameters": [
+            "prepared",
+            "request",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureModelOriginal/init:captureModelOriginal/init:captureModelOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
           "parameters": [
             "receipt",
@@ -114403,7 +114499,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6f0311329d4ad855b502664363f081f516ac2743d041137133932d2caffd979a"
+      "sha256": "0fd2de4ccb4ee9639374d9b6454cce3dc4d0ca2d7f74b958ea1553718661d320"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

@@ -65,6 +65,8 @@ pub fn admit_installed_effect_captured_run(ClientInstalledEffectCaptureRecovery,
 
 pub fn[I] admit_request_effect_captured_run(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String) -> Result[@run_publication.PreparedCapturedEffectRun, ClientRequestPreparationIssue]
 
+pub fn[I] admit_request_model_recovery_materials(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, @run_publication_host.ClientCompilationManifests, @run_publication_host.ClientValuesRunMaterialsLimits) -> Result[(@run_publication_host.ClientTaskRunMaterials, @run_publication_host.ClientAuthoringContextPreparation), ClientRequestModelRecoveryMaterialsIssue]
+
 pub fn advance_client_infer_input(ClientInferInputExecution, Int) -> Result[ClientInferInputPoll, ClientInferInputIssue]
 
 pub fn advance_client_original_composed_keyed_prefix(ClientOriginalComposedKeyedPrefix, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
@@ -805,6 +807,8 @@ pub fn issue_program_whole_source_publication_invocation(ClientInstalledManagedR
 
 pub fn issue_program_whole_sources_publication_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Array[@client_row_source_host.RowSourceCapture], Array[@execution_query.CapturedSourceRelationIdentity], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), ClientClosedValuesPreparationIssue]
 
+pub fn[I] issue_request_model_run_materials(ClientRequestPreparation[I], I, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[String, ClientRequestProgramPlanIssue]
+
 pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailure) -> Bool
 
 pub fn local_values_execution_failure_issue(LocalValuesExecutionFailure) -> LocalValuesExecutionIssue
@@ -1106,6 +1110,10 @@ pub fn[I] prepare_request_model_graph(ClientRequestPreparation[I], I, @run_publi
 pub fn[I] prepare_request_model_provider_binding(ClientRequestPreparation[I], I, String, String, String, String) -> Result[@run_publication.RunEvidenceValue, ClientRequestProgramPlanIssue]
 
 pub fn[I] prepare_request_model_read_scope(ClientRequestPreparation[I], I, ClientInstalledManagedModelPlan, quantity_limits? : @physical_resources.QuantityAmounts?) -> Result[@run_publication_host.ClientModelReadScope, ClientInstalledManagedRunIssue]
+
+pub fn[I] prepare_request_model_recovery_authoring_context(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.ClientAuthoringContextPreparation, ClientRequestAuthoringIssue]
+
+pub fn[I] prepare_request_model_recovery_normalization(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, String, @run_publication_host.ClientProgramPreparationLimits) -> Result[@run_publication_host.ClientLocalNormalization, ClientRequestNormalizationIssue]
 
 pub fn[I] prepare_request_model_recovery_read_scopes(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, Array[@run_publication_host.ClientInferPlanGraph], @physical_resources.LedgerLimits, Array[Int64], Array[Int64], Int, Int, Int, quantity_limits? : @physical_resources.QuantityAmounts?) -> Result[Array[@run_publication_host.ClientModelReadScope], ClientInstalledManagedRunIssue]
 
@@ -1615,6 +1623,14 @@ pub suberror ClientRequestAuthoringIssue {
   Authoring(@run_publication_host.ClientAuthoringContextIssue)
 }
 
+pub suberror ClientRequestModelRecoveryMaterialsIssue {
+  Preparation(ClientRequestPreparationIssue)
+  Normalization(ClientRequestNormalizationIssue)
+  Authoring(ClientRequestAuthoringIssue)
+  Materials(@run_publication_host.ClientTaskRunMaterialsIssue)
+  Compilation(@run_publication_host.ClientCompiledRunIssue)
+}
+
 pub suberror ClientRequestNormalizationIssue {
   Preparation(ClientRequestPreparationIssue)
   Normalization(@run_publication_host.ClientLocalNormalizationIssue)
@@ -1636,6 +1652,7 @@ pub suberror ClientRequestProgramPlanIssue {
   ContentQuery(ClientLocalQueryIssue)
   ContentSource(@client_row_source_host.RowHostIssue)
   EffectMaterials(@run_publication_host.ClientEffectRunMaterialsIssue)
+  InferMaterials(@run_publication_host.ClientTaskRunMaterialsIssue)
 }
 
 pub suberror ClientRequestQueryLoweringIssue {

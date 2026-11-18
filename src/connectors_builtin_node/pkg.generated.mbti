@@ -348,6 +348,8 @@ pub fn client_program_admit_request_effect_captured_run(@client_local_host.Clien
 
 pub fn client_program_admit_request_effect_run_materials_with_compilation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, String, String, @run_publication_host.ClientEffectCompilation, @run_publication_host.ClientRequestIdentity, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @program_check.CheckEnvironment) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientRequestProgramModuleBridgeIssue]
 
+pub fn client_program_admit_request_infer_run_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[(@run_publication_host.ClientTaskRunMaterials, @run_publication_host.ClientAuthoringContextPreparation), ClientInferRunMaterialsBridgeIssue]
+
 pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanAdmissionIssue]
 
 pub fn client_program_admit_serialization_captured_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
@@ -2401,6 +2403,8 @@ pub fn client_program_issue_publication_witnesses(@run_publication_host.Prepared
 pub fn client_program_issue_request_effect_prepared_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation) -> Result[String, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_issue_request_effect_run_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity?) -> Result[String, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_issue_request_infer_run_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[String, @client_local_host.ClientRequestProgramPlanIssue]
 
 pub fn client_program_issue_result_plan(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanIssue]
 
@@ -6686,6 +6690,7 @@ pub(all) enum ClientEffectProgramBridgeOutcome {
 pub(all) enum ClientInferRunMaterialsBridgeIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Materials(@run_publication_host.ClientTaskRunMaterialsIssue)
+  Recovery(@client_local_host.ClientRequestModelRecoveryMaterialsIssue)
 }
 
 pub(all) enum ClientInstalledEffectPreviewKeyIssue {

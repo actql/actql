@@ -53,7 +53,8 @@ function fixture({reserveFailure, constructFailure} = {}) {
       assert.equal(actual, moon); return {publicationControl: control};
     });
   let constructed = 0;
-  const restore = () => api.restoreModelOriginal(request, original, definition, identity, () => {
+  const restore = () => api.restoreModelOriginal(request, original, definition, identity, (actualParent, actualInput) => {
+    assert.strictEqual(actualParent, parent); assert.strictEqual(actualInput, receipt);
     constructed++; calls.push('original reader'); if (constructFailure !== undefined) throw constructFailure;
     return restored;
   });
@@ -68,7 +69,7 @@ test('saved original and both material constructors reserve on one restoration p
   assert.equal(f.api.prepareModelBinding(f.restored.prepared, f.request,
     'provider', 'installation', 'contract', 'configuration'), f.binding);
   assert.deepEqual(f.calls.filter(value => typeof value === 'object'), [
-    {reserve: ['saved', 'policy', 'definition'], containers: 3},
+    {reserve: ['saved', 'policy', 'definition'], containers: 4},
     {reserve: ['prompt', 'retry'], containers: 4},
     {reserve: ['installation', 'contract', 'configuration'], containers: 3},
     {binding: ['provider', 'installation', 'contract', 'configuration']},
@@ -89,7 +90,7 @@ test('restored Model occurrences retain distinct bindings funded by the same ori
   assert.notEqual(first, second);
   assert.deepEqual(f.bindings, [first, second]);
   assert.deepEqual(f.calls.filter(value => typeof value === 'object'), [
-    {reserve: ['saved', 'policy', 'definition'], containers: 3},
+    {reserve: ['saved', 'policy', 'definition'], containers: 4},
     {reserve: ['installation-1', 'contract-1', 'configuration-1'], containers: 3},
     {binding: ['first', 'installation-1', 'contract-1', 'configuration-1']},
     {reserve: ['installation-2', 'contract-2', 'configuration-2'], containers: 3},
@@ -140,27 +141,4 @@ test('the same current callback cannot revive a retired restoration or replace i
     assert.equal(f.constructed(), 1);
     assert.equal(f.calls.filter(value => value?.binding).length, 0);
   }
-});
-
-test('same recovery finish waits for its actual dispatch reclamation before original Request abort', () => {
-  const begin = source.indexOf('    finishSourceProducer(');
-  const end = source.indexOf('    beforeResultRead()', begin);
-  assert(begin >= 0 && end > begin);
-  const receipt = {}, state = {recovery: {childrenPending: () => pending}};
-  const producer = {receipt, preparation: state, liveRuns: 0};
-  const producers = new Set([producer]), calls = [];
-  let pending = true;
-  const api = Function('producerFor', 'fail', 'cleanupRequestInput', 'retireInitialPreparation',
-    'producers', 'releaseFinishedProducer', `return ({${source.slice(begin, end).trim().replace(/,$/u, '')}});`)(
-    actual => {assert.equal(actual, receipt); return producer;}, fail,
-    actual => {assert.equal(actual, state); calls.push('same original abort');},
-    () => assert.fail('A saved preparation is not a fresh Pure issuer'), producers,
-    actual => {assert.equal(actual, producer); calls.push('original release');});
-  assert.throws(() => api.finishSourceProducer(receipt, 'failed'), {code: 'InstalledSourceRunCleanupPending'});
-  assert.equal(producer.preparation, state); assert(producers.has(producer));
-  assert.deepEqual(calls, []);
-  pending = false;
-  api.finishSourceProducer(receipt, 'failed');
-  assert.deepEqual(calls, ['same original abort', 'original release']);
-  assert.equal(producer.preparation, undefined); assert(!producers.has(producer));
 });

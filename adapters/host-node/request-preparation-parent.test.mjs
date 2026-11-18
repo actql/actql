@@ -2815,3 +2815,76 @@ test('authoring original Task admission retains the same proof for Model and Con
     assert.strictEqual(published.authoringContext,f.context);
   }
 });
+
+
+test('same recovery finish waits for its actual dispatch reclamation before original Request abort', async () => {
+  const f = await fixture();
+  let pending = true;
+  const retained = f.view.retainModelRecovery({}, {}, {}, () => {}, () => pending);
+  const original = f.original;
+  assert.throws(() => f.view.finishSourceProducer(retained.receipt, 'failed'),
+    {code: 'InstalledSourceRunCleanupPending'});
+  assert.equal(f.calls.filter(value => value === 'abort-parent').length, 0);
+  assert.equal(resources.ordinaryManagedRunStatus(original).stopped, false);
+  pending = false;
+  f.view.finishSourceProducer(retained.receipt, 'failed');
+  assert.equal(f.calls.filter(value => value === 'abort-parent').length, 1);
+  assert.equal(resources.ordinaryManagedRunStatus(original).stopped, true);
+  assert.equal(f.calls.includes('retire-registry-original'), false,
+    'Recovery cleanup must not retire a fresh Pure preparation');
+  assert.deepEqual(await f.view.close(), {pending: false});
+});
+
+test('actual Model manager captures materials only through its same live Request constructor', async () => {
+  const f = await fixture(), moon = f.context.runtime;
+  const prepared = {}, inventory = {}, holder = {}, graph = {}, compilation = {}, contracts = {};
+  f.originals.installation = {sequenceContractOriginal: {moon, admission: contracts}};
+  moon.clientProgramPrepareRequestNativeComputation = () => ok(undefined);
+  moon.clientProgramBorrowRequestProgramPlanInput = () => ok(inventory);
+  moon.clientProgramComposedInferOccurrences = () => ok([{}]);
+  moon.clientProgramBorrowRequestModelPlanInput = () => ok(holder);
+  moon.clientProgramPreparationBorrowRead = original => {
+    assert(original === inventory || original === holder); return prepared;
+  };
+  moon.clientProgramPreparationBorrowReturn = original => {
+    assert(original === inventory || original === holder); return ok(original === holder);
+  };
+  moon.clientProgramPreparationBorrowRetirementStarted = original => {assert.equal(original, holder); return true;};
+  const abort = moon.clientProgramAbortRequestPreparation;
+  let aborted = false;
+  moon.clientProgramAbortRequestPreparation = function(parent) {
+    assert.strictEqual(parent, f.parent);
+    if (aborted) return ok(undefined);
+    const result = Reflect.apply(abort, moon, [parent]); aborted = true; return result;
+  };
+  moon.clientProgramRequestParametersOriginal = () => ok(undefined);
+  moon.clientProgramPrepareRequestModelCompilation = function(parent, original, selected, contract) {
+    assert.strictEqual(parent, f.parent); assert.strictEqual(original, receipt);
+    assert.strictEqual(selected, graph); assert.strictEqual(contract, contracts); return ok(compilation);
+  };
+  const request = {}, source = input();
+  const receipt = f.view.beforeSourceSnapshot('program', source, {}, connection);
+  const body = f.view.captureSourceSnapshot(receipt, {kind:'program', input:source, parameters:{}}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+  await f.view.fundedPreparation(request);
+  assert.throws(() => f.view.captureModelOriginal(prepared, request, () => assert.fail('before compiler')),
+    {code: 'ForeignInstalledSourceProducer'});
+  f.view.prepareModelCompilation(prepared, request, graph);
+  let calls = 0;
+  const value = {};
+  assert.strictEqual(f.view.captureModelOriginal(prepared, request, (parent, original) => {
+    calls++;
+    assert.strictEqual(parent, f.parent); assert.strictEqual(original, receipt);
+    assert.throws(() => f.view.captureModelOriginal(prepared, request, () => assert.fail('reentry')),
+      {code: 'ForeignInstalledSourceProducer'});
+    return value;
+  }), value);
+  assert.equal(calls, 1);
+  const primary = new Error('same codec refusal');
+  assert.throws(() => f.view.captureModelOriginal(prepared, request, () => {throw primary;}),
+    error => error === primary);
+  assert.throws(() => f.view.captureModelOriginal(prepared, request, () => assert.fail('failed constructor retry')),
+    error => error === primary);
+  f.view.finishSourceProducer(receipt, 'returned');
+  assert.equal((await f.view.close()).pending, false);
+});

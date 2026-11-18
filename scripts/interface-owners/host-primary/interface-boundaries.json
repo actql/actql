@@ -15876,7 +15876,9 @@
             "readHostEffectResultPublicationRunRequirements",
             "readSourceManagedEffectRunRequirements",
             "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned",
-            "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2"
+            "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun/originalInferRun",
+            "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal"
           ],
           "exports": [
             "readHostEffectResultPublicationRunRequirements",
@@ -15903,6 +15905,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -15925,6 +15931,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -15947,6 +15957,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -15969,6 +15983,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -15991,6 +16009,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -16013,6 +16035,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -16035,6 +16061,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -16057,6 +16087,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -16079,6 +16113,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -16109,6 +16147,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -24849,6 +24891,14 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun/originalInferRun",
+          "parameters": [
+            "parent",
+            "input"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted#2",
           "parameters": [
             "cause"
@@ -25826,7 +25876,10 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit/prepareSubmit",
-          "parameters": [],
+          "parameters": [
+            "parent",
+            "input"
+          ],
           "async": false
         },
         {
@@ -26859,6 +26912,15 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "construct"
+          ],
           "async": false
         },
         {
@@ -28522,7 +28584,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "5728de67c7204128bc94cfa429a58aee1cc5f0906384234e524c6ffab1dad506"
+      "sha256": "70a182650dc4fb272b6fb877aff94658018b1c66742657e1aa531353db5dd00b"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -29361,7 +29423,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "4f15625e66690c860d586d4ce5ccd05e9957f5ab5fa4a547907c033c868e610a",
+      "sha256": "3b8a94c2c04504a4bd8a257e77a7662434bf5bac36a5a81fec90e688581ed3e5",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -30814,6 +30876,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -30824,6 +30890,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -30834,6 +30904,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -30844,6 +30918,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -30854,6 +30932,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -30864,12 +30946,20 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -30880,6 +30970,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -30890,6 +30984,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -30908,6 +31006,10 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
                 "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }

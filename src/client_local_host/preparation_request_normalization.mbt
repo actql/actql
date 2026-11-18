@@ -45,7 +45,7 @@ pub fn[I] prepare_request_program_normalization(
   guard owner.phase == ProgramCompiled &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
-    owner.program_data is Some(data) &&
+    owner.program_data is Some(_) &&
     owner.computation_limits is Some(compiler) else {
     return Err(Preparation(WrongPhase))
   }
@@ -83,10 +83,7 @@ pub fn[I] prepare_request_program_normalization(
       Err(issue) => return Err(Preparation(Capacity(issue)))
       Ok(value) => value
     }
-    guard request_normalization_audit_extent_cost(
-        data,
-        @publication_host.prepared_client_normalization_source_count(prepared),
-      )
+    guard request_original_normalization_audit_extent_cost(prepared)
       is Some(bytes) &&
       @execution.checked_preparation_add_product(base.0, bytes, 1L) is Some(r) &&
       @execution.checked_preparation_add_product(base.1, bytes, 1L) is Some(e) else {
@@ -216,14 +213,12 @@ fn request_normalization_audit_extent_cost(
 }
 
 ///|
-fn[I] prepare_request_program_normalization_owned(
+fn[I, O] prepare_request_program_normalization_owned(
   owner : ClientRequestPreparation[I],
   input : I,
   selected : ClientRequestProgramNormalization,
-  capacity : @resources.PreparationCapacity[
-    I,
-    @publication_host.PreparedClientProgram,
-  ],
+  capacity : @resources.PreparationCapacity[I, O],
+  restored_wire? : String? = None,
 ) -> Result[
   @publication_host.ClientLocalNormalization,
   ClientRequestNormalizationIssue,
@@ -431,7 +426,11 @@ fn[I] prepare_request_program_normalization_owned(
       )
     Ok(_) => selected.returned = false
   }
-  let emitted = construction.body.bytes.to_int64() * 4L
+  let emitted = match restored_wire {
+    None => construction.body.bytes.to_int64() * 4L
+    // Bounded saved parse/hash/encode plus the exact full-field comparison.
+    Some(_) => construction.complete.bytes.to_int64() * 8L
+  }
   // Keep the existing declared writer/UTF8/hash share BEFORE its constructor.
   match @resources.spend_preparation_phase_work_continuation64(work, emitted) {
     Err(issue) =>
@@ -442,9 +441,16 @@ fn[I] prepare_request_program_normalization_owned(
       )
     Ok(_) => selected.charged_work += emitted
   }
-  let result = @publication_host.finish_prepared_client_local_normalization(
-    audit,
-  ).map_err(issue => Normalization(issue))
+  let original_result = match restored_wire {
+    None => @publication_host.finish_prepared_client_local_normalization(audit)
+    Some(wire) =>
+      @publication_host.admit_measured_prepared_client_local_normalization(
+        audit, wire, construction,
+      )
+  }
+  let result = original_result.map_err(issue => {
+    ClientRequestNormalizationIssue::Normalization(issue)
+  })
   selected.result = Some(result)
   if result is Err(issue) {
     return fail_request_program_normalization(owner, selected, issue)
@@ -551,4 +557,57 @@ fn[I] check_request_program_normalization_current(
   )
   owner.phase = ProgramCompiled
   result.map_err(issue => Preparation(Capacity(issue)))
+}
+
+///|
+// The audit visits this original Program/producer/expression inventory. Global
+// checker catalogue members, maximum carrier widths and semantic binding
+// lifetimes are not allocated again by this constructor. Both warm and cold
+// paths use the same retained lowerer's actual counts; policy bounds stay intact.
+fn request_original_normalization_audit_extent_cost(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Int64? {
+  let (demand, source_text, source_nodes) = @publication_host.prepared_client_normalization_audit_data(
+    prepared,
+  )
+  guard @execution.checked_preparation_add_product(
+      source_nodes.to_int64(),
+      demand.work_used.to_int64(),
+      1L,
+    )
+    is Some(nodes) &&
+    @execution.checked_preparation_add_product(
+      source_text,
+      demand.projection_name_bytes_bound.to_int64(),
+      1L,
+    )
+    is Some(text) &&
+    @execution.checked_preparation_add_product(
+      text,
+      demand.authored_expression_text_bytes.to_int64(),
+      1L,
+    )
+    is Some(text) else {
+    return None
+  }
+  let data : @checked.ParsedCheckDataEstimate = {
+    collections: {
+      records: nodes * 2L,
+      record_references: nodes * 6L,
+      record_words: nodes * 3L,
+      reference_arrays: nodes,
+      reference_items: nodes * 4L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: nodes,
+      map_entries: nodes * 4L,
+    },
+    utf16_units: text,
+    inspection_work: 0L,
+    semantic_work: 0L,
+  }
+  request_normalization_audit_extent_cost(
+    data,
+    @publication_host.prepared_client_normalization_source_count(prepared),
+  )
 }

@@ -441,6 +441,7 @@ pub suberror ClientRequestProgramPlanIssue {
   ContentQuery(ClientLocalQueryIssue)
   ContentSource(@row_source_host.RowHostIssue)
   EffectMaterials(@publication_host.ClientEffectRunMaterialsIssue)
+  InferMaterials(@publication_host.ClientTaskRunMaterialsIssue)
 }
 
 ///|

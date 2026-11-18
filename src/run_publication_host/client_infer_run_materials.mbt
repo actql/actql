@@ -112,6 +112,7 @@ pub fn admit_client_infer_run_materials(
   operations : @context.PureOperationProfiles,
   manifests : ClientCompilationManifests,
   limits : ClientValuesRunMaterialsLimits,
+  restore_normalization? : ((PreparedClientProgram, String) -> Bool)? = None,
 ) -> Result[ClientTaskRunMaterials, ClientTaskRunMaterialsIssue] {
   let input = match
     read_client_run_materials_input(
@@ -120,6 +121,7 @@ pub fn admit_client_infer_run_materials(
       operations,
       limits,
       allow_infer=true,
+      restore_normalization~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -563,4 +565,119 @@ fn encode_client_infer_original_inventory(
     _ => return Err(Input(MaterialsEvidence("infer_execution_contracts")))
   }
   Ok(inventory)
+}
+
+///|
+// The installed Request proves that supplied is its retained checker input.
+// Unlike the standalone wire API this route projects actual compiler originals:
+// no Program checker or graph compiler is reentered merely to compare copies.
+// The required callback owns every body before any writer/parser allocation.
+pub fn issue_original_client_infer_run_materials(
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  supplied : @decode.Cursor?,
+  before_body : (String, Int, Int, Int) -> Bool,
+) -> Result[String, ClientTaskRunMaterialsIssue] {
+  let prepared = compiled.owner
+  guard compiled.compilation is Tasks(compilation) &&
+    physical_equal(compilation.owner, prepared) &&
+    !compilation.infers.is_empty() &&
+    compilation.serialization is None else {
+    return Err(Binding(UnsupportedProgram))
+  }
+  match
+    bind_client_task_run(prepared, compilation, compiled.admission, definition) {
+    Err(issue) => return Err(Binding(issue))
+    Ok(_) => ()
+  }
+  let checked = @strategy.graph_program(prepared.graph)
+  let (program, parameters, environment) = match
+    client_funded_original_input_wires(
+      prepared.source,
+      supplied,
+      @checked.checked_environment(checked),
+      before_body,
+    ) {
+    Err(issue) => return Err(client_infer_funded_material_issue(issue))
+    Ok(value) => value
+  }
+  let infer_input = if compilation.infers.length() == 1 {
+    let graph = compilation.infers[0]
+    guard client_infer_occurrence_matches_plan(graph.occurrence, graph) &&
+      client_effect_funded_graph_original_bindings(graph) &&
+      client_infer_graph_original_parts(
+        graph,
+        prepared,
+        graph.graph_wire_bytes,
+        graph.graph_wire_nodes,
+        graph.graph_wire_depth,
+      )
+      is Some(_) else {
+      return Err(Binding(UnsupportedProgram))
+    }
+    let body = match
+      client_effect_funded_execution_wire(graph.execution, before_body) {
+      Err(issue) => return Err(client_infer_funded_material_issue(issue))
+      Ok(value) => value
+    }
+    Some((@environment.model_execution_cid(graph.execution), body))
+  } else {
+    None
+  }
+  let infer_inputs_wire = if compilation.infers.length() > 1 {
+    let value = match
+      client_funded_infer_inventory(
+        prepared,
+        compilation.infers,
+        () => {
+          guard prepared_client_composed_infer_occurrences(prepared)
+            is Some(expected) &&
+            expected.length() == compilation.infers.length() else {
+            return None
+          }
+          let originals = []
+          for index, graph in compilation.infers {
+            if !client_infer_occurrence_matches_plan(expected[index], graph) {
+              return None
+            }
+            originals.push((graph, graph.occurrence))
+          }
+          Some(originals)
+        },
+        before_body,
+      ) {
+      Err(issue) => return Err(client_infer_funded_material_issue(issue))
+      Ok(value) => value
+    }
+    Some(value)
+  } else {
+    None
+  }
+  let normalization_wire = match
+    client_run_materials_normalization_wire(prepared) {
+    Err(issue) => return Err(Input(issue))
+    Ok(value) => value
+  }
+  encode_client_run_materials_body(
+    compiled.admission,
+    definition,
+    prepared_client_check_environment_cid(prepared),
+    environment,
+    program,
+    parameters,
+    normalization_wire~,
+    infer_input~,
+    infer_inputs_wire~,
+    before_body=Some(before_body),
+  ).map_err(issue => Input(issue))
+}
+
+///|
+fn client_infer_funded_material_issue(
+  issue : ClientEffectRunMaterialsIssue,
+) -> ClientTaskRunMaterialsIssue {
+  match issue {
+    Input(issue) => Input(issue)
+    _ => Binding(UnsupportedProgram)
+  }
 }

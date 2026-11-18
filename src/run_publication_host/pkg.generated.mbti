@@ -91,7 +91,7 @@ pub fn admit_client_infer_composed_whole_sources(ClientInferOccurrence, Array[@e
 
 pub fn admit_client_infer_occurrence_egress(ClientInferOccurrence, @check_environment.ModelExecutionContract, () -> ClientInferEgressObservation?) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue]
 
-pub fn admit_client_infer_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientTaskRunMaterials, ClientTaskRunMaterialsIssue]
+pub fn admit_client_infer_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, restore_normalization? : ((PreparedClientProgram, String) -> Bool)?) -> Result[ClientTaskRunMaterials, ClientTaskRunMaterialsIssue]
 
 pub fn admit_client_keyed_serialization_captured_input(PreparedClientProgram, ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, ClientKeyedLookupObservation, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
@@ -147,6 +147,8 @@ pub fn admit_client_transfer_input(@remote_site_protocol.RemoteInputBinding, Int
 
 pub fn admit_client_values_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, numeric_profile_cid? : String?) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue]
 
+pub fn admit_measured_prepared_client_local_normalization(ClientLocalNormalizationPreparation, String, ClientLocalNormalizationConstruction) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
+
 pub fn admit_prepared_client_direct_values_result_root(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootAdmissionIssue]
 
 pub fn admit_prepared_client_effect_compilation(PreparedClientEffectComputation, String, String, String, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, infer? : ClientInferPlanGraph?, source_free_policy? : @run_publication.CapturedEffectDependencyBody?) -> Result[ClientEffectCompilation, ClientEffectCompilationAdmissionIssue]
@@ -158,6 +160,8 @@ pub fn admit_prepared_client_effect_values_fragment(PreparedClientEffectComputat
 pub fn admit_prepared_client_infer_egress(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, () -> ClientInferEgressObservation?) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue]
 
 pub fn admit_prepared_client_infer_execution_material(PreparedClientProgram, ClientInferPlanGraph, String, ClientCompilationManifests, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialAdmissionIssue]
+
+pub fn admit_prepared_client_local_normalization(ClientLocalNormalizationPreparation, String) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
 
 pub fn admit_prepared_client_publication_binding(PreparedClientProgram, Int, Int, ClientPublicationLimitScope, String, Int, Int, Int) -> Result[Unit, ClientPublicationBindingAdmissionIssue]
 
@@ -2019,6 +2023,8 @@ pub fn issue_keyed_source_client_effect_unit_result_artifact(PreparedClientEffec
 
 pub fn issue_model_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectModelAcquiredEvidence, @execution_relation.CompletedOutput, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
+pub fn issue_original_client_infer_run_materials(ClientCompiledRun, @run_publication.PublicationContract, @decode_core.Cursor?, (String, Int, Int, Int) -> Bool) -> Result[String, ClientTaskRunMaterialsIssue]
+
 pub fn issue_preconsumer_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectCombinedSourceUnit, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
 pub fn issue_preconsumer_model_client_effect_unit_result_artifact(PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, ClientEffectModelAcquiredEvidence, @execution_relation.CompletedOutput, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
@@ -2596,6 +2602,8 @@ pub fn prepared_client_local_normalization_evidence(PreparedClientProgram, Clien
 pub fn prepared_client_local_normalization_original(PreparedClientProgram) -> ClientLocalNormalization?
 
 pub fn prepared_client_model_measurement_storage(PreparedClientProgram, Array[ClientInferPlanGraph], ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
+
+pub fn prepared_client_normalization_audit_data(PreparedClientProgram) -> (@lowering_relation.SequencePreparationDemand, Int64, Int)
 
 pub fn prepared_client_normalization_source_count(PreparedClientProgram) -> Int64
 
@@ -5843,6 +5851,7 @@ pub(all) enum ClientValuesRunMaterialsIssue {
   MaterialsBinding(ClientValuesRunBindingIssue)
   MaterialsConstructionRefused(String)
   MaterialsEncoding(String, @encode_core.EncodeFailure)
+  MaterialsNormalization(ClientLocalNormalizationIssue)
 }
 
 pub(all) struct ClientValuesRunMaterialsLimits {

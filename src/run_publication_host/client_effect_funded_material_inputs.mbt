@@ -48,9 +48,26 @@ fn client_effect_funded_original_input_wires(
   prepared : PreparedClientEffectComputation,
   before_body : (String, Int, Int, Int) -> Bool,
 ) -> Result[(String, String?, String), ClientEffectRunMaterialsIssue] {
+  client_funded_original_input_wires(
+    prepared.source,
+    prepared.supplied,
+    @checked.effect_program_static_environment(prepared.candidate),
+    before_body,
+  )
+}
+
+///|
+// Both issued compilation families borrow their original admitted inputs.
+// The Request caller supplies its retained Parameter cursor, never a reparse.
+fn client_funded_original_input_wires(
+  source : @syntax.Program,
+  supplied : @decode.Cursor?,
+  environment : @environment.WireEnvironment,
+  before_body : (String, Int, Int, Int) -> Bool,
+) -> Result[(String, String?, String), ClientEffectRunMaterialsIssue] {
   guard client_effect_material_source_geometry(
-      @syntax.program_body(prepared.source),
-      @syntax.program_usage(prepared.source).source.input_bytes,
+      @syntax.program_body(source),
+      @syntax.program_usage(source).source.input_bytes,
     )
     is Some(program_geometry) else {
     return Err(Input(MaterialsConstructionRefused("program")))
@@ -59,13 +76,13 @@ fn client_effect_funded_original_input_wires(
     client_effect_funded_material_input(
       "program",
       program_geometry,
-      writer => @syntax.emit_program_source(prepared.source, writer),
+      writer => @syntax.emit_program_source(source, writer),
       before_body,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let parameters = match prepared.supplied {
+  let parameters = match supplied {
     None => None
     Some(original) => {
       guard client_effect_material_source_geometry(original, 0)
@@ -84,9 +101,6 @@ fn client_effect_funded_original_input_wires(
       }
     }
   }
-  let environment = @checked.effect_program_static_environment(
-    prepared.candidate,
-  )
   let wire = match
     client_effect_funded_material_input(
       "environment",

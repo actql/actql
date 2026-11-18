@@ -207,3 +207,80 @@ position, then confirms zero acquisitions from the original checked Program.
 It does not open an unissued Source-capture ledger in that case. Model input,
 Model evidence, Effect review and their physical custody remain separate;
 nonzero or mismatched Source inventories retain their existing storage refusals.
+
+### Same-Request material normalization and authoring originals
+
+The original prepared/compiled material issuer borrows its already issued
+Common normalization journal. Supported Effect-free/INFER profiles carry its
+exact complete bytes in the existing optional `normalization_journal_json`
+field. This is the intentional private-profile extension of the earlier
+Effect-only use, not another wire version or an assertion that old bodies
+contained the field. Changed material bytes take their natural content identity;
+Program, Request, Run and evidence identities retain their meanings.
+
+The installed inverse uses the same physical restoration Request, its original
+input and the journal-selected Request/Definition pair. It stays `Selecting`
+across the bounded material read, original constructors and compiler, so current
+callbacks cannot reenter preparation or retirement. Before compilation, its
+normalization callback funds the original occurrence audit and admits the saved
+journal's integrity, catalogue, paths, rules and authored/canonical pairs. It
+compares complete saved bytes; it does not rewrite the Program, issue a current
+replacement journal or resolve a Source/Model. Only the complete saved
+compilation/admission/Run match permits the restored original to escape.
+
+Audit container/path demand comes from the same prepared value's retained
+compiler/source dimensions, using the existing collection and normalization
+representation laws. The retained sequence fold's counted original visits are
+not a caller work maximum or runtime debit converted into memory. The raw
+material and parsed input stay in the original Read's baseline. The same
+normalization continuation grows before audit construction, then the original
+measuring emitter supplies the saved evidence parser/comparison bounds before
+those constructors enter. Saved parse/hash/encode/comparison work is charged
+separately from observed audit work. These quantities are DATA; current Resource
+admission, policy and failure custody remain with the same Request.
+
+Authoring uses the exact admitted source retained by that inverse, including
+its grammar-owned annotations. The existing authoring collection, path, Writer,
+measurement, publication and work continuation are shared with warm preparation;
+only the existing reservation's output type differs. Both partial and completed
+originals occupy the Request's existing normalization/authoring slots. Failure
+keeps the original parent and previously acquired prefix for its existing abort
+and retirement, without a refund, physical ACK or second cleanup engine.
+
+The fixed Node caller passes the same parent/input into the typed material
+constructor. Its returned pair carries actual materials and the authoring
+preparation belonging to that same restored Prepared value. Runtime/Local views
+forward this opaque original unchanged; equal CIDs, a copied context or freshly
+sealed empty evidence cannot replace it. The extra fixed returned-pair/context
+container is included before the constructor. Independent Model/Source reads,
+permission, current checks and physical cleanup remain mandatory.
+
+An absent legacy journal stays absent, and existing compiled-material admission
+is not replaced with a blanket refusal. Completed Saved reads remain independent
+of new publication. A legacy unpublished Run needs its own original facts or a
+supported original profile; absence is neither an empty-journal witness nor
+permission to reexecute an external action.
+
+The warm installed journal capture also enters the same Request through
+`issue_request_model_run_materials`. Its original compiler, checked Program and
+retained Parameter cursor determine the projection. Every original Program,
+Parameter, Environment, execution inventory and complete material writer passes
+the existing body-admission callback before allocation. Retained bodies add;
+sequential scratch uses a peak, including the active inventory writer during a
+nested execution projection. The shared private admission loop preserves the
+Effect family's original-binding/current/failure fences and phase restoration.
+The normal Node caller requires this typed Request port; the standalone wire
+codec is not its fallback. It issues no replacement checker, graph, journal or
+Run. Partial output and the existing compiler remain on the same Request's
+original retirement duty.
+
+Warm and cold audit admission share `request_original_normalization_audit_extent_cost`.
+It borrows cached original Source nodes/text and the original sequence fold's
+visited work, projection-name and authored-expression dimensions. The audit
+walks these Program/producer/expression/Source occurrences; it does not copy the
+unrelated admitted environment catalogue or allocate at its global carrier
+width/name maxima. Those semantic-check estimates stay with their original
+checker. Source completion path/escaping frames, original audit entries and
+publication writer/hash/failed-child overlap keep their existing construction
+laws and separate live reservations. This changes neither the compiler's
+work/codec policy nor the Request's capacity ceilings.

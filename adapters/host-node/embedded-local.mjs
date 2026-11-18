@@ -4000,10 +4000,10 @@ async function openInstalledHost(originalInstallation, preparation) {
           // Retain the complete original compiler inventory at first admission.
           // Absence never authorizes a cold reconstruction or a new Source read.
           const originalInferRun = held.plan.serializationGraph !== undefined ? undefined : (() => {
-              const inputs = prepareSubmit.originalInputs(submission.preparedProgram);
-              return control.captureOriginalClientInferRun(held.plan.compiled,
-                submission.preparedProgram, held.plan.runDefinition, requested,
-                inputs.environment, inputs.parameters);
+              return preparation.captureManagedModelOriginal(moon, submission.preparedProgram,
+                (parent, input) => control.captureOriginalClientInferRun(held.plan.compiled,
+                  submission.preparedProgram, held.plan.runDefinition, requested,
+                  undefined, undefined, {parent, input}));
             })();
           return {
             runDefinition: held.plan.runDefinition,
@@ -8265,6 +8265,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.reserveEffectOriginal(prepared,
         originalSourceManagedHostRequest(originals, prepared), material, installations);
+    },
+    captureManagedModelOriginal(runtime, prepared, construct) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.captureModelOriginal !== 'function') {
+        throw clientOperationError('NodeManagedRunCompilationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.captureModelOriginal(prepared,
+        originalSourceManagedHostRequest(originals, prepared), construct);
     },
     prepareManagedModelMaterials(runtime, prepared, count, wireAt, containers) {
       const manager = sourceManaged ?? computeManaged;

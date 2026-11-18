@@ -673,13 +673,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           typeof construct !== 'function') fail('ForeignInstalledSourceProducer');
       const recovery = state.recovery;
       reserveModelRecovery(producer, state, 3, index => index === 0 ? original.materialsWire
-        : index === 1 ? original.resultPolicyOriginal.wire : definition.wire, 3);
+        : index === 1 ? original.resultPolicyOriginal.wire : definition.wire, 4);
       // Retain the SAME already-funded material record before the restored
       // owner constructor/current can fail. Later metadata construction uses
       // this immutable original, never a recompiled/current Source surrogate.
       recovery.original = original;
       return constructRequestDomain(state, () => {
-        const restored = construct();
+        // The fourth fixed container covers the returned originals pair and
+        // its retained authoring alias. It is not another material/Root.
+        const restored = construct(state.parent, producer.receipt);
         if (restored?.runDefinition !== definition || restored.prepared === undefined ||
             restored.compiled === undefined || restored.graph === undefined) fail('ForeignInstalledSourceProducer');
         recovery.restored = restored;
@@ -1450,6 +1452,27 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             state.effectBorrowMethods.clientProgramEffectPreparationInputRead(state.holder) !== prepared) {
           fail('ForeignInstalledSourceProducer');
         }
+      });
+    },
+    captureModelOriginal(prepared, request, construct) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared || state.compilationKind !== 'effect_free' ||
+          state.compilationFamily !== 'model' || state.modelCompilation === undefined ||
+          state.holder === undefined || state.preparing || state.adopting ||
+          typeof construct !== 'function') fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime;
+      if (typeof moon.clientProgramPreparationBorrowRead !== 'function' ||
+          moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      const compilation = state.modelCompilation;
+      return constructRequestDomain(state, () => {
+        const value = construct(state.parent, producer.receipt);
+        current();
+        if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
+            state.modelCompilation !== compilation ||
+            moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+        return value;
       });
     },
     prepareModelMaterials(prepared, request, count, wireAt, containerCount) {

@@ -43,10 +43,7 @@ test "original Source normalization reserves its audit before construction at ex
     // The existing single Source has five execution bindings. This cached
     // occurrence bound is not a claim of five distinct completion entries.
     assert_eq(sources, 5L)
-    let additional = request_normalization_audit_extent_cost(
-      parent.program_data.unwrap(),
-      sources,
-    ).unwrap()
+    let additional = request_original_normalization_audit_extent_cost(prepared).unwrap()
     let usage = @resources.ledger_usage(parent.ledger)
     let limits = @resources.ledger_limits(parent.ledger)
     let remaining = if retention {
@@ -412,4 +409,80 @@ test "normalization preserves Native preborrow construction and rejects late bor
   @resources.return_preparation_body_borrow(borrow).unwrap() |> ignore
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "normalization audit excludes unrelated admitted catalogue data from its same Program quote" {
+  let original_quotes : Array[Int64] = []
+  let checker_quotes : Array[Int64] = []
+  let journals : Array[String] = []
+  for catalogue in [0, 100] {
+    // Both are genuine admitted environments. The second has unused immutable
+    // contracts; the authored Program, Parameter and executed pipelines match.
+    let (parent, input, prepared) = request_model_input_fixture(
+      authored=Some(
+        (
+          #|{"version":"actql/0.1","id":"literal-audit","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"}],"results":{"rows":{"from":"seed","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+        ),
+      ),
+      catalog_registry_count=catalogue,
+      normalization_profile=Some(
+        @publication_host.client_standard_program_preparation_limits(),
+      ),
+    )
+    let sources = @publication_host.prepared_client_normalization_source_count(
+      prepared,
+    )
+    assert_eq(sources, 0L)
+    original_quotes.push(
+      request_original_normalization_audit_extent_cost(prepared).unwrap(),
+    )
+    checker_quotes.push(
+      request_normalization_audit_extent_cost(
+        parent.program_data.unwrap(),
+        sources,
+      ).unwrap(),
+    )
+    let original = match prepare_request_program_normalization(parent, input) {
+      Ok(value) => value
+      Err(issue) =>
+        fail(
+          "actual original catalogue " +
+          catalogue.to_string() +
+          ": " +
+          (match issue {
+            Preparation(Capacity(Resource(RetentionLimit))) => "RetentionLimit"
+            Preparation(Capacity(Resource(ExecutionLimit))) => "ExecutionLimit"
+            Preparation(Capacity(InvalidExtent)) => "InvalidExtent"
+            Preparation(Capacity(_)) => "OtherCapacity"
+            Preparation(Work(_)) => "Work"
+            Preparation(_) => "OtherPreparation"
+            Normalization(CommonInventory(CompletionObserved)) =>
+              "CompletionObserved"
+            Normalization(CommonInventory(BudgetExceeded)) => "AuditBudget"
+            Normalization(CommonInventory(_)) => "OtherAudit"
+            Normalization(Evidence(_)) => "Evidence"
+            Normalization(_) => "OtherNormalization"
+          }),
+        )
+    }
+    journals.push(
+      @publication.run_evidence_value_json(
+        @publication_host.prepared_client_local_normalization_evidence(
+          prepared, original,
+        ).unwrap(),
+      ),
+    )
+    assert_true(
+      physical_equal(
+        original,
+        @publication_host.prepared_client_local_normalization_original(prepared).unwrap(),
+      ),
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+  assert_true(checker_quotes[1] > checker_quotes[0])
+  assert_eq(original_quotes[1], original_quotes[0])
+  assert_eq(journals[1], journals[0])
 }

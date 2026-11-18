@@ -18534,11 +18534,11 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
               }
             ],
             "identity": [
@@ -27116,7 +27116,8 @@
             "request",
             "evidence",
             "profiles",
-            "limits"
+            "limits",
+            "recovery"
           ],
           "async": false
         },
@@ -27820,7 +27821,8 @@
             "definition",
             "request",
             "environment",
-            "parameters"
+            "parameters",
+            "funded"
           ],
           "async": false
         },
@@ -34567,7 +34569,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "b4933f6d4c4799e74b0f27a35b5a0dfd3b0f0c1c7014924ec421d30066aead15"
+      "sha256": "999436786589748cd733139db902193356de3df54df9a5bf5a234d80241f138a"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -59507,7 +59509,9 @@
             "readHostEffectResultPublicationRunRequirements",
             "readSourceManagedEffectRunRequirements",
             "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned",
-            "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2"
+            "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun/originalInferRun",
+            "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal"
           ],
           "exports": [
             "readHostEffectResultPublicationRunRequirements",
@@ -64151,6 +64155,14 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun/originalInferRun",
+          "parameters": [
+            "parent",
+            "input"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted#2",
           "parameters": [
             "cause"
@@ -65128,7 +65140,10 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit/prepareSubmit",
-          "parameters": [],
+          "parameters": [
+            "parent",
+            "input"
+          ],
           "async": false
         },
         {
@@ -66161,6 +66176,15 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:canRetireManagedPreparation/init:canRetireManagedPreparation",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "construct"
+          ],
           "async": false
         },
         {
@@ -67824,7 +67848,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "5728de67c7204128bc94cfa429a58aee1cc5f0906384234e524c6ffab1dad506"
+      "sha256": "70a182650dc4fb272b6fb877aff94658018b1c66742657e1aa531353db5dd00b"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -100088,7 +100112,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4f15625e66690c860d586d4ce5ccd05e9957f5ab5fa4a547907c033c868e610a",
+      "sha256": "3b8a94c2c04504a4bd8a257e77a7662434bf5bac36a5a81fec90e688581ed3e5",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

@@ -237,6 +237,7 @@ fn whole_source_result_publication_fixture(
       | ContentQuery(_)
       | ContentSource(_)
       | EffectMaterials(_)
+      | InferMaterials(_)
     ) => fail("whole module: unexpected domain constructor")
     Err(Installed(_)) => fail("whole module: Installed")
     Err(Construction(issue)) => {

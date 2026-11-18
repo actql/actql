@@ -3354,16 +3354,24 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "The private Node binding projects the Program from the actual compiled owner"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters) {"
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits) {"
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -3374,6 +3382,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('first Infer journal admission refuses copied or other-control tickets and raw evidence'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -3384,6 +3396,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "if (originalInferRun !== undefined) {"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -3394,6 +3410,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('Infer material and Run roll back together when original journal custody COMMIT fails'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -3404,6 +3424,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('saved Infer reader refuses altered original Task materials Run program and admission correspondence'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -3414,6 +3438,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "assert.equal(saved.physicalStartReserved, false);"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -3424,6 +3452,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('Infer original copies use the existing aggregate evidence bound before durable acceptance'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -3434,6 +3466,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -3444,6 +3480,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-journal.test.mjs",
                 "anchor": "test('another process reads the same Journal original pair after an acceptance reply is discarded'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -11392,7 +11432,8 @@
             "request",
             "evidence",
             "profiles",
-            "limits"
+            "limits",
+            "recovery"
           ],
           "async": false
         },
@@ -12096,7 +12137,8 @@
             "definition",
             "request",
             "environment",
-            "parameters"
+            "parameters",
+            "funded"
           ],
           "async": false
         },
@@ -18843,7 +18885,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "b4933f6d4c4799e74b0f27a35b5a0dfd3b0f0c1c7014924ec421d30066aead15"
+      "sha256": "999436786589748cd733139db902193356de3df54df9a5bf5a234d80241f138a"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -49680,6 +49722,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -49702,6 +49748,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -49724,6 +49774,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -49746,6 +49800,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -49764,6 +49822,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -49782,6 +49844,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -49800,6 +49866,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -49822,6 +49892,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -49840,6 +49914,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -49866,6 +49944,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -49895,6 +49977,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -49913,6 +49999,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -49931,6 +50021,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -49949,6 +50043,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -49967,6 +50065,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -49985,6 +50087,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -50003,6 +50109,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -50021,6 +50131,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -50039,6 +50153,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -50065,6 +50183,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -50083,6 +50205,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -50097,6 +50223,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -50111,6 +50241,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -50125,6 +50259,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -50139,6 +50277,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -50153,6 +50295,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -50167,6 +50313,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -50181,6 +50331,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -50191,6 +50345,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -50209,6 +50367,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -50232,6 +50394,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -50246,6 +50412,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -50260,6 +50430,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -50278,6 +50452,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -50292,6 +50470,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -50314,6 +50496,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -50328,6 +50514,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -50350,6 +50540,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -50360,6 +50554,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -50390,6 +50588,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -50416,6 +50618,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -50434,6 +50640,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -50452,6 +50662,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -50470,6 +50684,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -50488,6 +50706,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -50506,6 +50728,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -50524,6 +50750,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -50546,6 +50776,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -50560,6 +50794,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -50574,6 +50812,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -50593,6 +50835,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -50603,6 +50849,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -50613,6 +50863,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -50623,6 +50877,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -50633,6 +50891,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -50643,6 +50905,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -50653,6 +50919,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -50663,6 +50933,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -50673,6 +50947,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -50683,6 +50961,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -50697,54 +50979,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -50763,6 +51081,10 @@
               {
                 "path": "packages/python-sdk/tests/test_named_submission.py",
                 "anchor": "test_compatible_problem_code_preserves_actual_submission_phase"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -50773,42 +51095,70 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -50819,12 +51169,20 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body.mbt",
                 "anchor": "request_program_compilation_original"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -50835,6 +51193,10 @@
               {
                 "path": "src/client_local_host/preparation_request_explanation_read_js_wbtest.mbt",
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           },
@@ -50844,7 +51206,7 @@
           "exports": []
         }
       ],
-      "sha256": "43d89eafae19cf16a2ce9a39a57961b5f7123f8caf9940bacaf607e4df84f11f",
+      "sha256": "9839aeb37a3a902fad41db8157958305c11c1a5d899cb600eea176cc1d84573f",
       "exports": [],
       "operations": [
         {
@@ -92144,11 +92506,31 @@
     {
       "module": "src/client_local_host/preparation_request_model_recovery.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "69ee49e5835193c4dada1bdd16b915326764266b6557c7d55dc56717a5970bb3",
+      "sha256": "b0815cc815a622c1efb2a1ca0aaa3e8129f81b6d0279f5c5b4d6f01caa3f86ac",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
       "operations": [
+        {
+          "name": "[I]admit_request_model_recovery_materials",
+          "declaration": "[ I ] admit_request_model_recovery_materials ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , wire : String , expressions : @ context . ExpressionProfiles , operations : @ context . PureOperationProfiles , manifests : @ publication_host . ClientCompilationManifests , limits : @ publication_host . ClientValuesRunMaterialsLimits , ) - > Result [ ( @ publication_host . ClientTaskRunMaterials , @ publication_host . ClientAuthoringContextPreparation , ) , ClientRequestModelRecoveryMaterialsIssue , ]"
+        },
+        {
+          "name": "[I]issue_request_model_run_materials",
+          "declaration": "[ I ] issue_request_model_run_materials ( owner : ClientRequestPreparation [ I ] , input : I , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Result [ String , ClientRequestProgramPlanIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_model_recovery_authoring_context",
+          "declaration": "[ I ] prepare_request_model_recovery_authoring_context ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , compiler : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ @ publication_host . ClientAuthoringContextPreparation , ClientRequestAuthoringIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_model_recovery_normalization",
+          "declaration": "[ I ] prepare_request_model_recovery_normalization ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , wire : String , compiler : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ @ publication_host . ClientLocalNormalization , ClientRequestNormalizationIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_model_recovery_normalization_owned",
+          "declaration": "[ I ] prepare_request_model_recovery_normalization_owned ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , wire : String , compiler : @ publication_host . ClientProgramPreparationLimits , ) - > Result [ @ publication_host . ClientLocalNormalization , ClientRequestNormalizationIssue , ]"
+        },
         {
           "name": "[I]prepare_request_model_recovery_read_scopes",
           "declaration": "[ I ] prepare_request_model_recovery_read_scopes ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , model_limits : @ resources . LedgerLimits , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , quantity_limits ? : @ resources . QuantityAmounts ?"
@@ -92172,6 +92554,18 @@
         {
           "name": "request_model_recovery_capacity",
           "declaration": "request_model_recovery_capacity ( units : Int64 , containers : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "request_model_recovery_effect_compiler_capacity",
+          "declaration": "request_model_recovery_effect_compiler_capacity ( value : @ publication_host . ClientEffectCompilationConstruction , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "request_model_recovery_material_capacity",
+          "declaration": "request_model_recovery_material_capacity ( wire : String , geometry : @ decode . SubtreeConstructionGeometry , depth : Int , containers : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "request_model_recovery_program_capacity",
+          "declaration": "request_model_recovery_program_capacity ( inventory : @ syntax . ProgramConstructorInventory , source_depth : Int , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "contracts": [
@@ -92182,7 +92576,15 @@
             "[I]prepare_request_model_recovery_read_scopes",
             "[I]request_model_recovery_direct_occurrences",
             "[I]request_model_recovery_ledger",
-            "[I]request_model_recovery_usage_isolated"
+            "[I]request_model_recovery_usage_isolated",
+            "[I]admit_request_model_recovery_materials",
+            "[I]issue_request_model_run_materials",
+            "[I]prepare_request_model_recovery_authoring_context",
+            "[I]prepare_request_model_recovery_normalization",
+            "[I]prepare_request_model_recovery_normalization_owned",
+            "request_model_recovery_effect_compiler_capacity",
+            "request_model_recovery_material_capacity",
+            "request_model_recovery_program_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -92206,6 +92608,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -92228,6 +92634,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -92250,6 +92660,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -92272,6 +92686,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -92294,6 +92712,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -92316,6 +92738,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -92338,6 +92764,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -92360,6 +92790,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -92382,6 +92816,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -92392,6 +92830,10 @@
               {
                 "path": "adapters/host-node/request-model-recovery.test.mjs",
                 "anchor": "test('same recovery finish waits for its actual dispatch reclamation"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -100198,9 +100640,13 @@
     },
     {
       "module": "src/client_local_host/preparation_request_normalization.mbt",
-      "sha256": "20512f8b256734c29035f7f8587789a3977ee950ceb69869ec50523f174b74fc",
+      "sha256": "ebcdf101a54e814ad073b8132e72852b266883cf76fcae9e1a995b6a8d5e0430",
       "exports": [],
       "operations": [
+        {
+          "name": "[I,O]prepare_request_program_normalization_owned",
+          "declaration": "[ I , O ] prepare_request_program_normalization_owned ( owner : ClientRequestPreparation [ I ] , input : I , selected : ClientRequestProgramNormalization , capacity : @ resources . PreparationCapacity [ I , O ] , restored_wire ? : String ?"
+        },
         {
           "name": "[I]check_request_program_normalization_current",
           "declaration": "[ I ] check_request_program_normalization_current ( owner : ClientRequestPreparation [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , ) - > Result [ Unit , ClientRequestNormalizationIssue ]"
@@ -100218,16 +100664,16 @@
           "declaration": "[ I ] prepare_request_program_normalization ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientLocalNormalization , ClientRequestNormalizationIssue , ]"
         },
         {
-          "name": "[I]prepare_request_program_normalization_owned",
-          "declaration": "[ I ] prepare_request_program_normalization_owned ( owner : ClientRequestPreparation [ I ] , input : I , selected : ClientRequestProgramNormalization , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , ) - > Result [ @ publication_host . ClientLocalNormalization , ClientRequestNormalizationIssue , ]"
-        },
-        {
           "name": "[I]request_program_normalization_work",
           "declaration": "[ I ] request_program_normalization_work ( owner : ClientRequestPreparation [ I ] , input : I , ) - > ( Int64 , Int64 , Bool ) ?"
         },
         {
           "name": "request_normalization_audit_extent_cost",
           "declaration": "request_normalization_audit_extent_cost ( data : @ checked . ParsedCheckDataEstimate , sources : Int64 , ) - > Int64 ?"
+        },
+        {
+          "name": "request_original_normalization_audit_extent_cost",
+          "declaration": "request_original_normalization_audit_extent_cost ( prepared : @ publication_host . PreparedClientProgram , ) - > Int64 ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -100241,9 +100687,10 @@
             "[I]fail_request_program_normalization",
             "[I]finish_request_program_normalization_work",
             "[I]prepare_request_program_normalization",
-            "[I]prepare_request_program_normalization_owned",
+            "[I,O]prepare_request_program_normalization_owned",
             "[I]request_program_normalization_work",
-            "request_normalization_audit_extent_cost"
+            "request_normalization_audit_extent_cost",
+            "request_original_normalization_audit_extent_cost"
           ],
           "exports": [],
           "attributes": {
@@ -100251,60 +100698,100 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -100646,9 +101133,17 @@
     },
     {
       "module": "src/run_publication_host/client_local_normalization_preparation.mbt",
-      "sha256": "b1a7f39e4e0700a7ce0c3c2c1867ace8472785cb0809f0ff9f75caa506102f53",
+      "sha256": "06171581c012a44ae4d1cb96385afb5ddb42ee69446d3e69930354821ffaa983",
       "exports": [],
       "operations": [
+        {
+          "name": "admit_measured_prepared_client_local_normalization",
+          "declaration": "admit_measured_prepared_client_local_normalization ( original : ClientLocalNormalizationPreparation , wire : String , construction : ClientLocalNormalizationConstruction , ) - > Result [ ClientLocalNormalization , ClientLocalNormalizationIssue ]"
+        },
+        {
+          "name": "admit_prepared_client_local_normalization",
+          "declaration": "admit_prepared_client_local_normalization ( original : ClientLocalNormalizationPreparation , wire : String , ) - > Result [ ClientLocalNormalization , ClientLocalNormalizationIssue ]"
+        },
         {
           "name": "client_local_normalization_preparation_work",
           "declaration": "client_local_normalization_preparation_work ( original : ClientLocalNormalizationPreparation , ) - > Int"
@@ -100674,6 +101169,10 @@
           "declaration": "prepared_client_local_normalization_original ( owner : PreparedClientProgram , ) - > ClientLocalNormalization ?"
         },
         {
+          "name": "prepared_client_normalization_audit_data",
+          "declaration": "prepared_client_normalization_audit_data ( owner : PreparedClientProgram , ) - > ( @ lower . SequencePreparationDemand , Int64 , Int )"
+        },
+        {
           "name": "prepared_client_normalization_source_count",
           "declaration": "prepared_client_normalization_source_count ( owner : PreparedClientProgram , ) - > Int64"
         }
@@ -100691,7 +101190,10 @@
             "measure_client_local_normalization_construction",
             "observe_prepare_client_local_normalization",
             "prepared_client_local_normalization_original",
-            "prepared_client_normalization_source_count"
+            "prepared_client_normalization_source_count",
+            "admit_measured_prepared_client_local_normalization",
+            "admit_prepared_client_local_normalization",
+            "prepared_client_normalization_audit_data"
           ],
           "exports": [],
           "attributes": {
@@ -100699,60 +101201,100 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }
@@ -104393,23 +104935,27 @@
     },
     {
       "module": "src/client_local_host/preparation_request_authoring.mbt",
-      "sha256": "2d7d0f622bb3fa1484ed35be1b67c276548a49eaad8c3af4cbb3f380983d010e",
+      "sha256": "dd2d8800ab1499adeac4ce04a2d0bd3e774bf5db6a4f3263fb861d6f91fd00fd",
       "operations": [
+        {
+          "name": "[I,O]grow_request_authoring",
+          "declaration": "[ I , O ] grow_request_authoring ( input : I , state : ClientRequestProgramAuthoring , capacity : @ resources . PreparationCapacity [ I , O ] , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ClientRequestAuthoringIssue ]"
+        },
+        {
+          "name": "[I,O]prepare_request_authoring_in_capacity",
+          "declaration": "[ I , O ] prepare_request_authoring_in_capacity ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , compiler : @ publication_host . ClientProgramPreparationLimits , capacity : @ resources . PreparationCapacity [ I , O ] , ) - > Result [ @ publication_host . ClientAuthoringContextPreparation , ClientRequestAuthoringIssue , ]"
+        },
+        {
+          "name": "[I,O]prepare_request_program_authoring_owned",
+          "declaration": "[ I , O ] prepare_request_program_authoring_owned ( owner : ClientRequestPreparation [ I ] , input : I , state : ClientRequestProgramAuthoring , capacity : @ resources . PreparationCapacity [ I , O ] , ) - > Result [ @ publication_host . ClientAuthoringContextPreparation , ClientRequestAuthoringIssue , ]"
+        },
         {
           "name": "[I]finish_request_program_authoring_work",
           "declaration": "[ I ] finish_request_program_authoring_work ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
-          "name": "[I]grow_request_authoring",
-          "declaration": "[ I ] grow_request_authoring ( input : I , state : ClientRequestProgramAuthoring , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ClientRequestAuthoringIssue ]"
-        },
-        {
           "name": "[I]prepare_request_program_authoring_context",
           "declaration": "[ I ] prepare_request_program_authoring_context ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientAuthoringContextPreparation , ClientRequestAuthoringIssue , ]"
-        },
-        {
-          "name": "[I]prepare_request_program_authoring_owned",
-          "declaration": "[ I ] prepare_request_program_authoring_owned ( owner : ClientRequestPreparation [ I ] , input : I , state : ClientRequestProgramAuthoring , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , ) - > Result [ @ publication_host . ClientAuthoringContextPreparation , ClientRequestAuthoringIssue , ]"
         },
         {
           "name": "authoring_spend",
@@ -104429,11 +104975,12 @@
           "operations": [
             "<module>",
             "[I]finish_request_program_authoring_work",
-            "[I]grow_request_authoring",
+            "[I,O]grow_request_authoring",
             "[I]prepare_request_program_authoring_context",
-            "[I]prepare_request_program_authoring_owned",
+            "[I,O]prepare_request_program_authoring_owned",
             "authoring_spend",
-            "request_authoring_targets"
+            "request_authoring_targets",
+            "[I,O]prepare_request_authoring_in_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -104445,6 +104992,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "inputsOutputs": [
@@ -104455,6 +105006,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "identity": [
@@ -104465,6 +105020,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "ownership": [
@@ -104475,6 +105034,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "synchronization": [
@@ -104485,6 +105048,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "failure": [
@@ -104495,6 +105062,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "cancellation": [
@@ -104505,6 +105076,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "resources": [
@@ -104515,6 +105090,10 @@
               {
                 "path": "src/client_local_host/preparation_request_authoring.mbt",
                 "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "extension": [
@@ -104525,6 +105104,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ],
             "verification": [
@@ -104535,6 +105118,10 @@
               {
                 "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
                 "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
               }
             ]
           }

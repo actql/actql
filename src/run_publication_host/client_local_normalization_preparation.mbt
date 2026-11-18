@@ -31,6 +31,97 @@ pub fn prepared_client_local_normalization_original(
 }
 
 ///|
+/// Restore a saved journal against the SAME bounded original occurrence audit.
+/// This reader never issues a replacement journal or normalizes the Program.
+/// The caller funds the audit, saved evidence admission and comparison Writer
+/// before entering; matching DATA does not grant execution or current authority.
+pub fn admit_prepared_client_local_normalization(
+  original : ClientLocalNormalizationPreparation,
+  wire : String,
+) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue] {
+  let construction = match
+    measure_client_local_normalization_construction(original) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  admit_measured_prepared_client_local_normalization(
+    original, wire, construction,
+  )
+}
+
+///|
+/// The fixed funded reader supplies its SAME measured constructor dimensions.
+/// These are allocation/refusal bounds, never journal evidence or admission.
+/// All semantic correspondence still comes from the original audit below.
+pub fn admit_measured_prepared_client_local_normalization(
+  original : ClientLocalNormalizationPreparation,
+  wire : String,
+  construction : ClientLocalNormalizationConstruction,
+) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue] {
+  let owner = original.owner
+  if !@checked.local_common_normalization_inventory_matches(
+      original.inventory,
+      @strategy.graph_program(owner.graph),
+    ) {
+    return Err(ForeignPreparation)
+  }
+  if owner.local_normalization is Some(cached) {
+    return restore_prepared_client_local_normalization(
+      owner,
+      cached,
+      wire,
+      local_normalization_catalog_cid(cached.audit),
+    ).map(_ => cached)
+  }
+  let limits = original.limits
+  let shape = construction.complete
+  if shape.bytes > limits.max_wire_bytes ||
+    shape.nodes > limits.max_nodes ||
+    shape.depth > limits.max_depth {
+    return Err(Evidence(@publication.RunEvidenceInvalidLimits))
+  }
+  let evidence = match
+    @publication.admit_run_evidence_value(
+      "normalization_journal",
+      wire,
+      shape.bytes,
+      shape.nodes,
+      shape.depth,
+    ) {
+    Err(issue) => return Err(Evidence(issue))
+    Ok(value) => value
+  }
+  // The saved identity is checked by its existing evidence Owner. Re-emitting
+  // only the audited fields with that identity compares the complete saved
+  // catalogue, paths, rules and authored/canonical pairs. No CID is reissued.
+  let expected = try {
+    let writer = @encode.writer(shape.bytes, shape.nodes, shape.depth)
+    match
+      emit_local_common_normalization_journal(
+        original.inventory,
+        writer,
+        identity=Some(@publication.run_evidence_value_identity(evidence)),
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    @encode.finish(writer)
+  } catch {
+    _ => return Err(Evidence(@publication.RunEvidenceEncoding))
+  }
+  if expected != wire {
+    return Err(SubstitutedJournal)
+  }
+  let restored : ClientLocalNormalization = {
+    preparation: owner,
+    audit: Common(original.inventory),
+    evidence,
+  }
+  owner.local_normalization = Some(restored)
+  Ok(restored)
+}
+
+///|
 /// The same Common audit, once, with a known charged failure prefix. The
 /// caller must fund its original constructor before entering this function.
 pub fn observe_prepare_client_local_normalization(
@@ -186,4 +277,20 @@ pub fn prepared_client_normalization_source_count(
   owner : PreparedClientProgram,
 ) -> Int64 {
   @checked.source_execution_count(@strategy.graph_program(owner.graph)).to_int64()
+}
+
+///|
+/// Already retained compiler/source dimensions for the original audit's caller.
+/// No checking, lowering, rule selection, wire projection or capacity is here.
+pub fn prepared_client_normalization_audit_data(
+  owner : PreparedClientProgram,
+) -> (@lower.SequencePreparationDemand, Int64, Int) {
+  let source = @decode.admission_preparation_data(
+    @syntax.program_body(owner.source),
+  )
+  (
+    owner.sequence_preparation_demand,
+    source.total_utf16,
+    @syntax.program_usage(owner.source).tree.nodes,
+  )
 }
