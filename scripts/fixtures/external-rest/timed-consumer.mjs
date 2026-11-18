@@ -10,6 +10,7 @@ import {withInstalledFamilyFirstClose, assertFamilyReadState,
   installedFamilyResultOnOriginal} from './fixture-source/adapters/host-node/fixtures/installed-family-read.fixture.mjs';
 import {loadExternalRestModules} from './installed-modules.mjs';
 import {resolveInstalledCompletionModules} from './timed-installed-context.fixture.mjs';
+import {createTimedLogicalObservation, assertTimedLogicalObservation} from './logical-observation.fixture.mjs';
 import {timedValuesProgram, timedSourceProgram, assertTimedRows, wallObservation,
   assertTimedValuesExplanation} from './timed-inputs.fixture.mjs';
 
@@ -30,8 +31,12 @@ const report = {requestKind, phase, counters: {installedResolutionAttempts: 0, p
   internalModuleInitializationCount: {observable: false, value: null},
   generatedInstallationLoadBoundary: {required: requestKind === 'source', observed: false},
   performanceAcceptance: false};
-let client, primary, observation, countedClose;
+let client, primary, observation, countedClose, logicalObservation, originalExplanation, originalRef, originalRunId;
 try {
+  if (Object.hasOwn(configuration, 'logicalObservation')) {
+    assert.equal(configuration.logicalObservation, true);
+    assert.equal(requestKind, 'values', 'LogicalMetadataSelectionIsSourceFreeOnly');
+  }
   let connect, publicSdk, connectorTable, productModules, loadedInstallationExports;
   report.counters.installedResolutionAttempts++;
   if (requestKind === 'source') {
@@ -41,10 +46,16 @@ try {
     report.generatedInstallationLoadBoundary = {required: true, observed: true,
       loadedInstallationExports, initializationCount: 'UNOBSERVABLE'};
   } else {
-    const modules = await resolveInstalledCompletionModules(resolve(configuration.consumerRoot));
+    const modules = await resolveInstalledCompletionModules(resolve(configuration.consumerRoot),
+      {observation: configuration.logicalObservation === true});
     publicSdk = createRequire(modules.node)('@actql/sdk');
     ({connect} = await import(pathToFileURL(modules.node).href));
     productModules = modules;
+    if (modules.observation !== undefined) {
+      const {createHostObservationConnection} = await import(pathToFileURL(modules.observation).href);
+      assert.equal(typeof createHostObservationConnection, 'function');
+      logicalObservation = createTimedLogicalObservation(createHostObservationConnection);
+    }
     assert(!Object.hasOwn(configuration.installation, 'sourceProfilePath'));
     assert(!Object.hasOwn(configuration.installation, 'sourceProfilePaths'));
   }
@@ -73,6 +84,7 @@ try {
   try {
     client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation: {
       ...configuration.installation,
+      ...(logicalObservation === undefined ? {} : {observation: logicalObservation.connection}),
       ...(requestKind === 'source' ? {connectorTable, async resolveSourceSecret() {
         report.counters.secretResolutions++;
         return readFile(configuration.fixtureSecretPath, 'utf8');
@@ -147,8 +159,17 @@ try {
       await save(phase === 'read' ? 'original-explanation.json' : 'saved-explanation.json', explanation);
       report.structuralExplanation = assertTimedValuesExplanation(explanation,
         execution.ref, original?.explanation);
+      originalExplanation = explanation; originalRef = execution.ref; originalRunId = state.run_id;
     }
   });
+  if (logicalObservation !== undefined) {
+    // Read only after the SAME first close has drained/returned its actual
+    // deliveries. No sleep, manual flush, callback ACK or second close.
+    const snapshot = logicalObservation.snapshot();
+    await save('logical-observation.json', snapshot);
+    report.logicalObservation = assertTimedLogicalObservation(snapshot,
+      originalExplanation, originalRef, originalRunId, phase);
+  }
   assert.equal(report.counters.publicStart, phase === 'read' && requestKind === 'values' ? 1 : 0);
   assert.equal(report.counters.publicStartSource, phase === 'read' && requestKind === 'source' ? 1 : 0);
   assert.equal(report.counters.publicAttach, phase === 'saved' ? 1 : 0);
@@ -173,6 +194,13 @@ try {
     ? 'After initialization/fixture failure, no public close ACK'
     : 'After the original first public close attempt; ACK recorded separately';
   report.fdAfterFirstClose = observeOwnScopedStateFds(configuration.stateRoots);
+  if (logicalObservation !== undefined && report.logicalObservation === undefined) {
+    try {await save('logical-observation-on-failure.json', logicalObservation.snapshot());}
+    catch (cause) {
+      report.logicalObservationPersistenceFailure = scalarFailure(cause);
+      primary ??= cause;
+    }
+  }
   if (!primary && (!report.firstCloseAcknowledged || !report.fdAfterFirstClose.scopedStateFd0)) {
     primary = new Error('ActualOriginalCloseOrScopedPhysicalReleaseNotConfirmed');
     report.passed = false; report.primary = scalarFailure(primary);
