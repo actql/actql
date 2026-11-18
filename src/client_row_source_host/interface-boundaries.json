@@ -7867,7 +7867,7 @@
     {
       "module": "src/client_row_source_host/project_relation_declaration_construction.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c479f465aef2c90d3bb1b11dea211b398d62cbb9c7fd39856494a43707969086",
+      "sha256": "c932b50864e8c05fb8ff5fd041668bdc7546945d2beff31b34b87e9c894f3bf2",
       "role": "common-semantics",
       "owner": "Existing Common original row declaration and construction representation Owner; not authority or physical admission",
       "exports": [],
@@ -7954,6 +7954,14 @@
               {
                 "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
                 "anchor": "test \"public catalogue wire construction grows SAME original before constructors with exact and one short bounds\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue structural quote keeps equal AST nodes for long punctuation and escaped Text\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue structural quote retains escaped output and SAME original resource boundaries\""
               }
             ]
           }
@@ -8025,6 +8033,14 @@
               {
                 "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
                 "anchor": "test \"public catalogue wire construction grows SAME original before constructors with exact and one short bounds\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue structural quote keeps equal AST nodes for long punctuation and escaped Text\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue structural quote retains escaped output and SAME original resource boundaries\""
               }
             ]
           }

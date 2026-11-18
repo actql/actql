@@ -416,8 +416,10 @@ fixed constructor, not another parser, tariff, Owner, capacity grant or policy.
 The caller must reserve it on its existing initialization parent before entry.
 
 The borrowed wire scan reports actual UTF8 bytes, UTF16 units U, conservative
-punctuation/escape nodes N and open-container depth D. Disjoint public body
-emissions are bounded by 6U+25N (JSON escapes and finite Double spelling).
+outside-string structural nodes N and open-container depth D. Punctuation and
+escapes inside quoted Text contribute only to its separate text/writer extent,
+not AST nodes. Disjoint public body emissions are bounded by 6U+25N (JSON escapes
+and finite Double spelling).
 The returned wrapper includes those bodies escaped once more, original opaque
 keys/values, exact generated destination/CID spelling and original view slots.
 Its encoder ceilings derive from this observed geometry, including D+3, rather

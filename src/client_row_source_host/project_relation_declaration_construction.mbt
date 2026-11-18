@@ -10,7 +10,8 @@ priv struct RelationPublicProjectionGeometry {
 
 ///|
 // SAME borrowed catalogue entry, not a policy maximum or a JSON admission.
-// Count every punctuation/escape, including inside strings, before any parse.
+// Only outside-string structural tokens bound nodes. Quoted punctuation and
+// escapes consume the separate original text/writer extent, never AST nodes.
 fn relation_public_projection_geometry(
   wire : String,
 ) -> RelationPublicProjectionGeometry? {
@@ -24,10 +25,12 @@ fn relation_public_projection_geometry(
   let mut escaped = false
   for unit in wire.iter() {
     let code = unit.to_int()
-    if code == 123 || code == 91 {
-      nodes += 2L
-    } else if code == 58 || code == 44 || code == 92 {
-      nodes += 1L
+    if !quoted {
+      if code == 123 || code == 91 {
+        nodes += 2L
+      } else if code == 58 || code == 44 {
+        nodes += 1L
+      }
     }
     if quoted {
       if escaped {
