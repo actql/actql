@@ -135844,7 +135844,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-rest-source.mjs",
-                "anchor": "const material = preparePhysicalTargets"
+                "anchor": "if (!nativeReads) material = preparePhysicalTargets(original.sources, declared, physicalTarget);"
               }
             ],
             "failure": [
