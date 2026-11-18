@@ -87,3 +87,18 @@ pub fn local_managed_advance_budget(
     _ => None
   }
 }
+
+///|
+/// Only this original failed advance supplies its selected logical work DATA.
+#export_name("strategyModule_local_ManagedAdvanceLogicalWorkPolicy")
+pub fn local_managed_advance_logical_work_policy(
+  result : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+) -> (Int, Int64, String)? {
+  match result {
+    Err(issue) => @local_driver.local_managed_advance_logical_work_policy(issue)
+    _ => None
+  }
+}

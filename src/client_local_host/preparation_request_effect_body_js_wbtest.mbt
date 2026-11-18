@@ -300,6 +300,7 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
     let keyed_field = installed_effect_keyed_plan_field_bytes()
     let retained = bytes +
       providers.retained_bytes +
+      2L * 8L +
       proof_retained +
       direct_selector_field +
       member_retained +
@@ -309,6 +310,7 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
       @execution.execution_capacity_retained_bytes(phase)
     let execution = bytes +
       providers.execution_bytes +
+      4L * 8L +
       proof_retained +
       proof_scratch +
       direct_selector_field +

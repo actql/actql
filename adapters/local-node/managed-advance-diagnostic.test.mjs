@@ -471,3 +471,45 @@ test('managed nonrow retained message stays bound to the original failed confirm
     assert.equal(snapshot({primaryDiagnostic: invalid}).primaryDiagnostic, undefined);
   }
 });
+
+test('logical work keeps Core selected policy and setting through the same failure and cold observation', () => {
+  for (const [policy, setting] of [[20000000n, 'installation.sourceFreeMaxWork'], [10000000n, 'unavailable'], [20000000n, 'unavailable']]) {
+    const result = runtimeFailure({}), primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
+    let calls = 0;
+    const moon = {strategyModule_local_ManagedAdvanceLogicalWorkPolicy(value) {
+      calls++; assert.strictEqual(this, moon); assert.strictEqual(value, result);
+      return budgetTuple([43, policy, setting]);
+    }};
+    assert.throws(() => checkedLocalManagedAdvance(moon, result, () => {throw primary;}, 43), error => error === primary);
+    assert.equal(calls, 1);
+    assert.deepEqual(snapshot(primary).primaryDiagnostic, {code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'logical_work',task:43,step:43,workLimit:String(policy),setting});
+    const message = publicBudgetMessage(primary);
+    assert(message.includes(`dimension=logical_work; requested_delta=unavailable; remaining=unavailable; policy=${policy}; unit=work_units; setting=${setting}.`));
+    const state = {status:'failed',terminal_error:{code:'ACTQL_E_UNPUBLISHED_RUN',message}};
+    const control = {physical_stop:'confirmed'};
+    const key = JSON.stringify({...state,run_id:'original',result_available:false,next_action:{kind:'none'},control});
+    assert.equal(retainedBudgetMessage(key, state, 'original', control), message);
+    assert.equal(retainedBudgetMessage(key, state, 'other', control), undefined);
+    assert.equal(retainedBudgetMessage(key, state, 'original', {physical_stop:'unknown'}), undefined);
+  }
+});
+
+test('logical work optional malformed frozen and throwing projections preserve the original error', () => {
+  for (const project of [undefined, () => {throw new Error('projection');},
+    () => budgetTuple([-1, 20n, 'installation.sourceFreeMaxWork']),
+    () => budgetTuple([43, -1n, 'installation.sourceFreeMaxWork']),
+    () => budgetTuple([43, 20n, 'invented.setting']),
+    () => budgetTuple([43, 9223372036854775808n, 'unavailable'])]) {
+    for (const frozen of [false, true]) {
+      const result=runtimeFailure({}), original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'});
+      if(frozen)Object.freeze(original);
+      assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceLogicalWorkPolicy:project},result,()=>{throw original;},43),error=>error===original);
+      assert.equal(original.primaryDiagnostic,undefined);
+    }
+  }
+  const result=runtimeFailure({}), original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'});
+  const moon={strategyModule_local_ManagedAdvanceResourceDimension:()=> 'retained_bytes',
+    strategyModule_local_ManagedAdvanceLogicalWorkPolicy(){assert.fail('Original resource diagnostic has priority');}};
+  assert.throws(()=>checkedLocalManagedAdvance(moon,result,()=>{throw original;},43),error=>error===original);
+  assert.equal(snapshot(original).primaryDiagnostic.dimension,'retained_bytes');
+});

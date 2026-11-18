@@ -142,6 +142,8 @@ pub fn local_module_measurement_limits(LocalComputeModule) -> @execution_relatio
 
 pub fn local_module_metered_output_start_capacity(LocalComputeModule, Int, @execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?
 
+pub fn local_module_original_occurrence(LocalComputeModule, Int, @execution_relation.GeneratedSequence) -> Bool
+
 pub fn local_module_provider_field_inventory(Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn local_module_sequence_contains_carrier_step(LocalComputeModule, Int) -> Bool

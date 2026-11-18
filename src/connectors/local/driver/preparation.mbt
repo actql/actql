@@ -2,6 +2,14 @@
 /// Pure preparation data for the exact checked physical task selection. The
 /// original module and policies survive quoting and binding to a Run. This is
 /// not a Ledger, allocation, permission or physical cleanup owner.
+// A fixed Core constructor supplies this explanatory origin for its original
+// sequences. It is not an admission, work allowance or operational capability.
+pub(all) enum LocalWorkPolicy {
+  Unspecified
+  SourceFreeInstallation
+} derive(Eq, Debug)
+
+///|
 struct LocalDispatchPreparation {
   graph : @strategy.CheckedDAG
   registry : @connector.CapabilityRegistry
@@ -15,6 +23,43 @@ struct LocalDispatchPreparation {
   task_capacity : Array[@strategy.PhysicalEnvelope?]
   retained_bytes : Int64?
   transfer_bytes : Int64?
+  work_policy : LocalWorkPolicy
+}
+
+///|
+/// One actual immutable word on the existing preparation. Its original and
+/// policy-adjusted records can coexist; a replacement can cohold both pairs.
+/// Callers include this DATA delta in their SAME pre-construction allowance.
+let local_dispatch_work_policy_field_capacity : @execution.ExecutionCapacity = {
+  let retained = @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 2L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let execution = @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  @execution.execution_capacity(retained, execution).unwrap()
+}
+
+///|
+pub fn local_dispatch_preparation_work_policy_capacity() -> @execution.ExecutionCapacity {
+  local_dispatch_work_policy_field_capacity
+}
+
+///|
+/// Immutable explanatory DATA only. This is neither currentness nor a work
+/// allowance, and reading it does not open an execution or call a provider.
+pub fn local_dispatch_preparation_work_policy(
+  original : LocalDispatchPreparation,
+) -> LocalWorkPolicy {
+  original.work_policy
 }
 
 ///|
@@ -57,6 +102,7 @@ pub fn prepare_local_dispatch_plan(
   inputs? : (@local.LocalImportLimits, Int64?)? = None,
   metadata? : LocalManagedMetadataLimits? = None,
   output? : (@local.LocalExportLimits, Int64?)? = None,
+  work_policy? : LocalWorkPolicy = Unspecified,
 ) -> Result[LocalDispatchPreparation, LocalDispatchIssue] {
   let selected_metadata = match inputs {
     Some((limits, milliseconds)) =>
@@ -163,6 +209,7 @@ pub fn prepare_local_dispatch_plan(
     task_capacity: [],
     retained_bytes: None,
     transfer_bytes: None,
+    work_policy,
   }
   Ok(
     local_dispatch_preparation_policies(
@@ -205,17 +252,27 @@ fn local_dispatch_copy_capacity(
       },
     )
     is Some(capacity) &&
+    local_managed_logical_work_diagnostic_capacity()
+    is Some((diagnostic_retained, diagnostic_execution)) &&
+    @execution.checked_preparation_add_product(
+      capacity.retained_bytes,
+      diagnostic_retained,
+      1L,
+    )
+    is Some(retained_bytes) &&
+    @execution.checked_preparation_add_product(
+      capacity.execution_bytes,
+      diagnostic_execution,
+      1L,
+    )
+    is Some(execution_bytes) &&
     @execution.execution_capacity_inventory_bytes([
       { unit: QuotedBytes, count: wire_bytes, copies, },
     ])
     is Some(transfer_bytes) else {
     return None
   }
-  Some({
-    transfer_bytes,
-    retained_bytes: capacity.retained_bytes,
-    execution_bytes: capacity.execution_bytes,
-  })
+  Some({ transfer_bytes, retained_bytes, execution_bytes, })
 }
 
 ///|

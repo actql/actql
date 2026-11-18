@@ -92,6 +92,21 @@ pub fn row_failure_diagnostic_cause(issue : RowIssue) -> String? {
 }
 
 ///|
+/// Only the closed logical-work constructor selects this dimension. Generic
+/// RowLimit, control/workspace, failed-budget and live-value refusals do not.
+pub fn row_failure_is_logical_work_limit(issue : RowIssue) -> Bool {
+  match issue {
+    LogicalRows(WorkLimit) => true
+    Evaluation(_, _, original) =>
+      match original.kind {
+        LogicalEntry(WorkLimit) | LogicalValue(WorkLimit) => true
+        _ => false
+      }
+    _ => false
+  }
+}
+
+///|
 // The same LogicalBudget owner supplies these constructors in row and scalar
 // contexts. Preserve its original reason without formatting payloads, adding
 // a second decision table in Node, or guessing a physical dimension/setting.

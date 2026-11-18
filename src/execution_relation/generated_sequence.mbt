@@ -689,6 +689,32 @@ pub fn generated_prepared_sequence(
 }
 
 ///|
+/// Read the SAME selected kernel's immutable work policy. A task ordinal,
+/// equal limit or another context cannot substitute for that original kernel.
+/// This is explanatory DATA and never another counter or execution admission.
+pub fn generated_sequence_logical_work_limit(
+  generated : GeneratedSequence,
+  step : Int,
+) -> Int64? {
+  guard step >= 0 &&
+    capacity_uses_fragment_step(generated, step) &&
+    @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.RowStep(kernel)) else {
+    return None
+  }
+  let mut selected : FragmentRuntimeContext? = None
+  for context in generated.contexts {
+    if physical_equal(context.kernel, kernel) {
+      if selected is Some(_) || context.limits.max_work < 0L {
+        return None
+      }
+      selected = Some(context)
+    }
+  }
+  selected.map(context => context.limits.max_work)
+}
+
+///|
 /// Retain a genuine same-binding refinement of an installed physical sequence.
 /// Capacity constraints may change through their existing checked constructors;
 /// original registered contracts, prepared sequence, contexts, query time and
