@@ -85,6 +85,10 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // the actual boxed Option. Supplied checked/Core callbacks retain the original
 // failure and optionally project inert bounded diagnostic DATA.
 // This exact leaf adds no Node builtin, environment probe, I/O or authority.
+// Original dispatch failure observation is another exact pure DATA leaf of
+// runtime-core. It imports only the reviewed compiler binding, retains bounded
+// frozen facts by weak error identity, and has no Node/physical/current port.
+// The Node caller and its same-Request admission remain outside this allowance.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
   '_build/workers/modules/fixture.mjs',
@@ -117,6 +121,7 @@ export const conformanceModules = [
   'adapters/host-common/publication-capacity.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/dispatch-failure-observation.mjs',
   'adapters/host-common/installed-effect-dependency-original.mjs',
   'adapters/host-common/ledger-contract.generated.mjs',
   'adapters/host-common/local-signing-metadata.mjs',
@@ -168,6 +173,7 @@ export const hostModules = [
   'adapters/host-common/publication-capacity.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'adapters/host-common/dispatch-failure-observation.mjs',
   'adapters/host-common/installed-effect-dependency-original.mjs',
   'adapters/host-common/ledger-contract.generated.mjs',
   'adapters/host-common/local-signing-metadata.mjs',
