@@ -6801,6 +6801,50 @@ String units and Sort views replace disposed constructor scratch. Currentness,
 work charging, rejected growth, cancellation and cleanup keep the same Request
 owner and original borrowed input; none of this DATA grants Source authority.
 
+The short-lived Source helper carriers do not accumulate with occurrence
+count. The quoted-String extent returns `Some((bytes, units))` (2H/1R/3W),
+whereas the completed entry returns `Some((entry, remaining))` (2H/2R/2W).
+Unboxing the former precedes Writer construction; unboxing the latter precedes
+entry retention and duplicate comparison. One scalar work Option is live at
+a time. Their componentwise control peak is 2H/2R/3W (72 logical bytes),
+inside the original exclusive 4096-byte driver group. It is not another
+per-Source allowance and is not added to every retained entry. Entry/tag/path
+storage remains with the variable quote; the actual TextWriter inventory
+already includes its returned key String, finish tuple and failure controls.
+
+That driver group is admitted by
+`client_request_preparation_control_capacity` before Request construction,
+not by a later audit resize. Before the first grow, the working-baseline tuple
+(1H/0R/2W) coexists with at most the constant scalar/Map/collection/Writer
+inventory DATA quote chain (3H/1R/14W): 200 bytes together. Those functions
+construct no Writer, buffer or copied input text. The normalization controller,
+its own Some, limits record and two extent tuples total 5H/12R/12W (272 bytes).
+During growth the existing Resource entry quote is 10H/10R/16W (368 bytes),
+including its rejected reentrant entry: together 640 bytes. During the audit,
+the controller plus work-slot Some is 304 bytes; its one scalar audit-budget
+record is 24 bytes and the Source carrier peak is 72 bytes: together 400 bytes.
+These are exclusive phases under the existing `Selecting`/currentness fence.
+The work receipt and variable audit/writer bodies keep their separately backed
+Resource owners. No future quotation value, unused unrelated body budget or
+new control margin funds these pre-call objects.
+
+The cached `reference_arrays` count used for Relation wrappers is
+`operations + 4 * stages + 1`. The structural owner increments `operations`
+from each original Stage's authored step views. Only an actual checked
+Sort/Rename/Drop occurrence can add a Relation entry. Its original unique
+source path permits at most one retained entry per step; a repeated visit
+constructs at most one additional current wrapper before physical-original
+deduplication. Thus `operations + 1` bounds those simultaneously retained/current
+wrappers, without treating row count or provider enumeration as an operation.
+
+Source execution construction creates one subject with the selected
+`ResolvedInput`, then reuses it in the five Host/authorization/egress/resource/
+response bindings. The same execution array is created before the Stage loop
+and borrowed by every built Unit. The three-Stage original Source journal
+control therefore visits the same resolver fifteen times yet emits exactly
+one independently pinned entry. Deduplication compares that original resolver
+and complete path/values; a foreign equal-looking resolver is not a match.
+
 The Native submitted-request handoff runs its selected original constructor
 inside the caller's already-active business Request, before borrowing the Plan
 input. Its optional `before_program_borrow` callback does not replace the
