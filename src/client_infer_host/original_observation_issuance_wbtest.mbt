@@ -168,6 +168,13 @@ fn original_observation_test_start(
 ///|
 fn original_observation_test_attempt(
   producer? : Ref[@resources.Reservation?]? = None,
+  preparation_original? : Ref[
+    (
+      @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+      @resources.PreparationRetirement,
+      @publication_host.ClientModelReadScope,
+    )?,
+  ]? = None,
   source? : String = infer_fixture_program,
   provider? : @model.ModelProvider = original_funded_start_provider(Ref(0)),
   run_id? : String = "run",
@@ -232,22 +239,42 @@ fn original_observation_test_attempt(
     attempts: Int::min(limits.model.ledger.attempts, 4),
     transfer_bytes: Int64::min(limits.model.ledger.transfer_bytes, 133072L),
   }).unwrap()
-  let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
-  let original_scope = @publication_host.begin_client_model_read_scope(
-    compiled,
-    definition,
-    plan,
-    ledger,
-    bootstrap,
-    (if producer is Some(_) { 5 } else { 4 }) +
-    (if spare_publication_slot { 1 } else { 0 }),
-    if producer is Some(_) {
-      3
-    } else {
-      2
-    },
-    0,
-  ).unwrap()
+  let reservation_slots = (if producer is Some(_) { 5 } else { 4 }) +
+    (if spare_publication_slot { 1 } else { 0 })
+  let holding_slots = if producer is Some(_) { 3 } else { 2 }
+  let original_scope = if preparation_original is Some(original) {
+    let preparation : @resources.PreparationCapacity[
+      @publication_host.PreparedClientProgram,
+      @publication_host.PreparedClientProgram,
+    ] = @resources.reserve_preparation_capacity(
+      ledger,
+      prepared,
+      3L,
+      2L,
+      max_borrowers=1,
+    ).unwrap()
+    let identity = @resources.begin_preparation_capacity_inventory(
+      preparation, prepared, reservation_slots, holding_slots, 0,
+    ).unwrap()
+    @resources.complete_preparation_capacity(
+      preparation, prepared, prepared, 3L, 2L,
+    ).unwrap()
+    let retirement = @resources.transfer_preparation_retirement_to_run(
+      preparation, prepared, prepared, ledger,
+    ).unwrap()
+    let holder = @resources.borrow_preparation_body(preparation).unwrap()
+    let scope = @publication_host.bind_client_model_read_scope(
+      compiled, definition, plan, ledger, identity,
+    ).unwrap()
+    original.val = Some((holder, retirement, scope))
+    scope
+  } else {
+    let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+    @publication_host.begin_client_model_read_scope(
+      compiled, definition, plan, ledger, bootstrap, reservation_slots, holding_slots,
+      0,
+    ).unwrap()
+  }
   if producer is Some(record) {
     record.val = Some(@resources.reserve_attempt(ledger, 1L, 7L, 5L).unwrap())
   }
@@ -327,6 +354,108 @@ fn original_observation_test_attempt(
   ).unwrap()
   bind_dispatch_admission(active, permit).unwrap()
   (Ok(active), ledger, consumer)
+}
+
+///|
+// One owner-boundary witness: the production initial-retention constructor
+// extends its adopted preparation bootstrap through the same Resource resize.
+// This isolates that transition on an already issued original binding; it is
+// not execution of the complete Node caller or a physical cleanup ACK.
+test "original issued binding retains current after same bootstrap publication growth" {
+  let preparation : Ref[
+    (
+      @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+      @resources.PreparationRetirement,
+      @publication_host.ClientModelReadScope,
+    )?,
+  ] = Ref(None)
+  let (attempted, ledger, consumer) = original_observation_test_attempt(
+    preparation_original=Some(preparation),
+  )
+  let active = original_observation_test_started(attempted)
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  let capacity = reserve_original_infer_publication_capacity(active, 65664L, 7L).unwrap()
+  let issued = start_original_observation_issuance(
+    active,
+    capacity,
+    issuance_limits(),
+  ).unwrap()
+  issuance_finish(issued)
+  let bound = active.run_binding.unwrap()
+  let binding = bind_issued_invocation(
+    active,
+    bound.compiled,
+    bound.definition,
+    issued,
+  ).unwrap()
+  assert_true(invocation_binding_output(binding) is Some(_))
+  assert_true(observation_issuance_value(issued) is Some(_))
+  let before = @resources.ledger_usage(ledger)
+  let (holder, retirement, scope) = preparation.val.unwrap()
+  let body = @resources.preparation_body_borrow_value(holder).unwrap()
+  @resources.reserve_preparation_publication_phase(holder, body, 4L, 3L).unwrap()
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.live_reservations, before.live_reservations)
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.transferred_bytes, before.transferred_bytes)
+  assert_true(
+    !binding.output_use.released && !binding.output_use.owner.reclaimed,
+  )
+  assert_true(
+    binding.issuance is Some(actual) && physical_equal(actual, issued),
+  )
+  let original_read_current = @publication_host.client_model_read_consumer_handed_off_current(
+    consumer,
+    bound.compiled,
+    bound.definition,
+    active.plan.unwrap(),
+  )
+  let model_capacity_current = @model.original_model_publication_capacity_current(
+    capacity,
+    active.model.unwrap(),
+    active.call_scope.unwrap(),
+  )
+  let raw_output_live = output(binding.output_use) is Some(_)
+  let issued_current = observation_issuance_value(issued) is Some(_)
+  let bound_output_live = invocation_binding_output(binding) is Some(_)
+  let result_after = start_result_publication(
+    binding,
+    0,
+    publication_result_limits(),
+  )
+  let result_refused = match result_after {
+    Err(InvalidState) => true
+    Err(_) => abort("unexpected original Result publication issue")
+    Ok(result) => {
+      assert_true(release_result_publication(result))
+      false
+    }
+  }
+  println(
+    "Same original bootstrap witness (read, model-capacity, raw-output, issuance, bound-output, Result-InvalidState): " +
+    @debug.Repr(
+      (
+        original_read_current, model_capacity_current, raw_output_live, issued_current,
+        bound_output_live, result_refused,
+      ),
+    ).to_string(),
+  )
+  assert_true(bound_output_live)
+  assert_true(release_invocation_binding(binding))
+  assert_true(cleanup_observation_issuance(issued).unwrap())
+  assert_true(release_original_infer_publication_capacity(capacity).unwrap())
+  assert_true(cleanup(active).unwrap())
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      bound.compiled,
+      bound.definition,
+      active.plan.unwrap(),
+      true,
+    ).unwrap(),
+  )
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  assert_true(@resources.retire_transferred_preparation(retirement).unwrap())
 }
 
 ///|
