@@ -8,7 +8,8 @@ import {spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
-import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './fixtures/record-approval/cases.mjs';
+import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase,
+  sharedRecordUpdateSelections, recordUpdateFixtureState} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
@@ -685,6 +686,69 @@ test('kintone approval provider keeps string identity and original revision for 
   assert.deepEqual(after.control, before.control);
   assert.throws(() => f.apply(f.body));
   assert.equal(f.value.snapshot().writes, 1);
+});
+
+for (const [connector, builder, resource, idField, valueField, makeProvider, makeCase, beforeName, afterName] of [
+  ['hubspot', hubspotMock, 'companies', 'id', 'name', hubspotApprovalProvider, hubspotUpdateCase,
+    'Before HubSpot approval', 'After HubSpot approval'],
+  ['kintone', kintoneMock, 'inquiries', '$id', 'Subject', kintoneApprovalProvider, kintoneUpdateCase,
+    'Before kintone approval', 'After kintone approval'],
+]) test(`shared ${connector} record update fixture keeps identical seed and independent Mock HTTP DATA oracles`, async () => {
+  const selected = sharedRecordUpdateSelections[connector];
+  const expectedBefore = {target: {id: '9007199254740993', name: beforeName},
+    control: {id: '9007199254740994', name: 'Untouched control'}};
+  const expectedAfter = {target: {id: '9007199254740993', name: afterName}, control: expectedBefore.control};
+  assert.deepEqual(recordUpdateFixtureState(selected), {before: expectedBefore, after: expectedAfter});
+  assert(Object.isFrozen(selected));assert.throws(() => {selected.controlId = 'foreign';}, TypeError);
+  const files = builder(selected), catalog = JSON.parse(files['mock/catalog.json']).connections[connector];
+  const rows = JSON.parse(files['mock/data.json'])[connector][resource].rows;
+  assert.deepEqual(rows, [expectedBefore.target, expectedBefore.control].map(value =>
+    ({[idField]: value.id, [valueField]: value.name})));
+  assert.deepEqual(catalog.views[0].schema, {[idField]: {type: 'string', nullable: false},
+    [valueField]: {type: 'string', nullable: false}});
+  const programs = Object.fromEntries(await Promise.all(['read', 'update'].map(async name =>
+    [name, await readFile(new URL(`./fixtures/${connector}-approval/${name}.aql`, import.meta.url), 'utf8')])));
+  const definition = makeCase(programs, selected);
+  assert.equal(definition.effect.document, programs.update);assert.equal(definition.read.document, programs.read);
+  assert.deepEqual(definition.effect.parameters, {record_id: '9007199254740993', next_name: afterName});
+  assert.deepEqual(definition.effect.expectedRows, [{id: '9007199254740993', previous_name: beforeName, next_name: afterName}]);
+  const provider = makeProvider(selected), before = provider.snapshot();
+  assert.deepEqual({id: before.target.id, name: before.target.name}, expectedBefore.target);
+  assert.deepEqual({id: before.control.id, name: before.control.name}, expectedBefore.control);
+  assert.equal(before.writes, 0);
+  if (connector === 'hubspot') {
+    const update = provider.routes.find(route => route.pathname.endsWith('/batch/update'));
+    const exchange = {method: 'POST', pathname: update.pathname, authorized: true, body: JSON.stringify({inputs: [{
+      id: selected.recordId, objectWriteTraceId: cid('a'), properties: {name: selected.nextName, actql_request_id: cid('b')},
+    }]})};
+    update.handle(exchange);
+    assert.equal(provider.snapshot().target.marker, cid('b'));
+    assert.equal(Object.hasOwn(provider.snapshot().target, 'revision'), false, 'HubSpot does not gain atomic revision semantics');
+    assert.throws(() => update.handle(exchange), 'A repeated fixture 200 must not prove another write');
+  } else {
+    const update = provider.routes.find(route => route.method === 'PUT');
+    const exchange = {method: 'PUT', pathname: update.pathname, headers: {}, authorized: true,
+      body: JSON.stringify({app: '12', records: [{id: selected.recordId, revision: '9007199254740994',
+        record: {Subject: {value: selected.nextName}}}], upsert: false})};
+    update.handle(exchange);
+    assert.equal(provider.snapshot().target.revision, '9007199254740995');
+    assert.equal(Object.hasOwn(provider.snapshot().target, 'marker'), false);
+    assert.throws(() => update.handle(exchange), 'Original revision cannot authorize another write');
+  }
+  const after = provider.snapshot();
+  assert.deepEqual({id: after.target.id, name: after.target.name}, expectedAfter.target);
+  assert.deepEqual(after.control, before.control);assert.equal(after.writes, 1);
+  assert.equal(after.failures.length, 1, 'The explicit repeated-write refusal remains a separate fixture failure');
+});
+
+test('shared record fixture rejects missing or aliased control identity without changing its original selection', () => {
+  const selected = sharedRecordUpdateSelections.hubspot, before = structuredClone(selected);
+  for (const controlId of [undefined, '', 9007199254740994, selected.recordId]) {
+    assert.throws(() => recordUpdateFixtureState({...selected, controlId}), {message: 'InvalidRecordApprovalControl'});
+  }
+  const state = recordUpdateFixtureState(selected);
+  assert.throws(() => {state.before.control.name = 'changed';}, TypeError);
+  assert.deepEqual(selected, before);
 });
 
 test('kintone approval provider refuses changed identity, revision, fields and UPSERT before mutation', () => {

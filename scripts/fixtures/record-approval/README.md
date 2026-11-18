@@ -9,6 +9,15 @@ read Program, a case adapter, a declared-data mock project and a public consumer
 entry. Use the same Program files for mock and installed-provider verification;
 do not rewrite a Program to hide an unsupported provider operation.
 
+For the original HubSpot and kintone record-update cases, `cases.mjs` also owns
+the finite shared fixture selections and before/after/control DATA. The packed
+Mock and HTTP fixtures consume the same selected record, unchanged control and
+names. Provider envelopes, HubSpot markers/pre-write comparison and kintone
+revision conditions remain separate. Existing standalone three-field Mock
+selections retain their original control defaults; existing Whole/binary/three-
+Source variants retain their original selections. Shared fixture DATA does not
+establish that either installed consumer executed or qualify live behavior.
+
 Copy `record-approval` and the selected sibling fixture directory into an
 external normal installation of the five Client packages. The consumer owns a
 fresh project, installation directory and receipt prefix. Its configuration is:

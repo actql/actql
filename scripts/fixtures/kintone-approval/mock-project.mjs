@@ -1,8 +1,9 @@
 import {recordUpdateMockProjectFiles} from '../record-approval/mock-project.mjs';
-export function mockProjectFiles({recordId, previousName, nextName}) {
-  if (previousName === nextName) throw new TypeError('Fixture must change the selected Subject');
+import {recordUpdateFixtureState} from '../record-approval/cases.mjs';
+export function mockProjectFiles(selection) {
+  const {before} = recordUpdateFixtureState({...selection, controlId: selection.controlId ?? '9007199254740994'});
   return recordUpdateMockProjectFiles({connection: 'kintone', resource: 'inquiries', alias: 'kintone.inquiries',
-    idField: '$id', valueField: 'Subject', recordId, previousValue: previousName,
-    controlId: '9007199254740994', controlValue: 'Untouched control',
+    idField: '$id', valueField: 'Subject', recordId: before.target.id, previousValue: before.target.name,
+    controlId: before.control.id, controlValue: before.control.name,
     updatePermission: 'kintone:records:update', observePermission: 'kintone:records:read'});
 }

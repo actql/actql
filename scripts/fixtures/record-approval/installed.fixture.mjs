@@ -10,6 +10,7 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {openHttpsExchangeFixture} from '../../../adapters/site-node/https-exchange-fixture.mjs';
 import {recordApprovalHostAccountConfiguration} from './host-account.fixture.mjs';
+import {recordUpdateFixtureState} from './cases.mjs';
 
 const execute = promisify(execFile);
 const pem = key => key.export({format: 'pem', type: key.type === 'private' ? 'pkcs8' : 'spki'});
@@ -18,6 +19,7 @@ const privateFile = {mode: 0o600, flag: 'wx'};
 
 export async function runInstalledRecordApprovalFixture(t, fixture) {
   const {connectorId, resource, alias, selection, provider} = fixture;
+  const expected = recordUpdateFixtureState(selection);
   assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1', 'Preserve original state on every outcome');
   const parent = join(process.cwd(), connectorId + '-approval-original-roots');
   await mkdir(parent, {recursive: true});
@@ -137,8 +139,10 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
       assert.deepEqual(outcome.descriptors.after.openPaths, []);
       const after = provider.snapshot();
       assert.deepEqual(after.control, before.control);
+      assert.deepEqual({id: after.control.id, name: after.control.name}, expected.before.control);
       assert.equal(after.writes, phase === 'capture' ? 0 : 1);
-      assert.equal(after.target.name, phase === 'capture' ? selection.previousName : selection.nextName);
+      assert.deepEqual({id: after.target.id, name: after.target.name},
+        (phase === 'capture' ? expected.before : expected.after).target);
       if (phase === 'recover') assert.equal(after.requests.length, before.requests.length,
         'Saved first sends no provider request');
       phases.push({phase, startedAt, endedAt: new Date().toISOString(), ...outcome,

@@ -2,6 +2,7 @@
 // installed Host retains all Account, Credential, Preview, approval and claims.
 // These routes neither grant a write nor classify a lost response as absent.
 import assert from 'node:assert/strict';
+import {recordUpdateFixtureState} from '../record-approval/cases.mjs';
 
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const sameKeys = (value, names) => assert.deepEqual(Object.keys(value).sort(), [...names].sort());
@@ -13,8 +14,9 @@ export function hubspotApprovalProvider({recordId, controlId, previousName, next
   }
   assert.notEqual(recordId, controlId);
   assert.notEqual(previousName, nextName);
-  const target = {id: recordId, name: previousName, marker: '', updatedAt: '2026-11-07T00:00:00.000Z'};
-  const control = {id: controlId, name: 'Untouched control', marker: '', updatedAt: target.updatedAt};
+  const {before} = recordUpdateFixtureState({recordId, controlId, previousName, nextName});
+  const target = {...before.target, marker: '', updatedAt: '2026-11-07T00:00:00.000Z'};
+  const control = {...before.control, marker: '', updatedAt: target.updatedAt};
   const properties = {results: ['actql_request_id', 'name'].map(name => ({name,
     type: 'string', fieldType: 'text', calculated: false, modificationMetadata: {readOnlyValue: false}}))};
   const record = value => ({id: value.id, archived: false, updatedAt: value.updatedAt,
