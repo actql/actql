@@ -46,6 +46,30 @@ export function nativeMockWorkflowTiming({harnessPhases, scenarios}) {
     })}))};
 }
 
+// Project only the two finite verifier intervals. No other child stderr, paths,
+// command arguments or errors become timing DATA, and this is never admission.
+export function nativeReleaseVerificationTiming(stderr) {
+  try {
+    assert.equal(typeof stderr, 'string');
+    const prefix = 'ACTQL_NATIVE_RELEASE_PHASES ';
+    const lines = stderr.split('\n').filter(line => line.startsWith(prefix));
+    assert.equal(lines.length, 1); assert(lines[0].length <= 2048);
+    const value = JSON.parse(lines[0].slice(prefix.length));
+    assert.deepEqual(Object.keys(value).sort(), ['artifactVerification', 'sourcePreparation']);
+    const phases = {};
+    for (const phase of ['sourcePreparation', 'artifactVerification']) {
+      const row = value[phase];
+      assert.deepEqual(Object.keys(row).sort(), ['state', 'wallNs']);
+      assert.equal(row.state, 'completed');
+      assert(Number.isSafeInteger(row.wallNs) && row.wallNs >= 0);
+      phases[phase] = {state: row.state, wallNs: row.wallNs};
+    }
+    return {releaseVerificationPhases: phases};
+  } catch {
+    return {releaseVerificationObservationIssue: 'Release phase observation unavailable or invalid'};
+  }
+}
+
 // The ordinary and formal paths keep their original command. Tracing is an
 // explicit separate Linux diagnostic and cannot select a formal sample.
 export function nativeApprovalObservationOptions(extra, platform) {

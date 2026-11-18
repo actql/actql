@@ -59,6 +59,54 @@ test('Mock workflow timing keeps harness and original command scopes separate an
   }
 });
 
+test('release timing projects only completed finite intervals and cannot supply acceptance evidence', () => {
+  const phases = {sourcePreparation: {state: 'completed', wallNs: 17},
+    artifactVerification: {state: 'completed', wallNs: 23}};
+  const line = value => 'ACTQL_NATIVE_RELEASE_PHASES ' + JSON.stringify(value) + '\n';
+  const result = performance.nativeReleaseVerificationTiming('private child diagnostic\n' + line(phases));
+  assert.deepEqual(result, {releaseVerificationPhases: phases});
+  assert(!JSON.stringify(result).includes('private child diagnostic'));
+  for (const text of ['', line(phases) + line(phases), 'ACTQL_NATIVE_RELEASE_PHASES {\n',
+    line({...phases, privatePath: 'excluded'}),
+    ...[
+      {state: 'failed', wallNs: 17}, {state: 'unexecuted'},
+      {state: 'completed', wallNs: -1}, {state: 'completed', wallNs: 1.5},
+      {state: 'completed', wallNs: Number.MAX_SAFE_INTEGER + 1},
+      {state: 'completed', wallNs: 17, error: 'excluded'},
+    ].map(sourcePreparation => line({...phases, sourcePreparation}))]) {
+    const invalid = performance.nativeReleaseVerificationTiming(text);
+    assert.equal(invalid.releaseVerificationPhases, undefined);
+    assert.equal(typeof invalid.releaseVerificationObservationIssue, 'string');
+    assert(!JSON.stringify(invalid).includes('excluded'));
+  }
+});
+
+test('actual release verification keeps its original failure with disabled or failing timing output', () => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-release-phase-'));
+  try {
+    const script = "import assert from 'node:assert/strict';" +
+      "import {verifyNativeCliRelease} from './scripts/native-cli-release.mjs';" +
+      "if(process.argv[2]==='throw')console.error=()=>{throw new Error('observation writer failed');};" +
+      "await assert.rejects(verifyNativeCliRelease(process.argv[1]),error=>error.code==='ENOENT');";
+    for (const mode of ['disabled', 'enabled', 'throw']) {
+      const env = {...process.env}; delete env.ACTQL_CI_NATIVE_RELEASE_PHASES;
+      if (mode !== 'disabled') env.ACTQL_CI_NATIVE_RELEASE_PHASES = '1';
+      const result = spawnSync(process.execPath, ['--input-type=module', '-e', script, root, mode],
+        {env, encoding:'utf8', timeout:10000});
+      assert.equal(result.status, 0, result.stderr); assert.equal(result.signal, null);
+      if (mode === 'enabled') {
+        const prefix = 'ACTQL_NATIVE_RELEASE_PHASES ';
+        assert(result.stderr.startsWith(prefix));
+        const value = JSON.parse(result.stderr.slice(prefix.length));
+        assert.equal(value.sourcePreparation.state, 'failed');
+        assert(Number.isSafeInteger(value.sourcePreparation.wallNs) && value.sourcePreparation.wallNs >= 0);
+        assert.deepEqual(value.artifactVerification, {state:'unexecuted'});
+        assert(!result.stderr.includes(root));
+      } else assert.equal(result.stderr, '');
+    }
+  } finally {rmSync(root, {recursive:true, force:true});}
+});
+
 test('formal collector refuses a diagnostic binding before any artifact or workflow executes', t => {
   const root = mkdtempSync(join(tmpdir(), 'native-formal-binding-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
