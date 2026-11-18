@@ -14,7 +14,7 @@ import {loadInstalledSource} from './installed-source.mjs';
 import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
   './captured-duckdb-source.mjs';
 import {capturedDuckDBNativeConfiguration} from './captured-duckdb-source.mjs';
-import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {openFundedClientPreparation, fundedAuthoringContextOriginalFixture} from './funded-client-preparation.fixture.mjs';
 import {adoptCapturedPublicationFixture} from './fixtures/local-publication-original.mjs';
 import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 import {acquiredTaskRunAdmission, acquiredMultiTaskPublicationPlan} from
@@ -245,7 +245,9 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
       acquired: acquiredTaskRunAdmission({moon, control, preparedProgram: pair.owner,
         authorityScopeCid, namespaceId: 'capture-boundary', now,
         requestIdentity: original.identity, publicationPreparation,
-        compilationOriginal: preparation.manager.compilationOriginal(pair.owner)}),
+        compilationOriginal: preparation.manager.compilationOriginal(pair.owner),
+        publicationOriginal: {authoringContext:
+          fundedAuthoringContextOriginalFixture(moon, pair.owner)}}),
       preparedProgram: pair.owner, sources: pair.captured.map((captured, task) =>
         ({captured, sourceEvidence: control.admitRunEvidence('source_evidence',
           pair.sourceEvidenceWires[task], {maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 64})})),

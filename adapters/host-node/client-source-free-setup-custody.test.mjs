@@ -121,7 +121,7 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
   const marker = new Error('OriginalResourceParked');
   const bindingFailure = new Error('OriginalCaptureBindingStopped');
   const sourceOriginal = {}, capturedIdentity = {}, compiled = {}, dag = {};
-  const sourceEvidence = {}, publicationPreparation = {};
+  const sourceEvidence = {}, publicationPreparation = {}, authoringContextOriginal = {};
   const dataPolicyCid = 'fixture-policy';
   let ready = cleanupReady, failed, entered, resume;
   const failure = new Promise(resolve => { failed = resolve; });
@@ -282,6 +282,13 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
       },
       seal: (_kind, wire) => Object.freeze({wire}),
       sealRunEvidence: (_kind, wire) => Object.freeze({wire}),
+      preparedClientNormalizationEvidence(value) {
+        assert.strictEqual(value, prepared); return Object.freeze({wire: '{}'});
+      },
+      preparedClientAuthoringContextEvidence(value, original) {
+        assert.strictEqual(value, prepared); assert.strictEqual(original, authoringContextOriginal);
+        return Object.freeze({wire: '{}'});
+      },
       compiledRunResultTransformation: () => undefined,
     });
   }
@@ -307,7 +314,7 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     startRun: async () => ({kind: 'reserved', ref}),
     hostConnection: () => true,
     planFor: () => ({kind: source ? 'tasks' : 'values', compiled, runDefinition,
-      publicationPreparation, admission: {}, compiledPlan: {identity: 'fixture-compiled'},
+      publicationPreparation, authoringContextOriginal, admission: {}, compiledPlan: {identity: 'fixture-compiled'},
       createdAt: '2026-11-15T00:00:00.000Z'}),
     sourceProfile: adapter,
     prepareAcquisition() { assert.fail('The same prepared Source must not be reacquired'); },

@@ -10,6 +10,7 @@ import {timeSeriesPrimarySuccesses} from
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {installClientStaticPlan} from './client-interactive-plan.mjs';
 import {sourceFreeTaskPlan} from './local-values-plan.mjs';
 import {runCapturedStrategy} from './entry.mjs';
@@ -34,14 +35,14 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 for (const name of ['json', 'empty-json', 'parameters-json']) {
   const fixture = timeSeriesPrimarySuccesses.find(value =>
     value.name === `time-series-primary-${name}`);
-  test(`checked TimeSeries root uses one task and the installed provider: ${name}`, async () => {
+  test(`checked TimeSeries root uses one task and the installed provider: ${name}`, async t => {
     if (name === 'json') assert.equal(createHash('sha256').update(fixture.text).digest('hex'),
       '691fb26d1338c28b5fe357087468d563563f52cd9c3d5b35f88877434d6238c6');
-    const prepare = installNodeClientProgramPreparation({moon, environment});
+    const prepare = await fundedClientPreparation(t, {moon, environment});
     const request = {kind: 'aql', input: {text: fixture.text, format: 'json'},
       parameters: fixture.parameters ?? null, maxWireBytes: 65536,
       maxNodes: 4096, maxDepth: 64};
-    const prepared = prepare(request);
+    const prepared = await prepare(request);
     assert.equal(moon.clientProgramTaskCount(prepared), 1);
     assert.equal(moon.clientProgramRequiresTaskCompilation(prepared), true);
     assert.equal(moon.clientProgramWithValuesRowLimit(prepared, 100), undefined);
@@ -59,7 +60,7 @@ for (const name of ['json', 'empty-json', 'parameters-json']) {
       storeAuthorityCid: cid('b'), now: () => '2026-10-14T00:00:00.000Z'});
     assert.equal(plan.results.length, 1);
     assert.deepEqual(plan.receiptEvidence.sourceEvidence, []);
-    const other = prepare(request);
+    const other = await prepare({...request, input: {...request.input}});
     assert.throws(() => checked(moon.clientProgramTaskStaticPlanView(
       other, compiled, 65536, 4096, 64)));
     const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared,

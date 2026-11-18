@@ -7,6 +7,17 @@ import {installNodeClientProgramPreparation} from './client-program-preparation.
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
 import {freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 
+// Test-only provenance for the same funded Request. The fixture transports
+// the manager's retained original; it never issues a replacement annotation
+// context or converts a prepared token into a proof.
+const preparationOriginals = new WeakMap();
+export function fundedAuthoringContextOriginalFixture(moon, prepared) {
+  const original = preparationOriginals.get(prepared);
+  assert.ok(original, 'The publication fixture requires its original funded preparation');
+  assert.strictEqual(original.moon, moon);
+  return original.manager.authoringContextOriginal(prepared, original.request);
+}
+
 // Existing caller tests use the actual Request/Resource owner and compiler.
 // Only the installation identity/current port is supplied by this fixture;
 // no shaped preparation, standalone Root or fallback compiler is admitted.
@@ -67,6 +78,7 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
     assert.equal(retained.has(prepared), true, 'Retire only the same retained caller alias');
     const kind = retained.get(prepared);
     retained.delete(prepared);
+    preparationOriginals.delete(prepared);
     if (kind === 'effect_free') prepare.retireOriginal(prepared);
   };
   const view = await ports.prepareOrdinarySourceManagedInstallation(originals, {
@@ -95,6 +107,9 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
       const original = await view.fundedPreparation(request, selected, verifier, signal);
       assert.equal(retained.has(original.prepared), false);
       retained.set(original.prepared, original.kind);
+      if (original.kind === 'effect_free') {
+        preparationOriginals.set(original.prepared, {moon, manager: view, request});
+      }
       return original;
     }});
   const close = async () => {
