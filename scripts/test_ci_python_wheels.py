@@ -199,6 +199,7 @@ class LinuxOrchestrationTests(unittest.TestCase):
                     patch.object(ci, 'open_duckdb_release', return_value=io.BytesIO(b'archive port')) as download, \
                     patch.object(ci, 'extract_duckdb', side_effect=extract), \
                     patch.object(ci, 'accept_submission_observation', side_effect=component), \
+                    patch.object(ci, 'select_release_version', return_value={'pythonVersion': '0.0.0.dev0'}), \
                     patch.object(ci, 'verify_built_cohort', side_effect=ReachedOriginalCohort):
                 with self.assertRaises(ReachedOriginalCohort):
                     ci.run_acceptance(destination)
