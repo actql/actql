@@ -41,6 +41,45 @@ fn submission_run_inspection_with_identity(
     @publication.PublicationContract,
   )?,
 ) -> Result[@host.ClientRunJournalInspection, Int] {
+  submission_run_row_original_with_identity(row, retained_identity).map(record => {
+    request: record.request,
+    definition: record.definition,
+    checkpoint: None,
+    task_materials_cid: record.task_materials_cid,
+  })
+}
+
+///|
+// Use the SAME complete original row validator. No second decode learns the
+// cancellation flag from an unvalidated or independently supplied summary.
+fn submission_cancellation_run_inspection(
+  row : @host.ClientJournalPhysicalRow,
+) -> Result[@host.ClientCancellationRunJournalInspection, Int] {
+  submission_run_row_original_with_identity(row, None).map(record => {
+    request: record.request,
+    definition: record.definition,
+    cancellation_requested: record.cancellation_requested,
+  })
+}
+
+///|
+fn submission_cancellation_inventory(
+  scan : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+) -> Result[Unit, Int] {
+  @host.inspect_client_cancellation_journal_inventory(
+    1024, scan, read, submission_cancellation_run_inspection, -31,
+  ).map(_ => ())
+}
+
+///|
+fn submission_run_row_original_with_identity(
+  row : @host.ClientJournalPhysicalRow,
+  retained_identity : (
+    @host.ClientRequestIdentity,
+    @publication.PublicationContract,
+  )?,
+) -> Result[@host.ClientRunJournalEncoding, Int] {
   let decoded = match retained_identity {
     None =>
       @host.decode_client_run_journal_row_with_observation_originals(row.body)
@@ -82,12 +121,7 @@ fn submission_run_inspection_with_identity(
     @host.read_client_run_policy_originals(wire) is Err(_) {
     return Err(-31)
   }
-  Ok({
-    request: record.request,
-    definition: record.definition,
-    checkpoint: None,
-    task_materials_cid: record.task_materials_cid,
-  })
+  Ok(record)
 }
 
 ///|
@@ -149,11 +183,7 @@ fn observe_submission_append(
       scan,
       read,
       submission_append_run_inspection,
-      () => {
-        @host.inspect_client_empty_cancellation_inventory(
-          1024, scan, read, -31, -42,
-        )
-      },
+      () => submission_cancellation_inventory(scan, read),
       -31,
     ) {
     Ok(_) => ()
@@ -288,13 +318,27 @@ pub fn validate_submission_append(
 ) -> Int {
   if selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
+    record.kind == 12 &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    configuration.host_current == Some(current) {
+    return sdk_unpublished_state_current(value, record, configuration, false)
+  }
+  if selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
+    record.kind == 10 &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    configuration.host_current == Some(current) {
+    return validate_cancellation_append(value, record, configuration)
+  }
+  if selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
     record.kind == 9 &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     configuration.host_current == Some(current) {
     return validate_submission_preparation_failure(value, record, configuration)
   }
   if selected(nonce).bind(value => value.submissions.get(handle))
-    is Some({ kind: 4 | 5 | 6 | 7 | 8, .. }) {
+    is Some({ kind: 4 | 5 | 6 | 7 | 8 | 11, .. }) {
     return validate_submission_lookup(nonce, handle, current)
   }
   guard selected(nonce) is Some(value) &&

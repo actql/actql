@@ -15,11 +15,19 @@ class OriginalLocalWork:
     This worker only calls the existing Owner-driven physical assembly once.
     """
 
-    def __init__(self, invoke: Callable[[], None]) -> None:
-        if not callable(invoke):
+    def __init__(self, invoke: Callable[[], None], *,
+                 on_exit: Callable[[OriginalLocalWork], None] | None = None,
+                 owner: object | None = None) -> None:
+        if not callable(invoke) or (on_exit is not None and not callable(on_exit)):
             raise ValueError('Invalid original Local physical invocation')
         self._original = self
         self._invoke = invoke
+        self._owner = owner
+        self._on_exit = on_exit
+        self._exit_error: BaseException | None = None
+        self._cleanup_error: BaseException | None = None
+        self._start_error: BaseException | None = None
+        self._creation_refused = False
         self._future: Future[None] = Future()
         self._thread = Thread(target=self._run, name='actql-local-original-work', daemon=False)
         self._invoked = False
@@ -35,19 +43,44 @@ class OriginalLocalWork:
         self._invoked = True
         # Mark the independent physical Future running before creating work;
         # cancellation of a loop wrapper cannot cancel this actual invocation.
-        if not self._future.set_running_or_notify_cancel():
-            raise RuntimeError('Original Local physical invocation is unavailable')
         try:
+            if not self._future.set_running_or_notify_cancel():
+                raise RuntimeError('Original Local physical invocation is unavailable')
             self._thread.start()
         except BaseException as error:
-            self._future.set_exception(error)
+            self._start_error = error
+            # For this owned fresh CPython Thread, a RuntimeError with no
+            # native identity is a rejected creation. Other failures may have
+            # created a child: keep its actual Future and custody untouched.
+            if (type(error) is RuntimeError and self._thread.ident is None
+                    and not self._thread.is_alive()):
+                self._creation_refused = True
+                try:
+                    if self._on_exit is not None:
+                        self._on_exit(self)
+                except BaseException as cleanup:
+                    self._exit_error = cleanup
+                if not self._future.done():
+                    self._future.set_exception(error)
             raise
 
     def _run(self) -> None:
+        failure: BaseException | None = None
         try:
             self._invoke()
         except BaseException as error:
-            self._future.set_exception(error)
+            failure = error
+        try:
+            if self._on_exit is not None:
+                self._on_exit(self)
+        except BaseException as error:
+            # Keep the original physical cause separate from scope retirement.
+            # Neither formatting nor replacement of either error is necessary.
+            self._exit_error = error
+            if failure is None:
+                failure = error
+        if failure is not None:
+            self._future.set_exception(failure)
         else:
             self._future.set_result(None)
 
@@ -61,6 +94,8 @@ class OriginalLocalWork:
         if not self._invoked:
             raise RuntimeError('Original Local physical invocation has not started')
         await self.wait_stopped()
+        if self._creation_refused and self._start_error is not None:
+            raise self._start_error
         # Observe the independent physical outcome only after actual stop.
         # No loop-owned Future can acquire cancellation custody or retain an
         # unobserved exception when the original awaiting coroutine disappears.

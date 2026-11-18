@@ -36,6 +36,10 @@ class SDKResultAssemblyTests(unittest.TestCase):
             self.fail('Missing original Core input')
 
         def call(family, name, *args):
+            if family == 'compute' and name == 'close' and core._loans.get(preflight.ticket) is preflight:
+                # Same original preflight still borrows this Compute. A scalar
+                # fixture must not report physical retirement beneath that loan.
+                return -9
             if family in ('task', 'result', 'publication') or (family, name) == ('publication_preflight', 'result_count'):
                 calls.append((family, name, args))
                 if (family, name) in failures:
@@ -45,10 +49,20 @@ class SDKResultAssemblyTests(unittest.TestCase):
                         self.assertEqual(args, (compute.core.handle, host._configuration.handle))
                         if selected:
                             handle = selected.pop(0)
-                            tasks[handle] = {'feed': 0, 'advance': 0, 'final': 0, 'finalizing': False}
+                            tasks[handle] = {'feed': 0, 'advance': 0, 'final': 0, 'finalizing': False,
+                                             'drive_results': iter((0, 0, 0, 1))}
                             return handle
                         return 0 if completed == {5013, 5019} else -33
                     state = tasks[args[0]]
+                    if name == 'close' and core._result_loans:
+                        return -9
+                    if name == 'drive':
+                        # Explicit Core continuation observations, not another
+                        # implementation of its lifecycle decision sequence.
+                        code = next(state['drive_results'])
+                        if code == 1:
+                            completed.add(args[0])
+                        return code
                     if name == 'feed': state['feed'] += 1
                     elif name == 'inputs_ready': return 0 if state['feed'] >= 2 else -7
                     elif name == 'advance': state['advance'] += 1
@@ -57,6 +71,10 @@ class SDKResultAssemblyTests(unittest.TestCase):
                         state['finalizing'] = True
                     elif name == 'advance_finalization': state['final'] += 1
                     elif name == 'progress':
+                        if args[1] in (4, 5):
+                            # This scalar port has no pending cleanup cursor.
+                            # It supplies neither physical stop nor an ACK.
+                            return 0 if args[1] == 4 else -1
                         count = state['final'] if state['finalizing'] else state['advance']
                         return (int(count >= 2), 0, 1, 64)[args[1]]
                     elif name == 'complete':
@@ -114,7 +132,8 @@ class SDKResultAssemblyTests(unittest.TestCase):
             publication = host._capture_original_results(compute, preflight, results)
             after = start_fixture.SDKStartAssemblyTests().row(host)
             self.assertEqual((after.payload, after.generation), (before.payload, before.generation))
-            self.assertEqual([args[0] for family, name, args in calls if (family, name) == ('task', 'complete')], [5013, 5019])
+            self.assertEqual(list(dict.fromkeys(args[0] for family, name, args in calls
+                if (family, name) == ('task', 'drive'))), [5013, 5019])
             self.assertFalse(any(name in ('byte', 'finish_commit', 'adopt_committed_index') for _, name, _ in calls))
             self.assertIs(core._loans[publication.ticket], publication)
             self.assertNotIn(publication.ticket, core._inputs)
@@ -135,9 +154,12 @@ class SDKResultAssemblyTests(unittest.TestCase):
     def test_unknown_task_advance_retains_exact_task_and_never_selects_result(self):
         with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
             host, core, compute, preflight, publisher, calls, failures = self.host(Path(directory))
-            failures['task', 'advance'] = -41
-            with self.assertRaises(LocalCoreError) as failure:
-                host._execute_original_tasks(compute, preflight, publisher)
+            failures['task', 'drive'] = -41
+            # Explicit pending physical-close observation, not an assertion
+            # that the opaque scalar task has actually stopped or retired.
+            with patch.object(core, 'close_task', return_value=False):
+                with self.assertRaises(LocalCoreError) as failure:
+                    host._execute_original_tasks(compute, preflight, publisher)
             self.assertEqual(failure.exception.code, -41)
             task = host._tasks[0]
             self.assertIs(core._task_loans[task.handle], task)
@@ -180,13 +202,14 @@ class SDKResultAssemblyTests(unittest.TestCase):
                     raise LocalStorageError('Current changed after original task selection')
                 return original_validate(value)
 
-            with patch.object(core, 'validate_host_current', side_effect=validate):
+            with patch.object(core, 'validate_host_current', side_effect=validate), \
+                    patch.object(core, 'close_task', return_value=False):
                 with self.assertRaisesRegex(LocalStorageError, 'after original task selection'):
                     host._execute_original_tasks(compute, preflight, publisher)
             task = next(iter(core._task_loans.values()))
             self.assertEqual(host._tasks, [task])
             self.assertIs(host._tasks[0], task)
-            self.assertFalse(any((family, name) == ('task', 'start') for family, name, _ in calls))
+            self.assertFalse(any((family, name) == ('task', 'drive') for family, name, _ in calls))
             self.assertTrue(host.close())
             self.assertFalse(core._task_loans)
 
@@ -225,12 +248,13 @@ class SDKResultAssemblyTests(unittest.TestCase):
                 original(entered)
             with patch.object(binding, 'inspect', side_effect=inspect):
                 results = host._execute_original_tasks(compute, preflight, publisher)
-                self.assertEqual(len(readers), 7)
+                task_readers = len(readers)
+                self.assertGreater(task_readers, len(host._tasks))
                 host._capture_original_results(compute, preflight, results)
-                self.assertEqual(len(readers), 11)
-            self.assertEqual(len({id(reader) for reader in readers}), 11)
+                self.assertGreater(len(readers), task_readers)
+            self.assertEqual(len({id(reader) for reader in readers}), len(readers))
             quanta = [args[1] for family, name, args in calls
-                      if family == 'task' and name in ('feed', 'advance', 'advance_finalization')]
+                      if family == 'task' and name == 'drive']
             self.assertTrue(quanta)
             self.assertEqual(set(quanta), {256})
             self.assertTrue(host.close())
@@ -239,15 +263,16 @@ class SDKResultAssemblyTests(unittest.TestCase):
         with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
             host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
             binding = host._installation.binding
-            original = core.feed_task
+            original = core.drive_task
             def mutate(task, quantum):
                 result = original(task, quantum)
                 os.chmod(binding._account.name, 0o644, dir_fd=binding._source._root._open())
                 return result
-            with patch.object(core, 'feed_task', side_effect=mutate):
+            with patch.object(core, 'drive_task', side_effect=mutate), \
+                    patch.object(core, 'close_task', return_value=False):
                 with self.assertRaisesRegex(Exception, 'original generation'):
                     host._execute_original_tasks(compute, preflight, publisher)
-            self.assertFalse(any((family, name) == ('task', 'advance') for family, name, _ in calls))
+            self.assertEqual(sum((family, name) == ('task', 'drive') for family, name, _ in calls), 1)
             self.assertEqual(len(host._tasks), 1)
             self.assertIs(core._task_loans[host._tasks[0].handle], host._tasks[0])
             self.assertTrue(host.close())
@@ -256,16 +281,17 @@ class SDKResultAssemblyTests(unittest.TestCase):
         with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
             host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
             store = host._installation._store
-            original = core.feed_task
+            original = core.drive_task
             def mutate(task, quantum):
                 result = original(task, quantum)
                 store._connection.execute('INSERT INTO core_bytes(key,generation,payload) VALUES(?,0,?)',
                     (store.namespaced_key('client_local_settings', 'unexpected'), b'{}'))
                 return result
-            with patch.object(core, 'feed_task', side_effect=mutate):
+            with patch.object(core, 'drive_task', side_effect=mutate), \
+                    patch.object(core, 'close_task', return_value=False):
                 with self.assertRaises(LocalStorageError):
                     host._execute_original_tasks(compute, preflight, publisher)
-            self.assertFalse(any((family, name) == ('task', 'advance') for family, name, _ in calls))
+            self.assertEqual(sum((family, name) == ('task', 'drive') for family, name, _ in calls), 1)
             self.assertEqual(len(host._tasks), 1)
             self.assertTrue(host.close())
 

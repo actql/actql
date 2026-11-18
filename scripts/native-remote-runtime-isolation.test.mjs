@@ -62,7 +62,15 @@ test('macOS scheduling retains exact platform steps in two slots and every origi
     for(const expected of expectedSteps) {
       const found=actual.filter(step=>step.name===expected.name);assert.equal(found.length,1);
       assert.equal(createHash('sha256').update(found[0].run).digest('hex'),expected.commandSha256);
-      assert.deepEqual(found[0].env??{},expected.env);
+      const environment={...found[0].env};
+      if(family==='native'&&found[0].id==='native-http') {
+        const release=workflow.jobs['native-http'].steps.find(step=>
+          step.run?.includes('node scripts/native-core-source-release.mjs'));
+        assert.equal(environment.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION,
+          release.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION);
+        delete environment.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION;
+      }
+      assert.deepEqual(environment,expected.env);
     }
   }
   // U2's explicit platform transfer retains the complete original Linux

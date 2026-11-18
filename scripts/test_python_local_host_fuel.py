@@ -1,11 +1,13 @@
 """Selected real instruction exhaustion at the Host bridge; no Native ACK."""
 from threading import RLock
+from threading import Event
 import unittest
 
 import wasmtime
 
 from actql_sdk._local_core import (LocalCore, _Output, _NORMAL_HOST_BOOTSTRAP_FUEL,
                                    _NORMAL_HOST_OPERATION_FUEL, _NORMAL_HOST_CLEANUP_FUEL)
+from actql_sdk._local_work import OriginalLocalWork
 
 
 class LocalHostFuelTests(unittest.TestCase):
@@ -103,6 +105,61 @@ class LocalHostFuelTests(unittest.TestCase):
         self.assertEqual(core._store.get_fuel(), remaining)
         self.assertFalse(core._closed)
         self.assertIsNone(core._host_fuel_phase)
+
+    def test_live_worker_keeps_actual_store_fuel_after_caller_cancellation(self):
+        import asyncio
+        core = self.core()
+        entered, resume = Event(), Event()
+        observations = []
+
+        def invoke():
+            with core._lock:
+                observations.append(core._call('probe', 'value'))
+            entered.set()
+            if not resume.wait(2):
+                raise TimeoutError('Original worker was not resumed')
+            with core._lock:
+                observations.append(core._call('probe', 'value'))
+
+        work = OriginalLocalWork(invoke, on_exit=core._finish_work_operation)
+        with self.assertRaises(asyncio.CancelledError):
+            with core._host_operation():
+                original = core._host_operation_id
+                core._retain_work_operation(work)
+                work.start()
+                self.assertTrue(entered.wait(1))
+                remaining = core._store.get_fuel()
+                raise asyncio.CancelledError()
+        try:
+            self.assertEqual(core._host_operation_id, original)
+            self.assertFalse(work.stopped)
+            with self.assertRaises(RuntimeError):
+                with core._host_operation():
+                    self.fail('A live worker received fresh instruction fuel')
+            self.assertEqual(core._store.get_fuel(), remaining)
+            import copy
+            with self.assertRaises(ValueError):
+                with core._borrow_work_operation(copy.copy(work)):
+                    self.fail('A copied worker borrowed original control custody')
+            with self.assertRaises(RuntimeError):
+                with core._borrow_work_operation(OriginalLocalWork(lambda: None)):
+                    self.fail('A different original worker borrowed this operation')
+            self.assertEqual(core._store.get_fuel(), remaining)
+            with core._borrow_work_operation(work) as borrowed:
+                self.assertTrue(borrowed)
+                self.assertEqual(core._host_operation_id, original)
+                self.assertEqual(core._call('probe', 'value'), 7)
+            control_remaining = core._store.get_fuel()
+            self.assertLess(control_remaining, remaining)
+            resume.set()
+            asyncio.run(work.wait())
+            self.assertEqual(observations, [7, 7])
+            self.assertLess(core._store.get_fuel(), control_remaining)
+            self.assertEqual(core._host_operation_id, 0)
+            self.assertIsNone(core._host_fuel_phase)
+        finally:
+            resume.set()
+            asyncio.run(work.wait_stopped())
 
     def test_retired_store_does_not_block_remaining_original_physical_cleanup(self):
         core = self.core()

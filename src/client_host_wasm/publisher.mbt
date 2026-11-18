@@ -306,6 +306,28 @@ pub fn authorize_publisher(
     }
     _ => return -3
   }
+  if stage != 2 {
+    guard value.computes.get(parent.compute) is Some(compute) &&
+      stored_compute_original_run(value, compute) is Some(original_run) &&
+      value.run_configurations.get(original_run.configuration)
+      is Some(original_configuration) else {
+      return -2
+    }
+    if original_configuration.sdk is Some(_) {
+      guard original_run.outcome is Some(Ok(plan)) &&
+        compute.origin is SourceFree(_, start) &&
+        value.physical_starts.get(start) is Some({ sdk_step: Some(step), .. }) else {
+        return -2
+      }
+      // Request and final Commit reobserve the SAME saved start claim. The
+      // physical Host invokes Commit within its original write transaction.
+      // ReturnCommitted and retained lookup cannot become a new write grant.
+      let code = validate_sdk_start_claim(value, step, plan)
+      if code != 0 {
+        return code
+      }
+    }
+  }
   child.configuration = current_configuration
   child.unknown = false
   let (request, attempt) = @local_run.local_publication_preflight_contracts(

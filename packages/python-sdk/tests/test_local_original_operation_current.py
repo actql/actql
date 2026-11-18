@@ -1,9 +1,12 @@
 """Same-operation file/SQLite custody counters; explicit Core port, not authority."""
 from types import SimpleNamespace
+import asyncio
+from threading import Event
 import unittest
 
 from actql_sdk._local_core import _NORMAL_HOST_OPERATION_FUEL
 import test_local_host_binding as original_binding
+from actql_sdk._local_work import OriginalLocalWork
 
 
 class OriginalOperationCurrentTests(unittest.TestCase):
@@ -20,6 +23,81 @@ class OriginalOperationCurrentTests(unittest.TestCase):
         core._store = SimpleNamespace(set_fuel=fuel.append)
         calls.clear()
         return store, core, calls, binding, fuel
+
+    def test_cancelled_wait_retains_same_operation_until_original_worker_exits(self):
+        _, core, _, binding, fuel = self.fixture()
+        entered, resume, inspected = Event(), Event(), Event()
+        observed = []
+
+        def invoke():
+            entered.set()
+            if not resume.wait(2):
+                raise TimeoutError('Original worker was not resumed')
+            with core._lock:
+                binding.inspect(lambda current: observed.append((
+                    core._host_operation_id, current, core._journal_callbacks(current.ticket).reader)))
+            inspected.set()
+
+        async def submit_and_cancel_wait():
+            with core._host_operation():
+                original = core._host_operation_id
+                work = OriginalLocalWork(invoke, on_exit=core._finish_work_operation)
+                core._retain_work_operation(work)
+                work.start()
+                self.assertTrue(entered.wait(1))
+                waiter = asyncio.create_task(work.wait())
+                await asyncio.sleep(0)
+                waiter.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await waiter
+            return original, work
+
+        original, work = asyncio.run(submit_and_cancel_wait())
+        try:
+            self.assertFalse(work.stopped)
+            self.assertEqual(core._host_operation_id, original)
+            with self.assertRaises(RuntimeError):
+                core._finish_work_operation(work)
+            self.assertEqual(core._host_operation_id, original)
+            with self.assertRaises(RuntimeError):
+                with core._host_operation():
+                    self.fail('A live original worker cannot obtain replacement fuel')
+            resume.set()
+            asyncio.run(work.wait())
+            self.assertTrue(inspected.is_set())
+            self.assertEqual(len(observed), 1)
+            self.assertEqual(observed[0][:2], (original, binding._current))
+            with self.assertRaises(ValueError):
+                observed[0][2].current()
+            self.assertEqual(core._host_operation_id, 0)
+            self.assertIsNone(core._host_fuel_phase)
+            self.assertEqual(fuel, [_NORMAL_HOST_OPERATION_FUEL])
+        finally:
+            resume.set()
+            asyncio.run(work.wait_stopped())
+
+    def test_worker_completion_cannot_end_a_later_outer_operation(self):
+        _, core, _, _, fuel = self.fixture()
+        original_context = core._host_operation()
+        original_context.__enter__()
+        try:
+            original = core._host_operation_id
+            work = OriginalLocalWork(lambda: None, on_exit=core._finish_work_operation)
+            core._retain_work_operation(work)
+            work.start()
+            asyncio.run(work.wait())
+            self.assertEqual(core._host_operation_id, 0)
+            with core._host_operation():
+                later = core._host_operation_id
+                self.assertGreater(later, original)
+                later_context = core._host_operation_scope
+                original_context.__exit__(None, None, None)
+                self.assertEqual(core._host_operation_id, later)
+                self.assertIs(core._host_operation_scope, later_context)
+            self.assertEqual(core._host_operation_id, 0)
+        finally:
+            original_context.__exit__(None, None, None)
+        self.assertEqual(fuel, [_NORMAL_HOST_OPERATION_FUEL] * 2)
 
     def test_same_operation_cannot_hide_new_adoption_member_between_original_readers(self):
         from actql_sdk._local_storage import LocalStorageError

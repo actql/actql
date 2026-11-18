@@ -3973,7 +3973,7 @@
           ]
         }
       ],
-      "sha256": "ecce51525adf268f732b94cb32e9c501492d24867fe22ae172af280bd3129404",
+      "sha256": "38b29d426ec68b9e90333271034875596302fafc5c5f3da60473bd49f000877c",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -10364,5 +10364,5 @@
       ]
     }
   ],
-  "syntaxProjectionSha256": "638ecbcea1895befb992205a63423c5c396486d20dd4f0d4f67a215bc8566738"
+  "syntaxProjectionSha256": "ab5d1698ecaa36dd7e2a2bc7c361a357e763e96c5f944d8071e7d29bcfb3cf9a"
 }

@@ -12,7 +12,7 @@ from importlib import import_module
 import secrets
 from struct import pack_into
 import sys
-from threading import RLock
+from threading import RLock, current_thread
 from types import MethodType
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 from ._local_journal_port import _JournalCallbacks, _JournalRowTransfer
 from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
+from ._local_work import OriginalLocalWork
 
 _NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
 _NORMAL_HOST_OPERATION_FUEL = 32_000_000_000
@@ -586,6 +587,8 @@ class LocalCore:
         # Run identity, submitted continuation or independent fuel allowance.
         self._host_operation_sequence = 0
         self._host_operation_id = 0
+        self._host_operation_scope: object | None = None
+        self._host_retained_work: tuple[OriginalLocalWork, object, int] | None = None
         self._host_cleanup_depth = 0
         self._engine: Any = None
         self._engine_configuration: Any = None
@@ -1120,12 +1123,84 @@ class LocalCore:
             self._host_operation_sequence = sequence + 1
             self._host_operation_id = sequence + 1
             self._host_fuel_phase = 'operation'
+            scope = object()
+            self._host_operation_scope = scope
         try:
             yield
         finally:
             with self._lock:
+                retained = getattr(self, '_host_retained_work', None)
+                if (self._host_operation_scope is scope and
+                        (retained is None or retained[1] is not scope)):
+                    self._host_operation_id = 0
+                    self._host_fuel_phase = None
+                    self._host_operation_scope = None
+
+    def _retain_work_operation(self, work: OriginalLocalWork) -> None:
+        """Hand the current finite allowance to the same physical invocation.
+
+        This is lifetime custody only. It issues no Run permission or fresh fuel
+        and does not interpret coroutine cancellation as physical stop.
+        """
+        work._nominal()
+        with self._lock:
+            ordinary = getattr(self, '_ordinary_host', False)
+            scope = getattr(self, '_host_operation_scope', None) if ordinary else work
+            if (scope is None or ordinary and (self._host_fuel_phase != 'operation' or
+                    self._host_operation_id <= 0) or self._invoking or
+                    getattr(self, '_host_retained_work', None) is not None or
+                    work._invoked or work._on_exit != self._finish_work_operation):
+                raise RuntimeError('Original Host operation cannot transfer its physical custody')
+            self._host_retained_work = (work, scope, self._host_operation_id if ordinary else 0)
+
+    @contextmanager
+    def _borrow_work_operation(self, work: OriginalLocalWork) -> Iterator[bool]:
+        """Serialize a same-original control call inside the retained allowance.
+
+        This does not authorize a Run operation. Its existing Owner still
+        observes the complete current journal and original Account. A worker
+        which has already relinquished the scope must actually exit before
+        the caller can begin a separate operation.
+        """
+        work._nominal()
+        with self._lock:
+            retained = getattr(self, '_host_retained_work', None)
+            if retained is not None:
+                ordinary = getattr(self, '_ordinary_host', False)
+                if (retained[0] is not work or self._invoking or self._closed or
+                        self._retired or self._closing or ordinary and (
+                            retained[1] is not self._host_operation_scope or
+                            retained[2] != self._host_operation_id or
+                            self._host_fuel_phase != 'operation')):
+                    raise RuntimeError('Original Host control cannot borrow this physical operation')
+                yield True
+                return
+        # Never keep the Core lock while the caller waits for physical exit.
+        yield False
+
+    def _finish_work_operation(self, work: OriginalLocalWork) -> None:
+        """Return this original allowance on worker exit or rejected creation.
+
+        A trusted no-child constructor refusal returns operation custody only;
+        it is not a task stop/cleanup acknowledgment and never refreshes fuel.
+        """
+        work._nominal()
+        with self._lock:
+            ordinary = getattr(self, '_ordinary_host', False)
+            retained = getattr(self, '_host_retained_work', None)
+            if (retained is None or retained[0] is not work or
+                    ordinary and (retained[1] is not self._host_operation_scope or
+                    retained[2] != self._host_operation_id or
+                    self._host_fuel_phase != 'operation') or self._invoking or
+                    not work._invoked or (work._thread is not current_thread() and not (
+                        work._creation_refused and work._thread.ident is None
+                        and not work._thread.is_alive()))):
+                raise RuntimeError('Original Host physical operation custody changed')
+            if ordinary:
                 self._host_operation_id = 0
                 self._host_fuel_phase = None
+                self._host_operation_scope = None
+            self._host_retained_work = None
 
     @contextmanager
     def _host_cleanup(self) -> Iterator[None]:
@@ -2123,15 +2198,15 @@ class LocalCore:
         with self._lock:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
-                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6, 7, 8)):
+                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1048576 if kind in (3, 4, 5, 6, 7, 8) else 4096
-            family = ('submission_append' if kind == 3 else
-                      'submission_lookup' if kind in (4, 5, 6, 7, 8) else 'submission')
+            limit = 1048576 if kind in (3, 4, 5, 6, 7, 8, 10, 11, 12) else 4096
+            family = ('run_state_append' if kind == 12 else 'cancellation_append' if kind == 10 else 'submission_append' if kind == 3 else
+                      'submission_lookup' if kind in (4, 5, 6, 7, 8, 11) else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
@@ -2353,6 +2428,101 @@ class LocalCore:
 
     def close_submission_append(self, value: _Output) -> bool:
         return self._close_output(value, 'submission_append', 'close', abi_family='submission')
+
+    def confirm_cancellation_append(self, value: _Output, current: _Output, *,
+                                    allow_pending: bool = False) -> bool:
+        """Observe the SAME original operation; never prepare or repeat writes.
+
+        Core's second produce for this closed kind only reads retained history.
+        Missing history is pending, not nonexecution or permission to retry.
+        """
+        with self._lock:
+            self._owned_output(value, 'cancellation_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            if code == -33 and allow_pending:
+                return False
+            self._check('confirm_cancellation_append', code)
+            return True
+
+    def produce_cancellation_append(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'cancellation_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('produce_cancellation_append', code)
+            self.validate_cancellation_append(value, current)
+
+    def validate_cancellation_append(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'cancellation_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_cancellation_append', code)
+
+    def read_cancellation_append(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self.validate_cancellation_append(value, current)
+            result = self._read_output(value, 'cancellation_append', 'length', abi_family='submission')
+            self.validate_cancellation_append(value, current)
+            return result
+
+    def close_cancellation_append(self, value: _Output) -> bool:
+        return self._close_output(value, 'cancellation_append', 'close', abi_family='submission')
+
+    def produce_unpublished_state(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'run_state_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('produce_unpublished_state', code)
+            self.validate_unpublished_state(value, current)
+
+    def validate_unpublished_state(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'run_state_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_unpublished_state', code)
+
+    def read_unpublished_state(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self.validate_unpublished_state(value, current)
+            raw = self._read_output(value, 'run_state_append', 'length', abi_family='submission')
+            self.validate_unpublished_state(value, current)
+            return raw
+
+    def confirm_unpublished_state(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'run_state_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('confirm_unpublished_state', code)
+
+    def read_unpublished_state_candidate(self, value: _Output, current: _Output) -> bytes:
+        """Original bounded transport only; saved-row confirmation is separate."""
+        with self._lock:
+            self._owned_output(value, 'run_state_append')
+            callbacks = self._host_current_ready(current)
+            raw = self._read_output(value, 'run_state_append', 'length', abi_family='submission')
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            return raw
+
+    def close_unpublished_state(self, value: _Output) -> bool:
+        return self._close_output(value, 'run_state_append', 'close', abi_family='submission')
 
     def produce_submission_lookup(self, value: _Output, current: _Output) -> None:
         """Read only the original history in the same current Store snapshot."""
@@ -4265,6 +4435,25 @@ class LocalCore:
         self._task_operation(value, 'start')
         self._task_operation(value, 'started')
 
+    def drive_task(self, value: _Task, quantum: int) -> bool:
+        """Advance the same Core-owned task; never choose its lifecycle phase."""
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local task quantum')
+        with self._lock:
+            self._owned_task(value)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            code = self._call('task', 'drive', value.handle, quantum)
+            if code in (0, 1):
+                return code == 1
+            # This physical profile has no pause/settlement handler. Preserve
+            # its explicit refusal and original custody; never spin or resume.
+            if code in (2, 3):
+                raise LocalCoreError('original_task_waiting' if code == 2 else
+                    'original_task_finalization_waiting', -7)
+            self._check('task_drive', code if code < 0 else -33)
+            raise AssertionError('Unreachable original task continuation')
+
     def _task_operation(self, value: _Task, operation: str, *arguments: int) -> None:
         with self._lock:
             self._owned_task(value)
@@ -4309,6 +4498,15 @@ class LocalCore:
             self._check('close_task', code)
             del self._task_loans[value.handle]
             return True
+
+    def task_cleanup_continuation(self, value: _Task) -> int:
+        """Observe only this original provider's bounded retirement cursor."""
+        with self._lock:
+            self._owned_task(value)
+            cursor = self._call('task', 'progress', value.handle, 5)
+            if type(cursor) is not int or not -1 <= cursor <= 2**63 - 1:
+                raise LocalCoreError('task_cleanup_continuation', cursor if type(cursor) is int else -33)
+            return cursor
 
     def reserve_native_command(self, attempt: _NativeAttempt, kind: int, account: _Input, *,
                                cleanup: Callable[[], bool]) -> _Output:

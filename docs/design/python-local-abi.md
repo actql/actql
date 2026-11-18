@@ -80,6 +80,21 @@ same submitted ready row as its original Run admission. The accepted Run/control
 revision remains separate. Historical marker absence remains unavailable; it is
 never interpreted as a new zero counter during lookup or restoration.
 
+The same Common saved-state Owner also admits unpublished metadata. Its private
+envelope retains `manifest: null` instead of fabricating a successful Manifest;
+the existing succeeded envelope and all its bytes remain unchanged. The closed
+RunState still carries its real observation revision, original Run identity and
+bounded unavailable/not-published Result entries. A Manifest getter therefore
+returns an optional original, and Native Result/availability consumers require
+the actual Manifest before reading Store-backed Result material.
+
+Unpublished metadata uses the same original-row CAS, exact successor readback,
+clock-independent observation key and terminal-outcome immutability. These
+constructors validate DATA; they do not establish cancellation, physical stop or
+cleanup. A live caller must obtain those observations from its same managed
+execution and physical Owners before selecting a terminal state. Restoring the
+saved metadata neither reconstructs executable work nor issues a replacement Run.
+
 The Wasm SDK observation port uses the original complete stored publication,
 current Run-read authority and current Sealed payload/reader bindings. The
 retention Owner independently selects availability. These observations create no
@@ -3269,6 +3284,104 @@ discarding a borrower. Retirement still requires the original stop and cleanup
 acknowledgments. Explicit diagnostic factory limits remain independent.
 
 ### Ordinary Host operation fuel
+
+#### Original cancellation and unpublished state observations
+
+Cancellation append and lookup share the existing Common journal encoding,
+complete census and original Run controller with Native. Python supplies the
+actual SQLite snapshot and atomic write observations. It does not select a
+cancellation outcome, reinterpret an uncertain commit as failure, or issue a
+replacement Run. A lost commit reply retains the same candidate and original
+cause for exact successor readback; lookup never repeats that write.
+
+An unpublished RunState uses the existing Common observation Owner with no
+Manifest. Its observation revision and saved control revision are independent.
+The physical publication observation retains both present rows and confirmed
+absence through the same current snapshot. Actual execution retirement comes
+from the original CapturedDAG and its child cleanup, never an empty Python
+worker list. A saved cancellation may become terminal only after those actual
+stop and retirement observations. The completed publication path retains its
+original Manifest, bytes and permissions.
+
+The state candidate remains retained until the original metadata CAS has been
+read back and both its projection and input have retired. Metadata confirmation
+is not physical execution or business acknowledgment. A partial input close
+keeps the same original input after its output has retired; a copied output
+cannot complete that cleanup. An uncertain write cannot be replaced by a fresh
+state preparation. Cold status reads only the saved originals, with no prepare,
+lowering, dispatch or authorization renewal.
+
+Managed task custody records successful settlement only after the original
+operation returns success. Later close still observes actual physical stop and
+the original cleanup port, but does not repeat settlement after that execution
+has already retired. Failed settlement retains its original task and first
+cleanup issue; completed DATA alone is neither stop nor cleanup acknowledgment.
+
+The original publisher Request and final Commit stages reobserve the same saved
+SDK start claim. Final validation runs in the existing `BEGIN IMMEDIATE` write
+transaction, through that transaction's original namespace reader. The Core and
+Store locks span projection, final current/claim validation and physical COMMIT;
+another SQLite writer cannot change the saved claim between validation and that
+commit. Pure publication projections do not acquire a hidden journal reader.
+ReturnCommitted and original pending-confirmation lookup retain their separate
+read path and cannot authorize a replacement write.
+
+After a post-task refusal, the worker seals its same Compute and uses the same
+physical publication-child close sequence as whole-Host cleanup. Selection uses
+the original Run/publication objects, never equal serialized DATA. Result and
+task loans retire only after their actual children return. An already-begun
+publication write instead keeps its original Compute, projection, publisher and
+first failure for lookup; cleanup does not turn uncertainty into a new write,
+false failure or acknowledgment.
+
+An admitted background invocation retains its original operation allowance and
+observation generation after the submitting coroutine returns or is cancelled.
+Same-Run control calls borrow that exact allowance under the same Core lock;
+they do not start a replacement operation or replenish fuel. Nominal worker
+custody and the independently retained original Run reference locate this path.
+The existing Account and complete journal validators still authorize each call.
+
+If the trusted fresh CPython thread constructor rejects creation before any
+child identity exists, the same worker returns only its retained operation
+scope. It preserves the original startup failure and does not refill fuel or
+acknowledge task cleanup. A failed atomic handoff removes its uninvoked Host
+entry. If a child exists, or creation is uncertain, the same physical Future,
+Core and allowance remain retained; a caller-visible startup error does not
+prevent an already-admitted Run from executing. Actual worker exit still
+returns that custody, and no startup path retries or issues another Run.
+
+Managed task driving returns its physical reader and Core lock after each bounded
+quantum. A saved cancellation invalidates the original start claim before any
+later normal quantum. The worker retires the same task operations on refusal;
+physical stop, original execution settlement and cleanup remain separate checks.
+Only an advancing original finite cleanup cursor permits further local cleanup
+steps. An external or unchanged pending cursor retains the original task without
+spinning, replacing the primary cause or acquiring another operation allowance.
+
+#### Common-owned bounded task driving
+
+The private ABI 88 `actql_task_drive` entry derives one next action from the
+existing retained managed task. It reuses the original activation, input feed,
+execution advance, finalization and completion operations. There is no second
+phase variable, scheduler, task Owner or instruction allowance. One call performs
+at most one bounded work action; startup and phase-entry checks do not run a
+second work quantum. Completed output stays on the same task until its original
+Result and cleanup loans retire.
+
+Python asks for that continuation under a fresh original reader and returns the
+reader and Core lock before asking again. It no longer chooses the lifecycle
+sequence. Waiting and settlement remain on their original Common progress record.
+The scalar result exposes the physical pause boundary; this Python profile keeps
+its explicit unavailable-port refusal instead of spinning, inventing a resume or
+publishing a Run outcome. Closing, cancellation and failed retirement keep the
+same task, first failure, finite operation fuel and physical cleanup duties.
+
+Native continues through its existing Common guarded runner. Node's asynchronous
+pause, snapshot and carrier callbacks remain distinct physical integration points;
+the Wasm entry is not a replacement Node scheduler or a requirement to execute
+Native through Wasm. The private signature/version change requires matching
+generated Python/C declarations and an actual matching Core. Package versions,
+Client wire fields and the frozen excluded Rust projection are unchanged.
 
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
 allowance for initialization and bootstrap together. Each subsequent admitted

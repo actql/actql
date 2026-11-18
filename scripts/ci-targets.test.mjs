@@ -1431,8 +1431,10 @@ test('large CI plans launch both original portable Core step command sequences',
     fs.appendFileSync(process.env.CALLS, JSON.stringify({
       command: require('node:path').basename(process.argv[1]), args: process.argv.slice(2),
       revision: plan.sourceRevision, paths: plan.selection.paths.length}) + '\\n');\n`;
+  const recordingPort = recorder + `
+    if (process.env.FAIL_CASE && process.argv.at(-1) === process.env.FAIL_CASE) process.exit(23);\n`;
   for (const command of ['moon', 'node']) {
-    writeFileSync(join(root, 'bin', command), recorder, {mode: 0o755});
+    writeFileSync(join(root, 'bin', command), recordingPort, {mode: 0o755});
   }
   writeFileSync(join(root, 'bin/getconf'), '#!/bin/sh\nprintf "2\\n"\n', {mode: 0o755});
   const step = jobs['core-common'].steps.find(step => step.name === 'Test common core');
@@ -1448,7 +1450,24 @@ test('large CI plans launch both original portable Core step command sequences',
     assert.equal(child.status, 0, child.stderr);
     const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
     assert.deepEqual(observed[0].args, ['test', '--target', target, '--deny-warn', '-j', '2']);
-    assert.deepEqual(observed.map(entry => entry.command), target === 'js' ? ['moon'] : ['moon', 'moon', 'node', 'node']);
+    assert.deepEqual(observed.map(entry => entry.command), target === 'js' ? ['moon'] : ['moon', 'moon', 'node', 'node', 'node']);
+    if (target === 'wasm') {
+      assert.deepEqual(observed[1].args, ['test', '--target', 'wasm', '--release', '--build-only',
+        '--deny-warn', '-j', '2', 'src/client_host_wasm', '--filter', '*exported validation reaches*']);
+      const requiredCases = ['saved_lookup_validation_dispatch_wbtest.mbt',
+        'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt'];
+      assert.deepEqual(observed.slice(2).map(entry => entry.args), requiredCases.map(name => [
+        'scripts/test-python-local-metadata-wasm.mjs',
+        '_build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm',
+        '_build/wasm/release/test/client_host_wasm/__whitebox_test_info.json', name]));
+      const failedCalls = join(root, 'wasm-failed.jsonl');
+      const failed = spawnSync('bash', ['-eo', 'pipefail', scriptPath], {encoding: 'utf8',
+        env: {...process.env, CI_PLAN: '', CI_PLAN_PATH: join(root, 'plan.json'),
+          PATH: `${join(root, 'bin')}:/usr/bin:/bin`, CALLS: failedCalls,
+          FAIL_CASE: 'managed_task_current_wbtest.mbt'}});
+      assert.equal(failed.status, 23, failed.stderr);
+      assert.deepEqual(readFileSync(failedCalls, 'utf8').trim().split('\n').map(line => JSON.parse(line)), observed);
+    }
     assert(observed.every(entry => entry.revision === head && entry.paths === selection.paths.length));
     assert.equal(readFileSync(join(root, 'plan.json'), 'utf8'), original + '\n');
   }
@@ -1887,14 +1906,18 @@ test('normal wheel platforms reject foreign machines and keep independent same-p
 });
 
 test('Python original observation fixture selects its same-source wheel consumer on draft', () => {
-  const path = 'scripts/fixtures/python-local-submission-observation-abi.py';
-  readFileSync(new URL('../' + path, import.meta.url));
-  const selection = selectTargets([path], {draft: true});
-  assert.equal(pythonWheelAcceptanceRequired(selection), true);
-  for (const outcome of ['failure', 'cancelled', 'skipped']) {
-    const needs = results(selection);
-    needs['python-wheels'].result = outcome;
-    assert.throws(() => verifyGate(plan(selection), needs, context), /python-wheels/);
+  for (const path of ['scripts/fixtures/python-local-submission-observation-abi.py',
+    'scripts/fixtures/python-local-public-cancellation-abi.py',
+    'scripts/fixtures/python-local-saved-state-abi.py',
+    'scripts/fixtures/python-local-public-success-abi.py']) {
+    readFileSync(new URL('../' + path, import.meta.url));
+    const selection = selectTargets([path], {draft: true});
+    assert.equal(pythonWheelAcceptanceRequired(selection), true);
+    for (const outcome of ['failure', 'cancelled', 'skipped']) {
+      const needs = results(selection);
+      needs['python-wheels'].result = outcome;
+      assert.throws(() => verifyGate(plan(selection), needs, context), /python-wheels/);
+    }
   }
 });
 

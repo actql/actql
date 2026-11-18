@@ -4,19 +4,110 @@ These cases exercise original VM/caller/retirement identity, not the installed
 Core ABI, Request funding, a normal image or the public README workflow.
 """
 import copy
+import asyncio
 import hashlib
 from pathlib import Path
 import sys
+from threading import Event
 import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'packages/python-sdk/src'))
 
 import wasmtime
-from actql_sdk._local_core import LocalCore, LocalCoreResources, LOCAL_CORE_ABI, _BUFFER_SIGNATURES
+from actql_sdk._local_core import (LocalCore, LocalCoreResources, LOCAL_CORE_ABI, _BUFFER_SIGNATURES,
+                                   _NORMAL_HOST_OPERATION_FUEL)
+from actql_sdk._local_work import OriginalLocalWork
 
 
 class PlatformVMOriginalTests(unittest.TestCase):
+    def test_failed_thread_creation_returns_only_original_undispatched_operation(self):
+        core = self.core()
+        core._ordinary_host = True
+        core._host_fuel_phase = None
+        core._host_initial_claimed = False
+        core._host_operation_sequence = core._host_operation_id = 0
+        invoked = []
+        original = RuntimeError('explicit physical thread creation failure')
+        with core._host_operation():
+            self.assertEqual(core._call('buffer', 'probe'), -42)
+            remaining = core._store.get_fuel()
+            self.assertLess(remaining, _NORMAL_HOST_OPERATION_FUEL)
+            work = OriginalLocalWork(lambda: invoked.append(True), on_exit=core._finish_work_operation)
+            core._retain_work_operation(work)
+            with patch.object(work._thread, 'start', side_effect=original):
+                with self.assertRaises(RuntimeError) as failed:
+                    work.start()
+            self.assertIs(failed.exception, original)
+            self.assertIs(work._future.exception(), original)
+            self.assertEqual(core._store.get_fuel(), remaining)
+        self.assertEqual(invoked, [])
+        self.assertIsNone(core._host_retained_work)
+        self.assertEqual(core._host_operation_id, 0)
+        self.assertTrue(work.stopped)
+        with self.assertRaises(RuntimeError):
+            work.start()
+        with core._host_operation():
+            self.assertEqual(core._store.get_fuel(), _NORMAL_HOST_OPERATION_FUEL)
+            self.assertEqual(core._call('buffer', 'probe'), -42)
+        asyncio.run(work.wait_stopped())
+
+    def test_start_error_after_real_child_preserves_its_original_fuel_and_outcome(self):
+        core = self.core()
+        core._ordinary_host = True
+        core._host_fuel_phase = None
+        core._host_initial_claimed = False
+        core._host_operation_sequence = core._host_operation_id = 0
+        entered, resume = Event(), Event()
+        invoked = []
+        original = RuntimeError('explicit reply failure after actual thread creation')
+        def invoke():
+            invoked.append(True)
+            entered.set()
+            if not resume.wait(5):
+                raise TimeoutError('Original created worker was not resumed')
+            with core._lock:
+                self.assertEqual(core._call('buffer', 'probe'), -42)
+        work = OriginalLocalWork(invoke, on_exit=core._finish_work_operation)
+        native_start = work._thread.start
+        def created_then_failed():
+            native_start()
+            self.assertTrue(entered.wait(5))
+            raise original
+        try:
+            with core._host_operation():
+                core._call('buffer', 'probe')
+                remaining = core._store.get_fuel()
+                operation = core._host_operation_id
+                core._retain_work_operation(work)
+                with patch.object(work._thread, 'start', side_effect=created_then_failed):
+                    with self.assertRaises(RuntimeError) as failed:
+                        work.start()
+                self.assertIs(failed.exception, original)
+                self.assertIs(work._start_error, original)
+                self.assertFalse(work._future.done())
+                self.assertFalse(work.stopped)
+                self.assertIs(core._host_retained_work[0], work)
+                self.assertEqual(core._store.get_fuel(), remaining)
+            self.assertEqual(core._host_operation_id, operation)
+            with self.assertRaises(RuntimeError):
+                with core._host_operation():
+                    self.fail('An actual child cannot acquire replacement fuel')
+            resume.set()
+            asyncio.run(work.wait())
+            self.assertEqual(invoked, [True])
+            self.assertIsNone(work._future.exception())
+            self.assertIs(work._start_error, original)
+            self.assertTrue(work.stopped)
+            self.assertIsNone(core._host_retained_work)
+            self.assertEqual(core._host_operation_id, 0)
+            self.assertLess(core._store.get_fuel(), remaining)
+        finally:
+            resume.set()
+            if work._thread.ident is not None:
+                work._thread.join(5)
+                self.assertFalse(work._thread.is_alive())
+
     def core(self):
         # This independent tiny module is deliberately not an ActQL Core.
         # Only module ABI validation is an explicit port; Engine/Store/Memory,

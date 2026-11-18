@@ -3,6 +3,7 @@ import {prepareNativeResidentPortableCore} from './native-resident-portable-prep
 import {nativeHttpSourceCoverage, prepareNativeHttpCompilerScope} from './native-http-compiler-scope.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
 import {nativeCoreHttpArguments} from './native-core-test-selection.mjs';
+import {nativeCoreSourceCompilerEnvironment} from './native-core-source-release.mjs';
 import {installNativeApplicationBundle} from './native-application-bundle-fixture.mjs';
 import {runNativeQueryTests} from './native-query-coverage.mjs';
 import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
@@ -1448,7 +1449,9 @@ verification: try {
       JSON.stringify(args), String(expectedTests)], {
       cwd: new URL('../', import.meta.url), stdio: 'inherit',
       // Same original Source-package environment as the full Native HTTP loop.
-      env: {...testEnvironment, ACTQL_TEST_NATIVE_STORE_ROOT: nativePackageStoreRoot(root),
+      env: {...nativeCoreSourceCompilerEnvironment(args,
+        fileURLToPath(new URL('../', import.meta.url)), root, testEnvironment),
+        ACTQL_TEST_NATIVE_STORE_ROOT: nativePackageStoreRoot(root),
         ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY: library,
         ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA: join(root, 'ca.crt'),
         ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET: join(bearerServers.directory, 'control'),

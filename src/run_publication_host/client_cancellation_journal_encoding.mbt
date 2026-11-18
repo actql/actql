@@ -1,0 +1,181 @@
+///|
+/// Exact serialization DATA of the existing immutable cancellation row. This
+/// supplies neither Journal provenance, current authority nor physical stop.
+pub(all) struct ClientCancellationJournalEncoding {
+  namespace_id : String
+  cancel_id : String
+  expected_revision : Int
+  request : ClientRequestIdentity
+  definition : @publication.PublicationContract
+  identity : ClientCancellationIdentity
+  action : ClientRunCancellationAction
+  observed_revision : Int64
+}
+
+///|
+fn cancellation_journal_cursor(wire : String) -> @decode.Cursor? {
+  @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+    max_input_bytes: 262144,
+    max_nodes: 4096,
+    max_depth: 64,
+  })
+  .to_option()
+  .bind(source => {
+    @decode.admit(source, {
+      max_nodes: 4096,
+      max_depth: 64,
+      max_string_bytes: 262144,
+      max_total_string_bytes: 262144,
+    }).to_option()
+  })
+}
+
+///|
+fn cancellation_journal_text(
+  object : @decode.ObjectView,
+  key : String,
+) -> String? {
+  @decode.lookup(object, key).bind(value => @decode.text(value).to_option())
+}
+
+///|
+pub fn client_cancellation_journal_index(
+  namespace_id : String,
+  authority : String,
+  cancel_id : String,
+) -> String? {
+  try {
+    let writer = @encode.writer(4096, 4, 1)
+    @encode.begin_array(writer)
+    for value in [namespace_id, authority, cancel_id] {
+      @encode.string_value(writer, value)
+    }
+    @encode.end_array(writer)
+    Some(@sha.hex(@utf8.encode(@encode.finish(writer))))
+  } catch {
+    _ => None
+  }
+}
+
+///|
+pub fn client_cancellation_journal_row_body(
+  value : ClientCancellationJournalEncoding,
+) -> Bytes? {
+  try {
+    let writer = @encode.writer(131072, 32, 4)
+    @encode.begin_object(writer)
+    @encode.key(writer, "action")
+    @encode.string_value(
+      writer,
+      match value.action {
+        AcceptCancellation => "accepted"
+        AlreadyRequested => "already_requested"
+        AlreadyTerminal => "already_terminal"
+      },
+    )
+    @encode.key(writer, "cancel_id")
+    @encode.string_value(writer, value.cancel_id)
+    @encode.key(writer, "expected_revision")
+    @encode.string_value(writer, value.expected_revision.to_string())
+    @encode.key(writer, "intent_cid")
+    @encode.string_value(writer, client_cancellation_intent_cid(value.identity))
+    @encode.key(writer, "namespace_id")
+    @encode.string_value(writer, value.namespace_id)
+    @encode.key(writer, "observed_revision")
+    @encode.string_value(writer, value.observed_revision.to_string())
+    @encode.key(writer, "request")
+    @encode.string_value(
+      writer,
+      client_request_identity_record_wire(value.request).unwrap(),
+    )
+    @encode.key(writer, "run_definition")
+    @encode.string_value(
+      writer,
+      @publication.publication_contract_json(value.definition),
+    )
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-native-client-cancellation-row/0.1")
+    @encode.end_object(writer)
+    Some(@utf8.encode(@encode.finish(writer)))
+  } catch {
+    _ => None
+  }
+}
+
+///|
+pub fn decode_client_cancellation_journal_row(
+  row : ClientJournalPhysicalRow,
+) -> Result[ClientCancellationJournalEncoding, ClientJournalDecodingIssue] {
+  if row.revision != 0L {
+    return Err(CustodyLost)
+  }
+  let wire = @utf8.decode(row.body) catch { _ => return Err(CustodyLost) }
+  guard cancellation_journal_cursor(wire) is Some(cursor) &&
+    @decode.closed_object(cursor, [
+      "action", "cancel_id", "expected_revision", "intent_cid", "namespace_id", "observed_revision",
+      "request", "run_definition", "version",
+    ])
+    is Ok(object) &&
+    cancellation_journal_text(object, "version") ==
+    Some("actql-native-client-cancellation-row/0.1") &&
+    cancellation_journal_text(object, "namespace_id") is Some(namespace_id) &&
+    cancellation_journal_text(object, "cancel_id") is Some(cancel_id) &&
+    cancellation_journal_text(object, "request") is Some(request_wire) &&
+    cancellation_journal_text(object, "run_definition") is Some(definition_wire) &&
+    @decode.lookup(object, "expected_revision") is Some(expected) &&
+    @decode.decimal_int64(expected) is Ok(expected) &&
+    expected >= 0L &&
+    expected <= 2147483647L &&
+    @decode.lookup(object, "observed_revision") is Some(observed) &&
+    @decode.decimal_int64(observed) is Ok(observed) &&
+    observed >= 0L else {
+    return Err(CustodyLost)
+  }
+  let request = match admit_client_request_identity_record_wire(request_wire) {
+    Ok(value) => value
+    _ => return Err(CustodyLost)
+  }
+  let definition = match
+    @publication.admit_publication_contract(
+      "run_definition", definition_wire, 65536, 4096, 64,
+    ) {
+    Ok(value) => value
+    _ => return Err(CustodyLost)
+  }
+  let identity = match
+    prepare_client_cancellation_identity(
+      namespace_id,
+      client_request_authority_scope_cid(request),
+      cancel_id,
+      definition,
+      expected.to_int(),
+    ) {
+    Ok(value) => value
+    _ => return Err(CustodyLost)
+  }
+  let action = match cancellation_journal_text(object, "action") {
+    Some("accepted") => AcceptCancellation
+    Some("already_requested") => AlreadyRequested
+    Some("already_terminal") => AlreadyTerminal
+    _ => return Err(CustodyLost)
+  }
+  if cancellation_journal_text(object, "intent_cid") !=
+    Some(client_cancellation_intent_cid(identity)) ||
+    observed != expected + (if action == AcceptCancellation { 1L } else { 0L }) {
+    return Err(CustodyLost)
+  }
+  let value = {
+    namespace_id,
+    cancel_id,
+    expected_revision: expected.to_int(),
+    request,
+    definition,
+    identity,
+    action,
+    observed_revision: observed,
+  }
+  guard client_cancellation_journal_row_body(value) == Some(row.body) else {
+    return Err(CustodyLost)
+  }
+  Ok(value)
+}

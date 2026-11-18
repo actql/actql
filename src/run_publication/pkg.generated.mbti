@@ -1291,6 +1291,8 @@ pub fn validate_original_interactive_run_evidence(PublicationContract, RunEviden
 
 pub fn validate_original_succeeded_run_state(PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
 
+pub fn validate_original_unpublished_run_state(PublicationContract, String, Int, Int, Int) -> Result[RunOutcomeStatus, PublicationContractIssue]
+
 pub fn validate_prepared_effectful_computation_evidence_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PreparedCapturedEffectRun, EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, RunEvidenceChainIssue]
 
 pub fn validate_publication_record_transition(PublicationContract?, PublicationContract, Bool) -> Result[Unit, PublicationTransitionIssue]

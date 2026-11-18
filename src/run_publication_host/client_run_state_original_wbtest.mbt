@@ -43,7 +43,7 @@ test "saved original Manifest getter preserves exact envelope and validated orig
   let original = prepare_client_run_state_original(
     definition, manifest, client_saved_manifest_state,
   ).unwrap()
-  assert_true(physical_equal(original.original_manifest(), manifest))
+  assert_true(physical_equal(original.original_manifest().unwrap(), manifest))
   assert_eq(original.wire(), client_saved_manifest_envelope)
   assert_eq(original.state_wire(), client_saved_manifest_state)
 }
@@ -55,11 +55,15 @@ test "restored Manifest comes from the same authenticated envelope and refuses c
     definition, client_saved_manifest_envelope,
   ).unwrap()
   assert_eq(
-    @publication.publication_contract_identity(restored.original_manifest()),
+    @publication.publication_contract_identity(
+      restored.original_manifest().unwrap(),
+    ),
     @publication.publication_contract_identity(manifest),
   )
   assert_eq(
-    @publication.publication_contract_json(restored.original_manifest()),
+    @publication.publication_contract_json(
+      restored.original_manifest().unwrap(),
+    ),
     client_saved_manifest_manifest,
   )
   assert_eq(restored.wire(), client_saved_manifest_envelope)

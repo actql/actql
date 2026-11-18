@@ -9,6 +9,7 @@ priv struct StoredManagedTask {
   mut pending : Bool
   mut closing : Bool
   mut issue : @local_run.LocalComputeIssue?
+  mut cleanup_issue : @managed.LocalDispatchIssue?
   mut operations : @managed.LocalManagedDispatchOperations[Int]?
   mut progress : @managed.LocalManagedAdvance?
   producers : Array[Int]
@@ -17,6 +18,7 @@ priv struct StoredManagedTask {
   live : Ref[Bool]
   mut completed : @execution.ManagedCompletedOutput[Int]?
   mut finalization_invoked : Bool
+  mut execution_settled : Bool
 }
 
 ///|
@@ -25,12 +27,48 @@ fn stored_producer(
   compute : Int,
   task : Int,
 ) -> StoredManagedTask? {
+  guard value.computes.get(compute) is Some(original) &&
+    (task > 0 || (task == 0 && original.origin is SourceFree(_, _))) else {
+    return None
+  }
   for record in value.tasks.values() {
     if record.compute == compute && record.task == task {
       return Some(record)
     }
   }
   None
+}
+
+///|
+/// Reobserve the same SDK physical-start claim at every bounded task boundary.
+/// A later cancellation changes its original Run row; no further provider work
+/// may use the old claim. Refusal is not cancellation completion or physical
+/// stop. The same operations remain available to their existing cleanup Owner.
+fn managed_task_run_current(
+  value : Instance,
+  record : StoredManagedTask,
+) -> Int {
+  guard value.computes.get(record.compute) is Some(compute) &&
+    !compute.closing &&
+    stored_compute_original_run(value, compute) is Some(original) &&
+    value.run_configurations.get(original.configuration) is Some(configuration) &&
+    value.run_configurations.get(record.current_configuration) is Some(current) else {
+    return -2
+  }
+  if configuration.sdk is None {
+    return 0
+  }
+  guard current.sdk is Some(_) &&
+    original.outcome is Some(Ok(plan)) &&
+    compute.origin is SourceFree(_, start) &&
+    value.physical_starts.get(start) is Some({ sdk_step: Some(step), .. }) else {
+    return -2
+  }
+  match run_configuration_current(value, current) {
+    Err(code) => return code
+    Ok(_) => ()
+  }
+  validate_sdk_start_claim(value, step, plan)
 }
 
 ///|
@@ -66,6 +104,7 @@ pub fn reserve_managed_task(
     pending: false,
     closing: false,
     issue: None,
+    cleanup_issue: None,
     operations: None,
     progress: None,
     producers: @local_run.local_compute_producers(host),
@@ -74,6 +113,7 @@ pub fn reserve_managed_task(
     live: Ref(true),
     completed: None,
     finalization_invoked: false,
+    execution_settled: false,
   }
   value.next_handle += 1
   handle
@@ -94,6 +134,10 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
   if value.closing || record.closing || compute.closing {
     return -5
   }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
   // Fix original publication scope before the activation Owner is invoked.
   // Current Run/Source access is separate from the task dispatch permit.
   guard compute_publication_preflight(value, record.compute)
@@ -112,7 +156,9 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
   record.invoked = true
   let completed : Array[@execution.ManagedCompletedOutput[Int]] = []
   for producer in record.producers {
-    if producer == 0 {
+    // Only captured Compute uses zero as its already-retained Source prefix.
+    // Source-free task zero is an actual completed producer, not that prefix.
+    if producer == 0 && compute.origin is Captured(_) {
       continue
     }
     guard stored_producer(value, record.compute, producer)
@@ -210,6 +256,10 @@ pub fn advance_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   if record.finished_inputs.any(finished => !finished) {
     return -7
   }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
   record.pending = true
   match (operations.advance)(quantum) {
     Ok(progress) => record.progress = Some(progress)
@@ -227,10 +277,20 @@ pub fn advance_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
 pub fn managed_task_progress(nonce : Int64, handle : Int, field : Int) -> Int64 {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
-    !record.pending &&
-    record.progress is Some(progress) else {
+    !record.pending else {
     return -33L
   }
+  if field == 4 || field == 5 {
+    guard record.operations is Some(operations) else { return -33L }
+    // Existing original finite retirement cursor, never a physical ACK or a
+    // grant to start another provider. Negative means no local continuation.
+    return if field == 4 {
+      (operations.cleanup_progress)()
+    } else {
+      (operations.cleanup_local_continuation)()
+    }
+  }
+  guard record.progress is Some(progress) else { return -33L }
   match field {
     0 => if progress.complete { 1L } else { 0L }
     1 => if progress.waiting { 1L } else { 0L }
@@ -271,7 +331,36 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
         record.task,
       )
     }
-    if !(operations.execution_stopped)() || !(operations.cleanup_refresh)() {
+    if !(operations.execution_stopped)() {
+      // Disposal already fenced activation. The SAME existing provider still
+      // needs its bounded stop poll; a cancel request alone is no stop ACK.
+      // Its operations retain their original failure independently of this
+      // observation. No new provider may be started by the disposed driver.
+      match (operations.advance)(1) {
+        Err(@managed.Execution(@strategy.Stopped)) | Ok(_) => ()
+        Err(issue) =>
+          if record.cleanup_issue is None {
+            record.cleanup_issue = Some(issue)
+          }
+      }
+      if !(operations.execution_stopped)() {
+        return -9
+      }
+    }
+    // Supply the observed stop only to the original execution reservation.
+    // Cleanup can remain pending after this; neither step is a Run terminal.
+    if !record.execution_settled {
+      match (operations.settle)() {
+        Err(issue) => {
+          if record.cleanup_issue is None {
+            record.cleanup_issue = Some(issue)
+          }
+          return -9
+        }
+        Ok(_) => record.execution_settled = true
+      }
+    }
+    if !(operations.cleanup_refresh)() {
       return -9
     }
   }
@@ -300,6 +389,10 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   }
   // Captured and supplied reads are already bound by the existing driver.
   // Only managed completed-output ports require a row transfer here.
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
   if record.positions.length() != operations.inputs.length() {
     record.issue = Some(@local_run.Configuration)
     return -32
@@ -314,7 +407,7 @@ pub fn feed_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
     }
     let transfer = operations.inputs[port]
     let input = @execution.managed_producer_read_input_index(transfer.input)
-    guard record.producers.get(input) is Some(producer) && producer > 0 else {
+    guard record.producers.get(input) is Some(producer) && producer >= 0 else {
       record.issue = Some(@local_run.UnsupportedCapability)
       return -32
     }
@@ -375,6 +468,10 @@ pub fn prepare_managed_task_finalization(nonce : Int64, handle : Int) -> Int {
   if record.finalization_invoked {
     return 0
   }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
   record.finalization_invoked = true
   record.pending = true
   record.progress = None
@@ -418,6 +515,10 @@ pub fn advance_managed_task_finalization(
   if !record.finalization_invoked {
     return -7
   }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
   record.pending = true
   match (operations.advance_finalization)(quantum) {
     Ok(progress) => record.progress = Some(progress)
@@ -447,6 +548,10 @@ pub fn complete_managed_task(nonce : Int64, handle : Int) -> Int {
   if record.completed is Some(_) {
     return 0
   }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
   if !record.finalization_invoked || record.progress is None {
     return -7
   }
@@ -455,6 +560,7 @@ pub fn complete_managed_task(nonce : Int64, handle : Int) -> Int {
   let result = match (operations.settle)() {
     Err(issue) => Err(issue)
     Ok(_) => {
+      record.execution_settled = true
       let live = record.live
       (operations.complete)(handle, operations.storage_bytes, () => live.val)
     }
@@ -469,6 +575,96 @@ pub fn complete_managed_task(nonce : Int64, handle : Int) -> Int {
   } else {
     0
   }
+}
+
+///|
+/// Advance one existing task phase, deriving the next action from its retained
+/// originals rather than accepting a Host-selected phase. No new phase state,
+/// scheduler or operation allowance is introduced. Zero means continuation;
+/// one means this same task completed, not Run success or physical cleanup.
+/// Two/three expose execution/finalization pauses without advancing them again.
+pub fn advance_managed_task_lifecycle(
+  nonce : Int64,
+  handle : Int,
+  quantum : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.tasks.get(handle) is Some(record) else {
+    return -2
+  }
+  if value.closing || record.closing {
+    return -5
+  }
+  if quantum <= 0 {
+    return -3
+  }
+  if record.pending {
+    return -33
+  }
+  if record.issue is Some(_) {
+    return -32
+  }
+  // Deriving the next action is pure. Each delegated action retains its own
+  // current check before work; only no-action returns need the check here.
+  if record.completed is Some(_) {
+    let code = managed_task_run_current(value, record)
+    if code != 0 {
+      return code
+    }
+    return if record.invoked && record.operations is Some(_) { 1 } else { -33 }
+  }
+  if !record.invoked {
+    if record.operations is Some(_) ||
+      record.progress is Some(_) ||
+      record.finalization_invoked {
+      let code = managed_task_run_current(value, record)
+      return if code != 0 { code } else { -33 }
+    }
+    let code = start_managed_task(nonce, handle)
+    return if code != 0 { code } else { managed_task_started(nonce, handle) }
+  }
+  guard record.operations is Some(_) else {
+    let code = managed_task_run_current(value, record)
+    return if code != 0 { code } else { -33 }
+  }
+  if record.finished_inputs.any(finished => !finished) {
+    return feed_managed_task(nonce, handle, quantum)
+  }
+  // An unchanged pause remains with its original physical continuation. Never
+  // poll it as runnable work or discard the original settlement observation.
+  if record.progress is Some(progress) &&
+    (progress.waiting || progress.settlement is Some(_)) {
+    let code = managed_task_run_current(value, record)
+    return if code != 0 {
+      code
+    } else if record.finalization_invoked {
+      3
+    } else {
+      2
+    }
+  }
+  let code = if !record.finalization_invoked {
+    if record.progress is Some({ complete: true, .. }) {
+      prepare_managed_task_finalization(nonce, handle)
+    } else {
+      advance_managed_task(nonce, handle, quantum)
+    }
+  } else if record.progress is Some({ complete: true, .. }) {
+    complete_managed_task(nonce, handle)
+  } else {
+    advance_managed_task_finalization(nonce, handle, quantum)
+  }
+  if code != 0 {
+    return code
+  }
+  if record.completed is Some(_) {
+    return 1
+  }
+  if record.progress is Some(progress) &&
+    (progress.waiting || progress.settlement is Some(_)) {
+    return if record.finalization_invoked { 3 } else { 2 }
+  }
+  0
 }
 
 ///|
