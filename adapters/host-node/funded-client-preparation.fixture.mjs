@@ -11,9 +11,9 @@ import {freezeInput} from '../../packages/sdk/internal/private-source-preparatio
 // Only the installation identity/current port is supplied by this fixture;
 // no shaped preparation, standalone Root or fallback compiler is admitted.
 export async function fundedClientPreparation(t, {moon, environment, allowEffects = false, http = false,
-  valuesMaxRows, retainedRelationOutput = false, sourcePublication, preparationPorts}) {
+  valuesMaxRows, sourceFreeMaxWork, retainedRelationOutput = false, sourcePublication, preparationPorts}) {
   const fixture = await openFundedClientPreparation({moon, environment, allowEffects, http,
-    valuesMaxRows, retainedRelationOutput, sourcePublication, preparationPorts});
+    valuesMaxRows, sourceFreeMaxWork, retainedRelationOutput, sourcePublication, preparationPorts});
   t.after(fixture.close);
   return http ? Object.freeze({prepare: fixture.prepare, prepareRequest: fixture.prepareRequest,
     prepareSubmit: fixture.prepareSubmit, submission: fixture.submission}) : fixture.prepare;
@@ -22,7 +22,7 @@ export async function fundedClientPreparation(t, {moon, environment, allowEffect
 // Process fixtures have their own finally block, not a Node TestContext.
 // Both entrances use this SAME owner and its original teardown below.
 export async function openFundedClientPreparation({moon, environment, allowEffects = false, http = false,
-  valuesMaxRows, sequenceContracts, retainedRelationOutput = false, sourcePublication, preparationPorts}) {
+  valuesMaxRows, sourceFreeMaxWork, sequenceContracts, retainedRelationOutput = false, sourcePublication, preparationPorts}) {
   // A retained normal Common must use its SAME installed Request/CJS owner.
   // These explicit fixture ports select actual modules, never shaped parents.
   const ports = preparationPorts ?? {prepareOrdinarySourceManagedInstallation,
@@ -53,7 +53,8 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
   const httpRegistry = http ? createEmbeddedHostRegistry((left, right) => left === right) : undefined;
   httpRegistry?.registerPreparation(host, originals.installation, host);
   const context = Object.freeze({runtime: moon, environment, preparedEnvironment, retainedRelationOutput,
-    ...(valuesMaxRows === undefined ? {} : {valuesMaxRows})});
+    ...(valuesMaxRows === undefined ? {} : {valuesMaxRows}),
+    ...(sourceFreeMaxWork === undefined ? {} : {sourceFreeMaxWork})});
   const connection = Object.freeze({mode: 'local', owner: 'local',
     consentRefs: Object.freeze([]), runners: Object.freeze([])});
   const receipts = new Set(), requestReceipts = new WeakMap(), retained = new Map();
