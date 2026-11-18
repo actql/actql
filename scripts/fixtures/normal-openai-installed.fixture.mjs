@@ -43,10 +43,11 @@ assert([null, 'headers', 'body', 'call'].includes(selection.timeout));
 assert(selection.usage === null || selection.timeout === null);
 const usageMode = selection.usage ?? undefined, timeoutMode = selection.timeout ?? undefined;
 const expectedCalls = usageMode === undefined && timeoutMode === undefined ? 2 : 1;
+const phaseTimeoutMs = timeoutMode === 'call' ? 2000 : 1000;
 const transportTimeouts = timeoutMode === undefined ? undefined : {
-  connectMs: 1000, headersMs: timeoutMode === 'headers' ? 30 : 1000,
-  bodyMs: timeoutMode === 'body' ? 30 : 1000,
-  ...(timeoutMode === 'call' ? {callMs: 100} : {}),
+  connectMs: phaseTimeoutMs, headersMs: timeoutMode === 'headers' ? 30 : phaseTimeoutMs,
+  bodyMs: timeoutMode === 'body' ? 30 : phaseTimeoutMs,
+  ...(timeoutMode === 'call' ? {callMs: 500} : {}),
 };
 
 if (fresh) {
@@ -98,7 +99,7 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   if (timeoutMode === 'body') {response.write('{'); return;} // Partial original, no EOF.
   if (timeoutMode === 'call') {
     // Stay far below the original 128-chunk/64KiB profile. Continuous data
-    // prevents the 1000ms idle-body timeout from being this case's cause.
+    // prevents the 2000ms idle-body timeout from being this case's cause.
     response.write('{'); continuousWrites++;
     pulse = setInterval(() => {response.write(' '); continuousWrites++;}, 25);
     response.once('close', () => {clearInterval(pulse); finishContinuousResponse();});
@@ -127,7 +128,8 @@ const registerModelProviders = createOpenAIChatProvider({providerId: 'models/htt
   apiKeyFile: 'api-key.fixture', baseURL: 'https://127.0.0.1:' + server.address().port + '/v1',
   generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
   ...(transportTimeouts === undefined ? {} : {transportTimeouts}),
-  budget: {maxCalls: 2n, maxRows: 2, maxTokens: 1000n, maxCostUnits: 100000n, maxDurationMs: 1000n},
+  budget: {maxCalls: 2n, maxRows: 2, maxTokens: 1000n, maxCostUnits: 100000n,
+    maxDurationMs: BigInt(phaseTimeoutMs)},
   observeEgress: () => {
     egressChecks++;
     return {classification: 'public', region: 'global', providerRetention: true, trainingUse: false};
