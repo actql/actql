@@ -208,9 +208,14 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
   const interrupted=await read(join(recoveredRoot,'source-observe-second-report.json'));
   for(const actor of [completed,interrupted]){assert.equal(actor.publicStartSource,0);assert.equal(actor.publicAttach,1);assert.equal(actor.clientCloseReturned,true);}
   assert.deepEqual(await read(join(recoveredRoot,'source-recover-first-rows.json')),await read(join(publicRoot,'source-recover-first-rows.json')));
-  // No success/cancel/physical-stop oracle is invented for the interrupted Run.
-  // Its original public status remains separate DATA from the completed Saved.
-  await save('interrupted-original-status.json',await read(join(recoveredRoot,'source-observe-second-status.json')));
+  const interruptedStatus=await read(join(recoveredRoot,'source-observe-second-status.json'));
+  await save('interrupted-original-status.json',interruptedStatus);
+  // This profile retains uncertain interrupted work without replay. Do not
+  // accept a fabricated success, cancellation or physical-stop acknowledgement.
+  assert.equal(interruptedStatus.status,'needs_reconciliation');
+  assert.equal(interruptedStatus.result_available,false);
+  assert.equal(interruptedStatus.control.cancellation_requested,false);
+  assert.equal(interruptedStatus.control.physical_stop,'unknown');
   assert.equal(hostCommand.close.scopedStateFd0,true);assert.equal(hostCommand.closeObservationAcknowledged,true);
   assert.deepEqual(originalProvider.requests(),[{method:'GET',target:'/v1/customers'},{method:'GET',target:'/v1/customers?after=page-2'},
    {method:'GET',target:'/v1/customers'},{method:'GET',target:'/v1/customers?after=page-2'}]);
