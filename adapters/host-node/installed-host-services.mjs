@@ -1516,8 +1516,9 @@ function createInstalledSourceContext(original, material, installation, connecto
             project() {
               const runtime = Object.freeze({clientProgramRowSourcePrepareUpdateMapping: (...args) =>
                 Reflect.apply(original.prepareUpdateMapping, original.moon, args)});
-              return rowSourceMapping(runtime, originalPrepared.declaration,
-                writesJson, write.resource, write.sources, 'update', sourceWire.wire);
+              return Object.freeze({resource: write.resource,
+                ...rowSourceMapping(runtime, originalPrepared.declaration,
+                  writesJson, write.resource, write.sources, 'update', sourceWire.wire)});
             },
           }), inputProjections, validate, retainNativeInput);
           mappings.push(mapping);

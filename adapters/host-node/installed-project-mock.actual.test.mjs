@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdir, mkdtemp, open, writeFile} from 'node:fs/promises';
-import {join} from 'node:path';
+import {mkdir, mkdtemp, open, readFile, writeFile} from 'node:fs/promises';
+import {dirname, join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {realpathSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {createAccountConstruction} from './account-construction.mjs';
 import {prepareOrdinaryMockAccountSubjects} from './ordinary-mock-account.mjs';
+import {createInstalledHostServices, installedAccountConstruction,
+  closeInstalledAccountConstruction, retireInstalledSourceInitialization} from './installed-host-services.mjs';
+import {createDeclaredFileInstallationInventory} from '../local-node/declared-file-installation.mjs';
+import {multipleTargetMockProjectFiles} from './fixtures/mock-multiple-targets.fixture.mjs';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {inspectProjectMockDeclarations, prepareInstalledProjectMock,
@@ -16,6 +20,62 @@ import {projectTemplateFiles} from '../../packages/native-cli/lib/project-templa
 
 assert.ok(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME, 'Select the matching actual Common runtime');
 const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
+
+test('actual Mock Source mappings retain exact resources through the same Account subject handoff', async () => {
+  const runtimeUrl = pathToFileURL(realpathSync(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
+  const {openHostInitializationPreparation, closeHostInitializationPreparation} = await import(new URL(
+    '../../../../../adapters/local-node/request-preparation-adapter.mjs', runtimeUrl));
+  await mkdir('_build', {recursive: true});
+  const directory = await mkdtemp(join(process.cwd(), '_build/mock-source-account-'));
+  const files = multipleTargetMockProjectFiles();
+  for (const [name, wire] of Object.entries(files)) {
+    await mkdir(dirname(join(directory, name)), {recursive: true});
+    await writeFile(join(directory, name), wire);
+  }
+  const project = await loadInstalledProjectConfiguration(moon, {directory});
+  const profile = selectInstalledProjectProfile(moon, project, 'mock', 65536);
+  const state = {}, input = Object.freeze({directory, purpose: 'Mock Source to Account component'});
+  let current = true, inventory, preparation, frame;
+  const assertCurrent = () => {assert.equal(current, true);};
+  const parent = openHostInitializationPreparation(state, moon, input, assertCurrent, () => false);
+  const services = createInstalledHostServices({root: directory, principalId: 'operator', moon,
+    initialPreparation: parent, assertCurrent, accountCurrent: assertCurrent});
+  try {
+    inventory = createDeclaredFileInstallationInventory({moon, project, services, runtimeUrl, assertCurrent,
+      baseEnvironmentWire: (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd()});
+    preparation = await prepareInstalledProjectMock(moon, project, profile,
+      {installationInventory: inventory, assertCurrent});
+    const bundle = preparation.originalsForRuntime(moon);
+    frame = installedAccountConstruction(services).begin();
+    // Consume the actual Source-context output, never a hand-built Mapping
+    // descriptor. The exact Account lookup must not fall back to its position.
+    const result = prepareOrdinaryMockAccountSubjects(frame, bundle, [], directory,
+      project.originalsForRuntime(moon).configurationWire, 'original-request');
+    assert.deepEqual(result.updateTargets, [['salesforce', 'Account'], ['salesforce', 'Contact']]);
+    assert.deepEqual(result.subject.targets.map(({connection, resource, itemsPath, keyPath, primaryIdentity}) =>
+      ({connection, resource, itemsPath, keyPath, primaryIdentity})), ['Account', 'Contact'].map(resource => ({
+      connection: 'salesforce', resource, itemsPath: ['salesforce', resource, 'rows'],
+      keyPath: ['salesforce', resource, 'key'], primaryIdentity: 'id'})));
+    for (const target of result.subject.targets) {
+      const mapping = bundle.sources[0].effectPrepared.mappings.find(value => value.resource === target.resource);
+      assert.equal(target.mappingCid, mapping.mappingCid);
+      assert.equal(mapping.target, 'connector://salesforce/' + target.resource);
+      assert.equal(Object.isFrozen(mapping), true);
+    }
+    assert.notEqual(result.subject.targets[0].mappingCid, result.subject.targets[1].mappingCid);
+    frame.hold();
+  } finally {
+    frame?.finish(true);
+    assert.equal(await closeInstalledAccountConstruction(services), true);
+    // No adapter or physical data reader was installed. Retire the actual
+    // unfinished Source constructors through their existing failure cleanup.
+    await inventory?.fail(new Error('MockSourceAccountComponentFinished'));
+    assert.equal(retireInstalledSourceInitialization(services), true);
+    preparation?.retire(moon);
+    closeHostInitializationPreparation(state);
+    current = false;
+  }
+});
 
 test('Mock subject construction hashes borrowed wires on the same real Account Read for one and two targets', async () => {
   const {openHostInitializationPreparation, closeHostInitializationPreparation} = await import(new URL(
