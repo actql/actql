@@ -844,6 +844,10 @@ test('source-response custody has one same-environment normal Client owner', () 
   assert(local.includes(owner[0].run));
 });
 
+const preparesRuntime = ({run = '', uses = ''}) =>
+  /(?:^|\n)\s*(?:node scripts\/(?:build-runtime-packages|build-local-node-adapters)\.mjs(?:\s|$)|npm run build(?:\s|$)|moon build(?:\s|$))/u.test(run) ||
+  /(?:^|\/)download-client-packages(?:$|@)/u.test(uses);
+
 test('source-only Client wire and scratch tests do not wait for a producer or runtime', () => {
   const files = ['packages/client-wire/cancel-identity.test.mjs',
     'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs'];
@@ -853,9 +857,7 @@ test('source-only Client wire and scratch tests do not wait for a producer or ru
   assert.equal(step.if, "${{ needs.select-targets.outputs.profile == 'full' }}");
   assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.slice(0, 2).join(' '));
   assert(!jobs.lint.needs.includes('client-packages'));
-  assert(jobs.lint.steps.indexOf(step) < jobs.lint.steps.findIndex(step => step.name === 'Type-check public SDK and Client wire declarations'));
-  assert(!jobs.lint.steps.slice(0, jobs.lint.steps.indexOf(step)).some(step =>
-    /build-runtime-packages|build-local-node-adapters|download-client-packages/u.test(step.run ?? step.uses ?? '')));
+  assert(!jobs.lint.steps.slice(0, jobs.lint.steps.indexOf(step)).some(preparesRuntime));
   const scratch = jobs.lint.steps.find(step => step.run === 'node --test scripts/owned-scratch.test.mjs');
   assert(scratch);
   assert.equal(scratch.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
@@ -880,7 +882,7 @@ test('source-only evaluation tests have one early bounded CI owner', () => {
   assert.deepEqual(jobs.lint.needs, ['select-targets']);
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.join(' '));
-  assert(jobs.lint.steps.indexOf(step) < jobs.lint.steps.findIndex(step => step.name === 'Type-check public SDK and Client wire declarations'));
+  assert(!jobs.lint.steps.slice(0, jobs.lint.steps.indexOf(step)).some(preparesRuntime));
   const owners = ['lint', ...groups].flatMap(name => jobs[name].steps.filter(step => step.run)
     .map(step => ({name, command: step.run})));
   const local = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts['check:distribution-client'];
