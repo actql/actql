@@ -37,7 +37,7 @@ test "managed source-free preparation retains the quoted original sequences and 
   let mut required_retained = 0L
   let mut required_execution = 0L
   for task in 0..<@strategy.graph_task_count(configuration.graph) {
-    let actual = @local_driver.local_dispatch_preparation_task_capacity(
+    let actual = @local_driver.local_dispatch_preparation_managed_task_capacity(
       configuration.dispatch,
       task,
     ).unwrap()

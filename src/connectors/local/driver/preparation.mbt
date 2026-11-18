@@ -252,27 +252,17 @@ fn local_dispatch_copy_capacity(
       },
     )
     is Some(capacity) &&
-    local_managed_logical_work_diagnostic_capacity()
-    is Some((diagnostic_retained, diagnostic_execution)) &&
-    @execution.checked_preparation_add_product(
-      capacity.retained_bytes,
-      diagnostic_retained,
-      1L,
-    )
-    is Some(retained_bytes) &&
-    @execution.checked_preparation_add_product(
-      capacity.execution_bytes,
-      diagnostic_execution,
-      1L,
-    )
-    is Some(execution_bytes) &&
     @execution.execution_capacity_inventory_bytes([
       { unit: QuotedBytes, count: wire_bytes, copies, },
     ])
     is Some(transfer_bytes) else {
     return None
   }
-  Some({ transfer_bytes, retained_bytes, execution_bytes, })
+  Some({
+    transfer_bytes,
+    retained_bytes: capacity.retained_bytes,
+    execution_bytes: capacity.execution_bytes,
+  })
 }
 
 ///|
@@ -396,6 +386,20 @@ pub fn local_dispatch_preparation_task_capacity(
     Some(value) => value
     None => None
   }
+}
+
+///|
+/// The installed managed route retains its logical-work failure frame beside
+/// this SAME original task. Materializing PreparedExecution has no such frame
+/// and continues to use the unmodified per-task offer above. This projection
+/// issues neither a reservation nor permission to select a provider.
+pub fn local_dispatch_preparation_managed_task_capacity(
+  original : LocalDispatchPreparation,
+  task : Int,
+) -> @strategy.PhysicalEnvelope? {
+  local_dispatch_preparation_task_capacity(original, task).bind(
+    local_managed_task_capacity,
+  )
 }
 
 ///|

@@ -427,6 +427,35 @@ fn local_managed_logical_work_diagnostic_capacity() -> (Int64, Int64)? {
 }
 
 ///|
+/// Pure projection of the managed route's complete existing diagnostic frame.
+/// It neither changes the materializer quote nor admits another allocation.
+fn local_managed_task_capacity(
+  capacity : @strategy.PhysicalEnvelope,
+) -> @strategy.PhysicalEnvelope? {
+  guard local_managed_logical_work_diagnostic_capacity()
+    is Some((diagnostic_retained, diagnostic_execution)) &&
+    @execution.checked_preparation_add_product(
+      capacity.retained_bytes,
+      diagnostic_retained,
+      1L,
+    )
+    is Some(retained_bytes) &&
+    @execution.checked_preparation_add_product(
+      capacity.execution_bytes,
+      diagnostic_execution,
+      1L,
+    )
+    is Some(execution_bytes) else {
+    return None
+  }
+  Some({
+    transfer_bytes: capacity.transfer_bytes,
+    retained_bytes,
+    execution_bytes,
+  })
+}
+
+///|
 fn local_managed_scalar_overlap_control_capacity() -> Int64? {
   @execution.preparation_representation_cost(
     local_managed_scalar_overlap_controls,

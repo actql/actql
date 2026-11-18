@@ -56,6 +56,12 @@ the fixed ordinary source-free Core constructor selects
 setting. Failure mapping requires the SAME graph, module and original/refined
 sequence, then reads the actual selected kernel's immutable context limit.
 Missing, duplicate, foreign or unselected contexts keep the old cause path.
+The ordinary materializing `PreparedExecution` does not construct this managed
+frame: its planned offer and actual reservation keep the same materializer
+capacity. The installed managed parent reads the managed task projection of
+that SAME frozen configuration; it adds the complete diagnostic frame through
+the same census used by actual managed construction. No provider name, numeric
+limit or caller boolean selects either execution family.
 No current callback, counter, semantic check or provider is invoked by this
 projection. Node formats only the closed Core DATA: step, limit and the fixed
 setting literal or `unavailable`. Neither requested nor remaining work is
@@ -160,7 +166,7 @@ does not price arbitrary exception chains, provider text or allocator backing.
 The logical-work extension has its own explicit delta on the SAME original
 preparation/task allowance. Before construction, the Request Plan quote adds
 two scalar words for retained original/policy-copy records and four words for
-their replacement overlap. The existing task envelope and actual managed
+their replacement overlap. The managed task envelope and actual managed
 preparation include the same complete diagnostic delta: retained 3 headers,
 5 references, 6 words and 19 UTF16 units; temporary 3 headers, 6 references
 and 5 words. Both the issue discriminator and the portable Some discriminator
@@ -171,11 +177,11 @@ the selected holder, returned Int64 Option, new issue and fixed locals:
 The phases do not overlap, and no old error/Some replacement credit or
 metadata ceiling spare is used. This covers the original issue, Node DATA,
 decimal limit String, projection carriers and fixed descriptor/locals. The preparation quote and
-execution quote are two views of the same future task holding, not two new
+execution quote are two views of the same future managed task holding, not two new
 reservations. They preserve existing metadata ceilings, logical work debits,
 primary resource refusal precedence and cleanup ownership. Direct legacy
 preparation callers still own their original Host constructor backing; the
-getter exposes the same field delta for that existing responsibility.
+managed projection exposes the diagnostic delta only for its actual route.
 
 ## Extension
 

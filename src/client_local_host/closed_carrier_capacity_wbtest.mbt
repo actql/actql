@@ -207,7 +207,7 @@ test "captured Event suffix uses original record schemas without a closed Source
   let mut task_retained = 0L
   let mut task_execution = 0L
   for task in 1..<@strategy.graph_task_count(capture.graph) {
-    let envelope = @local_driver.local_dispatch_preparation_task_capacity(
+    let envelope = @local_driver.local_dispatch_preparation_managed_task_capacity(
       capture.configuration.dispatch,
       task,
     ).unwrap()
@@ -364,7 +364,7 @@ test "two captured Sources retain every Event task under the original execution 
   let mut all_retained = 0L
   let mut largest_task = 0L
   for task in 2..<@strategy.graph_task_count(capture.graph) {
-    let envelope = @local_driver.local_dispatch_preparation_task_capacity(
+    let envelope = @local_driver.local_dispatch_preparation_managed_task_capacity(
       capture.configuration.dispatch,
       task,
     ).unwrap()

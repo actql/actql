@@ -405,7 +405,7 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
   if mode == 9 || mode == 10 || mode == 0 {
     let available = @resources.ledger_limits(parent.ledger)
     for task in 0..<@strategy.graph_task_count(configuration.graph) {
-      let planned = @local_driver.local_dispatch_preparation_task_capacity(
+      let planned = @local_driver.local_dispatch_preparation_managed_task_capacity(
         configuration.dispatch,
         task,
       ).unwrap()
