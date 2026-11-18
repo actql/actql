@@ -145,12 +145,16 @@ def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
     controls = (
         ('cancellation-saved', 'python-local-public-cancellation-abi.py', 'process-state',
          'public_default_cancel_separate_process_saved_without_reprepare'),
+        ('cancellation-precommit', 'python-local-public-cancellation-abi.py', 'precommit-state',
+         'public_cancel_before_original_publication_commit_refuses_write_and_retires_same_work'),
         ('state-unknown', 'python-local-public-cancellation-abi.py', 'fault-state',
          'public_state_commit_reply_loss_original_readback_without_rewrite'),
         ('state-partial-close', 'python-local-public-cancellation-abi.py', 'partial-state',
          'public_state_partial_input_close_same_original_retirement'),
         ('succeeded-result-saved', 'python-local-public-success-abi.py', None,
          'public_succeeded_execute_typed_result_same_saved_and_close'),
+        ('publication-unknown', 'python-local-public-success-abi.py', 'commit-unknown',
+         'public_commit_reply_loss_original_lookup_same_result_without_reexecution'),
     )
     for name, fixture, selection, expected in controls:
         args = [python, ROOT / 'scripts/fixtures' / fixture, module,
@@ -163,6 +167,12 @@ def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
                 or observed['actualCases'] != 1 or observed.get('case') != expected
                 or observed.get('module_sha256') != original['module_sha256']):
             raise ValueError('Incomplete original public lifecycle component')
+        if (fixture == 'python-local-public-success-abi.py'
+                and observed.get('atomic_precommit_writer_exclusion') is not True):
+            raise ValueError('Incomplete original atomic publication component')
+        if (selection == 'commit-unknown'
+                and observed.get('commit_reply_loss_readback_without_reexecution') is not True):
+            raise ValueError('Incomplete original publication recovery component')
         cases.append(observed)
     result = {'source_sha': original['source_sha'], 'module_sha256': original['module_sha256'],
               'cases': cases, 'qualification': 'actual source SDK/raw ABI/SQLite components only',

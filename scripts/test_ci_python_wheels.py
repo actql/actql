@@ -362,14 +362,18 @@ class PublicLifecycleTests(unittest.TestCase):
     def observation(self, name, module):
         cases = {
             'cancellation-saved': 'public_default_cancel_separate_process_saved_without_reprepare',
+            'cancellation-precommit': 'public_cancel_before_original_publication_commit_refuses_write_and_retires_same_work',
             'state-unknown': 'public_state_commit_reply_loss_original_readback_without_rewrite',
             'state-partial-close': 'public_state_partial_input_close_same_original_retirement',
             'succeeded-result-saved': 'public_succeeded_execute_typed_result_same_saved_and_close',
+            'publication-unknown': 'public_commit_reply_loss_original_lookup_same_result_without_reexecution',
         }
         return {'success': True, 'actualCases': 1, 'case': cases[name],
-                'module_sha256': hashlib.sha256(module.read_bytes()).hexdigest()}
+                'module_sha256': hashlib.sha256(module.read_bytes()).hexdigest(),
+                **({'atomic_precommit_writer_exclusion': True} if name in ('succeeded-result-saved', 'publication-unknown') else {}),
+                **({'commit_reply_loss_readback_without_reexecution': True} if name == 'publication-unknown' else {})}
 
-    def test_same_original_four_controls_without_build_or_installed_claim(self):
+    def test_same_original_controls_without_build_or_installed_claim(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)
             module, receipt = self.original(path)
@@ -382,10 +386,12 @@ class PublicLifecycleTests(unittest.TestCase):
                 return json.dumps(self.observation(name, module)).encode()
             result = ci.accept_public_lifecycle(run, Path('/selected/python'), module, receipt, path)
             self.assertEqual([name for name, _ in calls],
-                ['cancellation-saved', 'state-unknown', 'state-partial-close', 'succeeded-result-saved'])
-            self.assertEqual([args[-1] for _, args in calls[:3]],
-                ['process-state', 'fault-state', 'partial-state'])
-            self.assertEqual(len({args[3] for _, args in calls}), 4)
+                ['cancellation-saved', 'cancellation-precommit', 'state-unknown', 'state-partial-close',
+                 'succeeded-result-saved', 'publication-unknown'])
+            self.assertEqual([args[-1] for _, args in calls[:4]],
+                ['process-state', 'precommit-state', 'fault-state', 'partial-state'])
+            self.assertEqual(calls[-1][1][-1], 'commit-unknown')
+            self.assertEqual(len({args[3] for _, args in calls}), 6)
             self.assertFalse(result['installed_wheel_acceptance'])
             self.assertFalse(result['normal_image_acceptance'])
             self.assertEqual(json.loads((path / 'public-lifecycle.json').read_text()), result)
@@ -405,6 +411,26 @@ class PublicLifecycleTests(unittest.TestCase):
                     ci.accept_public_lifecycle(run, Path('/python'), module, receipt, path)
                 self.assertEqual(calls, ['cancellation-saved'])
                 self.assertFalse((path / 'public-lifecycle.json').exists())
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            module, receipt = self.original(path)
+            def missing_atomic(name, args, **options):
+                observed = self.observation(name, module)
+                observed.pop('atomic_precommit_writer_exclusion', None)
+                return json.dumps(observed).encode()
+            with self.assertRaisesRegex(ValueError, 'Incomplete original atomic'):
+                ci.accept_public_lifecycle(missing_atomic, Path('/python'), module, receipt, path)
+            self.assertFalse((path / 'public-lifecycle.json').exists())
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            module, receipt = self.original(path)
+            def missing_recovery(name, args, **options):
+                observed = self.observation(name, module)
+                observed.pop('commit_reply_loss_readback_without_reexecution', None)
+                return json.dumps(observed).encode()
+            with self.assertRaisesRegex(ValueError, 'Incomplete original publication recovery'):
+                ci.accept_public_lifecycle(missing_recovery, Path('/python'), module, receipt, path)
+            self.assertFalse((path / 'public-lifecycle.json').exists())
 
     def test_original_module_and_failure_cannot_be_substituted(self):
         with tempfile.TemporaryDirectory() as tmp:

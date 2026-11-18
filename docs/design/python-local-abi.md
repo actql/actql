@@ -3317,6 +3317,23 @@ the original cleanup port, but does not repeat settlement after that execution
 has already retired. Failed settlement retains its original task and first
 cleanup issue; completed DATA alone is neither stop nor cleanup acknowledgment.
 
+The original publisher Request and final Commit stages reobserve the same saved
+SDK start claim. Final validation runs in the existing `BEGIN IMMEDIATE` write
+transaction, through that transaction's original namespace reader. The Core and
+Store locks span projection, final current/claim validation and physical COMMIT;
+another SQLite writer cannot change the saved claim between validation and that
+commit. Pure publication projections do not acquire a hidden journal reader.
+ReturnCommitted and original pending-confirmation lookup retain their separate
+read path and cannot authorize a replacement write.
+
+After a post-task refusal, the worker seals its same Compute and uses the same
+physical publication-child close sequence as whole-Host cleanup. Selection uses
+the original Run/publication objects, never equal serialized DATA. Result and
+task loans retire only after their actual children return. An already-begun
+publication write instead keeps its original Compute, projection, publisher and
+first failure for lookup; cleanup does not turn uncertainty into a new write,
+false failure or acknowledgment.
+
 An admitted background invocation retains its original operation allowance and
 observation generation after the submitting coroutine returns or is cancelled.
 Same-Run control calls borrow that exact allowance under the same Core lock;

@@ -7,6 +7,7 @@ This raw-module component is not an installed normal-profile acceptance.
 """
 import asyncio
 import copy
+from contextlib import nullcontext
 import hashlib
 import json
 from pathlib import Path
@@ -68,10 +69,11 @@ class OriginalQuantumBarrier:
 
 
 async def main():
-    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] not in ('default-state', 'fault-state', 'partial-state', 'process-state')):
+    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] not in ('default-state', 'fault-state', 'partial-state', 'process-state', 'precommit-state')):
         raise ValueError('Expected raw module, fresh scratch and optional state selection')
     default_state = len(sys.argv) == 4
     selection = sys.argv[3] if default_state else 'explicit'
+    precommit = selection == 'precommit-state'
     raw = Path(sys.argv[1]).read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
     scratch = Path(sys.argv[2]); scratch.mkdir(parents=True, exist_ok=True)
@@ -92,17 +94,37 @@ async def main():
             progress = original_advance(*args, **kwargs)
             if not kwargs.get('finalization', False):
                 barrier.latest = progress
-                if not progress.complete and not progress.waiting:
+                if not precommit and not progress.complete and not progress.waiting:
                     barrier.armed = True
             return progress
 
-        with patch.object(core, 'advance_task', side_effect=observe_quantum):
-            query = 'SELECT n FROM UNNEST([' + ','.join(str(n) for n in range(512)) + ']) AS n'
+        original_commit = host._store_original_commit
+        def pause_original_commit(*args, **kwargs):
+            if host._installation.binding._observed_reader is not None or barrier.original._is_owned():
+                raise AssertionError('Publication scheduling retained an original reader or Core lock')
+            barrier.entered.set()
+            if not barrier.resume.wait(30):
+                raise TimeoutError('Original prepared publication was not resumed')
+            return original_commit(*args, **kwargs)
+
+        with patch.object(core, 'advance_task', side_effect=observe_quantum), \
+                (patch.object(host, '_store_original_commit', side_effect=pause_original_commit)
+                 if precommit else nullcontext()):
+            query = ('SELECT 1 AS n' if precommit else
+                     'SELECT n FROM UNNEST([' + ','.join(str(n) for n in range(512)) + ']) AS n')
             execution = await client.start_source(query, format='sql')
-            assert await asyncio.to_thread(barrier.entered.wait, 30)
+            if not await asyncio.to_thread(barrier.entered.wait, 30):
+                for pending in host._physical_work:
+                    if pending._future.done() and not pending._future.cancelled():
+                        failure = pending._future.exception()
+                        if isinstance(failure, LocalCoreError):
+                            print(json.dumps({'beforeSchedulingFailure': failure.operation,
+                                              'code': failure.code}), file=sys.stderr)
+                raise AssertionError('Original worker did not reach the selected physical boundary')
             assert len(host._physical_work) == 1
             work = host._physical_work[0]
-            assert not work.stopped and barrier.latest is not None and not barrier.latest.complete
+            assert not work.stopped and barrier.latest is not None
+            assert barrier.latest.complete is precommit
             assert work._owner is host._public_run_references[0].run
             rows = []
             with core._lock:
@@ -187,6 +209,12 @@ async def main():
             barrier.resume.set()
             await work.wait_stopped()
             failure = work._future.exception()
+            if precommit:
+                detail = {'workerSucceeded': failure is None,
+                          'workerFailureType': None if failure is None else type(failure).__name__}
+                if isinstance(failure, LocalCoreError):
+                    detail.update(operation=failure.operation, code=failure.code)
+                print(json.dumps({'latePublicationObservation': detail}), file=sys.stderr)
             assert isinstance(failure, LocalCoreError) and failure.code == -35
             assert work._exit_error is None and work._cleanup_error is None
             # The actual close port returned zero only after its SAME provider's
@@ -230,7 +258,7 @@ async def main():
                 raise
             print('Original public failure and fresh state KEEP; cleanup pending', file=sys.stderr)
     assert core._closed
-    if selection == 'process-state':
+    if selection in ('process-state', 'precommit-state'):
         # The correspondence document is outside the managed State inventory.
         # The child opens the same saved originals, never another invocation.
         handoff = scratch / (state.name + '-saved.json')
@@ -270,11 +298,12 @@ async def main():
         'case': (('public_state_commit_reply_loss_original_readback_without_rewrite' if selection == 'fault-state' else
                   'public_state_partial_input_close_same_original_retirement' if selection == 'partial-state' else
                   'public_default_cancel_separate_process_saved_without_reprepare' if selection == 'process-state' else
+                  'public_cancel_before_original_publication_commit_refuses_write_and_retires_same_work' if precommit else
                   'public_default_cancel_status_terminal_same_saved_original_without_reprepare')
                  if default_state else 'public_submit_active_provider_cancel_same_lookup_original_stop_cleanup_and_close'),
         'module_sha256': digest, 'state': str(state),
         'qualification': ('actual public SDK/raw Wasm/SQLite default cancellation and separate-process Saved; controlled physical thread scheduling, no installed normal acceptance'
-                          if selection == 'process-state' else
+                          if selection in ('process-state', 'precommit-state') else
                           'actual public SDK/raw Wasm/SQLite default cancellation, terminal and fresh-Core Saved; controlled physical thread scheduling, no separate-process or installed normal acceptance'
                           if default_state else 'actual public SDK/raw Wasm/SQLite with controlled physical thread scheduling; explicit revision only, no status/terminal or installed normal acceptance')}))
 

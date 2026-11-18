@@ -7,6 +7,7 @@ import asyncio
 from dataclasses import dataclass
 import hashlib
 import json
+import sqlite3
 from pathlib import Path
 import sys
 from tempfile import mkdtemp
@@ -17,6 +18,7 @@ sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk import AsyncClient, ClientError
 from actql_sdk._local_core import LocalCore, LocalCoreError, _NORMAL_HOST_OPERATION_FUEL
 from actql_sdk._local_product import InstalledLocalHost, _ordinary_core_limits
+from actql_sdk._local_storage import LocalStorageCommitUnknown
 
 
 @dataclass(frozen=True)
@@ -36,8 +38,9 @@ def new_core(raw, digest):
 
 
 async def main():
-    if len(sys.argv) != 3:
-        raise ValueError('Expected original module and fresh scratch')
+    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] != 'commit-unknown'):
+        raise ValueError('Expected original module, fresh scratch and optional COMMIT-loss control')
+    commit_unknown = len(sys.argv) == 4
     raw = Path(sys.argv[1]).read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
     scratch = Path(sys.argv[2]); scratch.mkdir(parents=True, exist_ok=True)
@@ -48,13 +51,68 @@ async def main():
         host = InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
             observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
         client = await AsyncClient._connect_local(host)
-        execution = await client.start_source(
-            'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer', format='aql')
-        final = (await execution.wait(until='terminal')).to_dict()
-        assert final['status'] == 'succeeded' and final['result_available']
-        assert await execution.result('answer').all(schema=Row, max_rows=2) == [Row(n=41)]
-        assert (await execution.status()).to_dict() == final
-        reference = dict(execution.ref)
+        store = host._installation._store
+        original_store = store.store_publication_projected_inspected
+        atomic_observations = []
+        publication_writes = []
+        lost_reply = LocalStorageCommitUnknown(store)
+        def observe_original_transaction(*args, before_commit, **kwargs):
+            pending = host._pending_publication_write
+            original_publication = pending is not None and getattr(args[1], '__self__', None) is pending
+            if original_publication:
+                publication_writes.append(pending)
+            def fenced_original_commit():
+                assert store._connection.in_transaction
+                peer = sqlite3.connect(store._physical_path.as_uri() + '?mode=rw',
+                    uri=True, timeout=0, isolation_level=None)
+                try:
+                    try:
+                        peer.execute('BEGIN IMMEDIATE')
+                    except sqlite3.OperationalError as error:
+                        assert error.sqlite_errorcode & 0xff in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED)
+                    else:
+                        peer.rollback()
+                        raise AssertionError('Final publication validation did not exclude another SQLite writer')
+                finally:
+                    peer.close()
+                before_commit()
+                assert store._connection.in_transaction
+                atomic_observations.append(True)
+            result = original_store(*args, before_commit=fenced_original_commit, **kwargs)
+            if commit_unknown and original_publication:
+                assert len(publication_writes) == 1
+                raise lost_reply  # Actual SQLite COMMIT returned; only its reply is lost.
+            return result
+        with patch.object(store, 'store_publication_projected_inspected', side_effect=observe_original_transaction) as commit_calls:
+            execution = await client.start_source(
+                'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer', format='aql')
+            if commit_unknown:
+                assert len(host._physical_work) == 1
+                work = host._physical_work[0]
+                await work.wait_stopped()
+                assert work._future.exception() is lost_reply and work._exit_error is None
+                retained = host._pending_publication_write
+                assert retained is publication_writes[0] and retained in host._commit_projections
+                assert host._pending_publication_publisher is not None and core._compute_loans
+                original_call = core._call
+                def only_lookup(family, name, *args):
+                    if family in ('program', 'run', 'compute', 'task'):
+                        raise AssertionError('Uncertain publication lookup reissued execution')
+                    return original_call(family, name, *args)
+                with patch.object(core, '_call', side_effect=only_lookup):
+                    final = (await execution.wait(until='terminal')).to_dict()
+                assert host._pending_publication_write is None
+            else:
+                final = (await execution.wait(until='terminal')).to_dict()
+            assert final['status'] == 'succeeded' and final['result_available']
+            assert await execution.result('answer').all(schema=Row, max_rows=2) == [Row(n=41)]
+            assert (await execution.status()).to_dict() == final
+            reference = dict(execution.ref)
+            assert len(publication_writes) == 1
+        # Result delivery evidence uses this SAME physical primitive too.
+        # Every observed final validation must exclude another writer; an
+        # arbitrary private callback count is not a publication contract.
+        assert atomic_observations and commit_calls.call_count == len(atomic_observations)
     except BaseException as error:
         primary = error
         if isinstance(error, ClientError):
@@ -125,8 +183,10 @@ async def main():
             raise AssertionError('Saved succeeded Core close remains pending')
     assert reopened._closed
     print(json.dumps({'success': True, 'actualCases': 1,
-        'case': 'public_succeeded_execute_typed_result_same_saved_and_close',
-        'module_sha256': digest, 'state': str(state),
+        'case': ('public_commit_reply_loss_original_lookup_same_result_without_reexecution' if commit_unknown else
+                 'public_succeeded_execute_typed_result_same_saved_and_close'),
+        'module_sha256': digest, 'state': str(state), 'atomic_precommit_writer_exclusion': True,
+        'commit_reply_loss_readback_without_reexecution': commit_unknown,
         'qualification': 'actual source SDK/raw Wasm/SQLite; no installed normal package acceptance'}))
 
 

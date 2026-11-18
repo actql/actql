@@ -57,6 +57,10 @@ class SDKResultAssemblyTests(unittest.TestCase):
                         state['finalizing'] = True
                     elif name == 'advance_finalization': state['final'] += 1
                     elif name == 'progress':
+                        if args[1] in (4, 5):
+                            # This scalar port has no pending cleanup cursor.
+                            # It supplies neither physical stop nor an ACK.
+                            return 0 if args[1] == 4 else -1
                         count = state['final'] if state['finalizing'] else state['advance']
                         return (int(count >= 2), 0, 1, 64)[args[1]]
                     elif name == 'complete':

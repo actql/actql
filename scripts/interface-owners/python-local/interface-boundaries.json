@@ -52468,6 +52468,21 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_close_original_publications",
+          "parameters": [
+            "self",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "InstalledLocalHost/_close_original_publications/selected",
+          "parameters": [
+            "publication"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_close_originals",
           "parameters": [
             "self"
@@ -52559,7 +52574,8 @@
             "self",
             "compute",
             "preflight",
-            "publisher"
+            "publisher",
+            "retained_tasks"
           ],
           "async": false
         },
@@ -53447,7 +53463,7 @@
           "async": false
         }
       ],
-      "sha256": "7dfd0973c2fb6b83bdd0b57eff13b86528fb86bdc208d5985e84037727dcc181",
+      "sha256": "f2bacf87ba3b44036074bfe3fc775a6b2b74c5a3e0f5739928693849d08dae42",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -55594,6 +55610,115 @@
               {
                 "path": "scripts/fixtures/python-local-public-cancellation-abi.py",
                 "anchor": "assert final['status'] == 'cancelled' and not final['result_available']"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_close_original_publications",
+            "InstalledLocalHost/_close_original_publications/selected"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _close_original_publications("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _close_original_publications("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _close_original_publications("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _close_original_publications("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _close_original_publications("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _close_original_publications("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _close_original_publications("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _close_original_publications("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _close_original_publications("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-public-cancellation-abi.py",
+                "anchor": "'public_cancel_before_original_publication_commit_refuses_write_and_retires_same_work'"
+              },
+              {
+                "path": "scripts/fixtures/python-local-public-success-abi.py",
+                "anchor": "'public_commit_reply_loss_original_lookup_same_result_without_reexecution'"
               }
             ]
           }
@@ -89003,6 +89128,176 @@
           "declaration": "validate_client_saved_run_state_update_original ( update : ClientSavedRunStateUpdate , snapshot : ClientSavedSubmissionSnapshot , ) - > Result [ Unit , ClientSavedRunStateUpdateIssue ]"
         }
       ]
+    },
+    {
+      "module": "src/client_host_wasm/publisher.mbt",
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "D / existing original Run, publisher, Local task and physical custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "authorize_publisher",
+            "close_publisher",
+            "install_publisher",
+            "physical_publisher_begin",
+            "physical_publisher_copy",
+            "physical_publisher_current",
+            "physical_publisher_finish",
+            "publisher_authorize",
+            "publisher_current",
+            "reserve_publisher"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/publisher.mbt",
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/publisher.mbt",
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/publisher.mbt",
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/publisher.mbt",
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/publisher.mbt",
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/publisher.mbt",
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/publisher.mbt",
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/publisher.mbt",
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_host_wasm/publisher.mbt",
+                "anchor": "pub fn authorize_publisher("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-public-cancellation-abi.py",
+                "anchor": "'public_cancel_before_original_publication_commit_refuses_write_and_retires_same_work'"
+              },
+              {
+                "path": "scripts/fixtures/python-local-public-success-abi.py",
+                "anchor": "'public_commit_reply_loss_original_lookup_same_result_without_reexecution'"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "e4ab4154e36c5b52ff1eccd2606b3b45a1889dd7701602f053f9c88ed0f0ca70",
+      "operations": [
+        {
+          "name": "authorize_publisher",
+          "declaration": "authorize_publisher ( nonce : Int64 , handle : Int , current_configuration : Int , stage : Int , publication : Int , ) - > Int"
+        },
+        {
+          "name": "close_publisher",
+          "declaration": "close_publisher ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "install_publisher",
+          "declaration": "install_publisher ( nonce : Int64 , handle : Int , current_configuration : Int , ) - > Int"
+        },
+        {
+          "name": "physical_publisher_begin",
+          "declaration": "physical_publisher_begin ( ticket : Int , length : Int ) - > Int"
+        },
+        {
+          "name": "physical_publisher_copy",
+          "declaration": "physical_publisher_copy ( ticket : Int , index : Int , offset : Int , length : Int , ) - > Int"
+        },
+        {
+          "name": "physical_publisher_current",
+          "declaration": "physical_publisher_current ( ticket : Int ) - > Int"
+        },
+        {
+          "name": "physical_publisher_finish",
+          "declaration": "physical_publisher_finish ( ticket : Int ) - > Int"
+        },
+        {
+          "name": "publisher_authorize",
+          "declaration": "publisher_authorize ( child : StoredPublisher , fact : @ publication . PublicationPublisherAuthorization , ) - > Bool"
+        },
+        {
+          "name": "publisher_current",
+          "declaration": "publisher_current ( value : Instance , child : StoredPublisher ) - > Bool"
+        },
+        {
+          "name": "reserve_publisher",
+          "declaration": "reserve_publisher ( nonce : Int64 , parent : Int , input : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        }
+      ],
+      "exports": []
     }
   ],
   "syntaxProjectionBasis": "SHA256 of UTF-8 JSON.stringify over sorted declared {module,operations,exports,imports}; source inventory only."
