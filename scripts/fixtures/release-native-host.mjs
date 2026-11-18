@@ -10,7 +10,9 @@ import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 
 const executable = process.argv[2]; assert(executable);
 const sharedClients = process.argv[3] === '--shared-clients';
-assert(process.argv.length === 3 || (process.argv.length === 4 && sharedClients), 'Unknown Remote Host fixture selection');
+const sharedSavedRestart = process.argv[3] === '--shared-saved-restart';
+assert(process.argv.length === 3 || (process.argv.length === 4 && (sharedClients || sharedSavedRestart)),
+  'Unknown Remote Host fixture selection');
 const root = process.cwd(), records = [];
 // Only the standalone acceptance harness selects this environment. The Host
 // driver is separate; its Native children have no Node/npm/tool search path.
@@ -75,7 +77,7 @@ async function run(...args) {
   records.push(record);
   // Serialize only evidence-file replacement, never the actual Native calls.
   const complete = JSON.stringify(records, null, 2);
-  commandWrites = commandWrites.then(() => writeFile('native-commands.json', complete));
+  commandWrites = commandWrites.then(() => writeFile(sharedSavedRestart ? 'native-restart-commands.json' : 'native-commands.json', complete));
   await commandWrites;
   assert.equal(record.code, 0, `${args[0]}: ${record.stderr}`); assert.equal(record.signal, null);
   assert.equal(record.terminationReason, null); return record.stdout;
@@ -140,6 +142,31 @@ async function sharedClientCase() {
     unexecuted: ['active-cancel-isolation', 'named-conflict', 'client-crash', 'owner-crash-restart'],
   }, null, 2));
 }
+// A new explicit owner opens the original successful state only after the
+// first owner has actually exited. No submission or execution is reconstructed.
+async function sharedSavedRestartCase() {
+  const original = JSON.parse(await readFile('native-shared-host-acceptance.json', 'utf8'));
+  assert.equal(original.actors.length, 2);
+  for (const actor of original.actors) {
+    const ref = JSON.parse(await readFile(actor.refFile, 'utf8'));
+    assert.deepEqual(ref, actor.admission.ref);
+    const attached = JSON.parse(await run('attach', '--ref-file', actor.refFile));
+    assert.deepEqual(attached.ref, ref);
+    const lookup = JSON.parse(await run('lookup-submission', '--submission-ref-file', actor.submissionFile));
+    assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, ref);
+    assert.equal(JSON.parse(await run('status', '--ref-file', actor.refFile)).status, 'succeeded');
+    const rows = (await run('read', '--ref-file', actor.refFile, '--result-name', 'main',
+      '--attempt-id', `native-shared-restarted-read-${actor.name}`)).trimEnd().split('\n').map(JSON.parse);
+    assert.deepEqual(rows, [{id: 1}, {id: 2}]);
+  }
+  assert.equal(computes, 0, 'Owner restart and Saved reads must not dispatch another Compute');
+  await writeFile('native-shared-host-restart-acceptance.json', JSON.stringify({
+    version: 'actql-native-shared-host-restart-acceptance/0.1',
+    scope: 'explicit-owner-restart-after-graceful-exit', originalActors: original.actors.map(actor => actor.name),
+    computes, operations: records, ownerClose: 'not_yet_attempted',
+    unexecuted: ['owner-crash-recovery', 'active-cancel-isolation', 'named-conflict', 'client-crash'],
+  }, null, 2), {flag: 'wx'});
+}
 let client;
 async function singleClientCase() {
   assert.equal(JSON.parse(await run('connect')).mode, 'remote');
@@ -184,7 +211,10 @@ async function singleClientCase() {
   console.log('Installed Native Remote CLI: real Host connect, submit, wait, lookup, Result/schema, terminal cancel and cleanup passed');
 }
 try {
-  if (sharedClients) {
+  if (sharedSavedRestart) {
+    await sharedSavedRestartCase();
+    console.log('Installed Native shared Host: explicit owner restart and SAME original Saved reads passed');
+  } else if (sharedClients) {
     await sharedClientCase();
     console.log('Installed Native shared Host: parallel NEW, original Saved and detached-client independence passed');
   } else {
@@ -196,7 +226,7 @@ try {
   await new Promise(resolve => server.close(resolve));
   await host.close();
 }
-if (standaloneHome !== undefined || sharedClients) {
+if (standaloneHome !== undefined || sharedClients || sharedSavedRestart) {
   // All original explicit close calls above returned before this observation.
   // The parent observes this SAME still-live Host process, then acknowledges.
   console.log(JSON.stringify({stage: 'closed', pid: process.pid, clientCloseReturned: true, hostCloseReturned: true}));
