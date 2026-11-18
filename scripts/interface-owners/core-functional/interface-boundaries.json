@@ -99087,12 +99087,16 @@
     },
     {
       "module": "src/execution_relation/row_failure_diagnostic.mbt",
-      "sha256": "f3a2fb1cd6c4cea88e9c2b83b996ea43643e4e00e1c7fadad4f84e9db5e7a414",
+      "sha256": "05ed007f9196f43f5afc00eeb360e3c953c2ffb32ff7f0ee855636bec5d4a1a3",
       "exports": [],
       "operations": [
         {
           "name": "row_failure_diagnostic_cause",
           "declaration": "row_failure_diagnostic_cause ( issue : RowIssue ) - > String ?"
+        },
+        {
+          "name": "row_logical_failure_diagnostic_cause",
+          "declaration": "row_logical_failure_diagnostic_cause ( issue : LogicalBudgetIssue ) - > String"
         }
       ],
       "role": "observation-presentation",
@@ -99103,7 +99107,8 @@
         {
           "operations": [
             "<module>",
-            "row_failure_diagnostic_cause"
+            "row_failure_diagnostic_cause",
+            "row_logical_failure_diagnostic_cause"
           ],
           "exports": [],
           "attributes": {
@@ -99169,6 +99174,14 @@
               {
                 "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
                 "anchor": "test('original typed row cause reaches"
+              },
+              {
+                "path": "src/execution_relation/row_failure_diagnostic_wbtest.mbt",
+                "anchor": "closed row diagnosis preserves"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "remaining original typed row causes reach"
               }
             ]
           }

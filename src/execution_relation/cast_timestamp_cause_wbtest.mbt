@@ -68,6 +68,9 @@ test "Timestamp canonical cause does not upgrade generic failure or replace TRY 
     fail("control limit bypassed")
   }
   assert_true(control.kind is ControlLimit)
-  assert_eq(row_failure_diagnostic_cause(Evaluation(0, 0, control)), None)
+  assert_eq(
+    row_failure_diagnostic_cause(Evaluation(0, 0, control)),
+    Some("evaluation.control_limit"),
+  )
   assert_eq(workspace.live, 0)
 }
