@@ -1,5 +1,5 @@
 ///|
-// This SAME Request has only its initial six borrower slots before its one
+// This SAME Request retains its original admission census before its one
 // Model binding. Pure/Effect are closed, exclusive body choices. Resource owns
 // slot shapes; the Model Owner supplies its actual retained-record inventory.
 // Runtime body/operation allowances are not construction costs or spare credit.

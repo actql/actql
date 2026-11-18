@@ -191,6 +191,7 @@ options(
     "preparation_managed_publication_js_wbtest.mbt": [ "js" ],
     "preparation_explanation_capture_js_wbtest.mbt": [ "js" ],
     "preparation_logical_observation_js_wbtest.mbt": [ "js" ],
+    "preparation_logical_observation_overlap_js_wbtest.mbt": [ "js" ],
     "preparation_request_explanation_read_js_wbtest.mbt": [ "js" ],
     "preparation_request_program_json_js_wbtest.mbt": [ "js" ],
     "preparation_request_handoff_js_wbtest.mbt": [ "js" ],
