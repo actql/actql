@@ -492,7 +492,8 @@ test('required lint directly selects Native preparation controls and both worklo
   const core=workflow.jobs['core-darwin'].steps;
   const compiler=core.find(step=>step.name==='Test pinned Native C compiler orchestration');
   const compilerControls=actions.filter(action=>action.origin==='workflow'&&action.job==='core-darwin'&&
-    action.invocation?.kind==='node-test'&&action.invocation.argv.includes('scripts/native-core-c-compiler.test.mjs'));
+    action.invocation?.kind==='node-test'&&action.invocation.argv.includes('scripts/native-core-c-compiler.test.mjs')&&
+    action.matrix?.target==='native'&&action.matrix?.partition==='1/2');
   assert.equal(compilerControls.length,1);
   assert.equal(compilerControls[0].condition.continueOnError,false);
   assert.equal(compiler.if,"${{ matrix.target == 'native' && matrix.partition == '1/2' }}");
