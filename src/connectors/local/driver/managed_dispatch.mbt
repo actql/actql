@@ -390,18 +390,23 @@ fn local_managed_finalization_diagnostic_control_capacity() -> Int64? {
 }
 
 ///|
-// The new original issue (1H/3W), Node DATA (1H/5R/2W) and <=19-digit
+// The new original issue (1H/4W: tag, step, limit, origin), Node DATA
+// (1H/5R/2W) and <=19-digit
 // policy String (1H/19 UTF16) remain live through the existing failure owner.
-// Temporary projection: policy pair+Some and bridge tuple+Some never overlap;
-// the latter is 2H/2R/2W. Three fixed local references/two words and the
-// defineProperty argument's 1H/1R can coexist with the new DATA. These are
-// explicit same-task controls, not
-// new metadata ceilings or a replacement reservation/cleanup acknowledgement.
+// The bridge tuple+Some is 2H/2R/3W, including Some's tag even when a backend
+// unboxes it. Three fixed local references/two words and the defineProperty
+// argument's 1H/1R coexist with the new DATA: total 174R/310E bytes.
+// A conservative earlier mapping-phase sum includes refinement/step/context
+// Options, the selected holder and returned Int64 Option (5H/4R/5W), then
+// the new issue and the same locals (6H/7R/11W = 240 bytes). It cannot overlap
+// the Node projection, and is below 310. No old error/Some replacement credit
+// or metadata ceiling spare is used; these are the SAME task's complete new
+// controls, not another reservation or cleanup acknowledgement.
 fn local_managed_logical_work_diagnostic_capacity() -> (Int64, Int64)? {
   guard @execution.preparation_representation_cost({
       record_headers: 3L,
       reference_slots: 5L,
-      scalar_words: 5L,
+      scalar_words: 6L,
       owned_utf16_units: 19L,
       owned_wire_bytes: 0L,
     })
@@ -409,7 +414,7 @@ fn local_managed_logical_work_diagnostic_capacity() -> (Int64, Int64)? {
     @execution.preparation_representation_cost({
       record_headers: 3L,
       reference_slots: 6L,
-      scalar_words: 4L,
+      scalar_words: 5L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })

@@ -55468,7 +55468,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "7b3cd5e2aa17ff255ac383714191d281c818d86cc10bb6f3b31df388459d492c",
+      "sha256": "e48696c04755ae8d70f48a630488b54bf477d8b2ca1a88f74db3cee963bbd04c",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -56307,6 +56307,10 @@
               {
                 "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
                 "anchor": "logical work failure keeps actual policy"
+              },
+              {
+                "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
+                "anchor": "logical work complete frame admits exact backing"
               }
             ]
           }
