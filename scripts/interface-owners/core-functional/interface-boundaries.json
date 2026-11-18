@@ -9831,6 +9831,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:rebindInstalledEffectResultRetention/init:rebindInstalledEffectResultRetention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_retention_js_wbtest.mbt",
+                "anchor": "test \"original retention rebind preserves the full independent wire and equal-policy original\""
+              },
+              {
+                "path": "adapters/host-node/original-retention-rebinding.test.mjs",
+                "anchor": "actual runtime retention projection preserves the original token and rejects a foreign control"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -15747,6 +15823,19 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:rebindInstalledEffectResultRetention/init:rebindInstalledEffectResultRetention",
+          "parameters": [
+            "managedRun",
+            "prepared",
+            "request",
+            "plan",
+            "retention",
+            "policy",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
           "parameters": [
             "record"
@@ -18963,7 +19052,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "1d011683c9be883d32402768d4906e8e04d93e1a479b929b6b2f5b15e2dbd018"
+      "sha256": "4b3679b92585a593c1882549117c09b84adb5c7e36e8f3b8ff7437e75aa6a9b5"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -85583,7 +85672,7 @@
     },
     {
       "module": "src/client_local_host/preparation_dispatch_custody.mbt",
-      "sha256": "57e9f284615ac56af5fd579f1f209cb01c888ccc0043ff114fdb14e71aa37bd3",
+      "sha256": "f6ba3f3cc9809dc68fac4199ed27929c5b1f674bbbafb0a59860371ff51dd856",
       "exports": [],
       "operations": [
         {
@@ -106711,6 +106800,488 @@
         }
       ],
       "sha256": "ad6733b3a4b9b40fdb201c9463392e7939321c2ec25239938d79ce90bd5b9f69"
+    },
+    {
+      "module": "src/client_local_host/installed_effect_retention.mbt",
+      "sha256": "30d80a3de0d1373ce363455a4dd3485f95a3c95ce1ec5ff2ae49d9766e8e16ad",
+      "operations": [
+        {
+          "name": "installed_effect_retention_control_capacity",
+          "declaration": "installed_effect_retention_control_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "rebind_installed_effect_result_retention",
+          "declaration": "rebind_installed_effect_result_retention ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , original : @ publication . PublicationContract , policy : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . PublicationContract , ClientEffectUnitPreparationIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Effect Request preparation and publication owners",
+      "referenceQualification": "Same-original typed construction and bounded representation connection; component/canonical-source qualification does not establish a new normal runtime or physical Source acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_effect_retention_control_capacity",
+            "rebind_installed_effect_result_retention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_retention_js_wbtest.mbt",
+                "anchor": "test \"original retention rebind preserves the full independent wire and equal-policy original\""
+              },
+              {
+                "path": "adapters/host-node/original-retention-rebinding.test.mjs",
+                "anchor": "actual runtime retention projection preserves the original token and rejects a foreign control"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_effect_publication_bridge.mbt",
+      "sha256": "f641606b46914b8b361e629d5f270dde364e7fe3ae0e4f7f733c147d454a0996",
+      "operations": [
+        {
+          "name": "client_program_bind_installed_effect_model_invocation",
+          "declaration": "client_program_bind_installed_effect_model_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , host : ClientLocalEffectHost , compilation : @ publication_host . ClientEffectCompilation , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , compiled : @ publication_host . ClientCompiledRun , binding : @ infer_host . InvocationBinding , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_bind_installed_effect_source_free_invocation",
+          "declaration": "client_program_bind_installed_effect_source_free_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , host : ClientLocalEffectHost , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , issued : @ publication_host . ClientEffectSourceFreeInvocationOriginal , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_effect_source_free_invocation_original_invocation",
+          "declaration": "client_program_effect_source_free_invocation_original_invocation ( value : @ publication_host . ClientEffectSourceFreeInvocationOriginal , ) - > @ publication . PublicationContract"
+        },
+        {
+          "name": "client_program_effect_source_free_invocation_original_observation",
+          "declaration": "client_program_effect_source_free_invocation_original_observation ( value : @ publication_host . ClientEffectSourceFreeInvocationOriginal , ) - > @ publication . RunEvidenceValue"
+        },
+        {
+          "name": "client_program_issue_effect_source_free_invocation_original",
+          "declaration": "client_program_issue_effect_source_free_invocation_original ( compilation : @ publication_host . ClientEffectCompilation , policy : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectSourceFreeInvocationOriginal , @ publication . RunEvidenceValueIssue , ]"
+        },
+        {
+          "name": "client_program_issue_installed_effect_captured_invocation",
+          "declaration": "client_program_issue_installed_effect_captured_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , host : ClientLocalEffectHost , compilation : @ publication_host . ClientEffectCompilation , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , source : @ query . CapturedInputSource , source_evidence : String , input_logical : String , source_ref : String , source_contract : String , authority : String , policy : String , started : String , completed : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_issue_installed_effect_content_invocation",
+          "declaration": "client_program_issue_installed_effect_content_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , host : ClientLocalEffectHost , compilation : @ publication_host . ClientEffectCompilation , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , compiled : @ publication_host . ClientCompiledRun , generation : @ publication_host . ClientSerializationGeneration , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_issue_installed_effect_multi_captured_invocation",
+          "declaration": "client_program_issue_installed_effect_multi_captured_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , host : ClientLocalEffectHost , compilation : @ publication_host . ClientEffectCompilation , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , sources : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , requirements : Array [ @ planning . QueryRequirement ] , source_evidence : Array [ String ] , input_logical : Array [ String ] , authority : String , policy : String , started : String , completed : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_issue_original_effect_direct_sources_invocation",
+          "declaration": "client_program_issue_original_effect_direct_sources_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , host : ClientLocalEffectHost , compilation : @ publication_host . ClientEffectCompilation , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , sources : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , source_evidence : Array [ @ publication . RunEvidenceValue ] , input_logical : Array [ @ publication . RunEvidenceValue ] , authority : String , policy : String , started : String , completed : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectDirectSourcesPublication , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_rebind_installed_effect_result_retention",
+          "declaration": "client_program_rebind_installed_effect_result_retention ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , original : @ publication . PublicationContract , policy : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . PublicationContract , @ client_local_host . ClientEffectUnitPreparationIssue , ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Effect Request preparation and publication owners",
+      "referenceQualification": "Same-original typed construction and bounded representation connection; component/canonical-source qualification does not establish a new normal runtime or physical Source acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_bind_installed_effect_model_invocation",
+            "client_program_bind_installed_effect_source_free_invocation",
+            "client_program_effect_source_free_invocation_original_invocation",
+            "client_program_effect_source_free_invocation_original_observation",
+            "client_program_issue_effect_source_free_invocation_original",
+            "client_program_issue_installed_effect_captured_invocation",
+            "client_program_issue_installed_effect_content_invocation",
+            "client_program_issue_installed_effect_multi_captured_invocation",
+            "client_program_issue_original_effect_direct_sources_invocation",
+            "client_program_rebind_installed_effect_result_retention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_retention_js_wbtest.mbt",
+                "anchor": "test \"original retention rebind preserves the full independent wire and equal-policy original\""
+              },
+              {
+                "path": "adapters/host-node/original-retention-rebinding.test.mjs",
+                "anchor": "actual runtime retention projection preserves the original token and rejects a foreign control"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_combined_source_unit_bridge.mbt",
+      "sha256": "dd6cdca2995dd8dad15e5414599e969c19b62cc13628da6c3af107409ca63381",
+      "operations": [
+        {
+          "name": "client_program_begin_installed_effect_model_unit_managed_export",
+          "declaration": "client_program_begin_installed_effect_model_unit_managed_export ( run : @ client_local_host . ClientInstalledManagedRun , plan : @ client_local_host . ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , captured : @ strategy . CapturedEffectRunDAG , inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , output : @ execution . ManagedCompletedOutput [ Int ] , material : @ execution . ManagedRetainedOutput [ Int ] , ) - > Result [ ClientEffectManagedInputImport , ClientEffectManagedInputIssue ]"
+        },
+        {
+          "name": "client_program_bind_original_effect_unit_artifact_run_context",
+          "declaration": "client_program_bind_original_effect_unit_artifact_run_context ( owner : @ publication_host . PreparedClientEffectComputation , inputs : @ strategy . CapturedEffectInputs , artifact : @ publication_host . ClientEffectLocalResultArtifact , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , observation : @ publication . RunEvidenceValue , ) - > Result [ Unit , @ publication_host . ClientEffectLocalResultArtifactIssue ]"
+        },
+        {
+          "name": "client_program_check_original_effect_unit_artifact_export",
+          "declaration": "client_program_check_original_effect_unit_artifact_export ( owner : @ publication_host . PreparedClientEffectComputation , inputs : @ strategy . CapturedEffectInputs , artifact : @ publication_host . ClientEffectLocalResultArtifact , exported : @ strategy . CapturedEffectLocalResultExport , receipt : @ execution . CompletedRelationExportReceipt , ) - > Result [ Unit , @ publication_host . ClientEffectLocalResultArtifactIssue ]"
+        },
+        {
+          "name": "client_program_combined_effect_source_unit_catalog_bodies",
+          "declaration": "client_program_combined_effect_source_unit_catalog_bodies ( value : @ publication_host . ClientEffectCombinedSourceUnit , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Array [ ( String , String , String ) ] , @ publication_host . ClientEffectAcquiredEvidenceIssue , ]"
+        },
+        {
+          "name": "client_program_combined_effect_source_unit_dependency_bodies",
+          "declaration": "client_program_combined_effect_source_unit_dependency_bodies ( value : @ publication_host . ClientEffectCombinedSourceUnit , ) - > Array [ ( String , String , String ) ]"
+        },
+        {
+          "name": "client_program_combined_effect_source_unit_invocation",
+          "declaration": "client_program_combined_effect_source_unit_invocation ( value : @ publication_host . ClientEffectCombinedSourceUnit , ) - > @ publication_host . ClientEffectLocalInvocation"
+        },
+        {
+          "name": "client_program_effect_direct_sources_publication_invocation",
+          "declaration": "client_program_effect_direct_sources_publication_invocation ( value : @ publication_host . ClientEffectDirectSourcesPublication , ) - > @ publication . PublicationContract"
+        },
+        {
+          "name": "client_program_effect_direct_sources_publication_observation",
+          "declaration": "client_program_effect_direct_sources_publication_observation ( value : @ publication_host . ClientEffectDirectSourcesPublication , ) - > @ publication . RunEvidenceValue"
+        },
+        {
+          "name": "client_program_effect_model_unit_export_receipt",
+          "declaration": "client_program_effect_model_unit_export_receipt ( exported : @ strategy . CapturedEffectLocalResultExport , ) - > Result [ @ execution . CompletedRelationExportReceipt , @ execution . CompletedExportIssue , ]"
+        },
+        {
+          "name": "client_program_effect_model_unit_managed_export_owner",
+          "declaration": "client_program_effect_model_unit_managed_export_owner ( inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , value : ClientEffectManagedInputImport , ) - > Result [ @ strategy . CapturedEffectLocalResultExport , @ client_local_host . ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_effect_model_unit_result_artifact_issue_kind",
+          "declaration": "client_program_effect_model_unit_result_artifact_issue_kind ( result : Result [ @ publication_host . ClientEffectLocalResultArtifact , @ client_local_host . ClientEffectUnitPreparationIssue , ] , ) - > String ?"
+        },
+        {
+          "name": "client_program_effect_model_unit_result_count",
+          "declaration": "client_program_effect_model_unit_result_count ( inputs : @ strategy . CapturedEffectLocalUnitInputs , ) - > Int"
+        },
+        {
+          "name": "client_program_effect_model_unit_result_export_issue_kind",
+          "declaration": "client_program_effect_model_unit_result_export_issue_kind ( result : Result [ @ strategy . CapturedEffectLocalResultExport , @ client_local_host . ClientEffectUnitPreparationIssue , ] , ) - > String ?"
+        },
+        {
+          "name": "client_program_effect_model_unit_result_name",
+          "declaration": "client_program_effect_model_unit_result_name ( inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , ) - > String ?"
+        },
+        {
+          "name": "client_program_effect_model_unit_result_requires_managed_export",
+          "declaration": "client_program_effect_model_unit_result_requires_managed_export ( inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , ) - > Bool"
+        },
+        {
+          "name": "client_program_effect_model_unit_result_task",
+          "declaration": "client_program_effect_model_unit_result_task ( inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , ) - > Int ?"
+        },
+        {
+          "name": "client_program_installed_effect_source_originals",
+          "declaration": "client_program_installed_effect_source_originals ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , capture_count : Int , identity_count : Int , source_count : Int , input_count : Int , max_nodes : Int , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ publication_host . ClientDirectSourceOriginal ] , ) , @ publication . RunEvidenceValueIssue , ]"
+        },
+        {
+          "name": "client_program_issue_combined_source_effect_local_result_artifact",
+          "declaration": "client_program_issue_combined_source_effect_local_result_artifact ( owner : @ publication_host . PreparedClientEffectComputation , inputs : @ strategy . CapturedEffectInputs , exported : @ strategy . CapturedEffectLocalResultExport , source : @ publication_host . ClientEffectCombinedSourceUnit , definition : @ publication_host . ClientEffectLocalResultDefinition , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , run_definition : @ publication . PublicationContract , run_invocation : @ publication . PublicationContract , observation : @ publication . RunEvidenceValue , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultArtifact , @ publication_host . ClientEffectLocalResultArtifactIssue , ]"
+        },
+        {
+          "name": "client_program_original_effect_unit_artifact_definition",
+          "declaration": "client_program_original_effect_unit_artifact_definition ( artifact : @ publication_host . ClientEffectLocalResultArtifact , ) - > Result [ @ publication_host . ClientEffectLocalResultDefinition , @ publication_host . ClientEffectLocalResultArtifactIssue , ]"
+        },
+        {
+          "name": "client_program_original_effect_unit_manifest_matches",
+          "declaration": "client_program_original_effect_unit_manifest_matches ( manifest : @ publication_host . ClientEffectLocalManifest , owner : @ publication_host . PreparedClientEffectComputation , invocation : @ publication_host . ClientEffectLocalInvocation , artifacts : Array [ @ publication_host . ClientEffectLocalResultArtifact ] , ) - > Bool"
+        },
+        {
+          "name": "client_program_pin_installed_effect_model_unit_results",
+          "declaration": "client_program_pin_installed_effect_model_unit_results ( run : @ client_local_host . ClientInstalledManagedRun , plan : @ client_local_host . ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , captured : @ strategy . CapturedEffectRunDAG , unit : Int , ) - > Result [ @ strategy . CapturedEffectLocalUnitInputs , @ client_local_host . ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_combined_effect_source_unit",
+          "declaration": "client_program_prepare_combined_effect_source_unit ( publication : @ publication_host . ClientEffectDirectSourcesPublication , unit : Int , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectCombinedSourceUnit , @ publication_host . ClientEffectAcquiredEvidenceIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_effect_direct_sources_publication",
+          "declaration": "client_program_prepare_installed_effect_direct_sources_publication ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , compilation : @ publication_host . ClientEffectCompilation , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , sources : Array [ @ publication . RunEvidenceValue ] , inputs : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , data_policy_cid : String , capture_started_at : String , capture_completed_at : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectDirectSourcesPublication , @ publication . RunEvidenceValueIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_effect_model_source_unit",
+          "declaration": "client_program_prepare_installed_effect_model_source_unit ( run : @ client_local_host . ClientInstalledManagedRun , plan : @ client_local_host . ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , inputs : @ publication_host . ClientEffectSourceUnitInputs , unit : Int , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectCombinedSourceUnit , @ client_local_host . ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_effect_model_source_unit_artifact",
+          "declaration": "client_program_prepare_installed_effect_model_source_unit_artifact ( run : @ client_local_host . ClientInstalledManagedRun , plan : @ client_local_host . ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , inputs : @ strategy . CapturedEffectLocalUnitInputs , exported : @ strategy . CapturedEffectLocalResultExport , combined : @ publication_host . ClientEffectCombinedSourceUnit , receipt : @ execution . CompletedRelationExportReceipt , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultArtifact , @ client_local_host . ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_effect_model_source_unit_catalog",
+          "declaration": "client_program_prepare_installed_effect_model_source_unit_catalog ( run : @ client_local_host . ClientInstalledManagedRun , plan : @ client_local_host . ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , inputs : @ publication_host . ClientEffectSourceUnitInputs , unit : @ publication_host . ClientEffectCombinedSourceUnit , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ Array [ ( String , String , String ) ] , @ client_local_host . ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_effect_model_unit_manifest",
+          "declaration": "client_program_prepare_installed_effect_model_unit_manifest ( run : @ client_local_host . ClientInstalledManagedRun , plan : @ client_local_host . ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , invocation : @ publication_host . ClientEffectLocalInvocation , artifacts : Array [ @ publication_host . ClientEffectLocalResultArtifact ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalManifest , @ client_local_host . ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_effect_model_unit_result_export",
+          "declaration": "client_program_prepare_installed_effect_model_unit_result_export ( run : @ client_local_host . ClientInstalledManagedRun , plan : @ client_local_host . ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , captured : @ strategy . CapturedEffectRunDAG , inputs : @ strategy . CapturedEffectLocalUnitInputs , index : Int , ) - > Result [ @ strategy . CapturedEffectLocalResultExport , @ client_local_host . ClientEffectUnitPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_installed_effect_source_unit_inputs",
+          "declaration": "client_program_prepare_installed_effect_source_unit_inputs ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , compilation : @ publication_host . ClientEffectCompilation , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , captures : Array [ @ query . CapturedInputSource ] , identities : Array [ @ query . CapturedSourceRelationIdentity ] , sources : Array [ @ publication . RunEvidenceValue ] , inputs : Array [ @ publication . RunEvidenceValue ] , authority_scope_cid : String , data_policy_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectSourceUnitInputs , @ publication . RunEvidenceValueIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_preconsumer_effect_source_unit",
+          "declaration": "client_program_prepare_preconsumer_effect_source_unit ( inputs : @ publication_host . ClientEffectSourceUnitInputs , unit : Int , retention : @ publication . PublicationContract , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectCombinedSourceUnit , @ publication_host . ClientEffectAcquiredEvidenceIssue , ]"
+        },
+        {
+          "name": "client_program_release_effect_model_unit_results",
+          "declaration": "client_program_release_effect_model_unit_results ( inputs : @ strategy . CapturedEffectLocalUnitInputs , ) - > Bool"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Effect Request preparation and publication owners",
+      "referenceQualification": "Same-original typed construction and bounded representation connection; component/canonical-source qualification does not establish a new normal runtime or physical Source acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_begin_installed_effect_model_unit_managed_export",
+            "client_program_bind_original_effect_unit_artifact_run_context",
+            "client_program_check_original_effect_unit_artifact_export",
+            "client_program_combined_effect_source_unit_catalog_bodies",
+            "client_program_combined_effect_source_unit_dependency_bodies",
+            "client_program_combined_effect_source_unit_invocation",
+            "client_program_effect_direct_sources_publication_invocation",
+            "client_program_effect_direct_sources_publication_observation",
+            "client_program_effect_model_unit_export_receipt",
+            "client_program_effect_model_unit_managed_export_owner",
+            "client_program_effect_model_unit_result_artifact_issue_kind",
+            "client_program_effect_model_unit_result_count",
+            "client_program_effect_model_unit_result_export_issue_kind",
+            "client_program_effect_model_unit_result_name",
+            "client_program_effect_model_unit_result_requires_managed_export",
+            "client_program_effect_model_unit_result_task",
+            "client_program_installed_effect_source_originals",
+            "client_program_issue_combined_source_effect_local_result_artifact",
+            "client_program_original_effect_unit_artifact_definition",
+            "client_program_original_effect_unit_manifest_matches",
+            "client_program_pin_installed_effect_model_unit_results",
+            "client_program_prepare_combined_effect_source_unit",
+            "client_program_prepare_installed_effect_direct_sources_publication",
+            "client_program_prepare_installed_effect_model_source_unit",
+            "client_program_prepare_installed_effect_model_source_unit_artifact",
+            "client_program_prepare_installed_effect_model_source_unit_catalog",
+            "client_program_prepare_installed_effect_model_unit_manifest",
+            "client_program_prepare_installed_effect_model_unit_result_export",
+            "client_program_prepare_installed_effect_source_unit_inputs",
+            "client_program_prepare_preconsumer_effect_source_unit",
+            "client_program_release_effect_model_unit_results"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_retention_js_wbtest.mbt",
+                "anchor": "test \"original retention rebind preserves the full independent wire and equal-policy original\""
+              },
+              {
+                "path": "adapters/host-node/original-retention-rebinding.test.mjs",
+                "anchor": "actual runtime retention projection preserves the original token and rejects a foreign control"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

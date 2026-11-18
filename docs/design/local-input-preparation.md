@@ -4121,6 +4121,41 @@ publication; an already retained logical input is never serialized for a
 second admission. Keyed publication reads its existing observation and logical
 identity directly, while stored/restored wire remains an external boundary.
 
+### Source retention policy on the same publication owner
+
+A contributing Query Source keeps its original data-policy identity while the
+Result may use a different admitted publication policy. The two Node Effect
+callers pass their same admitted retention, managed Run, checked Effect,
+Request and installed Plan to the Common retention writer. They do not parse,
+modify or reseal that original in JavaScript. Common changes only the selected
+data-policy envelope and preserves every custody, clock and timestamp field.
+An equal policy returns the same original contract and Node view, without a
+replacement wire. Node's initial at-least-one-hour selection, `retainUntil`
+and deletion/metadata windows remain its existing selected configuration.
+
+The existing opening latch rejects reentry before Resource currentness. The
+same live Plan holder funds one closed control window before the existing
+construction-measuring writer: geometry, tagged Option/Result/error carriers,
+the six-word geometry state and the fixed nine-name emitter vector. The
+original fixed-array recipe includes that vector's backing through both
+passes. The existing sealed-contract layout then reserves actual writer,
+hash, parser, final value and wire overlap before emission. Original strings
+remain borrowed. Existing immutable Node contract/bounds views use the same
+projection as the preceding seal path, not another encoding or admission.
+
+Each admitted call counts its actual fixed window. A refused body grow keeps
+that already charged prefix; retry grows the same holder again. A prior larger
+execution peak remains reserved rather than being charged as a new increment.
+Foreign Plan/Request, retired holder, current loss and invalid envelopes retain
+their typed refusals and original cleanup. A returned contract grants no Source,
+publication, retention extension or physical release authority. Same-holder
+fences surround the writer; no second Ledger, owner or cleanup engine appears.
+
+This connection does not replace initial retention selection with the Wasm
+Local profile. Empty authoring annotations, normalization journals and private
+Host identities are separate responsibilities. Publication Request and Attempt
+already use their Common constructors and are unchanged.
+
 ## Retained evidence keeps exact bounded-writer facts
 
 An admitted Run evidence value retains the UTF-8 bytes, value nodes and peak

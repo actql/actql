@@ -435,9 +435,12 @@ function fixture({inline=true,projectionFailure,sourceCount=2,upstreamWhole=fals
     },
     compiledInferSourceFreeResultPolicy:()=>({}),
     admitRunEvidence(){assert.fail('Transferred Source evidence is not readmitted');},
-    seal(name,wire) {
+    rebindInstalledEffectResultRetention(run,prepared,request,plan,originalRetention,policy) {
       assert.equal(inline||upstreamWhole,false,'Whole input retention is issued by its typed Core owner');
-      assert.equal(name,'result_retention_policy');events.push('source-retention');return {wire};
+      assert.strictEqual(prepared,acquired.prepared);assert.strictEqual(request,acquired.requestIdentity);
+      assert.strictEqual(plan,sourcePlan);assert.strictEqual(originalRetention,retention);
+      assert(sources.some(({captured})=>captured.checkedSource.sourceDataPolicyCid===policy));
+      events.push('source-retention');return {};
     },
     issueCheckedAcquiredEffectEvidence(...args) {
       assert.equal(inline,false,'Whole Model contributions never enter Query-only evidence');

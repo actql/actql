@@ -25515,6 +25515,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:rebindInstalledEffectResultRetention/init:rebindInstalledEffectResultRetention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_retention_js_wbtest.mbt",
+                "anchor": "test \"original retention rebind preserves the full independent wire and equal-policy original\""
+              },
+              {
+                "path": "adapters/host-node/original-retention-rebinding.test.mjs",
+                "anchor": "actual runtime retention projection preserves the original token and rejects a foreign control"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -31431,6 +31507,19 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:rebindInstalledEffectResultRetention/init:rebindInstalledEffectResultRetention",
+          "parameters": [
+            "managedRun",
+            "prepared",
+            "request",
+            "plan",
+            "retention",
+            "policy",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
           "parameters": [
             "record"
@@ -34647,7 +34736,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "1d011683c9be883d32402768d4906e8e04d93e1a479b929b6b2f5b15e2dbd018"
+      "sha256": "4b3679b92585a593c1882549117c09b84adb5c7e36e8f3b8ff7437e75aa6a9b5"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -100346,7 +100435,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "3b8a94c2c04504a4bd8a257e77a7662434bf5bac36a5a81fec90e688581ed3e5",
+      "sha256": "496d3918c000d580394ce533769530eec688c0586fd30cb9de51329ed89d1a06",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -101394,6 +101483,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
               }
             ],
             "inputsOutputs": [
@@ -101484,6 +101577,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
               }
             ],
             "cancellation": [
@@ -101520,6 +101617,10 @@
               {
                 "path": "adapters/host-node/effect-publication-binding.test.mjs",
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
               }
             ],
             "extension": [
@@ -101971,6 +102072,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
               }
             ],
             "inputsOutputs": [
@@ -102081,6 +102186,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
               }
             ],
             "cancellation": [
@@ -102125,6 +102234,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
               }
             ],
             "extension": [

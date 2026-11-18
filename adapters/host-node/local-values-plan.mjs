@@ -575,10 +575,9 @@ export function acquiredEffectPublicationPlan({acquired, captured,
     retentionSelection: acquired.selectRetention?.()});
   let sourceRetention = retention;
   if (content !== undefined && !whole) {
-    const body = JSON.parse(retention.wire);
-    delete body.effective_retention_policy_cid;
-    body.effective_data_policy_cid = source.sourceDataPolicyCid;
-    sourceRetention = control.seal('result_retention_policy', JSON.stringify(body), limits);
+    sourceRetention = control.rebindInstalledEffectResultRetention(
+      managedRun, prepared, acquired.requestIdentity, sourcePlan, retention,
+      source.sourceDataPolicyCid, limits);
   }
   const acquiredEvidence = whole
     ? control.issueCheckedWholeEffectSourceUnit(sourcePlan, prepared, acquired.requestIdentity,
@@ -796,11 +795,9 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
         if (captured.requirement === undefined) {
           throw new TypeError('QueryEffectProducerUnitOriginalRequired');
         }
-        const body = JSON.parse(retention.wire);
-        delete body.effective_retention_policy_cid;
-        body.effective_data_policy_cid = captured.checkedSource.sourceDataPolicyCid;
-        const sourceRetention = control.seal('result_retention_policy',
-          JSON.stringify(body), limits);
+        const sourceRetention = control.rebindInstalledEffectResultRetention(
+          managedRun, prepared, acquired.requestIdentity, sourcePlan, retention,
+          captured.checkedSource.sourceDataPolicyCid, limits);
         acquiredEvidenceByUnit[unit] = control.issueCheckedAcquiredEffectEvidence(
           prepared, captured.capture.source(), captured.identity,
           captured.requirement, captured.logicalInput, sourceEvidence[slot],

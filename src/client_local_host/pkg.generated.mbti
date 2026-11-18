@@ -1265,6 +1265,8 @@ pub fn read_installed_logical_observation(ClientLogicalObservation, @physical_st
 
 pub fn[I] read_request_explanation_view(ClientRequestPreparation[I], I, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, ClientRequestExplanationReadIssue]
 
+pub fn rebind_installed_effect_result_retention(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, ClientEffectUnitPreparationIssue]
+
 pub fn[I, S] reconcile_installed_source_construction(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
 
 pub fn[I, P] reconcile_program_check_carriers(ClientProgramCheckPreparation[I, P]) -> Result[Unit, ClientProgramCheckPreparationIssue]
@@ -1760,6 +1762,7 @@ pub(all) enum ClientEffectUnitPreparationIssue {
   Export(@physical_strategy_host.CapturedEffectLocalResultExportIssue)
   Artifact(@run_publication_host.ClientEffectLocalResultArtifactIssue)
   Manifest(@run_publication_host.ClientEffectLocalManifestIssue)
+  Retention(@run_publication.PublicationContractIssue)
 }
 
 pub(all) enum ClientHostInitializationIssue {

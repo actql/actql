@@ -3,6 +3,27 @@
 // callback/setter port, alternate owner, or CID-only publication witness.
 
 ///|
+#export_name("clientProgramRebindInstalledEffectResultRetention")
+pub fn client_program_rebind_installed_effect_result_retention(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  original : @publication.PublicationContract,
+  policy : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.PublicationContract,
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  @client_local_host.rebind_installed_effect_result_retention(
+    owner, prepared, request, plan, original, policy, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramIssueEffectSourceFreeInvocationOriginal")
 pub fn client_program_issue_effect_source_free_invocation_original(
   compilation : @publication_host.ClientEffectCompilation,

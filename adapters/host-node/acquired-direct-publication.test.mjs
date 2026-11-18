@@ -83,7 +83,13 @@ function fixture({mixed = false, refusal, typed = true, managed = false, content
       assert.strictEqual(bounds, limits); calls.push('content-invocation');
       return {observation: {wire: '{"data_policy_cid":"joined"}'}, invocation: {}, owner};
     },
-    seal() { calls.push('query-retention'); return {}; },
+    rebindInstalledEffectResultRetention(run, prepared, request, plan, originalRetention, policy, bounds) {
+      assert.strictEqual(run, managed ? managedRun : undefined);
+      assert.strictEqual(prepared, acquired.prepared); assert.strictEqual(request, acquired.requestIdentity);
+      assert.strictEqual(plan, sourcePlan); assert.strictEqual(originalRetention, retention);
+      assert.equal(policy, sources[1].captured.checkedSource.sourceDataPolicyCid);
+      assert.strictEqual(bounds, limits); calls.push('query-retention'); return {};
+    },
     issueCheckedAcquiredEffectEvidence(...args) {
       assert.strictEqual(args[3], sources[1].captured.requirement);
       assert.strictEqual(args[5], originals[1]); calls.push('query-unit');

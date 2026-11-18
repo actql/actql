@@ -5055,6 +5055,17 @@ function publicationControl(moon) {
         evidenceToken(observation), authorityScopeCid, dataPolicyCid,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
+    rebindInstalledEffectResultRetention(managedRun, prepared, request, plan, retention, policy, limits) {
+      if (managedRun == null || prepared == null || request == null || plan == null) {
+        throw new TypeError('OriginalEffectRetentionPreparationRequired');
+      }
+      limits = captureContractLimits(limits, 'Original Effect retention policy');
+      const original = token(retention);
+      const value = checked(moon.clientProgramRebindInstalledEffectResultRetention(
+        managedRun, prepared, request, plan, original, policy,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return value === original ? retention : inspect(value, limits);
+    },
     issueCheckedAcquiredEffectEvidence(checkedEffect, capturedSource,
       identity, requirement, input, observation, authorityScopeCid,
       dataPolicyCid, retention, limits, unit = 0, publicationRetention = retention, deferCatalogs = false) {

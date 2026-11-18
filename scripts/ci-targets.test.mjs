@@ -1749,6 +1749,7 @@ test('normal distribution keeps original Request resource and cleanup regression
   "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
   "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
   "adapters/host-node/acquired-direct-publication.test.mjs",
+  "adapters/host-node/original-retention-rebinding.test.mjs",
   "adapters/host-node/source-keyed-adoption-original.test.mjs",
   "adapters/host-node/local-file-keyed-effect-current.test.mjs",
   "adapters/host-node/request-model-material-resources.test.mjs",
@@ -1769,6 +1770,7 @@ test('normal distribution keeps original Request resource and cleanup regression
   for (const file of ['adapters/host-node/acquired-effect-keyed-prefix.test.mjs',
     'adapters/host-node/acquired-effect-keyed-publication.test.mjs',
     'adapters/host-node/acquired-direct-publication.test.mjs',
+    'adapters/host-node/original-retention-rebinding.test.mjs',
     'adapters/host-node/source-keyed-adoption-original.test.mjs',
     'adapters/host-node/local-file-keyed-effect-current.test.mjs']) {
     assert.equal(captureSteps[0].run.split(/\s+/u).filter(value => value === file).length, 1);

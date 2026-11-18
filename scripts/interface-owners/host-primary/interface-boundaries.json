@@ -29699,7 +29699,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "3b8a94c2c04504a4bd8a257e77a7662434bf5bac36a5a81fec90e688581ed3e5",
+      "sha256": "496d3918c000d580394ce533769530eec688c0586fd30cb9de51329ed89d1a06",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -30527,6 +30527,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
               }
             ],
             "inputsOutputs": [
@@ -30745,6 +30749,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
               }
             ],
             "cancellation": [
@@ -30829,6 +30837,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
               }
             ],
             "extension": [
