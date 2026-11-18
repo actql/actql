@@ -27,31 +27,42 @@ export const keyedProtocolConstructionInventory = Object.freeze([
   entry('client_keyed_native_sources', 'prepare_client_keyed_native_left_relation'),
   entry('client_keyed_request_plan', 'prepare_client_keyed_native_batch_plan'),
 ].map(Object.freeze));
+export const keyedScanConstructionInventory = Object.freeze([
+  entry('client_keyed_lookup_body', 'build_keyed_lookup_identity_bodies'),
+  entry('client_keyed_native_left_identity', 'build_client_keyed_native_left_identity'),
+  entry('client_keyed_native_page', 'build_client_keyed_native_captured_page'),
+  entry('client_keyed_native_sources', 'build_client_keyed_native_whole_source_evidence'),
+].map(Object.freeze));
+const scanBuilders = new Set([
+  'scan_keyed_lookup_identity_bodies', 'scan_client_keyed_native_left_identity',
+  'scan_client_keyed_native_page', 'scan_client_keyed_native_whole_source',
+]);
 const identity = ([module, name]) => `${module}:${name}`;
 const common = directory + 'client_keyed_protocol_construction.mbt';
 const beginFinish = new Set(['grow_keyed_lookup_protocol_metadata', 'finish_keyed_lookup_protocol_metadata']);
-const privateTypes = new Set(['KeyedProtocolConstruction', 'KeyedProtocolBuilt', 'SettledKeyedProtocolMetadata']);
+const privateTypes = new Set(['KeyedProtocolConstruction', 'KeyedProtocolBuilt', 'SettledKeyedProtocolMetadata', 'KeyedBodyConstruction']);
 const rawResource = new Set(['grow_execution_reservation_capacity', 'reduce_execution_reservation_capacity',
   'reduce_execution_reservation']);
-const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
+const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
 const lowOwners = new Set([
   entry('client_keyed_lookup_body', 'keyed_lookup_body_grow'),
   entry('client_keyed_lookup_identity', 'grow_keyed_lookup_protocol_metadata'),
   entry('client_keyed_lookup_identity', 'finish_keyed_lookup_protocol_metadata'),
+  entry('client_keyed_protocol_construction', 'with_keyed_body_construction'),
   // Different lifetimes: persistent Request/cache entries and resumable wire/response intake.
   entry('client_keyed_request_plan', 'keyed_lookup_plan_grow'),
   entry('client_keyed_lookup_input', 'keyed_lookup_grow_execution'),
   entry('client_keyed_lookup_input', 'begin_client_keyed_lookup_response'),
 ].map(identity));
 // Operation/function exceptions, never whole-file exemptions. Their backing is
-// retained or has an independently owned scan/physical lifetime. Mixed scan
-// scratch remains a review obligation; this guard does not authorize refunding it.
+// retained at an independently owned predecessor/physical lifetime. The four
+// finished scan portions now use their separate original managed construction.
 const bodyGrowthOwners = new Map([
+  [...entry('client_keyed_protocol_construction', 'with_keyed_body_construction'), 'original scan first-entry backing'],
+  [...entry('client_keyed_protocol_construction', 'grow_keyed_body_construction'), 'latched original scan grow port'],
   [...entry('client_keyed_lookup_identity', 'finish_keyed_lookup_protocol_metadata'), 'pre-admitted extent walk'],
-  [...entry('client_keyed_lookup_body', 'build_keyed_lookup_identity_bodies'), 'retained receipt and active scan'],
-  [...entry('client_keyed_native_left_identity', 'build_client_keyed_native_left_identity'), 'original receipt and active scan'],
-  [...entry('client_keyed_native_page', 'build_client_keyed_native_captured_page'), 'earlier retained page/capture scan'],
-  [...entry('client_keyed_native_sources', 'build_client_keyed_native_whole_source_evidence'), 'earlier retained Source scan'],
+  [...entry('client_keyed_lookup_body', 'build_keyed_lookup_identity_bodies'), 'original supplied-input/output predecessor'],
+  [...entry('client_keyed_native_page', 'build_client_keyed_native_captured_page'), 'original RowRun/capture/output predecessor'],
   [...entry('client_keyed_native_sources', 'keyed_lookup_source_metadata_state'), 'retained Source state'],
   [...entry('client_keyed_declared_file_journal', 'prepare_client_keyed_declared_file_raw_store'), 'physical Store/failed-writer overlap'],
   [...entry('client_keyed_declared_file_journal', 'bind_client_keyed_declared_file_physical_source'), 'retained immutable Source aliases'],
@@ -100,8 +111,12 @@ function functions(list) {
   return {result, declarations};
 }
 
-export function resourceLifecycleProblems(sources, {inventory = keyedProtocolConstructionInventory} = {}) {
+export function resourceLifecycleProblems(sources, {
+  inventory = keyedProtocolConstructionInventory,
+  scanInventory = inventory === keyedProtocolConstructionInventory ? keyedScanConstructionInventory : [],
+} = {}) {
   const problems = [], found = new Set(), expected = new Set(inventory.map(identity));
+  const scanExpected = new Set(scanInventory.map(identity));
   for (const [module, source] of sources) {
     const list = tokens(source, true, true);
     const parsed = functions(list);
@@ -109,21 +124,26 @@ export function resourceLifecycleProblems(sources, {inventory = keyedProtocolCon
       fn.keyedOwner = /\/client_(?:keyed_|effect_generic_keyed_)/u.test(module) ||
         list.slice(fn.start, fn.body).some(value => value.kind === 'word' && value.value === 'ClientKeyedLookupInput');
       fn.resourceReferences = list.slice(fn.body, fn.end).some(value => value.kind === 'word' &&
-        (rawResource.has(value.value) || beginFinish.has(value.value) || value.value === 'keyed_lookup_body_grow'));
+        (rawResource.has(value.value) || beginFinish.has(value.value) || ['keyed_lookup_body_grow', 'grow_keyed_body_construction'].includes(value.value)));
     }
     const scopes = [];
     const at = index => parsed.result.find(fn => index >= fn.start && index <= fn.end);
     const issue = (rule, index, fn = at(index)) => problems.push({module, function: fn?.name,
       rule, offset: list[index]?.begin ?? 0});
     for (let i = 0; i < list.length; i++) {
-      if (list[i].kind === 'word' && list[i].value === 'with_keyed_protocol_construction' &&
+      if (list[i].kind === 'word' && ['with_keyed_protocol_construction', 'with_keyed_body_construction'].includes(list[i].value) &&
           list[i + 1]?.value === '(' && !parsed.declarations.has(i)) {
-        scopes.push([i, close(list, i + 1, '(', ')')]);
+        scopes.push([i, close(list, i + 1, '(', ')'), list[i].value]);
       }
     }
     const inScope = index => scopes.some(([start, end]) => index > start && index < end);
     for (const fn of parsed.result) {
       const id = `${module}:${fn.name}`;
+      if (scanExpected.has(id)) {
+        found.add(id);
+        if (!scopes.some(([start, end, kind]) => start > fn.body && end < fn.end &&
+            kind === 'with_keyed_body_construction')) issue('missing-managed-scan', fn.body, fn);
+      }
       if (expected.has(id)) {
         found.add(id);
         if (!scopes.some(([start, end]) => start > fn.body && end < fn.end)) issue('missing-managed-construction', fn.body, fn);
@@ -144,13 +164,16 @@ export function resourceLifecycleProblems(sources, {inventory = keyedProtocolCon
       if (beginFinish.has(token.value) && !(module === common && fn?.name === 'with_keyed_protocol_construction')) {
         issue('manual-protocol-phase', i);
       }
+      if ((token.value === 'grow_keyed_body_construction' || token.value === 'keyed_body_construction_controls') &&
+          !(module === common && fn?.name === 'with_keyed_body_construction')) issue('manual-scan-phase', i);
+      if (scanBuilders.has(token.value) && !inScope(i)) issue('unsettled-scan-builder', i);
       if (rawResource.has(token.value) && (keyedOwner || fn === undefined) && !lowOwners.has(id)) issue('unclassified-reservation-mutation', i);
       if (token.value === 'keyed_lookup_body_grow' && !inScope(i) && !bodyGrowthOwners.has(id)) issue('unclassified-body-growth', i);
       if (token.value === 'keyed_protocol_built' && !inScope(i)) issue('unsettled-builder-escape', i);
       if (privateTypes.has(token.value)) {
         const declaration = ['struct', 'enum'].includes(list[i - 1]?.value) &&
           module === common;
-        const owner = module === common && ['keyed_protocol_built', 'with_keyed_protocol_construction'].includes(fn?.name) ||
+        const owner = module === common && ['keyed_protocol_built', 'with_keyed_protocol_construction', 'with_keyed_body_construction', 'grow_keyed_body_construction'].includes(fn?.name) ||
           module === directory + 'client_keyed_lookup_identity.mbt' && beginFinish.has(fn?.name);
         if (!declaration && !owner && !inScope(i)) issue('private-construction-forgery', i);
       }
@@ -172,7 +195,7 @@ export function resourceLifecycleProblems(sources, {inventory = keyedProtocolCon
       }
     }
   }
-  for (const id of expected) if (!found.has(id)) problems.push({rule: 'missing-inventory-function', function: id});
+  for (const id of [...expected, ...scanExpected]) if (!found.has(id)) problems.push({rule: 'missing-inventory-function', function: id});
   return problems;
 }
 
@@ -182,5 +205,6 @@ export function checkResourceLifecycle(root) {
   const sources = new Map(names.map(name => [directory + name, readFileSync(join(root, directory, name), 'utf8')]));
   return {problems: resourceLifecycleProblems(sources),
     qualification: 'Narrow original keyed lifecycle token/issuer/custody guard; not complete control-flow or runtime proof',
-    equivalentFunctions: keyedProtocolConstructionInventory.length};
+    equivalentFunctions: keyedProtocolConstructionInventory.length,
+    mixedScanFunctions: keyedScanConstructionInventory.length};
 }

@@ -606,6 +606,8 @@ pub fn completed_relation_export_original_source(CompletedRelationExportReceipt)
 
 pub fn completed_relation_export_receipt_live(CompletedRelationExportReceipt) -> Bool
 
+pub fn completed_relation_export_retained_capacity(CompletedRelationExportReceipt) -> ExecutionCapacity?
+
 pub fn completed_relation_export_scalar_geometry(CompletedRelationExportReceipt) -> (Int, Int, Int, Int, Int)
 
 pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt) -> RelationSchemaIdentity

@@ -72,6 +72,8 @@ pub fn captured_source_relation_identity_has_input_binding(CapturedSourceRelatio
 
 pub fn captured_source_relation_identity_matches_source(CapturedSourceRelationIdentity, CapturedInputSource) -> Bool
 
+pub fn captured_source_relation_identity_retained_capacity(CapturedSourceRelationIdentity) -> @execution_relation.ExecutionCapacity?
+
 pub fn captured_source_relation_logical_cid(CapturedSourceRelationIdentity) -> String
 
 pub fn captured_source_relation_row_count(CapturedSourceRelationIdentity) -> Int

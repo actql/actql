@@ -23,10 +23,16 @@ test "finished keyed left identity retires scan scratch while retaining its orig
 }
 
 ///|
+test "completed Whole scan adopts its original identity before metadata on the same lookup" {
+  run_original_source_completion(true, scan_whole_source=true)
+}
+
+///|
 fn run_original_source_completion(
   installed_rows : Bool,
   distinct_requests? : Bool = false,
   audit_scan_retention? : Bool = false,
+  scan_whole_source? : Bool = false,
 ) -> Unit raise {
   // Installation-owned policy leaves are outside each lookup's cached bodies,
   // just as in ordinary publication. Use their real preimages and identities.
@@ -403,23 +409,66 @@ fn run_original_source_completion(
         fail("installed retention physical: " + @debug.to_string(issue))
       Err(_) => fail("installed retention: other typed refusal")
     }
-    // The distinct-request component selects a finite codec envelope for its
-    // tiny metadata; the existing ledger and ordinary fixture stay unchanged.
-    let source_metadata_bytes = if distinct_requests { 8192 } else { 1000000 }
-    let source_metadata_nodes = if distinct_requests { 1024 } else { 100000 }
-    match
-      bind_client_keyed_whole_source_metadata(
-        lookup, 0, identity, logical, observation, request, retention, source_metadata_bytes,
-        source_metadata_nodes, 100,
-      ) {
-      Ok(_) => ()
-      Err(Assembly(reason)) => fail("installed source metadata: " + reason)
-      Err(Physical(issue)) =>
-        fail("installed source metadata physical: " + @debug.to_string(issue))
-      Err(SourceLogical(Admission(issue))) =>
-        fail("installed source logical: " + @debug.to_string(issue))
-      Err(SourceLogical(_)) => fail("installed source logical")
-      Err(_) => fail("installed source metadata: other typed refusal")
+    // These two authored components select the existing finite codec envelope
+    // for tiny metadata; the original ledger/policy ceilings stay unchanged.
+    let source_metadata_bytes = if distinct_requests || scan_whole_source {
+      8192
+    } else {
+      1000000
+    }
+    let source_metadata_nodes = if distinct_requests || scan_whole_source {
+      1024
+    } else {
+      100000
+    }
+    if scan_whole_source {
+      require_source_fixture(
+        prepare_client_keyed_native_whole_source_evidence(
+          lookup,
+          0,
+          original,
+          selected,
+          capture,
+          request,
+          retention,
+          "2026-11-15T00:00:01.000Z",
+          1,
+          {
+            max_nodes: 10000,
+            max_text_bytes: 20000,
+            max_depth: 20,
+            max_work: 1000000,
+          },
+          wire,
+          wire,
+          { max_fields: 10, max_bytes: 20000, max_nodes: 10000, max_depth: 20, },
+          1000000,
+          100000,
+          source_metadata_bytes,
+          source_metadata_nodes,
+          100,
+        ),
+        "actual scanned Whole source metadata",
+      )
+      |> ignore
+      let state = lookup.native_sources.unwrap()
+      assert_true(state.source_scan is None && state.source_identity is None)
+      assert_true(state.sources[0].identity_custody is ScannedHere)
+    } else {
+      match
+        bind_client_keyed_whole_source_metadata(
+          lookup, 0, identity, logical, observation, request, retention, source_metadata_bytes,
+          source_metadata_nodes, 100,
+        ) {
+        Ok(_) => ()
+        Err(Assembly(reason)) => fail("installed source metadata: " + reason)
+        Err(Physical(issue)) =>
+          fail("installed source metadata physical: " + @debug.to_string(issue))
+        Err(SourceLogical(Admission(issue))) =>
+          fail("installed source logical: " + @debug.to_string(issue))
+        Err(SourceLogical(_)) => fail("installed source logical")
+        Err(_) => fail("installed source metadata: other typed refusal")
+      }
     }
     require_source_fixture(
       prepare_client_keyed_native_left_relation(
