@@ -9,9 +9,15 @@ import {nativeCliTestCohort, requireNativeCliCiInputs, requireNativeHostAuthoriz
   from './ci-native-cli-installed.mjs';
 import {runNativeInstallCommand} from './test-native-standalone-install.mjs';
 import {admitNativeReleaseCohort} from './native-cli-release.mjs';
+import {runSharedHostSourceAcceptance} from './fixtures/shared-host-source-acceptance.mjs';
 import {gateJobs, gateJobRequired, selectTargets} from './ci-targets.mjs';
 
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+test('shared Source fault selection refuses an unsupported case before software or state acquisition', async () => {
+  await assert.rejects(runSharedHostSourceAcceptance({scenario: 'replay-after-crash'}),
+    /Unsupported shared Source acceptance scenario/u);
+});
+
 test('ordinary Native CLI installed acceptance is required by the final full CI gate', () => {
   const job = jobs['native-cli-installed'];
   assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
