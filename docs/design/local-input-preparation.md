@@ -5967,6 +5967,20 @@ imported child's stopping state. A consuming callback cannot admit a new
 reservation after that stop by waiting for a later current observation.
 The separate physical acknowledgment is never inferred from this restriction.
 
+Native Work's Journal entry keeps the canonical original-body reservation
+resize. When actual window acquisition requires an entered business Read,
+`prepare_prepared_run_native_work_backing` first acquires backing for the same
+absolute retained/execution targets under that Read. It uses the original
+prepared admission, body borrower, isolated reservation and Ledger. This
+preflight shares the canonical simultaneous-demand calculation, including
+held bytes and other reservations, but changes no logical usage, token,
+attempt, work counter or peak. The later Journal resize commits the sole
+logical debit; it cannot acquire another window when the original backing
+already covers the same demand. The existing transition latch and post-current
+borrower/isolation fences reject reentry or changed custody. Any acquired
+physical peak remains the same owner's cleanup duty after failure; preflight
+success is neither an execution grant nor a physical retirement acknowledgment.
+
 The physical issuer must reserve the complete original region, provisioning
 attempts, admission/frame/controller captures, output and failed-constructor
 coexistence before creating them. Shared region bytes remain suballocations of

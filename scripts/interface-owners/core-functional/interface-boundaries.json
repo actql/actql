@@ -2960,7 +2960,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4044,7 +4044,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -6566,7 +6566,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -34300,7 +34300,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -35894,7 +35894,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -36132,7 +36132,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -37638,7 +37638,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -37926,7 +37926,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -40007,7 +40007,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -50041,7 +50041,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -50137,7 +50137,7 @@
       "sha256": "c2b6127bfff44e9c3f59fd0a2a4f75d8ab1ed8960110ed73289a392949016d1e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -50446,7 +50446,7 @@
       "sha256": "af85920af4da377b630cdbd29a6f6596313fe03015e8c366414a42b9a8ab2d3a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -53885,7 +53885,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -54019,7 +54019,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -54276,7 +54276,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -54374,7 +54374,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -54742,7 +54742,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -55003,7 +55003,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -55176,7 +55176,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -55289,7 +55289,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -56677,7 +56677,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -57393,7 +57393,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -60212,7 +60212,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -66671,7 +66671,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -70305,7 +70305,8 @@
             "[P]return_preparation_body_borrow",
             "preparation_capacity_phase_is_working",
             "retire_transferred_preparation",
-            "completed_preparation_retirement"
+            "completed_preparation_retirement",
+            "[I,P]reconcile_current_working_preparation_phase"
           ],
           "exports": [],
           "attributes": {
@@ -70455,6 +70456,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Constructor inputs retain the same reservation"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"Native Work preflight grows backing without a logical debit before the Journal resize\""
               }
             ]
           }
@@ -70656,7 +70661,7 @@
           }
         }
       ],
-      "sha256": "c18758f7851ed647526c47c69f6c90276470828b65f41d12faa93b62401b47bb",
+      "sha256": "7d28651915af7247ae3b9cca42f9b5d0cc9e6ca72d737034ed49b26e950027d4",
       "exports": [],
       "operations": [
         {
@@ -70714,6 +70719,10 @@
         {
           "name": "[I,P]preparation_capacity_usage_isolated",
           "declaration": "[ I , P ] preparation_capacity_usage_isolated ( owner : PreparationCapacity [ I , P ] , ledger : Ledger , ) - > Bool"
+        },
+        {
+          "name": "[I,P]reconcile_current_working_preparation_phase",
+          "declaration": "[ I , P ] reconcile_current_working_preparation_phase ( owner : PreparationCapacity [ I , P ] , input : I , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
         },
         {
           "name": "[I,P]reconcile_working_preparation_phase",
@@ -71331,14 +71340,14 @@
     {
       "module": "src/physical_resources/preparation_publication_phase.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "df7f3dacd30e45bd7468ab98a86f7b69c232fbd5ee879b1ba93825c1b7fbeaab",
+      "sha256": "316c4a1b78f264f7bccfe5cc5c16e9758334afa831e465d3752ef38e96bae490",
       "role": "common-semantics",
       "owner": "Existing Resource preparation and original body-borrow owner",
       "exports": [],
       "operations": [
         {
-          "name": "[I,P]reserve_original_preparation_publication_phase",
-          "declaration": "[ I , P ] reserve_original_preparation_publication_phase ( borrowed : PreparationCapacityBorrow [ I , P ] , body : P , retained_peak : Int64 , execution_peak : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
+          "name": "[I,P]reserve_original_preparation_running_phase",
+          "declaration": "[ I , P ] reserve_original_preparation_running_phase ( borrowed : PreparationCapacityBorrow [ I , P ] , body : P , retained_peak : Int64 , execution_peak : Int64 , purpose : PreparationBodyGrowth , ) - > Result [ Unit , PreparationCapacityIssue ]"
         },
         {
           "name": "[P]reserve_preparation_publication_phase",
@@ -71349,8 +71358,8 @@
         {
           "operations": [
             "<module>",
-            "[I,P]reserve_original_preparation_publication_phase",
-            "[P]reserve_preparation_publication_phase"
+            "[P]reserve_preparation_publication_phase",
+            "[I,P]reserve_original_preparation_running_phase"
           ],
           "exports": [],
           "attributes": {
@@ -71460,6 +71469,10 @@
               {
                 "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
                 "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"Native Work preflight grows backing without a logical debit before the Journal resize\""
               }
             ]
           }
@@ -82231,7 +82244,7 @@
     },
     {
       "module": "src/physical_resources/prepared_run_admission.mbt",
-      "sha256": "fb365657623a8354d071fd851009386f422166d2bf5f059329dc76847b64ff59",
+      "sha256": "7e981181743160c60d9dabb8b6ef1a55e9a59d7df4678782065c1c262674117e",
       "exports": [],
       "operations": [
         {
@@ -82261,6 +82274,10 @@
         {
           "name": "[P]node_prepared_run_admission",
           "declaration": "[ P ] node_prepared_run_admission ( value : NodeManagedRunAdmission [ P ] , ) - > PreparedRunAdmission [ P ]"
+        },
+        {
+          "name": "[P]prepare_prepared_run_native_work_backing",
+          "declaration": "[ P ] prepare_prepared_run_native_work_backing ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , retained_peak : Int64 , execution_peak : Int64 , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         },
         {
           "name": "[P]prepared_run_native_body",
@@ -82306,7 +82323,8 @@
             "[P]grow_prepared_run_native_work_capacity",
             "[P]prepared_run_native_body",
             "[P]prepared_run_native_capacity",
-            "[P]reserve_prepared_run_native_work_capacity"
+            "[P]reserve_prepared_run_native_work_capacity",
+            "[P]prepare_prepared_run_native_work_backing"
           ],
           "exports": [],
           "attributes": {
@@ -82380,6 +82398,10 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
                 "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"Native Work preflight grows backing without a logical debit before the Journal resize\""
               }
             ]
           }
@@ -85101,7 +85123,11 @@
             "resize_capacity_reservation_current",
             "resize_reservation_bytes_current",
             "settle_capacity",
-            "shrink_capacity_reservation"
+            "shrink_capacity_reservation",
+            "back_reservation_bytes_current",
+            "check_capacity_reservation_resize_current",
+            "original_capacity_token_covers",
+            "prepare_capacity_reservation_backing"
           ],
           "exports": [],
           "attributes": {
@@ -85279,13 +85305,21 @@
               {
                 "path": "src/physical_resources/read_capacity.mbt",
                 "anchor": "pub fn shrink_capacity_reservation("
+              },
+              {
+                "path": "src/physical_resources/read_capacity_wbtest.mbt",
+                "anchor": "test \"backing preflight and canonical resize share simultaneous held and reserved demand\""
               }
             ]
           }
         }
       ],
-      "sha256": "24dda1378f746dafde8a386a3db5bf3334905ed2b90ee312f43035f6412ef012",
+      "sha256": "c4da21074a84dd1ad924686c4e6efb02759d11cf86a3d353467b6b08588162a3",
       "operations": [
+        {
+          "name": "back_reservation_bytes_current",
+          "declaration": "back_reservation_bytes_current ( ledger : Ledger , token : Reservation , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
         {
           "name": "capacity_reservation_covers",
           "declaration": "capacity_reservation_covers ( ledger : Ledger , reservation : CapacityReservation , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Bool"
@@ -85299,8 +85333,20 @@
           "declaration": "capacity_reservation_open ( reservation : CapacityReservation ) - > Bool"
         },
         {
+          "name": "check_capacity_reservation_resize_current",
+          "declaration": "check_capacity_reservation_resize_current ( ledger : Ledger , capacity : CapacityReservation , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
           "name": "grow_capacity_reservation",
           "declaration": "grow_capacity_reservation ( ledger : Ledger , capacity : CapacityReservation , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "original_capacity_token_covers",
+          "declaration": "original_capacity_token_covers ( ledger : Ledger , token : Reservation , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Bool"
+        },
+        {
+          "name": "prepare_capacity_reservation_backing",
+          "declaration": "prepare_capacity_reservation_backing ( ledger : Ledger , capacity : CapacityReservation , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "reservation_capacity_amounts",
@@ -85329,6 +85375,10 @@
         {
           "name": "settle_capacity",
           "declaration": "settle_capacity ( ledger : Ledger , reservation : CapacityReservation , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "shrink_capacity_reservation",
+          "declaration": "shrink_capacity_reservation ( ledger : Ledger , capacity : CapacityReservation , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
         }
       ],
       "exports": []
@@ -90413,7 +90463,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -90866,7 +90916,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [

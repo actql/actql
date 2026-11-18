@@ -504,6 +504,8 @@ pub fn prepare_node_original_source_child(OriginalNodeSourceReference) -> Result
 
 pub fn[T] prepare_original_state_write(OriginalLedgerIdentity, T, @encode_core.Writer, Int64, Int64, binding_work? : Int) -> Result[(FundedReadClaim[T], OriginalStateWrite[T]), OriginalStateWriteIssue]
 
+pub fn[P] prepare_prepared_run_native_work_backing(PreparedRunAdmission[P], P, Ledger, Int64, Int64) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn[P] prepared_run_native_capacity(PreparedRunAdmission[P], P, Ledger) -> Result[(Int64, Int64), ImportedChildLedgerIssue]
 
 pub fn[P] prepared_run_usage_isolated(PreparedRunAdmission[P], Ledger) -> Bool

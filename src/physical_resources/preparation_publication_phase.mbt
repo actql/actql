@@ -17,15 +17,21 @@ pub fn[P] reserve_preparation_publication_phase(
 }
 
 ///|
-// Both closed callers extend the same running body reservation. Their purpose
-// selection stays at the original public entrance; ownership/current/resize
-// and reentrant-return handling have one implementation.
+// Closed callers share the same original running body and transition latch.
+// Native preflight acquires backing only; the Journal's later canonical resize
+// remains the sole logical debit. No current proof escapes this boundary.
 fn[I, P] reserve_original_preparation_running_phase(
   borrowed : PreparationCapacityBorrow[I, P],
   body : P,
   retained_peak : Int64,
   execution_peak : Int64,
+  purpose : PreparationBodyGrowth,
 ) -> Result[Unit, PreparationCapacityIssue] {
+  let backing_only = match purpose {
+    NativeWorkBacking => true
+    Publication | NativeWork => false
+    _ => return Err(ForeignOriginal)
+  }
   if borrowed.returned {
     return Err(BorrowReturned)
   }
@@ -48,15 +54,27 @@ fn[I, P] reserve_original_preparation_running_phase(
   if retained_peak < token.retention || execution_peak < token.execution {
     return Err(InvalidExtent)
   }
+  if backing_only && !preparation_capacity_usage_isolated(owner, owner.ledger) {
+    return Err(WorkActive)
+  }
   // The existing transition latch blocks retirement, new borrowers, and a
   // reentrant publication grow before imported currentness is invoked.
   owner.phase = Transferring
-  let outcome = resize_capacity_reservation(
-    owner.ledger,
-    owner.reservation,
-    retained_peak,
-    execution_peak,
-  )
+  let outcome = if backing_only {
+    prepare_capacity_reservation_backing(
+      owner.ledger,
+      owner.reservation,
+      retained_peak,
+      execution_peak,
+    )
+  } else {
+    resize_capacity_reservation(
+      owner.ledger,
+      owner.reservation,
+      retained_peak,
+      execution_peak,
+    )
+  }
   owner.phase = Run
   match outcome {
     Err(issue) => Err(Resource(issue))
@@ -70,6 +88,9 @@ fn[I, P] reserve_original_preparation_running_phase(
       } else if borrowed.returned {
         Err(BorrowReturned)
       } else if owner.borrowers <= 0 {
+        Err(WorkActive)
+      } else if backing_only &&
+        !preparation_capacity_usage_isolated(owner, owner.ledger) {
         Err(WorkActive)
       } else {
         Ok(())

@@ -11,6 +11,43 @@ fn read_capacity_fixture(retained : Int64, execution : Int64) -> Ledger {
 }
 
 ///|
+test "backing preflight and canonical resize share simultaneous held and reserved demand" {
+  let ledger = read_capacity_fixture(100L, 100L)
+  let target = reserve_capacity(ledger, 30L, 10L).unwrap()
+  let sibling = reserve_capacity(ledger, 10L, 10L).unwrap()
+  let holding = retain_allocation(ledger, sibling.reservation, 3L).unwrap()
+  // The other retained demand is still 10 = 3 held + 7 reserved.
+  let before = ledger_usage(ledger)
+  let serial = ledger.next_capacity_serial
+  assert_true(
+    prepare_capacity_reservation_backing(ledger, target, 91L, 90L)
+    is Err(RetentionLimit),
+  )
+  assert_true(
+    prepare_capacity_reservation_backing(ledger, target, 90L, 91L)
+    is Err(ExecutionLimit),
+  )
+  prepare_capacity_reservation_backing(ledger, target, 90L, 90L).unwrap()
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger.next_capacity_serial, serial)
+  assert_eq(
+    reservation_capacity_amounts(ledger, target.reservation),
+    Ok((30L, 10L)),
+  )
+  resize_capacity_reservation(ledger, target, 90L, 90L).unwrap()
+  assert_eq(ledger_usage(ledger).held_bytes, 3L)
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 97L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 100L)
+  assert_eq(ledger_usage(ledger).peak_retention_bytes, 100L)
+  release_allocation(ledger, holding).unwrap()
+  settle_capacity(ledger, sibling).unwrap()
+  settle_capacity(ledger, target).unwrap()
+  assert_eq(ledger_usage(ledger).held_bytes, 0L)
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
 test "original byte coverage checks both dimensions without changing custody" {
   let ledger = read_capacity_fixture(17L, 13L)
   let token = reserve_capacity(ledger, 7L, 5L).unwrap()
