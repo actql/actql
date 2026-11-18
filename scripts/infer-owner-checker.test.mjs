@@ -29,6 +29,8 @@ import {openLocalPublicationStore} from '../adapters/store-local/publication-sto
 import {createPublicationContractControlFixture} from
   '../adapters/host-common/publication-contract-control.fixture.mjs';
 import {openNodeInferOperation} from '../adapters/host-node/infer-operation.mjs';
+import {openFundedClientPreparation, fundedAuthoringContextOriginalFixture} from
+  '../adapters/host-node/funded-client-preparation.fixture.mjs';
 import {installNodeClientDispatchOwner} from
   '../adapters/host-node/client-dispatch-owner.mjs';
 import {inferTaskRunAdmission, inferTaskPublicationPlan} from
@@ -1104,9 +1106,9 @@ async function inferExportRows(prepared, completed) {
 }
 
 function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null,"risk":"high"}',
-  source = program(), quantityCapacity, physicalPreflight, observeEgress) {
-  const preparation = prepare(source, environment());
-  const prepared = moon.clientProgramPreparationReady(preparation);
+  source = program(), quantityCapacity, physicalPreflight, observeEgress, originalPrepared) {
+  const preparation = originalPrepared === undefined ? prepare(source, environment()) : undefined;
+  const prepared = originalPrepared ?? moon.clientProgramPreparationReady(preparation);
   assert.ok(prepared, inspect(preparation));
   let calls = 0;
   const provider = moon.clientProgramInstallModelProvider('models/fixture',
@@ -1244,13 +1246,21 @@ async function issueOwnedInferObservation(operation, control, compiled,
 }
 
 test('issued INFER output uses the ordinary retained Result exporter', async t => {
-  const fixture = supervisedInferFixture();
+  // Publication reads the journal and annotations retained by this SAME
+  // Request. A standalone checker token cannot supply either original.
+  const preparation = await openFundedClientPreparation({moon, environment: environment()});
+  t.after(preparation.close);
+  const originalPrepared = await preparation.prepare({kind: 'program', input: program(),
+    parameters: null, maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64});
+  const fixture = supervisedInferFixture(undefined, undefined, undefined, undefined,
+    undefined, undefined, undefined, originalPrepared);
   const {prepared, graph, operation} = fixture;
   const core = runtimeCore(moon);
   const control = core.publicationControl;
   const scope = cid({fixture: 'retained-infer-output'});
   const now = () => '2026-10-02T00:00:00.000Z';
   const options = {moon, control, preparedProgram: prepared, inferGraph: graph,
+    publicationOriginal: {authoringContext: fundedAuthoringContextOriginalFixture(moon, prepared)},
     namespaceId: 'infer-store', authorityScopeCid: scope,
     storeAuthorityCid: scope, now};
   const admitted = inferTaskRunAdmission(options);
