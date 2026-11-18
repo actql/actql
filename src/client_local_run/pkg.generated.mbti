@@ -34,6 +34,8 @@ pub fn capture_local_run_task_materials_original(LocalRunPlan, @program_check.Ch
 
 pub fn check_local_publication_preflight(LocalPublicationIntent, LocalRunInvocation, @execution_authorization.AdmittedAccountConfiguration, Array[@run_publication.PublicationContract]) -> Result[LocalPublicationPreflight, LocalPublicationIntentIssue]
 
+pub fn command_local_compute_task_control(LocalComputeHost, Int, @physical_strategy_host.CapturedTaskControlCommand, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple) -> Result[Unit, @physical_strategy_host.CapturedTaskControlIssue]
+
 pub fn configure_captured_source_local_compute(LocalRunPlan, @execution_query.CapturedInputSource, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
 
 pub fn configure_captured_source_local_compute_on_ledger(LocalRunPlan, @execution_query.CapturedInputSource, @physical_resources.Ledger, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[LocalComputeHost, LocalComputeIssue]
@@ -179,6 +181,8 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(LocalPublicationPreflight, 
 pub fn prepare_captured_source_local_run(@client_local_preparation.LocalPreparedInput, String, String, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, String, String, String, String, submitted? : @client_local_preparation.LocalSubmittedPreparation?) -> Result[LocalRunPlan, LocalRunIssue]
 
 pub fn prepare_local_compute_task_boundaries(LocalComputeHost) -> Result[@physical_strategy_host.CapturedTaskBoundaryHooks, @physical_strategy_host.CapturedTaskBoundaryIssue]
+
+pub fn prepare_local_compute_task_control(LocalComputeHost, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple) -> Result[Unit, @physical_strategy_host.CapturedTaskControlIssue]
 
 pub fn prepare_local_preflight_commit_candidate(LocalPublicationPreflight, LocalRunManifest, LocalRunNormalization, @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], String, @execution_authorization.AdmittedAccountConfiguration, LocalPublicationIntentLimits, Int) -> Result[(@run_publication.PublicationContract, @run_publication.PublicationCommitPreparation), LocalPublicationIntentIssue]
 

@@ -39,6 +39,8 @@ struct CapturedTaskBoundaryHooks {
   mut reads : CapturedTaskBoundary?
   mut admitting_read : Bool
   mut closing : Bool
+  mut control : CapturedTaskControl?
+  mut admitting_control : Bool
 }
 
 ///|
@@ -243,6 +245,8 @@ pub fn prepare_captured_task_boundary_hooks(
     reads: None,
     admitting_read: false,
     closing: false,
+    control: None,
+    admitting_control: false,
   }
   run.activation = Observed(hooks)
   Ok(hooks)
@@ -274,6 +278,7 @@ fn record_captured_task_boundary_commit(run : CapturedDAG, task : Int) -> Unit {
       generation: run.generation,
       strategy_revision: run.revisions,
     })
+    commit_captured_task_control(run, hooks, task)
   }
 }
 
@@ -299,7 +304,7 @@ fn captured_boundary_record_current(
   }
   match phase {
     Before =>
-      next_captured_task(run) == Some(task) &&
+      next_captured_task_ungated(run) == Some(task) &&
       captured_task_activation_granted(run, task)
     Settled | OutputEmitted =>
       run.done[task] && run.outputs[task] is Some(_) && run.lifetimes[task].live
@@ -541,7 +546,17 @@ fn refresh_captured_task_boundary_cleanup(run : CapturedDAG) -> Unit {
         (original.returning == 2 || !original.delivered) {
         return_captured_task_boundary(boundary) |> ignore
       }
+      if hooks.closing {
+        retire_captured_task_control(hooks)
+        if hooks.control is Some(control) &&
+          original_control_cleanup_issue(control) is Some(issue) &&
+          hooks.original is Some(setup) {
+          setup.cleanup_issue = Some(issue)
+        }
+      }
       if hooks.closing &&
+        !hooks.admitting_control &&
+        hooks.control is None &&
         !hooks.admitting_read &&
         hooks.reads is None &&
         hooks.original is Some(original) {
@@ -630,6 +645,8 @@ pub fn release_captured_task_boundary_hooks(
   if !run.stopped ||
     !hooks.closing ||
     hooks.admitting_read ||
+    hooks.admitting_control ||
+    hooks.control is Some(_) ||
     hooks.original is Some(_) ||
     hooks.reads is Some(_) {
     return Err(SetupInUse)

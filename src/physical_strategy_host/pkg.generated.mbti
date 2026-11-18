@@ -435,6 +435,10 @@ pub fn captured_task_boundary_task(CapturedTaskBoundary) -> Int
 
 pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
+pub fn captured_task_control_construction_bytes() -> Int64
+
+pub fn captured_task_control_state(CapturedDAG, CapturedTaskBoundaryHooks) -> Result[(Int, CapturedTaskControlPhase), CapturedTaskControlIssue]
+
 pub fn captured_task_input(CapturedDAG, Int, Int, Int, input_index? : Int, data_index? : Int) -> Result[@execution_relation.ProducerRead, RunIssue]
 
 pub fn captured_task_interval_search_at(CapturedDAG, Int, Int) -> (Int, Int64)?
@@ -534,6 +538,8 @@ pub fn close_resident_environment(CapturedDAG, ResidentEnvironment) -> Result[Un
 pub fn close_task_execution(CapturedDAG, TaskExecution) -> Unit
 
 pub fn close_task_numeric_reduction(CapturedDAG, TaskNumericExecution) -> Bool
+
+pub fn command_captured_task_control(CapturedDAG, CapturedTaskBoundaryHooks, Int, CapturedTaskControlCommand, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[Unit, CapturedTaskControlIssue]
 
 pub fn commit_strategy_choice(StrategyChoiceSet, Int?) -> Result[StrategyDecision, SearchIssue]
 
@@ -750,6 +756,8 @@ pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, I
 pub fn prepare_captured_effect_proposal_plan(CapturedEffectInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?, input_key? : CapturedEffectCommandKeyValidation?) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue]
 
 pub fn prepare_captured_task_boundary_hooks(CapturedDAG, @physical_strategy.CheckedDAG, Int) -> Result[CapturedTaskBoundaryHooks, CapturedTaskBoundaryIssue]
+
+pub fn prepare_captured_task_control(CapturedDAG, CapturedTaskBoundaryHooks, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[Unit, CapturedTaskControlIssue]
 
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.GraphIssue]
 
@@ -1272,6 +1280,35 @@ pub(all) enum CapturedTaskBoundaryPhase {
   Before
   Settled
   OutputEmitted
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CapturedTaskControlCommand {
+  Pause
+  ResumeStep
+  ResumeTerminal
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CapturedTaskControlIssue {
+  NotPrepared
+  ForeignOwner
+  AuthorizationMismatch
+  BoundaryUnavailable(Int)
+  AlreadyStarted
+  Stopped
+  InProgress
+  StaleRevision
+  ControlRevisionExhausted
+  InvalidTransition
+  Resource(@physical_resources.LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CapturedTaskControlPhase {
+  Paused
+  Running
+  Stepping(Int)
+  PausePending
+  Completed
+  Retired
 } derive(Eq, @debug.Debug)
 
 pub(all) struct EmpiricalRanking {
