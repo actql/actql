@@ -2184,7 +2184,8 @@ export function openClientRequestJournal(directory, {
     try {
       const result = action();
       return Object.freeze({kind, attemptRef: ownedAttempt,
-        ...(kind === 'checked' ? {requestId: result.requestId} : {submission: result})});
+        ...(kind === 'checked' ? {requestId: result.requestId} : {submission: result,
+          attemptKind: result.observation})});
     } catch (error) {
       const rejection = submissionRejections.get(error);
       if (rejection === undefined || rejection.ticket !== ticket) throw error;
@@ -2570,8 +2571,8 @@ export function openClientRequestJournal(directory, {
     const retained = originalCustody ?? assertIntentCustody();
     const existing = intentSelect.get(requestId);
     if (existing !== undefined) {
-      const previous = retainedIntent(existing, control, submissionRef.epoch);
-      if (previous.intentCid !== original.identity) rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
+      const previous = retainedIntent(existing, control, submissionRef.epoch, original.intent);
+      if (previous.observation === 'conflict') rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
       if (restartSelect.get(requestId)?.link_wire !== restartWire) rejectSubmission('ClientSubmissionRestartConflict', 'conflict', 'restart_decision');
       return {inserted: false, ...previous};
     }
@@ -2607,7 +2608,8 @@ export function openClientRequestJournal(directory, {
         SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
         .run(restarts.n).changes) !== 1) fail('ClientSubmissionRestartCustodyLost');
     }
-    return {inserted: true, ...retainedIntent(intentSelect.get(requestId), control, submissionRef.epoch)};
+    return {inserted: true, ...retainedIntent(intentSelect.get(requestId), control,
+      submissionRef.epoch, original.intent, true)};
   };
   const restartDecision = (submissionRef, intentCid, unresolvedHistory, actorId) => {
     if (unresolvedHistory === undefined) return undefined;
@@ -2684,10 +2686,10 @@ export function openClientRequestJournal(directory, {
     Object.freeze(link.freshSubmissionRef.epoch); Object.freeze(link.freshSubmissionRef);
     return Object.freeze(link);
   };
-  const retainedIntentOriginal = (row, control, originalEpoch, previous) => {
+  const retainedIntentOriginal = (row, control, originalEpoch, previous, expected, inserted = false) => {
     const authority = epochAuthority.get();
     const restartRow = restartSelect.get(row.submission_id);
-    if (previous !== undefined && validEpochAuthority(authority) &&
+    if (previous !== undefined && expected === undefined && validEpochAuthority(authority) &&
         authority.authentication_key === previous.authenticationKey &&
         Object.keys(row).length === Object.keys(previous.row).length &&
         Object.keys(row).every(key => row[key] === previous.row[key]) &&
@@ -2729,16 +2731,20 @@ export function openClientRequestJournal(directory, {
     if (unresolvedHistory !== undefined && unresolvedHistory.intentCid !== row.intent_cid) {
       fail('ClientSubmissionRestartCorrupt');
     }
+    const observation = expected === undefined ? undefined :
+      control.clientSubmittedIntentObservation(expected, intent, row.phase, inserted);
+    if (expected !== undefined && observation === undefined) fail('ClientSubmittedIntentCorrupt');
     const value = Object.freeze({submissionRef: Object.freeze({epoch: Object.freeze(epoch), nonce: row.nonce}),
       requestId: row.submission_id, intentCid: row.intent_cid, intentWire: row.intent_wire,
       phase: row.phase, revision: row.revision, outcome,
-      ...(unresolvedHistory === undefined ? {} : {unresolvedHistory})});
+      ...(unresolvedHistory === undefined ? {} : {unresolvedHistory}),
+      ...(observation === undefined ? {} : {observation})});
     return Object.freeze({intent, value, row: Object.freeze({...row}),
       authenticationKey: authority.authentication_key,
       restartRow: restartRow === undefined ? undefined : Object.freeze({...restartRow})});
   };
-  const retainedIntent = (row, control, originalEpoch) =>
-    retainedIntentOriginal(row, control, originalEpoch).value;
+  const retainedIntent = (row, control, originalEpoch, expected, inserted = false) =>
+    retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;
   const cancellationUsage = database.prepare('SELECT * FROM client_cancellation_row_usage WHERE singleton=1');
   const cancellationIssued = database.prepare('SELECT issued_count FROM client_cancellation_custody WHERE singleton = 1');
   const cancellationSelect = database.prepare(`SELECT * FROM client_cancellation_operations
@@ -3280,14 +3286,14 @@ export function openClientRequestJournal(directory, {
       return submissionAttempt(submissionRef, intent, options, control,
         () => journal.recordSubmittedIntent(submissionRef, intent, options, control), 'recorded');
     },
-    lookupSubmittedIntent(submissionRef, {authorityScopeCid, currentAuthorization}, control) {
+    lookupSubmittedIntent(submissionRef, {authorityScopeCid, currentAuthorization}, control, expected) {
       ensureOpen();
       const verified = verifyEpoch(submissionRef.epoch, {authorityScopeCid,
         currentAuthorization, purpose: 'lookup'}, control);
       const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
       if (requestId === undefined) fail('InvalidClientSubmissionNonce');
       const row = intentSelect.get(requestId);
-      return row === undefined ? undefined : retainedIntent(row, control, submissionRef.epoch);
+      return row === undefined ? undefined : retainedIntent(row, control, submissionRef.epoch, expected);
     },
     // Explicit trusted-Host retention operation, not a Client cancellation
     // or evidence of nonexecution. In-progress and Run-connected custody stays

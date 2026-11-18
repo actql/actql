@@ -1824,11 +1824,10 @@ test('Rust CI builds one same-source fixture and executes a bounded locked libra
 
 test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {
   const job = jobs['python-wheels'];
-  assert.equal(job['runs-on'], 'macos-15');
+  assert.equal(job['runs-on'], '${{ matrix.runner }}');
   assert.deepEqual(job.needs, ['select-targets', 'lint', 'core-js']);
   assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', macos: 'false'}},
     lint: {result: 'success'}, 'core-js': {result: 'success'}}), true);
-  assert(job.steps.some(step => step.run?.includes('test "$(uname -m)" = arm64')));
   assert(job.steps.some(step => step.run === 'python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"'));
   assert(jobs.lint.steps.some(step => step.run === 'python3 -B scripts/test_ci_python_wheels.py'));
   const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
@@ -1838,10 +1837,61 @@ test('normal Python wheels are mandatory for full profiles independently of opti
   }
 });
 
+test('normal wheel platforms reject foreign machines and keep independent same-platform artifacts', t => {
+  const job = jobs['python-wheels'];
+  assert.equal(job.strategy['fail-fast'], false);
+  const platforms = job.strategy.matrix.include;
+  assert.deepEqual(platforms.map(row => row.platform).sort(), ['darwin-arm64', 'linux-x64']);
+  const expected = {'darwin-arm64': ['macos-15', 'Darwin', 'arm64'],
+    'linux-x64': ['ubuntu-24.04', 'Linux', 'x86_64']};
+  const admission = job.steps.find(step => step.env?.EXPECTED_SYSTEM);
+  assert(admission);
+  assert.equal(admission.env.EXPECTED_SYSTEM, '${{ matrix.system }}');
+  assert.equal(admission.env.EXPECTED_ARCHITECTURE, '${{ matrix.architecture }}');
+  const producer = job.steps.find(step => step.id === 'python-normal-cohort');
+  assert(job.steps.indexOf(admission) < job.steps.indexOf(producer));
+  const root = mkdtempSync(join(tmpdir(), 'python-wheel-platform-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  writeFileSync(join(root, 'uname'), '#!/bin/sh\ncase "$1" in\n-s) printf "%s\\n" "$OBSERVED_SYSTEM";;\n-m) printf "%s\\n" "$OBSERVED_ARCHITECTURE";;\n*) exit 1;;\nesac\n');
+  chmodSync(join(root, 'uname'), 0o755);
+  const cwd = fileURLToPath(new URL('../', import.meta.url));
+  const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd, encoding: 'utf8', timeout: 5000});
+  assert.equal(revision.status, 0, revision.stderr);
+  for (const row of platforms) {
+    assert.deepEqual([row.runner, row.system, row.architecture], expected[row.platform]);
+    const invoke = overrides => spawnSync('/bin/bash', ['-eu', '-c', admission.run], {
+      cwd, encoding: 'utf8', timeout: 5000, env: {...process.env, PATH: root + ':' + process.env.PATH,
+        EXPECTED_SYSTEM: row.system, EXPECTED_ARCHITECTURE: row.architecture,
+        OBSERVED_SYSTEM: row.system, OBSERVED_ARCHITECTURE: row.architecture,
+        GITHUB_SHA: revision.stdout.trim(), ...overrides}});
+    const actual = invoke({}); assert.equal(actual.status, 0, actual.stderr);
+    for (const overrides of [{OBSERVED_SYSTEM: 'foreign'}, {OBSERVED_ARCHITECTURE: 'foreign'},
+      {GITHUB_SHA: '0'.repeat(40)}]) assert.notEqual(invoke(overrides).status, 0);
+  }
+  const retention = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
+  assert.equal(retention.if, '${{ always() }}');
+  assert(retention.with.name.includes('${{ matrix.platform }}'));
+  assert(retention.with.name.includes('${{ github.run_id }}'));
+  assert(retention.with.name.includes('${{ github.run_attempt }}'));
+});
+
+test('Python original observation fixture selects its same-source wheel consumer on draft', () => {
+  const path = 'scripts/fixtures/python-local-submission-observation-abi.py';
+  readFileSync(new URL('../' + path, import.meta.url));
+  const selection = selectTargets([path], {draft: true});
+  assert.equal(pythonWheelAcceptanceRequired(selection), true);
+  for (const outcome of ['failure', 'cancelled', 'skipped']) {
+    const needs = results(selection);
+    needs['python-wheels'].result = outcome;
+    assert.throws(() => verifyGate(plan(selection), needs, context), /python-wheels/);
+  }
+});
+
 test('Draft normal Python and CI changes automatically select real wheel acceptance without Ready', () => {
   for (const path of ['.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
     'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs',
     'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
+    'scripts/ci-supported-python.py', 'scripts/test_ci_supported_python.py',
     'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',
     'scripts/fixtures/ci-python-installed-run.py',
     'scripts/fixtures/python-product-installed.py', 'scripts/fixtures/python-local-duckdb-physical.py',

@@ -49,7 +49,8 @@ class ReleasePackagingTargetTests(unittest.TestCase):
     def test_both_installed_entry_points_keep_early_host_refusal_before_input_or_metadata_io(self):
         root, _ = self.artifact()
         self.linux()
-        with patch.object(distribution, '_read_file', side_effect=AssertionError('Unexpected component I/O')), \
+        with patch.object(distribution.os, 'confstr', return_value=None), \
+                patch.object(distribution, '_read_file', side_effect=AssertionError('Unexpected component I/O')), \
                 patch.object(distribution.metadata, 'version', side_effect=AssertionError('Unexpected installed metadata')):
             with self.assertRaisesRegex(distribution.LocalInstallationError, 'not available for this platform'):
                 distribution.inspect_local_components(root, package_version=staging.SOURCE_VERSION)

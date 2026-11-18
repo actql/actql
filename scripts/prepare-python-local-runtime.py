@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
+import re
 import shutil
 import struct
 import subprocess
@@ -19,14 +22,25 @@ from python_release_cohort import read_cohort  # noqa: E402
 from python_wasm_table_geometry import defined_table_limits  # noqa: E402
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_distribution import (LocalComponents, WASMTIME_VERSION, inspect_local_components,
-    _LOCAL_COMPONENT_PLATFORM, _inspect_local_components_for_packaging, _read_file)  # noqa: E402
+    _LOCAL_COMPONENT_PLATFORM, _LOCAL_COMPONENT_PLATFORMS, _OriginalComponentFile, _component_target,
+    _inspect_local_components_for_packaging, _read_file)  # noqa: E402
 if TYPE_CHECKING:
     from actql_sdk._local_image_recipe import _SelectedImageRecipe
 
 
 def library_target(path: Path, *, identity: bytes | None = None,
-                   bundled: tuple[bytes, ...] = (), rpaths: tuple[bytes, ...] | None = None) -> None:
-    """Read Mach-O metadata only; never load or execute the library."""
+                   bundled: tuple[bytes, ...] = (), rpaths: tuple[bytes, ...] | None = None,
+                   target_platform: str = _LOCAL_COMPONENT_PLATFORM,
+                   original_sha256: str | None = None, original_bytes: int | None = None) -> None:
+    """Inspect the selected binary metadata; never load or execute it."""
+    target = _component_target(target_platform)
+    if target.name == 'linux-x64':
+        if identity is not None or bundled or rpaths is not None:
+            raise ValueError('Linux owned-Native linkage is unavailable')
+        if (type(original_sha256) is not str or type(original_bytes) is not int):
+            raise ValueError('Linux metadata requires its original component digest and length')
+        linux_library_target(path, original_sha256=original_sha256, original_bytes=original_bytes)
+        return
     with path.open('rb') as source:
         header = source.read(32)
         if header[:4] == b'\xca\xfe\xba\xbe':
@@ -100,6 +114,146 @@ def library_target(path: Path, *, identity: bytes | None = None,
             raise ValueError('Installed native library bundled dependency inventory differs')
         if rpaths is not None and sorted(observed_rpaths) != sorted(rpaths):
             raise ValueError('Installed native library search path differs from the selected package')
+
+
+def _linux_version_requirements(descriptor: int, header: bytes, size: int) -> list[str]:
+    """Read only ELF64 Verneed/Vernaux and their bounded linked strings.
+
+    The version-symbol index table has one entry per dynamic symbol. Expanding
+    it with readelf is unrelated to checking required system ABI versions and
+    can exhaust the metadata budget for the selected original DuckDB binary.
+    """
+    def read(offset: int, length: int, maximum: int) -> bytes:
+        if not 0 <= offset <= size or not 0 <= length <= min(maximum, size - offset):
+            raise ValueError('Linux version requirement metadata is out of bounds')
+        value = os.pread(descriptor, length, offset)
+        if len(value) != length:
+            raise ValueError('Incomplete Linux version requirement metadata')
+        return value
+
+    offset = struct.unpack_from('<Q', header, 40)[0]
+    entry_bytes, count = struct.unpack_from('<HH', header, 58)
+    if entry_bytes != 64 or not 1 <= count <= 4096:
+        raise ValueError('Invalid Linux version requirement section inventory')
+    table = read(offset, count * 64, 262144)
+    sections = [struct.unpack_from('<IIQQQQIIQQ', table, index * 64) for index in range(count)]
+    needs = [section for section in sections if section[1] == 0x6ffffffe]
+    if len(needs) != 1:
+        raise ValueError('Missing or duplicate Linux version requirement section')
+    selected, = needs
+    if not 0 < selected[6] < count or not 1 <= selected[7] <= 4096:
+        raise ValueError('Invalid Linux version requirement links or count')
+    strings = sections[selected[6]]
+    if strings[1] != 3 or strings[4] > size or strings[5] > size - strings[4]:
+        raise ValueError('Invalid Linux version requirement string section')
+    data = read(selected[4], selected[5], 1048576)
+
+    def text(index: int) -> str:
+        if not 0 < index < strings[5]:
+            raise ValueError('Invalid Linux version requirement name offset')
+        value = read(strings[4] + index, min(256, strings[5] - index), 256)
+        end = value.find(b'\0')
+        if not 0 < end < 256:
+            raise ValueError('Invalid bounded Linux version requirement name')
+        return value[:end].decode('ascii', errors='strict')
+
+    names: list[str] = []
+    position = 0
+    for index in range(selected[7]):
+        if position + 16 > len(data):
+            raise ValueError('Incomplete Linux version requirement record')
+        version, auxiliaries, filename, auxiliary, following = struct.unpack_from('<HHIII', data, position)
+        if (version != 1 or not 1 <= auxiliaries <= 4096 - len(names)
+                or auxiliary < 16 or (following != 0 and following < 16)):
+            raise ValueError('Invalid Linux version requirement record')
+        text(filename)
+        boundary = position + following if following else len(data)
+        if not position + 16 <= boundary <= len(data):
+            raise ValueError('Invalid Linux version requirement record boundary')
+        cursor = position + auxiliary
+        for child in range(auxiliaries):
+            if not position + 16 <= cursor <= boundary - 16:
+                raise ValueError('Invalid Linux version requirement auxiliary offset')
+            _, _, _, name, next_auxiliary = struct.unpack_from('<IHHII', data, cursor)
+            names.append(text(name))
+            if child + 1 == auxiliaries:
+                if next_auxiliary != 0:
+                    raise ValueError('Excess Linux version requirement auxiliary record')
+            elif next_auxiliary < 16:
+                raise ValueError('Incomplete Linux version requirement auxiliary chain')
+            cursor += next_auxiliary
+        if (index + 1 == selected[7]) != (following == 0):
+            raise ValueError('Inconsistent Linux version requirement count')
+        position += following
+    return names
+
+
+def linux_library_target(path: Path, *, original_sha256: str, original_bytes: int) -> dict[str, object]:
+    """Check ELF/system dependency requirements with the producer's readelf.
+
+    This is a packaging tool, not an installed loader or dependency installer.
+    The exact component digest/receipt is checked separately. No target code
+    executes, and output capture is bounded without retaining arbitrary text.
+    """
+    if type(original_bytes) is not int or not 64 <= original_bytes <= 128 * 1024 * 1024:
+        raise ValueError('Original Linux library length exceeds its metadata bound')
+    original = _OriginalComponentFile(path, expected=original_bytes, digest=original_sha256)
+    with ExitStack() as custody:
+        # Register the same one-shot close carrier before descriptor capture.
+        custody.push(original.__exit__)
+        original.read()
+        original.observe()
+        assert original._source is not None
+        descriptor = original._source.value
+        header = os.pread(descriptor, 64, 0)
+        if (len(header) != 64 or header[:7] != b'\x7fELF\x02\x01\x01'
+                or struct.unpack_from('<HHI', header, 16) != (3, 62, 1)):
+            raise ValueError('Installed Linux library is not ELF64 little-endian x86-64 shared code')
+        def inspect(option: str) -> str:
+            original.observe()
+            with tempfile.TemporaryFile() as output:
+                subprocess.run(['readelf', option, '--', '/dev/fd/' + str(descriptor)], check=True,
+                    stdout=output, stderr=subprocess.DEVNULL, timeout=15,
+                    pass_fds=(descriptor,), env=os.environ | {'LC_ALL': 'C'})
+                output.seek(0)
+                text = output.read(1048577)
+            original.observe()
+            if len(text) > 1048576:
+                raise ValueError('Linux library metadata exceeds its bound')
+            return text.decode('utf-8', errors='strict')
+        dynamic = inspect('--dynamic')
+        versions = '\n'.join(_linux_version_requirements(descriptor, header, original_bytes))
+        original.observe()
+    dependencies = re.findall(r'\(NEEDED\)\s+Shared library: \[([^\]\r\n]+)\]', dynamic)
+    allowed = {'libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0',
+        'libgcc_s.so.1', 'libstdc++.so.6', 'ld-linux-x86-64.so.2'}
+    if (not 1 <= len(dependencies) <= len(allowed)
+            or len(dependencies) != dynamic.count('(NEEDED)')
+            or len(set(dependencies)) != len(dependencies)
+            or not set(dependencies) <= allowed or 'libc.so.6' not in dependencies
+            or '(RPATH)' in dynamic or '(RUNPATH)' in dynamic):
+        raise ValueError('Linux library has an unavailable system dependency or search path')
+    maximums: dict[str, tuple[int, int, int]] = {}
+    for name in versions.splitlines():
+        if not name.startswith(('GLIBC', 'CXXABI')):
+            continue
+        matched = re.fullmatch(r'(GLIBC|GLIBCXX|CXXABI)_([0-9]+)\.([0-9]+)(?:\.([0-9]+))?', name)
+        if matched is None:
+            raise ValueError('Linux library has an unqualified system ABI requirement')
+        family, major, minor, patch = matched.groups()
+        value = (int(major), int(minor), int(patch or '0'))
+        maximums[family] = max(maximums.get(family, (0, 0, 0)), value)
+    # These are independent requirements: a glibc floor is not evidence that
+    # the Host has libstdc++/libgcc or the selected C++ ABI symbol versions.
+    if ('GLIBC_PRIVATE' in versions or 'GLIBC' not in maximums
+            or maximums['GLIBC'] > (2, 28, 0)
+            or maximums.get('GLIBCXX', (0, 0, 0)) > (3, 4, 22)
+            or maximums.get('CXXABI', (0, 0, 0)) > (1, 3, 8)):
+        raise ValueError('Linux library exceeds the selected glibc/C++ ABI profile')
+    return {'format': 'ELF64-little-x86-64-shared',
+        'dependencies': sorted(dependencies),
+        'required_versions': {name: list(value) for name, value in sorted(maximums.items())},
+        'native_loaded': False}
 
 
 def prepare_private_bindings(bindings_source: Path, stage: Path) -> dict[str, Any]:
@@ -191,19 +345,26 @@ def _source_original(root: Path, source: str, relative: str, label: str) -> byte
         raise ValueError(f'{label} is unavailable') from failure
 
 
-def image_recipe_original(root: Path, source: str, *, runtime_allocation: str = 'native-owned') -> bytes:
+def image_recipe_original(root: Path, source: str, *, runtime_allocation: str = 'native-owned',
+                          target_platform: str = _LOCAL_COMPONENT_PLATFORM) -> bytes:
     """Bounded exact Git-original read; no unbounded git-show capture."""
     names = {'native-owned': 'selected-image-recipe.json',
              'platform': 'selected-platform-image-recipe.json'}
     if runtime_allocation not in names:
         raise ValueError('Unknown selected image runtime allocation')
+    target = _component_target(target_platform)
+    if target.name == 'linux-x64':
+        if runtime_allocation != 'platform':
+            raise ValueError('Linux owned-Native image supplier is unavailable')
+        names['platform'] = 'selected-platform-image-recipe.linux-x64.json'
     return _source_original(root, source,
         'packages/python-local-runtime/' + names[runtime_allocation],
         'Selected source-original image recipe')
 
 
 def module_image_recipe_original(root: Path, source: str, module: Path, module_sha256: str,
-                                 *, runtime_allocation: str = 'native-owned') -> bytes:
+                                 *, runtime_allocation: str = 'native-owned',
+                                 target_platform: str = _LOCAL_COMPONENT_PLATFORM) -> bytes:
     """Bind the selected pool table maximum to this exact original module.
 
     All other source recipe fields, including the 16 MiB memory ceiling, remain
@@ -211,7 +372,8 @@ def module_image_recipe_original(root: Path, source: str, module: Path, module_s
     this same projection; no caller-supplied capacity or runtime fallback exists.
     """
     from actql_sdk._local_image_recipe import _recipe_from_original
-    original = image_recipe_original(root, source, runtime_allocation=runtime_allocation)
+    original = image_recipe_original(root, source, runtime_allocation=runtime_allocation,
+        target_platform=target_platform)
     selected = _recipe_from_original(original, source_sha=source,
         package_version=read_cohort(root), module_sha256=module_sha256)
     raw = _read_file(module, maximum=32 * 1024 * 1024, digest=module_sha256, capture=True)
@@ -245,10 +407,14 @@ def verify_artifact(artifact: Path, *, target_platform: str = _LOCAL_COMPONENT_P
         if source.read(8) != b'\0asm\x01\0\0\0':
             raise ValueError('Invalid installed Wasm module format')
     recipe_bytes = module_image_recipe_original(ROOT, head, components.module, components.module_sha256,
-        runtime_allocation=components.image_recipe.runtime_allocation)
+        runtime_allocation=components.image_recipe.runtime_allocation, target_platform=target_platform)
     if _read_file(components.engine_recipe, maximum=65536) != recipe_bytes:
         raise ValueError('Staged image recipe differs from its source original')
-    library_target(components.duckdb)
+    if target_platform == 'linux-x64':
+        library_target(components.duckdb, target_platform=target_platform,
+            original_sha256=components.duckdb_sha256, original_bytes=components.duckdb.stat().st_size)
+    else:
+        library_target(components.duckdb, target_platform=target_platform)
     # Require the official notice bytes, not merely a manifest agreeing with
     # missing or unrelated notices. Component source/hash receipts stay separate.
     for name, original in notice_originals().items():
@@ -273,7 +439,7 @@ def prepare(artifact: Path, destination: Path, *, bindings_source: Path | None =
     target.mkdir(parents=True)
     shutil.copyfile(runtime / 'src/actql_local_runtime/__init__.py', target / '__init__.py')
     files = ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
-             'client_host_wasm.wasm', 'libduckdb.dylib', 'LICENSE',
+             'client_host_wasm.wasm', _component_target(target_platform).duckdb_file, 'LICENSE',
              'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE')
     for name in files:
         shutil.copyfile(artifact / name, target / name)
@@ -322,7 +488,7 @@ if __name__ == '__main__':
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--bindings-source', type=Path)
     parser.add_argument('--native-libraries', type=Path)
-    parser.add_argument('--target-platform', choices=[_LOCAL_COMPONENT_PLATFORM], default=_LOCAL_COMPONENT_PLATFORM,
+    parser.add_argument('--target-platform', choices=_LOCAL_COMPONENT_PLATFORMS, default=_LOCAL_COMPONENT_PLATFORM,
                         help='Original artifact target; does not enable execution on the preparation host')
     args = parser.parse_args()
     print(json.dumps(prepare(args.artifact_directory, args.destination,

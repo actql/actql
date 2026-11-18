@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from python_release_cohort import read_cohort  # noqa: E402
 from actql_sdk._local_core import _validate_core_module  # noqa: E402
 from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI  # noqa: E402
-from actql_sdk._local_distribution import WASMTIME_VERSION, _read_file  # noqa: E402
+from actql_sdk._local_distribution import WASMTIME_VERSION, _execution_component_platform, _read_file  # noqa: E402
 from actql_sdk._local_engine import (  # noqa: E402
     _configure_selected_engine, _selected_engine_settings, _verify_selected_provider_link,
 )
@@ -549,8 +549,9 @@ def verify(core_receipt: Path, expected_source: str, *,
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     if source != expected_source:
         raise ValueError('Selected image compiler source changed')
-    if sys.platform != 'darwin' or platform.machine() != 'arm64':
-        raise ValueError('Image compiler requires the selected darwin-arm64 profile')
+    target_platform = _execution_component_platform()
+    if runtime_allocation != 'platform' and target_platform != 'darwin-arm64':
+        raise ValueError('Owned-Native image compiler requires the selected darwin-arm64 profile')
     core, receipt_hash = assembly.read_receipt(core_receipt)
     if core.get('scope') == assembly.MODULE_SCOPE:
         digest = assembly.verify_original_module(ROOT, core, source)
@@ -562,7 +563,7 @@ def verify(core_receipt: Path, expected_source: str, *,
     assembly.component(module, digest, 32 * 1024 * 1024, 'client_host_wasm.wasm')
     version = read_cohort(ROOT)
     original = assembly.recipe.module_image_recipe_original(ROOT, source, module, digest,
-        runtime_allocation=runtime_allocation)
+        runtime_allocation=runtime_allocation, target_platform=target_platform)
     recipe = _recipe_from_original(original, source_sha=source,
                                    package_version=version, module_sha256=digest)
     return {'source': source, 'module': module, 'module_sha256': digest,

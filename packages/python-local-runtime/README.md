@@ -26,16 +26,67 @@ architecture and minimum OS before staging. Other intended platforms remain
 unverified by this recipe. The universal library's other slice does not add
 an advertised Python profile.
 
+## Linux component profile
+
+The candidate `linux-x64` profile uses x86-64 GNU/Linux and the existing
+platform-allocated Wasmtime route, with the `py3-none-manylinux_2_28_x86_64`
+wheel tag. Its selected original Wasmtime38 library actually requires
+`GLIBC_2.28`; the upstream dependency wheel's `manylinux1` filename is not
+evidence of a lower runtime floor. The selected DuckDB1.4.3 library separately
+requires `GLIBC_2.25`, `GLIBCXX_3.4.22` and `CXXABI_1.3.8`.
+
+The Host must also provide the declared system libraries: libc, the x86-64 ELF
+loader, libm, libdl, libpthread, libgcc_s and libstdc++. A sufficiently new glibc
+does not establish that those libraries or C++ symbol versions are installed.
+Native loader failures retain their original exception/cause; no missing
+dependency is installed automatically or classified as Run acceptance. musl,
+Linux arm64 and other unselected targets refuse, with Remote as the alternative.
+The existing Python3.11+ package declaration is unchanged; actual CPython
+minimum/current and normal installed execution need their own acceptance.
+
+Packaging checks dynamic dependencies with `readelf` and reads only the ELF
+version-needs records and their bounded linked names from the same retained
+component descriptor. The per-symbol version index table is not expanded.
+Malformed offsets/counts, unavailable ABI requirements or changed originals
+refuse; this metadata inspection never loads the library.
+
+One closed target descriptor binds the Engine target/baseline, original runtime
+member, DuckDB filename and serialized-image ELF architecture. Packaging reads
+the same component predicate explicitly for its target; inspection is not
+permission to execute a foreign image. The Linux source original is
+`selected-platform-image-recipe.linux-x64.json`. It preserves the existing
+memory, fuel and allocation rules and selects no owned-Native provider. The
+old macOS source original and existing package versions are unchanged.
+
+The image producer continues to use the same bounded original module receipt,
+source/Git recipe verification, actual Engine settings and image cleanup.
+The assembler/stager copies `libduckdb.so` for Linux and `libduckdb.dylib` for
+macOS. The producer's `readelf` inspection rejects foreign ELF targets,
+unselected dependencies/search paths and symbol requirements above this Linux
+profile before wheel assembly. It is metadata inspection, never `ldd`, target
+execution or a new runtime fallback. The existing original-component carrier
+hashes and retains one descriptor. Both `readelf` calls inherit that same FD;
+the named file and descriptor must stay current before and after inspection.
+Path replacement, even with equal bytes, refuses. A failed one-shot close keeps
+the existing original descriptor/error carrier rather than reopening the input.
+
+This source/profile and inert packaging coverage do not establish a normal
+Linux distribution. Matching real libraries/image/wheels, a clean independent
+Linux install, public SQL/typed parameters and supported Source/Result,
+error/cancellation behavior, first close and separate-process Saved retrieval
+remain required before advertising ordinary Linux Local support. Existing
+published wheels and macOS acceptance are not relabelled for this profile.
+
 ## Fixed producer input
 
 The supplied directory contains `artifact.json`, `engine-recipe.json`, `client_host_wasm.cwasm`,
 `client_host_wasm.wasm`,
-`libduckdb.dylib`, `LICENSE`, `DUCKDB-LICENSE`, `MOONBIT-CORE-LICENSE`, and
+the target's DuckDB library (`libduckdb.dylib` or `libduckdb.so`), `LICENSE`, `DUCKDB-LICENSE`, `MOONBIT-CORE-LICENSE`, and
 `MOONBIT-CORE-NOTICE`. The closed manifest contains these fields:
 
 - `source_sha`: the complete clean recipe/source commit.
 - `package_version`: the SDK/runtime release cohort version.
-- `platform`: `darwin-arm64`.
+- `platform`: the explicit `darwin-arm64` or candidate `linux-x64` component target.
 - `core_abi`: the same generated private Core ABI required by the SDK loader.
 - `wasmtime_version`: `38.0.0`.
 - `module` and `duckdb`: `{file, bytes, sha256}`, with the fixed filenames above.
@@ -48,7 +99,7 @@ The supplied directory contains `artifact.json`, `engine-recipe.json`, `client_h
   production profile is inferred from test scalars or Wasmtime defaults.
 - `compiled_image`: the original source/cohort/module/ABI/Wasmtime library,
   platform, exact Engine body and its digest, plus `{file, bytes, sha256}` for
-  `client_host_wasm.cwasm`. The inspector requires the selected arm64 ELF object
+  `client_host_wasm.cwasm`. The inspector requires the selected arm64 or x86-64 ELF object
   architecture as well as the original recipe and component digests.
 
 The fixed cohort builder also places `_local_release_binding.json` in the
