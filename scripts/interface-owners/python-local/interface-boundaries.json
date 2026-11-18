@@ -1,6 +1,6 @@
 {
-  "source": "f0a9d40ab6bc1972eabcca227a65923d0d024253",
-  "syntaxProjectionSha256": "5695d0953c89f6e8bfb93ef877bb16cc004579bf5b74ef444fefdb61b31c61c0",
+  "source": "1bec8cf0c78d192d8a9b767ba4c8a63b8661f7a4",
+  "syntaxProjectionSha256": "5893c0932e1f7f793ba0e4aca6017513a3d9df089271be78e3a9259b1c96366d",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -79190,7 +79190,7 @@
     },
     {
       "module": "src/client_host_wasm/submission_append.mbt",
-      "sha256": "23a60e4e0c9bde197f5ab9eb8cfde98f6d1fde99d2cd4ee4140af31d1320c083",
+      "sha256": "293bf4a9652682c4dd13acb33c647a0bd1ba721a397eb3dc4a03c0b24827bd25",
       "exports": [],
       "operations": [
         {
@@ -91364,6 +91364,132 @@
               {
                 "path": "src/client_local_run/task_material_original_reuse_wbtest.mbt",
                 "anchor": "test \"retained material alias keeps same Plan capture and foreign Plan refusal\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_submitted_journal_append.mbt",
+      "sha256": "60008b937c610d32b158906142f62ff6337bb01be8edeb211f088d444816ef2f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[E]prepare_client_submitted_journal_append",
+          "declaration": "[ E ] prepare_client_submitted_journal_append ( reference : ClientSubmissionReferenceRecord , intent : ClientSubmittedIntent , validity : SubmissionEpochValidity , max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_submission : ( ClientJournalPhysicalRow ) - > Result [ ClientSubmittedJournalEncoding , E , ] , validate_run : ( ClientJournalPhysicalRow ) - > Result [ ClientRunJournalInspection , E , ] , custody_lost : E , before_decode_construction ? : ( ( ClientSubmittedJournalConstruction ) - > Result [ Unit , ClientJournalDecodingIssue , ] ) ?"
+        },
+        {
+          "name": "[Plan,E]prepare_client_submitted_journal_append_with_task_original",
+          "declaration": "[ Plan , E ] prepare_client_submitted_journal_append_with_task_original ( reference : ClientSubmissionReferenceRecord , intent : ClientSubmittedIntent , validity : SubmissionEpochValidity , max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_submission : ( ClientJournalPhysicalRow ) - > Result [ ClientSubmittedJournalEncoding , E , ] , validate_run : ( ClientJournalPhysicalRow ) - > Result [ ClientRunJournalInspection , E , ] , custody_lost : E , task_original : ClientTaskMaterialsOriginal [ Plan ] ? , before_decode_construction ? : ( ( ClientSubmittedJournalConstruction ) - > Result [ Unit , ClientJournalDecodingIssue , ] ) ?"
+        },
+        {
+          "name": "client_submitted_journal_append_rows",
+          "declaration": "client_submitted_journal_append_rows ( value : ClientSubmittedJournalAppend , ) - > ( String , Bytes , Int64 , Bytes )"
+        },
+        {
+          "name": "client_submitted_journal_append_usage",
+          "declaration": "client_submitted_journal_append_usage ( value : ClientSubmittedJournalAppend , ) - > ( Int64 , Bytes ) ?"
+        },
+        {
+          "name": "client_submitted_journal_usage",
+          "declaration": "client_submitted_journal_usage ( row : ClientJournalPhysicalRow , count : Int , max_records : Int , ) - > Result [ Int64 , ClientJournalDecodingIssue ]"
+        },
+        {
+          "name": "client_submitted_journal_usage_body",
+          "declaration": "client_submitted_journal_usage_body ( count : Int , retained_bytes : Int64 , max_records : Int , ) - > Result [ Bytes , ClientJournalDecodingIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing submitted-intent Journal and task-material codec Owners; same synchronous decision and original physical ports",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[E]prepare_client_submitted_journal_append",
+            "[Plan,E]prepare_client_submitted_journal_append_with_task_original",
+            "client_submitted_journal_append_rows",
+            "client_submitted_journal_append_usage",
+            "client_submitted_journal_usage",
+            "client_submitted_journal_usage_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_append.mbt",
+                "anchor": "pub fn[Plan, E] prepare_client_submitted_journal_append_with_task_original("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same Run task-material original"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_append.mbt",
+                "anchor": "pub fn[E] prepare_client_submitted_journal_append("
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same Run task-material original"
+              },
+              {
+                "path": "src/run_publication_host/client_task_material_original.mbt",
+                "anchor": "pub fn[Plan, E] read_client_task_material_with_original("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same Run task-material original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn observe_submission_append("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_submitted_task_original_wbtest.mbt",
+                "anchor": "test \"submitted append material reuse preserves cold foreign changed and construction refusal\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_cancellation_inventory("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Same Run task-material original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_submitted_journal_append.mbt",
+                "anchor": "pub fn[E] prepare_client_submitted_journal_append("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_submitted_task_original_wbtest.mbt",
+                "anchor": "test \"submitted append early Retained keeps the same material through the complete callee\""
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_task_original_wbtest.mbt",
+                "anchor": "test \"submitted append material reuse preserves cold foreign changed and construction refusal\""
               }
             ]
           }
