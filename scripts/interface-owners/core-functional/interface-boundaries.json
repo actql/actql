@@ -9763,6 +9763,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:prepareClientLogicalObservation/init:prepareClientLogicalObservation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/logical-task-observation.test.mjs",
+                "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -14990,6 +15058,16 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareClientLogicalObservation/init:prepareClientLogicalObservation",
+          "parameters": [
+            "run",
+            "executionOwner",
+            "definition",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareClientQueryTime/init:prepareClientQueryTime",
           "parameters": [
             "prepared",
@@ -18885,7 +18963,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "999436786589748cd733139db902193356de3df54df9a5bf5a234d80241f138a"
+      "sha256": "1d011683c9be883d32402768d4906e8e04d93e1a479b929b6b2f5b15e2dbd018"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

@@ -301,6 +301,8 @@ pub fn client_program_allowed_effect_run_prepared(@run_publication_host.ClientEf
 
 pub fn client_program_append_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan, String) -> Result[Unit, @execution_query.CapturedSourceIdentityScanIssue]
 
+pub fn client_program_attach_logical_observation(@client_local_host.ClientLogicalObservation, @physical_strategy_host.CapturedDAG) -> Result[Unit, @client_local_host.ClientLogicalObservationIssue]
+
 pub fn client_program_author_effect_preview(String, String, String, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, Array[Array[@effect_application.EffectDispatchKey]]), ClientEffectPreviewAuthorIssue]
 
 pub fn client_program_author_installed_effect_preview(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, Array[Array[@effect_application.EffectDispatchKey]]), ClientInstalledEffectPreviewKeyIssue]
@@ -316,6 +318,8 @@ pub fn client_program_begin_installed_effect_capture_publication(@client_local_h
 pub fn client_program_begin_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_begin_installed_effect_capture_validation(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_begin_logical_observation(@client_local_host.ClientLogicalObservation, String) -> Result[@client_local_host.ClientLogicalObservationRecord, @client_local_host.ClientLogicalObservationIssue]
 
 pub fn client_program_begin_request_explanation_read(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue]
 
@@ -424,6 +428,8 @@ pub fn client_program_borrow_request_program_preparation(@client_local_host.Clie
 pub fn client_program_cancel_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Bool
 
 pub fn client_program_canonical_effect_preview_draft(String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
+
+pub fn client_program_capture_logical_observation_record(@client_local_host.ClientLogicalObservationRecord) -> Result[Unit, @client_local_host.ClientLogicalObservationIssue]
 
 pub fn client_program_capture_request_original_explanation(@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[@client_local_host.ClientOriginalExplanationCapture, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
@@ -1729,6 +1735,14 @@ pub fn client_program_local_values_plan_graph_wire(@run_publication_host.ClientV
 
 pub fn client_program_local_values_unit_source_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesUnitSourceIssue]
 
+pub fn client_program_logical_observation_cleanup(Result[@client_local_host.ClientLogicalObservation, @client_local_host.ClientLogicalObservationIssue]) -> @client_local_host.ClientLogicalObservation?
+
+pub fn client_program_logical_observation_record_key(@client_local_host.ClientLogicalObservationRecord) -> Result[String, @client_local_host.ClientLogicalObservationIssue]
+
+pub fn client_program_logical_observation_record_phase(@client_local_host.ClientLogicalObservationRecord) -> Result[String, @client_local_host.ClientLogicalObservationIssue]
+
+pub fn client_program_logical_observation_record_state(@client_local_host.ClientLogicalObservationRecord) -> Result[String, @client_local_host.ClientLogicalObservationIssue]
+
 pub fn client_program_lower_request_published_query(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String?, Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), @client_local_host.ClientRequestQueryLoweringIssue]
 
 pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
@@ -1878,6 +1892,8 @@ pub fn client_program_prepare_local_preparation_admission(@physical_resources.Or
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
 pub fn client_program_prepare_local_query_requirement_at_query_time(@run_publication_host.PreparedClientProgram, Int, Int, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
+
+pub fn client_program_prepare_logical_observation(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Int, Int, Int) -> Result[@client_local_host.ClientLogicalObservation, @client_local_host.ClientLogicalObservationIssue]
 
 pub fn client_program_prepare_model_provider_originals(String, String, String, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String), @check_environment.ModelTaskIssue]
 
@@ -2338,6 +2354,10 @@ pub fn client_program_retain_request_result_metadata_data(@client_local_host.Cli
 pub fn client_program_retain_request_submitted_intent(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientSubmittedIntent) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_retire_installed_effect_capture_recovery(@client_local_host.ClientInstalledEffectCaptureRecovery) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_return_logical_observation(@client_local_host.ClientLogicalObservation) -> Result[Bool, @client_local_host.ClientLogicalObservationIssue]
+
+pub fn client_program_return_logical_observation_record(@client_local_host.ClientLogicalObservationRecord) -> Unit
 
 pub fn client_program_return_original_explanation_capture(@client_local_host.ClientOriginalExplanationCapture) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
 

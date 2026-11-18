@@ -358,6 +358,29 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     if (Object.hasOwn(counts, reason)) counts[reason]++;
     diagnostics[reason] = (diagnostics[reason] ?? 0) + 1;
   };
+  // The inner frame must unwind before the original loan can return. A
+  // delivery timeout/Host close never proves that an application settled.
+  const deliverQueued = async item => {
+    if (item.custody !== undefined && item.custody.current() !== true) {
+      drop('logicalBoundaryUnavailable'); return;
+    }
+    const leave = enterApplicationCallback();
+    try {await config.deliver(item.record);} finally {leave();}
+  };
+  const releaseQueued = item => {
+    item.record = undefined;
+    const custody = item.custody;
+    custody?.release();
+    item.custody = undefined;
+  };
+  const releaseDropped = custody => {
+    if (custody === undefined) return;
+    // Reuse the same queue's pending-return responsibility, including a read
+    // declined before capture/enqueue. There is no retry of the read/delivery.
+    const item = {record: undefined, custody, deliverySettled: true};
+    try {releaseQueued(item);}
+    catch {drop('logicalBoundaryReturnPending'); pending.add(item);}
+  };
   const pump = () => {
     if (closed || pumping || queue.length === 0) return;
     pumping = true;
@@ -369,13 +392,18 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       queuedBytes -= item.bytes;
       // There is at most one delivery in flight. A nonterminating embedded
       // callback keeps this slot; a timeout cannot prove physical settlement.
-      const leaveCallback = enterApplicationCallback();
+      const leaveCallback = item.custody === undefined ? enterApplicationCallback() : undefined;
       let promise;
-      try { promise = Promise.resolve(config.deliver(item.record)); }
+      try { promise = item.custody === undefined
+        ? Promise.resolve(config.deliver(item.record)) : deliverQueued(item); }
       catch { promise = Promise.reject(new Error('ObservationDeliveryFailed')); }
-      pending.add(promise);
+      pending.add(item);
       promise.catch(() => { drop('deliveryFailed'); }).finally(() => {
-        leaveCallback(); pending.delete(promise); pump();
+        item.deliverySettled = true;
+        leaveCallback?.();
+        try {releaseQueued(item); pending.delete(item);}
+        catch {drop('logicalBoundaryReturnPending');}
+        pump();
       });
     });
   };
@@ -500,9 +528,10 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       if (queue.length >= config.selected.queueRecords ||
           queuedBytes + bytes > config.selected.queueBytes) { drop('queueOverflow'); return; }
       Object.freeze(attributes);
-      queue.push({record: Object.freeze(record), bytes});
+      queue.push({record: Object.freeze(record), bytes, custody: options.logicalCustody});
       queuedBytes += bytes;
       if (pending.size === 0) pump();
+      return true;
     } catch (cause) { drop(cause === runIdentityLimit ? 'limited' : 'budgetUnavailable'); }
   };
   const flushSelectedRows = context => {
@@ -654,9 +683,13 @@ export function installHostObservation(connection, {journal, runId} = {}) {
   };
   const projection = Object.freeze({run, accepted, emit, retainOperation, captureCurrentOperation,
     canObserveLogicalBoundaries: () => !closed && config.allowed.has('compute') && config.correlations.has('task'),
+    logicalBoundaryUnavailable: () => {drop('logicalBoundaryUnavailable');},
+    returnLogicalBoundary: releaseDropped,
     // The Boolean reports copied-shape admission only, never delivery,
     // authorization, Resource return or physical cleanup acknowledgement.
-    logicalBoundary(detail, boundary) {
+    logicalBoundary(detail, boundary, custody) {
+      let transferred = false;
+      try {
       if (closed || !config.allowed.has('compute') || !config.correlations.has('task')) return false;
       if (boundary === null || typeof boundary !== 'object' || nodeTypes.isProxy(boundary) ||
           ![Object.prototype, null].includes(Object.getPrototypeOf(boundary))) {drop('limited'); return false;}
@@ -684,8 +717,14 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         event = 'logical_boundary_unavailable';
         logicalAttributes = {'actql.logical_boundary.reason': 'not_projected'};
       } else {drop('limited'); return false;}
-      emit('compute', event, detail, {logicalBoundaryMarker, logicalAttributes});
+      transferred = emit('compute', event, detail,
+        {logicalBoundaryMarker, logicalAttributes, logicalCustody: custody}) === true;
+      // Historical callers use this as copied-shape admission only. The
+      // original funded supplier additionally transfers its one queue loan.
       return true;
+      } finally {
+        if (!transferred) releaseDropped(custody);
+      }
     },
     // Identity changes only at actual application callback boundaries. This
     // copied state is not authorization or an observation-delivery ACK.
@@ -745,10 +784,14 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     },
     status: () => Object.freeze({...counts, queued: queue.length,
       queuedBytes, active: pending.size, activeSegments, closed,
-      cleanupPending: closed && !storageClosed,
+      cleanupPending: closed && (!storageClosed || pending.size !== 0),
       loss: Object.freeze({...diagnostics})}),
     async close() {
       if (closed) {
+        for (const item of pending) if (item.deliverySettled) {
+          try {releaseQueued(item); pending.delete(item);}
+          catch {drop('logicalBoundaryReturnPending');}
+        }
         try { closeStorage(); } catch {
           drop('budgetUnavailable');
           throw new Error('HostObservationCleanupPending');
@@ -757,6 +800,10 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       }
       const deadline = Date.now() + config.selected.shutdownMs;
       while ((pending.size !== 0 || queue.length !== 0) && Date.now() < deadline) {
+        for (const item of pending) if (item.deliverySettled) {
+          try {releaseQueued(item); pending.delete(item);}
+          catch {drop('logicalBoundaryReturnPending');}
+        }
         await new Promise(resolve => setTimeout(resolve, 5));
       }
       closed = true;
@@ -771,7 +818,11 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         context.runIdentities = undefined;
       }
       activeContexts.clear(); if (observeRows) activeSegments = 0;
-      for (const _ of queue) drop('shutdown');
+      for (const item of queue) {
+        drop('shutdown'); item.deliverySettled = true;
+        try {releaseQueued(item);}
+        catch {drop('logicalBoundaryReturnPending'); pending.add(item);}
+      }
       queue.length = 0; queuedBytes = 0;
       try { closeStorage(); } catch {
         drop('budgetUnavailable');

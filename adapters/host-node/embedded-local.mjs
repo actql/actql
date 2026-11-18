@@ -2617,7 +2617,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     requestControl: moon, publicationControl: control,
     authorizeRunStart: ({principalId: actual, connection, ref}) =>
       hostConnection({principalId: actual, connection, ref})});
-  const {result: authorizeLocalResult, run: authorizeLocalRun} = createLocalReadAuthorizations({
+  const {result: authorizeLocalResult, run: authorizeLocalRun, runImmediate: authorizeLocalRunImmediate} = createLocalReadAuthorizations({
     moon, authorization, principalId, namespaceId, authorityScopeCid, observation});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: authorizeLocalResult,
@@ -4317,6 +4317,11 @@ async function openInstalledHost(originalInstallation, preparation) {
     runInfer, runContent, retainedRelationOutput, observation,
     preparationCustody: localPreparationCustody,
     beforePublication: prepared => preparation.managedComputeReservePublication(moon, prepared),
+    authorizeLogicalObservation: (operation, connection) => {
+      const selected = {principalId: operation.principalId, connection, ref: operation.indexKey};
+      if (!hostConnection(selected) || authorizeLocalRunImmediate(operation, operation) !== true) return false;
+      return hostConnection(selected);
+    },
     managedComputeRequired: true,
     computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;

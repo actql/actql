@@ -2714,6 +2714,7 @@
             "observation",
             "preparationCustody",
             "beforePublication",
+            "authorizeLogicalObservation",
             "managedComputeRequired",
             "retainedRelationOutput",
             "runPublished"
@@ -2906,6 +2907,14 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/published/published#3",
+          "parameters": [
+            "phase",
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/published/published#4",
           "parameters": [],
           "async": false
         },
@@ -2968,14 +2977,14 @@
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#14",
           "parameters": [
-            "source"
+            "operation"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#15",
           "parameters": [
-            "value"
+            "source"
           ],
           "async": false
         },
@@ -2988,7 +2997,9 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#17",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -2998,9 +3009,7 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#19",
-          "parameters": [
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -3033,6 +3042,13 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#23",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#24",
           "parameters": [
             "task"
           ],
@@ -4568,6 +4584,75 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installNodeClientDispatchOwner/start/start/start/published/published#4",
+            "installNodeClientDispatchOwner/start/start/start/start#24"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/logical-task-observation.test.mjs",
+                "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -4589,7 +4674,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "f8d60241d78e0b8a23e00f1216fb072937220c743ff03da23fef42a1d3cd126c",
+      "sha256": "f5ce0d1e28285f8fb24cb9c7ef24d3fb8ac0f3cc2307c739b5edcb6c7f70067d",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -8465,7 +8550,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -11937,7 +12022,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -15285,7 +15370,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -17857,7 +17942,7 @@
                 "path": "adapters/host-node/infer-run-original-host.test.mjs"
               },
               {
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1",
                 "path": "adapters/host-node/model-resume-public.test.mjs"
               },
               {
@@ -19984,7 +20069,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -21264,7 +21349,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -22544,7 +22629,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -23824,7 +23909,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -24638,6 +24723,74 @@
               {
                 "path": "adapters/host-node/mock-file-target.test.mjs",
                 "anchor": "one Mock physical owner preserves both disjoint collections across original sibling writes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#9"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/logical-task-observation.test.mjs",
+                "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
               }
             ]
           }
@@ -25541,6 +25694,14 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#8",
+          "parameters": [
+            "operation",
+            "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#9",
           "parameters": [],
           "async": false
         },
@@ -28699,12 +28860,12 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "e4e68ba85fa8750b24fe763df66fdb0a212c908cfa58d274af7a0d90482b4397"
+      "sha256": "9737228f00f737ce34e157d03e4b39f2ac255425e79ed28b2cd0d115235d8c66"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -30731,7 +30892,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -31116,7 +31277,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
@@ -31736,7 +31897,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -32354,7 +32515,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -32750,7 +32911,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",

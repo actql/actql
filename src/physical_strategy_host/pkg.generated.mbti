@@ -315,6 +315,8 @@ pub fn captured_effect_table_input_task(CapturedEffectTableInput) -> Int
 
 pub fn captured_execution_root_statistics(CapturedDAG) -> CapturedExecutionRootStatistics?
 
+pub fn captured_logical_observation_construction_bytes() -> Int64
+
 pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], Int, Int, input_index? : Int) -> Result[@execution_relation.ManagedProducerRead[T], RunIssue]
 
 pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
@@ -881,6 +883,8 @@ pub fn release_captured_table_input_borrow(CapturedTableInputBorrow) -> Bool
 
 pub fn release_captured_table_input_output_set(CapturedTableInputOutputSet) -> Bool
 
+pub fn release_captured_task_boundary_hooks(CapturedDAG) -> Result[Unit, CapturedTaskBoundaryIssue]
+
 pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn release_task_execution_allocation(TaskRetainedAllocation) -> Result[Bool, @physical_resources.LedgerIssue]
@@ -1256,6 +1260,7 @@ pub(all) enum CapturedTaskBoundaryIssue {
   StaleBoundary
   ReadReturned
   ReadInProgress
+  SetupInUse
   Resource(@physical_resources.LedgerIssue)
 } derive(Eq, @debug.Debug)
 

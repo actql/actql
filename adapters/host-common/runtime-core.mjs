@@ -1924,6 +1924,7 @@ function publicationControl(moon) {
   const originalExplanationPlanWire = moon.clientProgramOriginalExplanationPlanWire;
   const originalExplanationFactsWire = moon.clientProgramOriginalExplanationFactsWire;
   const returnExplanationCapture = moon.clientProgramReturnOriginalExplanationCapture;
+  const prepareLogicalObservation = moon.clientProgramPrepareLogicalObservation;
   const originalInferRunTokens = new WeakMap();
   const restoredInferRuns = new WeakSet();
   const serializationPlanTokens = new WeakMap();
@@ -2661,6 +2662,24 @@ function publicationControl(moon) {
       return compiledRunResult(project(checkedProgram, compiled,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       'RunHostStaticPlanRejected');
+    },
+    prepareClientLogicalObservation(run, executionOwner, definition, limits) {
+      issuanceLimits(limits, 'Original logical boundary');
+      const compiled = compiledRunTokens.get(executionOwner?.compiled);
+      const prepared = executionOwner?.program;
+      if (compiled === undefined || prepared === undefined ||
+          !moon.clientProgramCompiledRunMatches(compiled, prepared) ||
+          !moon.clientProgramCheckCompiledRunDefinition(compiled, token(definition))) {
+        throw new TypeError('Foreign Client logical boundary original');
+      }
+      if (typeof prepareLogicalObservation !== 'function') {
+        throw new TypeError('ClientLogicalObservationUnavailable');
+      }
+      // Keep this actual typed Result intact so the receiving owner can take
+      // its original failed-constructor cleanup token without parsing Errors.
+      return Reflect.apply(prepareLogicalObservation, moon,
+        [run, prepared, compiled, token(definition), limits.maxWireBytes,
+          limits.maxNodes, limits.maxDepth]);
     },
     captureOriginalClientRunPlan(compiled, original, definition, limits, explanation) {
       issuanceLimits(limits, 'Original Run plan');
