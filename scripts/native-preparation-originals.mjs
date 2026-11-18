@@ -3,9 +3,60 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
-import {chmodSync, constants, copyFileSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync} from 'node:fs';
+import {chmodSync, constants, copyFileSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, symlinkSync, writeFileSync} from 'node:fs';
 import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {verifyInstallation} from './moonbit-installation.mjs';
+
+const sameStat=(path,original)=>{
+  const current=lstatSync(path,{bigint:true});
+  for(const key of ['dev','ino','size','mode','mtimeNs','ctimeNs'])assert.equal(current[key],original[key]);
+};
+const checksum=bytes=>createHash('sha256').update(bytes).digest('hex');
+function included(path) {
+  if(!path.startsWith('lib/core/_build'))return true;
+  return path==='lib/core/_build'||['js','wasm','native'].some(target=>{
+    const prefix='lib/core/_build/'+target;
+    return path===prefix||path===prefix+'/release'||path===prefix+'/release/bundle'||path.startsWith(prefix+'/release/bundle/');
+  });
+}
+// Native and portable Moon processes get distinct Core/cache roots. Retain only
+// installed originals and the pinned bundle outputs, never stale build caches.
+export function copyNativePreparationTools(original,destination,marker) {
+  original=realpathSync(original);
+  destination=join(realpathSync(dirname(resolve(destination))),basename(destination));
+  verifyInstallation(original,marker);
+  const files=[],directories=[],links=[];
+  const visit=(from,to,name)=>{
+    if(!included(name))return;
+    const stat=lstatSync(from,{bigint:true});
+    if(stat.isSymbolicLink()) {
+      const target=readlinkSync(from),resolved=realpathSync(from);
+      assert(!target.startsWith('/')&&(resolved===original||resolved.startsWith(original+sep)));
+      symlinkSync(target,to);links.push({from,to,target,stat});
+    } else if(stat.isDirectory()) {
+      mkdirSync(to,{mode:Number(stat.mode&0o777n)});directories.push({from,stat});
+      for(const child of readdirSync(from).sort())visit(join(from,child),join(to,child),name?name+'/'+child:child);
+    } else {
+      assert(stat.isFile(),'Only closed installed tool files may be copied');
+      const bytes=readFileSync(from);sameStat(from,stat);
+      copyFileSync(from,to,constants.COPYFILE_FICLONE|constants.COPYFILE_EXCL);
+      chmodSync(to,Number(stat.mode&0o777n));
+      assert.equal(checksum(readFileSync(to)),checksum(bytes));
+      files.push({from,to,bytes:bytes.length,sha256:checksum(bytes),stat});
+    }
+  };
+  visit(original,destination,'');
+  for(const {from,stat} of [...files,...directories,...links])sameStat(from,stat);
+  for(const {from,to,target} of links) {
+    assert.equal(readlinkSync(from),target);assert.equal(readlinkSync(to),target);
+    const current=realpathSync(to);assert(current.startsWith(destination+sep));
+    assert.equal(relative(destination,current),relative(original,realpathSync(from)));
+  }
+  verifyInstallation(destination,marker);
+  return {original,destination,files:files.map(({from,to,bytes,sha256})=>({from,to,bytes,sha256}))};
+}
+
 
 function data(path, item) {
   assert.equal(typeof path, 'string'); assert(isAbsolute(path));

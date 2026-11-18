@@ -98,16 +98,18 @@ const observation=process.env.ACTQL_NATIVE_PREPARATION_RESOURCE_OBSERVER==='1'
   ?{rootPid:process.pid,source,target,deadline:Number(process.env.ACTQL_NATIVE_CI_DEADLINE),
     output:join(destination,'preparation-resources.observation.json')}:undefined;
 await withNativePreparationResources(observation,async()=>{
-const {entries,components,httpReceipt,portableReceipt}=lanes===2
+let {entries,components,httpReceipt,portableReceipt,queryReceipt}=lanes===2
   ?await prepareNativeParallel({repository,destination,source,target,selection,seconds,residentSeconds,httpJobs,moonHome,clang,sdk})
   :serialPreparation();
 // The same completed preparation owns one default Native Query image. Only
 // software is shared; the later HTTP and Remote fixtures retain fresh roots,
 // keys, ports, environment, original Moon commands and exact execution counts.
-let queryReceipt;
-if(target==='darwin-arm64'&&selection==='all')timedPreparation('query_software',()=>{
-  queryReceipt=prepareNativeQuerySoftware(repository,destination,{moonHome});
-});
+if(target==='darwin-arm64'&&selection==='all') {
+  if(lanes===1)timedPreparation('query_software',()=>{
+    queryReceipt=prepareNativeQuerySoftware(repository,destination,{moonHome});
+  });
+  else assert.equal(queryReceipt,join(destination,'query-software.json'));
+}
 assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
 assert.equal(run('git',['status','--porcelain']),'');
 return {entries,components,httpReceipt,portableReceipt,queryReceipt};
@@ -119,6 +121,7 @@ writeFileSync(join(destination,'preparation.json'),JSON.stringify({source,target
 if(process.env.GITHUB_ENV!==undefined)appendFileSync(process.env.GITHUB_ENV,
   'ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION='+destination+'\n'+
   (queryReceipt===undefined?'':'ACTQL_TEST_NATIVE_QUERY_PREPARATION='+queryReceipt+'\n')+
+  (queryReceipt!==undefined&&lanes===2?'ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS=1\n':'')+
   (portableReceipt===undefined?'':'ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION='+portableReceipt+'\n')+
   (httpReceipt===undefined?'':'ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT='+httpReceipt+'\n'));
 console.log(JSON.stringify({source,target,preparation:destination,entries:Object.keys(entries)}));

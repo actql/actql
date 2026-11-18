@@ -61,8 +61,8 @@ test('Native parallel preparation starts both independent owners and waits for f
   assert.equal(existsSync(join(f.destination,'command-tool-copy.json')),true);
 });
 
-test('Native parallel preparation keeps command profiles budgets original receipts and full component order',async t=>{
-  const f=fixture(t),calls=[];
+test('Native Linux parallel preparation keeps command profiles budgets original receipts and full component order',async t=>{
+  const f={...fixture(t),target:'linux-x64'},calls=[];
   const command=(repository,path,options)=>{
     assert.equal(repository,f.repository);assert.equal(options.preparation,null);
     if(options.compiledInput) {
@@ -84,7 +84,7 @@ test('Native parallel preparation keeps command profiles budgets original receip
   const components=prepareNativeConstructionLane('components',f,{
     libraries:(_repository,path,options)=>{calls.push('libraries');assert.equal(options.seconds,900);assert.equal(options.preparation,null);},
     http:(_repository,path,options)=>{calls.push('http');assert.equal(options.seconds,900);assert.equal(options.tlsJobs,2);
-      assert.equal(options.tlsArchive,join(f.destination,'components/openssl-original.tar.gz'));return '/original/http/receipt';},
+      assert.equal(options.tlsArchive,process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE);return '/original/http/receipt';},
     portable:(_repository,path)=>{calls.push('portable');assert.equal(path,join(f.destination,'portable-runtime.json'));},
   });
   assert.deepEqual(calls,['libraries','http','portable']);
@@ -193,6 +193,20 @@ test('Darwin Query or portable refusal still joins the other actual construction
     await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);
     release();await assert.rejects(operation,error=>error===original);
     assert.deepEqual(finished,[failed==='query'?'portable':'query']);
+    assert.equal(existsSync(join(f.destination,'preparation.json')),false);
+  }
+});
+
+test('Darwin component dependencies refuse before Query and cannot substitute a foreign Query receipt',t=>{
+  for(const refusal of ['libraries','http','foreign']) {
+    const f=fixture(t),calls=[],original=new Error('original '+refusal+' refusal');
+    const execute=name=>{calls.push(name);if(refusal===name)throw original;};
+    assert.throws(()=>prepareNativeConstructionLane('components',f,{
+      libraries:()=>execute('libraries'),http:()=>execute('http'),
+      query:()=>{calls.push('query');return '/foreign/query-software.json';},
+    }),error=>refusal==='foreign'?error.code==='ERR_ASSERTION':error===original);
+    assert.deepEqual(calls,refusal==='libraries'?['libraries']:refusal==='http'?['libraries','http']
+      :['libraries','http','query']);
     assert.equal(existsSync(join(f.destination,'preparation.json')),false);
   }
 });

@@ -37,6 +37,7 @@ test('one prepared Query image serves both original selections with independent 
   const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
   const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env});
   assert.equal(f.calls().length,1);assert.equal(f.calls()[0].runtime,null);
+  assert.equal(f.calls()[0].args.includes('-j'),false,'The original serial Query recipe stays unchanged');
   assert.deepEqual(f.calls()[0].args.slice(0,5),['test','src/query_integration','src/native_values_integration','--target','native']);
   const paths=['src/query_integration/first_wbtest.mbt','src/query_integration/second_wbtest.mbt'];
   for(const [index,path] of paths.entries()) {
