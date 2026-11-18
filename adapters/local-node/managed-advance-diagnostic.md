@@ -48,6 +48,19 @@ All Local issue constructors carry payloads; the adapter rejects a payload-free
 foreign enum before invoking a projector. This structural fence is not a
 nominal issuer and does not admit arbitrary foreign JavaScript values.
 
+The logical-work getter projects only the original `LogicalWorkLimit` failure.
+The existing `LocalDispatchPreparation` retains one immutable origin word:
+the fixed ordinary source-free Core constructor selects
+`SourceFreeInstallation`, while other and legacy constructors retain
+`Unspecified`. Equal numeric limits and Host Program shapes cannot select a
+setting. Failure mapping requires the SAME graph, module and original/refined
+sequence, then reads the actual selected kernel's immutable context limit.
+Missing, duplicate, foreign or unselected contexts keep the old cause path.
+No current callback, counter, semantic check or provider is invoked by this
+projection. Node formats only the closed Core DATA: step, limit and the fixed
+setting literal or `unavailable`. Neither requested nor remaining work is
+reconstructed from a later Ledger observation.
+
 ## Identity
 
 The original Result, namespace receiver, checked exception and Task ordinal
@@ -143,6 +156,26 @@ allowance is used to fund this extension. This is a dominance argument for
 the existing route, not a new certificate pricing all Host/error allocations.
 This bound
 does not price arbitrary exception chains, provider text or allocator backing.
+
+The logical-work extension has its own explicit delta on the SAME original
+preparation/task allowance. Before construction, the Request Plan quote adds
+two scalar words for retained original/policy-copy records and four words for
+their replacement overlap. The existing task envelope and actual managed
+preparation include the same complete diagnostic delta: retained 3 headers,
+5 references, 6 words and 19 UTF16 units; temporary 3 headers, 6 references
+and 5 words. Both the issue discriminator and the portable Some discriminator
+are explicit words. These give 174 retained and 310 execution bytes. The
+earlier mapping phase conservatively coholds refinement/step/context Options,
+the selected holder, returned Int64 Option, new issue and fixed locals:
+6 headers, 7 references and 11 words (240 bytes), below the projection peak.
+The phases do not overlap, and no old error/Some replacement credit or
+metadata ceiling spare is used. This covers the original issue, Node DATA,
+decimal limit String, projection carriers and fixed descriptor/locals. The preparation quote and
+execution quote are two views of the same future task holding, not two new
+reservations. They preserve existing metadata ceilings, logical work debits,
+primary resource refusal precedence and cleanup ownership. Direct legacy
+preparation callers still own their original Host constructor backing; the
+getter exposes the same field delta for that existing responsibility.
 
 ## Extension
 

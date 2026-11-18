@@ -24,11 +24,61 @@ WASMTIME_VERSION = '38.0.0'
 # This is not the older private Node/DuckDB physical diagnostic profile.
 DUCKDB_VERSION = 'v1.4.3'
 _LOCAL_COMPONENT_PLATFORM = 'darwin-arm64'
+_LOCAL_COMPONENT_PLATFORMS = ('darwin-arm64', 'linux-x64')
 _NOTICES = ('LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE')
 
 
 class LocalInstallationError(RuntimeError):
     """Refuse an unavailable or inconsistent installed Local release cohort."""
+
+
+@dataclass(frozen=True, slots=True)
+class _LocalComponentTarget:
+    name: str
+    engine_target: str
+    cpu_features: tuple[str, ...]
+    duckdb_file: str
+    runtime_file: str
+    image_machine: bytes
+    minimum_glibc: tuple[int, int] | None
+
+
+def _component_target(name: str) -> _LocalComponentTarget:
+    """Closed component identities, not permission to execute a target."""
+    if type(name) is str and name == 'darwin-arm64':
+        return _LocalComponentTarget(name, 'aarch64-apple-darwin', ('aarch64-baseline',),
+            'libduckdb.dylib', 'darwin-aarch64/_libwasmtime.dylib', b'\xb7\x00', None)
+    if type(name) is str and name == 'linux-x64':
+        return _LocalComponentTarget(name, 'x86_64-unknown-linux-gnu', ('x86_64-baseline',),
+            'libduckdb.so', 'linux-x86_64/_libwasmtime.so', b'\x3e\x00', (2, 28))
+    raise LocalInstallationError('No selected component verifier for this packaging target')
+
+
+def _component_engine_target(target: Any, features: Any) -> _LocalComponentTarget:
+    for name in _LOCAL_COMPONENT_PLATFORMS:
+        selected = _component_target(name)
+        if (type(target) is str and target == selected.engine_target
+                and type(features) is list and features == list(selected.cpu_features)):
+            return selected
+    raise LocalInstallationError('Unsupported selected Local engine target')
+
+
+def _execution_component_platform() -> str:
+    """Select actual Host OS/architecture before package discovery or loading."""
+    if sys.platform == 'darwin' and platform.machine() == 'arm64':
+        return 'darwin-arm64'
+    if sys.platform == 'linux' and platform.machine() == 'x86_64':
+        try:
+            libc = os.confstr('CS_GNU_LIBC_VERSION')
+        except (AttributeError, OSError, ValueError):
+            libc = None
+        version = re.fullmatch(r'glibc ([0-9]+)\.([0-9]+)', libc) if type(libc) is str else None
+        if version is not None:
+            minimum = _component_target('linux-x64').minimum_glibc
+            if minimum is not None and tuple(map(int, version.groups())) >= minimum:
+                return 'linux-x64'
+    raise LocalInstallationError('Python Local is not available for this platform; '
+        'Linux requires x86_64/glibc 2.28+ and the declared native dependencies; use a Remote Host')
 
 
 class LocalComponentReadCleanupPending(LocalInstallationError):
@@ -203,12 +253,13 @@ def _component(root: Path, value: Any, filename: str, maximum: int) -> tuple[Pat
     return path, item['sha256']
 
 
-def _valid_image_header(header: bytes, size: int) -> bool:
-    # Wasmtime serializes code as an ELF object even on the selected macOS
-    # host. This checks the binary architecture, not Engine compatibility.
+def _valid_image_header(header: bytes, size: int,
+                        target_platform: str = _LOCAL_COMPONENT_PLATFORM) -> bool:
+    # Wasmtime serializes code as an ELF object on both selected hosts.
+    # This checks the binary architecture, not Engine compatibility.
     return (size >= 64 and len(header) == 20
             and header[:7] == b'\x7fELF\x02\x01\x01'
-            and header[18:20] == b'\xb7\x00')
+            and header[18:20] == _component_target(target_platform).image_machine)
 
 
 def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -229,8 +280,7 @@ def _inspect_local_components_for_packaging(root: Path, *, target_platform: str,
     the same full component/recipe predicate, not a Linux runtime grant. The
     producer still owns actual library format/ABI inspection and source gates.
     """
-    if type(target_platform) is not str or target_platform != _LOCAL_COMPONENT_PLATFORM:
-        raise LocalInstallationError('No selected component verifier for this packaging target')
+    target = _component_target(target_platform)
     try:
         if artifact_sha256 is not None and not _hex(artifact_sha256, 64):
             raise LocalInstallationError('Invalid SDK-bound Local artifact digest')
@@ -240,13 +290,13 @@ def _inspect_local_components_for_packaging(root: Path, *, target_platform: str,
             'module', 'duckdb', 'duckdb_version', 'notices', 'compiled_image', 'engine_recipe'))
         if (not _hex(body['source_sha'], 40) or type(package_version) is not str
                 or not package_version or body['package_version'] != package_version
-                or body['platform'] != _LOCAL_COMPONENT_PLATFORM
+                or body['platform'] != target.name
                 or type(body['core_abi']) is not int or body['core_abi'] != LOCAL_CORE_ABI
                 or body['wasmtime_version'] != WASMTIME_VERSION
                 or body['duckdb_version'] != DUCKDB_VERSION):
             raise LocalInstallationError('Installed Local release cohort is incompatible')
         module, module_hash = _component(root, body['module'], 'client_host_wasm.wasm', 32 * 1024 * 1024)
-        library, library_hash = _component(root, body['duckdb'], 'libduckdb.dylib', 128 * 1024 * 1024)
+        library, library_hash = _component(root, body['duckdb'], target.duckdb_file, 128 * 1024 * 1024)
         # These component checks establish correspondence only. The original
         # Host capacity supplier still precedes VM construction and image capture.
         from ._local_image_recipe import _image_descriptor, _recipe_from_original
@@ -259,7 +309,7 @@ def _inspect_local_components_for_packaging(root: Path, *, target_platform: str,
         image_path = root / image['file']
         header = _read_file(image_path, maximum=recipe.image_bytes_limit,
                    expected=image['bytes'], digest=image['sha256'], prefix=20)
-        if not _valid_image_header(header, image['bytes']):
+        if not _valid_image_header(header, image['bytes'], target.name):
             raise LocalInstallationError('Installed Local image has an incompatible binary target')
         notices = _closed(body['notices'], _NOTICES)
         for filename in _NOTICES:
@@ -282,16 +332,14 @@ def inspect_local_components(root: Path, *, package_version: str,
     The producer owns binary target and ABI evidence; this inspection is not
     execution or a claim that an artifact passed product acceptance.
     """
-    if sys.platform != 'darwin' or platform.machine() != 'arm64':
-        raise LocalInstallationError('Python Local is not available for this platform')
-    return _inspect_local_components_for_packaging(root, target_platform=_LOCAL_COMPONENT_PLATFORM,
+    target = _execution_component_platform()
+    return _inspect_local_components_for_packaging(root, target_platform=target,
         package_version=package_version, artifact_sha256=artifact_sha256)
 
 
 def installed_local_components() -> LocalComponents:
     """Only a selected Local connection calls this installed-package resolver."""
-    if sys.platform != 'darwin' or platform.machine() != 'arm64':
-        raise LocalInstallationError('Python Local is not available for this platform')
+    _execution_component_platform()
     try:
         version = metadata.version('actql-sdk')
         if (metadata.version('actql') != version

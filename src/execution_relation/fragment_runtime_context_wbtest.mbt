@@ -116,3 +116,64 @@ test "checked fragment runtime budget reaches the shared evaluator without reset
     is Err(LogicalRows(InputRowLimit)),
   )
 }
+
+///|
+test "logical work policy reads the same original context and never an equal kernel copy" {
+  let sequence = prepared_sequence(row_owner(",{\"derive\":{\"c\":\"a\"}}"))
+  let original = sequence_fragment_context(sequence, 1, 2L)
+  let context = {
+    ..original,
+    limits: { ..original.limits, max_work: 10000000L, },
+  }
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [context],
+    ["derive_1"],
+    100000,
+    10000,
+  ).unwrap()
+  assert_eq(
+    generated_sequence_logical_work_limit(generated, 1),
+    Some(10000000L),
+  )
+  assert_eq(generated_sequence_logical_work_limit(generated, 0), None)
+  assert_eq(generated_sequence_logical_work_limit(generated, -1), None)
+  let selected = select_generated_sequence_step(generated, 1).unwrap()
+  assert_eq(generated_sequence_logical_work_limit(selected, 1), Some(10000000L))
+  let other_step = select_generated_sequence_step(generated, 0).unwrap()
+  assert_eq(generated_sequence_logical_work_limit(other_step, 1), None)
+  assert_eq(
+    generated_sequence_logical_work_limit(
+      { ..generated, contexts: [context, context], },
+      1,
+    ),
+    None,
+  )
+  let foreign = sequence_fragment_context(
+    prepared_sequence(row_owner(",{\"derive\":{\"c\":\"a\"}}")),
+    1,
+    2L,
+  )
+  assert_eq(
+    generated_sequence_logical_work_limit(
+      { ..generated, contexts: [foreign], },
+      1,
+    ),
+    None,
+  )
+  assert_true(
+    retain_generated_sequence_refinement(generated, {
+      ..generated,
+      contexts: [context],
+    })
+    is None,
+  )
+  let budget = fragment_runtime_for_kernel(context, context.kernel).unwrap()
+  charge_logical_work(budget, 10000000L).unwrap()
+  assert_true(charge_logical_work(budget, 1L) is Err(WorkLimit))
+  assert_eq(
+    generated_sequence_logical_work_limit(generated, 1),
+    Some(10000000L),
+  )
+}

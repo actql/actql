@@ -28161,7 +28161,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b8601cd0eefe53cb842bda42ffcd4cfbba9a2f619a676d69bce70bf17c2c76a3",
+      "sha256": "970cb30d40721430dcbbc3dc729303dce97c54d3ea19f917a76d79de4a9b5931",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29044,7 +29044,8 @@
             "submissionRef",
             "authorityScopeCid",
             "currentAuthorization",
-            "control"
+            "control",
+            "expected"
           ],
           "async": false
         },
@@ -29917,6 +29918,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "Journal acceptance captures bounded admission evidence as owned DATA and checks"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Shared binding observation of original intents"
               }
             ],
             "inputsOutputs": [
@@ -29966,7 +29971,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "retainedIntentOriginal(row, control, originalEpoch).value;"
+                "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -29987,6 +29992,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const captured = {wire, value: JSON.parse(wire)};"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn observe_client_submitted_intent("
               }
             ],
             "identity": [
@@ -30057,6 +30066,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "row.run_admission_evidence_json === original.wire"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "if expected.wire != original.wire || expected.cid != original.cid {"
               }
             ],
             "ownership": [
@@ -30271,6 +30284,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "if (!admissionEvidenceShape(captured.value, updateOriginalControl, captured)) {"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "if !client_submitted_intent_transition(phase, phase) {"
               }
             ],
             "cancellation": [
@@ -30631,6 +30648,14 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "test('actual installed failed Compute observes stop across public observation publication'"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent_observation_test.mbt",
+                "anchor": "test \"submission observation shares retained original and invocation decisions\""
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "test('shared observation compares the selected journal original rather than a repeated incoming alias'"
               }
             ]
           }
@@ -31641,7 +31666,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "retainedIntentOriginal(row, control, originalEpoch).value;"
+                "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -35379,7 +35404,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d3cab7e8139b2158c0a262c999b1126a4645fe5561baf0d08a95d019a6146cfb",
+      "sha256": "951dbfe14ecd3d87c82cb6525882eccdada63318505cf9263a2c55342c06d949",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -35644,6 +35669,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "Only an input-bearing submission preparation can lend its original submitted"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Shared binding observation of original intents"
               }
             ],
             "inputsOutputs": [
@@ -35674,6 +35703,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "const admissionCandidate = admitPreparedSubmission === undefined ? undefined :"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn observe_client_submitted_intent("
               }
             ],
             "identity": [
@@ -35712,6 +35745,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "if (this !== admitPreparedSubmission) return false;"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "if expected.wire != original.wire || expected.cid != original.cid {"
               }
             ],
             "ownership": [
@@ -35826,6 +35863,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "error?.cleanupPending === true || error?.cleanupHandle !== undefined) throw error;"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "if !client_submitted_intent_transition(phase, phase) {"
               }
             ],
             "cancellation": [
@@ -35998,6 +36039,14 @@
               {
                 "path": "adapters/host-node/source-request-lineage.test.mjs",
                 "anchor": "test('read-only submission lookup keeps the original live Host ingress lineage', async t => {"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent_observation_test.mbt",
+                "anchor": "test \"submission observation shares retained original and invocation decisions\""
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "test('shared observation compares the selected journal original rather than a repeated incoming alias'"
               }
             ]
           }

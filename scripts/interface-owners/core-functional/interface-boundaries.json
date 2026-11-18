@@ -36919,7 +36919,7 @@
     },
     {
       "module": "src/client_local_host/host.mbt",
-      "sha256": "63b7a1ba92cb5acd9dd30c3e81ebcad55ad4ec4392a4b17a775430c4ae94d918",
+      "sha256": "34f7627dffa0ee8a1fd1e9aa9a8caa9b6818a738df6f7e348d340cf3d0dcbc85",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -36995,7 +36995,7 @@
         },
         {
           "name": "prepare_client_local_configuration",
-          "declaration": "prepare_client_local_configuration ( graph : @ strategy . CheckedDAG , capacity_plan : ClientLocalCapacityPlan , boundary_profile : ClientLocalManagedBoundaryProfile , retained_bytes : Int64 , execution_bytes : Int64 , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > ClientPreparedLocalConfiguration ?"
+          "declaration": "prepare_client_local_configuration ( graph : @ strategy . CheckedDAG , capacity_plan : ClientLocalCapacityPlan , boundary_profile : ClientLocalManagedBoundaryProfile , retained_bytes : Int64 , execution_bytes : Int64 , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , work_policy ? : @ local_driver . LocalWorkPolicy"
         },
         {
           "name": "reject_client_local_run",
@@ -40628,7 +40628,7 @@
         },
         {
           "name": "configure_installed_source_free_preparation",
-          "declaration": "configure_installed_source_free_preparation ( prepared : @ publication_host . PreparedClientProgram , original : ClientInstalledManagedSourceFreePreparation , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedSourceFreePreparation , ClientInstalledManagedRunIssue , ]"
+          "declaration": "configure_installed_source_free_preparation ( prepared : @ publication_host . PreparedClientProgram , original : ClientInstalledManagedSourceFreePreparation , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , work_policy ? : @ local_driver . LocalWorkPolicy"
         },
         {
           "name": "installed_managed_capture_run_requirements",
@@ -40755,7 +40755,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "f0b2e820dee09f1beb2a1cf61be7a6490126583358c9eedd98d648e52c3c80a4"
+      "sha256": "a65cbbe304cdace87583fa1f6affbcc387c8afd38e92e2e6a247011a93363c0c"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
@@ -50839,7 +50839,7 @@
           "exports": []
         }
       ],
-      "sha256": "d790bcbd4a4cec4f93d7569f378583f2f3febcf52bedb0c608b09a6f2190f1e8",
+      "sha256": "43d89eafae19cf16a2ce9a39a57961b5f7123f8caf9940bacaf607e4df84f11f",
       "exports": [],
       "operations": [
         {
@@ -57462,7 +57462,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "5392250ec9a681c38aa29d8d6e3094f52b26efb153d0930513264194ad2315c2",
+      "sha256": "e48696c04755ae8d70f48a630488b54bf477d8b2ca1a88f74db3cee963bbd04c",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -57538,6 +57538,10 @@
         {
           "name": "local_managed_import_working_overlap",
           "declaration": "local_managed_import_working_overlap ( imported : Int64 , reusable : Int64 , previous_working : Int64 , next_working : Int64 , ) - > ( Int64 , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "local_managed_logical_work_diagnostic_capacity",
+          "declaration": "local_managed_logical_work_diagnostic_capacity ( ) - > ( Int64 , Int64 ) ?"
         },
         {
           "name": "local_managed_scalar_overlap_control_capacity",
@@ -58190,7 +58194,8 @@
         {
           "operations": [
             "local_managed_import_working_overlap",
-            "local_managed_scalar_overlap_control_capacity"
+            "local_managed_scalar_overlap_control_capacity",
+            "local_managed_logical_work_diagnostic_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -58272,6 +58277,10 @@
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
                 "anchor": "// combined reservation never shrinks, and a later grow cannot spend it twice."
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "The logical-work extension has its own explicit delta"
               }
             ],
             "extension": [
@@ -58288,6 +58297,14 @@
               {
                 "path": "src/connectors/local/driver/managed_import_scalar_overlap_wbtest.mbt",
                 "anchor": "test \"scalar overlap fixed controls cover initial and every nullable construction phase\""
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
+                "anchor": "logical work failure keeps actual policy"
+              },
+              {
+                "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
+                "anchor": "logical work complete frame admits exact backing"
               }
             ]
           }
@@ -96733,7 +96750,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "abfdb55325483453d6bff5b10598ae0158374c454532095344a02b3c3ca105a6",
+      "sha256": "c6f98a995874dd679d16b6b6d34525c23de1df7cf44cd78c10fa2c465ca6760f",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -96950,7 +96967,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
-      "sha256": "b3f5bdf5ac57ec64551a827919c2ea1c4003f0bec0d2246746a52fb93f9c50bc",
+      "sha256": "d72b4dd149e993f9f4672a2dabefec23043aa1ffd3c6ae55479231267a70a223",
       "exports": [],
       "operations": [
         {
@@ -96960,6 +96977,10 @@
         {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( issue : LocalDispatchIssue , ) - > Int ?"
+        },
+        {
+          "name": "local_managed_advance_logical_work_policy",
+          "declaration": "local_managed_advance_logical_work_policy ( issue : LocalDispatchIssue , ) - > ( Int , Int64 , String ) ?"
         },
         {
           "name": "local_managed_capture_failure_cause",
@@ -96990,6 +97011,10 @@
           "declaration": "local_managed_provider_failure ( issue : @ connector . FixedComputeIssue , initial_work_limit : Int , ) - > LocalDispatchIssue"
         },
         {
+          "name": "local_managed_provider_failure_for_sequence",
+          "declaration": "local_managed_provider_failure_for_sequence ( issue : @ connector . FixedComputeIssue , initial_work_limit : Int , installed : LocalDispatchModule , task : Int , sequence : @ execution . GeneratedSequence , ) - > LocalDispatchIssue"
+        },
+        {
           "name": "local_managed_resource_failure_cause",
           "declaration": "local_managed_resource_failure_cause ( issue : @ resources . LedgerIssue , ) - > String"
         },
@@ -97009,7 +97034,9 @@
             "local_managed_advance_capture_work",
             "local_managed_advance_control_work_limit",
             "local_managed_provider_failure",
-            "local_managed_failure_resource_dimension"
+            "local_managed_failure_resource_dimension",
+            "local_managed_advance_logical_work_policy",
+            "local_managed_provider_failure_for_sequence"
           ],
           "exports": [],
           "attributes": {
@@ -97091,6 +97118,10 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
                 "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
+                "anchor": "logical work failure keeps actual policy"
               }
             ]
           }
@@ -97252,7 +97283,7 @@
     },
     {
       "module": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
-      "sha256": "bfdd8c479b967c9e6c11aa6de490fc9f88f0d52897614b28bfe821bce88414f4",
+      "sha256": "4c9b58f52983c931e8df40bfdf5bbdc41f666b76eeecda34b2ae9a5162e7dee0",
       "exports": [],
       "operations": [
         {
@@ -97270,6 +97301,10 @@
         {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
+        },
+        {
+          "name": "local_managed_advance_logical_work_policy",
+          "declaration": "local_managed_advance_logical_work_policy ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > ( Int , Int64 , String ) ?"
         },
         {
           "name": "local_managed_advance_resource_dimension",
@@ -97290,7 +97325,8 @@
             "<module>",
             "local_managed_advance_capture_work",
             "local_managed_advance_control_work_limit",
-            "local_managed_advance_resource_dimension"
+            "local_managed_advance_resource_dimension",
+            "local_managed_advance_logical_work_policy"
           ],
           "exports": [],
           "attributes": {
@@ -97372,6 +97408,10 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
                 "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original logical work Option tuple reaches"
               }
             ]
           }
@@ -97525,7 +97565,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
-      "sha256": "04248702a98e5fd4171de609e2b68402cf65e95255e738aab996a35fdc4147b3",
+      "sha256": "4a86ab53841d962732241c68c6e07b21cca8fefce68ab094704bad19df91929e",
       "exports": [],
       "operations": [
         {
@@ -97545,6 +97585,10 @@
           "declaration": "local_managed_advance_control_work_limit ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int ?"
         },
         {
+          "name": "local_managed_advance_logical_work_policy",
+          "declaration": "local_managed_advance_logical_work_policy ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > ( Int , Int64 , String ) ?"
+        },
+        {
           "name": "local_managed_advance_resource_dimension",
           "declaration": "local_managed_advance_resource_dimension ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > String ?"
         },
@@ -97562,7 +97606,8 @@
           "operations": [
             "<module>",
             "local_managed_advance_capture_work",
-            "local_managed_advance_control_work_limit"
+            "local_managed_advance_control_work_limit",
+            "local_managed_advance_logical_work_policy"
           ],
           "exports": [],
           "attributes": {
@@ -97644,6 +97689,10 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
                 "anchor": "test('managed advance refuses unclassified physical row workspace and foreign diagnostic reasons'"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original logical work Option tuple reaches"
               }
             ]
           }
@@ -103134,7 +103183,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-diagnostic.mjs",
-      "sha256": "458c8999dd132476fda1d5d4b69a7629f1d48e1a8775447843b69746b0aefbc4",
+      "sha256": "afd9e292311e05b96c34e133670a29ab2aa7c9090ff32adf51f8f5b3196f894a",
       "exports": [
         "dispatchFailureSnapshot",
         "publicBudgetFailureMessage",
@@ -103273,12 +103322,16 @@
     },
     {
       "module": "src/execution_relation/row_failure_diagnostic.mbt",
-      "sha256": "05ed007f9196f43f5afc00eeb360e3c953c2ffb32ff7f0ee855636bec5d4a1a3",
+      "sha256": "b40d9057d915125cf7fd8fbe9855d44c005ea15c59075cfcff8651ad383710fa",
       "exports": [],
       "operations": [
         {
           "name": "row_failure_diagnostic_cause",
           "declaration": "row_failure_diagnostic_cause ( issue : RowIssue ) - > String ?"
+        },
+        {
+          "name": "row_failure_is_logical_work_limit",
+          "declaration": "row_failure_is_logical_work_limit ( issue : RowIssue ) - > Bool"
         },
         {
           "name": "row_logical_failure_diagnostic_cause",
@@ -103294,7 +103347,8 @@
           "operations": [
             "<module>",
             "row_failure_diagnostic_cause",
-            "row_logical_failure_diagnostic_cause"
+            "row_logical_failure_diagnostic_cause",
+            "row_failure_is_logical_work_limit"
           ],
           "exports": [],
           "attributes": {
@@ -103368,6 +103422,10 @@
               {
                 "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
                 "anchor": "remaining original typed row causes reach"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
+                "anchor": "logical work failure keeps actual policy"
               }
             ]
           }

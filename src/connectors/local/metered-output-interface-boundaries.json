@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/local/driver/preparation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fe1f8bb85956d369df6ca4a1ebf29ee0f0139fcb717f4b362fb3cbcbbd4de6ee",
+      "sha256": "0f52283455ecbddd2de21e520b69c571f4004679237ff96b296b85bd17c58894",
       "role": "physical-io",
       "owner": "Existing Local dispatch preparation and original Run binding; pure quotations do not grant physical resources",
       "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
@@ -51,6 +51,14 @@
           "declaration": "local_dispatch_preparation_transfer_bytes ( original : LocalDispatchPreparation , ) - > Int64 ?"
         },
         {
+          "name": "local_dispatch_preparation_work_policy",
+          "declaration": "local_dispatch_preparation_work_policy ( original : LocalDispatchPreparation , ) - > LocalWorkPolicy"
+        },
+        {
+          "name": "local_dispatch_preparation_work_policy_capacity",
+          "declaration": "local_dispatch_preparation_work_policy_capacity ( ) - > @ execution . ExecutionCapacity"
+        },
+        {
           "name": "local_retained_input_metadata",
           "declaration": "local_retained_input_metadata ( limits : @ local . LocalImportLimits , milliseconds : Int64 ? , metadata : LocalManagedMetadataLimits ? , ) - > LocalManagedMetadataLimits ?"
         },
@@ -79,7 +87,9 @@
             "local_retained_input_metadata",
             "local_retained_output_policy_valid",
             "prepare_local_dispatch_plan",
-            "local_dispatch_preparation_input_scan_work"
+            "local_dispatch_preparation_input_scan_work",
+            "local_dispatch_preparation_work_policy",
+            "local_dispatch_preparation_work_policy_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -197,6 +207,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Logical rows and physical windows"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "The logical-work extension has its own explicit delta"
               }
             ],
             "extension": [
@@ -229,6 +243,10 @@
               {
                 "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
                 "anchor": "original many small Text rows cross sixteen MiB total on the same finite owner"
+              },
+              {
+                "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
+                "anchor": "logical work diagnostic quote retains"
               }
             ]
           }
@@ -238,7 +256,7 @@
     {
       "module": "src/connectors/local/module.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "635a1f354bf9670d055cab2d33354bad2277a8cba42f9fd2f59e39c4063698e7",
+      "sha256": "0bcf0612a86254d46157670b8a68c727e5dcfd1f70946a8ee503b2d4576948b2",
       "role": "connector-semantics",
       "owner": "Existing installed Local module, exact default bounded constructors and injected provider selection",
       "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",

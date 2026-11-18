@@ -4902,6 +4902,8 @@ pub fn client_submitted_intent_cid(@run_publication_host.ClientSubmittedIntent) 
 
 pub fn client_submitted_intent_effect_compatible(@run_publication_host.ClientSubmittedIntent, @run_publication_host.PreparedClientEffectComputation) -> Bool
 
+pub fn client_submitted_intent_observation(@run_publication_host.ClientSubmittedIntent, @run_publication_host.ClientSubmittedIntent?, String?, Bool) -> String?
+
 pub fn client_submitted_intent_requests_commit_stop(@run_publication_host.ClientSubmittedIntent) -> Bool
 
 pub fn client_submitted_intent_requests_read_only(@run_publication_host.ClientSubmittedIntent) -> Bool
@@ -4951,6 +4953,8 @@ pub fn local_managed_advance_capture_work(Result[@actql/actql/connectors/local/d
 pub fn local_managed_advance_cause(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> String?
 
 pub fn local_managed_advance_control_work_limit(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> Int?
+
+pub fn local_managed_advance_logical_work_policy(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> (Int, Int64, String)?
 
 pub fn local_managed_advance_resource_dimension(Result[@actql/actql/connectors/local/driver.LocalManagedAdvance, @actql/actql/connectors/local/driver.LocalDispatchIssue]) -> String?
 

@@ -75,6 +75,8 @@ export const windowGroupSourceRefusals = [
   ['field-and-expression', valid.replace('field:r.amount', 'field:r.amount,expr:r.amount')],
   ['fn-option', valid.replace('field:r.amount', 'field:r.amount,max_items:2')],
   ['unresolved-order', valid.replace("fn:'sum',field:r.amount",
-    "fn:'array_agg',field:r.amount,order_by:[{field:r.id,dir:'asc',nulls:'first'}],max_items:4")],
-].map(([name, text]) => ({name: 'window-group-' + name, format: 'aql-text', text,
-  expectedCode: 'ClientProgramInvalidInput'}));
+    "fn:'array_agg',field:r.amount,order_by:[{field:r.id,dir:'asc',nulls:'first'}],max_items:4"),
+  'ClientProgramOrderUnresolved'],
+].map(([name, text, expectedCode = 'ClientProgramInvalidInput']) => ({
+  name: 'window-group-' + name, format: 'aql-text', text, expectedCode,
+}));

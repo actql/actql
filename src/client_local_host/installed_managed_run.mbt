@@ -536,7 +536,11 @@ pub fn prepare_installed_managed_source_free_with_contracts(
     Err(issue) => return Err(issue)
   }
   configure_installed_source_free_preparation(
-    prepared, original, retained_output, provider_factory,
+    prepared,
+    original,
+    retained_output,
+    provider_factory,
+    work_policy=SourceFreeInstallation,
   )
 }
 
@@ -550,6 +554,7 @@ fn configure_installed_source_free_preparation(
   provider_factory : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  work_policy? : @local_driver.LocalWorkPolicy = Unspecified,
 ) -> Result[
   ClientInstalledManagedSourceFreePreparation,
   ClientInstalledManagedRunIssue,
@@ -563,6 +568,7 @@ fn configure_installed_source_free_preparation(
       original.provider_execution_bytes,
       retained_output,
       provider_factory,
+      work_policy~,
     ) {
     Some(value) => value
     None => return Err(Unsupported)

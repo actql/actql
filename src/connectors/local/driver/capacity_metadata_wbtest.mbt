@@ -76,8 +76,12 @@ test "missing input copy quote preserves original scratch metadata export and ex
     let actual = local_dispatch_copy_capacity(
       base, 7L, 11L, 13L, 37L, copies, true,
     ).unwrap()
-    assert_eq(actual.retained_bytes, retained)
-    assert_eq(actual.execution_bytes, execution)
+    // Independent complete census includes the issue and Some discriminators:
+    // 3H5R6W +19 UTF16 retained, 3H6R5W projection/locals/descriptor.
+    let diagnostic = 3L * 16L + 5L * 8L + 6L * 8L + 19L * 2L
+    let temporary = 3L * 16L + 6L * 8L + 5L * 8L
+    assert_eq(actual.retained_bytes, retained + diagnostic)
+    assert_eq(actual.execution_bytes, execution + diagnostic + temporary)
     assert_eq(actual.transfer_bytes, transfer)
   }
   assert_true(
@@ -89,4 +93,116 @@ test "missing input copy quote preserves original scratch metadata export and ex
     )
     is None,
   )
+}
+
+///|
+test "logical work diagnostic quote retains fixed fields and preserves explicit metadata ceilings" {
+  let (retained, execution) = local_managed_logical_work_diagnostic_capacity().unwrap()
+  assert_eq(retained, 3L * 16L + 5L * 8L + 6L * 8L + 19L * 2L)
+  assert_eq(execution - retained, 3L * 16L + 6L * 8L + 5L * 8L)
+  let origin = local_dispatch_preparation_work_policy_capacity()
+  assert_eq(origin.retained_bytes, 2L * 8L)
+  assert_eq(origin.execution_bytes, 4L * 8L)
+  assert_true(
+    local_dispatch_copy_capacity(
+      @execution.execution_capacity(
+        9223372036854775807L - retained + 1L,
+        9223372036854775807L,
+      ).unwrap(),
+      0L,
+      0L,
+      0L,
+      0L,
+      0,
+      false,
+    )
+    is None,
+  )
+  assert_true(
+    local_dispatch_copy_capacity(
+      @execution.execution_capacity(0L, 9223372036854775807L - execution + 1L).unwrap(),
+      0L,
+      0L,
+      0L,
+      0L,
+      0,
+      false,
+    )
+    is None,
+  )
+}
+
+///|
+test "logical work complete frame admits exact backing and refuses either one-byte-short before construction" {
+  // Independent allocation sites, including the enum and Some tags. These
+  // are complete new frames; no old error or metadata spare is credited.
+  let issue = 16L + 4L * 8L
+  let data = 16L + 5L * 8L + 2L * 8L
+  let decimal = 16L + 19L * 2L
+  let retained = issue + data + decimal
+  let tuple_some = 2L * 16L + 2L * 8L + 3L * 8L
+  let locals = 3L * 8L + 2L * 8L
+  let descriptor = 16L + 8L
+  let execution = retained + tuple_some + locals + descriptor
+  let actual = local_dispatch_copy_capacity(
+    @execution.execution_capacity(0L, 0L).unwrap(),
+    0L,
+    0L,
+    0L,
+    0L,
+    0,
+    false,
+  ).unwrap()
+  for
+    (r, e, expected) in [
+      (retained, execution, None),
+      (retained - 1L, execution, Some(@resources.RetentionLimit)),
+      (retained, execution - 1L, Some(@resources.ExecutionLimit)),
+    ] {
+    let root = @resources.create_ledger({
+      planning_work: 1,
+      attempts: 1,
+      holdings: 1,
+      transfer_bytes: 0L,
+      retained_bytes: r,
+      execution_bytes: e,
+    }).unwrap()
+    let calls = Ref(0)
+    match
+      @resources.reserve_capacity(
+        root,
+        actual.retained_bytes,
+        actual.execution_bytes,
+      ) {
+      Err(issue) => {
+        assert_eq(Some(issue), expected)
+        assert_eq(calls.val, 0)
+      }
+      Ok(capacity) => {
+        defer @resources.settle_capacity(root, capacity).unwrap()
+        assert_eq(expected, None)
+        assert_true(
+          @resources.capacity_reservation_covers(
+            root, capacity, retained, execution,
+          ),
+        )
+        let construct = () => {
+          calls.val += 1
+          LogicalWorkLimit(43, 20000000L, SourceFreeInstallation)
+        }
+        let original = construct()
+        assert_eq(calls.val, 1)
+        assert_eq(
+          local_managed_advance_logical_work_policy(original),
+          Some((43, 20000000L, "installation.sourceFreeMaxWork")),
+        )
+      }
+    }
+    let after = @resources.ledger_usage(root)
+    assert_eq(after.live_reservations, 0)
+    assert_eq(after.reserved_retention_bytes, 0L)
+    assert_eq(after.reserved_execution_bytes, 0L)
+    assert_eq(@resources.ledger_limits(root).retained_bytes, r)
+    assert_eq(@resources.ledger_limits(root).execution_bytes, e)
+  }
 }

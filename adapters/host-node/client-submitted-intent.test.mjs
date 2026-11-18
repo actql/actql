@@ -68,8 +68,9 @@ test('submitted intent receipt survives restart before any Run exists and preser
     {format: 'aql-text', text: "SELECT 'e\u0301\r\n' AS value"});
   f.restart();
   const restored = f.lookup();
-  const {inserted, ...retained} = first;
+  const {inserted, observation, ...retained} = first;
   assert.equal(inserted, true);
+  assert.equal(observation, 'recorded', 'the original invocation observed its preparing intent');
   assert.deepEqual(restored, retained);
   assert.equal('runDefinitionCid' in restored, false);
   const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
@@ -319,8 +320,9 @@ for (const lost of [false, true]) {
       assert.throws(() => f.journal.recordSubmittedIntent(f.ref, input, fields, moon),
         {code: 'ClientSubmittedIntentCustodyLost'});
     } else {
-      const {inserted, ...expected} = original;
+      const {inserted, observation, ...expected} = original;
       assert.equal(inserted, true);
+      assert.equal(observation, 'recorded', 'the original invocation observed its preparing intent');
       assert.deepEqual(f.lookup(), expected);
     }
     const check = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});

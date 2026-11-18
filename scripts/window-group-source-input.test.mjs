@@ -66,7 +66,12 @@ test('window group public matrix uses normal module delivery and completed-case 
   assert.ok(consumer.includes("['scripts/fixtures/window-group-source-input.mjs', 'window-group-source-input.mjs']"));
   assert.ok(consumer.includes('window-group-receipts.local.json'));
   assert.ok(acceptance.includes("if (item.name.startsWith('window-group-')) await windowGroupReceipts.record(item, mode)"));
-  for (const c of refused) assert.equal(c.expectedCode, 'ClientProgramInvalidInput');
+  const unresolvedOrder = refused.find(c => c.name === 'window-group-unresolved-order');
+  assert.ok(unresolvedOrder);
+  assert.equal(unresolvedOrder.expectedCode, 'ClientProgramOrderUnresolved');
+  for (const c of refused) {
+    if (c !== unresolvedOrder) assert.equal(c.expectedCode, 'ClientProgramInvalidInput');
+  }
 });
 
 const windowSource = '76ad7a71f078a53db76965c33a6d9717c06254ed';

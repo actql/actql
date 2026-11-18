@@ -282,3 +282,36 @@ test "managed closed cause projects original nonrow constructors without payload
     assert_eq(local_managed_failure_budget(original), None)
   }
 }
+
+///|
+test "logical work failure keeps actual policy and closed origin without fabricated amounts" {
+  for
+    (origin, limit, setting) in [
+      (SourceFreeInstallation, 20000000L, "installation.sourceFreeMaxWork"),
+      (Unspecified, 10000000L, "unavailable"),
+      (Unspecified, 20000000L, "unavailable"),
+    ] {
+    let issue = LogicalWorkLimit(43, limit, origin)
+    assert_eq(
+      local_managed_advance_logical_work_policy(issue),
+      Some((43, limit, setting)),
+    )
+    assert_eq(local_managed_failure_cause(issue), Some("logical.work_limit"))
+    assert_eq(local_managed_failure_row_step(issue), 43)
+    assert_eq(local_managed_failure_budget(issue), None)
+    assert_eq(local_managed_failure_resource_dimension(issue), None)
+    assert_eq(local_managed_advance_control_work_limit(issue), None)
+  }
+  for
+    issue in [
+      Configuration(
+        @connector.Execution(@execution.Rows(43, @execution.RowLimit)),
+      ),
+      Execution(@strategy.Stopped),
+      Execution(@strategy.Physical(@resources.ForeignOwner)),
+      LogicalWorkLimit(-1, 20000000L, SourceFreeInstallation),
+      LogicalWorkLimit(43, -1L, SourceFreeInstallation),
+    ] {
+    assert_eq(local_managed_advance_logical_work_policy(issue), None)
+  }
+}
