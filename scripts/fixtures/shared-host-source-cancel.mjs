@@ -31,7 +31,9 @@ const host = await openInstalledRemoteHttpHost({...configuration.installation,
 });
 const certificate = await readFile(configuration.certificate), key = await readFile(configuration.privateKey);
 const server = createServer({key, cert: certificate, ca: certificate, requestCert: true, rejectUnauthorized: true}, (request, response) => {
-  if (clientCrash && request.url === '/actql/client/0.1/wait') nativeWaitEntered.resolve();
+  if (clientCrash && request.url === '/actql/client/0.1/wait') {
+    nativeWaitEntered.resolve({tlsRequestArrivedAt: new Date().toISOString()});
+  }
   return host.handler(request, response);
 });
 const sdkServer = createServer({key, cert: certificate}, host.handler);
@@ -66,10 +68,14 @@ async function command(executable, argv, label) {
 }
 const native = async (...args) => JSON.parse(await command(configuration.executable, [...common, ...args], args[0]));
 async function crashOriginalNativeWait() {
+  // The parent verifies this installed binary through the existing complete
+  // artifact/platform/ABI admission. Killing the npm launcher would leave its
+  // spawnSync Native child outside this retained child handle.
+  assert.equal(typeof configuration.nativeCrashExecutable, 'string');
   const startedAt = new Date().toISOString();
-  const child = spawn(configuration.executable, [...common, 'wait', '--ref-file', 'source-first-run.json'],
+  const child = spawn(configuration.nativeCrashExecutable, [...common, 'wait', '--ref-file', 'source-first-run.json'],
     {cwd: root, env: process.env, stdio: ['ignore', 'pipe', 'pipe']});
-  let stdout = '', stderr = '', bytes = 0, terminationReason = null;
+  let stdout = '', stderr = '', bytes = 0, terminationReason = null, nativeExit = null;
   const timer = setTimeout(() => {terminationReason = 'original-child-timeout'; child.kill('SIGTERM');}, 30_000);
   for (const [stream, isError] of [[child.stdout, false], [child.stderr, true]]) stream.on('data', chunk => {
     bytes += chunk.length;
@@ -78,15 +84,21 @@ async function crashOriginalNativeWait() {
   });
   const terminal = new Promise((resolve, reject) => {
     child.once('error', reject);
-    child.once('close', (code, signal) => resolve({code, signal}));
+    child.once('exit', (code, signal) => {nativeExit = {at: new Date().toISOString(), code, signal};});
+    child.once('close', (code, signal) => resolve({code, signal, streamsClosedAt: new Date().toISOString()}));
   });
   terminal.catch(() => undefined);
   try {
-    await Promise.race([nativeWaitEntered.promise, terminal.then(() => {throw new Error('Native wait exited before its HTTP request');})]);
-    assert(child.kill('SIGKILL'), 'Only this own spawned Native child is targeted');
+    const arrival = await Promise.race([nativeWaitEntered.promise, terminal.then(() => {throw new Error('Native wait exited before its HTTP request');})]);
+    const signalSendStartedAt = new Date().toISOString();
+    const signalAccepted = child.kill('SIGKILL');
+    const signalSentAt = new Date().toISOString();
+    assert(signalAccepted, 'Only this own spawned Native child is targeted');
     const result = await terminal;
-    const record = {label: 'expected-native-client-crash', pid: child.pid, startedAt,
-      endedAt: new Date().toISOString(), ...result, stdout, stderr, terminationReason,
+    const record = {label: 'expected-native-client-crash', pid: child.pid,
+      executable: configuration.nativeCrashExecutable, startedAt, ...arrival,
+      signalSendStartedAt, signalSentAt, signalAccepted, nativeExit,
+      ...result, stdout, stderr, terminationReason,
       actualTlsWaitRequestObserved: true, internalWaitAdmission: 'UNOBSERVED',
       publicCloseAttempted: false, publicOperationReturned: false};
     await save('native-client-crash.json', record);
