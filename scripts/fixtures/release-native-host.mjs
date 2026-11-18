@@ -11,7 +11,8 @@ import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 const executable = process.argv[2]; assert(executable);
 const sharedClients = process.argv[3] === '--shared-clients';
 const sharedSavedRestart = process.argv[3] === '--shared-saved-restart';
-assert(process.argv.length === 3 || (process.argv.length === 4 && (sharedClients || sharedSavedRestart)),
+const sharedNames = process.argv[3] === '--shared-names';
+assert(process.argv.length === 3 || (process.argv.length === 4 && (sharedClients || sharedSavedRestart || sharedNames)),
   'Unknown Remote Host fixture selection');
 const root = process.cwd(), records = [];
 // Only the standalone acceptance harness selects this environment. The Host
@@ -41,7 +42,7 @@ const authorization = {accountConfiguration: JSON.stringify({
     operation: {any_of: ['read']}, exclusions: []}],
 })};
 let computes = 0;
-const host = await openInstalledRemoteHttpHost({directory: join(root, 'host-state'), authorization,
+const host = await openInstalledRemoteHttpHost({directory: join(root, sharedNames ? 'host-state-names' : 'host-state'), authorization,
   beforeDispatch: () => {computes++;}, authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
 const certificate = await readFile('remote.crt');
 const server = createServer({key: await readFile('remote.key'), cert: certificate,
@@ -50,7 +51,19 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const endpoint = `https://127.0.0.1:${server.address().port}/`;
 // The Native transport uses mTLS. The independent SDK schema check uses its
 // standard server-authenticated HTTPS transport against the same Host owner.
-const schemaServer = createServer({key: await readFile('remote.key'), cert: certificate}, host.handler);
+let loseNamedReply = false, lostNamedReplies = 0, namedSubmissions = 0;
+const schemaServer = createServer({key: await readFile('remote.key'), cert: certificate}, (request, response) => {
+  if (sharedNames && request.url === '/actql/client/0.1/submit-named-intent') {
+    namedSubmissions++;
+    if (loseNamedReply) {
+      loseNamedReply = false;
+      // Drop only this actual Host reply, after its original operation reaches
+      // response completion. There is no replacement reply or automatic resend.
+      response.end = () => {lostNamedReplies++; response.destroy(); return response;};
+    }
+  }
+  host.handler(request, response);
+});
 await new Promise(resolve => schemaServer.listen(0, '127.0.0.1', resolve));
 await writeFile('connection.json', JSON.stringify({mode: 'remote', owner: 'remote', durability: 'durable', consentRefs: [], runners: []}));
 await writeFile('token.txt', 'fixture-token\n', {mode: 0o600});
@@ -59,10 +72,10 @@ const common = ['--endpoint', endpoint, '--connection-root', root, '--connection
   '--token-root', root, '--token-file', 'token.txt', '--http-library', process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' : 'libcurl.so.4',
   '--ca', join(root, 'remote.crt'), '--cert', join(root, 'remote.crt'), '--key', join(root, 'remote.key')];
 let commandWrites = Promise.resolve();
-async function run(...args) {
+async function runCaptured(command, argv, args = argv) {
   const startedAt = new Date().toISOString();
   const record = await new Promise((resolve, reject) => {
-    const child = spawn(executable, [...common, ...args], {cwd: root, env: childEnvironment, stdio: ['ignore', 'pipe', 'pipe']});
+    const child = spawn(command, argv, {cwd: root, env: childEnvironment, stdio: ['ignore', 'pipe', 'pipe']});
     let stdout = '', stderr = '', bytes = 0, terminationReason = null;
     const timer = setTimeout(() => {terminationReason = 'original-child-timeout'; child.kill('SIGTERM');}, 30_000);
     const append = (chunk, error) => {
@@ -77,11 +90,12 @@ async function run(...args) {
   records.push(record);
   // Serialize only evidence-file replacement, never the actual Native calls.
   const complete = JSON.stringify(records, null, 2);
-  commandWrites = commandWrites.then(() => writeFile(sharedSavedRestart ? 'native-restart-commands.json' : 'native-commands.json', complete));
+  commandWrites = commandWrites.then(() => writeFile(sharedNames ? 'named-client-commands.json' : sharedSavedRestart ? 'native-restart-commands.json' : 'native-commands.json', complete));
   await commandWrites;
   assert.equal(record.code, 0, `${args[0]}: ${record.stderr}`); assert.equal(record.signal, null);
   assert.equal(record.terminationReason, null); return record.stdout;
 }
+function run(...args) {return runCaptured(executable, [...common, ...args], args);}
 // Concurrent actors finish under their original child bounds even when a peer
 // fails. Preserve the first actual failure instead of closing their shared Host
 // while another original command is still running.
@@ -167,6 +181,25 @@ async function sharedSavedRestartCase() {
     unexecuted: ['owner-crash-recovery', 'active-cancel-isolation', 'named-conflict', 'client-crash'],
   }, null, 2), {flag: 'wx'});
 }
+async function sharedNamesCase() {
+  const endpoint = `https://127.0.0.1:${schemaServer.address().port}/`;
+  const child = phase => runCaptured(process.execPath,
+    [join(root, 'named-client.mjs'), phase, endpoint], ['named-client', phase]);
+  await child('first'); assert.equal(computes, 1);
+  await child('duplicate'); assert.equal(computes, 1);
+  await child('conflict'); assert.equal(computes, 1);
+  loseNamedReply = true;
+  await child('lost'); assert.equal(lostNamedReplies, 1);
+  await child('lookup'); assert.equal(computes, 2);
+  assert.equal(namedSubmissions, 4, 'Lookup must not resend the uncertain submission');
+  await writeFile('named-shared-host-acceptance.json', JSON.stringify({
+    version: 'actql-named-shared-host-acceptance/0.1',
+    scope: 'public SDK independent CLI named binding/conflict/lost-reply lookup',
+    computes, namedSubmissions, lostNamedReplies, operations: records,
+    ownerClose: 'not_yet_attempted',
+    unexecuted: ['active-cancel-isolation', 'client-crash', 'owner-crash-recovery'],
+  }, null, 2), {flag: 'wx'});
+}
 let client;
 async function singleClientCase() {
   assert.equal(JSON.parse(await run('connect')).mode, 'remote');
@@ -211,7 +244,10 @@ async function singleClientCase() {
   console.log('Installed Native Remote CLI: real Host connect, submit, wait, lookup, Result/schema, terminal cancel and cleanup passed');
 }
 try {
-  if (sharedSavedRestart) {
+  if (sharedNames) {
+    await sharedNamesCase();
+    console.log('Installed shared Host: named duplicate/conflict and lost-reply original lookup passed');
+  } else if (sharedSavedRestart) {
     await sharedSavedRestartCase();
     console.log('Installed Native shared Host: explicit owner restart and SAME original Saved reads passed');
   } else if (sharedClients) {
@@ -226,7 +262,7 @@ try {
   await new Promise(resolve => server.close(resolve));
   await host.close();
 }
-if (standaloneHome !== undefined || sharedClients || sharedSavedRestart) {
+if (standaloneHome !== undefined || sharedClients || sharedSavedRestart || sharedNames) {
   // All original explicit close calls above returned before this observation.
   // The parent observes this SAME still-live Host process, then acknowledges.
   console.log(JSON.stringify({stage: 'closed', pid: process.pid, clientCloseReturned: true, hostCloseReturned: true}));
