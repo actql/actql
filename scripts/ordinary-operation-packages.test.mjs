@@ -405,7 +405,7 @@ globalThis.fetch = async (url, options) => {
   const cli = args => spawnSync(process.execPath, ['--import', preload,
     fileURLToPath(new URL('./ordinary-operation-packages.mjs', import.meta.url)), ...args],
   {encoding: 'utf8', timeout: 5000, env: {...process.env, ACTQL_NATIVE_CPU_METADATA: metadataPath,
-    GITHUB_REPOSITORY: p.repository, GITHUB_TOKEN: 'test-only', PACKAGE_EVENT_HEAD_SHA: p.sourceSha,
+    GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_REPOSITORY: p.repository, GITHUB_TOKEN: 'test-only', PACKAGE_EVENT_HEAD_SHA: p.sourceSha,
     PACKAGE_RUN_ID: p.runId, PACKAGE_ARTIFACT_ID: p.artifactId, PACKAGE_PRODUCER_JOB: p.producerJob}});
   const passed = args => {
     const result = cli(args); assert.equal(result.status, 0, result.stderr);
@@ -467,6 +467,95 @@ test('Native approval rejects foreign runs attempts artifacts and uncompleted pr
     p => {p.jobs = [];}, p => {p.jobs.push({...p.jobs[0]});},
     p => {p.producerJob = 'client-packages';}, p => {p.adapter = 'python';},
   ]) {const p = nativeApprovalProvenance({merge: true}); mutate(p); assert.throws(() => validateNativeApprovalSource(p));}
+});
+
+function originalNativeWorkflow(p) {
+  const pr = structuredClone(p.run.pull_requests[0]);
+  pr.number = 5;
+  return {runId: String(p.run.id), runAttempt: String(p.run.run_attempt), sourceSha: p.manifest.sourceSha,
+    ref: 'refs/pull/5/merge', event: {number: 5, repository: structuredClone(p.run.repository), pull_request: pr}};
+}
+
+test('Native approval keeps original event parents when the REST PR base changes', () => {
+  const p = nativeApprovalProvenance({merge: true});
+  p.originalWorkflow = originalNativeWorkflow(p);
+  p.run.pull_requests[0].base.sha = 'f'.repeat(40);
+  const actual = validateNativeApprovalSource(p);
+  assert.equal(actual.sourceSha, 'c'.repeat(40));
+  assert.deepEqual(actual.sourceParents, ['b'.repeat(40), sha]);
+  const withoutOriginal = structuredClone(p); delete withoutOriginal.originalWorkflow;
+  assert.throws(() => validateNativeApprovalSource(withoutOriginal), /original PR base\/head parents/u);
+});
+
+test('Native approval refuses foreign original events and workflow contexts', () => {
+  for (const mutate of [
+    p => {p.originalWorkflow.runId = '18';}, p => {p.originalWorkflow.runAttempt = '3';},
+    p => {p.originalWorkflow.sourceSha = 'f'.repeat(40);},
+    p => {p.originalWorkflow.ref = 'refs/pull/6/merge';},
+    p => {p.originalWorkflow.event.number++;}, p => {p.originalWorkflow.event.pull_request.number++;},
+    p => {p.originalWorkflow.event.repository.id++;},
+    p => {p.originalWorkflow.event.repository.full_name = 'foreign/repo';},
+    p => {p.originalWorkflow.event.pull_request.head.repo.id++;},
+    p => {p.originalWorkflow.event.pull_request.base.repo.id++;},
+    p => {p.originalWorkflow.event.pull_request.head.sha = 'f'.repeat(40);},
+    p => {p.originalWorkflow.event.pull_request.base.sha = 'f'.repeat(40);},
+    p => {p.originalWorkflow.event.pull_request.base.sha = '';},
+    p => {delete p.originalWorkflow.event.pull_request;},
+    p => {p.sourceCommit.parents.reverse();}, p => {p.sourceCommit.parents.pop();},
+    p => {p.sourceCommit.tree.sha = 'f'.repeat(40);}, p => {p.jobs[0].conclusion = 'failure';},
+    p => {p.artifact.digest = '';},
+  ]) {
+    const p = nativeApprovalProvenance({merge: true}); p.originalWorkflow = originalNativeWorkflow(p);
+    mutate(p); assert.throws(() => validateNativeApprovalSource(p));
+  }
+});
+
+test('Native approval CLI reads the original same-run event before source binding', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'native-original-event-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const p = nativeApprovalProvenance({merge: true}), original = originalNativeWorkflow(p);
+  p.run.pull_requests[0].base.sha = 'f'.repeat(40);
+  const eventPath = join(root, 'event.json'), metadataPath = join(root, 'metadata.json');
+  const preload = join(root, 'metadata-fetch.mjs');
+  await writeFile(join(root, 'release.json'), JSON.stringify(p.manifest));
+  await writeFile(eventPath, JSON.stringify(original.event));
+  await writeFile(metadataPath, JSON.stringify({
+    [`https://api.github.com/repos/${p.repository}/actions/runs/17`]: p.run,
+    [`https://api.github.com/repos/${p.repository}/actions/artifacts/23`]: p.artifact,
+    [`https://api.github.com/repos/${p.repository}/actions/runs/17/attempts/2/jobs?per_page=100&page=1`]:
+      {total_count: 1, jobs: p.jobs},
+    [`https://api.github.com/repos/${p.repository}/git/commits/${p.sourceSha}`]: p.headCommit,
+    [`https://api.github.com/repos/${p.repository}/git/commits/${p.manifest.sourceSha}`]: p.sourceCommit,
+  }));
+  await writeFile(preload, `import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const records = JSON.parse(readFileSync(process.env.METADATA_FIXTURE, 'utf8'));
+globalThis.fetch = async (url, options) => {
+  assert.equal(options.redirect, 'error');
+  assert.equal(options.headers.Authorization, 'Bearer test-only');
+  assert(Object.hasOwn(records, url), 'Unexpected metadata request');
+  return {ok: true, text: async () => JSON.stringify(records[url])};
+};
+`);
+  const invoke = (overrides = {}) => spawnSync(process.execPath, ['--import', preload,
+    fileURLToPath(new URL('./ordinary-operation-packages.mjs', import.meta.url)),
+    'inspect-native-approval-source', root], {encoding: 'utf8', timeout: 5000,
+    env: {...process.env, METADATA_FIXTURE: metadataPath, GITHUB_REPOSITORY: p.repository,
+      GITHUB_TOKEN: 'test-only', GITHUB_RUN_ID: '17', GITHUB_RUN_ATTEMPT: '2',
+      GITHUB_SHA: p.manifest.sourceSha, GITHUB_REF: 'refs/pull/5/merge',
+      GITHUB_EVENT_NAME: 'pull_request', GITHUB_EVENT_PATH: eventPath,
+      PACKAGE_EVENT_HEAD_SHA: p.sourceSha, PACKAGE_RUN_ID: '17', PACKAGE_ARTIFACT_ID: '23',
+      PACKAGE_PRODUCER_JOB: p.producerJob, ...overrides}});
+  const actual = invoke(); assert.equal(actual.status, 0, actual.stderr);
+  assert.deepEqual(JSON.parse(actual.stdout).sourceParents, ['b'.repeat(40), sha]);
+  for (const overrides of [{GITHUB_RUN_ID: '18'}, {GITHUB_RUN_ATTEMPT: '3'},
+    {GITHUB_SHA: 'f'.repeat(40)}, {GITHUB_REF: 'refs/pull/6/merge'}, {GITHUB_EVENT_PATH: join(root, 'missing-event.json')},
+    {GITHUB_EVENT_NAME: 'workflow_dispatch'}]) {
+    const refused = invoke(overrides); assert.notEqual(refused.status, 0); assert.equal(refused.stdout, '');
+  }
+  const changed = structuredClone(original.event); changed.pull_request.base.sha = 'e'.repeat(40);
+  await writeFile(eventPath, JSON.stringify(changed));
+  const refused = invoke(); assert.notEqual(refused.status, 0); assert.equal(refused.stdout, '');
 });
 
 test('Native approval rejects wrong merge parents tree manifest source or original PR correspondence', () => {
