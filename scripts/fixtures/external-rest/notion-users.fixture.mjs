@@ -9,9 +9,11 @@ const users=[
   {object:'user',id:'bot-two',name:'東京',type:'bot',bot:{},person:{email:'not-a-bot-email@example.invalid'}},
   {object:'user',id:'partial-three'},
 ];
-const rows=[{id:'person-one',name:'e\u0301',type:'person',email:'first@example.invalid'},
-  {id:'bot-two',name:'東京',type:'bot',email:null},
-  {id:'partial-three',name:null,type:null,email:null}];
+// The declared candidate key is id. With no authored/inherited order, Result
+// publication uses that key, independently of provider page arrival order.
+const rows=[{id:'bot-two',name:'東京',type:'bot',email:null},
+  {id:'partial-three',name:null,type:null,email:null},
+  {id:'person-one',name:'e\u0301',type:'person',email:'first@example.invalid'}];
 const targets=['/v1/users?page_size=2',
   '/v1/users?page_size=1&start_cursor=next%20e%CC%81%2B%E6%9D%B1%E4%BA%AC'];
 
