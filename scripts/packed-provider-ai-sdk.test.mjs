@@ -38,10 +38,13 @@ async function fixture(t) {
     await cp(pkg, join(stage, 'package'), {recursive: true});
     execFileSync('tar', ['-czf', join(archives, 'actql-' + name + '-0.0.0-development.tgz'), '-C', stage, 'package']);
   }
-  for (const file of ['normal-openai-installed.fixture.mjs', 'external-rest/conformance.mjs']) {
+  for (const file of ['normal-openai-installed.fixture.mjs', 'normal-provider-diagnostics.fixture.mjs', 'external-rest/conformance.mjs']) {
     await mkdir(join(repository, 'scripts/fixtures', file, '..'), {recursive: true});
     await copyFile(new URL('./fixtures/' + file, import.meta.url), join(repository, 'scripts/fixtures', file));
   }
+  await mkdir(join(repository, 'adapters/host-node/fixtures'), {recursive: true});
+  await copyFile(new URL('../adapters/host-node/fixtures/work-observation.fixture.mjs', import.meta.url),
+    join(repository, 'adapters/host-node/fixtures/work-observation.fixture.mjs'));
   const git = args => execFileSync('git', args, {cwd: repository, encoding: 'utf8'}).trim();
   git(['init', '-q']); git(['add', '.']);
   git(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture']);

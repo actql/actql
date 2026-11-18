@@ -81,6 +81,10 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
         join(prepared.consumer, 'fixture.mjs'));
       await copyFile(join(repository, 'scripts/fixtures/external-rest/conformance.mjs'),
         join(prepared.consumer, 'conformance.mjs'));
+      await copyFile(join(repository, 'scripts/fixtures/normal-provider-diagnostics.fixture.mjs'),
+        join(prepared.consumer, 'normal-provider-diagnostics.fixture.mjs'));
+      await copyFile(join(repository, 'adapters/host-node/fixtures/work-observation.fixture.mjs'),
+        join(prepared.consumer, 'work-observation.fixture.mjs'));
       let originalPid;
       for (const phase of phases) {
         const record = report.phases.find(value => value.case === id && value.phase === phase);

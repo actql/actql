@@ -11,25 +11,31 @@ import {isAbsolute, relative, resolve} from 'node:path';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
 import {observeOwnScopedStateFds} from './conformance.mjs';
+import {normalProviderDiagnostics} from './normal-provider-diagnostics.fixture.mjs';
 
 const phase = process.argv[2];
 assert(['warm', 'cold', 'usage-reported', 'usage-zero', 'usage-absent', 'timeout-headers', 'timeout-body', 'timeout-call'].includes(phase));
 const fresh = phase !== 'cold';
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
 assert.equal(realpathSync(modules), modules, 'The fresh node_modules must not redirect to another installation');
-const publicModules = new Map(['@actql/node', '@actql/provider-ai-sdk']
+const publicModules = new Map(['@actql/node', '@actql/provider-ai-sdk', '@actql/local-node/observation']
   .map(name => [name, import.meta.resolve(name)]));
 for (const [name, url] of publicModules) {
   const member = realpathSync(fileURLToPath(url));
   const selected = relative(modules, member);
   assert(!isAbsolute(selected) && selected !== '..' && !selected.startsWith('../'),
     'The public entrance must resolve inside this fresh installation');
-  assert.equal(member, resolve(modules, name, 'index.mjs'),
+  assert.equal(member, name === '@actql/local-node/observation' ? resolve(modules, '@actql/local-node/observation.mjs')
+    : resolve(modules, name, 'index.mjs'),
     'The public entrance must be the expected installed package entry');
 }
-// Resolve and validate BOTH entrances before either package can execute.
+// Resolve and validate all public entrances before any package can execute.
 const {connect} = await import(publicModules.get('@actql/node'));
 const {createOpenAIChatProvider} = await import(publicModules.get('@actql/provider-ai-sdk'));
+const {createHostObservationConnection} = await import(publicModules.get('@actql/local-node/observation'));
+const {workflowWorkObservation} = await import('./work-observation.fixture.mjs');
+const work = workflowWorkObservation({createObservation: createHostObservationConnection});
+const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 
 // Local authored fixture configuration only. A cold process must use the same
 // selected physical inputs; absence is not a reason to guess another profile.
@@ -82,6 +88,7 @@ const continuousResponseClosed = fresh && timeoutMode === 'call'
 const schemas = [];
 const server = createServer({cert: certificate, key: await readFile('provider.key')}, async (request, response) => {
   calls++;
+  diagnostic.request(request);
   assert.equal(fresh, true, 'A Saved read must never contact the provider');
   assert.equal(request.url, '/v1/chat/completions');
   assert.equal(request.headers.authorization, 'Bearer not-an-external-secret');
@@ -193,10 +200,12 @@ const inferEvidence = usageMode === undefined ? undefined : {
     },
   },
 };
-let client, primary;
+let client, primary, failed = false;
+const firstClose = {attempted: false, returned: false, calls: 0}, cleanup = [];
+let close;
 try {
   client = await connect({mode: 'local', owner: 'local', installation: {directory: '.state',
-    registerModelProviders, authorization,
+    registerModelProviders, authorization, observation: work.connection,
     ...(inferEvidence === undefined ? {} : {inferEvidence, resultDataPolicy: policy})}});
   if (fresh) {
     const cases = [
@@ -211,6 +220,7 @@ try {
       await writeFile('run-' + index + '.json', JSON.stringify(run.ref), {flag: 'wx', mode: 0o600});
       originalRef = run.ref;
       const waited = await run.wait();
+      await diagnostic.terminal(index, waited);
       assert.equal(waited.status, timeoutMode === undefined ? 'succeeded' : 'needs_reconciliation');
       if (timeoutMode === undefined) assert.deepEqual(await run.result('answer').all(), [expected]);
       else {
@@ -263,14 +273,25 @@ try {
     assert.equal(calls, 0); assert.equal(egressChecks, 0);
     assert.equal(usageCaptures, 0); assert.equal(usageAuthorizations, 0);
   }
-} catch (cause) {primary = cause;}
+} catch (cause) {failed = true;primary = cause;}
 finally {
-  try {await client?.close();} catch (cause) {primary ??= cause;}
+  if (client !== undefined) {
+    firstClose.attempted = true;firstClose.calls++;
+    try {await client.close();firstClose.returned = true;}
+    catch (cause) {
+      firstClose.error = {name: cause?.name, code: cause?.code};
+      if (!failed) {failed = true;primary = cause;}
+    }
+  }
   clearInterval(pulse);
-  server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
+  try {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}
+  catch (cause) {cleanup.push({name: cause?.name, code: cause?.code});if (!failed) {failed = true;primary = cause;}}
+  try {close = observeOwnScopedStateFds([resolve('.state')]);}
+  catch (cause) {cleanup.push({name: cause?.name, code: cause?.code});if (!failed) {failed = true;primary = cause;}}
+  const recorded = await diagnostic.finish(firstClose, close, cleanup);
+  if (!recorded.complete && !failed) {failed = true;primary = Error('NormalProviderDiagnosticIncomplete');}
 }
-const close = observeOwnScopedStateFds([resolve('.state')]);
-if (primary !== undefined) throw primary;
+if (failed) throw primary;
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
