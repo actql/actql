@@ -284,6 +284,42 @@ test('packed INFER dispatch evidence retains only original code and tags without
   assert.equal(reads, 0);
 });
 
+test('packed INFER dispatch evidence retains only existing bounded relative code sites', () => {
+  const message = 'adapters/host-common/runtime-result.mjs:8:25\n' +
+    'adapters/host-common/runtime-core.mjs:2448:29';
+  const primary = {phase: 'dispatch', kind: 'code_site', message};
+  let reads = 0;
+  Object.defineProperty(primary, 'error', {get() {reads++; throw Error('opaque');}});
+  const result = inferDispatchFailureData({code: 'MoonBitHostFailure', primaryDiagnostic: primary});
+  assert.deepEqual(result, {code: 'MoonBitHostFailure',
+    primaryDiagnostic: {phase: 'dispatch', kind: 'code_site', message}});
+  assert(Object.isFrozen(result.primaryDiagnostic));
+  assert.notEqual(result.primaryDiagnostic, primary);
+  for (const invalid of ['/private/state/secret:1:1', 'adapters/../secret.mjs:1:1',
+    'Error: private message', 'adapters/module.mjs:1:1\n'.repeat(9), 'x'.repeat(2049)]) {
+    assert.deepEqual(inferDispatchFailureData({code: 'MoonBitHostFailure',
+      primaryDiagnostic: {...primary, message: invalid}}), {code: 'MoonBitHostFailure'});
+  }
+  const accessor = {phase: 'dispatch', kind: 'code_site'};
+  Object.defineProperty(accessor, 'message', {get() {reads++; throw Error('opaque');}});
+  assert.deepEqual(inferDispatchFailureData({code: 'MoonBitHostFailure',
+    primaryDiagnostic: accessor}), {code: 'MoonBitHostFailure'});
+  assert.equal(reads, 0);
+});
+
+test('packed INFER dispatch evidence preserves an existing original component issue as scalar DATA', () => {
+  const primary = {code: 'MoonBitHostFailure', phase: 'original_infer_component',
+    kind: 'call_scope.foreign_owner', task: 0, unit: 1, step: 2, secret: 'not copied'};
+  const result = inferDispatchFailureData({primaryDiagnostic: primary});
+  assert.deepEqual(result, {primaryDiagnostic: {code: 'MoonBitHostFailure',
+    phase: 'original_infer_component', kind: 'call_scope.foreign_owner', task: 0, unit: 1, step: 2}});
+  assert(Object.isFrozen(result.primaryDiagnostic));
+  for (const change of [{phase: 'future_owner'}, {kind: 'unrelated_issue'},
+    {task: -1}, {unit: 2147483648}, {step: undefined}]) {
+    assert.equal(inferDispatchFailureData({primaryDiagnostic: {...primary, ...change}}), undefined);
+  }
+});
+
 test('packed INFER terminal failure context excludes Run references rows and opaque values', () => {
   const project = inferTerminalFailureData;
   let reads = 0;
