@@ -18,9 +18,15 @@ test "installed identity RowSource retains distinct Whole and keyed static reque
 }
 
 ///|
+test "finished keyed left identity retires scan scratch while retaining its original receipt and body" {
+  run_original_source_completion(true, audit_scan_retention=true)
+}
+
+///|
 fn run_original_source_completion(
   installed_rows : Bool,
   distinct_requests? : Bool = false,
+  audit_scan_retention? : Bool = false,
 ) -> Unit raise {
   // Installation-owned policy leaves are outside each lookup's cached bodies,
   // just as in ordinary publication. Use their real preimages and identities.
@@ -183,11 +189,30 @@ fn run_original_source_completion(
   ).unwrap()
   let settled = Ref(false)
   let stopped = Ref(false)
+  // Bounded test-only observation through the original Source current port.
+  // Observe this lookup's two amounts separately, never a global Ledger peak.
+  let scan_lookup : Ref[ClientKeyedLookupInput?] = Ref(None)
+  let scan_peak_retained = Ref(0L)
+  let scan_peak_execution = Ref(0L)
+  let scan_finished_retained = Ref(0L)
+  let scan_finished_execution = Ref(0L)
   let run = @row_host.start_accounted_row_input_acquisition(
     selected,
     None,
     "generic-source",
-    _ => settled.val,
+    _ => {
+      if scan_lookup.val is Some(lookup) {
+        scan_peak_retained.val = Int64::max(
+          scan_peak_retained.val,
+          lookup.retained_bytes,
+        )
+        scan_peak_execution.val = Int64::max(
+          scan_peak_execution.val,
+          lookup.execution_bytes,
+        )
+      }
+      settled.val
+    },
     ledger,
     4096L,
     4096L,
@@ -328,6 +353,11 @@ fn run_original_source_completion(
   @row_host.close_accounted_row_run(foreign_run).unwrap()
   assert_eq(@resources.ledger_usage(foreign_ledger).held_bytes, 0L)
   let retention = if installed_rows {
+    if audit_scan_retention {
+      scan_lookup.val = Some(lookup)
+      scan_peak_retained.val = lookup.retained_bytes
+      scan_peak_execution.val = lookup.execution_bytes
+    }
     require_source_fixture(
       prepare_client_keyed_native_left_identity(
         lookup,
@@ -347,6 +377,14 @@ fn run_original_source_completion(
       "left identity",
     )
     |> ignore
+    if audit_scan_retention {
+      scan_finished_retained.val = lookup.retained_bytes
+      scan_finished_execution.val = lookup.execution_bytes
+      scan_lookup.val = None
+      assert_true(lookup.native_left_receipt is Some(_))
+      assert_true(lookup.native_left_identity is Some(_))
+      assert_true(lookup.identity_scan is None)
+    }
     let retention = match
       prepare_client_keyed_declared_file_retention(
         lookup,
@@ -720,9 +758,14 @@ fn run_original_source_completion(
     client_effect_keyed_cached_dependency_bodies(parent, lookup, retention)
     is None,
   )
-  while !cleanup_client_keyed_lookup_input(lookup, 64).unwrap() {
-
+  let mut cleaned = false
+  for _ in 0..<10000 {
+    if cleanup_client_keyed_lookup_input(lookup, 64).unwrap() {
+      cleaned = true
+      break
+    }
   }
+  assert_true(cleaned)
   assert_true(parent.generic is None)
   assert_false(@execution.supplied_relation_read_available(read))
   stopped.val = true
@@ -733,6 +776,12 @@ fn run_original_source_completion(
   )
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  if audit_scan_retention {
+    assert_true(scan_peak_retained.val > 0L)
+    assert_true(scan_peak_execution.val > 0L)
+    assert_true(scan_finished_retained.val < scan_peak_retained.val)
+    assert_true(scan_finished_execution.val < scan_peak_execution.val)
+  }
 }
 
 ///|
