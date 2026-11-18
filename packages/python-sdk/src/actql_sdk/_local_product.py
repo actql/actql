@@ -2174,24 +2174,8 @@ class InstalledLocalHost:
                 task = step(select_task)
                 if task is None:
                     break  # Explicit Core-checked end, never reserve's -2.
-                step(lambda: self._core.start_task(task))
-                while not step(lambda: self._core.feed_task(task, _EXECUTION_WORK_QUANTUM)):
+                while not step(lambda: self._core.drive_task(task, _EXECUTION_WORK_QUANTUM)):
                     pass
-                while True:
-                    progress = step(lambda: self._core.advance_task(task, _EXECUTION_WORK_QUANTUM))
-                    if progress.waiting:
-                        raise LocalCoreError('original_task_waiting', -7)
-                    if progress.complete:
-                        break
-                step(lambda: self._core.prepare_task_finalization(task))
-                while True:
-                    progress = step(lambda: self._core.advance_task(
-                        task, _EXECUTION_WORK_QUANTUM, finalization=True))
-                    if progress.waiting:
-                        raise LocalCoreError('original_task_finalization_waiting', -7)
-                    if progress.complete:
-                        break
-                step(lambda: self._core.complete_task(task))
             count = step(lambda: self._core.publication_preflight_result_count(preflight, configuration.handle))
             results: list[_ResultExport] = []
             for index in range(count):

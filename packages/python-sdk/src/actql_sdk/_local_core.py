@@ -4435,6 +4435,25 @@ class LocalCore:
         self._task_operation(value, 'start')
         self._task_operation(value, 'started')
 
+    def drive_task(self, value: _Task, quantum: int) -> bool:
+        """Advance the same Core-owned task; never choose its lifecycle phase."""
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local task quantum')
+        with self._lock:
+            self._owned_task(value)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            code = self._call('task', 'drive', value.handle, quantum)
+            if code in (0, 1):
+                return code == 1
+            # This physical profile has no pause/settlement handler. Preserve
+            # its explicit refusal and original custody; never spin or resume.
+            if code in (2, 3):
+                raise LocalCoreError('original_task_waiting' if code == 2 else
+                    'original_task_finalization_waiting', -7)
+            self._check('task_drive', code if code < 0 else -33)
+            raise AssertionError('Unreachable original task continuation')
+
     def _task_operation(self, value: _Task, operation: str, *arguments: int) -> None:
         with self._lock:
             self._owned_task(value)

@@ -4,6 +4,7 @@ Uses the unchanged source-free Local route and a real SQLite-backed Host. This
 raw-module check does not qualify an installed package or a new Host profile.
 """
 import asyncio
+from contextlib import ExitStack
 from dataclasses import dataclass
 import hashlib
 import json
@@ -38,19 +39,44 @@ def new_core(raw, digest):
 
 
 async def main():
-    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] != 'commit-unknown'):
+    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] not in ('commit-unknown', 'task-drive')):
         raise ValueError('Expected original module, fresh scratch and optional COMMIT-loss control')
-    commit_unknown = len(sys.argv) == 4
+    commit_unknown = len(sys.argv) == 4 and sys.argv[3] == 'commit-unknown'
+    task_drive = len(sys.argv) == 4 and sys.argv[3] == 'task-drive'
+    expected_n = 2 if task_drive else 41
     raw = Path(sys.argv[1]).read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
     scratch = Path(sys.argv[2]); scratch.mkdir(parents=True, exist_ok=True)
     state = Path(mkdtemp(prefix='succeeded-', dir=scratch))
     core = new_core(raw, digest)
     host = client = primary = None
+    driver_checks = ExitStack()
+    driven = {}
     try:
         host = InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
             observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
         client = await AsyncClient._connect_local(host)
+        if task_drive:
+            original_drive = core.drive_task
+            def one_original_quantum(task, quantum):
+                reader = host._installation.binding._observed_reader
+                assert reader is not None and core._task_loans[task.handle] is task
+                assert any(original is task for original in host._tasks)
+                before = core._store.get_fuel()
+                complete = original_drive(task, 1)
+                assert core._store.get_fuel() <= before
+                assert host._installation.binding._observed_reader is reader
+                assert core._task_loans[task.handle] is task
+                counts = driven.setdefault(task.handle, [0, 0])
+                assert counts[1] == 0  # No normal call re-drives a completed task.
+                counts[0] += 1
+                counts[1] += int(complete)
+                return complete
+            driver_checks.enter_context(patch.object(core, 'drive_task', side_effect=one_original_quantum))
+            for method in ('start_task', 'feed_task', 'advance_task',
+                           'prepare_task_finalization', 'complete_task'):
+                driver_checks.enter_context(patch.object(core, method,
+                    side_effect=AssertionError('Python reconstructed the original task lifecycle')))
         store = host._installation._store
         original_store = store.store_publication_projected_inspected
         atomic_observations = []
@@ -85,7 +111,9 @@ async def main():
             return result
         with patch.object(store, 'store_publication_projected_inspected', side_effect=observe_original_transaction) as commit_calls:
             execution = await client.start_source(
-                'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer', format='aql')
+                ('WITH seed AS (SELECT 1 AS n) FROM seed AS l |> JOIN seed AS r ON l.n = r.n '
+                 'MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS n |> RESULT answer' if task_drive else
+                 'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer'), format='aql')
             if commit_unknown:
                 assert len(host._physical_work) == 1
                 work = host._physical_work[0]
@@ -105,7 +133,7 @@ async def main():
             else:
                 final = (await execution.wait(until='terminal')).to_dict()
             assert final['status'] == 'succeeded' and final['result_available']
-            assert await execution.result('answer').all(schema=Row, max_rows=2) == [Row(n=41)]
+            assert await execution.result('answer').all(schema=Row, max_rows=2) == [Row(n=expected_n)]
             assert (await execution.status()).to_dict() == final
             reference = dict(execution.ref)
             assert len(publication_writes) == 1
@@ -113,6 +141,8 @@ async def main():
         # Every observed final validation must exclude another writer; an
         # arbitrary private callback count is not a publication contract.
         assert atomic_observations and commit_calls.call_count == len(atomic_observations)
+        if task_drive:
+            assert len(driven) >= 2 and all(calls > 1 and completed == 1 for calls, completed in driven.values())
     except BaseException as error:
         primary = error
         if isinstance(error, ClientError):
@@ -126,6 +156,7 @@ async def main():
                                           'code': failure.code}), file=sys.stderr)
         raise
     finally:
+        driver_checks.close()
         try:
             original_close = core.close_task
             def observe_task_close(task):
@@ -173,7 +204,7 @@ async def main():
         with patch.object(reopened, '_call', side_effect=only_saved):
             saved = await saved_client.attach(reference)
             assert (await saved.status()).to_dict() == final
-            assert await saved.result('answer').all(schema=Row, max_rows=2) == [Row(n=41)]
+            assert await saved.result('answer').all(schema=Row, max_rows=2) == [Row(n=expected_n)]
     finally:
         if saved_client is not None:
             await saved_client.aclose()
@@ -183,10 +214,12 @@ async def main():
             raise AssertionError('Saved succeeded Core close remains pending')
     assert reopened._closed
     print(json.dumps({'success': True, 'actualCases': 1,
-        'case': ('public_commit_reply_loss_original_lookup_same_result_without_reexecution' if commit_unknown else
+        'case': ('public_core_derived_task_drive_quantum_one_joined_result_same_saved' if task_drive else
+                 'public_commit_reply_loss_original_lookup_same_result_without_reexecution' if commit_unknown else
                  'public_succeeded_execute_typed_result_same_saved_and_close'),
         'module_sha256': digest, 'state': str(state), 'atomic_precommit_writer_exclusion': True,
         'commit_reply_loss_readback_without_reexecution': commit_unknown,
+        **({'core_owned_lifecycle': True, 'quantum': 1, 'original_tasks': len(driven)} if task_drive else {}),
         'qualification': 'actual source SDK/raw Wasm/SQLite; no installed normal package acceptance'}))
 
 

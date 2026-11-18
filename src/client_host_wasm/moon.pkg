@@ -91,6 +91,7 @@ options(
         "prepare_managed_task_finalization:actql_task_prepare_finalization",
         "advance_managed_task_finalization:actql_task_advance_finalization",
         "complete_managed_task:actql_task_complete",
+        "advance_managed_task_lifecycle:actql_task_drive",
         "managed_task_inputs_ready:actql_task_inputs_ready",
         "managed_task_issue:actql_task_issue",
         "managed_task_assessment:actql_task_assessment",

@@ -367,10 +367,13 @@ class PublicLifecycleTests(unittest.TestCase):
             'state-partial-close': 'public_state_partial_input_close_same_original_retirement',
             'succeeded-result-saved': 'public_succeeded_execute_typed_result_same_saved_and_close',
             'publication-unknown': 'public_commit_reply_loss_original_lookup_same_result_without_reexecution',
+            'task-drive': 'public_core_derived_task_drive_quantum_one_joined_result_same_saved',
+            'cancellation-drive-start': 'public_cancel_between_derived_drives_before_first_input_feed',
         }
         return {'success': True, 'actualCases': 1, 'case': cases[name],
                 'module_sha256': hashlib.sha256(module.read_bytes()).hexdigest(),
-                **({'atomic_precommit_writer_exclusion': True} if name in ('succeeded-result-saved', 'publication-unknown') else {}),
+                **({'atomic_precommit_writer_exclusion': True} if name in ('succeeded-result-saved', 'publication-unknown', 'task-drive') else {}),
+                **({'core_owned_lifecycle': True, 'quantum': 1, 'original_tasks': 2} if name == 'task-drive' else {}),
                 **({'commit_reply_loss_readback_without_reexecution': True} if name == 'publication-unknown' else {})}
 
     def test_same_original_controls_without_build_or_installed_claim(self):
@@ -381,17 +384,20 @@ class PublicLifecycleTests(unittest.TestCase):
             def run(name, args, **options):
                 self.assertEqual(args[0], Path('/selected/python'))
                 self.assertEqual(args[2], module)
-                self.assertEqual(options, {'timeout': 300})
+                self.assertEqual(options, {'timeout': 120 if name in ('task-drive', 'cancellation-drive-start') else 300})
                 calls.append((name, args))
                 return json.dumps(self.observation(name, module)).encode()
             result = ci.accept_public_lifecycle(run, Path('/selected/python'), module, receipt, path)
             self.assertEqual([name for name, _ in calls],
                 ['cancellation-saved', 'cancellation-precommit', 'state-unknown', 'state-partial-close',
-                 'succeeded-result-saved', 'publication-unknown'])
+                 'succeeded-result-saved', 'publication-unknown', 'task-drive', 'cancellation-drive-start'])
             self.assertEqual([args[-1] for _, args in calls[:4]],
                 ['process-state', 'precommit-state', 'fault-state', 'partial-state'])
-            self.assertEqual(calls[-1][1][-1], 'commit-unknown')
-            self.assertEqual(len({args[3] for _, args in calls}), 6)
+            by_name = dict(calls)
+            self.assertEqual(by_name['publication-unknown'][-1], 'commit-unknown')
+            self.assertEqual(by_name['task-drive'][-1], 'task-drive')
+            self.assertEqual(by_name['cancellation-drive-start'][-1], 'drive-start-state')
+            self.assertEqual(len({args[3] for _, args in calls}), len(calls))
             self.assertFalse(result['installed_wheel_acceptance'])
             self.assertFalse(result['normal_image_acceptance'])
             self.assertEqual(json.loads((path / 'public-lifecycle.json').read_text()), result)
@@ -431,6 +437,23 @@ class PublicLifecycleTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Incomplete original publication recovery'):
                 ci.accept_public_lifecycle(missing_recovery, Path('/python'), module, receipt, path)
             self.assertFalse((path / 'public-lifecycle.json').exists())
+
+    def test_task_drive_requires_bounded_original_task_facts_before_next_control(self):
+        for change in ({'core_owned_lifecycle': False}, {'quantum': True}, {'quantum': 2},
+                       {'original_tasks': True}, {'original_tasks': 1}):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp)
+                module, receipt = self.original(path)
+                calls = []
+                def run(name, args, **options):
+                    calls.append(name)
+                    observed = self.observation(name, module)
+                    return json.dumps({**observed, **change} if name == 'task-drive' else observed).encode()
+                with self.assertRaisesRegex(ValueError, 'Incomplete original task-drive'):
+                    ci.accept_public_lifecycle(run, Path('/python'), module, receipt, path)
+                self.assertEqual(calls[-1], 'task-drive')
+                self.assertNotIn('cancellation-drive-start', calls)
+                self.assertFalse((path / 'public-lifecycle.json').exists())
 
     def test_original_module_and_failure_cannot_be_substituted(self):
         with tempfile.TemporaryDirectory() as tmp:

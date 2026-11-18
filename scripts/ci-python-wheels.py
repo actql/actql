@@ -144,24 +144,28 @@ def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
     cases = []
     controls = (
         ('cancellation-saved', 'python-local-public-cancellation-abi.py', 'process-state',
-         'public_default_cancel_separate_process_saved_without_reprepare'),
+         'public_default_cancel_separate_process_saved_without_reprepare', 300),
         ('cancellation-precommit', 'python-local-public-cancellation-abi.py', 'precommit-state',
-         'public_cancel_before_original_publication_commit_refuses_write_and_retires_same_work'),
+         'public_cancel_before_original_publication_commit_refuses_write_and_retires_same_work', 300),
         ('state-unknown', 'python-local-public-cancellation-abi.py', 'fault-state',
-         'public_state_commit_reply_loss_original_readback_without_rewrite'),
+         'public_state_commit_reply_loss_original_readback_without_rewrite', 300),
         ('state-partial-close', 'python-local-public-cancellation-abi.py', 'partial-state',
-         'public_state_partial_input_close_same_original_retirement'),
+         'public_state_partial_input_close_same_original_retirement', 300),
         ('succeeded-result-saved', 'python-local-public-success-abi.py', None,
-         'public_succeeded_execute_typed_result_same_saved_and_close'),
+         'public_succeeded_execute_typed_result_same_saved_and_close', 300),
         ('publication-unknown', 'python-local-public-success-abi.py', 'commit-unknown',
-         'public_commit_reply_loss_original_lookup_same_result_without_reexecution'),
+         'public_commit_reply_loss_original_lookup_same_result_without_reexecution', 300),
+        ('task-drive', 'python-local-public-success-abi.py', 'task-drive',
+         'public_core_derived_task_drive_quantum_one_joined_result_same_saved', 120),
+        ('cancellation-drive-start', 'python-local-public-cancellation-abi.py', 'drive-start-state',
+         'public_cancel_between_derived_drives_before_first_input_feed', 120),
     )
-    for name, fixture, selection, expected in controls:
+    for name, fixture, selection, expected, timeout in controls:
         args = [python, ROOT / 'scripts/fixtures' / fixture, module,
                 destination / (name + '-state')]
         if selection is not None:
             args.append(selection)
-        observed = json.loads(run(name, args, timeout=300))
+        observed = json.loads(run(name, args, timeout=timeout))
         unchanged()
         if (observed.get('success') is not True or type(observed.get('actualCases')) is not int
                 or observed['actualCases'] != 1 or observed.get('case') != expected
@@ -173,6 +177,10 @@ def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
         if (selection == 'commit-unknown'
                 and observed.get('commit_reply_loss_readback_without_reexecution') is not True):
             raise ValueError('Incomplete original publication recovery component')
+        if selection == 'task-drive' and (observed.get('core_owned_lifecycle') is not True
+                or type(observed.get('quantum')) is not int or observed['quantum'] != 1
+                or type(observed.get('original_tasks')) is not int or observed['original_tasks'] < 2):
+            raise ValueError('Incomplete original task-drive component')
         cases.append(observed)
     result = {'source_sha': original['source_sha'], 'module_sha256': original['module_sha256'],
               'cases': cases, 'qualification': 'actual source SDK/raw ABI/SQLite components only',

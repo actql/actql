@@ -572,6 +572,83 @@ pub fn complete_managed_task(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
+/// Advance one existing task phase, deriving the next action from its retained
+/// originals rather than accepting a Host-selected phase. No new phase state,
+/// scheduler or operation allowance is introduced. Zero means continuation;
+/// one means this same task completed, not Run success or physical cleanup.
+/// Two/three expose execution/finalization pauses without advancing them again.
+pub fn advance_managed_task_lifecycle(
+  nonce : Int64,
+  handle : Int,
+  quantum : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.tasks.get(handle) is Some(record) else {
+    return -2
+  }
+  if value.closing || record.closing {
+    return -5
+  }
+  if quantum <= 0 {
+    return -3
+  }
+  if record.pending {
+    return -33
+  }
+  if record.issue is Some(_) {
+    return -32
+  }
+  let code = managed_task_run_current(value, record)
+  if code != 0 {
+    return code
+  }
+  if record.completed is Some(_) {
+    return if record.invoked && record.operations is Some(_) { 1 } else { -33 }
+  }
+  if !record.invoked {
+    if record.operations is Some(_) ||
+      record.progress is Some(_) ||
+      record.finalization_invoked {
+      return -33
+    }
+    let code = start_managed_task(nonce, handle)
+    return if code != 0 { code } else { managed_task_started(nonce, handle) }
+  }
+  guard record.operations is Some(_) else { return -33 }
+  if record.finished_inputs.any(finished => !finished) {
+    return feed_managed_task(nonce, handle, quantum)
+  }
+  // An unchanged pause remains with its original physical continuation. Never
+  // poll it as runnable work or discard the original settlement observation.
+  if record.progress is Some(progress) &&
+    (progress.waiting || progress.settlement is Some(_)) {
+    return if record.finalization_invoked { 3 } else { 2 }
+  }
+  let code = if !record.finalization_invoked {
+    if record.progress is Some({ complete: true, .. }) {
+      prepare_managed_task_finalization(nonce, handle)
+    } else {
+      advance_managed_task(nonce, handle, quantum)
+    }
+  } else if record.progress is Some({ complete: true, .. }) {
+    complete_managed_task(nonce, handle)
+  } else {
+    advance_managed_task_finalization(nonce, handle, quantum)
+  }
+  if code != 0 {
+    return code
+  }
+  if record.completed is Some(_) {
+    return 1
+  }
+  if record.progress is Some(progress) &&
+    (progress.waiting || progress.settlement is Some(_)) {
+    return if record.finalization_invoked { 3 } else { 2 }
+  }
+  0
+}
+
+///|
 pub fn managed_task_inputs_ready(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&

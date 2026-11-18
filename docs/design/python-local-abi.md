@@ -3358,6 +3358,31 @@ Only an advancing original finite cleanup cursor permits further local cleanup
 steps. An external or unchanged pending cursor retains the original task without
 spinning, replacing the primary cause or acquiring another operation allowance.
 
+#### Common-owned bounded task driving
+
+The private ABI 88 `actql_task_drive` entry derives one next action from the
+existing retained managed task. It reuses the original activation, input feed,
+execution advance, finalization and completion operations. There is no second
+phase variable, scheduler, task Owner or instruction allowance. One call performs
+at most one bounded work action; startup and phase-entry checks do not run a
+second work quantum. Completed output stays on the same task until its original
+Result and cleanup loans retire.
+
+Python asks for that continuation under a fresh original reader and returns the
+reader and Core lock before asking again. It no longer chooses the lifecycle
+sequence. Waiting and settlement remain on their original Common progress record.
+The scalar result exposes the physical pause boundary; this Python profile keeps
+its explicit unavailable-port refusal instead of spinning, inventing a resume or
+publishing a Run outcome. Closing, cancellation and failed retirement keep the
+same task, first failure, finite operation fuel and physical cleanup duties.
+
+Native continues through its existing Common guarded runner. Node's asynchronous
+pause, snapshot and carrier callbacks remain distinct physical integration points;
+the Wasm entry is not a replacement Node scheduler or a requirement to execute
+Native through Wasm. The private signature/version change requires matching
+generated Python/C declarations and an actual matching Core. Package versions,
+Client wire fields and the frozen excluded Rust projection are unchanged.
+
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
 allowance for initialization and bootstrap together. Each subsequent admitted
 outer Host operation has a finite 32,000,000,000-instruction allowance so that

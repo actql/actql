@@ -20,7 +20,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk import AsyncClient, ClientError
-from actql_sdk._local_core import LocalCore, LocalCoreError, _NORMAL_HOST_OPERATION_FUEL
+from actql_sdk._local_core import LocalCore, LocalCoreError, LocalTaskProgress, _NORMAL_HOST_OPERATION_FUEL
 from actql_sdk._local_product import InstalledLocalHost, _LOCAL_SELECTION, _ordinary_core_limits
 from actql_sdk._local_storage import LocalStorageCommitUnknown
 
@@ -32,13 +32,14 @@ def encode(value):
 class OriginalQuantumBarrier:
     """Retain the same physical RLock; pause only after its full release."""
 
-    def __init__(self, lock, binding):
+    def __init__(self, lock, binding, *, after_start=False):
         self.original = lock
         self.binding = binding
         self.depth = local()
         self.entered, self.resume = Event(), Event()
         self.armed = self.paused = False
         self.latest = None
+        self.after_start = after_start
 
     def acquire(self, *args, **kwargs):
         acquired = self.original.acquire(*args, **kwargs)
@@ -54,7 +55,7 @@ class OriginalQuantumBarrier:
             self.paused = True
             if self.binding._observed_reader is not None:
                 raise AssertionError('A physical reader escaped its bounded quantum')
-            if self.latest is None or self.latest.complete:
+            if not self.after_start and (self.latest is None or self.latest.complete):
                 raise AssertionError('The worker did not return its lock between provider quanta')
             self.entered.set()
             if not self.resume.wait(30):
@@ -69,11 +70,12 @@ class OriginalQuantumBarrier:
 
 
 async def main():
-    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] not in ('default-state', 'fault-state', 'partial-state', 'process-state', 'precommit-state')):
+    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] not in ('default-state', 'fault-state', 'partial-state', 'process-state', 'precommit-state', 'drive-start-state')):
         raise ValueError('Expected raw module, fresh scratch and optional state selection')
     default_state = len(sys.argv) == 4
     selection = sys.argv[3] if default_state else 'explicit'
     precommit = selection == 'precommit-state'
+    after_start = selection == 'drive-start-state'
     raw = Path(sys.argv[1]).read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
     scratch = Path(sys.argv[2]); scratch.mkdir(parents=True, exist_ok=True)
@@ -86,17 +88,29 @@ async def main():
         host = InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
             observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
         client = await AsyncClient._connect_local(host)
-        barrier = OriginalQuantumBarrier(core._lock, host._installation.binding)
+        barrier = OriginalQuantumBarrier(core._lock, host._installation.binding, after_start=after_start)
         core._lock = barrier
-        original_advance = core.advance_task
+        original_drive = core.drive_task
 
-        def observe_quantum(*args, **kwargs):
-            progress = original_advance(*args, **kwargs)
-            if not kwargs.get('finalization', False):
+        def observe_quantum(task, quantum):
+            complete = original_drive(task, quantum)
+            # Read the SAME original bounded provider observation. Startup and
+            # input-feed steps have no provider progress and cannot arm this
+            # barrier. Task completion remains the separate drive result.
+            fields = [core._call('task', 'progress', task.handle, index) for index in range(4)]
+            if after_start and not barrier.armed:
+                # Actual activation returned; the same task has no provider
+                # advance observation yet. Absence is not fabricated progress.
+                assert not complete and fields[0] == -33
+                assert core._call('task', 'started', task.handle) == 0
+                barrier.armed = True
+                return complete
+            if fields[0] in (0, 1) and fields[1] in (0, 1) and min(fields[2:]) >= 0:
+                progress = LocalTaskProgress(fields[0] == 1, fields[1] == 1, fields[2], fields[3])
                 barrier.latest = progress
-                if not precommit and not progress.complete and not progress.waiting:
+                if not precommit and not progress.complete and not progress.waiting and progress.work > 0:
                     barrier.armed = True
-            return progress
+            return complete
 
         original_commit = host._store_original_commit
         def pause_original_commit(*args, **kwargs):
@@ -107,7 +121,7 @@ async def main():
                 raise TimeoutError('Original prepared publication was not resumed')
             return original_commit(*args, **kwargs)
 
-        with patch.object(core, 'advance_task', side_effect=observe_quantum), \
+        with patch.object(core, 'drive_task', side_effect=observe_quantum), \
                 (patch.object(host, '_store_original_commit', side_effect=pause_original_commit)
                  if precommit else nullcontext()):
             query = ('SELECT 1 AS n' if precommit else
@@ -123,8 +137,11 @@ async def main():
                 raise AssertionError('Original worker did not reach the selected physical boundary')
             assert len(host._physical_work) == 1
             work = host._physical_work[0]
-            assert not work.stopped and barrier.latest is not None
-            assert barrier.latest.complete is precommit
+            assert not work.stopped
+            if after_start:
+                assert barrier.latest is None
+            else:
+                assert barrier.latest is not None and barrier.latest.complete is precommit
             assert work._owner is host._public_run_references[0].run
             rows = []
             with core._lock:
@@ -298,6 +315,7 @@ async def main():
         'case': (('public_state_commit_reply_loss_original_readback_without_rewrite' if selection == 'fault-state' else
                   'public_state_partial_input_close_same_original_retirement' if selection == 'partial-state' else
                   'public_default_cancel_separate_process_saved_without_reprepare' if selection == 'process-state' else
+                  'public_cancel_between_derived_drives_before_first_input_feed' if after_start else
                   'public_cancel_before_original_publication_commit_refuses_write_and_retires_same_work' if precommit else
                   'public_default_cancel_status_terminal_same_saved_original_without_reprepare')
                  if default_state else 'public_submit_active_provider_cancel_same_lookup_original_stop_cleanup_and_close'),
