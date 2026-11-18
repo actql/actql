@@ -572,14 +572,20 @@ jobs:
             # Every invocation keeps its original Source/toolchain and fresh
             # scratch/peer processes. Source follows ordinary work sequentially,
             # without another delayed macOS runner acquisition or cache trust.
+            run_core_profile() {
+              MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
+            }
+            # The supported local runner clears both authenticated plan inputs
+            # and keeps one complete, unpartitioned original Core invocation.
+            if [ -z "${{ matrix.partition }}" ] && [ -z "${CI_PLAN_PATH:-}" ] && [ -z "${CI_PLAN:-}" ]; then
+              run_core_profile
+              exit $?
+            fi
             profiles="$(node --input-type=module -e '
               import {nativeCoreHostedPartitions} from "./scripts/ci-core-partitions.mjs";
               console.log(nativeCoreHostedPartitions(process.argv[1]).join(" "));
             ' "${{ matrix.partition }}")"
             test -n "$profiles"
-            run_core_profile() {
-              MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
-            }
             status=0
             for profile in $profiles; do
               result=0

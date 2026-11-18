@@ -1668,7 +1668,7 @@ test('two local native verification invocations own fresh roots', t => {
   const results = [run(f, {}, true), run(f, {}, true)];
   const paths = [];
   for (const result of results) {
-    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.status, 0, result.stderr + result.stdout);
     const invocationPaths = [...result.stdout.matchAll(/Native core SQLite namespace: (.*)/gu)]
       .map(match => match[1]);
     assert.equal(invocationPaths.length, 2);

@@ -842,14 +842,15 @@ function nativeCoreCommandPort(t, command) {
       partition==='source'?'ACTQL_FIXTURE_SOURCE_EXIT':'ACTQL_FIXTURE_ORDINARY_EXIT']??0));
   `);
   chmodSync(join(root, 'node'), 0o755);
-  return {run(partition, {clock = 0, ordinary = 0, source = 0, signal = '', readonlyCache = false} = {}) {
+  return {run(partition, {clock = 0, ordinary = 0, source = 0, signal = '', readonlyCache = false, hostedPlan = false} = {}) {
     writeFileSync(log, '');
     const run = command.replaceAll('${{ matrix.target }}', 'native')
       .replaceAll('${{ matrix.partition }}', partition);
     const result = spawnSync('bash', ['-eo', 'pipefail', '-c',
       (readonlyCache ? 'readonly ACTQL_TEST_NATIVE_CORE_CCACHE\n' : '') + run], {cwd: root,
       encoding: 'utf8', timeout: 5000, env: {...process.env,
-        PATH: root + ':' + process.env.PATH, CI_PLAN_PATH: '',
+        PATH: root + ':' + process.env.PATH, CI_PLAN: '',
+        CI_PLAN_PATH: hostedPlan ? join(root, 'original-hosted-plan.json') : '',
         ACTQL_TEST_NATIVE_CORE_PARTITION: partition.startsWith('linux-common-') ? '' : partition,
         ACTQL_TEST_NATIVE_CORE_CCACHE: '/explicit-original-cache',
         ACTQL_TEST_NATIVE_CORE_CCACHE_DIR: '/explicit-original-cache-directory',
@@ -862,6 +863,16 @@ function nativeCoreCommandPort(t, command) {
 test('Darwin Source co-location retains independent failures and its original non-cache child', t => {
   const command = jobs['core-darwin'].steps.find(step => step.name === 'Test common core');
   const f = nativeCoreCommandPort(t, command.run);
+  for (const ordinary of [0, 7]) {
+    const local = f.run('', {ordinary});
+    assert.equal(local.result.status, ordinary, local.result.stderr);
+    assert.deepEqual(local.calls.map(call => [call.phase, call.partition]),
+      [['clock', ''], ['profile', '']], 'local Core keeps one complete original invocation');
+  }
+  const missingHostedPartition = f.run('', {hostedPlan: true});
+  assert.notEqual(missingHostedPartition.result.status, 0);
+  assert.match(missingHostedPartition.result.stderr, /Unknown hosted Native Core partition/u);
+  assert.equal(missingHostedPartition.calls.filter(call => call.phase === 'profile').length, 0);
   for (const [ordinary, source] of [[0, 0], [7, 0], [0, 9], [7, 9]]) {
     const {result, calls} = f.run('1/2', {ordinary, source});
     assert.ifError(result.error); assert.equal(result.signal, null);
