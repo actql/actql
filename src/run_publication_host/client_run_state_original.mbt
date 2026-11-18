@@ -2,7 +2,8 @@
 /// Private saved metadata, not execution authority, current availability,
 /// control revision or a new versioned RunState. Preserve exact original bytes.
 struct ClientRunStateOriginal {
-  manifest : @publication.PublicationContract
+  manifest : @publication.PublicationContract?
+  status : @publication.RunOutcomeStatus
   state_wire : String
   wire : String
 }
@@ -12,7 +13,7 @@ struct ClientRunStateOriginal {
 /// It supplies no Store fact, current availability or read authorization.
 pub fn ClientRunStateOriginal::original_manifest(
   self : ClientRunStateOriginal,
-) -> @publication.PublicationContract {
+) -> @publication.PublicationContract? {
   self.manifest
 }
 
@@ -43,30 +44,57 @@ pub fn prepare_client_run_state_original(
     Ok(_) => ()
     Err(_) => return Err(CustodyLost)
   }
-  encode_client_run_state_original(definition, manifest, state_wire)
+  encode_client_run_state_original(
+    definition,
+    Some(manifest),
+    state_wire,
+    @publication.Succeeded,
+  )
+}
+
+///|
+/// Metadata for an original unpublished Run. No successful Manifest, Result
+/// read, dispatch or physical-stop authority is synthesized by this encoder.
+pub fn prepare_client_unpublished_run_state_original(
+  definition : @publication.PublicationContract,
+  state_wire : String,
+) -> Result[ClientRunStateOriginal, ClientJournalDecodingIssue] {
+  let status = match
+    @publication.validate_original_unpublished_run_state(
+      definition, state_wire, 65536, 8192, 64,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  encode_client_run_state_original(definition, None, state_wire, status)
 }
 
 ///|
 fn encode_client_run_state_original(
   definition : @publication.PublicationContract,
-  manifest : @publication.PublicationContract,
+  manifest : @publication.PublicationContract?,
   state_wire : String,
+  status : @publication.RunOutcomeStatus,
 ) -> Result[ClientRunStateOriginal, ClientJournalDecodingIssue] {
   try {
     let writer = @encode.writer(131072, 8, 1)
     @encode.begin_object(writer)
     @encode.key(writer, "manifest")
-    @encode.string_value(
-      writer,
-      @publication.publication_contract_json(manifest),
-    )
+    match manifest {
+      Some(manifest) =>
+        @encode.string_value(
+          writer,
+          @publication.publication_contract_json(manifest),
+        )
+      None => @encode.null_value(writer)
+    }
     @encode.key(writer, "run_definition_cid")
     let definition_cid = @publication.publication_contract_identity(definition)
     @encode.string_value(writer, definition_cid)
     @encode.key(writer, "state")
     @encode.string_value(writer, state_wire)
     @encode.end_object(writer)
-    Ok({ manifest, state_wire, wire: @encode.finish(writer), })
+    Ok({ manifest, status, state_wire, wire: @encode.finish(writer), })
   } catch {
     _ => Err(CustodyLost)
   }
@@ -121,12 +149,21 @@ fn restore_client_run_state_original_body(
   let text = key => {
     @decode.lookup(object, key).bind(value => @decode.text(value).to_option())
   }
-  guard text("manifest") is Some(manifest_wire) &&
-    text("state") is Some(state_wire) &&
+  guard text("state") is Some(state_wire) &&
     text("run_definition_cid") ==
     Some(@publication.publication_contract_identity(definition)) else {
     return Err(CustodyLost)
   }
+  if @decode.lookup(object, "manifest") is Some(value) && @decode.is_null(value) {
+    // New unpublished metadata always requires its real saved observation
+    // revision. Historical absence is not repaired to an executable zero.
+    return match
+      prepare_client_unpublished_run_state_original(definition, state_wire) {
+      Ok(original) if original.wire == wire => Ok(original)
+      _ => Err(CustodyLost)
+    }
+  }
+  guard text("manifest") is Some(manifest_wire) else { return Err(CustodyLost) }
   let manifest = match
     @publication.admit_publication_contract(
       "result_manifest", manifest_wire, 65536, 8192, 64,
@@ -142,7 +179,12 @@ fn restore_client_run_state_original_body(
       return Err(CustodyLost)
     }
     return match
-      encode_client_run_state_original(definition, manifest, state_wire) {
+      encode_client_run_state_original(
+        definition,
+        Some(manifest),
+        state_wire,
+        @publication.Succeeded,
+      ) {
       Ok(original) if original.wire == wire => Ok(original)
       _ => Err(CustodyLost)
     }

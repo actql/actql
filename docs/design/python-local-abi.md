@@ -80,6 +80,21 @@ same submitted ready row as its original Run admission. The accepted Run/control
 revision remains separate. Historical marker absence remains unavailable; it is
 never interpreted as a new zero counter during lookup or restoration.
 
+The same Common saved-state Owner also admits unpublished metadata. Its private
+envelope retains `manifest: null` instead of fabricating a successful Manifest;
+the existing succeeded envelope and all its bytes remain unchanged. The closed
+RunState still carries its real observation revision, original Run identity and
+bounded unavailable/not-published Result entries. A Manifest getter therefore
+returns an optional original, and Native Result/availability consumers require
+the actual Manifest before reading Store-backed Result material.
+
+Unpublished metadata uses the same original-row CAS, exact successor readback,
+clock-independent observation key and terminal-outcome immutability. These
+constructors validate DATA; they do not establish cancellation, physical stop or
+cleanup. A live caller must obtain those observations from its same managed
+execution and physical Owners before selecting a terminal state. Restoring the
+saved metadata neither reconstructs executable work nor issues a replacement Run.
+
 The Wasm SDK observation port uses the original complete stored publication,
 current Run-read authority and current Sealed payload/reader bindings. The
 retention Owner independently selects availability. These observations create no

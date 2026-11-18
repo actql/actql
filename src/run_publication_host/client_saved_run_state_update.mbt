@@ -33,6 +33,41 @@ pub fn prepare_client_saved_run_state_update(
   manifest : @publication.PublicationContract,
   state_wire : String,
 ) -> Result[ClientSavedRunStateUpdate, ClientSavedRunStateUpdateIssue] {
+  prepare_client_run_state_update_body(
+    snapshot,
+    request,
+    definition,
+    Some(manifest),
+    state_wire,
+  )
+}
+
+///|
+/// The same authenticated observation CAS for unpublished metadata. This
+/// neither invents a successful Manifest nor bypasses original row currentness.
+pub fn prepare_client_unpublished_run_state_update(
+  snapshot : ClientSavedSubmissionSnapshot,
+  request : ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  state_wire : String,
+) -> Result[ClientSavedRunStateUpdate, ClientSavedRunStateUpdateIssue] {
+  prepare_client_run_state_update_body(
+    snapshot,
+    request,
+    definition,
+    None,
+    state_wire,
+  )
+}
+
+///|
+fn prepare_client_run_state_update_body(
+  snapshot : ClientSavedSubmissionSnapshot,
+  request : ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  manifest : @publication.PublicationContract?,
+  state_wire : String,
+) -> Result[ClientSavedRunStateUpdate, ClientSavedRunStateUpdateIssue] {
   guard snapshot.inspection is Some(original) &&
     snapshot.run is Some(_) &&
     snapshot.record.run_admission is Some(_) else {
@@ -75,14 +110,12 @@ pub fn prepare_client_saved_run_state_update(
         observation.wire(revision).to_option() != Some(state.state_wire()) {
         return Err(OriginalUnavailable)
       }
-      let same_manifest = match
-        prepare_client_run_state_original(
-          definition,
-          manifest,
-          state.state_wire(),
-        ) {
-        Ok(value) => value.wire() == state.wire()
-        Err(_) => false
+      let same_manifest = match (state.original_manifest(), manifest) {
+        (None, _) => true
+        (Some(_), None) => false
+        (Some(original), Some(candidate)) =>
+          @publication.publication_contract_json(original) ==
+          @publication.publication_contract_json(candidate)
       }
       if !same_manifest {
         return Err(ForeignRun)
@@ -123,10 +156,23 @@ pub fn prepare_client_saved_run_state_update(
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
-  let state = match
-    prepare_client_run_state_original(definition, manifest, wire) {
+  let prepared = match manifest {
+    Some(manifest) =>
+      prepare_client_run_state_original(definition, manifest, wire)
+    None => prepare_client_unpublished_run_state_original(definition, wire)
+  }
+  let state = match prepared {
     Ok(value) => value
     Err(issue) => return Err(State(issue))
+  }
+  if prior is Some(original) &&
+    (
+      original.status == @publication.Succeeded ||
+      original.status == @publication.Failed ||
+      original.status == @publication.Cancelled
+    ) &&
+    original.status != state.status {
+    return Err(ForeignRun)
   }
   let record = snapshot.record
   let body = match
