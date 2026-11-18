@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/declared-project-catalog-construction.mjs",
-      "sha256": "34c76194aac05ddcfade860b1f555eb843959eb56be6514377e67d7e5b925276",
+      "sha256": "6bf1b99288fecebb3c8b38e7b00477f6f4b9172f29a490d14523468f25dc5086",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
@@ -19,6 +19,7 @@
         "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
         "declaredProjectCatalogSavedInputConstructionGeometry",
         "declaredProjectCatalogScopeConstructionGeometry",
+        "declaredProjectMockFootprintConstructionGeometry",
         "declaredProjectWritableInventoryConstructionGeometry",
         "declaredProjectWritableRuntimeConstructionGeometry"
       ],
@@ -110,6 +111,15 @@
             "providerNamespace",
             "resolvedDataPath",
             "originalCatalogWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectMockFootprintConstructionGeometry",
+          "parameters": [
+            "writables",
+            "maxRows",
+            "maxRequestBytes"
           ],
           "async": false
         },
@@ -234,53 +244,83 @@
           "operations": [
             "declaredProjectWritableInventoryConstructionGeometry",
             "declaredProjectWritableInventoryConstructionGeometry/physical/physical",
-            "declaredProjectWritableRuntimeConstructionGeometry"
+            "declaredProjectWritableRuntimeConstructionGeometry",
+            "declaredProjectMockFootprintConstructionGeometry"
           ],
           "exports": [
             "declaredProjectWritableInventoryConstructionGeometry",
-            "declaredProjectWritableRuntimeConstructionGeometry"
+            "declaredProjectWritableRuntimeConstructionGeometry",
+            "declaredProjectMockFootprintConstructionGeometry"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/declared-project-catalog-construction.mjs",
                 "anchor": "export function declaredProjectWritableInventoryConstructionGeometry(sources)"
+              },
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "anchor": "export function declaredProjectMockFootprintConstructionGeometry(writables, maxRows, maxRequestBytes)"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/declared-project-catalog-construction.mjs",
                 "anchor": "export function declaredProjectWritableRuntimeConstructionGeometry(sources, writables, phase, selected)"
+              },
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction.mjs",
+                "anchor": "const wireBytes = BigInt(maxRequestBytes) + 6n * pathUnits + 4n * pathItems + 128n;"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-mock-multiple-targets.md",
                 "anchor": "is the exact pair of logical connection and resource."
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "Plural Mock UPDATE footprints use the existing exact-target family within the"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-mock-multiple-targets.md",
                 "anchor": "The installation retains one physical file owner for that document."
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "whole Preview and recovery JSON forests."
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/mock-file-target.mjs",
                 "anchor": "constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "The plural footprint constructor selects one additional nonphysical,"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/ordinary-mock-account.mjs",
                 "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "still refuse through the existing Common conflict check."
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/account-construction.mjs",
                 "anchor": "if (state.active || state.cleaning || state.unknownClose) return false;"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "same capture child and physical cleanup duties."
               }
             ],
             "resources": [
@@ -291,12 +331,20 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.mjs",
                 "anchor": "const fields = Object.getOwnPropertyDescriptors(value);"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "canonical writer/hash workspace: four-field preimage/key/pair/sort cohorts,"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-mock-multiple-targets.md",
                 "anchor": "Per-operation physical plans retain their actual operation names and original"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "Other physical operations require an explicit supported contract and tests."
               }
             ],
             "verification": [
@@ -307,6 +355,14 @@
               {
                 "path": "adapters/local-node/declared-project-writable-inventory.test.mjs",
                 "anchor": "Mock physical recipe construction inventories its actual selected descriptor normalization"
+              },
+              {
+                "path": "src/client_local_host/mock_file_footprint_quantity_js_wbtest.mbt",
+                "anchor": "test \"Mock exact footprint one-short shared reservation refuses before production\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "test('plural Mock exact footprints retain one boundary and reject same-row aliases and duplicates'"
               }
             ]
           }
