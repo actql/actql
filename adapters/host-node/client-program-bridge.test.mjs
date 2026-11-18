@@ -28,7 +28,7 @@ import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStateObservation} from './client-run-state.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
-import {fundedClientPreparation, openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {fundedClientPreparation, openFundedClientPreparation, fundedAuthoringContextOriginalFixture} from './funded-client-preparation.fixture.mjs';
 import {adoptCapturedPublicationFixture} from './fixtures/local-publication-original.mjs';
 import {createNodeHostEntry, completeCapturedEffectRun, recoverAdmittedEffectRun,
   runCapturedEffectComputation,
@@ -628,6 +628,7 @@ test('checked acquired source and downstream task emit their input ports',
         }), {code: 'MoonBitHostFailure'});
         const admitted = acquiredTaskRunAdmission({moon, control,
           publicationPreparation, compilationOriginal, requestIdentity: captureRequestIdentity,
+          publicationOriginal: {authoringContext: fundedAuthoringContextOriginalFixture(moon, prepared)},
           preparedProgram: prepared, document, format: 'json',
           parameters: JSON.parse(parameters),
           environmentWire: canonicalText(environmentBody),
