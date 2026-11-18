@@ -50,7 +50,7 @@ test('Darwin Core starts from selected targets while Python retains its original
     const expected = [
       ...(targets.includes('js') ? [{target: 'js', partition: '1/4'}] : []),
       ...(targets.includes('wasm') ? [{target: 'wasm', partition: '1/4'}] : []),
-      ...(targets.includes('native') ? [...nativeCoreLinuxCommonPartitions, '1/2', '2/2', 'source', 'scoped-runtime', 'scoped-review']
+      ...(targets.includes('native') ? [...nativeCoreLinuxCommonPartitions, ...nativeCoreCiPartitions]
         .map(partition => ({target: 'native', partition})) : []),
     ];
     assert.deepEqual(actual.map(row => JSON.stringify(row)).sort(), expected.map(row => JSON.stringify(row)).sort());
