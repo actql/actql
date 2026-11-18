@@ -106180,7 +106180,6 @@
       "referenceQualification": "Original Source occurrence/catalogue and same Request construction/failed-child responsibilities only; no artifact, ordinary or physical acceptance."
     },
     {
-<<<<<<< HEAD
       "module": "src/client_local_host/preparation_request_original_failure.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
@@ -106191,7 +106190,94 @@
           "operations": [
             "request_program_authoring_context_issue_code",
             "request_program_normalization_issue_code"
-=======
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring_js_wbtest.mbt",
+                "anchor": "test \"Request original limit projections preserve six exact phases and exclude unrelated errors\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring_js_wbtest.mbt",
+                "anchor": "test \"Request original normalization and authoring project actual same-parent capacity refusals\""
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [],
+      "operations": [
+        {
+          "name": "request_program_authoring_context_issue_code",
+          "declaration": "request_program_authoring_context_issue_code ( result : Result [ @ publication_host . ClientAuthoringContextPreparation , ClientRequestAuthoringIssue , ] , ) - > String ?"
+        },
+        {
+          "name": "request_program_normalization_issue_code",
+          "declaration": "request_program_normalization_issue_code ( result : Result [ @ publication_host . ClientLocalNormalization , ClientRequestNormalizationIssue , ] , ) - > String ?"
+        }
+      ],
+      "sha256": "49cadf2f1507f058f641436de7e4eca816e5b3eb48bdd2eae19f9a5e1293a704"
+    },
+    {
       "module": "src/client_row_source_host/get_read_request.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
@@ -106258,159 +106344,101 @@
             "row_source_get_read_metadata",
             "row_source_get_read_original_wire",
             "row_source_get_read_page"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-<<<<<<< HEAD
-                "path": "docs/design/check-sdk.md",
-                "anchor": "## Original Request normalization and authoring failure projection"
-=======
                 "path": "docs/design/reference-host.md",
                 "anchor": "#### Original finite GET declarations"
               },
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "## Original finite GET request DATA"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "inputsOutputs": [
               {
-<<<<<<< HEAD
-                "path": "docs/design/check-sdk.md",
-                "anchor": "## Original Request normalization and authoring failure projection"
-=======
                 "path": "docs/design/reference-host.md",
                 "anchor": "#### Original finite GET declarations"
               },
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "## Original finite GET request DATA"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "identity": [
               {
-<<<<<<< HEAD
-                "path": "docs/design/check-sdk.md",
-                "anchor": "## Original Request normalization and authoring failure projection"
-=======
                 "path": "docs/design/reference-host.md",
                 "anchor": "#### Original finite GET declarations"
               },
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "## Original finite GET request DATA"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "ownership": [
               {
-<<<<<<< HEAD
-                "path": "docs/design/check-sdk.md",
-                "anchor": "## Original Request normalization and authoring failure projection"
-=======
                 "path": "docs/design/reference-host.md",
                 "anchor": "#### Original finite GET declarations"
               },
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "## Original finite GET request DATA"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "synchronization": [
               {
-<<<<<<< HEAD
-                "path": "docs/design/check-sdk.md",
-                "anchor": "## Original Request normalization and authoring failure projection"
-=======
                 "path": "docs/design/reference-host.md",
                 "anchor": "#### Original finite GET declarations"
               },
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "## Original finite GET request DATA"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "failure": [
               {
-<<<<<<< HEAD
-                "path": "docs/design/check-sdk.md",
-                "anchor": "## Original Request normalization and authoring failure projection"
-=======
                 "path": "docs/design/reference-host.md",
                 "anchor": "#### Original finite GET declarations"
               },
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "## Original finite GET request DATA"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "cancellation": [
               {
-<<<<<<< HEAD
-                "path": "docs/design/check-sdk.md",
-                "anchor": "## Original Request normalization and authoring failure projection"
-=======
                 "path": "docs/design/reference-host.md",
                 "anchor": "#### Original finite GET declarations"
               },
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "## Original finite GET request DATA"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "resources": [
               {
-<<<<<<< HEAD
-                "path": "docs/design/check-sdk.md",
-                "anchor": "## Original Request normalization and authoring failure projection"
-=======
                 "path": "docs/design/reference-host.md",
                 "anchor": "#### Original finite GET declarations"
               },
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "## Original finite GET request DATA"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "extension": [
               {
-<<<<<<< HEAD
-                "path": "docs/design/check-sdk.md",
-                "anchor": "## Original Request normalization and authoring failure projection"
-=======
                 "path": "docs/design/reference-host.md",
                 "anchor": "#### Original finite GET declarations"
               },
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "## Original finite GET request DATA"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "verification": [
               {
-<<<<<<< HEAD
-                "path": "docs/design/check-sdk.md",
-                "anchor": "## Original Request normalization and authoring failure projection"
-              },
-              {
-                "path": "src/client_local_host/preparation_request_authoring_js_wbtest.mbt",
-                "anchor": "test \"Request original limit projections preserve six exact phases and exclude unrelated errors\""
-              },
-              {
-                "path": "src/client_local_host/preparation_request_authoring_js_wbtest.mbt",
-                "anchor": "test \"Request original normalization and authoring project actual same-parent capacity refusals\""
-=======
                 "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
                 "anchor": "portable GET declaration retains original query header and nominal request DATA"
               },
@@ -106433,26 +106461,11 @@
               {
                 "path": "scripts/notion-user-list-read-wire.mjs",
                 "anchor": "generateNotionUserListReadWire"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ]
           }
         }
       ],
-<<<<<<< HEAD
-      "exports": [],
-      "operations": [
-        {
-          "name": "request_program_authoring_context_issue_code",
-          "declaration": "request_program_authoring_context_issue_code ( result : Result [ @ publication_host . ClientAuthoringContextPreparation , ClientRequestAuthoringIssue , ] , ) - > String ?"
-        },
-        {
-          "name": "request_program_normalization_issue_code",
-          "declaration": "request_program_normalization_issue_code ( result : Result [ @ publication_host . ClientLocalNormalization , ClientRequestNormalizationIssue , ] , ) - > String ?"
-        }
-      ],
-      "sha256": "49cadf2f1507f058f641436de7e4eca816e5b3eb48bdd2eae19f9a5e1293a704"
-=======
       "sha256": "65e438612e1c3cb25ba7d833f06bf9f61c301b0824b045f2954afe0417f2da99"
     },
     {
@@ -106620,7 +106633,6 @@
         }
       ],
       "sha256": "ad6733b3a4b9b40fdb201c9463392e7939321c2ec25239938d79ce90bd5b9f69"
->>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
     }
   ]
 }
