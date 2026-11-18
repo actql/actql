@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
-from actql_sdk._local_core import LocalCore, LocalCoreError
+from actql_sdk._local_core import LocalCore, LocalCoreError, _NORMAL_HOST_OPERATION_FUEL
 from actql_sdk._local_product import (
     InstalledLocalHost, LocalProductCleanupPending, _ordinary_core_limits,
 )
@@ -33,8 +33,11 @@ def identity(intent):
 
 raw = Path(sys.argv[1]).read_bytes()
 digest = hashlib.sha256(raw).hexdigest()
+# One explicit diagnostic allowance from the existing profile, consumed by
+# initialization and every case together. No refill and no default-fuel or
+# ordinary installed-image qualification is inferred from this raw component.
 core = LocalCore(raw, digest=digest, transfer_capacity=8_388_608,
-    slots=128, resources=_ordinary_core_limits())
+    slots=128, resources=_ordinary_core_limits(), fuel=_NORMAL_HOST_OPERATION_FUEL)
 host = None
 cases = []
 scratch = Path(sys.argv[2])
@@ -134,4 +137,5 @@ finally:
 
 assert len(cases) == 5
 print(json.dumps({'success': True, 'module_sha256': digest, 'cases': cases,
+    'initial_diagnostic_fuel': _NORMAL_HOST_OPERATION_FUEL, 'fuel_refills': 0,
 'qualification': 'real raw Wasm/Python/SQLite observation component; no normal image or Run acceptance'}))
