@@ -36,7 +36,9 @@ digest = hashlib.sha256(raw).hexdigest()
 # One explicit diagnostic allowance from the existing profile, consumed by
 # initialization and every case together. No refill and no default-fuel or
 # ordinary installed-image qualification is inferred from this raw component.
-core = LocalCore(raw, digest=digest, transfer_capacity=8_388_608,
+# Match the existing installed factory's transfer/slot profile. Raw-module
+# execution and the explicit one-shot fuel remain separately qualified.
+core = LocalCore(raw, digest=digest, transfer_capacity=12 * 1024 * 1024,
     slots=128, resources=_ordinary_core_limits(), fuel=_NORMAL_HOST_OPERATION_FUEL)
 host = None
 cases = []
@@ -67,7 +69,10 @@ try:
     cases.append('actual_missing_is_unresolved_not_execution')
 
     # Explicit original intent retention, not acceptance or physical start.
-    host._retain_intent(reference, encode(intent))
+    appended = host._retain_intent(reference, encode(intent))
+    # The physical write has consumed these transport bytes. The existing
+    # original plan/input borrow remains retained; this is not a Run ACK.
+    assert core.retire_submission_append_output(appended)
     retained = observe()
     assert retained['action'] == 'recorded' and retained['intentCid'] == intent_cid
     assert retained['outcome'] == {'kind': 'preparing', 'submissionRef': reference,
@@ -92,7 +97,9 @@ try:
     rejected = host._projections[-1]
     assert core._loans[rejected.ticket] is rejected
     # Never reinvoke the failed producer; it stays available only to cleanup.
-    cases.append('actual_wrong_claim_refuses_and_keeps_original_output')
+    assert host._close_projection(rejected)
+    assert rejected.ticket not in core._loans
+    cases.append('actual_wrong_claim_refuses_then_original_cleanup')
 
     ready = False
     cleanup_attempts = []
