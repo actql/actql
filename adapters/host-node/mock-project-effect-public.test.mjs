@@ -324,7 +324,7 @@ test('original Run work separates fresh verification reads and refuses unbound o
 test('write attribution borrows the existing exact Mock original and keeps unreadable identity unbound', () => {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  let callback;
+  let callback, installationCall, installationMethod;
   const declarations = new Map();
   function visit(node) {
     if (!node || typeof node !== 'object') return;
@@ -334,7 +334,11 @@ test('write attribution borrows the existing exact Mock original and keeps unrea
     }
     if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
         node.callee.object.name === 'preparation' && node.callee.property.name === 'installMockEffects') {
-      assert.equal(callback, undefined); callback = node.arguments.at(-1);
+      assert.equal(installationCall, undefined); installationCall = node;
+    }
+    if (node.type === 'Property' && !node.computed && node.key.name === 'installMockEffects' &&
+        node.value.type === 'FunctionExpression') {
+      assert.equal(installationMethod, undefined); installationMethod = node.value;
     }
     for (const child of Object.values(node)) {
       if (Array.isArray(child)) child.forEach(visit);
@@ -342,6 +346,17 @@ test('write attribution borrows the existing exact Mock original and keeps unrea
     }
   }
   visit(ast);
+  assert(installationCall && installationMethod, 'Require the actual Mock installation call and implementation');
+  const forwarded = name => {
+    const index = installationMethod.params.findIndex(parameter => parameter.type === 'Identifier' && parameter.name === name);
+    assert.notEqual(index, -1, `Missing Mock installation parameter: ${name}`);
+    return installationCall.arguments[index];
+  };
+  for (const name of ['sourceProfile', 'installationServices']) {
+    assert.equal(forwarded(name)?.type, 'Identifier');
+    assert.equal(forwarded(name).name, name, `Forward the same original ${name}`);
+  }
+  callback = forwarded('observeWrite');
   if (callback?.type === 'Identifier') {
     assert.equal(callback.name, 'observeMockEffectWrite');
     callback = declarations.get(callback.name);
