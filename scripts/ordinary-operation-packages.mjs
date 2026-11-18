@@ -204,7 +204,26 @@ function validateBuildSource(options, purpose) {
   if (manifest.sourceSha !== eventHeadSha) {
     const pr = originalPerformanceMerge(options.repository, eventHeadSha, manifest.sourceSha, run,
       purpose === nativeCpuPurpose ? options.diagnosticHeadComparison : undefined);
-    assert.deepEqual(sourceCommit.parents.map(parent => parent.sha), [pr.base.sha, eventHeadSha],
+    let originalBase = pr.base.sha;
+    if (options.originalWorkflow !== undefined) {
+      // REST PR associations can change after retargeting. Only the original
+      // same-run GitHub event may supply that run's original base/head tuple.
+      assert(options.nativeApproval && options.adapter === 'native' && purpose === 'acceptance');
+      const {runId, runAttempt, sourceSha, ref, event} = options.originalWorkflow;
+      assert.equal(runId, String(run.id)); assert.equal(runId, String(options.runId));
+      assert.equal(runAttempt, String(run.run_attempt));
+      assert.equal(sourceSha, manifest.sourceSha, 'Original workflow checkout differs');
+      assert.equal(ref, `refs/pull/${pr.number}/merge`);
+      assert.equal(event.repository.id, run.repository.id);
+      assert.equal(event.repository.full_name, options.repository);
+      assert.equal(event.number, pr.number); assert.equal(event.pull_request.number, pr.number);
+      assert.equal(event.pull_request.head.repo.id, run.repository.id);
+      assert.equal(event.pull_request.base.repo.id, run.repository.id);
+      assert.equal(event.pull_request.head.sha, eventHeadSha);
+      assert.match(event.pull_request.base.sha, /^[a-f0-9]{40}$/u);
+      originalBase = event.pull_request.base.sha;
+    }
+    assert.deepEqual(sourceCommit.parents.map(parent => parent.sha), [originalBase, eventHeadSha],
       'Built source does not have the original PR base/head parents');
     relation = 'pull-request-merge';
   }
@@ -533,7 +552,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         assert(['native', 'python'].includes(process.env.PACKAGE_ADAPTER), 'Exact process adapter is required');
       }
       const inspect = diagnostic ? inspectNativeApprovalDiagnosticProducer : inspectPerformancePackageProducer;
+      let originalWorkflow;
+      if (command === 'inspect-native-approval-source' && process.env.GITHUB_EVENT_NAME === 'pull_request') {
+        const bytes = await readFile(process.env.GITHUB_EVENT_PATH);
+        assert(bytes.length <= 8 * 1024 ** 2, 'Original workflow event exceeds bounded input');
+        originalWorkflow = {runId: process.env.GITHUB_RUN_ID, runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+          sourceSha: process.env.GITHUB_SHA, ref: process.env.GITHUB_REF, event: JSON.parse(bytes)};
+      }
       console.log(JSON.stringify(await inspect({repository: process.env.GITHUB_REPOSITORY,
+        ...(originalWorkflow === undefined ? {} : {originalWorkflow}),
         sourceSha: process.env.PACKAGE_EVENT_HEAD_SHA ?? process.env.GITHUB_SHA,
         runId: process.env.PACKAGE_RUN_ID,
         artifactId: process.env.PACKAGE_ARTIFACT_ID, token: process.env.GITHUB_TOKEN,
