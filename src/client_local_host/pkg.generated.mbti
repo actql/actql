@@ -1343,9 +1343,13 @@ pub fn[I] request_preparation_work_calls(ClientRequestPreparation[I]) -> (Int64,
 
 pub fn[I] request_prepared_computation_kind(ClientRequestPreparation[I], I) -> Result[ClientRequestComputationKind, ClientRequestPreparationIssue]
 
+pub fn request_program_authoring_context_issue_code(Result[@run_publication_host.ClientAuthoringContextPreparation, ClientRequestAuthoringIssue]) -> String?
+
 pub fn[I] request_program_compilation_limits(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientPureCompilationLimits, ClientRequestProgramPlanIssue]
 
 pub fn[I] request_program_compilation_original(ClientRequestPreparation[I], I) -> @run_publication_host.ClientRunCompilation?
+
+pub fn request_program_normalization_issue_code(Result[@run_publication_host.ClientLocalNormalization, ClientRequestNormalizationIssue]) -> String?
 
 pub fn[I] request_program_normalization_work(ClientRequestPreparation[I], I) -> (Int64, Int64, Bool)?
 

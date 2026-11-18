@@ -9,6 +9,7 @@ import {connectInProcess, getSubmissionInput, getSubmissionOutcome, getSubmissio
   from '../../packages/sdk/index.mjs';
 import {sourceFreeValuesPlan, inferTaskRunAdmission, serializationTaskRunAdmission,
   inferTaskPublicationPlan, serializationTaskPublicationPlan, localOutputLimits, localContractLimits} from './local-values-plan.mjs';
+import {requestProgramPreparationProblemCode, requestProgramPreparationRefusalCode} from './client-program-preparation.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {submissionEpoch} from '../../packages/sdk/submission-fixture.mjs';
@@ -64,7 +65,9 @@ async function fixture({beginFailure, environment, observe, sourceFreeMaxWork, v
     clientProgramBindRequestPolicySubject(){assert.fail('No policy binding selected');},
     clientProgramFinishRequestPolicySubjects(){assert.fail('No policy supplement selected');},
     clientProgramPrepareRequestProgramNormalization(){return ok(undefined);},
+    clientProgramRequestProgramNormalizationIssueCode() {},
     clientProgramPrepareRequestProgramAuthoringContext(){return ok({});},
+    clientProgramRequestProgramAuthoringContextIssueCode() {},
     clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
     clientProgramReserveRequestEffectOriginalMaterial(){assert.fail('No Effect original projection selected');},
     clientProgramRequestProgramModuleIssueCode(){assert.fail('No module failure projection selected');},
@@ -2888,3 +2891,36 @@ test('actual Model manager captures materials only through its same live Request
   f.view.finishSourceProducer(receipt, 'returned');
   assert.equal((await f.view.close()).pending, false);
 });
+
+for (const phase of ['Normalization', 'Authoring']) {
+  test(`${phase} typed Result refusal is projected once before Plan and latched on the original Request`, async t => {
+    for (const dimension of ['Work', 'Retention', 'Execution']) {
+      const {f, request, events, environment} = await normalizationManagerFixture(t);
+      const moon = f.context.runtime, issue = {}, result = {$tag: 0, _0: issue};
+      const category = `ClientProgram${phase}${dimension}Limit`;
+      const issuer = phase === 'Normalization' ? 'clientProgramPrepareRequestProgramNormalization'
+        : 'clientProgramPrepareRequestProgramAuthoringContext';
+      const projector = phase === 'Normalization' ? 'clientProgramRequestProgramNormalizationIssueCode'
+        : 'clientProgramRequestProgramAuthoringContextIssueCode';
+      let calls = 0, projections = 0, refusal;
+      moon[issuer] = function(parent, input) {
+        assert.strictEqual(this, moon); assert.strictEqual(parent, f.parent); assert.ok(input);
+        calls++; events.push('typed-refusal'); return result;
+      };
+      moon[projector] = function(original) {
+        assert.strictEqual(this, moon); assert.strictEqual(original, result);
+        projections++; return category;
+      };
+      await assert.rejects(f.view.fundedPreparation(request, environment), error => {
+        refusal = error; assert.equal(error.code, 'ClientProgramRejected');
+        assert.strictEqual(error.cause, issue); return true;
+      });
+      assert.equal(requestProgramPreparationProblemCode(refusal), category);
+      assert.equal(requestProgramPreparationRefusalCode(refusal), 'ClientProgramRejected');
+      await assert.rejects(f.view.fundedPreparation(request, environment), error => error === refusal);
+      assert.equal(calls, 1); assert.equal(projections, 1);
+      assert.deepEqual(events, phase === 'Normalization' ? ['compiled', 'typed-refusal']
+        : ['compiled', 'normalization', 'typed-refusal']);
+    }
+  });
+}

@@ -195,3 +195,144 @@ test "authoring output refusal retains same partial collection until original cl
   assert_true(parent.program_authoring is None)
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "Request original limit projections preserve six exact phases and exclude unrelated errors" {
+  let limits : Array[(ClientRequestPreparationIssue, String, String)] = [
+    (
+      Work(@resources.WorkLimit),
+      "ClientProgramNormalizationWorkLimit",
+      "ClientProgramAuthoringWorkLimit",
+    ),
+    (
+      Capacity(Resource(RetentionLimit)),
+      "ClientProgramNormalizationRetentionLimit",
+      "ClientProgramAuthoringRetentionLimit",
+    ),
+    (
+      Capacity(Resource(ExecutionLimit)),
+      "ClientProgramNormalizationExecutionLimit",
+      "ClientProgramAuthoringExecutionLimit",
+    ),
+  ]
+  for (issue, normalization, authoring) in limits {
+    assert_eq(
+      request_program_normalization_issue_code(Err(Preparation(issue))),
+      Some(normalization),
+    )
+    assert_eq(
+      request_program_authoring_context_issue_code(Err(Preparation(issue))),
+      Some(authoring),
+    )
+  }
+  let excluded : Array[ClientRequestPreparationIssue] = [
+    ForeignOriginal,
+    WrongPhase,
+    Policy,
+    Work(@resources.ForeignOriginal),
+    Work(@resources.Closed),
+    Work(@resources.Stopping),
+    Capacity(@resources.ForeignOriginal),
+    Capacity(@resources.Retired),
+    Capacity(Resource(@resources.InvalidCharge)),
+  ]
+  for issue in excluded {
+    assert_eq(
+      request_program_normalization_issue_code(Err(Preparation(issue))),
+      None,
+    )
+    assert_eq(
+      request_program_authoring_context_issue_code(Err(Preparation(issue))),
+      None,
+    )
+  }
+  assert_eq(
+    request_program_normalization_issue_code(
+      Err(Normalization(ForeignPreparation)),
+    ),
+    None,
+  )
+  assert_eq(
+    request_program_authoring_context_issue_code(
+      Err(Authoring(ForeignOriginal)),
+    ),
+    None,
+  )
+}
+
+///|
+test "Request original normalization and authoring project actual same-parent capacity refusals" {
+  for authoring in [false, true] {
+    for retention in [false, true] {
+      let (parent, input) = normalization_request_control_fixture()
+      if authoring {
+        let normalized = prepare_request_program_normalization(parent, input)
+        assert_eq(request_program_normalization_issue_code(normalized), None)
+        normalized.unwrap() |> ignore
+      }
+      let usage = @resources.ledger_usage(parent.ledger)
+      let limits = @resources.ledger_limits(parent.ledger)
+      let remaining = if retention {
+        limits.retained_bytes -
+        usage.held_bytes -
+        usage.reserved_retention_bytes
+      } else {
+        limits.execution_bytes - usage.reserved_execution_bytes
+      }
+      assert_true(remaining > 1L)
+      let pressure = @resources.reserve_capacity(
+        parent.ledger,
+        if retention {
+          remaining - 1L
+        } else {
+          0L
+        },
+        if retention {
+          0L
+        } else {
+          remaining - 1L
+        },
+      ).unwrap()
+      let code = if authoring {
+        let result = prepare_request_program_authoring_context(parent, input)
+        assert_true(result is Err(Preparation(Capacity(Resource(_)))))
+        request_program_authoring_context_issue_code(result)
+      } else {
+        let result = prepare_request_program_normalization(parent, input)
+        assert_true(result is Err(Preparation(Capacity(Resource(_)))))
+        request_program_normalization_issue_code(result)
+      }
+      assert_eq(
+        code,
+        Some(
+          if authoring {
+            if retention {
+              "ClientProgramAuthoringRetentionLimit"
+            } else {
+              "ClientProgramAuthoringExecutionLimit"
+            }
+          } else if retention {
+            "ClientProgramNormalizationRetentionLimit"
+          } else {
+            "ClientProgramNormalizationExecutionLimit"
+          },
+        ),
+      )
+      @resources.settle_capacity(parent.ledger, pressure).unwrap()
+      abort_request_preparation_after_cleanup(parent).unwrap()
+      assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    }
+  }
+  let (parent, input) = authoring_request_fixture("original-projection")
+  let original = prepare_request_program_authoring_context(parent, input)
+  assert_eq(request_program_authoring_context_issue_code(original), None)
+  original.unwrap() |> ignore
+  assert_eq(
+    request_program_authoring_context_issue_code(
+      prepare_request_program_authoring_context(parent, [1]),
+    ),
+    None,
+  )
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

@@ -1305,6 +1305,31 @@ pub fn client_program_prepare_request_program_authoring_context(
 }
 
 ///|
+/// The actual normalization Result has its own nominal error type. Do not pass
+/// it to a module/terminal projector or inspect its generated JS representation.
+#export_name("clientProgramRequestProgramNormalizationIssueCode")
+pub fn client_program_request_program_normalization_issue_code(
+  result : Result[
+    @publication_host.ClientLocalNormalization,
+    @client_local_host.ClientRequestNormalizationIssue,
+  ],
+) -> String? {
+  @client_local_host.request_program_normalization_issue_code(result)
+}
+
+///|
+/// Read the SAME authoring Result through its Common-owned phase projection.
+#export_name("clientProgramRequestProgramAuthoringContextIssueCode")
+pub fn client_program_request_program_authoring_context_issue_code(
+  result : Result[
+    @publication_host.ClientAuthoringContextPreparation,
+    @client_local_host.ClientRequestAuthoringIssue,
+  ],
+) -> String? {
+  @client_local_host.request_program_authoring_context_issue_code(result)
+}
+
+///|
 /// Read the SAME already-issued evidence; preserve original identity and the
 /// caller's complete publication bounds without a wire reparse or reissue.
 #export_name("clientProgramPreparedAuthoringContextEvidence")

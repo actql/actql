@@ -68,6 +68,15 @@ if ([...Object.values(issueCodes), ...Object.values(effectIssueCodes)]
 // Only this projection owns these immutable facts. A copied/mutable error
 // property or a lookalike Host exception cannot issue a capacity diagnostic.
 const capacityRefusals = new WeakMap();
+const originalLimitCodes = new Set([
+  'ClientProgramRuntimeFragmentWorkLimit',
+  'ClientProgramNormalizationWorkLimit',
+  'ClientProgramNormalizationRetentionLimit',
+  'ClientProgramNormalizationExecutionLimit',
+  'ClientProgramAuthoringWorkLimit',
+  'ClientProgramAuthoringRetentionLimit',
+  'ClientProgramAuthoringExecutionLimit',
+]);
 function originalPreparationRefusal(error) {
   return error !== null && (typeof error === 'object' || typeof error === 'function')
     ? capacityRefusals.get(error) : undefined;
@@ -125,7 +134,7 @@ export function checkedRequestProgramPreparation(moon, result,
   projectIssue = moon.clientProgramRequestPreparationIssueCode) {
   if (runtimeIsError(result)) {
     const category = projectIssue.call(moon, result);
-    if (category === 'ClientProgramRuntimeFragmentWorkLimit') {
+    if (originalLimitCodes.has(category)) {
       // Keep the existing trusted submit-refusal code. Only the same typed
       // result may supply its reached Core cause on the open Problem surface.
       const error = Object.assign(new Error('ClientProgramRejected', {cause: runtimeField(result, 0)}),

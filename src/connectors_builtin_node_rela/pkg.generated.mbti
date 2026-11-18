@@ -2237,11 +2237,15 @@ pub fn client_program_request_preparation_control(@client_local_host.ClientLocal
 
 pub fn client_program_request_preparation_issue_code(Result[String, @client_local_host.ClientRequestTerminalIssue]) -> String?
 
+pub fn client_program_request_program_authoring_context_issue_code(Result[@run_publication_host.ClientAuthoringContextPreparation, @client_local_host.ClientRequestAuthoringIssue]) -> String?
+
 pub fn client_program_request_program_compilation_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> @run_publication_host.ClientRunCompilation?
 
 pub fn client_program_request_program_module_capacity_refusal(Result[Unit, ClientRequestProgramModuleBridgeIssue]) -> (String, String, Int64, Int64, Int64, Int64)?
 
 pub fn client_program_request_program_module_issue_code(Result[Unit, ClientRequestProgramModuleBridgeIssue]) -> String?
+
+pub fn client_program_request_program_normalization_issue_code(Result[@run_publication_host.ClientLocalNormalization, @client_local_host.ClientRequestNormalizationIssue]) -> String?
 
 pub fn client_program_request_snapshot_capacity_refusal(Result[Unit, @client_local_host.ClientRequestPreparationIssue]) -> (String, String, Int64, Int64, Int64, Int64)?
 

@@ -76,7 +76,9 @@ export function requestPreparationAvailable(context) {
     typeof own(moon,'clientProgramPrepareRequestSourceComputation')==='function' &&
     typeof own(moon,'clientProgramFinishRequestComputation')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestProgramNormalization')==='function' &&
+    typeof own(moon,'clientProgramRequestProgramNormalizationIssueCode')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestProgramAuthoringContext')==='function' &&
+    typeof own(moon,'clientProgramRequestProgramAuthoringContextIssueCode')==='function' &&
     typeof own(moon,'clientProgramPrepareRequestPolicySubjects')==='function' &&
     typeof own(moon,'clientProgramReadRequestPolicySubject')==='function' &&
     typeof own(moon,'clientProgramBindRequestPolicySubject')==='function' &&

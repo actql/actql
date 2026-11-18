@@ -2237,6 +2237,40 @@ publication, cancellation or physical cleanup authority. Actual normal Host
 acceptance remains separate from the scoped Core and explicit-port caller
 checks.
 
+## Original Request normalization and authoring failure projection
+
+The existing Request owner projects each original Result through its own typed
+Common function. Only `Preparation(Work(WorkLimit))` and
+`Preparation(Capacity(Resource(RetentionLimit | ExecutionLimit)))` have fixed
+limit codes. Normalization uses `ClientProgramNormalizationWorkLimit`,
+`ClientProgramNormalizationRetentionLimit` and
+`ClientProgramNormalizationExecutionLimit`; authoring uses the corresponding
+`ClientProgramAuthoringWorkLimit`, `ClientProgramAuthoringRetentionLimit` and
+`ClientProgramAuthoringExecutionLimit`. The phase is part of the code, not
+inferred from a generated error tag, message or a second check of the Program.
+Success, foreign originals, closed/current failures, encoding and all other
+causes yield no classification from these projections.
+
+Node and RelA delegate the same nominal Result types to Common. The ordinary
+manager captures these synchronous own-data methods together with the original
+issuer, invokes the projector only on its failed Result and retains that failure
+on the same Request before any Plan borrow. A missing/accessor method declines
+the capability before preparation. The original cause remains on the existing
+`ClientProgramRejected` Error; the private association supplies only the fixed
+Problem code and existing `operation_failed` classification. Copied or mutable
+Error properties cannot acquire that association. No quota amount, public wire
+field, nonexecution acknowledgement or authority is invented.
+
+The projections borrow the existing Result and return fixed strings. They do
+not visit or copy Program/journal data, allocate another owner, grow a budget,
+change current/cancellation checks or release retained construction/failed-child
+state. The existing Request abort, holder return and retirement still own that
+cleanup. Common typed controls cover the six limits and unrelated errors;
+actual same-parent capacity refusals cover retention/execution. Imported Node
+manager controls cover original-result identity, phase and one-time latching.
+These are component checks, not ordinary acceptance of an unrelated failing
+Program or a larger supported workload.
+
 ## Original Request authoring context in the Node publication path
 
 The same effect-free Request prepares authoring evidence immediately after its

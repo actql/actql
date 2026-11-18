@@ -17,7 +17,9 @@ const ports = () => ({
   clientProgramPrepareRequestSourceComputation() {},
   clientProgramFinishRequestComputation() {},
   clientProgramPrepareRequestProgramNormalization() {},
+  clientProgramRequestProgramNormalizationIssueCode() {},
   clientProgramPrepareRequestProgramAuthoringContext() {return {};},
+  clientProgramRequestProgramAuthoringContextIssueCode() {},
   clientProgramPrepareRequestPolicySubjects() {},
   clientProgramReadRequestPolicySubject() {},
   clientProgramBindRequestPolicySubject() {},
@@ -65,6 +67,14 @@ test('ModuleBody capability requires the new port and an own Boolean mode withou
     get() {callbacks++; return () => ({});},
   });
   assert.equal(requestPreparationAvailable(context(unauthored, false)), false);
+  assert.equal(callbacks, 0);
+  for (const name of ['clientProgramRequestProgramNormalizationIssueCode',
+    'clientProgramRequestProgramAuthoringContextIssueCode']) {
+    const missing = ports(); delete missing[name];
+    assert.equal(requestPreparationAvailable(context(missing, false)), false);
+    Object.defineProperty(missing, name, {get() {callbacks++; return () => {};}});
+    assert.equal(requestPreparationAvailable(context(missing, false)), false);
+  }
   assert.equal(callbacks, 0);
 });
 

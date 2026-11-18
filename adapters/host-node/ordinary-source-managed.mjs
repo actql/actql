@@ -1282,14 +1282,23 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             // publication later reads this original, never seals an empty copy.
             const normalize = Object.getOwnPropertyDescriptor(moon,
               'clientProgramPrepareRequestProgramNormalization')?.value;
-            if (typeof normalize !== 'function') fail('NodeManagedRunRuntimeUnavailable');
-            checked(Reflect.apply(normalize, moon, [state.parent, producer.receipt]));
+            const normalizationIssue = Object.getOwnPropertyDescriptor(moon,
+              'clientProgramRequestProgramNormalizationIssueCode')?.value;
+            if (typeof normalize !== 'function' || typeof normalizationIssue !== 'function') {
+              fail('NodeManagedRunRuntimeUnavailable');
+            }
+            checkedRequestProgramPreparation(moon,
+              Reflect.apply(normalize, moon, [state.parent, producer.receipt]), normalizationIssue);
             assertPreparingOriginal();
             const authoring = Object.getOwnPropertyDescriptor(moon,
               'clientProgramPrepareRequestProgramAuthoringContext')?.value;
-            if (typeof authoring !== 'function') fail('NodeManagedRunRuntimeUnavailable');
-            state.authoringContextOriginal = checked(Reflect.apply(authoring, moon,
-              [state.parent, producer.receipt]));
+            const authoringIssue = Object.getOwnPropertyDescriptor(moon,
+              'clientProgramRequestProgramAuthoringContextIssueCode')?.value;
+            if (typeof authoring !== 'function' || typeof authoringIssue !== 'function') {
+              fail('NodeManagedRunRuntimeUnavailable');
+            }
+            state.authoringContextOriginal = checkedRequestProgramPreparation(moon,
+              Reflect.apply(authoring, moon, [state.parent, producer.receipt]), authoringIssue);
             if (state.authoringContextOriginal === undefined) fail('InvalidHostRuntimeResult');
             assertPreparingOriginal();
             // This first borrow exposes only the SAME checked inventory. An

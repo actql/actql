@@ -286,3 +286,46 @@ test('compatible work code is nominal and never changes the outer trusted refusa
   const body={}; assert.equal(checkedRequestProgramPreparation(moon,{$tag:1,_0:body}),body);
   assert.equal(calls,1);
 });
+
+test('normalization and authoring fixed limits retain the original cause and private phase code', () => {
+  for (const phase of ['Normalization', 'Authoring']) {
+    for (const dimension of ['Work', 'Retention', 'Execution']) {
+      const category = `ClientProgram${phase}${dimension}Limit`;
+      const issue = Object.freeze({}), result = {$tag: 0, _0: issue};
+      const moon = {};
+      let calls = 0;
+      const project = function(original) {
+        assert.strictEqual(this, moon); assert.strictEqual(original, result); calls++;
+        return category;
+      };
+      let refusal;
+      assert.throws(() => checkedRequestProgramPreparation(moon, result, project), error => {
+        refusal = error;
+        assert.equal(error.code, 'ClientProgramRejected');
+        assert.strictEqual(error.cause, issue);
+        return true;
+      });
+      assert.equal(calls, 1);
+      assert.equal(requestProgramPreparationProblemCode(refusal), category);
+      assert.equal(requestProgramPreparationRefusalCode(refusal), 'ClientProgramRejected');
+      assert.equal(requestProgramCapacityRefusal(refusal), undefined);
+      refusal.code = 'ClientProgramInvalidInput'; refusal.problemCode = 'logical.work_limit';
+      assert.equal(requestProgramPreparationProblemCode(refusal), category);
+      for (const foreign of [{...refusal}, structuredClone(refusal),
+        Object.assign(new Error(category), {code: category}), null]) {
+        assert.equal(requestProgramPreparationProblemCode(foreign), undefined);
+        assert.equal(requestProgramPreparationRefusalCode(foreign), undefined);
+      }
+      const body = {};
+      assert.strictEqual(checkedRequestProgramPreparation(moon, {$tag: 1, _0: body}, project), body);
+      assert.equal(calls, 1);
+    }
+  }
+  const issue = {}, result = {$tag: 0, _0: issue};
+  for (const category of [undefined, 'ClientProgramNormalizationLimit', 'logical.work_limit']) {
+    assert.throws(() => checkedRequestProgramPreparation({}, result, () => category), error => {
+      assert.equal(error.code, 'MoonBitHostFailure'); assert.strictEqual(error.cause, issue);
+      assert.equal(requestProgramPreparationProblemCode(error), undefined); return true;
+    });
+  }
+});
