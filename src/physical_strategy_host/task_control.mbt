@@ -177,7 +177,15 @@ pub fn prepare_captured_task_control(
   // Block activation and recursive setup BEFORE either resource callback.
   hooks.admitting_control = true
   let generation = run.generation
-  let admitted = @resources.charge_planning(run.ledger, run.done.length())
+  let tasks = run.done.length()
+  // Validate each original task once, and prepay at most tasks full completion
+  // scans of tasks slots. This bounds all later Debug-only commit work BEFORE
+  // execution; no resource callback is introduced after atomic output commit.
+  if tasks > (2147483647 - tasks) / tasks {
+    hooks.admitting_control = false
+    return Err(Resource(@resources.PlanningLimit))
+  }
+  let admitted = @resources.charge_planning(run.ledger, tasks + tasks * tasks)
   if admitted is Err(issue) {
     hooks.admitting_control = false
     refresh_captured_task_boundary_cleanup(run)

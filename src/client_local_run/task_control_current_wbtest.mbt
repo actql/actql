@@ -229,3 +229,48 @@ test "Core owner control pause during actual work parks after its output and ter
   assert_eq((retained[2].output_row)(0).unwrap(), "{\"value\":2}")
   control_close(host, retained, available)
 }
+
+///|
+test "Core owner control prepays all three original completion scans or refuses before state construction" {
+  for (work, succeeds) in [(17, false), (18, true)] {
+    let root = @resources.create_ledger({
+      planning_work: work,
+      attempts: 10,
+      holdings: 10,
+      transfer_bytes: 0L,
+      retained_bytes: 100000L,
+      execution_bytes: 100000L,
+    }).unwrap()
+    let host = source_free_shared_host(
+      plan(
+        prepared(@input.Program(control_values_program)),
+        "control-planning-cut",
+      ),
+      root,
+    ).unwrap()
+    let result = control_prepare(host)
+    assert_eq(result is Ok(_), succeeds)
+    if !succeeds {
+      assert_eq(result, Err(@strategy.Resource(@resources.PlanningLimit)))
+    }
+    assert_eq(
+      @resources.ledger_usage(root).planning_work,
+      if succeeds {
+        18
+      } else {
+        6
+      },
+    )
+    assert_eq(
+      @resources.ledger_usage(root).live_reservations,
+      if succeeds {
+        2
+      } else {
+        1
+      },
+    )
+    @strategy.stop_captured_dag(local_compute_run(host))
+    @strategy.refresh_captured_retention(local_compute_run(host))
+    assert_eq(@resources.ledger_usage(root).live_reservations, 0)
+  }
+}

@@ -337,7 +337,8 @@ that Run's original graph/strategy hook. It does not add a CapturedDAG field or
 allocate controller state on the default Normal path. The hook's added control
 reference and admission fence are included in its existing construction quote;
 the controller separately reserves its complete fixed binding/state/read peak
-on the same Ledger before construction. The configured Local owner matches the
+on the same Ledger before construction. Admission also prepays the complete
+validation and bounded successful-completion scans before any work. The configured Local owner matches the
 actual Account decision to its original Run Definition and execution context.
 A task activation grant does not substitute for this control permission.
 
