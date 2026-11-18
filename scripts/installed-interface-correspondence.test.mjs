@@ -170,6 +170,16 @@ test('original checked correspondence still reads staged bytes and current Owner
   assert.throws(() => installedInterfaceCorrespondence(options), /Missing interface reference/u);
 });
 
+test('a bound module outside the original checked closure cannot acquire a checked model', async t => {
+  const {options, put, commit} = await checkedFixture(t);
+  const source = 'export const later = 1;';
+  put(options.repository, 'outside/later.mjs', source);
+  put(options.directory, 'later.mjs', source);
+  options.bindings.push({member: 'later.mjs', source: 'outside/later.mjs'});
+  commit();
+  assert.throws(() => installedInterfaceCorrespondence(options), /Missing checked original interface: outside\/later.mjs/u);
+});
+
 
 test('installed lazy imports retain original checked target discovery rather than suppressing unresolved syntax', async t => {
   const source = "const target = new URL('./runtime-owner.mjs', import.meta.url); export const load = () => import(target.href);";

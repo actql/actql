@@ -10,7 +10,7 @@ import {moonApiInterface, moonOperations} from './moon-interface-inventory.mjs';
 import {pythonSourceBlobInterfaces} from './python-interface-sources.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
 
-function ownerSourcePath(path, commands) {
+export function ownerSourcePath(path, commands) {
   return (/\.(?:[cm]?[jt]sx?|mbti?|pyi?)$/u.test(path) || commands.includes(path)) &&
     !isConnectorTestFixture(path) && !/(?:\.test|_test|_wbtest)\./u.test(path);
 }
