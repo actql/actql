@@ -2797,13 +2797,29 @@ jobs:
           sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv
       # 4 sequential producers retain 900s each plus 30s caller allowance.
       # The enclosing window also retains metadata and cleanup time.
+      - name: Prepare one original portable runtime for both complete Source profiles
+        timeout-minutes: 15
+        run: |
+          node --input-type=module <<'NODE'
+          import {join} from 'node:path';
+          import {prepareNativeResidentPortableRuntime} from './scripts/native-resident-portable-preparation.mjs';
+          prepareNativeResidentPortableRuntime(process.cwd(), join(process.env.RUNNER_TEMP, 'native-http-portable.json'));
+          NODE
       - name: Test Node-free native storage publication and control
         id: native-http
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests/native-http
+          ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION: ${{ runner.temp }}/native-http-portable.json
         run: |
           ulimit -S -s 65536
           node scripts/test-native-http-client.mjs
+      - name: Require the complete original Core Source release profile on Linux
+        timeout-minutes: 21
+        env:
+          ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION: ${{ runner.temp }}/native-http-portable.json
+        run: |
+          ulimit -S -s 65536
+          node scripts/native-core-source-release.mjs
   native-workloads:
     needs:
       - select-targets

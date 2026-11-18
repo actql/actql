@@ -1276,6 +1276,19 @@ not claimed equivalent. The HTTP gate requires both current Linux HTTP and
 complete Core outcomes, and missing, skipped or failed owners cannot pass.
 The unconfigured standalone/Linux and Core Source entrances remain complete.
 
+The Linux HTTP job also selects the complete Core Source release profile after
+its original default/debug fixture succeeds. Both consumers verify the same
+portable-runtime preparation against its source, tools, inputs and artifacts;
+the release fixture owns fresh peers and state. The Native child alone selects
+the original release-test C compiler profile, after portable verification, and
+the required case count comes from the pinned compiler's complete inventory.
+This adds a full release execution plus the existing three-wrapper ABI build
+and packaging preparation to this job. It is an execution-proof step toward
+platform reduction, not a timing improvement or a retirement of Darwin cases.
+The counted release child has a finite twenty-minute supervision budget within
+the unchanged job deadline. A missing preparation, changed source, incomplete
+execution or failed cleanup cannot qualify it.
+
 Core runs the two portable targets and eight common Native partitions on Linux,
 and the seven existing Darwin partitions in a separate matrix capped at four
 concurrent jobs. The cap leaves macOS capacity for the other original workload
