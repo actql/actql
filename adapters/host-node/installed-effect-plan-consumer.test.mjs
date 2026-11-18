@@ -1076,7 +1076,10 @@ function retainedRequestManagerFixture({throwOnRetain = false, failure, missing 
       moon.clientProgramRetainRequestSubmittedIntent = () => assert.fail('No late method lookup');
       moon.clientProgramReserveRequestRetainedProgramMaterial = () => assert.fail('No late material method lookup');
     },
-    cleanupRequestInput(state) {assert.strictEqual(state.parent, parent); assert.equal(state.preparing, false);
+    cleanupOriginalRequestInput(state) {
+      assert.equal(state.originalExplanation, undefined,
+        'This explicit-port fixture has no selected Explanation original');
+      assert.strictEqual(state.parent, parent); assert.equal(state.preparing, false);
       state.parent = state.original = undefined; calls.push('original-cleanup');},
     releaseFinishedProducer(producer) {assert.equal(producer.preparation, undefined); producers.delete(producer); calls.push('producer-return');},
     fail: code => {throw Object.assign(new Error(code), {code});}, checked, canonicalValueJson,
