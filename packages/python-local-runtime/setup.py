@@ -20,6 +20,10 @@ class LocalWheel(bdist_wheel):
 
     def get_tag(self):
         manifest = json.loads(Path('src/actql_local_runtime/artifact.json').read_bytes())
+        if manifest['platform'] == 'linux-x64':
+            # The selected original Wasmtime library requires GLIBC_2.28,
+            # irrespective of the upstream dependency wheel's older tag.
+            return 'py3', 'none', 'manylinux_2_28_x86_64'
         if manifest['platform'] != 'darwin-arm64':
             raise ValueError('Unsupported selected Python Local wheel profile')
         # The recipe checks the real library target and minimum OS. Other

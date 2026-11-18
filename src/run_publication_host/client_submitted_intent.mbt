@@ -46,6 +46,67 @@ pub fn client_submitted_intent_cid(value : ClientSubmittedIntent) -> String {
 }
 
 ///|
+/// A decision over admitted original content and its already authenticated
+/// retained phase. This is not a current grant, COMMIT acknowledgement, Run
+/// admission or permission to prepare/resend when history is missing.
+pub(all) enum ClientSubmittedIntentObservation {
+  SubmissionMissing
+  SubmissionConflict
+  SubmissionPending
+  SubmissionSatisfied
+} derive(Eq, Debug)
+
+///|
+/// Both bindings use this same retained-original decision. The physical Host
+/// still selects/authenticates the reference and observes its actual journal;
+/// a phase or a public DTO alone cannot construct either admitted intent.
+pub fn observe_client_submitted_intent(
+  expected : ClientSubmittedIntent,
+  retained : (ClientSubmittedIntent, String)?,
+) -> Result[ClientSubmittedIntentObservation, ClientSubmittedIntentIssue] {
+  guard retained is Some((original, phase)) else {
+    return Ok(SubmissionMissing)
+  }
+  if !client_submitted_intent_transition(phase, phase) {
+    return Err(InvalidEnvelope)
+  }
+  if expected.wire != original.wire || expected.cid != original.cid {
+    return Ok(SubmissionConflict)
+  }
+  Ok(if phase == "preparing" { SubmissionPending } else { SubmissionSatisfied })
+}
+
+///|
+/// Classify this invocation only after the physical journal supplies whether
+/// its original record was inserted. This never turns missing history or an
+/// unknown transaction outcome into a nonexecution guarantee.
+pub fn client_submitted_intent_attempt_kind(
+  observation : ClientSubmittedIntentObservation,
+  inserted : Bool,
+) -> String? {
+  match observation {
+    SubmissionMissing | SubmissionConflict => None
+    SubmissionPending => Some("recorded")
+    SubmissionSatisfied =>
+      Some(if inserted { "recorded" } else { "already_satisfied" })
+  }
+}
+
+///|
+/// Closed private action vocabulary shared by the existing bindings. Missing
+/// remains an observation; callers must retain their original admission law.
+pub fn client_submitted_intent_observation_action(
+  observation : ClientSubmittedIntentObservation,
+  inserted : Bool,
+) -> String {
+  match observation {
+    SubmissionMissing => "missing"
+    SubmissionConflict => "conflict"
+    _ => client_submitted_intent_attempt_kind(observation, inserted).unwrap()
+  }
+}
+
+///|
 /// An admitted continuation restriction, not Account or resume authority.
 pub fn client_submitted_intent_requests_commit_stop(
   value : ClientSubmittedIntent,

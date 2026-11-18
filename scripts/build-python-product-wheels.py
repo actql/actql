@@ -51,7 +51,7 @@ def sha256(path: Path) -> str:
     return value.hexdigest()
 
 
-def wheel_metadata(path: Path, name: str, version: str) -> None:
+def wheel_metadata(path: Path, name: str, version: str, *, target_platform: str = 'darwin-arm64') -> None:
     """Inspect the actual wheel's defaults, tags and typed facade; never import it."""
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
@@ -75,8 +75,11 @@ def wheel_metadata(path: Path, name: str, version: str) -> None:
         if name == 'actql-sdk' and ('local' in body.get_all('Provides-Extra', [])
                 or any('actql-local-runtime' in value or 'wasmtime' in value or 'duckdb' in value for value in requirements)):
             raise ValueError('Lightweight SDK wheel contains a Local dependency')
-        expected_tag = ('py3-none-macosx_11_0_arm64'
-                        if name == 'actql-local-runtime' else 'py3-none-any')
+        runtime_tags = {'darwin-arm64': 'py3-none-macosx_11_0_arm64',
+                        'linux-x64': 'py3-none-manylinux_2_28_x86_64'}
+        if type(target_platform) is not str or target_platform not in runtime_tags:
+            raise ValueError('Python cohort wheel has no selected target')
+        expected_tag = runtime_tags[target_platform] if name == 'actql-local-runtime' else 'py3-none-any'
         if tag.get_all('Tag', []) != [expected_tag]:
             raise ValueError('Python cohort wheel target mismatch')
         if path.name != name.replace('-', '_') + '-' + version + '-' + expected_tag + '.whl':
@@ -91,9 +94,15 @@ def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path, *,
                              selected_recipe: _SelectedImageRecipe | None = None,
                              release_manifest: bytes | None = None) -> dict[str, str]:
     """Match the shipped resource bytes to the same verified original artifact."""
+    from actql_sdk._local_distribution import _component_target
+    if selected_recipe is not None:
+        from actql_sdk._local_image_recipe import _SelectedImageRecipe
+        if type(selected_recipe) is not _SelectedImageRecipe:
+            raise ValueError('Unavailable original runtime wheel recipe')
+    target = _component_target(selected_recipe.platform if selected_recipe is not None else 'darwin-arm64')
     with zipfile.ZipFile(wheel) as archive:
         for name in ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
-                     'client_host_wasm.wasm', 'libduckdb.dylib',
+                     'client_host_wasm.wasm', target.duckdb_file,
                      'LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE'):
             if name == 'artifact.json' and release_manifest is not None:
                 if archive.read('actql_local_runtime/' + name) != release_manifest:
@@ -202,6 +211,8 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
     spec.loader.exec_module(recipe)
     if target_platform is _DEFAULT_PACKAGING_TARGET:
         target_platform = recipe._LOCAL_COMPONENT_PLATFORM
+    if type(target_platform) is not str:
+        raise ValueError('Select a named Python cohort target')
     components = recipe.verify_artifact(artifact, target_platform=target_platform)
     original_components = components
     source_artifact_digest = sha256(artifact / 'artifact.json')
@@ -283,7 +294,7 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
         if len(created) != 1:
             raise ValueError('Python cohort build did not create one wheel per package')
         wheel = created.pop()
-        wheel_metadata(wheel, distribution, version)
+        wheel_metadata(wheel, distribution, version, target_platform=target_platform)
         verified_components = None
         if distribution == 'actql-sdk':
             sdk_runtime_binding(wheel, binding)
@@ -323,7 +334,7 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
 
 
 if __name__ == '__main__':
-    from actql_sdk._local_distribution import _LOCAL_COMPONENT_PLATFORM
+    from actql_sdk._local_distribution import _LOCAL_COMPONENT_PLATFORM, _LOCAL_COMPONENT_PLATFORMS
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--artifact-directory', type=Path, required=True)
@@ -331,7 +342,7 @@ if __name__ == '__main__':
     parser.add_argument('--version', required=True, help='Explicit complete SemVer; mapped by the shared release parser')
     parser.add_argument('--bindings-source', type=Path)
     parser.add_argument('--native-libraries', type=Path)
-    parser.add_argument('--target-platform', choices=[_LOCAL_COMPONENT_PLATFORM], default=_LOCAL_COMPONENT_PLATFORM,
+    parser.add_argument('--target-platform', choices=_LOCAL_COMPONENT_PLATFORMS, default=_LOCAL_COMPONENT_PLATFORM,
                         help='Original artifact target; not an execution-platform or new wheel-tag permission')
     arguments = parser.parse_args()
     print(json.dumps(build(arguments.artifact_directory, arguments.destination,

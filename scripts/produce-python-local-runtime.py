@@ -22,7 +22,8 @@ from typing import Any, cast
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI  # noqa: E402
-from actql_sdk._local_distribution import WASMTIME_VERSION, DUCKDB_VERSION, _pairs, _read_file, _valid_image_header  # noqa: E402
+from actql_sdk._local_distribution import (WASMTIME_VERSION, DUCKDB_VERSION,
+    _component_target, _execution_component_platform, _pairs, _read_file, _valid_image_header)  # noqa: E402
 from actql_sdk._local_image_recipe import _SelectedImageRecipe, _recipe_from_original  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location(
@@ -295,7 +296,7 @@ def verify_original_image(image: dict[str, Any], selected: _SelectedImageRecipe,
     image_size, image_hash = cast(int, image_item['bytes']), cast(str, image_item['sha256'])
     header = _read_file(image_path, maximum=selected.image_bytes_limit,
                         expected=image_size, digest=image_hash, prefix=20)
-    require(_valid_image_header(header, image_size), 'Incompatible original image binary target')
+    require(_valid_image_header(header, image_size, selected.platform), 'Incompatible original image binary target')
     return image_path, image_item
 
 
@@ -308,6 +309,9 @@ def produce_platform(core_receipt: Path, duckdb_receipt: Path,
     packaging does not promote that execution to this Host or a public Run.
     """
     source = clean_source()
+    target_platform = _execution_component_platform()
+    target = _component_target(target_platform)
+    expected_machine = 'arm64' if target_platform == 'darwin-arm64' else 'x86_64'
     core, core_hash = read_receipt(core_receipt)
     digest = verify_original_module(ROOT, core, source)
     image, image_hash = read_receipt(image_receipt)
@@ -317,12 +321,12 @@ def produce_platform(core_receipt: Path, duckdb_receipt: Path,
         'workspace_selection', 'public_local_acceptance', 'wheel_acceptance'},
         'Select the original standalone DuckDB component receipt')
     require(duckdb['success'] is True and type(duckdb['tests']) is int and duckdb['tests'] == 20
-        and duckdb['machine'] == 'arm64' and duckdb['module_source'] is None
+        and duckdb['machine'] == expected_machine and duckdb['module_source'] is None
         and duckdb['workspace_selection'] is False and duckdb['public_local_acceptance'] is False
         and duckdb['wheel_acceptance'] is False and duckdb['library_version'] == DUCKDB_VERSION,
         'Standalone DuckDB original component does not match')
     original = recipe.module_image_recipe_original(ROOT, source, Path(core['module']), digest,
-        runtime_allocation='platform')
+        runtime_allocation='platform', target_platform=target_platform)
     version = recipe.read_cohort(ROOT)
     selected = _recipe_from_original(original, source_sha=source,
         package_version=version, module_sha256=digest)
@@ -333,24 +337,28 @@ def produce_platform(core_receipt: Path, duckdb_receipt: Path,
         'module_sha256': digest, 'core_abi': LOCAL_CORE_ABI,
         'wasmtime_version': WASMTIME_VERSION, 'runtime_allocation': 'platform',
         'runtime_library_sha256': selected.runtime_library_sha256,
-        'provider_library_sha256': None, 'platform': 'darwin-arm64',
+        'provider_library_sha256': None, 'platform': target_platform,
         'engine_body': json.loads(selected.engine_body),
         'engine_sha256': hashlib.sha256(selected.engine_body).hexdigest(), **image_item}
     notices = recipe.notice_originals()
     notice_hashes = {name: hashlib.sha256(_read_file(path, maximum=1024 * 1024)).hexdigest()
                      for name, path in notices.items()}
-    body = {'source_sha': source, 'package_version': version, 'platform': 'darwin-arm64',
+    body = {'source_sha': source, 'package_version': version, 'platform': target_platform,
         'core_abi': LOCAL_CORE_ABI, 'wasmtime_version': WASMTIME_VERSION,
         'module': component(module, digest, 32 * 1024 * 1024, 'client_host_wasm.wasm'),
-        'duckdb': component(library, duckdb['library_sha256'], 128 * 1024 * 1024, 'libduckdb.dylib'),
+        'duckdb': component(library, duckdb['library_sha256'], 128 * 1024 * 1024, target.duckdb_file),
         'duckdb_version': DUCKDB_VERSION, 'notices': notice_hashes,
         'compiled_image': image_body,
         'engine_recipe': {'file': 'engine-recipe.json', 'bytes': len(original), 'sha256': recipe_hash}}
-    recipe.library_target(library)
+    if target_platform == 'linux-x64':
+        recipe.library_target(library, target_platform=target_platform,
+            original_sha256=duckdb['library_sha256'], original_bytes=body['duckdb']['bytes'])
+    else:
+        recipe.library_target(library, target_platform=target_platform)
     destination.mkdir()
     copies = {'client_host_wasm.wasm': (module, 32 * 1024 * 1024, digest),
         'client_host_wasm.cwasm': (image_path, selected.image_bytes_limit, image_item['sha256']),
-        'libduckdb.dylib': (library, 128 * 1024 * 1024, duckdb['library_sha256'])}
+        target.duckdb_file: (library, 128 * 1024 * 1024, duckdb['library_sha256'])}
     copies.update({name: (path, 1024 * 1024, notice_hashes[name]) for name, path in notices.items()})
     for name, (path, maximum, checksum) in copies.items():
         copy_original(path, destination / name, maximum, checksum)
@@ -358,7 +366,7 @@ def produce_platform(core_receipt: Path, duckdb_receipt: Path,
     wire = (json.dumps(body, indent=2) + '\n').encode('utf-8')
     require(len(wire) <= 65536, 'Ordinary component manifest exceeds its limit')
     (destination / 'artifact.json').write_bytes(wire)
-    recipe.verify_artifact(destination)
+    recipe.verify_artifact(destination, target_platform=target_platform)
     require(clean_source() == source and read_receipt(core_receipt)[1] == core_hash
         and read_receipt(duckdb_receipt)[1] == duckdb_hash
         and read_receipt(image_receipt)[1] == image_hash,
