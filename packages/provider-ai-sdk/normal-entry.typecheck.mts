@@ -39,3 +39,15 @@ void usage;
 // @ts-expect-error Only the existing full, typed-input or usage disclosure is supported.
 const unknownEvidence: NonNullable<HostInstallation['inferEvidence']> = {...usage, kind: 'tokens-debug'};
 void unknownEvidence;
+
+createOpenAIChatProvider({...options, transportTimeouts: {connectMs: 100, headersMs: 200, bodyMs: 300}});
+createOpenAIChatProvider({...options, transportTimeouts: {connectMs: 100, headersMs: 200, bodyMs: 300, callMs: 400}});
+// @ts-expect-error Only the explicit callMs field selects the total request/read clock.
+createOpenAIChatProvider({...options, transportTimeouts: {connectMs: 100, headersMs: 200, overallMs: 300}});
+// @ts-expect-error Timeout quantities are explicit finite milliseconds, not strings.
+createOpenAIChatProvider({...options, transportTimeouts: {connectMs: '100', headersMs: 200, bodyMs: 300}});
+
+import {createInstalledUndiciOpenAIChatRegistration, type UndiciOpenAIChatRegistrationOptions} from './index.js';
+declare const legacyOriginals: UndiciOpenAIChatRegistrationOptions;
+// @ts-expect-error Public low-level originals cannot carry an unbound normal configuration override.
+createInstalledUndiciOpenAIChatRegistration({...legacyOriginals, transportTimeouts: {connectMs: 1, headersMs: 1, bodyMs: 1}});
