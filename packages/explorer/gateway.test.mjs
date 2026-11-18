@@ -500,6 +500,69 @@ test('browser holds CSRF only in memory, discards old replies/401 and never retr
   }
 });
 
+test('browser original presentation refuses option overrides before sending a read', async () => {
+  let reads = 0, getters = 0;
+  const source = presentationBrowser(async () => {
+    reads++; return {runRef: ref, plan: null, explanation: {state: 'not_projected', reason: 'not_retained'}};
+  });
+  try {
+    await source.connect('bootstrap');
+    for (const options of [{ref: {...ref, namespaceId: 'foreign'}}, {locale: 'ja', ref},
+      null, [], {locale: 'fr'}, {get locale() {getters++; return 'en';}},
+      {[Symbol('ref')]: ref}]) {
+      await assert.rejects(source.runPresentation(ref, options), {code: 'ExplorerInvalidReply'});
+    }
+    assert.equal(reads, 0); assert.equal(getters, 0);
+  } finally {source.close();}
+});
+
+test('browser original presentation captures reference and locale before its pending read', async () => {
+  const original = {...ref}, options = {locale: 'ja'};
+  let release, sent;
+  const pending = new Promise(resolve => {release = resolve;});
+  const source = presentationBrowser(async body => {
+    sent = body; await pending;
+    return {runRef: {...ref}, plan: null, explanation: {state: 'not_projected', reason: 'not_retained'}};
+  });
+  try {
+    await source.connect('bootstrap');
+    const reading = source.runPresentation(original, options);
+    original.namespaceId = 'changed'; options.locale = 'en';
+    assert.deepEqual(sent, {ref, locale: 'ja'});
+    release();
+    assert.deepEqual((await reading).runRef, ref);
+  } finally {release(); source.close();}
+});
+
+test('browser original presentation rejects each foreign reply anchor without retry', async () => {
+  let reads = 0, returned;
+  const source = presentationBrowser(async body => {
+    reads++; assert.deepEqual(body, {ref, locale: 'en'});
+    return {runRef: returned, plan: null, explanation: {state: 'not_projected', reason: 'not_retained'}};
+  });
+  try {
+    await source.connect('bootstrap');
+    for (const key of ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']) {
+      returned = {...ref, [key]: key === 'namespaceId' ? 'foreign' : `sha256:${'c'.repeat(64)}`};
+      await assert.rejects(source.runPresentation(ref, {locale: 'en'}), {code: 'ExplorerInvalidReply'});
+    }
+    returned = undefined;
+    await assert.rejects(source.runPresentation(ref, {locale: 'en'}), {code: 'ExplorerInvalidReply'});
+    assert.equal(reads, 4);
+  } finally {source.close();}
+});
+
+function presentationBrowser(reply) {
+  return createExplorerBrowserSource({origin, now: () => 100, async fetch(url, options) {
+    if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
+      scopeEpoch: 1, expiresAt: 200, capabilities: {plan: false, run: true,
+        resultMetadata: true, resultPayload: false, control: false, sample: false,
+        cancellation: false, checkpointList: false, checkpointReview: false}});
+    assert.equal(url, `${origin}/api/read/run-presentation`);
+    return Response.json({scopeEpoch: 1, data: await reply(JSON.parse(options.body))});
+  }});
+}
+
 test('browser launch metadata validates shape and discards a delayed old-scope response', async () => {
   let release, calls = 0;
   const wait = new Promise(resolve => {release = resolve;});

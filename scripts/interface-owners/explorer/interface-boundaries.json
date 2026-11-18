@@ -4595,7 +4595,7 @@
     {
       "module": "packages/explorer/browser-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "03d0031d1a121c22f5072f1232c9d63a333a6e2ebb1fccb9f5c011e05793f3e7",
+      "sha256": "973b70ddf1597637b739eedc0dfbf9f426e34d0f03355e0c6790e04baaa20b74",
       "exports": [
         "createExplorerBrowserSource"
       ],
@@ -4697,7 +4697,7 @@
             "ref",
             "options"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "createExplorerBrowserSource/invalidate/invalidate",

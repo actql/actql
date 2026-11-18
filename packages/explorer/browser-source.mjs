@@ -112,7 +112,27 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
           value.run_ref.runDefinitionCid !== original.runDefinitionCid) refused('ExplorerInvalidReply');
       return value;
     },
-    runPresentation(ref, options) {return read('run-presentation', {ref, ...options});},
+    async runPresentation(ref, options) {
+      const original = Object.freeze({...ref});
+      if (!validRunRef(original)) refused('ExplorerInvalidReply');
+      let locale = 'en';
+      if (options !== undefined) {
+        if (options === null || typeof options !== 'object' || Array.isArray(options) ||
+            ![Object.prototype, null].includes(Object.getPrototypeOf(options))) refused('ExplorerInvalidReply');
+        const keys = Reflect.ownKeys(options);
+        if (keys.length > 1 || keys.length === 1 && keys[0] !== 'locale') refused('ExplorerInvalidReply');
+        const selected = Object.getOwnPropertyDescriptor(options, 'locale');
+        if (selected && !Object.hasOwn(selected, 'value')) refused('ExplorerInvalidReply');
+        if (selected?.value !== undefined) locale = selected.value;
+        if (locale !== 'en' && locale !== 'ja') refused('ExplorerInvalidReply');
+      }
+      const value = await read('run-presentation', {ref: original, locale});
+      if (!validRunRef(value?.runRef) ||
+          value.runRef.namespaceId !== original.namespaceId ||
+          value.runRef.authorityScopeCid !== original.authorityScopeCid ||
+          value.runRef.runDefinitionCid !== original.runDefinitionCid) refused('ExplorerInvalidReply');
+      return value;
+    },
     describe(ref, name) {return read('result', {ref, name});},
     async cancel(original) {
       const saved=captureCancellation(original.cancelRef,original.attemptRef);
