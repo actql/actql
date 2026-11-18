@@ -5,6 +5,7 @@ fn local_dispatch_issue(
   match issue {
     Configuration(_) => InvalidConfiguration
     ControlWorkLimit(_) => InvalidConfiguration
+    LogicalWorkLimit(_, _, _) => InvalidConfiguration
     Preparation(Candidate(issue)) => Candidate(issue)
     Preparation(NotSelected) => ForeignSelection
     Preparation(Capacity) => Run(Physical(InvalidLimits))

@@ -169,3 +169,27 @@ test "provider reference inventory follows actual task population and separates 
     }).unwrap(),
   )
 }
+
+///|
+test "original module occurrence reads identity without another capacity or provider observation" {
+  let (sequence, _, _) = chain_lifetime_fixture(chain_lifetime_select_body())
+  let (foreign, _, _) = chain_lifetime_fixture(chain_lifetime_select_body())
+  let registry = @connector.prepare_capability_registry(
+    [{ name: "local", acquisition: false, fixed_compute: true, effect: false, }],
+    1,
+    100,
+  ).unwrap()
+  let installed = prepare_local_compute_module(
+    registry,
+    @connector.capability_registration_at(registry, 0).unwrap(),
+    [sequence],
+    chain_lifetime_limits(),
+    chain_lifetime_measurement(),
+    100,
+    1,
+  ).unwrap()
+  assert_true(local_module_original_occurrence(installed, 0, sequence))
+  assert_false(local_module_original_occurrence(installed, 0, foreign))
+  assert_false(local_module_original_occurrence(installed, -1, sequence))
+  assert_false(local_module_original_occurrence(installed, 1, sequence))
+}

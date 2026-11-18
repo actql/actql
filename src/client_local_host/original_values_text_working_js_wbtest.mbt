@@ -193,6 +193,8 @@ test "original few long Values retain their complete text working demand" {
             match original {
               Configuration(_) => "OriginalValuesExecution:Configuration"
               ControlWorkLimit(_) => "OriginalValuesExecution:ControlWorkLimit"
+              LogicalWorkLimit(_, _, _) =>
+                "OriginalValuesExecution:LogicalWorkLimit"
               Preparation(_) => "OriginalValuesExecution:Preparation"
               Dispatch(_) => "OriginalValuesExecution:Dispatch"
               Execution(cause) =>
