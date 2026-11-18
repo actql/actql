@@ -476,18 +476,18 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       return Object.freeze({count, calls: Object.freeze(calls),
         cid: moon.clientProgramInferCaptureExportIdentity(exporter)});
     },
-    projectUsage(slot, maxBytes, current) {
+    beginUsage(maxBytes, current) {
       if (typeof current !== 'function') throw new Error('RequiredEvidenceUnavailable');
       current();
       if (!captureStored || !exportComplete || reclaimed || publicationCleaned ||
           fundedInferCaptureInventoryCount(captureInventory, operation) !== count ||
-          typeof publicationFunding?.projectOriginalUsage !== 'function') {
+          typeof publicationFunding?.beginOriginalUsage !== 'function') {
         throw new Error('RequiredEvidenceUnavailable');
       }
       current();
-      const wire = publicationFunding.projectOriginalUsage(operation, capture, slot, count, maxBytes);
-      current();
-      return wire;
+      // Do not run another callback between issuance and handing the same
+      // child to its consumer: refusal there could orphan a funded action.
+      return publicationFunding.beginOriginalUsage(operation, capture, count, maxBytes);
     },
     // This immutable original is available only after the existing Store
     // commit. It conveys no read/capture permission and retains no new owner.

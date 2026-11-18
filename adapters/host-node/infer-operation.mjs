@@ -1186,8 +1186,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // original Run Ledger. Missing/refused selection never falls back.
       originalPublicationCapacity = checked(moon.clientProgramReserveOriginalInferPublicationCapacity(
         active, retained.value, workspace.value));
-      publicationBaseRetained = publicationHeldRetained = retained.value;
-      publicationBaseExecution = publicationHeldExecution = workspace.value;
+      // Common reserves the carrier's structural delta before constructing
+      // even its None case. Subsequent absolute grows start at that actual
+      // extent, never the supplier's payload-only input or a repeated delta.
+      publicationBaseRetained = publicationHeldRetained =
+        moon.clientProgramOriginalInferPublicationRetainedBytes(originalPublicationCapacity);
+      publicationBaseExecution = publicationHeldExecution =
+        moon.clientProgramOriginalInferPublicationExecutionBytes(originalPublicationCapacity);
     },
     // Actual next scan/writer construction, in addition to this same original
     // publication's retained controls. Covered phases make no extra Resource
@@ -1272,29 +1277,22 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       }
       assertRuntimeCurrent?.();
     },
-    projectOriginalUsage(source, capture, slot, count, maxBytes) {
+    beginOriginalUsage(source, capture, count, maxBytes) {
       if (closing || reclaimed || originalPublicationCapacity === undefined ||
           !originalOperations.has(source) || !operation.originalMaterializationCurrent(source, count) ||
-          typeof moon.clientProgramOriginalInferUsageProjection !== 'function' ||
-          !codecInt(slot) || slot >= count || !codecInt(maxBytes, true) || maxBytes > 1048576) {
+          typeof moon.clientProgramBeginOriginalInferUsagePublication !== 'function') {
         throw new Error('RequiredEvidenceUnavailable');
       }
       assertRuntimeCurrent?.();
-      const projected = checked(moon.clientProgramOriginalInferUsageProjection(activeOperations.get(source),
-        originalPublicationCapacity, capture, slot,
+      const usage = checked(moon.clientProgramBeginOriginalInferUsagePublication(activeOperations.get(source),
+        originalPublicationCapacity, capture,
         publicationBaseRetained + publicationMaterializationRetained,
         publicationBaseExecution + publicationMaterializationRetained, maxBytes));
-      // Core owns both actual grows, including any grow retained on failure.
-      // These cells only cache a successful covered lower bound; they never
-      // refund or replace the original reservation's authoritative extents.
-      const retained = runtimeField(projected, 1), execution = runtimeField(projected, 2);
-      publicationHeldRetained = retained > publicationHeldRetained ? retained : publicationHeldRetained;
-      publicationHeldExecution = execution > publicationHeldExecution ? execution : publicationHeldExecution;
-      if (closing || reclaimed || !operation.originalMaterializationCurrent(source, count)) {
-        throw new Error('RequiredEvidenceUnavailable');
-      }
-      assertRuntimeCurrent?.();
-      return runtimeField(projected, 0);
+      // The actual same-owner continuation now pins this capacity even when
+      // a later Host current callback refuses. Its matching child owns cleanup.
+      publicationHeldRetained = moon.clientProgramOriginalInferPublicationRetainedBytes(originalPublicationCapacity);
+      publicationHeldExecution = moon.clientProgramOriginalInferPublicationExecutionBytes(originalPublicationCapacity);
+      return usage;
     },
     publicationCapacityPending: () => originalPublicationCapacity !== undefined,
     releaseOriginalPublicationCapacity() {

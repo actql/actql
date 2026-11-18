@@ -43,6 +43,23 @@ pub fn native_client_mock_model_observation_capacity(
 // The existing finite flat-observation protocol allowance belongs at issuer
 // construction with this terminal original's actual row count, not in the
 // pre-execution Plan as a row/file output maximum.
+fn native_mock_publication_actual_capacity(
+  payload : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity? {
+  guard @model.original_model_publication_payload_extent(
+      @execution.execution_capacity_retained_bytes(payload),
+    )
+    is Some(retained) &&
+    @model.original_model_publication_payload_extent(
+      @execution.execution_capacity_execution_bytes(payload),
+    )
+    is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(retained, execution)
+}
+
+///|
 fn NativeClientMockModelWork::observation_issuer_capacity(
   self : Self,
 ) -> @execution.ExecutionCapacity? {
@@ -59,7 +76,14 @@ fn NativeClientMockModelWork::observation_issuer_capacity(
     @execution.execution_capacity(metadata, metadata) is Some(issuer) else {
     return None
   }
-  @execution.add_execution_capacity(self._retained_observation_capacity, issuer)
+  guard @execution.add_execution_capacity(
+      self._retained_observation_capacity,
+      issuer,
+    )
+    is Some(payload) else {
+    return None
+  }
+  native_mock_publication_actual_capacity(payload)
 }
 
 ///|
@@ -76,6 +100,9 @@ fn NativeClientMockModelWork::grow_observation_capacity(
     self.publication_capacity is Some(capacity) else {
     return Err(ForeignOriginal)
   }
+  // Both issuer and local projection now supply ACTUAL absolute extents.
+  // A local projection starts at held bytes; converting it again would debit
+  // the carrier twice and expose that debit as spare body-scan capacity.
   let retained = @execution.execution_capacity_retained_bytes(required)
   let execution = @execution.execution_capacity_execution_bytes(required)
   if retained <= self.publication_retained &&
@@ -182,6 +209,8 @@ pub fn NativeClientMockModelWork::observation_capacity(
     !physical_equal(self.graph, graph) {
     None
   } else {
-    Some(self._retained_observation_capacity)
+    // The immutable Request Plan must include the new None carrier before
+    // opening the Model. Keep the stored base payload-only for reserve.
+    native_mock_publication_actual_capacity(self._retained_observation_capacity)
   }
 }

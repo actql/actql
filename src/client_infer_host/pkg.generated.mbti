@@ -51,6 +51,8 @@ pub fn advance_stopped_attempt_raw_usage(Execution, Int, Int) -> Result[(Bool, I
 
 pub fn attempt_evidence(Execution, Int) -> Result[@model_execution.ModelAttemptEvidence, @model_execution.ModelExecutionIssue]
 
+pub fn begin_original_infer_usage_publication(Execution, @model_execution.OriginalModelPublicationCapacity, @model_execution.VerifiedModelCapture, Int64, Int64, Int) -> Result[OriginalInferUsagePublication, Issue]
+
 pub fn begin_original_model_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelExecutionLimits, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, Issue]
 
 pub fn begin_original_model_resource_invalidation(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin]) -> Result[@physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin], Issue]
@@ -193,13 +195,27 @@ pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn model_cleanup_progress(Execution) -> Int
 
+pub fn next_original_infer_usage_action(OriginalInferUsagePublication) -> Result[@model_execution.ModelUsageAction?, Issue]
+
 pub fn observation_issuance_slot_outcome(ObservationIssuance, Int) -> String?
 
 pub fn observation_issuance_source_originals(ObservationIssuance) -> Array[@run_publication.RunEvidenceValue]?
 
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
 
+pub fn observe_original_infer_usage_action(OriginalInferUsagePublication, @model_execution.ModelUsageAction, @model_execution.ModelUsageObservation) -> Result[Unit, Issue]
+
 pub fn original_infer_capture_inventory_capacity(Execution, @model_execution.OriginalModelPublicationCapacity) -> Result[(Int, Int64, Int64), Issue]
+
+pub fn original_infer_usage_binding_matches(OriginalInferUsagePublication, @model_execution.ModelUsageAction, String, String) -> Bool
+
+pub fn original_infer_usage_completion(OriginalInferUsagePublication) -> @model_execution.ModelUsageCompletion
+
+pub fn original_infer_usage_item(OriginalInferUsagePublication, Int) -> (Int, @model_execution.ModelUsageCompletion)?
+
+pub fn original_infer_usage_item_attempt(OriginalInferUsagePublication, Int) -> String?
+
+pub fn original_infer_usage_item_count(OriginalInferUsagePublication) -> Int
 
 pub fn original_local_model_observation_body(LocalModelObservation) -> @run_publication.CapturedEffectDependencyBody?
 
@@ -347,6 +363,8 @@ pub fn start_result_publication(InvocationBinding, Int, @run_publication_host.Pu
 
 pub fn start_serialized(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedOutput, @model_execution.ModelProvider, Limits) -> Result[Execution, Issue]
 
+pub fn stop_original_infer_usage_publication(OriginalInferUsagePublication) -> Unit
+
 pub fn stopped_attempt_count(Execution) -> Int?
 
 pub fn stopped_attempt_slot(Execution, Int) -> Int?
@@ -473,6 +491,12 @@ pub(all) struct ObservationIssuanceLimits {
 type ObservationIssuanceState
 
 type OriginalInferIdentityBody
+
+pub struct OriginalInferUsagePublication {
+  mut active : Execution?
+  mut publication : @model_execution.ModelUsagePublication?
+  mut advancing : Bool
+}
 
 type OriginalModelCurrentStateDecode
 
