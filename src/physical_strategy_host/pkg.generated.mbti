@@ -1001,6 +1001,8 @@ pub fn stop_captured_dag(CapturedDAG) -> Unit
 
 pub fn strategy_assessment(StrategyRevision) -> StrategyAssessment
 
+pub fn strategy_assessment_rejection_code(StrategyAssessment) -> String?
+
 pub fn strategy_choice_assessment(StrategyChoiceSet, Int) -> StrategyAssessment?
 
 pub fn strategy_choice_count(StrategyChoiceSet) -> Int
@@ -1020,6 +1022,8 @@ pub fn strategy_policy_candidates(StrategyChoiceSet) -> PolicyCandidateSet?
 pub fn strategy_registration(StrategyRevision, Int) -> @connector_sdk.CapabilityRegistration?
 
 pub fn strategy_report_at(CapturedDAG, Int) -> StrategyAssessment?
+
+pub fn strategy_report_complete(CapturedDAG) -> Bool
 
 pub fn strategy_report_count(CapturedDAG) -> Int
 

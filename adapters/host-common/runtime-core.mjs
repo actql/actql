@@ -1,6 +1,7 @@
 import {installedEffectDependencyOriginal} from './installed-effect-dependency-original.mjs';
 import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
+import {rememberOriginalDispatchFailure} from './dispatch-failure-observation.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
 import {publicationAction} from './publication-action.mjs';
@@ -1924,6 +1925,8 @@ function publicationControl(moon) {
   const originalExplanationPlanWire = moon.clientProgramOriginalExplanationPlanWire;
   const originalExplanationFactsWire = moon.clientProgramOriginalExplanationFactsWire;
   const returnExplanationCapture = moon.clientProgramReturnOriginalExplanationCapture;
+  const acknowledgeExplanationCapture = moon.clientProgramAcknowledgeOriginalExplanationCapture;
+  const observeOriginalDispatchFailure = moon.clientProgramObserveOriginalDispatchFailure;
   const prepareLogicalObservation = moon.clientProgramPrepareLogicalObservation;
   const originalInferRunTokens = new WeakMap();
   const restoredInferRuns = new WeakSet();
@@ -2772,7 +2775,7 @@ function publicationControl(moon) {
       if (explanation === undefined || !explanation.offered) {
         throw new TypeError('Foreign Client original explanation acknowledgement');
       }
-      if (explanation.acknowledged && explanation.scope === undefined) return;
+      if (explanation.acknowledged && (explanation.scope === undefined || explanation.dispatchReady)) return;
       if (explanation.returning) throw new TypeError('RunHostOriginalExplanationCleanupPending');
       // The Journal has already dropped its transient Facts aliases after
       // actual COMMIT. Cut the last new managed payload BEFORE lower return
@@ -2782,10 +2785,32 @@ function publicationControl(moon) {
       explanation.acknowledged = true;
       explanation.returning = true;
       try {
-        compiledRunResult(Reflect.apply(returnExplanationCapture, moon, [
-          explanation.scope]), 'RunHostOriginalExplanationCleanupPending');
-        explanation.scope = undefined;
+        if (typeof acknowledgeExplanationCapture === 'function') {
+          // The existing manager owns this SAME borrow through execution.
+          // Journal ACK drops only committed payload aliases, not that owner.
+          compiledRunResult(Reflect.apply(acknowledgeExplanationCapture, moon, [
+            explanation.scope]), 'RunHostOriginalExplanationCleanupPending');
+          explanation.dispatchReady = true;
+        } else {
+          // Old namespaces cannot supply a post-ACK original observation.
+          compiledRunResult(Reflect.apply(returnExplanationCapture, moon, [
+            explanation.scope]), 'RunHostOriginalExplanationCleanupPending');
+          explanation.scope = undefined;
+        }
       } finally {explanation.returning = false;}
+    },
+    originalClientDispatchFailureAvailable(selected) {
+      // Facility DATA only: the actual read still checks current and the SAME
+      // Core owners. Unselected/old profiles allocate no observation callback.
+      const explanation = originalRunPlanTokens.get(selected)?.explanation;
+      return explanation?.dispatchReady === true && !explanation.returning &&
+        explanation.scope !== undefined && typeof observeOriginalDispatchFailure === 'function';
+    },
+    observeOriginalClientDispatchFailure(selected, host) {
+      const explanation = originalRunPlanTokens.get(selected)?.explanation;
+      if (explanation?.dispatchReady !== true || explanation.returning ||
+          explanation.scope === undefined || typeof observeOriginalDispatchFailure !== 'function') return undefined;
+      return checked(Reflect.apply(observeOriginalDispatchFailure, moon, [explanation.scope, host]));
     },
     readStoredRunPlanOriginal(original, definition, programCid, limits) {
       token(definition);
@@ -8838,7 +8863,17 @@ export function runtimeCore(moon) {
         });
       }));
     },
-    next: value => checked(moon.strategyHostNext(value)),
+    next: (value, observeFailure) => {
+      const result = moon.strategyHostNext(value);
+      try { return checked(result); }
+      catch (original) {
+        if (runtimeIsError(result) && typeof observeFailure === 'function') {
+          try { rememberOriginalDispatchFailure(original, observeFailure(value)); }
+          catch { /* Optional observation cannot replace this original failure. */ }
+        }
+        throw original;
+      }
+    },
     nextTask: moon.strategyHostNextTask,
     managedProducer: moon.strategyHostManagedProducer,
     managedProducers: moon.strategyHostManagedProducers,

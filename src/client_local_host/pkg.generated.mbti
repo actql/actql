@@ -61,6 +61,8 @@ pub fn accounted_client_source_original_read(ClientAccountedSourceCapture) -> @e
 
 pub fn acknowledge_client_local_content_piece(ClientLocalContentStep, Int) -> Bool
 
+pub fn acknowledge_installed_original_explanation_capture(ClientOriginalExplanationCapture) -> Result[Unit, ClientOriginalExplanationCaptureIssue]
+
 pub fn admit_installed_effect_captured_run(ClientInstalledEffectCaptureRecovery, String) -> Result[@run_publication.PreparedCapturedEffectRun, ClientInstalledManagedRunIssue]
 
 pub fn[I] admit_request_effect_captured_run(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String) -> Result[@run_publication.PreparedCapturedEffectRun, ClientRequestPreparationIssue]
@@ -836,6 +838,8 @@ pub fn logical_observation_record_state(ClientLogicalObservationRecord) -> Resul
 pub fn[I] lower_request_published_query(ClientRequestPreparation[I], I, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String?, public_primary? : Bool, binding_limits? : @value_admission.Limits?) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), ClientRequestQueryLoweringIssue]
 
 pub fn mark_installed_effect_operation_transfer_uncertain(ClientInstalledEffectOperationBorrow, Int64) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn observe_installed_original_dispatch_failure(ClientOriginalExplanationCapture, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Result[(String, String, Int, Int, Bool, Bool, Array[(Int, String?)], String)?, ClientOriginalExplanationCaptureIssue]
 
 pub fn open_captured_local_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, ClientInstalledSequenceContracts, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 

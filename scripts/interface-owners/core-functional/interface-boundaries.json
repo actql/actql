@@ -9992,6 +9992,150 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:observeOriginalClientDispatchFailure/init:observeOriginalClientDispatchFailure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Original adaptive failure observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "pub fn observe_installed_original_dispatch_failure("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "physical_equal(original, captured)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_explanation_capture.mbt",
+                "anchor": "pub fn acknowledge_installed_original_explanation_capture("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "value.dispatch_failure_observed = true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "catch { /* Optional observation cannot replace this original failure. */ }"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "guard require_installed_managed_run(run) is Ok(_)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "let original_dispatch_failure_fixed_bytes : Int64 = 424L"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Old namespaces without this connection retain unavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure_js_wbtest.mbt",
+                "anchor": "test \"original adaptive refusal projects bounded same-owner DATA"
+              },
+              {
+                "path": "adapters/host-node/dispatch-failure-observation.test.mjs",
+                "anchor": "test('actual imported next retains its original Err"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:originalClientDispatchFailureAvailable/init:originalClientDispatchFailureAvailable"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Original adaptive failure observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "pub fn observe_installed_original_dispatch_failure("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "physical_equal(original, captured)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_explanation_capture.mbt",
+                "anchor": "pub fn acknowledge_installed_original_explanation_capture("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "value.dispatch_failure_observed = true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "catch { /* Optional observation cannot replace this original failure. */ }"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "guard require_installed_managed_run(run) is Ok(_)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "let original_dispatch_failure_fixed_bytes : Int64 = 424L"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Old namespaces without this connection retain unavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure_js_wbtest.mbt",
+                "anchor": "test \"original adaptive refusal projects bounded same-owner DATA"
+              },
+              {
+                "path": "adapters/host-node/dispatch-failure-observation.test.mjs",
+                "anchor": "test('actual imported next retains its original Err"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -14468,6 +14612,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:observeOriginalClientDispatchFailure/init:observeOriginalClientDispatchFailure",
+          "parameters": [
+            "selected",
+            "host"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
           "parameters": [
             "compiled",
@@ -14555,6 +14707,13 @@
             "allowed",
             "definition",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:originalClientDispatchFailureAvailable/init:originalClientDispatchFailureAvailable",
+          "parameters": [
+            "selected"
           ],
           "async": false
         },
@@ -19024,7 +19183,8 @@
         {
           "name": "runtimeCore/runtimeCore#3",
           "parameters": [
-            "value"
+            "value",
+            "observeFailure"
           ],
           "async": false
         },
@@ -19153,6 +19313,7 @@
       "imports": [
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
+        "./dispatch-failure-observation.mjs",
         "./installation-preparation-metadata.mjs",
         "./installed-effect-dependency-original.mjs",
         "./ledger-contract.generated.mjs",
@@ -19163,7 +19324,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "cf5877f525245a23c1c7d8ac4dcad6ff64ec01c2dbd8877545836d763ae0f59e"
+      "sha256": "f71b16e6494e042143fabc041178e2281fe2b63ea14368e46a7baa6b5041451a"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -49116,7 +49277,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4e8bc915c164c58620ca7cf756f8dd79f3f1ba6f5c5df3731f13244078acd519",
+      "sha256": "4a03e34e2370e2e8e8a7f7a2fcad0512c5ea9a813d01bef0da877f25ed198120",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -66270,6 +66431,328 @@
             "client_program_return_request_original_explanation"
           ],
           "exports": []
+        },
+        {
+          "operations": [
+            "client_program_acknowledge_original_explanation_capture",
+            "client_program_observe_original_dispatch_failure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Original adaptive failure observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "pub fn observe_installed_original_dispatch_failure("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "physical_equal(original, captured)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_explanation_capture.mbt",
+                "anchor": "pub fn acknowledge_installed_original_explanation_capture("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "value.dispatch_failure_observed = true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "catch { /* Optional observation cannot replace this original failure. */ }"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "guard require_installed_managed_run(run) is Ok(_)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "let original_dispatch_failure_fixed_bytes : Int64 = 424L"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Old namespaces without this connection retain unavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure_js_wbtest.mbt",
+                "anchor": "test \"original adaptive refusal projects bounded same-owner DATA"
+              },
+              {
+                "path": "adapters/host-node/dispatch-failure-observation.test.mjs",
+                "anchor": "test('actual imported next retains its original Err"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_attach_logical_observation",
+            "client_program_begin_logical_observation",
+            "client_program_capture_logical_observation_record",
+            "client_program_logical_observation_cleanup",
+            "client_program_logical_observation_record_key",
+            "client_program_logical_observation_record_phase",
+            "client_program_logical_observation_record_state",
+            "client_program_prepare_logical_observation",
+            "client_program_return_logical_observation",
+            "client_program_return_logical_observation_record"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "# Node Host observation boundary"
+              },
+              {
+                "path": "src/client_local_host/preparation_logical_observation.mbt",
+                "anchor": "struct ClientLogicalObservation {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "# Node Host observation boundary"
+              },
+              {
+                "path": "src/client_local_host/preparation_logical_observation.mbt",
+                "anchor": "struct ClientLogicalObservation {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "# Node Host observation boundary"
+              },
+              {
+                "path": "src/client_local_host/preparation_logical_observation.mbt",
+                "anchor": "struct ClientLogicalObservation {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "# Node Host observation boundary"
+              },
+              {
+                "path": "src/client_local_host/preparation_logical_observation.mbt",
+                "anchor": "struct ClientLogicalObservation {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "# Node Host observation boundary"
+              },
+              {
+                "path": "src/client_local_host/preparation_logical_observation.mbt",
+                "anchor": "struct ClientLogicalObservation {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "# Node Host observation boundary"
+              },
+              {
+                "path": "src/client_local_host/preparation_logical_observation.mbt",
+                "anchor": "struct ClientLogicalObservation {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "# Node Host observation boundary"
+              },
+              {
+                "path": "src/client_local_host/preparation_logical_observation.mbt",
+                "anchor": "struct ClientLogicalObservation {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "# Node Host observation boundary"
+              },
+              {
+                "path": "src/client_local_host/preparation_logical_observation.mbt",
+                "anchor": "struct ClientLogicalObservation {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "# Node Host observation boundary"
+              },
+              {
+                "path": "src/client_local_host/preparation_logical_observation.mbt",
+                "anchor": "struct ClientLogicalObservation {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_logical_observation_overlap_js_wbtest.mbt",
+                "anchor": "test \"ordinary manager admission registry dispatch and Host holders"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_node_model_deadline_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory.mbt",
+                "anchor": "pub fn installed_node_model_deadline_capacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory.mbt",
+                "anchor": "pub fn installed_node_model_deadline_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory.mbt",
+                "anchor": "pub fn installed_node_model_deadline_capacity("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory.mbt",
+                "anchor": "pub fn installed_node_model_deadline_capacity("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory.mbt",
+                "anchor": "pub fn installed_node_model_deadline_capacity("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory.mbt",
+                "anchor": "pub fn installed_node_model_deadline_capacity("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory.mbt",
+                "anchor": "pub fn installed_node_model_deadline_capacity("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory.mbt",
+                "anchor": "pub fn installed_node_model_deadline_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory.mbt",
+                "anchor": "pub fn installed_node_model_deadline_capacity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/model_async_host_control_inventory_wbtest.mbt",
+                "anchor": "test \""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_node_model_sdk_v4_request_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "pub fn installed_node_model_sdk_v4_request_capacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "pub fn installed_node_model_sdk_v4_request_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "pub fn installed_node_model_sdk_v4_request_capacity("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "pub fn installed_node_model_sdk_v4_request_capacity("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "pub fn installed_node_model_sdk_v4_request_capacity("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "pub fn installed_node_model_sdk_v4_request_capacity("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "pub fn installed_node_model_sdk_v4_request_capacity("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "pub fn installed_node_model_sdk_v4_request_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "pub fn installed_node_model_sdk_v4_request_capacity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity_wbtest.mbt",
+                "anchor": "test \""
+              }
+            ]
+          }
         }
       ],
       "exports": [],
@@ -66277,6 +66760,10 @@
         {
           "name": "client_program_abort_request_preparation",
           "declaration": "client_program_abort_request_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "client_program_acknowledge_original_explanation_capture",
+          "declaration": "client_program_acknowledge_original_explanation_capture ( original : @ client_local_host . ClientOriginalExplanationCapture , ) - > Result [ Unit , @ client_local_host . ClientOriginalExplanationCaptureIssue ]"
         },
         {
           "name": "client_program_adopt_request_capture_preparation",
@@ -66319,6 +66806,10 @@
           "declaration": "client_program_advance_program_json_preparation ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , quantum : Int , ) - > Result [ @ source . JsonSourcePreflightPoll , @ client_local_host . ClientProgramJsonPreparationIssue , ]"
         },
         {
+          "name": "client_program_attach_logical_observation",
+          "declaration": "client_program_attach_logical_observation ( value : @ client_local_host . ClientLogicalObservation , run : @ strategy . CapturedDAG , ) - > Result [ Unit , @ client_local_host . ClientLogicalObservationIssue ]"
+        },
+        {
           "name": "client_program_begin_host_initialization_preparation",
           "declaration": "client_program_begin_host_initialization_preparation ( initial : @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Result [ @ client_local_host . ClientHostInitializationPreparation [ ClientLocalPreparationInputOriginal , ] , @ client_local_host . ClientHostInitializationIssue , ]"
         },
@@ -66333,6 +66824,10 @@
         {
           "name": "client_program_begin_installed_effect_capture_validation",
           "declaration": "client_program_begin_installed_effect_capture_validation ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_begin_logical_observation",
+          "declaration": "client_program_begin_logical_observation ( value : @ client_local_host . ClientLogicalObservation , phase : String , ) - > Result [ @ client_local_host . ClientLogicalObservationRecord , @ client_local_host . ClientLogicalObservationIssue , ]"
         },
         {
           "name": "client_program_begin_request_explanation_read",
@@ -66365,6 +66860,10 @@
         {
           "name": "client_program_borrow_request_program_preparation",
           "declaration": "client_program_borrow_request_program_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , @ client_local_host . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_capture_logical_observation_record",
+          "declaration": "client_program_capture_logical_observation_record ( value : @ client_local_host . ClientLogicalObservationRecord , ) - > Result [ Unit , @ client_local_host . ClientLogicalObservationIssue ]"
         },
         {
           "name": "client_program_capture_request_original_explanation",
@@ -66455,8 +66954,32 @@
           "declaration": "client_program_installed_node_model_deadline_capacity ( ) - > Array [ Int64 ]"
         },
         {
+          "name": "client_program_installed_node_model_sdk_v4_request_capacity",
+          "declaration": "client_program_installed_node_model_sdk_v4_request_capacity ( max_rows : Int , max_request_bytes : Int , projection_nodes : Int , projection_depth : Int , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "client_program_logical_observation_cleanup",
+          "declaration": "client_program_logical_observation_cleanup ( result : Result [ @ client_local_host . ClientLogicalObservation , @ client_local_host . ClientLogicalObservationIssue , ] , ) - > @ client_local_host . ClientLogicalObservation ?"
+        },
+        {
+          "name": "client_program_logical_observation_record_key",
+          "declaration": "client_program_logical_observation_record_key ( value : @ client_local_host . ClientLogicalObservationRecord , ) - > Result [ String , @ client_local_host . ClientLogicalObservationIssue ]"
+        },
+        {
+          "name": "client_program_logical_observation_record_phase",
+          "declaration": "client_program_logical_observation_record_phase ( value : @ client_local_host . ClientLogicalObservationRecord , ) - > Result [ String , @ client_local_host . ClientLogicalObservationIssue ]"
+        },
+        {
+          "name": "client_program_logical_observation_record_state",
+          "declaration": "client_program_logical_observation_record_state ( value : @ client_local_host . ClientLogicalObservationRecord , ) - > Result [ String , @ client_local_host . ClientLogicalObservationIssue ]"
+        },
+        {
           "name": "client_program_lower_request_published_query",
           "declaration": "client_program_lower_request_published_query ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , publication : @ source_publication . PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , declarations : String ? , public_primary : Bool , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
+        },
+        {
+          "name": "client_program_observe_original_dispatch_failure",
+          "declaration": "client_program_observe_original_dispatch_failure ( original : @ client_local_host . ClientOriginalExplanationCapture , host : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , ) - > Result [ ( String , String , Int , Int , Bool , Bool , Array [ ( Int , String ? ) ] , String ) ? , @ client_local_host . ClientOriginalExplanationCaptureIssue , ]"
         },
         {
           "name": "client_program_open_request_model_recovery_host",
@@ -66485,6 +67008,10 @@
         {
           "name": "client_program_prepare_local_preparation_admission",
           "declaration": "client_program_prepare_local_preparation_admission ( original : @ resources . OriginalNodeManagedRunReference , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . NodePreparationAdmission [ ClientLocalPreparationInputOriginal ] , @ resources . ImportedChildLedgerIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_logical_observation",
+          "declaration": "client_program_prepare_logical_observation ( run : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , bytes : Int , nodes : Int , depth : Int , ) - > Result [ @ client_local_host . ClientLogicalObservation , @ client_local_host . ClientLogicalObservationIssue , ]"
         },
         {
           "name": "client_program_prepare_program_check_carriers",
@@ -66851,6 +67378,14 @@
           "declaration": "client_program_retire_installed_effect_capture_recovery ( original : @ client_local_host . ClientInstalledEffectCaptureRecovery , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "client_program_return_logical_observation",
+          "declaration": "client_program_return_logical_observation ( value : @ client_local_host . ClientLogicalObservation , ) - > Result [ Bool , @ client_local_host . ClientLogicalObservationIssue ]"
+        },
+        {
+          "name": "client_program_return_logical_observation_record",
+          "declaration": "client_program_return_logical_observation_record ( value : @ client_local_host . ClientLogicalObservationRecord , ) - > Unit"
+        },
+        {
           "name": "client_program_return_original_explanation_capture",
           "declaration": "client_program_return_original_explanation_capture ( original : @ client_local_host . ClientOriginalExplanationCapture , ) - > Result [ Bool , @ resources . PreparationCapacityIssue ]"
         },
@@ -66875,7 +67410,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "260681c301733023b1ac51f24955e51cfb6136a035e8742cae4408c1a08d2563"
+      "sha256": "d573ba9bf65122f233c4cc0ea89aa449cea07ff244b91a7a90e1e4c46d4c649f"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -104658,7 +105193,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-diagnostic.mjs",
-      "sha256": "afd9e292311e05b96c34e133670a29ab2aa7c9090ff32adf51f8f5b3196f894a",
+      "sha256": "879beea10ca5313469a5dde89a581fc0aa98a2bab7263f9ab7edbb6c3b89ce1b",
       "exports": [
         "dispatchFailureSnapshot",
         "publicBudgetFailureMessage",
@@ -104704,7 +105239,9 @@
           "async": false
         }
       ],
-      "imports": [],
+      "imports": [
+        "../host-common/dispatch-failure-observation.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "observation-presentation",
@@ -107940,6 +108477,127 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-common/dispatch-failure-observation.mjs",
+      "sha256": "5a8e11a19fad15eb7ade4da5fca803c2ec87fe7b2ed4cbd0f2076b17f6992a4c",
+      "exports": [
+        "originalDispatchFailureSnapshot",
+        "rememberOriginalDispatchFailure"
+      ],
+      "operations": [
+        {
+          "name": "originalDispatchFailureSnapshot",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "rememberOriginalDispatchFailure",
+          "parameters": [
+            "error",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "rememberOriginalDispatchFailure/assessments/assessments",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "observation-presentation",
+      "responsibilityFacet": "primary",
+      "owner": "Existing Common original capture/dispatch and SAME Request cleanup; bounded inert failure DATA only",
+      "referenceQualification": "Source/component responsibility; not normal acceptance or authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "originalDispatchFailureSnapshot",
+            "rememberOriginalDispatchFailure",
+            "rememberOriginalDispatchFailure/assessments/assessments"
+          ],
+          "exports": [
+            "originalDispatchFailureSnapshot",
+            "rememberOriginalDispatchFailure"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Original adaptive failure observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "pub fn observe_installed_original_dispatch_failure("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "physical_equal(original, captured)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_explanation_capture.mbt",
+                "anchor": "pub fn acknowledge_installed_original_explanation_capture("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "value.dispatch_failure_observed = true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "catch { /* Optional observation cannot replace this original failure. */ }"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "guard require_installed_managed_run(run) is Ok(_)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "let original_dispatch_failure_fixed_bytes : Int64 = 424L"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Old namespaces without this connection retain unavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure_js_wbtest.mbt",
+                "anchor": "test \"original adaptive refusal projects bounded same-owner DATA"
+              },
+              {
+                "path": "adapters/host-node/dispatch-failure-observation.test.mjs",
+                "anchor": "test('actual imported next retains its original Err"
               }
             ]
           }

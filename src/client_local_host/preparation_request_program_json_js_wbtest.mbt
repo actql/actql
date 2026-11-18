@@ -231,13 +231,18 @@ fn request_json_expected_bootstrap_control() -> Int64 {
   // Existing query diagnostic's pipeline-issue Some and name Some, including
   // both tags. The borrowed original name is not copied into public DATA.
   let original_parameter_projection = 16L * 2L + 8L * 2L + 8L * 2L
+  // The base expansion above predates the seventh logical-observation role.
+  // Count BOTH it and the eighth original explanation holder independently:
+  // each Map entry/growth4H/11R/13W plus three scalar order words.
+  let original_observation_holders = 2L * (16L * 4L + 8L * 11L + 8L * 16L)
   original_controls +
   original_work_issue +
   returned_code +
   original_error_association +
   original_authoring_aliases +
   original_problem_category +
-  original_parameter_projection
+  original_parameter_projection +
+  original_observation_holders
 }
 
 ///|

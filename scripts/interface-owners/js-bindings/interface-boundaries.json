@@ -25676,6 +25676,150 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:observeOriginalClientDispatchFailure/init:observeOriginalClientDispatchFailure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Original adaptive failure observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "pub fn observe_installed_original_dispatch_failure("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "physical_equal(original, captured)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_explanation_capture.mbt",
+                "anchor": "pub fn acknowledge_installed_original_explanation_capture("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "value.dispatch_failure_observed = true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "catch { /* Optional observation cannot replace this original failure. */ }"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "guard require_installed_managed_run(run) is Ok(_)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "let original_dispatch_failure_fixed_bytes : Int64 = 424L"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Old namespaces without this connection retain unavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure_js_wbtest.mbt",
+                "anchor": "test \"original adaptive refusal projects bounded same-owner DATA"
+              },
+              {
+                "path": "adapters/host-node/dispatch-failure-observation.test.mjs",
+                "anchor": "test('actual imported next retains its original Err"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:originalClientDispatchFailureAvailable/init:originalClientDispatchFailureAvailable"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Original adaptive failure observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "pub fn observe_installed_original_dispatch_failure("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "physical_equal(original, captured)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_explanation_capture.mbt",
+                "anchor": "pub fn acknowledge_installed_original_explanation_capture("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "value.dispatch_failure_observed = true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "catch { /* Optional observation cannot replace this original failure. */ }"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "guard require_installed_managed_run(run) is Ok(_)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "let original_dispatch_failure_fixed_bytes : Int64 = 424L"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Old namespaces without this connection retain unavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure_js_wbtest.mbt",
+                "anchor": "test \"original adaptive refusal projects bounded same-owner DATA"
+              },
+              {
+                "path": "adapters/host-node/dispatch-failure-observation.test.mjs",
+                "anchor": "test('actual imported next retains its original Err"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -30152,6 +30296,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:observeOriginalClientDispatchFailure/init:observeOriginalClientDispatchFailure",
+          "parameters": [
+            "selected",
+            "host"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
           "parameters": [
             "compiled",
@@ -30239,6 +30391,13 @@
             "allowed",
             "definition",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:originalClientDispatchFailureAvailable/init:originalClientDispatchFailureAvailable",
+          "parameters": [
+            "selected"
           ],
           "async": false
         },
@@ -34708,7 +34867,8 @@
         {
           "name": "runtimeCore/runtimeCore#3",
           "parameters": [
-            "value"
+            "value",
+            "observeFailure"
           ],
           "async": false
         },
@@ -34837,6 +34997,7 @@
       "imports": [
         "../../packages/client-wire/index.mjs",
         "./compiler-binding.generated.mjs",
+        "./dispatch-failure-observation.mjs",
         "./installation-preparation-metadata.mjs",
         "./installed-effect-dependency-original.mjs",
         "./ledger-contract.generated.mjs",
@@ -34847,7 +35008,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "cf5877f525245a23c1c7d8ac4dcad6ff64ec01c2dbd8877545836d763ae0f59e"
+      "sha256": "f71b16e6494e042143fabc041178e2281fe2b63ea14368e46a7baa6b5041451a"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

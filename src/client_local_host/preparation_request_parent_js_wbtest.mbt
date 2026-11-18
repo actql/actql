@@ -266,6 +266,11 @@ test "fixed Request control envelope preserves original upper bound through the 
     // growth backing4H/11R/13W plus three scalar order words.
     16L * 4L +
     8L * 11L +
+    8L * 16L +
+    // Eighth original explanation holder coexists after its payload ACK:
+    // same Map/order census4H/11R/16W, no separate admission or Ledger.
+    16L * 4L +
+    8L * 11L +
     8L * 16L
   assert_eq(
     @execution.preparation_representation_cost(

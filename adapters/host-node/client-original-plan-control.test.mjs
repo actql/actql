@@ -212,3 +212,48 @@ test('loan return reentry and declined cleanup retain only the original token an
   f.control.originalRunExplanationAdmissionAcknowledged(ticket,f.run,request.programDefinitionCid,evidence);
   assert.equal(returns,2);assert.equal(explanation.scope,undefined);
 });
+
+test('payload ACK keeps SAME original capture for dispatch until manager cleanup without reissuing or retrying', () => {
+  const preparation = {}, scope = {}, setup = {}, originalFacts = {};
+  const explanation = {preparation, scope: undefined, factsWire: undefined,
+    offered: false, acknowledged: false, returning: false, dispatchReady: false, journal: {}};
+  let f, ticket, acknowledged = 0, returned = 0, observations = 0;
+  f = fixture({
+    clientProgramCaptureRequestOriginalExplanation: () => ok(scope),
+    clientProgramOriginalExplanationPlanWire: () => ok(planOriginal.planViewWire),
+    clientProgramOriginalExplanationFactsWire: () => ok('{"typed":"facts"}'),
+    clientProgramAcknowledgeOriginalExplanationCapture(actual) {
+      assert.equal(actual, scope);
+      assert.equal(explanation.factsWire, undefined);
+      assert.equal(explanation.journal, undefined);
+      assert.equal(explanation.returning, true);
+      assert.throws(() => f.control.originalRunExplanationAdmissionAcknowledged(ticket,
+        f.run, request.programDefinitionCid, evidence), /CleanupPending/u);
+      acknowledged++; return ok(undefined);
+    },
+    clientProgramReturnOriginalExplanationCapture() {returned++; return ok(true);},
+    clientProgramObserveOriginalDispatchFailure(actual, host) {
+      assert.equal(actual, scope); assert.equal(host, setup); observations++;
+      return ok(originalFacts);
+    },
+  });
+  // The namespace methods were pinned before any callback could replace them.
+  f.moon.clientProgramAcknowledgeOriginalExplanationCapture = () => assert.fail('changed ACK');
+  f.moon.clientProgramObserveOriginalDispatchFailure = () => assert.fail('changed observation');
+  ticket = f.control.captureOriginalClientRunPlan(f.compiled, f.owner, f.run, limits, explanation);
+  assert.equal(f.control.originalClientDispatchFailureAvailable(ticket), false);
+  assert.equal(f.control.observeOriginalClientDispatchFailure(ticket, setup), undefined);
+  f.control.originalRunExplanationAdmissionEvidence(ticket, f.run, request.programDefinitionCid, evidence);
+  f.control.originalRunExplanationAdmissionAcknowledged(ticket, f.run, request.programDefinitionCid, evidence);
+  f.control.originalRunExplanationAdmissionAcknowledged(ticket, f.run, request.programDefinitionCid, evidence);
+  assert.equal(acknowledged, 1); assert.equal(returned, 0);
+  assert.equal(explanation.scope, scope); assert.equal(explanation.dispatchReady, true);
+  assert.equal(f.control.originalClientDispatchFailureAvailable(ticket), true);
+  assert.equal(f.control.observeOriginalClientDispatchFailure(ticket, setup), originalFacts);
+  assert.equal(observations, 1);
+  assert.equal(f.control.observeOriginalClientDispatchFailure({}, setup), undefined);
+  // The existing manager's actual disposal performs the return, not this ACK.
+  explanation.scope = undefined;
+  assert.equal(f.control.originalClientDispatchFailureAvailable(ticket), false);
+  assert.equal(f.control.observeOriginalClientDispatchFailure(ticket, setup), undefined);
+});

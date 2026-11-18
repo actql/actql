@@ -222,9 +222,10 @@ struct ClientRequestPreparation[I] {
 ///|
 // Simultaneous ordinary originals: manager Plan input (1), adopted admission
 // and Run fields (2), registry handler and dispatch (2), Host (1), and the
-// logical observation capture (1). This SAME census also prices the upfront
+// logical observation capture (1), and the original explanation retained
+// through dispatch after its Journal payload ACK (1). This SAME census prices
 // Resource inventory below; no byte/work policy or borrower guard is relaxed.
-let request_preparation_borrow_limit : Int = 7
+let request_preparation_borrow_limit : Int = 8
 
 ///|
 // Fixed Resource-owned census layout, priced by the existing common tariff.
@@ -326,11 +327,12 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // This is independent of the existing Fragment refusal quote above.
   // The seventh simultaneous borrower also adds one original census entry:
   // common Map entry/link/growing buckets4H/11R/13W plus scalar order3W.
-  // Price that4H/11R/16W before initial inventory construction, not from the
+  // The eighth explanation borrower adds the SAME independent census delta.
+  // Price both4H/11R/16W entries before initial inventory construction, not from the
   // separate exclusive control group or another Request's free allowance.
-  record_headers: 267L,
-  reference_slots: 494L,
-  scalar_words: 545L,
+  record_headers: 271L,
+  reference_slots: 505L,
+  scalar_words: 561L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }

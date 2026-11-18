@@ -400,7 +400,7 @@ function rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, sit
 // snapshotted; they never supply this runtime or these admission callbacks.
 export async function runInstalledStrategy({
   setup,
-  runtime: {core, contributions, sitePolicy,
+  runtime: {core, contributions, sitePolicy, observeFailure,
     authorization = missingAuthorizationGate()},
   control: {signal, observeCompletion, observeTaskStart, taskObservation} = {},
   publication: {beforeCompute} = {},
@@ -791,7 +791,7 @@ export async function runInstalledStrategy({
           throw new StrategyHostError(code);
         }
       }
-      const task = managed ? managed.task : core.next(setup);
+      const task = managed ? managed.task : core.next(setup, observeFailure);
       if (task == null) break;
       const index = managed ? task.task : core.task(task);
       const entry = managed ? managed.entry : installed.get(core.registration(task));

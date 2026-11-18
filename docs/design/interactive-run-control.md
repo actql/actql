@@ -379,6 +379,27 @@ reconciliation duties. The writer neither removes historical Checkpoint
 artifacts nor acknowledges physical cleanup. Existing pre-Checkpoint and
 Effect-free writers retain their original physical-fact validation.
 
+### Original adaptive failure observation
+
+The fixed Node dispatch can project the original `NoStrategy` task and at most
+eight already-retained search assessments through the existing Request capture.
+It never reruns search, implementation estimation, policy or admission. The
+collapsed decision and feasible-candidate count are not retained and remain
+explicitly unavailable. Report completeness and bounded truncation are separate.
+The same Ledger refusal spelling is used by the existing strategy explanation.
+
+Journal payload acknowledgement drops committed Plan/Facts aliases while the
+same capture borrower remains in the existing manager until its original cleanup.
+The explanation and logical observer are distinct simultaneous roles: the original
+Resource census and pre-constructor quote include both; a ninth unrelated loan is
+still refused. Current, holder identity and captured-DAG/Ledger identity surround
+projection. One attempted read is latched before callbackful current/growth; a
+refused or reentrant observation cannot replace the primary failure or reset debt.
+Fixed controls are prepaid and bounded original/Node DATA coexistence is added to
+the holder's **current** extent before construction. No new Owner or public read
+permission is issued. Old namespaces without this connection retain unavailable
+failure details and their existing early capture return.
+
 ### Retained structural explanation read
 
 `Execution.explain(options)` uses the Client–Host `run-explanation` command,

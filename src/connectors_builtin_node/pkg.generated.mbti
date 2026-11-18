@@ -252,6 +252,8 @@ pub fn client_program_accumulate_model_task_construction_capacity(@execution_rel
 
 pub fn client_program_acknowledge_infer_call_settlement(@model_execution.ModelCallSettlement) -> Bool
 
+pub fn client_program_acknowledge_original_explanation_capture(@client_local_host.ClientOriginalExplanationCapture) -> Result[Unit, @client_local_host.ClientOriginalExplanationCaptureIssue]
+
 pub fn client_program_acknowledge_saved_infer_call_entry(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet) -> @model_execution.ModelCallEntryAcknowledgement?
 
 pub fn client_program_acknowledge_saved_infer_raw_capture(@model_execution.ModelRawCaptureSave) -> Result[@model_execution.ModelSavedRawReceipt, @model_execution.ModelRawCaptureSaveIssue]
@@ -3245,6 +3247,8 @@ pub fn client_program_notion_project_database(Bytes, @actql/actql/connectors/not
 pub fn client_program_notion_property_write_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/notion/catalog.NotionPropertyWriteLimits
 
 pub fn client_program_observe_infer_raw_capture(@model_execution.ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[@model_execution.ModelRawCaptureSave, @model_execution.ModelRawCaptureSaveIssue]
+
+pub fn client_program_observe_original_dispatch_failure(@client_local_host.ClientOriginalExplanationCapture, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Result[(String, String, Int, Int, Bool, Bool, Array[(Int, String?)], String)?, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
 pub fn client_program_observe_original_infer_usage_action(@client_infer_host.OriginalInferUsagePublication, @model_execution.ModelUsageAction, String) -> Result[Unit, @client_infer_host.Issue]
 

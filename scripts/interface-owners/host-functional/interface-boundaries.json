@@ -15266,7 +15266,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f4ca1129b3ece6c93a10c13c27bdc4e22129e8337348d8c823313feb46e382fb",
+      "sha256": "15f81cda70640c27c03b30c7e9d83babf97fcd90d9dceaf041d9ffd4276c16d8",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -15380,6 +15380,7 @@
             "core",
             "contributions",
             "sitePolicy",
+            "observeFailure",
             "authorization",
             "signal",
             "observeCompletion",
@@ -43684,7 +43685,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "94b0abf3df866eb89abdf1cec5925f859ace21e90af0d262f9d783b3c53c17e7",
+      "sha256": "1a86da4ec51353c1dec11371e9ac56a2441bf9cd537de5326a845e422e19894e",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -43812,6 +43813,13 @@
         {
           "name": "createNodeHostEntry/load/load",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runCapturedStrategyTarget/observeFailure/observeFailure",
+          "parameters": [
+            "host"
+          ],
           "async": false
         },
         {
@@ -44244,6 +44252,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "runCapturedStrategyTarget/observeFailure/observeFailure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Original adaptive failure observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "pub fn observe_installed_original_dispatch_failure("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "physical_equal(original, captured)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_explanation_capture.mbt",
+                "anchor": "pub fn acknowledge_installed_original_explanation_capture("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "value.dispatch_failure_observed = true"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "catch { /* Optional observation cannot replace this original failure. */ }"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "guard require_installed_managed_run(run) is Ok(_)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure.mbt",
+                "anchor": "let original_dispatch_failure_fixed_bytes : Int64 = 424L"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Old namespaces without this connection retain unavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_dispatch_failure_js_wbtest.mbt",
+                "anchor": "test \"original adaptive refusal projects bounded same-owner DATA"
+              },
+              {
+                "path": "adapters/host-node/dispatch-failure-observation.test.mjs",
+                "anchor": "test('actual imported next retains its original Err"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -44259,6 +44339,7 @@
         "./effect-run-completion.mjs",
         "./effect-run-recovery.mjs",
         "./installation.mjs",
+        "./local-values-plan.mjs",
         "./managed-identity-policy.mjs"
       ],
       "compilerFields": [],
@@ -114588,7 +114669,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "5959866f29c70e351a37c08b191fc267a5e50fe2c95aadc0e23cd9b81b226eaa"
+      "sha256": "526fbf8447d934b0ef5e283016bd4e9af24abad7e6b7c2d81e849b122ca58f56"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

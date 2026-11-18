@@ -205,6 +205,8 @@ pub fn client_program_abort_request_preparation(@client_local_host.ClientRequest
 
 pub fn client_program_accumulate_model_task_construction_capacity(@execution_relation.ExecutionCapacity?, @execution_relation.ExecutionCapacity?) -> Result[@execution_relation.ExecutionCapacity?, @physical_resources.PreparationCapacityIssue]
 
+pub fn client_program_acknowledge_original_explanation_capture(@client_local_host.ClientOriginalExplanationCapture) -> Result[Unit, @client_local_host.ClientOriginalExplanationCaptureIssue]
+
 pub fn client_program_acquired_effect_catalog_bodies(@run_publication_host.ClientEffectAcquiredEvidence, Int, Int, Int) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_acquired_effect_dependency_bodies(@run_publication_host.ClientEffectAcquiredEvidence) -> Array[(String, String)]
@@ -1788,6 +1790,8 @@ pub fn client_program_notion_project_data_source(@actql/actql/connectors/notion/
 pub fn client_program_notion_project_database(Bytes, @actql/actql/connectors/notion/catalog.NotionDatabaseLimits) -> Result[@actql/actql/connectors/notion/catalog.NotionDatabaseCatalog, @actql/actql/connectors/notion/catalog.NotionDatabaseIssue]
 
 pub fn client_program_notion_property_write_limits(Int, Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/notion/catalog.NotionPropertyWriteLimits
+
+pub fn client_program_observe_original_dispatch_failure(@client_local_host.ClientOriginalExplanationCapture, @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> Result[(String, String, Int, Int, Bool, Bool, Array[(Int, String?)], String)?, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
 pub fn client_program_open_captured_content_effect_host(@run_publication_host.PreparedClientEffectRun, @execution_query.CapturedInputSource, @physical_resources.Ledger, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, @local.ManagedProvider) -> ClientLocalEffectHost?
 

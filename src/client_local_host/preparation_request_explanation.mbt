@@ -513,6 +513,7 @@ pub fn[I] capture_request_original_explanation(
     held_execution: e,
     plan_view: None,
     facts: None,
+    dispatch_failure_observed: false,
   }
   value.holder = None
   value.original = None

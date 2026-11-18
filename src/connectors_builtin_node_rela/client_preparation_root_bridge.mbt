@@ -2913,6 +2913,28 @@ pub fn client_program_return_original_explanation_capture(
 }
 
 ///|
+#export_name("clientProgramAcknowledgeOriginalExplanationCapture")
+pub fn client_program_acknowledge_original_explanation_capture(
+  original : @client_local_host.ClientOriginalExplanationCapture,
+) -> Result[Unit, @client_local_host.ClientOriginalExplanationCaptureIssue] {
+  @client_local_host.acknowledge_installed_original_explanation_capture(
+    original,
+  )
+}
+
+///|
+#export_name("clientProgramObserveOriginalDispatchFailure")
+pub fn client_program_observe_original_dispatch_failure(
+  original : @client_local_host.ClientOriginalExplanationCapture,
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+) -> Result[
+  (String, String, Int, Int, Bool, Bool, Array[(Int, String?)], String)?,
+  @client_local_host.ClientOriginalExplanationCaptureIssue,
+] {
+  @client_local_host.observe_installed_original_dispatch_failure(original, host)
+}
+
+///|
 #export_name("clientProgramRequestProgramCompilationOriginal")
 pub fn client_program_request_program_compilation_original(
   parent : @client_local_host.ClientRequestPreparation[

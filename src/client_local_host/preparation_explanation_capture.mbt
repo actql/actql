@@ -17,6 +17,7 @@ struct ClientOriginalExplanationCapture {
   mut held_execution : Int64
   mut plan_view : String?
   mut facts : @publication.RunEvidenceValue?
+  mut dispatch_failure_observed : Bool
 }
 
 ///|
@@ -353,6 +354,7 @@ fn capture_installed_original_explanation(
     held_execution: e,
     plan_view: None,
     facts: None,
+    dispatch_failure_observed: false,
   }
   match
     construct_original_explanation_capture(
@@ -408,6 +410,22 @@ pub fn installed_original_explanation_capture_wires(
     return Err(ForeignOriginal)
   }
   Ok((plan, @publication.run_evidence_value_json(facts)))
+}
+
+///|
+/// The SAME Journal has durably consumed the original payload. Drop those
+/// aliases now, while the existing manager keeps this borrower for bounded
+/// dispatch-failure DATA until its original Request cleanup. This is no Run
+/// completion, physical-stop or parent-return acknowledgement.
+pub fn acknowledge_installed_original_explanation_capture(
+  value : ClientOriginalExplanationCapture,
+) -> Result[Unit, ClientOriginalExplanationCaptureIssue] {
+  guard original_explanation_capture_body(value) is Some(_) else {
+    return Err(ForeignOriginal)
+  }
+  value.plan_view = None
+  value.facts = None
+  Ok(())
 }
 
 ///|

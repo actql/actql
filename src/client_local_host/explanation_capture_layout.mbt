@@ -47,7 +47,8 @@ let explanation_capture_control_bytes : Int64 = {
 // Precomputed before requests: even dynamic measurement quotation must have
 // real backing first. Entry reads this scalar, not a new quotation forest.
 let explanation_capture_entry_control_bytes : Int64 = client_static_plan_quote_construction_bytes() +
-  explanation_capture_control_bytes
+  explanation_capture_control_bytes +
+  original_dispatch_failure_entry_bytes
 
 ///|
 fn explanation_capture_measurement_bytes(max_bytes : Int) -> Int64? {

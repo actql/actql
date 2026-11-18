@@ -1,8 +1,21 @@
 // Inert diagnostics of the existing dispatch Owner and SAME Journal frame.
 // No product module is re-executed, error chain followed, input checked,
 // execution state changed or cleanup/current authority issued here.
+import {originalDispatchFailureSnapshot} from '../host-common/dispatch-failure-observation.mjs';
+
 export function dispatchFailureSnapshot(error) {
   if (error === undefined) return undefined;
+  // Only the fixed runtime's actual Err path can populate this weak entry.
+  // Do not accept a copied/adversarial primaryDiagnostic with these fields.
+  const original = originalDispatchFailureSnapshot(error);
+  let observed = original;
+  try {
+    const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+    if (primary !== undefined && Object.hasOwn(primary, 'value')) {
+      const retained = originalDispatchFailureSnapshot(primary.value);
+      if (retained !== undefined) observed = retained;
+    }
+  } catch { /* An optional observation cannot invoke a foreign accessor. */ }
   const text = name => {
     try {
       const field = Object.getOwnPropertyDescriptor(error, name);
@@ -10,103 +23,105 @@ export function dispatchFailureSnapshot(error) {
         typeof field.value === 'string' ? field.value : undefined;
     } catch { return undefined; }
   };
-  let primaryDiagnostic;
+  let primaryDiagnostic = observed?.primaryDiagnostic;
   try {
-    let field = Object.getOwnPropertyDescriptor(error, 'primaryDiagnostic');
-    if (field === undefined) {
-      const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
-      if (primary !== undefined && Object.hasOwn(primary, 'value') && primary.value !== error) {
-        field = Object.getOwnPropertyDescriptor(primary.value, 'primaryDiagnostic');
-      }
-    }
-    if (field !== undefined && Object.hasOwn(field, 'value')) {
-      const data = {};
-      let validOrdinals = true;
-      for (const key of ['code', 'phase', 'kind', 'task', 'unit', 'step']) {
-        const member = Object.getOwnPropertyDescriptor(field.value, key);
-        if (member !== undefined && Object.hasOwn(member, 'value')) data[key] = member.value;
-        if ((key === 'task' || key === 'unit' || key === 'step') &&
-            (!Number.isSafeInteger(data[key]) || data[key] < 0 || data[key] > 2147483647)) {
-          validOrdinals = false;
+    if (primaryDiagnostic === undefined) {
+      let field = Object.getOwnPropertyDescriptor(error, 'primaryDiagnostic');
+      if (field === undefined) {
+        const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+        if (primary !== undefined && Object.hasOwn(primary, 'value') && primary.value !== error) {
+          field = Object.getOwnPropertyDescriptor(primary.value, 'primaryDiagnostic');
         }
       }
-      const workLimit = Object.getOwnPropertyDescriptor(field.value, 'controlWorkLimit');
-      const localWork = data.phase === 'local_managed_advance' && data.kind === 'control_work' &&
-        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
-        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step') &&
-        workLimit !== undefined && Object.hasOwn(workLimit, 'value') &&
-        Number.isSafeInteger(workLimit.value) && workLimit.value >= 0 && workLimit.value <= 2147483647;
-      const valueLimit = Object.getOwnPropertyDescriptor(field.value, 'workLimit');
-      const valueWork = data.phase === 'local_managed_advance' && data.kind === 'value_capture_work' &&
-        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
-        Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647 &&
-        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
-        valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
-        Number.isSafeInteger(valueLimit.value) && valueLimit.value >= 0 && valueLimit.value <= 2147483647;
-      const setting = Object.getOwnPropertyDescriptor(field.value, 'setting');
-      const logicalWork = data.phase === 'local_managed_advance' && data.kind === 'logical_work' &&
-        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
-        Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647 &&
-        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
-        !Object.hasOwn(field.value, 'dimension') && !Object.hasOwn(field.value, 'budget') &&
-        valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
-        typeof valueLimit.value === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(valueLimit.value) &&
-        BigInt(valueLimit.value) <= 9223372036854775807n &&
-        setting !== undefined && Object.hasOwn(setting, 'value') &&
-        (setting.value === 'installation.sourceFreeMaxWork' || setting.value === 'unavailable');
-      const dimension = Object.getOwnPropertyDescriptor(field.value, 'dimension');
-      const resource = data.phase === 'local_managed_advance' && data.kind === 'resource' &&
-        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
-        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step') &&
-        !Object.hasOwn(field.value, 'controlWorkLimit') && !Object.hasOwn(field.value, 'workLimit') &&
-        dimension !== undefined && Object.hasOwn(dimension, 'value') &&
-        (dimension.value === 'retained_bytes' || dimension.value === 'execution_bytes');
-      const cause = Object.getOwnPropertyDescriptor(field.value, 'cause');
-      const originalCause = data.phase === 'local_managed_advance' &&
-        Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
-        !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'dimension') &&
-        !Object.hasOwn(field.value, 'controlWorkLimit') && !Object.hasOwn(field.value, 'workLimit') &&
-        !Object.hasOwn(field.value, 'budget') && cause && Object.hasOwn(cause, 'value') &&
-        typeof cause.value === 'string' && cause.value.length <= 96 &&
-        /^[a-z_]+(?:\.[a-z_]+)*$/u.test(cause.value);
-      const rowFailure = originalCause && data.kind === 'row_failure' &&
-        Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647;
-      const localIssue = originalCause && data.kind === 'local_issue' &&
-        !Object.hasOwn(field.value, 'step');
-      if (data.code === 'MoonBitHostFailure' &&
-          (['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact', 'original_infer_component'].includes(data.phase) &&
-            validOrdinals || localWork || valueWork || logicalWork || resource || rowFailure || localIssue) &&
-          typeof data.kind === 'string' && data.kind.length <= 96 &&
-          /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind)) {
-        if (localWork) data.controlWorkLimit = workLimit.value;
-        if (valueWork) data.workLimit = valueLimit.value;
-        if (logicalWork) { data.workLimit = valueLimit.value; data.setting = setting.value; }
-        if (resource) data.dimension = dimension.value;
-        if (rowFailure || localIssue) data.cause = cause.value;
-        // Preserve only closed inert quantities supplied by that original
-        // failed reserve/probe. A later ledger sample is not this failure.
-        const budgetField = Object.getOwnPropertyDescriptor(field.value, 'budget');
-        if ((resource || valueWork) && budgetField && Object.hasOwn(budgetField, 'value')) {
-          const original = budgetField.value, selected = {};
-          const keys = ['requested', 'remaining', 'policy', 'requestedIsLowerBound'];
-          if (original != null && Object.keys(original).length === keys.length) {
-            let valid = true;
-            for (const key of keys) {
-              const member = Object.getOwnPropertyDescriptor(original, key);
-              if (!member || !Object.hasOwn(member, 'value')) { valid = false; break; }
-              selected[key] = member.value;
-            }
-            if (valid && keys.slice(0, 3).every(key => typeof selected[key] === 'string' &&
-                /^(?:0|[1-9][0-9]{0,18})$/u.test(selected[key]) && BigInt(selected[key]) <= 9223372036854775807n) &&
-                BigInt(selected.requested) > BigInt(selected.remaining) &&
-                BigInt(selected.remaining) <= BigInt(selected.policy) &&
-                selected.requestedIsLowerBound === valueWork &&
-                (!valueWork || selected.policy === String(data.workLimit))) {
-              data.budget = Object.freeze(selected);
-            }
+      if (field !== undefined && Object.hasOwn(field, 'value')) {
+        const data = {};
+        let validOrdinals = true;
+        for (const key of ['code', 'phase', 'kind', 'task', 'unit', 'step']) {
+          const member = Object.getOwnPropertyDescriptor(field.value, key);
+          if (member !== undefined && Object.hasOwn(member, 'value')) data[key] = member.value;
+          if ((key === 'task' || key === 'unit' || key === 'step') &&
+              (!Number.isSafeInteger(data[key]) || data[key] < 0 || data[key] > 2147483647)) {
+            validOrdinals = false;
           }
         }
-        primaryDiagnostic = Object.freeze(data);
+        const workLimit = Object.getOwnPropertyDescriptor(field.value, 'controlWorkLimit');
+        const localWork = data.phase === 'local_managed_advance' && data.kind === 'control_work' &&
+          Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+          !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step') &&
+          workLimit !== undefined && Object.hasOwn(workLimit, 'value') &&
+          Number.isSafeInteger(workLimit.value) && workLimit.value >= 0 && workLimit.value <= 2147483647;
+        const valueLimit = Object.getOwnPropertyDescriptor(field.value, 'workLimit');
+        const valueWork = data.phase === 'local_managed_advance' && data.kind === 'value_capture_work' &&
+          Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+          Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647 &&
+          !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
+          valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
+          Number.isSafeInteger(valueLimit.value) && valueLimit.value >= 0 && valueLimit.value <= 2147483647;
+        const setting = Object.getOwnPropertyDescriptor(field.value, 'setting');
+        const logicalWork = data.phase === 'local_managed_advance' && data.kind === 'logical_work' &&
+          Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+          Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647 &&
+          !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'controlWorkLimit') &&
+          !Object.hasOwn(field.value, 'dimension') && !Object.hasOwn(field.value, 'budget') &&
+          valueLimit !== undefined && Object.hasOwn(valueLimit, 'value') &&
+          typeof valueLimit.value === 'string' && /^(?:0|[1-9][0-9]{0,18})$/u.test(valueLimit.value) &&
+          BigInt(valueLimit.value) <= 9223372036854775807n &&
+          setting !== undefined && Object.hasOwn(setting, 'value') &&
+          (setting.value === 'installation.sourceFreeMaxWork' || setting.value === 'unavailable');
+        const dimension = Object.getOwnPropertyDescriptor(field.value, 'dimension');
+        const resource = data.phase === 'local_managed_advance' && data.kind === 'resource' &&
+          Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+          !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'step') &&
+          !Object.hasOwn(field.value, 'controlWorkLimit') && !Object.hasOwn(field.value, 'workLimit') &&
+          dimension !== undefined && Object.hasOwn(dimension, 'value') &&
+          (dimension.value === 'retained_bytes' || dimension.value === 'execution_bytes');
+        const cause = Object.getOwnPropertyDescriptor(field.value, 'cause');
+        const originalCause = data.phase === 'local_managed_advance' &&
+          Number.isSafeInteger(data.task) && data.task >= 0 && data.task <= 2147483647 &&
+          !Object.hasOwn(field.value, 'unit') && !Object.hasOwn(field.value, 'dimension') &&
+          !Object.hasOwn(field.value, 'controlWorkLimit') && !Object.hasOwn(field.value, 'workLimit') &&
+          !Object.hasOwn(field.value, 'budget') && cause && Object.hasOwn(cause, 'value') &&
+          typeof cause.value === 'string' && cause.value.length <= 96 &&
+          /^[a-z_]+(?:\.[a-z_]+)*$/u.test(cause.value);
+        const rowFailure = originalCause && data.kind === 'row_failure' &&
+          Number.isSafeInteger(data.step) && data.step >= 0 && data.step <= 2147483647;
+        const localIssue = originalCause && data.kind === 'local_issue' &&
+          !Object.hasOwn(field.value, 'step');
+        if (data.code === 'MoonBitHostFailure' &&
+            (['original_model_acquired_effect_evidence', 'original_effect_source_unit_result_export', 'original_effect_source_unit_artifact', 'original_infer_component'].includes(data.phase) &&
+              validOrdinals || localWork || valueWork || logicalWork || resource || rowFailure || localIssue) &&
+            typeof data.kind === 'string' && data.kind.length <= 96 &&
+            /^[a-z_]+(?:\.[a-z_]+)*$/u.test(data.kind)) {
+          if (localWork) data.controlWorkLimit = workLimit.value;
+          if (valueWork) data.workLimit = valueLimit.value;
+          if (logicalWork) { data.workLimit = valueLimit.value; data.setting = setting.value; }
+          if (resource) data.dimension = dimension.value;
+          if (rowFailure || localIssue) data.cause = cause.value;
+          // Preserve only closed inert quantities supplied by that original
+          // failed reserve/probe. A later ledger sample is not this failure.
+          const budgetField = Object.getOwnPropertyDescriptor(field.value, 'budget');
+          if ((resource || valueWork) && budgetField && Object.hasOwn(budgetField, 'value')) {
+            const original = budgetField.value, selected = {};
+            const keys = ['requested', 'remaining', 'policy', 'requestedIsLowerBound'];
+            if (original != null && Object.keys(original).length === keys.length) {
+              let valid = true;
+              for (const key of keys) {
+                const member = Object.getOwnPropertyDescriptor(original, key);
+                if (!member || !Object.hasOwn(member, 'value')) { valid = false; break; }
+                selected[key] = member.value;
+              }
+              if (valid && keys.slice(0, 3).every(key => typeof selected[key] === 'string' &&
+                  /^(?:0|[1-9][0-9]{0,18})$/u.test(selected[key]) && BigInt(selected[key]) <= 9223372036854775807n) &&
+                  BigInt(selected.requested) > BigInt(selected.remaining) &&
+                  BigInt(selected.remaining) <= BigInt(selected.policy) &&
+                  selected.requestedIsLowerBound === valueWork &&
+                  (!valueWork || selected.policy === String(data.workLimit))) {
+                data.budget = Object.freeze(selected);
+              }
+            }
+          }
+          primaryDiagnostic = Object.freeze(data);
+        }
       }
     }
   } catch { /* Optional inert DATA cannot mask execution or cleanup. */ }

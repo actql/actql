@@ -60,6 +60,14 @@ test "ordinary manager admission registry dispatch and Host holders coexist with
     compiled, "observation-overlap-component", "same-original-run", "2026-11-19T00:00:00.000Z",
     "2099-01-01T00:00:00.000Z",
   ).unwrap()
+  // The Journal's actual typed payload ACK drops strings, not the existing
+  // explanation borrower. It now coexists with the logical observer below.
+  let explanation = capture_installed_managed_run_explanation(
+    run, prepared, compiled, definition, 65536, 8192, 64,
+  ).unwrap()
+  acknowledge_installed_original_explanation_capture(explanation).unwrap()
+  assert_true(explanation.plan_view is None && explanation.facts is None)
+  assert_true(explanation.original is Some(_))
   let limits = @resources.ledger_limits(parent.ledger)
   let observation = prepare_installed_logical_observation(
     run, prepared, compiled, definition, 65536, 8192, 64,
@@ -69,7 +77,7 @@ test "ordinary manager admission registry dispatch and Host holders coexist with
     is Some(original) &&
     physical_equal(original, prepared),
   )
-  // All seven necessary roles still hold the SAME preparation. The next
+  // All eight necessary roles still hold the SAME preparation. The next
   // unrelated sibling remains refused; no owner or byte/work policy widened.
   assert_true(
     @resources.borrow_preparation_body_sibling(host) is Err(InvalidExtent),
@@ -91,6 +99,7 @@ test "ordinary manager admission registry dispatch and Host holders coexist with
   assert_true(
     @resources.ledger_usage(parent.ledger).reserved_retention_bytes > 0L,
   )
+  return_installed_original_explanation_capture(explanation).unwrap() |> ignore
   for holder in [host, dispatch, handler, manager] {
     @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
   }

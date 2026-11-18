@@ -7,6 +7,19 @@ pub(all) enum ComputeDiagnosticsIssue {
 }
 
 ///|
+/// The existing failed policy's original task, retained before its driver
+/// stopped. No task is inferred from a stopped DAG or a caller's error shape.
+/// A policy without that actual NoStrategy/seen pair stays unavailable.
+pub fn[C, E] compute_host_no_strategy_task(host : ComputeHost[C, E]) -> Int? {
+  guard host.estimates is Some(policy) &&
+    policy.failure is Some(NoStrategy) &&
+    policy.seen is Some((task, _, _)) else {
+    return None
+  }
+  Some(task)
+}
+
+///|
 /// Read-only explanation from the fixed installation. Labels and reasons are
 /// opaque diagnostics, never capability matching, dispatch or success evidence.
 /// The inspection allowance bounds registration visits and returned entries.

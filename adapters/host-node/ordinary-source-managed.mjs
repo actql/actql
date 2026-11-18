@@ -402,7 +402,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     // All additional retained wrappers follow the actual working admission.
     // The same per-producer holding owns failure before a Plan/ticket returns.
     state.originalExplanation = Object.seal({preparation: original, scope: undefined,
-      factsWire: undefined, offered: false, acknowledged: false, returning: false, databaseClosed: false, journal,
+      factsWire: undefined, offered: false, acknowledged: false, returning: false, databaseClosed: false, dispatchReady: false, journal,
       methods: Object.freeze({adopt, returnPreparation, returnCapture})});
   }
   function disposeOriginalExplanation(state) {
