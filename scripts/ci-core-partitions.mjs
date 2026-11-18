@@ -1,5 +1,9 @@
 // Compiler-driver ownership, shared by the Native selector and checkpoint
 // inventory. The workflow's literal matrix is checked against this inventory.
+export const nativeCoreLinuxCommonArguments = Object.freeze([
+  '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose',
+]);
+
 export const nativeCoreCiPartitions = Object.freeze([
   '1/2', '2/2', 'scoped-runtime', 'scoped-review',
 ]);
