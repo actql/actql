@@ -51,6 +51,8 @@ try {
 } catch (error) {
   failed = true; primary = error;
   report.failure = {name: error?.name, code: error?.code, message: error?.message};
+  report.originalPublicAttempt = sdk.getSubmissionAttempt(error);
+  report.originalPublicOutcome = sdk.getSubmissionOutcome(error);
 } finally {
   if (client !== undefined) {
     try {await client.close(); report.clientCloseReturned = true;}

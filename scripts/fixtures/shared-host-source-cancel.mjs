@@ -79,8 +79,8 @@ try {
     const flight = command(process.execPath, [configuration.clientScript, childInput, phase], `source-${phase}`);
     // Observe rejection immediately while preserving the original promise/cause.
     flight.catch(() => undefined); flights.push(flight);
-    await Promise.race([marker(configuration.pageEntered[phase]), originalFailure(flight)]);
-    await Promise.race([marker(join(root, `source-${phase}-run.json`)), originalFailure(flight)]);
+    await Promise.race([marker(configuration.pageEntered[phase]), ...flights.map(originalFailure)]);
+    await Promise.race([marker(join(root, `source-${phase}-run.json`)), ...flights.map(originalFailure)]);
   }
   const firstRef = await read('source-first-run.json'), secondRef = await read('source-second-run.json');
   assert.notDeepEqual(firstRef, secondRef);
@@ -132,7 +132,21 @@ try {
   }
   try {
     const returned = await host.close(); report.hostCloseReturned = true;
-    report.hostCloseReturn = returned === undefined ? {kind: 'void'} : returned;
+    // Record the existing public shutdown DATA, not opaque retained objects or
+    // a synthesized ACK from the listener's close or the later FD observation.
+    const fields = returned !== null && typeof returned === 'object'
+      ? Object.getOwnPropertyDescriptors(returned) : {};
+    const pendingRetention = fields.pendingRetention?.value;
+    report.hostCloseReturn = {
+      storeCleanupPending: fields.storeCleanupPending?.value,
+      pendingRetentionCount: Array.isArray(pendingRetention) ? pendingRetention.length : null,
+      authorizationCleanupPending: fields.authorizationCleanupPending?.value,
+      diagnosticDeliveryPending: fields.diagnosticDeliveryPending?.value,
+    };
+    assert.equal(report.hostCloseReturn.storeCleanupPending, false);
+    assert.equal(report.hostCloseReturn.pendingRetentionCount, 0);
+    assert.equal(report.hostCloseReturn.authorizationCleanupPending, false);
+    assert.equal(report.hostCloseReturn.diagnosticDeliveryPending, false);
   } catch (error) {
     report.hostCloseReturned = false; primary = failed ? new AggregateError([primary, error]) : error; failed = true;
     report.closeFailure = {name: error?.name, code: error?.code, message: error?.message};
