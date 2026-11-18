@@ -1741,6 +1741,18 @@ test('normal Python wheels are mandatory for full profiles independently of opti
   }
 });
 
+test('Python original observation fixture selects its same-source wheel consumer on draft', () => {
+  const path = 'scripts/fixtures/python-local-submission-observation-abi.py';
+  readFileSync(new URL('../' + path, import.meta.url));
+  const selection = selectTargets([path], {draft: true});
+  assert.equal(pythonWheelAcceptanceRequired(selection), true);
+  for (const outcome of ['failure', 'cancelled', 'skipped']) {
+    const needs = results(selection);
+    needs['python-wheels'].result = outcome;
+    assert.throws(() => verifyGate(plan(selection), needs, context), /python-wheels/);
+  }
+});
+
 test('Draft normal Python and CI changes automatically select real wheel acceptance without Ready', () => {
   for (const path of ['.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
     'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs',

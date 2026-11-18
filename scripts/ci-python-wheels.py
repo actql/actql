@@ -69,6 +69,39 @@ def extract_duckdb(archive: Path, destination: Path) -> Path:
     return destination
 
 
+def accept_submission_observation(run, python: Path, module: Path, receipt: Path,
+                                  destination: Path) -> dict:
+    """Consume this producer's original Core once; never build a second module.
+
+    The result remains a raw ABI/physical-caller component. Normal installed
+    execution and Saved acceptance retain their existing separate consumers.
+    """
+    original = json.loads(receipt.read_text())
+    if (Path(original['module']).resolve() != module.resolve()
+            or original['module_sha256'] != hashlib.sha256(module.read_bytes()).hexdigest()):
+        raise ValueError('Submission observation requires the original Core module')
+    observed = json.loads(run('submission-observation', [python,
+        ROOT / 'scripts/fixtures/python-local-submission-observation-abi.py', module,
+        destination / 'submission-observation-state'], timeout=180))
+    cases = observed.get('cases')
+    if (observed.get('success') is not True or observed.get('module_sha256') != original['module_sha256']
+            or not isinstance(cases, list) or len(cases) != 6
+            or any(not isinstance(case, str) or not case for case in cases)
+            or len(set(cases)) != len(cases) or type(observed.get('fuel_refills')) is not int
+            or observed['fuel_refills'] != 0
+            or type(observed.get('initial_diagnostic_fuel')) is not int
+            or not 0 < observed['initial_diagnostic_fuel'] < 2**64):
+        raise ValueError('Incomplete original Submission observation component')
+    result = {'source_sha': original['source_sha'],
+              'module_sha256': original['module_sha256'], 'component': observed,
+              'qualification': 'actual raw ABI/Python/SQLite component only',
+              'normal_image_acceptance': False, 'public_run_acceptance': False}
+    with (destination / 'submission-observation.json').open('x') as output:
+        json.dump(result, output, indent=2)
+        output.write('\n')
+    return result
+
+
 def run_acceptance(destination: Path) -> None:
     if (sys.platform, platform.machine()) != ('darwin', 'arm64'):
         raise ValueError('Normal Python Local wheels currently support darwin-arm64 only')
@@ -120,6 +153,7 @@ def run_acceptance(destination: Path) -> None:
     run('core-receipt', [python, producer, '--record-module-original', '--source', source,
                         '--compiled-source', source, '--module', module, '--link-response', str(module) + '.rsp',
                         '--moon-home', os.environ['MOON_HOME'], '--destination', receipt])
+    accept_submission_observation(run, python, module, receipt, destination)
     image = destination / 'image'
     run('image', [python, ROOT / 'scripts/compile-python-local-image.py', '--compile-platform',
                   '--source', source, '--core-receipt', receipt, '--destination', image])

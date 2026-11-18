@@ -104,6 +104,7 @@ const pythonWheelInputs = new Set([
   'scripts/fixtures/ci-python-installed-run.py',
   'scripts/fixtures/python-product-installed.py', 'scripts/fixtures/python-local-duckdb-physical.py',
   'scripts/fixtures/python-local-platform-vm-original.py',
+  'scripts/fixtures/python-local-submission-observation-abi.py',
   'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
   'scripts/compile-python-local-image.py', 'scripts/python_release_cohort.py',
   'scripts/prepare-python-local-runtime.py', 'scripts/generate-local-wasm-abi.py',
