@@ -291,17 +291,18 @@ export async function main(args = process.argv.slice(2)) {
   }
 }
 
-async function fixtureIdentities(mode = 'quick') {
+export async function fixtureIdentities(mode = 'quick', {root = repository} = {}) {
   if (!['quick', 'release'].includes(mode)) throw new Error('Unknown measurement methodology mode');
   // Bind the actual selected entry collectors, timing/statistics and artifact
   // inspection code. This is a fixed source inventory, not a dependency scanner.
   const files = ['scripts/benchmark-node-operations.mjs', 'adapters/host-node/fixtures/mock-project-effect-public.mjs',
+    'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs',
     'packages/native-cli/lib/project-template.mjs', 'scripts/health-monitor-adapters.mjs',
     'scripts/health-monitor.mjs', 'scripts/health-monitor-report.mjs', 'scripts/measure-distribution-artifacts.mjs',
     'scripts/package-release.mjs', 'scripts/operation-performance.mjs', 'scripts/ordinary-operation-packages.mjs'];
   if (mode === 'release') files.push('scripts/benchmark-node-process-operations.mjs', 'scripts/benchmark-ordinary-processes.py',
     'scripts/health-monitor-release.mjs', 'scripts/health-release-artifacts.py', 'scripts/native-cli-release.mjs');
-  return Object.fromEntries(await Promise.all(files.map(async file => [file, digest(await readFile(join(repository, file)))])));
+  return Object.fromEntries(await Promise.all(files.map(async file => [file, digest(await readFile(join(root, file)))])));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === self) {

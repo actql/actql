@@ -184,13 +184,14 @@ export function rowSourceCheckEnvironment(baseWire, declared, mappings = [], ret
 // connector's declared writes. `sources` maps each written target field to a
 // field of the Effect's source result: [{target, field, null_behavior}].
 export function rowSourceMapping(moon, declaration, writesJson, resource,
-  sources, operation = 'create') {
+  sources, operation = 'create', sourcesJson) {
   if (operation !== 'create' && operation !== 'update') fail('InvalidInstalledEffectMappings');
   const prepare = operation === 'update' ? moon.clientProgramRowSourcePrepareUpdateMapping
     : moon.clientProgramRowSourcePrepareMapping;
   if (typeof prepare !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+  const sourceWire = sourcesJson === undefined ? JSON.stringify(sources) : sourcesJson;
   const prepared = JSON.parse(Reflect.apply(prepare, moon,
-    [declaration, writesJson, resource, JSON.stringify(sources)]));
+    [declaration, writesJson, resource, sourceWire]));
   if (prepared.issue !== undefined) fail(`RowSourceMapping${prepared.issue}`);
   return Object.freeze({mappingRef: prepared.mapping_ref,
     mappingCid: prepared.mapping_cid, body: prepared.body,

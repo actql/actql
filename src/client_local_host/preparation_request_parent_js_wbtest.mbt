@@ -252,6 +252,9 @@ test "fixed Request control envelope preserves original upper bound through the 
     16L +
     8L * 3L +
     8L +
+    // Original authoring view1H plus the four original proof references.
+    16L +
+    8L * 4L +
     // Same nominal error's frozen code/category record, both literals borrowed.
     16L +
     8L * 2L +

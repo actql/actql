@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import * as runtime from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -74,3 +76,64 @@ test(`source-free Model Effect retains the exact issued retention policy closure
   }
 });
 }
+
+// Keep this real Common boundary in the existing runtime-coupled workload.
+// The lighter capability tests must not reconstruct private manager functions.
+test('funded caller passes the same installed mode to one original Request compiler and ModuleBody', async () => {
+  const document = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
+  const environmentWire = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.environment.json', import.meta.url), 'utf8'));
+  for (const mode of [false, true]) for (const valuesMaxRows of [undefined, 2])
+    for (const sourceFreeMaxWork of [undefined, 30000000]) {
+      const calls = [];
+      let native, module, fixture;
+      const moon = {...runtime,
+        clientProgramPrepareRequestNativeComputation(...args) {
+          assert.strictEqual(this, moon); calls.push('check'); native = args;
+          return Reflect.apply(runtime.clientProgramPrepareRequestNativeComputation, runtime, args);
+        },
+        clientProgramFinishRequestComputation(...args) {
+          assert.strictEqual(this, moon); calls.push('compiler');
+          assert.strictEqual(args[0], native[0]); assert.strictEqual(args[1], native[1]);
+          return Reflect.apply(runtime.clientProgramFinishRequestComputation, runtime, args);
+        },
+        clientProgramBorrowRequestProgramPlanInput(...args) {
+          assert.strictEqual(this, moon); calls.push('borrow');
+          assert.strictEqual(args[0], native[0]); assert.strictEqual(args[1], native[1]);
+          return Reflect.apply(runtime.clientProgramBorrowRequestProgramPlanInput, runtime, args);
+        },
+        clientProgramPrepareRequestProgramModuleBody(...args) {
+          assert.strictEqual(this, moon); calls.push('body'); module = args;
+          assert.strictEqual(args[0], native[0]); assert.strictEqual(args[1], native[1]);
+          return Reflect.apply(runtime.clientProgramPrepareRequestProgramModuleBody, runtime, args);
+        },
+        clientProgramRequestParametersOriginal(...args) {
+          assert.strictEqual(this, moon); calls.push('parameters');
+          assert.strictEqual(args[0], native[0]); assert.strictEqual(args[1], native[1]);
+          return Reflect.apply(runtime.clientProgramRequestParametersOriginal, runtime, args);
+        },
+      };
+      const environment = moon.clientProgramCheckEnvironment(
+        canonicalText(environmentWire), environmentWire.evidence_bundle_cid,
+        false, false, true, false, false, false, false);
+      assert.ok(environment);
+      fixture = await openFundedClientPreparation({moon, environment,
+        retainedRelationOutput: mode, valuesMaxRows, sourceFreeMaxWork});
+      try {
+        const request = {kind: 'program', input: document};
+        const prepared = await fixture.prepare(request);
+        fixture.prepare.assertOwned(prepared);
+        const cached = await fixture.manager.fundedPreparation(request, environment);
+        assert.strictEqual(cached.prepared, prepared);
+        assert.strictEqual(cached.originalInputs.environment, environment);
+        assert.equal(cached.kind, 'effect_free');
+        assert.equal(Object.isFrozen(cached), true);
+        assert.equal(Object.isFrozen(cached.originalInputs), true);
+        assert.deepEqual(native[2], document);
+        assert.strictEqual(native[4], environment);
+        assert.strictEqual(native[6], valuesMaxRows);
+        assert.strictEqual(module[2], fixture.installedContracts);
+        assert.deepEqual(module.slice(3), [mode, undefined, sourceFreeMaxWork]);
+        assert.deepEqual(calls, ['check', 'compiler', 'borrow', 'body', 'parameters']);
+      } finally {await fixture.close();}
+    }
+});

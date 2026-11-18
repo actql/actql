@@ -469,6 +469,8 @@ pub fn row_source_cursor_next(RowSourceCursorProgress) -> Result[String, RowSour
 
 pub fn row_source_cursor_remaining_rows(RowSourceCursorProgress, Int, Int) -> Result[Int, RowSourceCursorIssue]
 
+pub fn row_source_cursor_request_rows(RowSourceCursorProgress, Int, Int, Int?) -> Result[Int, RowSourceCursorIssue]
+
 pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool
 
 pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]
@@ -488,6 +490,8 @@ pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) ->
 pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]
 
 pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int
+
+pub fn row_update_mapping_construction_capacity(RowDeclaration, String, String, String) -> @execution_relation.ExecutionCapacity?
 
 pub fn single_relation_declaration_construction_inventory(Int, Int, Int, Int, Int, Int, Int, Int, RowDeclarationLimits) -> @execution_relation.PreparationRepresentationUnits?
 

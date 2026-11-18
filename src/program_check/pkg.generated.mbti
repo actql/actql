@@ -433,6 +433,8 @@ pub fn local_common_normalization_inventory_work(LocalCommonNormalizationInvento
 
 pub fn local_common_normalization_retained_extent(LocalCommonNormalizationInventory) -> (@decode_shape.CollectionConstructionExtent, Int64, Int64)?
 
+pub fn local_common_normalization_uses_source_completion(LocalCommonNormalizationInventory) -> Bool
+
 pub fn local_common_update_completion_free_inventory_matches(LocalCommonUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
 
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool

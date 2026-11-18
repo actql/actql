@@ -36,24 +36,29 @@ async function fixture(t, variants = [{}, {}]) {
   const effects = [], descriptors = [], installations = [];
   for (const [index, variant] of variants.entries()) {
     const name = `owner-${index}`;
+    const kind = variant.kind ?? 'create';
     const identity = cid(String(index + 1));
-    const mappingRef = `mapping:${name}/create.v1`;
+    const mappingRef = `mapping:${name}/${kind}.v1`;
     const target = `connector://${name}/records`;
-    const descriptor = {effectId: `effect-${index}`, kind: 'create', target,
+    const descriptor = {effectId: `effect-${index}`, kind, target,
       mappingRef, mappingCid: identity};
     const options = {moon, mappings: [{resource: 'records', mappingRef,
       mappingCid: identity, body: JSON.stringify({mapping_contract_cid: identity,
         target_ref: target, minimum_approval: 'required', permission_rules: [
-          {effect_kind: 'create', permissions: ['write']}], primary_identity: ['id']})}],
+          {effect_kind: kind, permissions: ['write']}], primary_identity: ['id']})}],
     environmentWire: '{}', connectorId: name, connectorRegistration: name,
     connectorRevision: `${name}/0.1`, connection: name,
     site: {issueEffectGrant: unused('grant'), issueReadGrant: unused('read grant'),
       close() { calls.push(`close:${name}`); }},
     authorization: {authorize: unused('authorize')}, runtimeBundleCid: cid('a'),
     bindingCid: identity, ledgerRoot: root,
-    driver: {kinds: ['create'], prepareRequest: unused('request'),
+    driver: {kinds: [kind], prepareRequest: unused('request'),
       requestFacts: unused('facts'), writeOperation: unused('operation'),
       send: unused('send'), project: unused('project'), footprint: unused('footprint'),
+      ...(kind === 'update' ? {targetRead: {operation: 'read'},
+        observeTargets: unused('observe targets'), recoveryEntry: unused('recovery entry'),
+        recoverRequests: unused('recover all'),
+        recoverMemberRequests: unused('recover members'), requestCid: unused('request CID')} : {}),
       ...variant.driverExtra},
     ...variant};
     effects.push(await createInstalledRowEffect(options));
@@ -65,6 +70,38 @@ async function fixture(t, variants = [{}, {}]) {
   }
   return {moon, effects, descriptors, installations, calls, root};
 }
+
+test('composed UPDATE retains checked Source preparation without issuing provider authority', async t => {
+  const f = await fixture(t, [{kind: 'update'}, {kind: 'update'}]);
+  const routed = composeInstalledRowEffectOwners(f.effects, f.descriptors, '{}');
+  const selected = {stages: [{inputs: {records: {source: 'existing checked Source'}},
+    steps: [{query: {sql: 'existing checked query'}}, {infer: {task: 'existing checked Task'}}]}]};
+  // This is the actual routing profile entrance with explicit compiled-wire
+  // DATA. It proves no compiler issuance, Source/Model execution or grant.
+  routed.assertPrepared({moon: f.moon, compilation: selected});
+  assert.throws(() => routed.assertPrepared({moon: {}, compilation: selected}),
+    {code: 'InstalledEffectSetOwnerMismatch'});
+  assert.throws(() => routed.assertPrepared({moon: f.moon,
+    compilation: {stages: [...selected.stages, ...selected.stages]}}),
+  {code: 'InstalledEffectSetOwnerMismatch'});
+  assert.throws(() => installedEffectFor({effects: f.effects},
+    [f.descriptors[0], {...f.descriptors[1], mappingCid: cid('f')}]),
+  {code: 'InstalledEffectProgramMismatch'});
+  assert.deepEqual(f.calls, []);
+});
+
+test('composed UPDATE requires original member recovery and the same runtime Ledger and limits', async t => {
+  for (const variant of [
+    {driverExtra: {recoverMemberRequests: undefined}},
+    {ledgerRoot: join(tmpdir(), 'foreign-update-ledger')},
+    {limits: {maxRows: 201}},
+  ]) {
+    const f = await fixture(t, [{kind: 'update'}, {kind: 'update', ...variant}]);
+    assert.throws(() => composeInstalledRowEffectOwners(f.effects, f.descriptors, '{}'),
+      {code: 'InstalledEffectSetOwnerMismatch'});
+    assert.deepEqual(f.calls, []);
+  }
+});
 
 test('composed route retains real owner ports without acquiring a provider', async t => {
   const f = await fixture(t);

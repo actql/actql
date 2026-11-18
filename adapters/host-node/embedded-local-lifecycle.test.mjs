@@ -887,7 +887,7 @@ function heldSourceFunction(name, ports) {
 test('held resume adopts the same Request Plan before its original publication consumer', async () => {
   const record = {computeRuns:new WeakMap()}, run = {}, admitted = [];
   const clientOperationError = code => Object.assign(new Error(code), {code});
-  const original = heldSourceFunction('managedComputePublicationOriginal', {record, clientOperationError});
+  let original;
   const route = heldSourceFunction('captureInstalledManagedRunRoute', {clientOperationError});
   const f = heldRequestOriginalFixture({preparePlan({request, moon, prepared, requested, preparation, requestOf}) {
     Object.assign(moon, {
@@ -906,7 +906,8 @@ test('held resume adopts the same Request Plan before its original publication c
         assert.equal(inference,undefined);assert.equal(invocation,undefined);
         assert.equal(f.original(program),request);
         assert.equal(record.computeRuns.has(program),false,'No second Plan constructor');
-        record.computeRuns.set(program,{runtime,prepared:program,value:run,closed:false});
+        record.computeRuns.set(program,{runtime,prepared:program,value:run,closed:false,
+          manager:{authoringContextOriginal(actual){assert.strictEqual(actual,program);return {};}}});
       },
     });
     const admit = heldControl('admitPreparedSubmission', {preparation, requestOf, moon,
@@ -914,6 +915,8 @@ test('held resume adopts the same Request Plan before its original publication c
       prepareOrdinaryManagedRun:route({preparation,moon}), clientOperationError});
     return admit(request);
   }});
+  original = heldSourceFunction('managedComputePublicationOriginal', {record, clientOperationError, moon:f.moon,
+    sourceManaged:undefined, computeManaged:undefined, originals:{}, originalSourceManagedHostRequest:()=>f.original(f.prepared)});
   const restored = await f.held();
   const publication = original(f.moon,f.prepared);
   assert.deepEqual(checkedLocalOutputLimits(f.moon,f.prepared,publication),localOutputLimits);

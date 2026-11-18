@@ -348,6 +348,8 @@ pub fn client_program_admit_request_effect_captured_run(@client_local_host.Clien
 
 pub fn client_program_admit_request_effect_run_materials_with_compilation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, String, String, @run_publication_host.ClientEffectCompilation, @run_publication_host.ClientRequestIdentity, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @program_check.CheckEnvironment) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientRequestProgramModuleBridgeIssue]
 
+pub fn client_program_admit_request_infer_run_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Result[(@run_publication_host.ClientTaskRunMaterials, @run_publication_host.ClientAuthoringContextPreparation), ClientInferRunMaterialsBridgeIssue]
+
 pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanAdmissionIssue]
 
 pub fn client_program_admit_serialization_captured_input(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String, @run_publication_host.ClientKeyedLookupObservation?) -> Result[@run_publication_host.ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
@@ -377,6 +379,8 @@ pub fn client_program_adopt_request_model_preparation(@client_local_host.ClientR
 pub fn client_program_adopt_request_models_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity, Array[@run_publication_host.ClientModelReadScope]) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_adopt_request_program_preparation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_adopt_request_program_with_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientRequestIdentity, @client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]) -> Result[@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_advance_capture(@client_local_host.ClientProgramCapture, Int) -> Result[(Bool, Int), @client_local_host.ClientClosedValuesPreparationIssue]
 
@@ -453,6 +457,8 @@ pub fn client_program_begin_installed_effect_model_unit_managed_export(@client_l
 pub fn client_program_begin_installed_source_io(@physical_resources.PreparationCapacity[ClientLocalPreparationInputOriginal, (ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)], ClientLocalPreparationInputOriginal, Int64) -> Result[@physical_resources.PreparationIo, @physical_resources.PreparationCapacityIssue]
 
 pub fn client_program_begin_original_infer_usage_publication(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, @model_execution.VerifiedModelCapture, Int64, Int64, Int) -> Result[@client_infer_host.OriginalInferUsagePublication, @client_infer_host.Issue]
+
+pub fn client_program_begin_request_explanation_read(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue]
 
 pub fn client_program_begin_request_preparation(@physical_resources.NodePreparationAdmission[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientLocalResourcePolicy) -> Result[@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], @client_local_host.ClientRequestPreparationIssue]
 
@@ -639,6 +645,8 @@ pub fn client_program_cancel_validation(@client_local_host.ClientProgramValidati
 pub fn client_program_canonical_effect_preview_draft(String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
 
 pub fn client_program_capture_limits(@client_local_host.ClientProgramCapture) -> Result[(Int, Int, Int), @client_local_host.ClientClosedValuesPreparationIssue]
+
+pub fn client_program_capture_request_original_explanation(@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[@client_local_host.ClientOriginalExplanationCapture, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
 pub fn client_program_captured_acquisition_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> Result[Array[Int64], @physical_resources.LedgerIssue]
 
@@ -2036,6 +2044,8 @@ pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedC
 
 pub fn client_program_installed_json_cursor_source_reader_capacity(Array[Int], Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_json_cursor_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_json_effect_request_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_json_effect_response_construction_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
@@ -2393,6 +2403,8 @@ pub fn client_program_issue_publication_witnesses(@run_publication_host.Prepared
 pub fn client_program_issue_request_effect_prepared_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation) -> Result[String, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_issue_request_effect_run_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity?) -> Result[String, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_issue_request_infer_run_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[String, @client_local_host.ClientRequestProgramPlanIssue]
 
 pub fn client_program_issue_result_plan(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanIssue]
 
@@ -3004,7 +3016,13 @@ pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.C
 
 pub fn client_program_local_file_timestamp(Int64, Int) -> String?
 
+pub fn client_program_local_mock_account_before_signing_prepared(String, String, String, Array[(String, String)], Array[String], (String, String)?, Array[(String, String)], Int, (Int64, Int64) -> Bool) -> Bool
+
 pub fn client_program_local_mock_account_configuration(String, String, String, Array[(String, String)], Array[String], (String, String)?, (String, String)?, String?) -> Result[String, @execution_authorization.LocalMockProfileIssue]
+
+pub fn client_program_local_mock_account_configuration_prepared(String, String, String, Array[(String, String)], Array[String], (String, String)?, Array[(String, String)], String?, (Int64, Int64) -> Bool) -> Result[String, @execution_authorization.LocalMockProfileIssue]?
+
+pub fn client_program_local_mock_account_inventory_prepared(String, Array[(String, String)], Array[String], (String, String)?, Array[(String, String)], (Int64, Int64) -> Bool) -> Result[Unit, @execution_authorization.LocalMockProfileIssue]?
 
 pub fn client_program_local_mock_account_profile() -> (String, String, String, String)
 
@@ -3269,6 +3287,10 @@ pub fn client_program_original_composed_keyed_prefix_execution(@client_local_hos
 pub fn client_program_original_effect_unit_artifact_definition(@run_publication_host.ClientEffectLocalResultArtifact) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn client_program_original_effect_unit_manifest_matches(@run_publication_host.ClientEffectLocalManifest, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectLocalResultArtifact]) -> Bool
+
+pub fn client_program_original_explanation_facts_wire(@client_local_host.ClientOriginalExplanationCapture) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue]
+
+pub fn client_program_original_explanation_plan_wire(@client_local_host.ClientOriginalExplanationCapture) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue]
 
 pub fn client_program_original_infer_capture_inventory_capacity(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity) -> Result[(Int, Int64, Int64), @client_infer_host.Issue]
 
@@ -3624,7 +3646,11 @@ pub fn client_program_prepare_request_node_model_capture_plan(@client_local_host
 
 pub fn client_program_prepare_request_node_model_source_free_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedSourceFreePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @client_infer_host.Limits, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int64, Int64, Int, Int, Int, Int64, Int64) -> Result[@client_local_host.ClientInstalledManagedModelPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_prepare_request_original_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int) -> Result[@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]?, @client_local_host.ClientOriginalExplanationCaptureIssue]
+
 pub fn client_program_prepare_request_policy_subjects(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment) -> Result[Int, @client_local_host.ClientRequestTerminalIssue]
+
+pub fn client_program_prepare_request_program_authoring_context(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@run_publication_host.ClientAuthoringContextPreparation, @client_local_host.ClientRequestAuthoringIssue]
 
 pub fn client_program_prepare_request_program_check(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @program_check.CheckLimits, @program_check.PreparedSourceCatalog?, @stage_parameters.Source?) -> Result[@client_local_host.ClientProgramCheckPreparation[ClientLocalPreparationInputOriginal, Unit], @client_local_host.ClientRequestPreparationIssue]
 
@@ -3633,6 +3659,8 @@ pub fn client_program_prepare_request_program_compilation(@client_local_host.Cli
 pub fn client_program_prepare_request_program_json(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, @stage_syntax.Limits) -> Result[@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit], @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_prepare_request_program_module_body(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledSequenceContracts, Bool, (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?, Int?) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_prepare_request_program_normalization(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@run_publication_host.ClientLocalNormalization, @client_local_host.ClientRequestNormalizationIssue]
 
 pub fn client_program_prepare_request_provider_model_graph(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract, @client_local_host.ClientInstalledSequenceContracts, @model_execution.AdmittedModelProvider, Array[@client_row_source_host.RowDeclaration]?) -> Result[@run_publication_host.ClientInferPlanGraph, ClientRequestProgramModuleBridgeIssue]
 
@@ -3670,6 +3698,8 @@ pub fn client_program_prepare_source_with_parameters(String, String, @program_ch
 
 pub fn client_program_prepare_whole_source_capacity(@run_publication_host.PreparedClientProgram, @sourceview_resolution.SourceAcquisitionRoute, @client_row_source_host.RowDeclaration, @client_local_host.ClientInstalledSequenceContracts, @execution_relation.ExecutionCapacity?, Int, Int, Int, Int, Int, Int) -> Result[@client_local_host.ClientInstalledWholeSourceCapacity, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_prepared_authoring_context_evidence(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientAuthoringContextPreparation, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientAuthoringContextIssue]
+
 pub fn client_program_prepared_composed_infer_bounds(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph) -> Result[@client_infer_host.Limits, @client_infer_host.Issue]
 
 pub fn client_program_prepared_effectful_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PreparedCapturedEffectRun, @run_publication.EffectPreviewIdentity, String, Array[String], String, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
@@ -3683,6 +3713,8 @@ pub fn client_program_prepared_installed_managed_source_free_requirements(@clien
 pub fn client_program_prepared_installed_serialization_prefix_requirements(@client_local_host.ClientInstalledManagedSerializationPreparation) -> Array[Int64]
 
 pub fn client_program_prepared_installed_whole_source_requirements(@client_local_host.ClientInstalledManagedCapturePlan) -> Array[Int64]
+
+pub fn client_program_prepared_local_normalization_evidence(@run_publication_host.PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, @run_publication_host.ClientLocalNormalizationIssue]
 
 pub fn client_program_prepared_local_publication_limits(@client_local_host.ClientInstalledManagedSourceFreePreparation, @run_publication_host.PreparedClientProgram, Int) -> Array[Int]
 
@@ -3795,6 +3827,8 @@ pub fn client_program_read_original_mock_model_dependencies(@model_execution.Mod
 pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.PublicModelTaskDeclaration, @check_environment.ModelTaskIssue]
 
 pub fn client_program_read_reconciled_infer_raw_usage(@model_execution.ModelPhysicalCall, @model_execution.ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]
+
+pub fn client_program_read_request_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue]
 
 pub fn client_program_read_request_policy_subject(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment, Int) -> Result[String, @client_local_host.ClientRequestTerminalIssue]
 
@@ -3952,6 +3986,8 @@ pub fn client_program_release_request_result_metadata(@client_local_host.ClientR
 
 pub fn client_program_replay_model_capture(@execution_relation.PreparedInferRows, String, @model_execution.ModelCaptureBundle) -> Bool
 
+pub fn client_program_request_explanation_read_issue_code(@client_local_host.ClientRequestExplanationReadIssue) -> String
+
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
 pub fn client_program_request_model_direct_source_coordinates(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[Array[Array[Int]], @client_local_host.ClientInstalledManagedRunIssue]
@@ -3969,6 +4005,8 @@ pub fn client_program_request_preparation_accounting(@client_local_host.ClientRe
 pub fn client_program_request_preparation_control(@client_local_host.ClientLocalResourcePolicy) -> Array[Int64]
 
 pub fn client_program_request_preparation_issue_code(Result[String, @client_local_host.ClientRequestTerminalIssue]) -> String?
+
+pub fn client_program_request_program_compilation_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> @run_publication_host.ClientRunCompilation?
 
 pub fn client_program_request_program_module_capacity_refusal(Result[Unit, ClientRequestProgramModuleBridgeIssue]) -> (String, String, Int64, Int64, Int64, Int64)?
 
@@ -4025,6 +4063,8 @@ pub fn client_program_reserve_request_effect_capture_envelope(@client_local_host
 pub fn client_program_reserve_request_effect_capture_recovery(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_reserve_request_effect_original_material(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.PreparedClientEffectComputation, Int, (Int) -> String) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_reserve_request_explanation_read(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue]
 
 pub fn client_program_reserve_request_http_input(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
@@ -4116,6 +4156,10 @@ pub fn client_program_retire_original_mock(@model_execution.ModelMockInstallatio
 
 pub fn client_program_return_installed_source_material(@physical_resources.PreparationBodyBorrow[(ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment)]) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
 
+pub fn client_program_return_original_explanation_capture(@client_local_host.ClientOriginalExplanationCapture) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
+
+pub fn client_program_return_request_original_explanation(@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
+
 pub fn client_program_row_content_reference_issuer(@value_admission.ReferenceIssuer, @value_admission.ReferenceIssuer) -> @value_admission.ReferenceIssuer
 
 pub fn client_program_row_reference_issuer((String, String) -> Bool, (String?, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
@@ -4191,6 +4235,8 @@ pub fn client_program_row_source_cursor_issue_code(@client_row_source_host.RowSo
 pub fn client_program_row_source_cursor_next(@client_row_source_host.RowSourceCursorProgress) -> Result[String, @client_row_source_host.RowSourceCursorIssue]
 
 pub fn client_program_row_source_cursor_remaining_rows(@client_row_source_host.RowSourceCursorProgress, Int, Int) -> Result[Int, @client_row_source_host.RowSourceCursorIssue]
+
+pub fn client_program_row_source_cursor_request_rows(@client_row_source_host.RowSourceCursorProgress, Int, Int, Bool, Int) -> Result[Int, @client_row_source_host.RowSourceCursorIssue]
 
 pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDeclaration) -> String
 
@@ -4273,6 +4319,8 @@ pub fn client_program_row_source_typed_json_page_has_next_cursor(@client_row_sou
 pub fn client_program_row_source_typed_json_page_next_cursor(@client_row_source_host.RowSourceProjectedJsonPage) -> Result[String, @client_row_source_host.RowSourceJsonPageIssue]
 
 pub fn client_program_row_source_typed_json_page_row_count(@client_row_source_host.RowSourceProjectedJsonPage) -> Int
+
+pub fn client_program_row_source_update_mapping_construction_capacity(@client_row_source_host.RowDeclaration, String, String, String) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
 
 pub fn client_program_run_captured_content_candidate(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, String, String, String, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
 
@@ -6642,6 +6690,7 @@ pub(all) enum ClientEffectProgramBridgeOutcome {
 pub(all) enum ClientInferRunMaterialsBridgeIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Materials(@run_publication_host.ClientTaskRunMaterialsIssue)
+  Recovery(@client_local_host.ClientRequestModelRecoveryMaterialsIssue)
 }
 
 pub(all) enum ClientInstalledEffectPreviewKeyIssue {

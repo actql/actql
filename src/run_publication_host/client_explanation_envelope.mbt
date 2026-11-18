@@ -36,19 +36,37 @@ pub fn capture_client_structural_explanation_original(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientStructuralExplanationOriginal, ClientExplanationFactsIssue] {
-  let wire = match
-    client_compiled_run_static_plan_view(
-      compiled, prepared, max_bytes, max_nodes, max_depth,
+  capture_client_structural_explanation_plan_original(
+    compiled, prepared, max_bytes, max_nodes, max_depth,
+  ).map(value => value.0)
+}
+
+///|
+/// The first admission can retain BOTH original projections from one compiler
+/// pass. Its existing owner must fund the complete static view and hold it
+/// beside the Facts construction until that same durable admission ACK.
+/// The returned String is the unchanged old Plan view, not a new wire family.
+pub fn capture_client_structural_explanation_plan_original(
+  compiled : ClientCompiledRun,
+  prepared : PreparedClientProgram,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (ClientStructuralExplanationOriginal, String),
+  ClientExplanationFactsIssue,
+] {
+  let (wire, view) = match
+    capture_client_compiled_static_plan_original(
+      compiled, prepared, max_bytes, max_nodes, max_depth, false,
     ) {
-    Ok(wire) => wire
+    Ok(value) => value
     Err(issue) => return Err(OriginalPlan(issue))
   }
-  guard parse_plan_identity_value(wire, max_bytes, max_nodes, max_depth)
-    is Some(view) &&
-    @canonical.object_field(view, "logical_map") is Some(map) else {
+  guard @canonical.object_field(view, "logical_map") is Some(map) else {
     return Err(Encoding(@encode.InvalidStructure))
   }
-  Ok({ compiled, prepared, map, })
+  Ok(({ compiled, prepared, map, }, wire))
 }
 
 ///|

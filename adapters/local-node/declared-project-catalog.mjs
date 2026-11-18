@@ -15,6 +15,7 @@ import {declaredProjectCatalogJsonParseConstructionGeometry,
   declaredProjectCatalogPhysicalOverridesConstructionGeometry,
   declaredProjectCatalogMappingInputsConstructionGeometry,
   declaredProjectCatalogFinalDescriptorsConstructionGeometry,
+  declaredProjectWritableInventoryConstructionGeometry,
   declaredFileReadProfileBindingConstructionGeometry}
   from '../host-node/declared-project-catalog-construction.mjs';
 
@@ -255,9 +256,6 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
       data, fileBindings, writeSpecs});
     });
     const {entry, views, publicViews, queryAliases, data, fileBindings, writeSpecs} = selected;
-    // Existing installed Effect ownership currently admits one target. Reject
-    // ambiguity before opening fixture data or constructing an Effect.
-    if (writeSpecs.length + sources.reduce((sum, source) => sum + source.writes.length, 0) > 1) invalid();
     const dataPath = resolve(directory, dataFile);
     const {scopeCid} = inputStage(sourceMember,
       () => declaredProjectCatalogScopeConstructionGeometry(connection, provider, dataPath, originalWire),
@@ -433,5 +431,48 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
     fileReadDeclarations = installationInventory === undefined ? projection.project()
       : installationInventory.prepareMetadataInput(projection);
   }
-  return Object.freeze({original, originalWire, sources: Object.freeze(sources), fileReadDeclarations});
+  const writables = inputStage(undefined,
+    () => declaredProjectWritableInventoryConstructionGeometry(sources),
+    () => projectDeclaredProjectWritableInventory(sources), true);
+  return Object.freeze({original, originalWire, sources: Object.freeze(sources), writables, fileReadDeclarations});
+}
+
+// Post-admission metadata projection only. The installing caller must reserve
+// its complete geometry before entry; this function issues no declaration,
+// physical file, authority or installation from structural input alone.
+export function projectDeclaredProjectWritableInventory(sources) {
+  const targets = [];
+  for (const source of sources) for (const write of source.writes) {
+    const physical = source.physical.find(value => value.resource === write.resource);
+    if (physical === undefined) invalid();
+    const mapping = source.effectPrepared?.mappings.find(value => value.resource === write.resource);
+    targets.push(Object.freeze({source, write, physical, mapping,
+      beforeFields: Object.freeze(Object.keys(physical.schema))}));
+  }
+  const compare = (left, right) => left < right ? -1 : left > right ? 1 : 0;
+  const pathCompare = (left, right) => {
+    const a = left.physical.itemsPath, b = right.physical.itemsPath;
+    for (let index = 0; index < Math.min(a.length, b.length); index++) {
+      const order = compare(a[index], b[index]);
+      if (order !== 0) return order;
+    }
+    return a.length - b.length;
+  };
+  targets.sort(pathCompare);
+  for (let index = 1; index < targets.length; index++) {
+    const before = targets[index - 1].physical.itemsPath;
+    const after = targets[index].physical.itemsPath;
+    if (before.length <= after.length && before.every((part, offset) => part === after[offset])) {
+      fail('OverlappingMockWritableCollections');
+    }
+  }
+  targets.sort((left, right) => compare(left.source.catalogue.connection, right.source.catalogue.connection) ||
+    compare(left.write.resource, right.write.resource));
+  for (let index = 1; index < targets.length; index++) {
+    if (targets[index - 1].source.catalogue.connection === targets[index].source.catalogue.connection &&
+        targets[index - 1].write.resource === targets[index].write.resource) {
+      fail('DuplicateMockWritableTarget');
+    }
+  }
+  return Object.freeze(targets);
 }

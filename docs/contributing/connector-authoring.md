@@ -81,6 +81,18 @@ credential resolvers stay in the ordinary Account/Site setup, outside this
 file and every author callback.
 
 For a root array without pagination, use `{"kind":"none","items":[]}`.
+The closed `read` DATA can also supply ordered `query` pairs, a
+`pageSize: {parameter, limit}` entry and a `versionHeader: {name, value}` entry.
+For example, `pageSize: {parameter: "page_size", limit: 100}` requests at most
+the remaining rows, and `versionHeader: {name: "api-version", value: "2026-03-11"}`
+keeps an explicit nonsecret version pin. Query names must be distinct from each
+other, the cursor parameter and the page-size parameter. Only a canonical
+version-header name is accepted; transport and credential headers remain Host
+owned. The Host encodes query literals without normalization or reordering.
+These are finite request DATA, not a callback, permission or capacity setting.
+The Node Source constructor retains and funds the captured DATA and request
+workspace through its existing Owner. This authoring connection does not by
+itself establish a matching compiled normal installation or Wasm Host parity.
 The standard projector already preserves JSON row bytes and cursor identity;
 an identity projection needs no extra JavaScript file. If a projection is
 needed, `transform` names one relative `.mjs` file exporting synchronous
@@ -293,6 +305,26 @@ success from reading back an equal value.
 Close and cleanup failures stay on the same retry handle; completion is
 marked only after close succeeds. A retry releases resources — it never
 repeats a read, a computation, a Preview, an approval or a send.
+
+### Opaque values and generated bindings
+
+`ConnectorRuntimeHandle` and `ConnectorRuntimeOwner` expose no MoonBit object
+layout. Keep each original handle with its issuing runtime namespace; do not
+spread it, serialize it, cast it to a record or inspect numeric fields. A
+matching JavaScript shape is neither the original value nor permission to use
+it. Ordinary Connector authors forward these handles through the supported
+installation API without decoding them.
+
+When maintaining a Host binding or a boundary test, use the public accessor
+for the actual returned type in that same namespace, then decode only its
+declared result with the generated compiler binding. For example, an opaque
+`ExecutionCapacity` must pass through `clientProgramSerializationCapacityBytes`
+before the returned `(Int64, Int64)` tuple is inspected. Applying a tuple field
+accessor directly to the capacity is invalid. Fixed arrays, tuples, records and
+Options do not share a layout merely because they contain similar values;
+qualify the actual compiled export rather than guessing a representation from
+its JavaScript appearance. Do not construct an Option, tuple or record as a
+substitute for an opaque original.
 
 ### Original SQL Job Source installation
 

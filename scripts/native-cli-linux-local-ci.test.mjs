@@ -363,7 +363,8 @@ fi
     const shell = compilerCommands.replaceAll('/etc/apt/apt-mirrors.txt', mirror)
       .replaceAll('/etc/apt/sources.list.d/ubuntu.sources', sources)
       .replaceAll('/usr/bin/clang-19', compiler);
-    const result = spawnSync('bash', ['-c', shell], {encoding: 'utf8', timeout: 3000,
+    // Bound the fake-command probe without making shell startup a 3s CI target.
+    const result = spawnSync('bash', ['-c', shell], {encoding: 'utf8', timeout: 10000,
       env: {...process.env, PATH: bin + ':/usr/bin:/bin', ACQUISITION_CALLS: calls,
         ACQUISITION_COMPILER: compiler, ACQUISITION_FAILURE: failure}});
     assert.equal(result.error, undefined);assert.equal(result.signal, null);

@@ -63,6 +63,7 @@ pub(all) enum PreparationWorkPhase {
   RequestPolicySubjectPreparation
   HttpInputPreflight
   NormalizationAudit
+  AuthoringContext
 } derive(Eq, Debug)
 
 ///|
@@ -211,8 +212,9 @@ fn preparation_work_ordinal(phase : PreparationWorkPhase) -> Int {
     // This private fence is not a constructor/ABI tag or serialized counter.
     // Normalization belongs to the same Prepared before Plan construction.
     NormalizationAudit => 56
-    ExecutionPlan => 57
-    PublicationProof => 58
+    AuthoringContext => 57
+    ExecutionPlan => 58
+    PublicationProof => 59
   }
 }
 

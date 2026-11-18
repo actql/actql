@@ -14,8 +14,22 @@ struct LocalCommonNormalizationInventory {
   owner : CheckedProgram
   requirements : @context.StageRequirementClosure
   parameters : @parameters.BoundValues
-  entries : Array[LocalSortNormalizationEntry]
+  entries : Array[LocalCommonNormalizationEntry]
   audited_work : Int
+}
+
+///|
+priv enum LocalCommonNormalizationOriginal {
+  Relation(LocalSortNormalizationEntry)
+  Source(@sourceviews.ResolvedInput)
+}
+
+///|
+priv struct LocalCommonNormalizationEntry {
+  original : LocalCommonNormalizationOriginal
+  path : String
+  authored : String
+  canonical : String
 }
 
 ///|
@@ -41,8 +55,8 @@ fn local_common_charge(
 
 ///|
 fn local_common_entry(
-  entries : Array[LocalSortNormalizationEntry],
-  entry : LocalSortNormalizationEntry,
+  entries : Array[LocalCommonNormalizationEntry],
+  entry : LocalCommonNormalizationEntry,
   budget : LocalCommonAuditBudget,
 ) -> Unit raise LocalCommonAuditFailure {
   for prior in entries {
@@ -56,7 +70,13 @@ fn local_common_entry(
       },
     )
     if prior.path == entry.path {
-      if !physical_equal(prior.operation, entry.operation) ||
+      let same = match (prior.original, entry.original) {
+        (Relation(left), Relation(right)) =>
+          physical_equal(left.operation, right.operation)
+        (Source(left), Source(right)) => physical_equal(left, right)
+        _ => false
+      }
+      if !same ||
         prior.authored != entry.authored ||
         prior.canonical != entry.canonical {
         raise LocalCommonAuditFailure(ForeignOriginal)
@@ -147,7 +167,7 @@ fn audit_local_common_normalization_inventory(
         return Err(ForeignOriginal)
       }
     }
-    let entries : Array[LocalSortNormalizationEntry] = []
+    let entries : Array[LocalCommonNormalizationEntry] = []
     for stage, unit in owner.units {
       local_common_charge(budget, 1)
       let original = @context.program_identity_stage_at(identity, stage).unwrap()
@@ -162,8 +182,21 @@ fn audit_local_common_normalization_inventory(
       }
       for execution in unit.source_execution {
         local_common_charge(budget, 1)
-        if @sourceviews.completion_rule(execution.subject.source) is Some(_) {
-          return Err(CompletionObserved)
+        let source = execution.subject.source
+        if @sourceviews.completion_rule(source) is Some(rule) {
+          if rule != "actql.source.sole-view-completion" {
+            return Err(CompletionObserved)
+          }
+          if !physical_equal(execution.subject.owner, identity) {
+            return Err(ForeignOriginal)
+          }
+          let (entry, left) = match
+            local_source_normalization_entry(source, budget.remaining) {
+            Some(value) => value
+            None => return Err(BudgetExceeded)
+          }
+          budget.remaining = left
+          local_common_entry(entries, entry, budget)
         }
       }
       let visits = @context.program_identity_producer_count(identity, stage).unwrap()
@@ -194,7 +227,16 @@ fn audit_local_common_normalization_inventory(
                       return Err(UnsupportedRequirement)
                   }
                   for entry in selected {
-                    local_common_entry(entries, entry, budget)
+                    local_common_entry(
+                      entries,
+                      {
+                        original: Relation(entry),
+                        path: entry.path,
+                        authored: entry.authored,
+                        canonical: entry.canonical,
+                      },
+                      budget,
+                    )
                   }
                 }
                 Rename | Drop => {
@@ -207,7 +249,16 @@ fn audit_local_common_normalization_inventory(
                     return Err(BudgetExceeded)
                   }
                   budget.remaining = left
-                  local_common_entry(entries, entry, budget)
+                  local_common_entry(
+                    entries,
+                    {
+                      original: Relation(entry),
+                      path: entry.path,
+                      authored: entry.authored,
+                      canonical: entry.canonical,
+                    },
+                    budget,
+                  )
                 }
                 Group =>
                   if @relation.group_has_additional_prefix(
@@ -265,7 +316,8 @@ fn audit_local_common_normalization_inventory(
         }
       }
     }
-    guard canonical_local_sort_entries(entries, budget.remaining) is Some(left) else {
+    guard canonical_local_common_entries(entries, budget.remaining)
+      is Some(left) else {
       return Err(BudgetExceeded)
     }
     budget.remaining = left
@@ -324,10 +376,58 @@ pub fn local_common_normalization_entry_at(
   index : Int,
 ) -> (String, String, String, String)? {
   guard inventory.entries.get(index) is Some(entry) &&
-    local_sort_entry_rule(entry) is Some(rule) else {
+    local_common_entry_rule(entry) is Some(rule) else {
     return None
   }
   Some((entry.path, rule, entry.authored, entry.canonical))
+}
+
+///|
+pub fn local_common_normalization_uses_source_completion(
+  inventory : LocalCommonNormalizationInventory,
+) -> Bool {
+  inventory.entries.any(entry => entry.original is Source(_))
+}
+
+///|
+fn local_common_entry_rule(entry : LocalCommonNormalizationEntry) -> String? {
+  match entry.original {
+    Relation(original) => local_sort_entry_rule(original)
+    Source(original) => @sourceviews.completion_rule(original)
+  }
+}
+
+///|
+fn canonical_local_common_entries(
+  entries : Array[LocalCommonNormalizationEntry],
+  available : Int,
+) -> Int? {
+  let mut remaining = available
+  for index in 1..<entries.length() {
+    let mut at = index
+    while at > 0 {
+      guard local_sort_text_work(entries[at - 1].path, remaining) is Some(left) &&
+        local_sort_text_work(entries[at].path, left) is Some(left) else {
+        return None
+      }
+      remaining = left
+      let comparison = @canonical.compare_utf16(
+        entries[at - 1].path,
+        entries[at].path,
+      )
+      if comparison == 0 {
+        return None
+      }
+      if comparison < 0 {
+        break
+      }
+      let previous = entries[at - 1]
+      entries[at - 1] = entries[at]
+      entries[at] = previous
+      at -= 1
+    }
+  }
+  Some(remaining)
 }
 
 ///|

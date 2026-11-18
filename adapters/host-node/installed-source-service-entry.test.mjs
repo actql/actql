@@ -69,13 +69,34 @@ test('portable cursor Source mode refuses missing quote or incompatible construc
   assert.throws(()=>f.services.sourceReaderImplementation(input),{code:'InstalledSourceReaderRuntimeUnavailable'});
   let getters=0;
   for(const changed of [{cursorProgress:false},{get cursorProgress(){getters++;return true;}},
-    {requestConstruction:Object.freeze({capacity:{},maxRequestBytes:512})},
     {preservingRequestConstruction:Object.freeze({capacity:{},maxRequestBytes:512})},
     {readSequenceConstruction:Object.freeze({})}]) {
     const selected=Object.defineProperties({...input},Object.getOwnPropertyDescriptors(changed));
     assert.throws(()=>f.services.sourceReaderImplementation(selected),{code:'InvalidInstalledSourceReaderSelection'});
   }
   assert.equal(getters,0);assert.deepEqual(f.counts(),[1,0]);
+});
+
+test('declarative cursor request uses the same original quantity and cache identity without legacy fallback', () => {
+  const request={},quantity={},calls=[];
+  const f=fixture({clientProgramInstalledJsonCursorSourceReaderCapacityWithRequest(limits,columns,secret,original){
+    assert.equal(this,f.moon);assert.deepEqual(limits,values.slice(0,16));assert.equal(columns,3);
+    assert.equal(secret,65536);assert.equal(original,request);calls.push('cursor-request');return quantity;
+  }});
+  retainInstalledHostServiceInstallation(f.services,f.installation,'sha256:'+'a'.repeat(64));
+  const limits=f.services.sourceReaderImplementationProfile({installation:f.installation,metadataResponses:3,originUnits:20});
+  const requestConstruction=Object.freeze({capacity:request,maxRequestBytes:512});
+  const input={installation:f.installation,limits,columnCount:3,cursorProgress:true,requestConstruction};
+  const selected=f.services.sourceReaderImplementation(input);
+  assert.equal(selected.capacity,quantity);assert.equal(f.services.sourceReaderImplementation({...input}),selected);
+  assert.deepEqual(calls,['cursor-request']);assert.deepEqual(f.counts(),[1,0]);
+  assert.throws(()=>f.services.sourceReaderImplementation({...input,requestConstruction:Object.freeze({...requestConstruction})}),
+    {code:'InstalledSourceReaderSelectionChanged'});
+  f.close();assert.throws(()=>f.services.sourceReaderImplementation(input),/same current failure/u);
+  const old=fixture();retainInstalledHostServiceInstallation(old.services,old.installation,'sha256:'+'a'.repeat(64));
+  assert.throws(()=>old.services.sourceReaderImplementation({...input,installation:old.installation}),
+    {code:'InstalledSourceReaderRuntimeUnavailable'});
+  assert.deepEqual(old.counts(),[0,0]);
 });
 
 test('public Source service keeps original installation policy and typed capacity before any Site', () => {

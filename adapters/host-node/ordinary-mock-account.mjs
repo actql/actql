@@ -4,11 +4,68 @@ import {join} from 'node:path';
 import {canonicalJson, contentCid, bytesCid} from './local-account-config.mjs';
 import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {isAccountConstruction, readAccountOriginal} from './account-construction.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 
 const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
 const flights = new Map();
 const maximum = 1024 * 1024;
+
+// The trusted installed caller supplies its SAME retained catalog originals.
+// Full declaration/configuration wires are hash inputs, not subject members.
+// Quote the actual returned forest separately from one synchronous hash's
+// Buffer scratch; the existing Account Read keeps all failed-prefix debt.
+export function prepareOrdinaryMockAccountSubjects(frame, bundle, originalTasks,
+  projectDirectory, configurationWire, requestRealization) {
+  let units = BigInt(projectDirectory.length + requestRealization.length + 256 + 71);
+  let nodes = 64n + 2n * BigInt(originalTasks.length);
+  for (const entry of bundle.sources) {
+    units += BigInt(71 + entry.catalogue.connection.length + entry.catalogue.registration.length);
+    nodes += 8n;
+    for (const view of entry.catalogue.views) {
+      units += BigInt(entry.catalogue.connection.length + view.resource.length);nodes += 4n;
+    }
+  }
+  for (const entry of originalTasks) units += BigInt(entry.taskCid.length);
+  for (const target of bundle.writables) {
+    units += BigInt(128 + target.source.catalogue.connection.length + target.write.resource.length);
+    nodes += 24n + 2n * BigInt(target.physical.itemsPath.length + target.physical.keyPath.length);
+    if (bundle.writables.length > 1) {
+      units += BigInt(71 + target.physical.primaryIdentity.length);
+      for (const part of target.physical.itemsPath) units += BigInt(part.length);
+      for (const part of target.physical.keyPath) units += BigInt(part.length);
+    }
+  }
+  // This includes the subject, source/update tuples and original path/task
+  // references. It does not charge a second retained copy of borrowed wires.
+  frame.record(units, nodes, 8n);
+  const hashOriginal = value => {
+    // Buffer.from and digest are synchronous. Each Buffer dies before the
+    // next call; the SAME frame keeps the maximum execution peak, while its
+    // record debit retains every returned CID. This is no GC/physical ACK.
+    frame.prepare(0n, 128n + BigInt(Buffer.byteLength(value, 'utf8')));
+    return bytesCid(Buffer.from(value));
+  };
+  const tasks = originalTasks.map(entry => entry.taskCid);
+  const sources = bundle.sources.flatMap(entry => entry.catalogue.views.map(view =>
+    [entry.catalogue.connection, view.resource]));
+  const updates = bundle.writables.map(target =>
+    [target.source.catalogue.connection, target.write.resource]);
+  const subject = {projectDirectory, configurationCid: hashOriginal(configurationWire),
+    sources: bundle.sources.map(entry => ({connection: entry.catalogue.connection,
+      registration: entry.catalogue.registration, declarationCid: hashOriginal(entry.wire)})),
+    modelTasks: tasks, requestRealization};
+  if (updates.length > 1) subject.targets = bundle.writables.map(target => {
+    const mapping = target.source.effectPrepared.mappings.find(value => value.resource === target.write.resource);
+    if (typeof mapping?.mappingCid !== 'string') fail('InstalledMockMappingUnavailable');
+    return {connection: target.source.catalogue.connection, resource: target.write.resource,
+      mappingCid: mapping.mappingCid, itemsPath: target.physical.itemsPath,
+      keyPath: target.physical.keyPath, primaryIdentity: target.physical.primaryIdentity};
+  });
+  // Preserve the original one-target preimage and complete plural inventory.
+  return {subject, sources, modelTasks: tasks,
+    requestTarget: ['local-mock', requestRealization], updateTargets: updates};
+}
 
 // This is the existing Local Host's installation work, under its actual Store
 // exclusion. Common owns the limited policy; these files do not create grants
@@ -16,15 +73,32 @@ const maximum = 1024 * 1024;
 export function initializeOrdinaryMockAccount(options) {
   const key = options.root;
   if (flights.has(key)) fail('LocalMockInitializationAlreadyPending');
-  const flight = Promise.resolve().then(() => initialize(options));
+  const flight = Promise.resolve().then(() => initializeConstructed(options));
   flights.set(key, flight);
   const settled = () => {if (flights.get(key) === flight) flights.delete(key);};
   flight.then(settled, settled);
   return flight;
 }
 
+async function initializeConstructed({accountConstruction, prepareSubjects, ...options}) {
+  if (accountConstruction === undefined) {
+    if (prepareSubjects !== undefined || options.updateTargets !== undefined) fail('LocalMockAccountInventoryUnavailable');
+    return initialize(options);
+  }
+  if (!isAccountConstruction(accountConstruction)) fail('ForeignAccountConstruction');
+  const frame = accountConstruction.begin();
+  try {
+    const subjects = prepareSubjects === undefined ? {} : prepareSubjects(frame);
+    const result = await initialize({...options, ...subjects}, frame);
+    if (result !== undefined) frame.hold();
+    frame.finish(result !== undefined);
+    return result;
+  } catch (cause) {frame.failure(cause); frame.finish(false); throw cause;}
+}
+
 async function initialize({moon, root, principal, subject, sources, modelTasks, requestTarget,
-  updateTarget, explicitSelection, assertExclusiveCurrent, operatorAuthorization}) {
+  updateTarget, updateTargets, explicitSelection, assertExclusiveCurrent, operatorAuthorization}, frame) {
+  let constructing = true;
   assertExclusiveCurrent();
   // The existing diagnostic callback is not an Account, policy or signer
   // selection. Capture only that one own DATA function before any setup await;
@@ -35,6 +109,25 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     ? Object.getOwnPropertyDescriptor(operatorAuthorization, 'observe')?.value : undefined;
   if (operatorAuthorization !== undefined && typeof diagnosticObserver !== 'function') return undefined;
   const diagnostic = diagnosticObserver === undefined ? {} : {observe: diagnosticObserver};
+  const targets = updateTargets ?? (updateTarget === undefined ? [] : [updateTarget]);
+  // The trusted initializer supplied the COMPLETE catalog before any subject
+  // CID or key is created. Its tuple copies are separate live constructors.
+  if (frame !== undefined) frame.record(0n, 16n + 4n * BigInt(sources.length + targets.length), 2n);
+  const sourceTuples = sources.map(runtimeTupleFromFields);
+  const targetTuples = targets.map(runtimeTupleFromFields);
+  const requestTuple = requestTarget === undefined ? undefined : runtimeTupleFromFields(requestTarget);
+  if (frame !== undefined) {
+    const validate = moon.clientProgramLocalMockAccountInventoryPrepared;
+    if (typeof validate !== 'function' || typeof moon.clientProgramLocalMockAccountConfigurationPrepared !== 'function' ||
+        typeof moon.clientProgramLocalMockAccountBeforeSigningPrepared !== 'function') {
+      fail('LocalMockAccountInventoryUnavailable');
+    }
+    const checkedInventory = Reflect.apply(validate, moon,
+      ['local-mock', sourceTuples, modelTasks, requestTuple, targetTuples, frame.core]);
+    frame.assert();
+    if (checkedInventory === undefined) fail('LocalMockAccountInventoryUnavailable');
+    checked(checkedInventory);
+  }
   const policyOriginal = moon.clientLocalSigningBootstrapOriginal;
   const bootstrapIssue = moon.clientLocalSigningBootstrapIssue;
   const publicKeyOriginal = moon.clientLocalSigningPublicKeyOriginal;
@@ -56,7 +149,9 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     try {
       const info = await lstat(path);
       if (!info.isFile() || info.isSymbolicLink() || (info.mode & 0o077) !== 0) fail('LocalMockInitializationExposed');
-      const wire = await readBoundedConfigurationUtf8(path, {maxBytes: maximum});
+      if (info.size > maximum) fail('LocalMockInitializationLimit');
+      const wire = constructing && frame !== undefined ? await readAccountOriginal(path, frame)
+        : await readBoundedConfigurationUtf8(path, {maxBytes: maximum});
       assertExclusiveCurrent(); return wire;
     } catch (cause) {if (cause?.code === 'ENOENT') return undefined; throw cause;}
   }
@@ -91,6 +186,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   }
   async function createOriginal(path, wire) {
     assertExclusiveCurrent();
+    if (constructing && frame !== undefined) frame.prepare(0n, 128n + 3n * BigInt(Buffer.byteLength(wire, 'utf8')));
     let handle;
     try {handle = await open(path, 'wx', 0o600);}
     catch (cause) {
@@ -105,6 +201,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     await syncDirectory();
   }
   function parse(wire) {
+    if (constructing) frame?.nativeJson(wire);
     try {return JSON.parse(wire);} catch (cause) {fail('LocalMockInitializationInvalid', cause);}
   }
   let intentWire = await readOptional(intentPath);
@@ -114,6 +211,17 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     if (!explicitSelection) fail('LocalMockInitializationConsentRequired');
     try {await lstat(directory); fail('LocalMockInitializationConflict');}
     catch (cause) {if (cause?.code !== 'ENOENT') throw cause;}
+    const accountId = 'local-mock-' + randomUUID();
+    if (frame !== undefined) {
+      // bytesCid over the actual Ed25519 public PEM has the existing exact
+      // ASCII SHA256 name length. This is a constructor bound, not a key value.
+      const prepared = moon.clientProgramLocalMockAccountBeforeSigningPrepared(accountId, principal,
+        'local-mock', sourceTuples, modelTasks, requestTuple, targetTuples, 71, frame.core);
+      frame.assert();
+      if (prepared !== true) fail('LocalMockAccountConstructionUnavailable');
+    }
+    // Fixed Ed25519 key/PEM/intent constructors use the same original Read.
+    frame?.record(8192n, 128n, 4n);
     await mkdir(directory, {mode: 0o700});
     assertExclusiveCurrent();
     const reviewer = generateKeyPairSync('ed25519'), host = generateKeyPairSync('ed25519');
@@ -121,11 +229,15 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     const hostPem = host.privateKey.export({type: 'pkcs8', format: 'pem'});
     const reviewerPublic = reviewer.publicKey.export({type: 'spki', format: 'pem'});
     const reviewerResource = bytesCid(Buffer.from(reviewerPublic));
-    const accountId = 'local-mock-' + randomUUID();
-    const configuration = checked(moon.clientProgramLocalMockAccountConfiguration(accountId, principal,
-      'local-mock', sources.map(runtimeTupleFromFields), modelTasks,
-      requestTarget === undefined ? undefined : runtimeTupleFromFields(requestTarget),
-      updateTarget === undefined ? undefined : runtimeTupleFromFields(updateTarget), reviewerResource));
+    const generated = frame === undefined
+      ? moon.clientProgramLocalMockAccountConfiguration(accountId, principal,
+        'local-mock', sourceTuples, modelTasks, requestTuple,
+        updateTarget === undefined ? undefined : targetTuples[0], reviewerResource)
+      : moon.clientProgramLocalMockAccountConfigurationPrepared(accountId, principal,
+        'local-mock', sourceTuples, modelTasks, requestTuple, targetTuples, reviewerResource, frame.core);
+    frame?.assert();
+    if (generated === undefined) fail('LocalMockAccountConstructionUnavailable');
+    const configuration = checked(generated);
     if (typeof configuration !== 'string') fail('InvalidHostRuntimeResult');
     // The private, owner-only intent is also the original durable key record.
     // Recovery copies THESE exact purpose-confined originals, never generates
@@ -142,6 +254,8 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
         fail('InvalidHostRuntimeResult');
       }
     }
+    frame?.record(BigInt(configuration.length + reviewerPem.length + hostPem.length + reviewerPublic.length) + 1024n,
+      64n, 6n);
     intentWire = canonicalJson({attempt: randomUUID(), profile: identity, subjectCid, accountId,
       configuration, configurationCid: contentCid(parse(configuration)), reviewerResource,
       reviewerPem, hostPem, evidence: randomBytes(32).toString('base64'), signingPolicy, signingPublicKey});
@@ -215,7 +329,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   if (evidence.length !== 32) fail('LocalMockInstallationChanged');
   assertExclusiveCurrent();
   let adoptedStore, adoptedStoreStatus;
-  return Object.freeze({profile: identity, subjectCid, configurationPath: configPath,
+  const binding = Object.freeze({profile: identity, subjectCid, configurationPath: configPath,
     adoptStore(store) {
       if (adoptionFlight !== undefined) return adoptionFlight;
       const status = store.status;
@@ -297,4 +411,6 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     reviewer: reviewerKey === undefined ? undefined : Object.freeze({keyId: 'local-mock-reviewer', privateKey: reviewerKey,
       resource: intent.reviewerResource}),
     evidenceKey: Object.freeze({key: evidence, keyId: bytesCid(evidence)})});
+  constructing = false;
+  return binding;
 }

@@ -203,6 +203,21 @@ an empty cursor. Page, row and UTF-8 cursor bounds are checked before advancing;
 failed checks consume no progress. EOF may exactly fill the final page/row
 ceiling, but a further cursor cannot request work beyond either ceiling.
 
+`row_source_cursor_request_rows` joins the same original progress and selects
+the outgoing declared page-size hint. An absent hint returns the original
+remaining-row ceiling; a positive hint is capped by that ceiling. It neither
+advances progress nor narrows the independent response/parse bound. A provider
+page still obeys the original row contract even when its request hint was
+smaller. The Node adapter forwards that typed result rather than repricing or
+reimplementing this decision. The captured additional method/field and its
+constructor vectors belong to the same Source reservation; the two extra call
+arguments and typed Option/Result overlap belong to the same request quantity.
+
+The portable typed caller can execute on JS and Wasm without giving either
+backend HTTP, credential or physical-stop authority. This does not create a
+Wasm HTTP Host profile. Fixed query/header capture and transport encoding remain
+separate from this request-size decision and are not full portable-family proof.
+
 This is bounded semantic DATA, not another reader or Resource owner. It retains
 at most `max_pages - 1` cursor strings, each under `max_cursor_bytes`, and no
 parsed page, response buffer, Account, authorization or resource handle. The

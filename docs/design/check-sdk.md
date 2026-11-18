@@ -2203,6 +2203,93 @@ context/canonical-encoding workspace overlap with the installed check lifetime.
 These references and their bounds are not capacity reservations or physical
 cleanup acknowledgements.
 
+## Original Request normalization in the Node publication path
+
+The ordinary effect-free Request enters the existing
+`prepare_request_program_normalization` at `ProgramCompiled`, before its first
+Program Plan input borrow. This is the same parent/input and compiled original;
+it precedes optional Plan Facts, Module completion and Run adoption. Its
+existing continuation admits the audit, actual retained journal shape and
+publication writer before construction, retains failed work and reconciles
+returned scratch. The subsequent Plan quote starts from the **current** working
+extents, preserving the normalization audit/output through Module/Plan overlap.
+No compiler, budget, normalization policy, Owner or permission is reissued.
+
+Node retains no additional normalization object, wire cache or Request field:
+Core already retains that original result and proof. A repeated funded caller
+reuses its actual holder; a failed normalization remains the original Request's
+failure and cleanup duty. The capability check requires the fixed synchronous
+normalization port without invoking an accessor.
+
+Late publication reads the cached normalization evidence from that same
+PreparedClientProgram. The existing identity checks bind the audit's original
+CheckedProgram, requirements and parameters; the reader checks caller bounds
+against the evidence's cached byte/node/depth usage. It neither parses the wire
+nor emits another journal. The existing Runtime wrapper borrows the original
+name, identity and wire, replacing the old empty-journal wrapper at the same
+publication point. Missing/unissued/foreign evidence or a tighter bound refuses
+without falling back to an empty journal.
+
+Existing unselected Effect/legacy material retains its separate path and
+original bytes. This unit does not migrate authoring annotations, invent a
+normalization for Saved material or change current authorization, execution,
+publication, cancellation or physical cleanup authority. Actual normal Host
+acceptance remains separate from the scoped Core and explicit-port caller
+checks.
+
+## Original Request authoring context in the Node publication path
+
+The same effect-free Request prepares authoring evidence immediately after its
+normalization and before its first Program Plan borrow. Common alone visits
+registered grammar annotation locations. It preserves annotation JSON DATA,
+including decomposed text and line breaks, while excluding business `meta`
+values. The Program definition identity excludes annotations; the authoring
+context has its own existing independently specified canonical preimage.
+
+The original Request capacity reserves fixed controls before the collector or
+path construction. An indexed, work-bounded observation borrows the original
+Source and measures annotation count, path UTF16, quoted-key demand, actual
+metadata nodes/fields and depth without constructing the output vector or wire.
+The next reservation covers the retained annotation/path vector, actual pinned
+Array/sort growth, transient path and quoted-key writers, and the two measurement
+writers. Only then may the original collector and output Writer be created.
+The measured body/complete evidence shape admits simultaneous canonical, wire,
+parser/sealer/hash and failed-child material before the original emitter/sealer.
+These are same-owner construction demands, not caller policy or permission.
+
+Success clears heavy collection/writer aliases and retains the exact issued
+result on its opaque original proof. Failure retains the original partial work,
+writer and throwable until the same Request's existing retirement. Reentry is
+fenced at the same preparation phase. Work is charged on that original phase
+continuation across resize boundaries; no second Ledger, Root or grant appears.
+
+Node retains this proof on its existing Request record before the next fallible
+current check. A borrowed publication view and the original Task admission carry
+that same proof to Pure, Model and Content publication. The pre-Run domain view
+has no fabricated Run or Plan. The fixed Request control inventory counts its
+one bounded record header and the four original reference slots (Core Request,
+manager, borrowed view, Task admission). Variable annotation/output demand remains
+separate from this fixed control demand. No Prepared cache or wire registry is
+added. The manager and Host bag both recheck their exact original membership
+after callbackful current observation.
+
+The late Core getter requires the same Prepared and issued proof, checks cached
+complete byte/node/depth usage against the caller's limits, and returns the
+original evidence. Runtime wraps its original name/CID/wire once; it neither
+parses nor issues an empty authoring context. Missing, foreign, unissued or
+out-of-bounds originals refuse. Core adoption transfers the same original
+lifetime to the Run; the Node alias is cut before consuming the original holder
+return. A settlement error retries the same parent, never the consumed token.
+An unadopted failed constructor remains Core-owned while the redundant Node alias
+is cut before parent abort can settle. Pending physical cleanup is not an ACK.
+
+The unselected Effect/legacy branch retains its separate existing path. This
+connection does not reconstruct authoring evidence for cold Saved material,
+change current/Account/Source authority, or establish ordinary ABI/normal
+acceptance. Independent preimages, Common exact/one-short/foreign/current controls,
+actual Node bridge/Runtime consumption and imported manager/publication/retirement
+controls qualify their respective boundaries separately.
+
 ## Original timestamp-pattern rejection
 
 The existing Timestamp parser owns the pattern grammar and Parse/Format mode

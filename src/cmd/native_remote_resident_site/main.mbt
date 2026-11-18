@@ -202,6 +202,7 @@ fn saved_output_materials_stage(
     Input(MaterialsDefinition(_)) => "input-definition"
     Input(MaterialsRunMismatch) => "input-run-mismatch"
     Input(MaterialsBinding(_)) => "input-binding"
+    Input(MaterialsNormalization(_)) => "input-normalization"
     Compilation(_) => "compilation"
     Admission(_) => "admission"
     Definition(_) => "definition"

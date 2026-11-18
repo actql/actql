@@ -72,6 +72,7 @@ import {
 
 options(
   targets: {
+    "mock_file_footprint_quantity_js_wbtest.mbt": [ "js" ],
     "preparation_text_bound_views_js_wbtest.mbt": [ "js" ],
     "resource_lifecycle_regressions_wbtest.mbt": [ "js" ],
     "closed_values_copy_text_js_wbtest.mbt": [ "js" ],
@@ -168,6 +169,7 @@ options(
     "preparation_request_snapshot_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_input_js_wbtest.mbt": [ "js" ],
     "preparation_request_parent_js_wbtest.mbt": [ "js" ],
+    "preparation_request_authoring_js_wbtest.mbt": [ "js" ],
     "preparation_request_http_input_js_wbtest.mbt": [ "js" ],
     "preparation_request_result_metadata_js_wbtest.mbt": [ "js" ],
     "preparation_request_result_read_js_wbtest.mbt": [ "js" ],
@@ -187,6 +189,8 @@ options(
     "preparation_recursive_snapshot_layout_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_computation_js_wbtest.mbt": [ "js" ],
     "preparation_managed_publication_js_wbtest.mbt": [ "js" ],
+    "preparation_explanation_capture_js_wbtest.mbt": [ "js" ],
+    "preparation_request_explanation_read_js_wbtest.mbt": [ "js" ],
     "preparation_request_program_json_js_wbtest.mbt": [ "js" ],
     "preparation_request_handoff_js_wbtest.mbt": [ "js" ],
     "preparation_request_check_parent_js_wbtest.mbt": [ "js" ],

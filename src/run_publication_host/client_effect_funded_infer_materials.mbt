@@ -23,7 +23,23 @@ fn client_effect_funded_infer_inventory(
   compilation : ClientEffectCompilation,
   fund : (String, Int, Int, Int) -> Bool,
 ) -> Result[String, ClientEffectRunMaterialsIssue] {
-  let components = compilation.compiled.infers
+  client_funded_infer_inventory(
+    compilation.compiled.owner,
+    compilation.compiled.infers,
+    () => client_effect_compilation_infer_originals(compilation),
+    fund,
+  )
+}
+
+///|
+// Shared metadata-only projection of an already-issued original inventory.
+// Its family retains the nominal occurrence check; no compiler is rerun.
+fn client_funded_infer_inventory(
+  owner : PreparedClientProgram,
+  components : Array[ClientInferPlanGraph],
+  original_parts : () -> Array[(ClientInferPlanGraph, ClientInferOccurrence)]?,
+  fund : (String, Int, Int, Int) -> Bool,
+) -> Result[String, ClientEffectRunMaterialsIssue] {
   let count = components.length().to_int64()
   // Per entry: seven fixed keys, CID/kind and three Int decimal spellings,
   // quotes, commas and object punctuation fit 304 UTF16 units. Each retained
@@ -63,8 +79,7 @@ fn client_effect_funded_infer_inventory(
   if !fund("model_inventory", bytes.to_int(), nodes.to_int(), 2) {
     return Err(Input(MaterialsConstructionRefused("model_inventory")))
   }
-  guard client_effect_compilation_infer_originals(compilation)
-    is Some(originals) else {
+  guard original_parts() is Some(originals) else {
     return Err(Compilation(ForeignInferOwner))
   }
   try {
@@ -78,7 +93,7 @@ fn client_effect_funded_infer_inventory(
         !client_effect_funded_graph_original_bindings(graph) ||
         client_infer_graph_original_parts(
           graph,
-          compilation.compiled.owner,
+          owner,
           graph.graph_wire_bytes,
           graph.graph_wire_nodes,
           graph.graph_wire_depth,

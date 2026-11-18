@@ -6777,6 +6777,74 @@ independent; these projections do not grant Resource capacity or compile a body.
 
 ### Original normalization on the same Request
 
+The original Source resolver's `SoleView` selection is a real completion. Its
+same `ResolvedInput`, declaration stage/input name, selected view and complete
+requirements remain with this inventory and Prepared owner. A Source entry uses
+the existing JSONPath quoted-member form, the absent-member marker `null`, and
+the exact selected view String. The scalar Common writer escapes only the path
+member; it does not re-resolve or reinterpret the Source. Repeated visits to the
+same original occurrence retain one entry; foreign equal declarations do not.
+The Source successor catalogue extends the existing three rules. Only an audit
+with an actual Source completion selects it; explicit-view/source-free journals
+and all saved prior catalogue preimages keep their exact original identities.
+Restoration compares the same Prepared/original journal/catalogue and complete
+wire, rejecting an empty, substituted or foreign journal.
+
+Common occurrence records retain their typed Relation/Source original. The
+same Request quotes the record/tag controls before the audit using its cached
+original parsed-check counts and Source inventory length. Two Source frames
+cover retained/current failure overlap; seven bounded String intermediates and
+the existing one-scalar TextWriter inventory cover path construction. The
+original text extent bounds quoted member spelling, not a guessed node count
+or a raised codec policy. After the audit returns, actual retained entries,
+String units and Sort views replace disposed constructor scratch. Currentness,
+work charging, rejected growth, cancellation and cleanup keep the same Request
+owner and original borrowed input; none of this DATA grants Source authority.
+
+The short-lived Source helper carriers do not accumulate with occurrence
+count. The quoted-String extent returns `Some((bytes, units))` (2H/1R/3W),
+whereas the completed entry returns `Some((entry, remaining))` (2H/2R/2W).
+Unboxing the former precedes Writer construction; unboxing the latter precedes
+entry retention and duplicate comparison. One scalar work Option is live at
+a time. Their componentwise control peak is 2H/2R/3W (72 logical bytes),
+inside the original exclusive 4096-byte driver group. It is not another
+per-Source allowance and is not added to every retained entry. Entry/tag/path
+storage remains with the variable quote; the actual TextWriter inventory
+already includes its returned key String, finish tuple and failure controls.
+
+That driver group is admitted by
+`client_request_preparation_control_capacity` before Request construction,
+not by a later audit resize. Before the first grow, the working-baseline tuple
+(1H/0R/2W) coexists with at most the constant scalar/Map/collection/Writer
+inventory DATA quote chain (3H/1R/14W): 200 bytes together. Those functions
+construct no Writer, buffer or copied input text. The normalization controller,
+its own Some, limits record and two extent tuples total 5H/12R/12W (272 bytes).
+During growth the existing Resource entry quote is 10H/10R/16W (368 bytes),
+including its rejected reentrant entry: together 640 bytes. During the audit,
+the controller plus work-slot Some is 304 bytes; its one scalar audit-budget
+record is 24 bytes and the Source carrier peak is 72 bytes: together 400 bytes.
+These are exclusive phases under the existing `Selecting`/currentness fence.
+The work receipt and variable audit/writer bodies keep their separately backed
+Resource owners. No future quotation value, unused unrelated body budget or
+new control margin funds these pre-call objects.
+
+The cached `reference_arrays` count used for Relation wrappers is
+`operations + 4 * stages + 1`. The structural owner increments `operations`
+from each original Stage's authored step views. Only an actual checked
+Sort/Rename/Drop occurrence can add a Relation entry. Its original unique
+source path permits at most one retained entry per step; a repeated visit
+constructs at most one additional current wrapper before physical-original
+deduplication. Thus `operations + 1` bounds those simultaneously retained/current
+wrappers, without treating row count or provider enumeration as an operation.
+
+Source execution construction creates one subject with the selected
+`ResolvedInput`, then reuses it in the five Host/authorization/egress/resource/
+response bindings. The same execution array is created before the Stage loop
+and borrowed by every built Unit. The three-Stage original Source journal
+control therefore visits the same resolver fifteen times yet emits exactly
+one independently pinned entry. Deduplication compares that original resolver
+and complete path/values; a foreign equal-looking resolver is not a match.
+
 The Native submitted-request handoff runs its selected original constructor
 inside the caller's already-active business Request, before borrowing the Plan
 input. Its optional `before_program_borrow` callback does not replace the
@@ -6935,6 +7003,37 @@ or resubmission. This code uses the existing bounded open-string contract, so
 strict published decoders continue to accept it. Rich diagnostic text would need
 its own explicitly compatible or negotiated contract and is not part of this
 wire or this construction inventory.
+
+### Original authoring collection and publication on the same Request
+
+The existing Request enters `prepare_request_program_authoring_context` at
+ProgramCompiled, after normalization and before Plan construction. It keeps the
+same input/Prepared/compiler and baseline working extents. Its first fixed grow
+precedes the controller, work continuation and indexed geometry walk. Actual
+annotations, paths, quoted keys, metadata shape, Array/sort scratch and emitter
+frames then reserve on the same capacity before the retained collector. Two
+bounded measuring writers observe that same collected material; the complete
+measured body/evidence shape uses the existing evidence publication construction
+quote before canonical/sealer/parser/hash allocation. The original empty Writer
+uses its actual zero-node live-key inventory, not the complete-evidence inventory
+whose minimum is one node. Neither a wire maximum nor business `meta` is treated
+as an annotation count or funding original.
+
+Successful finish reconciles scratch only after construction and original work
+return, clearing the heavy vector/Writer while preserving the cached issued
+proof. A failed grow/current/work/emitter retains its same known prefix and
+material for original cleanup; retry returns the same failure. The phase variant
+is appended, while the private order fence places this work after normalization
+and before Plan/publication. Existing direct Effect issuance keeps its previous
+standalone lifetime and does not acquire this retained Request carrier.
+
+The fixed control shape includes the bounded Node pre-Run view and exact same
+proof reference slots. Core adoption clears its temporary continuation alias;
+Node publication borrows the issued original on the existing Task/Run lifetime.
+No second owner, automatic retry, replacement hash, empty evidence fallback or
+physical cleanup acknowledgement follows from successful DATA construction.
+See the Node authoring-context boundary in `check-sdk.md` for current, callback,
+caller-limit and consumed-return fences.
 
 ### Original parameter declaration problem codes
 

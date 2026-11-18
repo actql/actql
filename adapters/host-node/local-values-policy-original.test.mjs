@@ -26,6 +26,8 @@ function publicationFixture(rows = 10) {
     issueCheckedClientCompiledInvocation: () => ({observation: {}, invocation: {}}),
     seal: (name, wire) => Object.freeze({name, wire}),
     sealRunEvidence: (name, wire) => Object.freeze({name, wire}),
+    preparedClientNormalizationEvidence(actual) {assert.strictEqual(actual, prepared); return {};},
+      preparedClientAuthoringContextEvidence(actual, original){assert.strictEqual(actual,prepared);assert.ok(original);return {};},
     compiledRunResultTransformation: () => undefined,
     captureOriginalClientRunPlan(actual, owner) {
       assert.strictEqual(actual, compiled); assert.strictEqual(owner, prepared); return original;
@@ -39,7 +41,7 @@ function publicationFixture(rows = 10) {
     clientProgramDefinitionCid: () => 'program-original', clientProgramResultCount: () => 1,
   };
   return {prepared, publication, compiled, original, calls, control, moon, options: {
-    moon, control, preparedProgram: prepared, publicationOriginal: {kind: 'preparation', value: publication},
+    moon, control, preparedProgram: prepared, publicationOriginal: {kind: 'preparation', value: publication, authoringContext: {}},
     authorityScopeCid: 'scope', namespaceId: 'namespace', storeAuthorityCid: 'store',
     now: () => new Date().toISOString()}};
 }

@@ -6,6 +6,22 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {connectorConformancePlan} from './connector.mjs';
+import {projectRestConnector} from './connector-authoring.mjs';
+
+test('declarative read author projection retains closed request DATA and rejects colliding parameters', () => {
+  const definition = {version: 'actql-rest-connector/0.1', id: 'acme', origin: 'https://api.example.invalid',
+    auth: {kind: 'bearer'}, sources: {records: {fields: [{name: 'id', type: 'string', nullable: false}],
+      read: {method: 'GET', path: '/v1/records'}, pagination: {kind: 'cursor', items: ['data'],
+        next: ['next_cursor'], parameter: 'after'}, limits: {maxPageRows: 100, maxPageBytes: 4096,
+        maxPages: 3, maxRows: 200, maxNodes: 1024, maxDepth: 12, maxCursorBytes: 256}}}};
+  const project = () => JSON.parse(projectRestConnector(definition).files['src/connectors/acme/rest-source.json']);
+  assert.deepEqual(project().sources[0].read, {method: 'GET', path: '/v1/records'});
+  definition.sources.records.read = {method: 'GET', path: '/v1/records', query: [['kind', 'public']],
+    pageSize: {parameter: 'page_size', limit: 100}, versionHeader: {name: 'api-version', value: '2026-03-11'}};
+  assert.deepEqual(project().sources[0].read, definition.sources.records.read);
+  definition.sources.records.read.query.push(['after', 'replacement-cursor']);
+  assert.throws(project, /InvalidRestConnectorDefinition:read/u);
+});
 
 // Actual author command boundary only. Bare Host imports remain in generated
 // module DATA; this test never imports a provider/Host or supplies a grant.

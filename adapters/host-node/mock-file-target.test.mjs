@@ -32,6 +32,31 @@ const update = (target, from, to, options = {}) => target.updateChild({
   }, ...options,
 });
 
+test('one Mock physical owner preserves both disjoint collections across original sibling writes',async()=>{
+  const runOriginal=Object.freeze({});let writes=0;
+  const f=await fixture({observeWrite(original){assert.strictEqual(original,runOriginal);writes++;}});
+  const document='{"contacts":[{"id":"c","value":"old"}],"accounts":[{"id":"a","value":"old"}],"control":9007199254740993}\n';
+  await writeFile(f.dataPath,document);
+  // The same actual file owner/lock is shared. These exact span callbacks are
+  // physical test ports, not Common Mapping admission, claims or Account grants.
+  const first=update(f.target,'"id":"c","value":"old"','"id":"c","value":"new"',{runOriginal});
+  const second=update(f.target,'"id":"a","value":"old"','"id":"a","value":"new"',{runOriginal});
+  assert.equal(f.target.statusFor(runOriginal).children,2);
+  await first.prepare();
+  await first.prepare();
+  assert.equal(await readFile(f.dataPath,'utf8'),document.replace('"id":"c","value":"old"','"id":"c","value":"new"'));
+  assert.equal((await first.release()).pending,false);
+  assert.equal(f.target.statusFor(runOriginal).children,1);
+  await second.prepare();
+  assert.equal(await readFile(f.dataPath,'utf8'),document
+    .replace('"id":"c","value":"old"','"id":"c","value":"new"')
+    .replace('"id":"a","value":"old"','"id":"a","value":"new"'));
+  assert.equal(writes,2);
+  assert.equal((await f.target.closeFor(runOriginal)).pending,false);
+  await assert.rejects(lstat(f.dataPath+'.actql-write.lock'),{code:'ENOENT'});
+  await f.finish();
+});
+
 test('Mock write observation counts only returned replacement before later fences and cannot alter the operation', async () => {
   for (const mode of ['success', 'rename-refused', 'current-after-write', 'observer-throws', 'observer-rejects']) {
     let observed = 0, renamed = 0, changed = false;

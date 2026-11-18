@@ -88,6 +88,27 @@ export function inferDispatchFailureData(detail) {
     const value = own(detail, key);
     if (Number.isSafeInteger(value) && value >= 0 && value <= 65535) data[key] = value;
   }
+  // Reuse only the existing Host's bounded diagnostic DATA. The command's
+  // observer retains its first event; no Error, argument or opaque owner moves.
+  const primary = own(detail, 'primaryDiagnostic');
+  const phase = own(primary, 'phase'), kind = own(primary, 'kind');
+  if (phase === 'dispatch' && kind === 'code_site') {
+    const message = own(primary, 'message');
+    if (typeof message === 'string' && message.length > 0 && message.length <= 2048) {
+      const sites = message.split('\n');
+      if (sites.length <= 8 && sites.every(site =>
+        /^(?:(?:adapters|packages)\/[A-Za-z0-9_./-]+\.[cm]?js|_build\/js\/release\/build\/[A-Za-z0-9_./-]+\.js):[1-9][0-9]{0,8}:[1-9][0-9]{0,8}$/u.test(site) &&
+        !site.split('/').includes('..'))) {
+        data.primaryDiagnostic = Object.freeze({phase, kind, message});
+      }
+    }
+  } else if (phase === 'original_infer_component' && own(primary, 'code') === 'MoonBitHostFailure' &&
+      typeof kind === 'string' && kind.length <= 96 && /^call_scope(?:\.[a-z_]+)+$/u.test(kind)) {
+    const task = own(primary, 'task'), unit = own(primary, 'unit'), step = own(primary, 'step');
+    if ([task, unit, step].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647)) {
+      data.primaryDiagnostic = Object.freeze({code: 'MoonBitHostFailure', phase, kind, task, unit, step});
+    }
+  }
   return Object.keys(data).length === 0 ? undefined : Object.freeze(data);
 }
 

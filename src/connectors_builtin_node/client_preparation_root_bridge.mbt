@@ -1273,6 +1273,90 @@ pub suberror ClientRequestProgramModuleBridgeIssue {
 }
 
 ///|
+/// Normalize the SAME compiled Request before any Plan borrow. The existing
+/// Core continuation owns admission, retained audit/journal and failed work.
+#export_name("clientProgramPrepareRequestProgramNormalization")
+pub fn client_program_prepare_request_program_normalization(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @publication_host.ClientLocalNormalization,
+  @client_local_host.ClientRequestNormalizationIssue,
+] {
+  @client_local_host.prepare_request_program_normalization(parent, input)
+}
+
+///|
+/// The SAME Request funds and retains original annotations before any Plan
+/// borrow. The returned proof is DATA, not another admission or evidence issuer.
+#export_name("clientProgramPrepareRequestProgramAuthoringContext")
+pub fn client_program_prepare_request_program_authoring_context(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @publication_host.ClientAuthoringContextPreparation,
+  @client_local_host.ClientRequestAuthoringIssue,
+] {
+  @client_local_host.prepare_request_program_authoring_context(parent, input)
+}
+
+///|
+/// Read the SAME already-issued evidence; preserve original identity and the
+/// caller's complete publication bounds without a wire reparse or reissue.
+#export_name("clientProgramPreparedAuthoringContextEvidence")
+pub fn client_program_prepared_authoring_context_evidence(
+  prepared : @publication_host.PreparedClientProgram,
+  original : @publication_host.ClientAuthoringContextPreparation,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.RunEvidenceValue,
+  @publication_host.ClientAuthoringContextIssue,
+] {
+  @publication_host.prepared_client_authoring_context_evidence(
+    prepared, original, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Read only the original already-issued journal and preserve the caller's
+/// publication bounds. Missing/foreign evidence never issues another journal.
+#export_name("clientProgramPreparedLocalNormalizationEvidence")
+pub fn client_program_prepared_local_normalization_evidence(
+  prepared : @publication_host.PreparedClientProgram,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.RunEvidenceValue,
+  @publication_host.ClientLocalNormalizationIssue,
+] {
+  guard @publication_host.prepared_client_local_normalization_original(prepared)
+    is Some(original) else {
+    return Err(ForeignPreparation)
+  }
+  let result = @publication_host.prepared_client_local_normalization_evidence(
+    prepared, original,
+  )
+  match result {
+    Err(_) => result
+    Ok(evidence) =>
+      if @publication.run_evidence_value_fits(
+          evidence, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        result
+      } else {
+        Err(Evidence(RunEvidenceInvalidWire))
+      }
+  }
+}
+
+///|
 /// Same Request artifact before module construction; existing original-sum
 /// Run issuers consume it without a second compiler or a mode classifier.
 #export_name("clientProgramPrepareRequestProgramCompilation")
@@ -2669,4 +2753,182 @@ pub fn client_program_installed_effect_models_demand_prepare(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.prepare_installed_effect_models_demand(originals)
+}
+
+///|
+/// Optional metadata on the SAME working Request, before body completion.
+#export_name("clientProgramPrepareRequestOriginalExplanation")
+pub fn client_program_prepare_request_original_explanation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @client_local_host.ClientRequestOriginalExplanation[
+    ClientLocalPreparationInputOriginal,
+  ]?,
+  @client_local_host.ClientOriginalExplanationCaptureIssue,
+] {
+  @client_local_host.prepare_request_original_explanation(
+    parent, input, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramAdoptRequestProgramWithExplanation")
+pub fn client_program_adopt_request_program_with_explanation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+  original : @client_local_host.ClientRequestOriginalExplanation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_request_program_managed_run_with_explanation(
+    parent, request, original,
+  )
+}
+
+///|
+#export_name("clientProgramCaptureRequestOriginalExplanation")
+pub fn client_program_capture_request_original_explanation(
+  original : @client_local_host.ClientRequestOriginalExplanation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[
+  @client_local_host.ClientOriginalExplanationCapture,
+  @client_local_host.ClientOriginalExplanationCaptureIssue,
+] {
+  @client_local_host.capture_request_original_explanation(
+    original, compiled, definition,
+  )
+}
+
+///|
+/// Borrow typed outputs; JavaScript never inspects an opaque tuple layout.
+#export_name("clientProgramOriginalExplanationPlanWire")
+pub fn client_program_original_explanation_plan_wire(
+  original : @client_local_host.ClientOriginalExplanationCapture,
+) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue] {
+  @client_local_host.installed_original_explanation_capture_wires(original).map(value => {
+      value.0
+    },
+  )
+}
+
+///|
+#export_name("clientProgramOriginalExplanationFactsWire")
+pub fn client_program_original_explanation_facts_wire(
+  original : @client_local_host.ClientOriginalExplanationCapture,
+) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue] {
+  @client_local_host.installed_original_explanation_capture_wires(original).map(value => {
+      value.1
+    },
+  )
+}
+
+///|
+#export_name("clientProgramReturnRequestOriginalExplanation")
+pub fn client_program_return_request_original_explanation(
+  original : @client_local_host.ClientRequestOriginalExplanation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[Bool, @resources.PreparationCapacityIssue] {
+  @client_local_host.return_request_original_explanation(original)
+}
+
+///|
+#export_name("clientProgramReturnOriginalExplanationCapture")
+pub fn client_program_return_original_explanation_capture(
+  original : @client_local_host.ClientOriginalExplanationCapture,
+) -> Result[Bool, @resources.PreparationCapacityIssue] {
+  @client_local_host.return_installed_original_explanation_capture(original)
+}
+
+///|
+#export_name("clientProgramRequestProgramCompilationOriginal")
+pub fn client_program_request_program_compilation_original(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> @publication_host.ClientRunCompilation? {
+  @client_local_host.request_program_compilation_original(parent, input)
+}
+
+///|
+#export_name("clientProgramBeginRequestExplanationRead")
+pub fn client_program_begin_request_explanation_read(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue] {
+  @client_local_host.begin_request_explanation_read(parent, input).map_err(issue => {
+    @client_local_host.ClientRequestExplanationReadIssue::Preparation(issue)
+  })
+}
+
+///|
+#export_name("clientProgramReserveRequestExplanationRead")
+pub fn client_program_reserve_request_explanation_read(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  stored_bytes : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @client_local_host.ClientRequestExplanationReadIssue] {
+  @client_local_host.reserve_request_explanation_read(
+    parent, input, stored_bytes, max_bytes, max_nodes, max_depth,
+  ).map_err(issue => {
+    @client_local_host.ClientRequestExplanationReadIssue::Preparation(issue)
+  })
+}
+
+///|
+#export_name("clientProgramReadRequestExplanation")
+pub fn client_program_read_request_explanation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  definition_wire : String,
+  plan_wire : String?,
+  plan_view_wire : String?,
+  facts_wire : String?,
+  program_cid : String,
+  parameters_cid : String,
+  namespace_id : String,
+  authority_scope_cid : String,
+  definition_cid : String,
+  stored_bytes : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue] {
+  @client_local_host.read_request_explanation_view(
+    parent, input, definition_wire, plan_wire, plan_view_wire, facts_wire, program_cid,
+    parameters_cid, namespace_id, authority_scope_cid, definition_cid, stored_bytes,
+    max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramRequestExplanationReadIssueCode")
+pub fn client_program_request_explanation_read_issue_code(
+  issue : @client_local_host.ClientRequestExplanationReadIssue,
+) -> String {
+  @client_local_host.request_explanation_read_issue_code(issue)
 }

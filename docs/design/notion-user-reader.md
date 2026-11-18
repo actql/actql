@@ -6,6 +6,35 @@ RowRun, Resource and the installed Site retain their existing responsibilities.
 No user-page constructor issues a workspace selection, token, grant, Reference,
 KeySet, physical cleanup acknowledgement or complete acquisition.
 
+## Closed request DATA and original funding
+
+The provider declaration keeps GET `/v1/users`, operation `notion:users:list`,
+`page_size` capped by remaining rows, opaque `start_cursor`, and the exact
+`notion-version: 2026-03-11` header. The shared finite request projector accepts
+ordered fixed query literals, an optional page-size parameter and an optional
+version header. It rejects duplicate or colliding parameter names and reserved
+headers. Encoding preserves original Unicode and query order; empty cursor text
+is distinct from absence. These fields carry no secret, permission or endpoint
+override. The existing Host retains credential resolution, TLS and send.
+
+The Source initializer reserves the request snapshot before its descriptor
+capture, then retains that same immutable request DATA for each page. The page
+constructor borrows the snapshot's original strings; it does not copy them into
+a new authority or cache entry. Its quantity includes returned request/query and
+header vectors, decimal page-size text, full bounded percent-encoding and target
+strings, header validation and failed-construction overlap. The unchanged HTTP
+query ceiling bounds construction; it is not funding or a permission grant.
+These are conservative logical Host inventories, not measured backend/RSS.
+
+The existing JSON reader keeps its identity/cursor Sets and physical frames.
+The row-only REST reader keeps its separate Core cursor-progress representation.
+For that mode the existing capacity owner adds the original request quantity on
+both retained and execution axes. Neither component lends its live backing to
+the other. The same Source selection/cache identity retains that original
+request quantity and mode. Exact backing may enter construction; either
+one-short dimension refuses first. There is no budget increase, second Owner,
+retirement inference or fallback to the legacy geometry.
+
 ## Original vendor page
 
 `project_notion_user_list` consumes original response bytes with explicit byte,
@@ -143,6 +172,33 @@ Notion's [version policy](https://developers.notion.com/reference/versioning);
 request parameters and capabilities follow the existing list-users reference.
 
 ## Installed user Source preparation
+
+The private finite-page Host assembly reuses the original Site call record and
+the one selected `createSourceReader` implementation. It publishes only through
+the trusted installed Host continuation, passing the same Site, authorization
+and returned reader. Provider page ports receive resource/column DATA and the
+existing synchronous projector, never these physical originals. The Notion
+plugin retains `GET /v1/users`, `notion:users:list`, the `2026-03-11` header,
+and the complete checked Catalog envelope before rows or progress are exposed.
+The generic row-only REST family remains a separate interpretation.
+
+This assembly constructs no capacity, metadata collection or second snapshot of
+the credential/profile DATA. Its positional arguments borrow the same originals;
+the Site and reader call records keep their existing fields. Fixed Host call
+frames and the publication continuation use the existing trusted Host control
+baseline; the declaration, legacy JSON page/id/cursor inventories, raw response
+holdings and projection workspace still use their original Source recipe and
+reservation. No cursor mode, larger ceiling or caller-selected allowance is
+introduced. This correspondence is a logical Host recipe claim, not an RSS or
+physical-retirement measurement.
+
+The returned reader is retained before observing its capacity or publishing a
+Source. A capacity getter or publication failure therefore keeps that original
+reader and Site in existing initialization cleanup. Reader retirement must
+complete before closing the dependent Site; an unresolved Site-construction
+child remains the same pending child. Cleanup retry cannot reconstruct or
+republish the Source. Direct-import assembly and constructor-refusal tests check
+this ordering without issuing a Common parent or claiming normal HTTP capture.
 
 The connector-owned Host manifest selects the user Source factory through the
 existing installation table. Its closed initial-0.1 private profile fixes the

@@ -39,6 +39,13 @@ test "ordinary compiler artifact precedes module and transfers once without anot
     assert_eq(calls.val, 0)
     assert_true(physical_equal(parent.program_compilation.unwrap(), artifact))
     assert_true(
+      physical_equal(
+        request_program_compilation_original(parent, input).unwrap(),
+        artifact,
+      ),
+    )
+    assert_true(request_program_compilation_original(parent, [999]) is None)
+    assert_true(
       parent.program_source_free is None && parent.program_captured is None,
     )
     assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))

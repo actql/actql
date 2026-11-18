@@ -21695,6 +21695,13 @@ const operationKeys = {
     "maxWireBytes",
     "maxNodes",
     "maxDepth"
+  ],
+  "run-explanation": [
+    "connection",
+    "ref",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
   ]
 };
 

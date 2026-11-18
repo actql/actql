@@ -111,6 +111,8 @@ test(`timed ${kind} publication reaches the existing preflight with original con
   const definition = contract('run_definition');
   const compiled = Object.freeze({kind, admission: {}, compiledPlan: contract('compiled_plan'),
     preparedEvidence: {wire: 'original-prepared'}, authorization: {wire: 'original-authorization'}});
+  const authoringOriginal = Object.freeze({preparedProgram: prepared, requestIdentity: request});
+  const normalization = contract('normalization_journal'), authoring = contract('authoring_context');
   const invocationOriginal = Object.freeze({preparedProgram: prepared, requestIdentity: request,
     compiled, runDefinition: definition, createdAt: '2026-10-31T00:00:00.000Z',
     validUntil: '2026-11-01T00:00:00.000Z', queryTimePreparation: time, queryTime: context});
@@ -124,6 +126,15 @@ test(`timed ${kind} publication reaches the existing preflight with original con
     issueCheckedClientCompiledInvocation(value, run) {
       assert.equal(value, compiled); assert.equal(run, definition);
       return {observation: contract('observation'), invocation: contract('invocation')};
+    },
+    preparedClientNormalizationEvidence(value) {
+      assert.equal(value, prepared); assert.equal(authoringOriginal.requestIdentity, request);
+      return normalization;
+    },
+    preparedClientAuthoringContextEvidence(value, original) {
+      assert.equal(value, prepared); assert.equal(original, authoringOriginal);
+      assert.equal(original.preparedProgram, prepared); assert.equal(original.requestIdentity, request);
+      return authoring;
     },
     seal: name => contract(name), sealRunEvidence: name => contract(name),
     compiledRunResultTransformation: () => undefined,
@@ -148,7 +159,7 @@ test(`timed ${kind} publication reaches the existing preflight with original con
   };
   const plan = (kind === 'values' ? sourceFreeValuesPlan : sourceFreeTaskPlan)({
     moon, control, preparedProgram: prepared, requestIdentity: request, invocationOriginal,
-    publicationOriginal: {kind: 'preparation', value: publicationOriginal},
+    publicationOriginal: {kind: 'preparation', value: publicationOriginal, authoringContext: authoringOriginal},
     authorityScopeCid: cid('a'), namespaceId: 'local', storeAuthorityCid: cid('c'),
     now: () => '2026-10-31T00:00:00.000Z',
   });
@@ -162,6 +173,8 @@ test(`timed ${kind} publication reaches the existing preflight with original con
   assert.equal(preflight.plan.runDefinition, definition);
   assert.equal(preflight.plan.invocation, plan.invocation);
   assert.equal(preflight.plan.admission, compiled.admission);
+  assert.equal(preflight.plan.normalizationJournal, normalization);
+  assert.equal(preflight.plan.authoringContext, authoring);
   assert.deepEqual({captured, issued, supported}, {captured: 1, issued: 1, supported: 1});
 });
 }

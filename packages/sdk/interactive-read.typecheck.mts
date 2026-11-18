@@ -1,5 +1,5 @@
 import type {Client, Execution} from './index.js';
-import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView} from '@actql/client-wire';
+import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView, WireRunExplanationView} from '@actql/client-wire';
 
 declare const client: Client;
 declare const run: Execution;
@@ -23,3 +23,11 @@ if (plan.version === "actql-effectful-static-plan-view/0.1") {
   const permission: "unknown" = plan.observations.permission.state;
   void scope; void permission;
 }
+
+const facts: WireRunExplanationView = await run.explain({signal: AbortSignal.timeout(1000),
+  maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64});
+void facts.run_ref; void facts.explanation;
+// @ts-expect-error Explanation is an Execution read, not a pre-execution Client alias.
+await client.explain('SELECT 1');
+// @ts-expect-error Structural explanation does not accept disclosure or Sample options.
+await run.explain({rawLiterals: true, sampleItems: 1});

@@ -41,6 +41,12 @@ declare const bindingCid: string;
 declare const writesJson: string;
 declare const providerReaderCapacity: ConnectorRuntimeHandle;
 
+// An opaque original is not the public tuple returned by its typed accessor.
+// @ts-expect-error Capacity internals are not public record fields.
+providerReaderCapacity._0;
+// @ts-expect-error Opaque handles do not expose numeric array elements.
+providerReaderCapacity[0];
+
 const originalReaderPreparer = (request: RowProviderReaderRequest): InstalledRowProviderReader => ({
   async read() {await request.verifyRead(); return request.rowRun.acquisition;},
   requestStop() {},

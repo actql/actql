@@ -1,0 +1,12 @@
+[
+  {
+    "wire": "{\"displayed_scope\":{\"label\":\"é\\r\\n\",\"review_projection_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\"},\"review_projection_cid\":\"sha256:e6ce9d746e603404a18538dd03b0c2e9cf17b103b9d0ab890082fb1faf639bd9\",\"version\":\"actql-run-review-projection/0.1\"}",
+    "cid": "sha256:e6ce9d746e603404a18538dd03b0c2e9cf17b103b9d0ab890082fb1faf639bd9",
+    "preimage": "{\"displayed_scope\":{\"label\":\"é\\r\\n\",\"review_projection_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\"},\"version\":\"actql-run-review-projection/0.1\"}"
+  },
+  {
+    "wire": "{\"displayed_rows\":[{\"é\":\"é\\r\\n\",\"é\":\"é\",\"😀\":\"astral\",\"\":\"bmp\"}],\"review_projection_cid\":\"sha256:b632384371a1644f6d747d46b6a32fc759af749b602f074985c19a3509aba646\",\"version\":\"actql-review-projection/0.1\"}",
+    "cid": "sha256:b632384371a1644f6d747d46b6a32fc759af749b602f074985c19a3509aba646",
+    "preimage": "{\"displayed_rows\":[{\"é\":\"é\\r\\n\",\"é\":\"é\",\"😀\":\"astral\",\"\":\"bmp\"}],\"version\":\"actql-review-projection/0.1\"}"
+  }
+]

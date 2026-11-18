@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync, mkdtempSync, writeFileSync, existsSync, rmSync, symlinkSync} from 'node:fs';
-import {spawnSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {parse} from 'yaml';
 import * as performance from './native-approval-performance.mjs';
+import {parseCommands} from './verification-actions.mjs';
+import {openNativeMockCampaign} from './native-mock-campaign.mjs';
 import {nativeApprovalTarget} from './operation-performance.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalResources, approvalPhases} from './native-approval-performance.mjs';
 
@@ -134,7 +136,7 @@ async function installedSmokeTail(scenarios, measureResources = false, writeFail
       if (writeFailure) throw writeFailure;
       events.push({kind: 'receipt', path, value: JSON.parse(bytes), options});
     },
-    scratch: {passed: () => events.push({kind: 'passed'})},
+    scratch: {passed: () => events.push({kind: 'passed'}), close: () => events.push({kind: 'closed'})},
     log: message => events.push({kind: 'console', message}),
   });
   return {receipt, events, pending};
@@ -189,7 +191,7 @@ test('ordinary Native smoke cannot pass missing invalid failed or duplicate orig
 
 test('ordinary Native smoke publishes inclusive-boundary success but retains invalid timing as failure', async () => {
   const passed = await installedSmokeTail(smokeScenarios()); await passed.pending;
-  assert.deepEqual(passed.events.map(event => event.kind), ['receipt', 'passed', 'console']);
+  assert.deepEqual(passed.events.map(event => event.kind), ['receipt', 'passed', 'closed', 'console']);
   assert.equal(passed.events[0].value.approvalSmoke.status, 'passed');
   const invalid = smokeScenarios(); delete invalid[0].commands[0].wallNs;
   const failed = await installedSmokeTail(invalid);
@@ -201,7 +203,7 @@ test('ordinary Native smoke publishes inclusive-boundary success but retains inv
 test('ordinary Native smoke leaves formal slow samples and earlier receipt errors intact', async () => {
   const original = smokeScenarios(30000000000);
   const formal = await installedSmokeTail(original, true); await formal.pending;
-  assert.deepEqual(formal.events.map(event => event.kind), ['receipt', 'passed', 'console']);
+  assert.deepEqual(formal.events.map(event => event.kind), ['receipt', 'passed', 'closed', 'console']);
   assert.deepEqual(formal.events[0].value.scenarios, original);
   assert.equal(Object.hasOwn(formal.events[0].value, 'approvalSmoke'), false);
   const primary = new Error('original receipt write failure');
@@ -222,7 +224,16 @@ test('required Native CI selects the full original formal campaign and keeps sto
   assert(formal.run.includes('--binding') && !formal.run.includes('--diagnostic'));
   assert.equal(formal.env?.TMPDIR, undefined);
   assert.match(collector, /count = values\.diagnostic \? 3 : 30/u);
-  assert.match(collector, /'--measure-approval-resources'/u);
+  const owners = parse(ci).jobs.lint.steps.flatMap(step =>
+    parseCommands(step.run ?? '').commands.map(command => ({step, argv: command.argv})))
+    .filter(({argv}) => argv.includes('scripts/native-cli-interface-check.test.mjs'));
+  assert.equal(owners.length, 1, 'Original admission controls need one existing lint owner');
+  const {step, argv} = owners[0];
+  assert.equal(step.if, undefined); assert.equal(step['continue-on-error'], undefined);
+  assert.deepEqual(argv.slice(0, 4), ['node', 'scripts/local-checks.mjs', 'test', 'node']);
+  const timeout = Number(argv[argv.indexOf('--timeout-seconds') + 1]);
+  assert(timeout > 0 && timeout <= parse(ci).jobs.lint['timeout-minutes'] * 60);
+  assert(argv.includes('--') && argv.includes('--test-name-pattern'));
 });
 
 test('Native approval target requires thirty verified samples on the same source fixture and runner', () => {
@@ -441,4 +452,201 @@ test('required CI preserves the formal failure and runs at most one separate fre
   const upload = job.steps.find(step => step.name === 'Retain complete Native approval samples and original Mock receipts');
   for (const pattern of ['approval-resources-*.txt', 'approval-syscalls-*.txt', 'mock-syscalls-*.json']) assert(upload.with.path.includes(pattern));
   assert.equal(upload.if, 'always()');
+});
+
+
+test('retained artifact timing remains distinct from original full artifact verification', () => {
+  const phases = {sourcePreparation: {state: 'completed', wallNs: 17},
+    artifactVerification: {state: 'retained', wallNs: 9}};
+  assert.deepEqual(performance.nativeReleaseVerificationTiming('ACTQL_NATIVE_RELEASE_PHASES ' + JSON.stringify(phases)),
+    {releaseVerificationPhases: phases});
+  phases.sourcePreparation.state = 'retained';
+  assert.equal(performance.nativeReleaseVerificationTiming('ACTQL_NATIVE_RELEASE_PHASES ' + JSON.stringify(phases))
+    .releaseVerificationPhases, undefined, 'Full Source checks cannot be relabeled as retained');
+});
+
+test('Native receipt never emits completion before its original scratch close or hides a cleanup refusal', async () => {
+  const original = new Error('original scratch close failed'), events = [];
+  await assert.rejects(performance.publishNativeApprovalReceipt({receipt: {scenarios: smokeScenarios()},
+    receiptFile: '/owned-release/receipt.json', measureResources: true,
+    writeFile: async () => {events.push('receipt');},
+    scratch: {passed() {events.push('passed');}, close() {events.push('close'); throw original;}},
+    log: () => events.push('completion'),
+  }), error => error === original);
+  assert.deepEqual(events, ['receipt', 'passed', 'close']);
+});
+
+function campaignProcessFixture(t, body) {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-mock-process-control-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const script = join(root, 'fixture.mjs');
+  writeFileSync(script, `
+import {writeFileSync, existsSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {join} from 'node:path';
+import {serveNativeMockCampaign} from ${JSON.stringify(new URL('./native-mock-campaign.mjs', import.meta.url).href)};
+import {captureNativeMockCommand} from ${JSON.stringify(new URL('./native-cli-mock-scenario.mjs', import.meta.url).href)};
+import {createOwnedScratch} from ${JSON.stringify(new URL('./owned-scratch.mjs', import.meta.url).href)};
+import {openReleaseTestRegistry} from ${JSON.stringify(new URL('./release-test-registry.mjs', import.meta.url).href)};
+const root = process.argv[2], count = Number(process.argv.at(-1));
+writeFileSync(join(root, 'worker-pid'), String(process.pid));
+await serveNativeMockCampaign(count, async consume => {
+  for (let index = 0; index < count; index++) await consume(index, async () => {
+    ${body}
+  });
+});
+`);
+  return {root, script};
+}
+
+async function assertObservedProcessAbsent(path) {
+  assert(existsSync(path), 'The original child must actually have started');
+  const pid = Number(readFileSync(path, 'utf8'));
+  assert(Number.isInteger(pid) && pid > 0);
+  const until = Date.now() + 2000;
+  while (Date.now() < until) {
+    try {process.kill(pid, 0);}
+    catch (error) {assert.equal(error.code, 'ESRCH'); return;}
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  assert.fail('Original owned test process remained after campaign close');
+}
+
+test('Native Mock retained fixture confirms fresh registry and scratch close before ordered completion', async t => {
+  const f = campaignProcessFixture(t, `
+const scratch = await createOwnedScratch({parent: root, prefix: 'iteration-', label: 'Mock component control'});
+const registry = await openReleaseTestRegistry([]);
+await registry.close(); scratch.passed(); scratch.close();
+if (existsSync(scratch.path)) throw new Error('original scratch did not close');
+const receiptFile = join(root, 'receipt-' + index + '.json');
+writeFileSync(receiptFile, JSON.stringify({index, pid: process.pid, scratch: scratch.path}));
+console.log('Installed Native mock approval/recovery passed: ' + receiptFile);
+return receiptFile;
+`);
+  const campaign = openNativeMockCampaign({...f, directory: f.root, count: 2, cwd: f.root, timeoutMs: 5000, killGraceMs: 500});
+  const first = campaign.run(0);
+  await assert.rejects(campaign.run(0), /overlapping|replayed/u);
+  const original = await first, second = await campaign.run(1);
+  assert.equal(original.status, 0, original.stderr); assert.equal(second.status, 0, second.stderr);
+  assert.notEqual(original.receiptFile, second.receiptFile);
+  const receipts = [original, second].map(value => JSON.parse(readFileSync(value.receiptFile, 'utf8')));
+  assert.deepEqual(receipts.map(value => value.index), [0, 1]);
+  assert.equal(receipts[0].pid, receipts[1].pid);
+  assert.notEqual(receipts[0].scratch, receipts[1].scratch);
+  assert(receipts.every(value => !existsSync(value.scratch)));
+  assert.deepEqual(await campaign.close(), {code: 0, signal: null});
+  await assertObservedProcessAbsent(join(f.root, 'worker-pid'));
+  await assert.rejects(campaign.run(0), /Closed/u);
+});
+
+test('Native Mock external watchdog stops synchronous Source work and its actual inherited child', async t => {
+  const f = campaignProcessFixture(t, `
+execFileSync(process.execPath, ['-e',
+  'require("node:fs").writeFileSync(process.argv[1], String(process.pid)); setInterval(()=>{},1000);',
+  join(root, 'command-pid')]);
+throw new Error('blocked child unexpectedly returned');
+`);
+  const campaign = openNativeMockCampaign({...f, directory: f.root, count: 1, cwd: f.root, timeoutMs: 1000, killGraceMs: 500});
+  const result = await campaign.run(0);
+  assert.equal(result.error?.code, 'ETIMEDOUT');
+  await assert.rejects(campaign.close(), error => error === result.error);
+  await assertObservedProcessAbsent(join(f.root, 'worker-pid'));
+  await assertObservedProcessAbsent(join(f.root, 'command-pid'));
+});
+
+test('Native Mock watchdog retains timeout and joins the original detached Native command group', async t => {
+  const f = campaignProcessFixture(t, `
+await captureNativeMockCommand(process.execPath, ['-e',
+  'require("node:fs").writeFileSync(process.argv[1], String(process.pid)); setInterval(()=>{},1000);',
+  join(root, 'command-pid')], {cwd: root, env: process.env,
+    stderrPath: join(root, 'original.stderr'), timeout: 5000});
+throw new Error('owned command unexpectedly returned');
+`);
+  const campaign = openNativeMockCampaign({...f, directory: f.root, count: 1, cwd: f.root, timeoutMs: 1000, killGraceMs: 500});
+  const result = await campaign.run(0);
+  assert.equal(result.error?.code, 'ETIMEDOUT');
+  await assert.rejects(campaign.close(), error => error === result.error);
+  await assertObservedProcessAbsent(join(f.root, 'command-pid'));
+  await assertObservedProcessAbsent(join(f.root, 'worker-pid'));
+});
+
+test('Native Mock foreign completion and output overflow stop without a replay', async t => {
+  for (const [body, expected] of [
+    [`process.send({type: 'completed', iteration: 99, receiptFile: '/foreign'}); await new Promise(()=>{});`, /Foreign Native Mock iteration/u],
+    [`process.stdout.write('x'.repeat(9 * 1024 ** 2)); await new Promise(()=>{});`, /output limit/u],
+    [`process.exit(0);`, /did not complete its campaign/u],
+  ]) {
+    const f = campaignProcessFixture(t, body);
+    const campaign = openNativeMockCampaign({...f, directory: f.root, count: 1, cwd: f.root, timeoutMs: 5000, killGraceMs: 500});
+    const result = await campaign.run(0);
+    assert.match(result.error?.message ?? '', expected);
+    assert(Buffer.byteLength(result.stdout) + Buffer.byteLength(result.stderr) <= 8 * 1024 ** 2);
+    await assert.rejects(campaign.close(), error => error === result.error);
+    await assert.rejects(campaign.run(0), /Closed/u);
+    await assertObservedProcessAbsent(join(f.root, 'worker-pid'));
+  }
+});
+
+
+test('Native Mock original parent loss stops the retained fixture and its detached command without replay', async t => {
+  const f = campaignProcessFixture(t, `
+await captureNativeMockCommand(process.execPath, ['-e',
+  'require("node:fs").writeFileSync(process.argv[1], String(process.pid)); setInterval(()=>{},1000);',
+  join(root, 'command-pid')], {cwd: root, env: process.env,
+    stderrPath: join(root, 'original.stderr'), timeout: 10000});
+throw new Error('lost parent must never complete');
+`);
+  const parent = join(f.root, 'parent.mjs'), identities = join(f.root, 'owned-identities.json');
+  writeFileSync(parent, `
+import {execFileSync} from 'node:child_process';
+import {existsSync,readFileSync,writeFileSync} from 'node:fs';
+import {join} from 'node:path';
+import {openNativeMockCampaign} from ${JSON.stringify(new URL('./native-mock-campaign.mjs', import.meta.url).href)};
+const root=${JSON.stringify(f.root)};
+const campaign=openNativeMockCampaign({script:${JSON.stringify(f.script)},directory:root,count:1,cwd:root,timeoutMs:5000,killGraceMs:500});
+void campaign.run(0);
+const until=Date.now()+3000;
+while(!existsSync(join(root,'command-pid'))&&Date.now()<until)await new Promise(resolve=>setTimeout(resolve,20));
+if(!existsSync(join(root,'command-pid')))throw new Error('original command did not start');
+const originals=['worker-pid','command-pid'].map(name=>{
+  const pid=Number(readFileSync(join(root,name),'utf8'));
+  return {pid,observation:execFileSync('ps',['-p',String(pid),'-o','lstart=','-o','command='],{encoding:'utf8'}).trim()};
+});
+writeFileSync(${JSON.stringify(identities)},JSON.stringify(originals));
+process.exit(0);
+`);
+  let observed = [];
+  // Failure cleanup can signal only an observed PID/start/command containing
+  // this unique authored fixture root. Never guess from a stale PID alone.
+  t.after(() => {
+    for (const original of observed) {
+      let current;
+      try {current = execFileSync('ps', ['-p', String(original.pid), '-o', 'lstart=', '-o', 'command='],
+        {encoding: 'utf8'}).trim();} catch {continue;}
+      if (current === original.observation && current.includes(f.root)) {
+        try {process.kill(original.pid, 'SIGKILL');} catch (error) {if (error.code !== 'ESRCH') throw error;}
+      }
+    }
+  });
+  const result = spawnSync(process.execPath, [parent], {cwd: f.root, encoding: 'utf8', timeout: 5000});
+  if (existsSync(identities)) observed = JSON.parse(readFileSync(identities));
+  assert.equal(result.error, undefined); assert.equal(result.signal, null); assert.equal(result.status, 0, result.stderr);
+  await assertObservedProcessAbsent(join(f.root, 'command-pid'));
+  await assertObservedProcessAbsent(join(f.root, 'worker-pid'));
+  assert(!existsSync(join(f.root, 'receipt-0.json')));
+});
+
+
+test('Native Mock final process failure retains its original stderr after the last completion', async t => {
+  const f = campaignProcessFixture(t, `return join(root, 'component-receipt.json');`);
+  writeFileSync(f.script, readFileSync(f.script, 'utf8') + '\nthrow new Error("original final fixture cause");\n');
+  const campaign = openNativeMockCampaign({...f, directory: f.root, count: 1, cwd: f.root, timeoutMs: 5000, killGraceMs: 500});
+  const completed = await campaign.run(0);
+  assert.equal(completed.status, 0, completed.stderr);
+  await assert.rejects(campaign.close(), error => {
+    assert.equal(error.status, 1);
+    assert.match(error.stderr, /original final fixture cause/u);
+    return true;
+  });
+  await assertObservedProcessAbsent(join(f.root, 'worker-pid'));
 });

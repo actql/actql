@@ -16,6 +16,7 @@ fn local_client_publication_context(
   journal : @client.NativeClientRunJournal,
   race : Bool,
   original_normalization? : Bool = false,
+  source_completion? : Bool = false,
 ) -> @store.Store raise {
   let authority = local_client_publication_cid("native-client-original-store")
   let store = @store.open_store(
@@ -301,7 +302,12 @@ fn local_client_publication_context(
       fail("original receipt has no normalization identity")
     }
     assert_eq(
-      journal_cid, "sha256:e245b445e5014e5764dab4bf1b9ddc3b3abdf821ddf75950f9bee9df29007164",
+      journal_cid,
+      if source_completion {
+        "sha256:ab38441a7255bbf31e4b031ae9281ccf792ac10f673ca3b90d2dea76fa161887"
+      } else {
+        "sha256:e245b445e5014e5764dab4bf1b9ddc3b3abdf821ddf75950f9bee9df29007164"
+      },
     )
   }
 

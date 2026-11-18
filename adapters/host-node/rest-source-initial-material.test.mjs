@@ -17,6 +17,7 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {captureInstalledSourceServices} from './installed-host-services.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {restSourcePageReader} from './rest-source-page.mjs';
+import {captureRestSourceRead, restSourceReadConstructionUnits, restSourceRequestConstructionUnits} from './rest-source-request.mjs';
 import {installedJsonSourceReaderLimitNames} from './installed-credential-source-reader.mjs';
 import {projectRestConnector} from '../../scripts/connector-authoring.mjs';
 
@@ -136,7 +137,7 @@ test('REST factory forwards the same managed CA bytes to its original Site servi
     }, createSourceReader() {assert.fail('No Reader before original Site');},
   };
   await assert.rejects(createInstalledRestSource(definition).load(profile, {installationServices: services,
-    sourceInitialization, installation, moon: {clientProgramInstalledSourceConstructionCapacity() {assert.fail('No capacity before Site refusal');}}, resolveSecret() {},
+    sourceInitialization, installation, moon: {clientProgramInstalledSourceConstructionCapacity() {return {$tag:1,_0:{}};}}, resolveSecret() {},
     configurationReader: {readJson: async () => site, readText() {}, readOriginalBytes: async () => ca}}),
     cause => cause === sentinel);
 });
@@ -167,10 +168,11 @@ function demandFactory(finalConstructor) {
     .map(node => text.slice((node.declaration ?? node).start, node.end)).join('\n');
   return new Function('createHash', 'types', 'canonicalJson', 'captureInstalledSourceServices',
     'createInstalledRowSource', 'retainInstalledHostInitializationFailure', 'createRestSourceMetadata',
-    'restSourcePageReader', 'installedJsonSourceReaderLimitNames','checked', body + ';return createInstalledRestSource;')(
+    'restSourcePageReader', 'installedJsonSourceReaderLimitNames','checked',
+    'captureRestSourceRead','restSourceReadConstructionUnits','restSourceRequestConstructionUnits', body + ';return createInstalledRestSource;')(
     createHash, types, canonicalJson, captureInstalledSourceServices, finalConstructor,
     retainInstalledHostInitializationFailure, createRestSourceMetadata, restSourcePageReader,
-    installedJsonSourceReaderLimitNames,checked);
+    installedJsonSourceReaderLimitNames,checked,captureRestSourceRead,restSourceReadConstructionUnits,restSourceRequestConstructionUnits);
 }
 
 function demandFixture(authored) {
@@ -194,6 +196,7 @@ function demandFixture(authored) {
 
 async function observeDemand(f,{refusal,beforeConfiguration}={}) {
   let implementation, rowSource, siteInput, siteCalls = 0, quantityArgs, retainedTarget;
+  const quantityCalls=[];
   const construction=[];
   const capacity = {}, prepared = {declaration: {}, declared: {catalog_cid: 'authored-catalog',
     views: f.definition.sources.map(source => ({resource: source.resource,
@@ -216,17 +219,17 @@ async function observeDemand(f,{refusal,beforeConfiguration}={}) {
   const moon = Object.fromEntries(['ProjectJsonPage', 'JsonPageRowsWire', 'JsonPageRowCount',
     'JsonPageHasNextCursor', 'JsonPageNextCursor', 'ProjectTypedJsonPage', 'JsonPageOriginal',
     'TypedJsonPageRowCount', 'TypedJsonPageHasNextCursor', 'TypedJsonPageNextCursor',
-    'PrepareCursorProgress', 'CursorRemainingRows', 'AdvanceCursorProgress',
+    'PrepareCursorProgress', 'CursorRemainingRows', 'CursorRequestRows', 'AdvanceCursorProgress',
     'CursorHasNext', 'CursorNext', 'CursorIssueCode'].map(name => ['clientProgramRowSource'+name,
     () => assert.fail('No page/decoder call in a selection-only component')]));
   moon.clientProgramInstalledSourceConstructionCapacity=function(...args) {
-    assert.equal(this,moon);quantityArgs=args;construction.push('quote');return {$tag:1,_0:quantity};
+    assert.equal(this,moon);quantityArgs=args;quantityCalls.push(args);construction.push('quote');return {$tag:1,_0:quantity};
   };
   const create = demandFactory(async options => {rowSource = options;return 'selected-source-port';});
   const run = () => create(f.definition).load(f.profile, {installationServices: services,
     sourceInitialization: initialization, installation: {}, moon, resolveSecret() {},
     configurationReader: {readJson: async () => {beforeConfiguration?.({initialization,moon});return f.selectedSite;}, readText() {assert.fail('No physical read');}}});
-  return {run, observations: () => ({implementation, rowSource, siteInput, siteCalls, prepared,quantityArgs,retainedTarget,construction})};
+  return {run, observations: () => ({implementation, rowSource, siteInput, siteCalls, prepared,quantityArgs,quantityCalls,retainedTarget,construction})};
 }
 
 test('standard REST supplies exact immutable target DATA while approval keeps its complete matcher', async () => {
@@ -303,9 +306,23 @@ test('REST target DATA uses the same Source original quote before construction a
   }});
   await probe.run();const o=probe.observations();
   const slots=1n+o.prepared.declared.views.reduce((sum,view)=>sum+9n+BigInt(view.fields.length),0n);
-  assert.deepEqual(o.quantityArgs,[slots,0n,0n,slots,0n,0n]);
-  assert.deepEqual(o.construction,['quote','reserve','project']);
-  assert.equal(o.rowSource.physicalTarget,o.retainedTarget);
+  const units=[0n,0n,0n,0n,0n,0n];
+  for(const source of f.definition.sources){
+    const selected=restSourceReadConstructionUnits(source.read,source.pagination.parameter);
+    selected.forEach((value,index)=>units[index]+=value);
+  }
+  const wrapper=4n+5n*BigInt(f.definition.sources.length);
+  units[0]+=slots+wrapper;units[3]+=slots+wrapper+4n*BigInt(f.definition.sources.length);
+  assert.deepEqual(o.quantityArgs,units);
+  // Independent legacy GET request vector plus the new typed call's6 slots.
+  // Both resources share that same one-page maximum, not two added grants.
+  assert.deepEqual(o.quantityCalls[0],[26n,8240n,0n,58n,49228n,0n]);
+  assert.deepEqual(o.construction,['quote','quote','reserve','project']);
+  assert.equal(o.rowSource.physicalTarget,o.retainedTarget.targets);
+  assert.deepEqual(o.retainedTarget.requests,f.definition.sources.map(source=>captureRestSourceRead(source.read,source.pagination.parameter)));
+  assert(Object.isFrozen(o.retainedTarget.requests));
+  assert(o.implementation.requestConstruction.capacity);
+  assert.equal(o.implementation.requestConstruction.maxRequestBytes,f.policy.maxTargetBytes);
   assert(Object.isFrozen(o.retainedTarget));
 });
 
@@ -314,6 +331,6 @@ test('REST same Source reservation refusal cannot project target DATA or enter t
   const refusal=new Error('original Source reservation refused'),probe=await observeDemand(demandFixture(authored),{refusal});
   await assert.rejects(probe.run(),cause=>cause.code==='InstalledHostInitializationFailed'&&
     cause.primaryFailure===refusal&&cause.cleanupHandle.status().pending===true);
-  const o=probe.observations();assert.deepEqual(o.construction,['quote','reserve']);
+  const o=probe.observations();assert.deepEqual(o.construction,['quote','quote','reserve']);
   assert.equal(o.retainedTarget,undefined);assert.equal(o.rowSource,undefined);
 });

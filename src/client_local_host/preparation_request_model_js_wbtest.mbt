@@ -12,12 +12,17 @@ fn request_model_input_fixture(
   model_copies? : Int = 1,
   current? : () -> Bool = () => true,
   declaration? : @row_source_host.RowDeclaration? = None,
+  catalog_registry_count? : Int = 0,
+  normalization_profile? : @publication_host.ClientProgramPreparationLimits? = None,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
   @publication_host.PreparedClientProgram,
 ) raise {
-  let (environment, _) = effect_model_plan_source(declaration~)
+  let (environment, _) = effect_model_plan_source(
+    declaration~,
+    catalog_registry_count~,
+  )
   let document = if single_capture {
     assert_false(captured)
     (
@@ -105,6 +110,9 @@ fn request_model_input_fixture(
     text=document,
     environment=Some(environment),
     initial_limits=Some(initial_limits),
+    computation_limits=normalization_profile.map(profile => {
+      (profile, @publication_host.client_standard_effect_computation_limits())
+    }),
   )
   finish_program_check_preparation(child).unwrap() |> ignore
   let prepared = compile_program_check_preparation(

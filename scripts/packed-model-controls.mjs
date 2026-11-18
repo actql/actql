@@ -55,6 +55,7 @@ async function stageModelProject({prepared, root, repository, name}) {
   for (const [source, target] of [
     ['adapters/host-node/fixtures/mock-project-effect-public.mjs', 'workflow-original.mjs'],
     ['adapters/host-node/fixtures/work-observation.fixture.mjs', 'work-observation.fixture.mjs'],
+    ['adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs', 'mock-project-effect-protocol.fixture.mjs'],
     ['scripts/fixtures/packed-model-workflow.mjs', 'workflow.mjs'],
     ['scripts/fixtures/packed-model-budget.mjs', 'budget.mjs'],
     ['scripts/fixtures/model-control-observations.mjs', 'model-control-observations.mjs'],

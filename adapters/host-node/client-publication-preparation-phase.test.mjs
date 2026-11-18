@@ -4,6 +4,10 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
+import {prepareOrdinarySourceManagedInstallation, prepareOrdinaryProjectSourceManagedInstallation}
+  from './ordinary-source-managed.mjs';
+import resources from './ordinary-node-resource-runtime.cjs';
+import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 function get(file,name,context,property=false){const source=readFileSync(new URL(file,import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let n;function walk(x){if(!x||typeof x!=='object')return;if(property?x.type==='Property'&&x.key?.name===name:x.type==='FunctionDeclaration'&&x.id?.name===name)n=property?x.value:x;for(const v of Object.values(x)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}}walk(ast);assert(n,name);const code=property?`${n.async?'async ':''}function(${n.params.map(p=>source.slice(p.start,p.end)).join(',')})${source.slice(n.body.start,n.body.end)}`:source.slice(n.start,n.end);return new Function(...Object.keys(context),`return ${code}`)(...Object.values(context));}
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 test('publication phase manager relays the actual original Run without caller quote or holder',()=>{
@@ -451,55 +455,96 @@ function originalSourcePreparationCallbacks(entry, readContext, retire, original
   return get('./node-source-managed-installation.mjs', entry, callbacks)(originals);
 }
 
-test('both actual Source entries open the same Request before snapshot and retain its original retirement', () => {
-  for (const entry of ['prepareSourceManagedInstallation', 'prepareProjectSourceManagedInstallation']) {
-    for (const kind of ['program', 'aql']) {
-      const originals = {}, context = {runtime: {}}, connection = {}, parent = {}, prepared = {}, holder = {}, events = [];
-      const callbacks = originalSourcePreparationCallbacks(entry, value => {
-        assert.equal(value, originals); events.push('context'); return context;
-      }, (value, body) => {assert.equal(value, originals); assert.equal(body, prepared); events.push('retire');}, originals);
-      const receipts = new WeakMap(), producers = new Set();
-      const retainSourceInitializationMaterial = get('./ordinary-source-managed.mjs',
-        'retainSourceInitializationMaterial', {
-          closing: false, closed: false, receipts, fail,
-          // This Request-order fixture has no installed Source material.
-          // Use the actual helper's unselected branch, not a replacement.
-          borrowSourceInitialization: undefined,
-        });
-      const before = originalSourceSnapshotEntry({
-        current() {}, callbacks, originals, receipts, producers, closed: false, fail,
-        retainSourceInitializationMaterial,
-        requestPreparationAvailable: value => {assert.equal(value, context); return true;},
-        assertRequestPreparationControl: value => {assert.equal(value, context); events.push('control');},
-        beginRequestInput(state, receipt, actualConnection) {
-          assert.equal(state.context, context); assert.equal(receipts.get(receipt).preparation, state);
-          assert.equal(actualConnection, connection); assert.equal(producers.size, 1);
-          state.parent = parent; events.push('begin'); return true;
-        }, cleanupRequestInput() {assert.fail('successful opening has no early cleanup');},
-      });
-      const receipt = before(kind, kind === 'program' ? {} : 'SELECT @original AS n',
-        {parameters: {original: 9}}, connection);
-      const producer = receipts.get(receipt);
-      assert.equal(producer.preparation?.parent, parent);
+test('both actual Source entries open the same Request before snapshot and retain its original retirement', async () => {
+  // Actual exported managers, Request adapter and Resource owner; only Core
+  // results are explicit ports. No private producer/state/helper is reconstructed.
+  const ok = value => ({$tag: 1, _0: value});
+  for (const project of [false, true]) for (const kind of ['program', 'aql']) {
+    const originals = {}, parent = {}, prepared = {}, holder = {}, policy = {}, events = [];
+    const unused = () => assert.fail('unselected Core preparation');
+    let admission, retiring = false, returned = false;
+    const moon = {
+      clientLocalResourcePolicyOriginal: () => policy,
+      clientProgramRequestPreparationControl(value) {
+        assert.equal(value, policy); events.push('control'); return [1024n, 0n];
+      },
+      clientLocalPreparationResourceLimits(value) {
+        assert.equal(value, policy); return [10000n, 10000n, 10000n, 100000n, 100000n, 100000n];
+      },
+      clientProgramPrepareLocalPreparationAdmission(original, receipt) {
+        admission = {original, receipt, ports: resources.prepareOriginalLocalPreparationPorts(original, receipt)};
+        return ok(admission);
+      },
+      clientProgramBeginRequestPreparation(value, receipt, selected) {
+        assert.equal(value, admission); assert.equal(receipt, admission.receipt); assert.equal(selected, policy);
+        assert.equal(admission.ports.status(0), 0); events.push('begin'); return ok(parent);
+      },
+      clientProgramReserveRequestSnapshot(value, receipt) {
+        assert.equal(value, parent); assert.equal(receipt, admission.receipt);
+        assert.deepEqual(events, ['context', 'control', 'begin']); return ok(undefined);
+      },
+      clientProgramPrepareRequestNativeComputation(value, receipt) {
+        assert.equal(kind, 'program'); assert.equal(value, parent); assert.equal(receipt, admission.receipt);
+        return ok(undefined);
+      },
+      clientProgramPrepareRequestSourceComputation(value, receipt) {
+        assert.equal(kind, 'aql'); assert.equal(value, parent); assert.equal(receipt, admission.receipt);
+        return ok(undefined);
+      },
+      clientProgramFinishRequestComputation: () => ok('effect_free'),
+      clientProgramPrepareRequestProgramNormalization: () => ok(undefined),
+      clientProgramPrepareRequestProgramAuthoringContext: () => ok({}),
+      clientProgramPrepareRequestPolicySubjects: unused, clientProgramReadRequestPolicySubject: unused,
+      clientProgramBindRequestPolicySubject: unused, clientProgramFinishRequestPolicySubjects: unused,
+      clientProgramPrepareRequestProgramModuleBody: unused, clientProgramRequestProgramModuleIssueCode: unused,
+      clientProgramBorrowRequestProgramPlanInput(value, receipt) {
+        assert.equal(value, parent); assert.equal(receipt, admission.receipt); return ok(holder);
+      },
+      clientProgramPreparationBorrowRead(value) {assert.equal(value, holder); return prepared;},
+      clientProgramComposedInferOccurrences: () => ok([]), clientProgramSerializationOccurrences: () => [],
+      clientProgramAcquisitionCount(value) {assert.equal(value, prepared); return 1;},
+      clientProgramAdoptRequestProgramPreparation: unused,
+      clientProgramRequestParametersOriginal: () => ok({}),
+      clientProgramAbortRequestPreparation(value) {
+        assert.equal(value, parent); events.push('abort'); retiring = true;
+        if (returned) {
+          assert.equal(admission.ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0, 0, 0), 0);
+          assert.equal(admission.ports.status(2), 0);
+        }
+        return ok(undefined);
+      },
+      clientProgramPreparationBorrowRetirementStarted(value) {assert.equal(value, holder); return retiring;},
+      clientProgramPreparationBorrowReturn(value) {
+        assert.equal(value, holder); assert.equal(retiring, true); assert.equal(returned, false);
+        returned = true; events.push('return'); return ok(undefined);
+      },
+    };
+    const context = {runtime: moon, preparedEnvironment: {}, retainedRelationOutput: false};
+    originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+    const bundle = {sources: [{}]}, callbacks = {
+      validator(value) {assert.equal(value, originals);}, retainedValidator(value) {assert.equal(value, originals);},
+      async prepare(value) {assert.equal(value, originals);}, read: () => bundle,
+      preparationContext(value) {assert.equal(value, originals); events.push('context'); return context;},
+      retireInitialPreparation(value, body) {
+        assert.equal(value, originals); assert.equal(body, prepared); events.push('retire');
+      },
+    };
+    const view = project ? await prepareOrdinaryProjectSourceManagedInstallation(originals, callbacks)
+      : await prepareOrdinarySourceManagedInstallation(originals, callbacks, true);
+    const connection = Object.freeze({mode: 'local', owner: 'local', consentRefs: Object.freeze([]), runners: Object.freeze([])});
+    try {
+      const input = kind === 'program' ? {} : 'SELECT @original AS n';
+      const receipt = view.beforeSourceSnapshot(kind, input, {parameters: {original: 9}}, connection);
       assert.deepEqual(events, ['context', 'control', 'begin']);
-      producer.preparation.prepared = prepared; producer.preparation.holder = holder;
-      context.runtime = {
-        clientProgramAbortRequestPreparation(value) {assert.equal(value, parent); events.push('abort');},
-        clientProgramPreparationBorrowRetirementStarted(value) {assert.equal(value, holder); return true;},
-        clientProgramPreparationBorrowReturn(value) {assert.equal(value, holder); events.push('return');},
-      };
-      const cleanup = get('../local-node/request-preparation-adapter.mjs', 'cleanupRequestInput', {
-        checked: value => value, invalid() {assert.fail('valid original retirement');},
-      });
-      const finish = get('./ordinary-source-managed.mjs', 'finishSourceProducer', {
-        producerFor: value => {assert.equal(value, receipt); return producer;}, fail, producers,
-        cleanupRequestInput: cleanup, retireInitialPreparation: body => callbacks.retireInitialPreparation(originals, body),
-        releaseFinishedProducer() {},
-      }, true);
-      finish(receipt, 'failed');
-      assert.equal(producer.preparation, undefined); assert.equal(producers.size, 0);
+      const body = view.captureSourceSnapshot(receipt, {kind, input, parameters: {original: 9}}, snapshotClientRequest);
+      view.bindSourceSnapshot(receipt, body); const request = {};
+      view.bindSourceRequest(receipt, body, request);
+      const result = await view.fundedPreparation(request, undefined);
+      assert.equal(result.prepared, prepared);
+      view.finishSourceProducer(receipt, 'failed');
+      assert.equal(returned, true); assert.equal(resources.ordinaryManagedRunStatus(admission.original).stopped, true);
       assert.deepEqual(events, ['context', 'control', 'begin', 'abort', 'retire', 'return', 'abort']);
-    }
+    } finally {assert.deepEqual(await view.close(), {pending: false});}
   }
 });
 

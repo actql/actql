@@ -13,6 +13,7 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {publicConsumerEnvironment, releaseConsumerDestination} from './release-public-install.mjs';
 import {runNativeInstallCommand} from './test-native-standalone-install.mjs';
+import {sharedHostSourceScenarios} from './fixtures/shared-host-source-acceptance.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -161,6 +162,18 @@ export async function acceptInstalledNativeCli(directory) {
       {cwd: host, env: authorizationEnv});
     await run(process.execPath, [join(repository, 'scripts/test-native-client.mjs')],
       {cwd: repository, env: {...env, ACTQL_TEST_NATIVE_CLIENT_BINARY: binary}});
+    const sharedSource = [];
+    for (const scenario of sharedHostSourceScenarios) {
+      const outputRoot = join(root, `shared-source-${scenario}`);
+      const input = join(root, `shared-source-${scenario}.json`);
+      await writeFile(input, JSON.stringify({outputRoot, nativeDirectory: directory, scenario}) + '\n', {flag: 'wx'});
+      // Same existing normal producer and bounded runner; no additional Common
+      // supplier, Host implementation or publication lane is added here.
+      await run(process.execPath, [join(repository, 'scripts/fixtures/shared-host-source-acceptance.mjs'), input],
+        {cwd: repository, env: {...env,
+          ACTQL_PACKED_CLIENT_PACKAGES: process.env.ACTQL_PACKED_CLIENT_PACKAGES}});
+      sharedSource.push(JSON.parse(await readFile(join(outputRoot, 'result.json'), 'utf8')));
+    }
     assert.equal(hash(await readFile(binary)), artifact.binarySha256);
     assert.deepEqual(checkoutState(repository), source);
     await verifyNativeCliRelease(directory);
@@ -173,6 +186,7 @@ export async function acceptInstalledNativeCli(directory) {
         nodeFreeBinary: JSON.parse(await readFile(join(host, 'native-host-acceptance.json'), 'utf8')),
         npmLauncher: JSON.parse(await readFile(join(launcherHost, 'native-host-acceptance.json'), 'utf8')),
         authorization,
+        sharedSource,
       },
       scope: ['fresh npm installation', 'npm launcher Remote real Host', 'finite Account refusals',
         'Node-free installed executable', 'closed state descriptors', 'unavailable Local init leaves no files',

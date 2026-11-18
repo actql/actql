@@ -77,7 +77,7 @@ function capturedProgram(filter = 'id >= 2', sort = true) {
   document.id = 'retained-captured-chain';
   document.params = {minimum: {type: 'number', nullable: false}};
   document.stages.unshift({id: 'acquire',
-    inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    inputs: {remote: {connector: 'crm/main', resource: 'r', view: 'v'}},
     steps: [{filter: 'id > $minimum', as: 'scanned'},
       {select: ['id'], as: 'captured'}],
     results: {out: {from: 'captured', fields: ['id']}},
@@ -346,7 +346,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           const publicationPreparation = preparation.manager.publicationPreparation(prepared);
           assert.strictEqual(publicationPreparation, captureRun.value);
           capturePreparation = Object.freeze({publicationPreparation,
-            publicationOriginal: Object.freeze({kind: 'installed_run', value: publicationPreparation}),
+            publicationOriginal: Object.freeze({kind: 'installed_run', value: publicationPreparation,
+              authoringContext: preparation.manager.authoringContextOriginal(prepared, preparationRequest)}),
             compilationOriginal: preparation.manager.compilationOriginal(prepared)});
         });
     }
@@ -712,7 +713,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         publicationPreparation: capturePreparation.publicationPreparation,
         compilationOriginal: capturePreparation.compilationOriginal,
         requestIdentity: captureRequestIdentity,
-      } : {publicationOriginal: publicationOriginalFixture(moon, prepared, true)}),
+      } : {publicationOriginal: Object.freeze({...publicationOriginalFixture(moon, prepared, true),
+        authoringContext: preparation.manager.authoringContextOriginal(prepared, preparationRequest)})}),
       preparedProgram: prepared, authorityScopeCid: cid('a'),
       namespaceId: route.publicationNamespace ?? 'local',
       storeAuthorityCid: cid('c'), now: () => captured

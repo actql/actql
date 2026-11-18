@@ -502,8 +502,8 @@
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "providerReader=services('createSourceReader'"
+                "path": "adapters/host-node/installed-finite-page-source.mjs",
+                "anchor": "providerReader = services('createSourceReader'"
               },
               {
                 "path": "docs/design/notion-user-reader.md",

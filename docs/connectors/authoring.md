@@ -110,13 +110,40 @@ mid-request.
    preview strength and permission, and the type mapping in both directions.
 4. **Implement the I/O**: paged reads and content reads; prepare, send and
    classify for each Effect and Command; the reconciliation lookup.
-5. **Write fixtures.** A Connector is tested against recorded responses of
-   the real API: a successful read, a paged read, each Effect's success and
-   failure, a lost reply and its reconciliation. The fixtures run without
-   credentials and are what the mock profile serves.
+5. **Write independent cases.** Share the schema, seed, Program and expected
+   rows and state changes between logical Mock, provider HTTP fixtures and
+   live sandbox cases. Keep provider request/response codecs, revision
+   guarantees and failure observations specific to the selected layer; a
+   recorded successful response alone does not prove a write was applied.
 6. **Register the Connector** so a connection can select it, and run the
    common Connector checks: zero sends before approval, one send per approved
    item, no resend after restart, `unknown` on a lost reply.
+
+### What each verification layer establishes
+
+- **Generation freshness:** from a repository checkout,
+  `node scripts/connector.mjs test <connector.json> <output>` checks the
+  generated package against its author input. It executes no Source or
+  Effect. The separate existing `node scripts/connector.mjs conformance
+  <normal-input.json> --timeout-seconds <seconds>` command selects an ordinary REST case with
+  explicit matching packages, Account and fresh output; see the
+  [author workflow](../contributing/connector-authoring.md#ordinary-conformance-and-author-effort).
+- **Logical file Mock:** the [Mock profile](../guides/mock-models.md) reads
+  the declared catalog, data and answers. Supported writes change the actual
+  data file, so cases check the expected state and unchanged control records.
+  This does not exercise a provider's HTTP encoding, response codec or live
+  authentication; it does not serve recorded API responses.
+- **Provider HTTP/TLS fixtures:** the real Connector sends requests to a
+  controlled local responder and consumes its provider-shaped responses.
+  These cases check the selected protocol, paging, classification and
+  response-loss behaviour. Recorded responses can be fixture inputs, but
+  state-changing cases must also check the applied state. They establish no
+  live service, credential or permission acceptance.
+- **Live sandbox acceptance:** a separate run uses the same ordinary
+  Connector and normal packages with explicitly selected credentials and
+  finite test resources. Record the actual operation, Host/backend, source
+  and artifact, and observed before/after results. A type, generation, Mock
+  or local HTTP pass cannot substitute for that run.
 
 ## What a Connector must not do
 

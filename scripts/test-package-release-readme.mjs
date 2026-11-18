@@ -146,7 +146,8 @@ export async function runReleaseReadmeAcceptance(args) {
     try {assert.deepEqual(await verifyPackageRelease(directory), manifest); assert.deepEqual(checkoutState(repository), source);} catch (error) {primary ??= error;}
     const recipePaths = ['scripts/test-package-release-readme.mjs', 'scripts/packed-project-file-store-inventory.mjs',
       'scripts/health-monitor-adapters.mjs', 'scripts/fixtures/packed-project-file-store-inventory.mjs',
-      'adapters/host-node/fixtures/mock-project-effect-public.mjs'];
+      'adapters/host-node/fixtures/mock-project-effect-public.mjs',
+      'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs'];
     const fixtureRecipes = await Promise.all(recipePaths.map(async path => ({path, sha256: hash(await readFile(join(repository, path)))})));
     const report = {version: 'actql-release-readme-acceptance/0.1', complete: primary === undefined,
       sourceSha: manifest.sourceSha, fixtureSourceSha: source.revision, node: process.version, platform: process.platform, arch: process.arch,

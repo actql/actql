@@ -70,3 +70,28 @@ export function assertTimedRows(rows, {requestKind, phase, before, after, origin
     laterSavedBoundaryPassed: phase === 'saved', timestampPrecisionNotIncreased: true,
     directRunDefinitionCreatedAtObservation: 'UNOBSERVABLE through these public SDK ports'};
 }
+
+// Additional independent oracle for the SAME authored Values program. The
+// public SDK owns closed wire/identity validation; this does not issue Facts,
+// infer permission from a CID, or reconstruct compiler meaning from rows.
+export function assertTimedValuesExplanation(view, originalRef, savedOriginal) {
+  assert.equal(view.version, 'actql-run-explanation-view/0.1');
+  assert.deepEqual(view.run_ref, originalRef);
+  assert.equal(view.explanation.state, 'projected', 'OriginalStructuralFactsNotRetained');
+  const facts = view.explanation.facts;
+  assert.equal(facts.disclosure, 'structural');
+  const values = facts.steps.filter(step => step.operator === 'values');
+  assert.equal(values.length, 1, 'The authored Values occurrence must remain explicit');
+  assert.deepEqual(values[0].meaning, {kind: 'values', schema: {fields: [
+    {name: 'id', presence: 'required', type: {projection: 'shape_and_nullability', kind: 'number', nullable: false}},
+    {name: 'label', presence: 'required', type: {projection: 'shape_and_nullability', kind: 'string', nullable: false}},
+  ]}});
+  for (const step of facts.steps) {
+    assert.equal(step.step_id, step.key.self_cid);
+    assert.equal(step.key.compiled_plan_cid, facts.compiled_plan_cid);
+  }
+  if (savedOriginal !== undefined) assert.deepEqual(view, savedOriginal,
+    'Cold Saved must retain the complete original structural Facts');
+  return {originalRefExact: true, authoredValuesSchemaExact: true,
+    savedWholeOriginalExact: savedOriginal !== undefined};
+}

@@ -112,6 +112,7 @@ test "whole input publication binds the same RowRun originals and one adopted in
       | ContentQuery(_)
       | ContentSource(_)
       | EffectMaterials(_)
+      | InferMaterials(_)
     ) => fail("whole module: unexpected domain constructor")
     Err(Installed(_)) => fail("whole module: Installed")
     Err(Construction(issue)) => {
