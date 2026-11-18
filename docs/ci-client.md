@@ -1,5 +1,15 @@
 # Client CI groups
 
+The existing `select-targets` job runs the owned-contract-version and strict
+public SDK/Client declaration checks before publishing its fan-out plan. Each
+recipe runs once, rather than repeating in preflight or lint. This also requires
+the root locked npm installation and TypeScript for Moon-only changes; it adds
+preparation cost to that path. Compiler graph discovery and event/profile
+selection remain unchanged. An admission failure leaves the final check failed,
+even when downstream workloads cannot start. The main-only health workflow also
+requires successful admission so a skipped producer cannot trigger fresh
+packaging; producer failures after valid admission still reach its monitor.
+
 The Host job retains `check:local-node-source-assets`: source input/type checks,
 clean prepack from an empty producer, and external connector compositions. These
 construct different inputs and do not consume the normal shared tarballs. The
@@ -77,8 +87,12 @@ unexpectedly skipped work cannot become acceptance.
 Compare completed hosted runs using the existing `ci-evidence` / `ci-timing`
 reporter. Report aggregate-check completion, distinct runner consumption and
 individual job/step intervals separately; a shorter dependency path alone is
-not a measured speedup. The thirty approvals for each original Mock workflow,
-all source-free cases and their original limits remain unchanged.
+not a measured speedup. Normal Ready PR/main CI retains both complete Mock
+functional workflows and the ordinary maximum-only smoke check. Formal thirty
+approvals per template remain in the weekly CI schedule, explicit performance
+campaigns and the exact-candidate release gate. Their samples and p95/maximum
+limits are unchanged; normal functional success supplies no formal p95 evidence.
+All source-free cases and their original limits remain required.
 
 The successful Mock report retains each iteration's complete child-process wall time,
 release verification, source/platform admission, scratch and registry setup,

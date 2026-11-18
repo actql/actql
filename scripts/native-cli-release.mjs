@@ -1,4 +1,5 @@
-import {checkInterfaceOwners} from './check-interface-owners.mjs';
+import {checkInterfaceOwners, checkedOriginalInterface} from './check-interface-owners.mjs';
+import {retainNativeMockCampaignInputs} from './native-mock-campaign-inputs.mjs';
 // Frozen OS binary packages use the same inventory/registry/publisher as SDK.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -17,9 +18,13 @@ import {PRODUCT_MEMBERS_FILE} from '../packages/native-cli/lib/product-members.m
 import {stageProductMembers, verifyStagedProductMembers, launcherMemberPlatform} from './native-cli-product-members.mjs';
 
 import {nativeCliPackageInputs, nativeCliPlatforms as platforms} from './native-cli-package-inputs.mjs';
-import {admitNativeArtifact, requireNativePackageVersion} from './native-cli-artifact-reader.mjs';
+import {admitNativeArtifact, admitInstalledNativeArtifactMaterial, requireNativePackageVersion} from './native-cli-artifact-reader.mjs';
 export {admitNativeArtifact} from './native-cli-artifact-reader.mjs';
 import {checkStagedNativeCliInterfaces} from './native-cli-interface-check.mjs';
+
+// Same callback handle only. This binds the existing scoped admission, not a
+// second verifier, cross-campaign cache or serialized preparation authority.
+const nativeMockAdmissions = new WeakMap();
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
@@ -174,63 +179,145 @@ export function admitNativeReleaseManifest(manifest) {
 }
 
 export async function verifyNativeCliRelease(directory) {
-  // Diagnostic DATA only. Every original validation still runs for every call;
+  return verifyNativeCliReleaseOriginal(directory);
+}
+
+// One lexical admission belongs to this original sequential campaign only.
+// The ordinary exported verifier never consumes it, and all Source checks still
+// run for every consumer. No serialized report or matching SHA can create it.
+export async function withNativeMockReleaseAdmission(directory, action,
+  {sourceRepository = repository, controller = repository, checkSource = checkInterfaceOwners} = {}) {
+  directory = resolve(directory);
+  const manifest = admitNativeReleaseManifest(JSON.parse(await readFile(join(directory, 'release.json'), 'utf8')));
+  const source = checkoutState(sourceRepository);
+  assert(source.clean && source.revision === manifest.sourceSha, 'Native Mock campaign requires its exact clean source');
+  const assertInputs = retainNativeMockCampaignInputs({repository: sourceRepository, controller,
+    files: [join(directory, 'release.json'), ...manifest.packages.map(item => {
+      assert.equal(item.file, `${item.name.replace('@', '').replace('/', '-')}-${item.version}.tgz`);
+      return join(directory, item.file);
+    })]});
+  const retained = {source, manifest: JSON.stringify(manifest), assertInputs, checked: undefined};
+  let active = true, pending = false;
+  retained.assertActive = () => assert(active, 'Closed Native Mock release admission');
+  const assertCurrent = () => {
+    assert(active, 'Closed Native Mock release admission');
+    try {
+      assertInputs();
+      assert.deepEqual(checkoutState(sourceRepository), source, 'Native Mock campaign source changed');
+    } catch (error) {active = false; throw error;}
+  };
+  const verify = async () => {
+    assert(active && !pending, 'Closed or overlapping Native Mock release admission');
+    pending = true;
+    try {
+      assertCurrent();
+      const manifest = await verifyNativeCliReleaseOriginal(directory, {repository: sourceRepository, retained, checkSource});
+      retained.assertActive();
+      return manifest;
+    } catch (error) {
+      // A failed/changed cohort stops this original campaign. It is never a
+      // cache miss permitting another candidate or a replayed consumer.
+      active = false;
+      throw error;
+    } finally {pending = false;}
+  };
+  const original = Object.freeze({verify, assertCurrent});
+  nativeMockAdmissions.set(original, {directory});
+  try {return await action(original);}
+  finally {active = false; nativeMockAdmissions.delete(original);}
+}
+
+// The consumer receives the same original callback object. A copied bag of
+// methods, matching manifest or foreign directory cannot select this entrance.
+export function originalNativeMockReleaseAdmission(admission, directory) {
+  const original = nativeMockAdmissions.get(admission);
+  assert(original && original.directory === resolve(directory), 'Untrusted or foreign Native Mock release admission');
+  return admission;
+}
+
+async function verifyNativeCliReleaseOriginal(directory, {repository: sourceRepository = repository, retained, checkSource = checkInterfaceOwners} = {}) {
+  const repository = sourceRepository;
+  // Diagnostic DATA only. Ordinary calls retain full verification. Scoped
+  // calls distinguish retained artifact admission from fresh Source checking;
   // unavailable timing or a failed stderr write cannot mask the primary result.
-  let observedStart, sourceWallNs, sourceCompleted = false, completed = false;
+  let observedStart, sourceWallNs, sourceCompleted = false, completed = false, reused = false;
   try {if (process.env.ACTQL_CI_NATIVE_RELEASE_PHASES === '1') observedStart = process.hrtime.bigint();} catch {}
   try {
     const manifest = admitNativeReleaseManifest(JSON.parse(await readFile(join(directory, 'release.json'), 'utf8')));
     const names = Object.keys(manifest.platforms);
     const source = checkoutState(repository);
     assert(source.clean, 'CLI interface verification requires clean checked source');
-    const checkedSource = await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});
+    const checkedSource = await checkSource(repository, {manifests: ['packages/native-cli/package.json']});
+    if (retained) {
+      retained.assertActive();
+      assert.deepEqual(source, retained.source, 'Native Mock campaign source changed');
+      assert.equal(JSON.stringify(manifest), retained.manifest, 'Native Mock release manifest changed');
+      // Consume a fresh real checker instance, never its public report as proof.
+      checkedOriginalInterface(repository, 'packages/native-cli/bin/actql.mjs', checkedSource);
+      const current = JSON.stringify({modules: checkedSource.modules, runtimeBindings: checkedSource.runtimeBindings,
+        roots: checkedSource.roots, generated: checkedSource.generated, artifacts: checkedSource.artifacts});
+      if (retained.checked !== undefined) {
+        assert.equal(current, retained.checked, 'Native Mock original interface/binding subjects changed');
+        reused = true;
+      }
+    }
     sourceCompleted = true;
     try {if (observedStart !== undefined) sourceWallNs = Number(process.hrtime.bigint() - observedStart);} catch {}
-    const scratch = await mkdtemp(join(directory, '.verify-'));
-    try {
-      for (const item of manifest.packages) {
-        assert.equal(item.version, manifest.cohort.packageVersion);
-        assert.equal(item.file, `${item.name.replace('@', '').replace('/', '-')}-${item.version}.tgz`);
-        const bytes = await readFile(join(directory, item.file));
-        assert.equal(bytes.length, item.bytes); assert.equal(hash(bytes), item.sha256);
-        assert.equal(`sha512-${hash(bytes, 'sha512', 'base64')}`, item.integrity);
-        const payload = await unpack(join(directory, item.file), join(scratch, item.name.replace('/', '-')));
-        assert.deepEqual(await inventory(payload), item.files);
-        const metadata = JSON.parse(await readFile(join(payload, 'package.json'), 'utf8'));
-        assert.equal(metadata.name, item.name); assert.equal(metadata.version, item.version); assert.equal(metadata.private, undefined);
-        assert.equal(metadata.scripts, undefined); assert.equal(metadata.license, 'Apache-2.0');
-        if (item.name === 'actql') {
-          if (item.productMembers !== undefined) {
-            const platform = launcherMemberPlatform(manifest.artifacts);
-            assert(platform !== undefined);
-            await verifyStagedProductMembers(payload, {
-              sourceSha: manifest.sourceSha, platform, packageName: item.name}, item.productMembers);
+    if (!reused) {
+      const scratch = await mkdtemp(join(directory, '.verify-'));
+      try {
+        for (const item of manifest.packages) {
+          assert.equal(item.version, manifest.cohort.packageVersion);
+          assert.equal(item.file, `${item.name.replace('@', '').replace('/', '-')}-${item.version}.tgz`);
+          const bytes = await readFile(join(directory, item.file));
+          assert.equal(bytes.length, item.bytes); assert.equal(hash(bytes), item.sha256);
+          assert.equal(`sha512-${hash(bytes, 'sha512', 'base64')}`, item.integrity);
+          const payload = await unpack(join(directory, item.file), join(scratch, item.name.replace('/', '-')));
+          assert.deepEqual(await inventory(payload), item.files);
+          const metadata = JSON.parse(await readFile(join(payload, 'package.json'), 'utf8'));
+          assert.equal(metadata.name, item.name); assert.equal(metadata.version, item.version); assert.equal(metadata.private, undefined);
+          assert.equal(metadata.scripts, undefined); assert.equal(metadata.license, 'Apache-2.0');
+          if (item.name === 'actql') {
+            if (item.productMembers !== undefined) {
+              const platform = launcherMemberPlatform(manifest.artifacts);
+              assert(platform !== undefined);
+              await verifyStagedProductMembers(payload, {
+                sourceSha: manifest.sourceSha, platform, packageName: item.name}, item.productMembers);
+            }
+            assert.deepEqual(metadata.bin, {actql: 'bin/actql.mjs'});
+            assert.deepEqual(metadata.optionalDependencies, Object.fromEntries(names.map(key => [`@actql/cli-${key}`, item.version])));
+            assert.deepEqual(JSON.parse(await readFile(join(payload, 'platforms.json'), 'utf8')), manifest.platforms);
+            await checkStagedNativeCliInterfaces({repository, directory: payload, source: manifest.sourceSha, checkedSource});
+          } else {
+            const key = item.name.slice('@actql/cli-'.length), target = platforms[key]; assert(target);
+            assert.deepEqual(metadata.os, [target.os]); assert.deepEqual(metadata.cpu, [target.cpu]);
+            assert.deepEqual(metadata.libc, target.libc ? [target.libc] : undefined);
+            const record = JSON.parse(await readFile(join(payload, 'artifact.json'), 'utf8'));
+            assert.deepEqual(record, manifest.artifacts.find(v => v.platform === key));
+            if (item.productMembers !== undefined) await verifyStagedProductMembers(payload, {
+              sourceSha: manifest.sourceSha, platform: key, packageName: item.name}, item.productMembers);
+            const checked = await checkStagedNativeCliInterfaces({repository, directory: payload,
+              source: manifest.sourceSha, checkedSource, artifact: record});
+            // Preserve the full post-await material reinspection in its actual
+            // installed layout; no duplicate producer-layout binary is needed.
+            assert.deepEqual(await admitInstalledNativeArtifactMaterial(payload, manifest.sourceSha), checked.artifactMaterial,
+              'Native artifact/runtime changed during interface verification');
+            exact(record.notices, ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']);
+            for (const [filename, digest] of Object.entries(record.notices)) assert.equal(digest, hash(await readFile(join(payload, filename))));
+            assert.deepEqual(manifest.platforms[key], {package: item.name, sourceSha: record.sourceSha,
+              binarySha256: record.binarySha256, binaryBytes: record.binaryBytes,
+              ...(record.localRuntime ? {localRuntimeSha256: record.localRuntime.sha256} : {}),
+              ...(item.productMembers ? {productMembers: item.productMembers} : {})});
           }
-          assert.deepEqual(metadata.bin, {actql: 'bin/actql.mjs'});
-          assert.deepEqual(metadata.optionalDependencies, Object.fromEntries(names.map(key => [`@actql/cli-${key}`, item.version])));
-          assert.deepEqual(JSON.parse(await readFile(join(payload, 'platforms.json'), 'utf8')), manifest.platforms);
-          await checkStagedNativeCliInterfaces({repository, directory: payload, source: manifest.sourceSha, checkedSource});
-        } else {
-          const key = item.name.slice('@actql/cli-'.length), target = platforms[key]; assert(target);
-          assert.deepEqual(metadata.os, [target.os]); assert.deepEqual(metadata.cpu, [target.cpu]);
-          assert.deepEqual(metadata.libc, target.libc ? [target.libc] : undefined);
-          const record = JSON.parse(await readFile(join(payload, 'artifact.json'), 'utf8'));
-          assert.deepEqual(record, manifest.artifacts.find(v => v.platform === key));
-          if (item.productMembers !== undefined) await verifyStagedProductMembers(payload, {
-            sourceSha: manifest.sourceSha, platform: key, packageName: item.name}, item.productMembers);
-          await checkStagedNativeCliInterfaces({repository, directory: payload, source: manifest.sourceSha, checkedSource, artifact: record});
-          // The artifact validator expects the binary at the producer path.
-          await copyFile(join(payload, 'bin/actql-native-client'), join(payload, 'actql-native-client'));
-          await admitNativeArtifact(payload, manifest.sourceSha);
-          exact(record.notices, ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']);
-          for (const [filename, digest] of Object.entries(record.notices)) assert.equal(digest, hash(await readFile(join(payload, filename))));
-          assert.deepEqual(manifest.platforms[key], {package: item.name, sourceSha: record.sourceSha,
-            binarySha256: record.binarySha256, binaryBytes: record.binaryBytes,
-            ...(record.localRuntime ? {localRuntimeSha256: record.localRuntime.sha256} : {}),
-            ...(item.productMembers ? {productMembers: item.productMembers} : {})});
         }
-      }
-    } finally {await rm(scratch, {recursive: true});}
+      } finally {await rm(scratch, {recursive: true});}
+    }
+    if (retained) {
+      retained.assertActive();
+      retained.assertInputs();
+      retained.checked ??= JSON.stringify({modules: checkedSource.modules, runtimeBindings: checkedSource.runtimeBindings,
+        roots: checkedSource.roots, generated: checkedSource.generated, artifacts: checkedSource.artifacts});
+    }
     assert.deepEqual(checkoutState(repository), source, 'CLI checked source changed during verification');
     completed = true;
     return manifest;
@@ -243,7 +330,7 @@ export async function verifyNativeCliRelease(directory) {
           console.error('ACTQL_NATIVE_RELEASE_PHASES ' + JSON.stringify({
             sourcePreparation: {state: sourceCompleted ? 'completed' : 'failed', wallNs: sourceCompleted ? sourceWallNs : total},
             artifactVerification: sourceCompleted
-              ? {state: completed ? 'completed' : 'failed', wallNs: total - sourceWallNs} : {state: 'unexecuted'},
+              ? {state: completed ? (reused ? 'retained' : 'completed') : 'failed', wallNs: total - sourceWallNs} : {state: 'unexecuted'},
           }));
         }
       }

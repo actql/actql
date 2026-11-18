@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {realpathSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {nativeCoreLinuxCommonArguments} from './ci-core-partitions.mjs';
+import {runReviewedNativeCoreSuite} from './native-core-reviewed-suite.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-export const nativeCoreLinuxCommonArguments = Object.freeze([
-  '--deny-warn', '--release', '--strip', '-j', '2', '--no-parallelize', '--verbose',
-]);
+export {nativeCoreLinuxCommonArguments};
 export const nativeCoreLinuxCommonPartitions = Object.freeze(
   Array.from({length: 8}, (_, index) => `linux-common-${index + 1}/8`));
 
@@ -26,17 +26,21 @@ async function executeOriginalNativeProfile(root, args, {env}) {
 
 export async function runNativeCoreLinuxCommon({root = repository, env = process.env,
   platform = process.platform, partition,
-  executeProfile = executeOriginalNativeProfile} = {}) {
+  executeProfile = executeOriginalNativeProfile, executeReviewedSuite = runReviewedNativeCoreSuite} = {}) {
   assert.equal(platform, 'linux', 'The common Native cohort requires an actual Linux runner');
   assert(nativeCoreLinuxCommonPartitions.includes(partition), 'One original Linux common partition required');
   root = realpathSync(root);
   // Dispatch only. The original entry is the sole owner of graph discovery,
   // nonempty selection, zero-physical admission and counted test execution.
   const environment = {...env, MOONBIT_NEW_NATIVE: '0'};
-  return await executeProfile(root, [...nativeCoreLinuxCommonArguments], {
+  const status = await executeProfile(root, [...nativeCoreLinuxCommonArguments], {
     env: {...environment, ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: 'linux-common-importers',
       ACTQL_TEST_NATIVE_CORE_PARTITION: partition.slice('linux-common-'.length)},
   });
+  if (status !== 0 || partition !== 'linux-common-1/8') return status;
+  // Establish Linux execution first. Every original Darwin/profile obligation
+  // remains selected; this fresh child is not a replacement OS qualification.
+  return await executeReviewedSuite({root, env: environment});
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

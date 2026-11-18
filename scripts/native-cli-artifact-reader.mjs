@@ -31,9 +31,9 @@ async function readArtifact(directory, sourceSha, binaryMember) {
     assert.equal(bytes.readUInt16LE(18), 62); assert.equal(record.abi.format, 'ELF');
     assert.match(record.abi.minimumGlibc, /^\d+\.\d+$/u);
   }
-  if (record.localRuntime !== undefined) admitInstalledLocalRuntime({root: directory,
+  const localRuntime = record.localRuntime === undefined ? undefined : admitInstalledLocalRuntime({root: directory,
     expected: {sourceSha, platform: record.platform, localRuntimeSha256: record.localRuntime.sha256}, metadata: record.localRuntime});
-  return record;
+  return {artifact: record, localRuntime};
 }
 
 export function requireNativePackageVersion(record, version) {
@@ -60,9 +60,15 @@ export function requireNativeCohortPackageVersions(manifest) {
 
 
 export async function admitNativeArtifact(directory, sourceSha) {
-  return readArtifact(directory, sourceSha, 'actql-native-client');
+  return (await readArtifact(directory, sourceSha, 'actql-native-client')).artifact;
 }
 
 export async function admitInstalledNativeArtifact(directory, sourceSha) {
+  return (await admitInstalledNativeArtifactMaterial(directory, sourceSha)).artifact;
+}
+
+// Keep the actual runtime material from this artifact reader invocation. This
+// pair is internal validation DATA, not a reusable admission or an execution.
+export async function admitInstalledNativeArtifactMaterial(directory, sourceSha) {
   return readArtifact(directory, sourceSha, 'bin/actql-native-client');
 }

@@ -17,7 +17,7 @@ const helper = pathToFileURL(new URL('./owned-scratch.mjs', import.meta.url)
 // a nested file, then does `body` (JavaScript source using `scratch`).
 function child(parent, body, env = {}, options = {}) {
   const source = `
-import {mkdirSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {createOwnedScratch} from ${JSON.stringify(helper)};
 const scratch = await createOwnedScratch({parent: ${JSON.stringify(parent)},
@@ -138,4 +138,33 @@ scratch.passed();`);
   assert.equal(existsSync(result.path), false);
   assert.equal(existsSync(join(directory, 'sibling', 'evidence')), true);
   assert.match(result.stdout, /\(2 files, 0\.0 MiB before removal\)/u);
+});
+
+
+test('explicit close confirms the same scratch before process exit and is idempotent', t => {
+  const result = child(parent(t), `
+scratch.passed();
+const first = scratch.close();
+if (first !== scratch.close() || first.state !== 'removed') throw new Error('unconfirmed original close');
+if (existsSync(scratch.path)) throw new Error('original scratch still exists');
+console.log('CLOSED');
+`);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(existsSync(result.path), false);
+  assert.equal(result.stdout.match(/probe: removed /gu)?.length, 1);
+  assert.match(result.stdout, /CLOSED/u);
+});
+
+test('explicit close refuses unconfirmed or failed cleanup without retry or success', t => {
+  const result = child(parent(t), `
+let original;
+try {scratch.close();} catch (error) {original = error;}
+if (!original) throw new Error('unconfirmed close accepted');
+scratch.passed();
+try {scratch.close(); throw new Error('failed close retried');}
+catch (error) {if (error !== original) throw error;}
+`);
+  assert.equal(result.status, 2, result.stderr);
+  assert.equal(existsSync(result.path), true);
+  assert.doesNotMatch(result.stdout, /removed/u);
 });

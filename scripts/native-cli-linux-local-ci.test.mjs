@@ -126,6 +126,11 @@ test('Mock workflows require a fresh runner and the successful exact producer co
   assert.equal(authentication.env.PACKAGE_PRODUCER_JOB, 'native-cli-linux-local');
   assert.equal(authentication.env.PACKAGE_EVENT_HEAD_SHA, '${{ github.event.pull_request.head.sha || github.sha }}');
   assert(authentication.run.includes('inspect-native-approval-producer'));
+  const functional = mockJob.steps.find(step => step.id === 'functional_profile');
+  assert(functional && functional['continue-on-error'] === undefined);
+  assert(functional.run.includes('node scripts/test-native-cli-mock-install.mjs'));
+  assert(functional.run.includes('"$RUNNER_TEMP/native-cli-linux-local/release"'));
+  assert(!/--measure|--diagnos/u.test(functional.run), 'Keep the ordinary maximum-only smoke check');
   const mock = mockJob.steps.find(step => step.run?.includes('node scripts/test-native-approval-performance.mjs'));
   for (const argument of ['--normal "$RUNNER_TEMP/native-cli-linux-local/release"',
     '--binding "$RUNNER_TEMP/native-cli-linux-local/approval/source.json"',
@@ -133,23 +138,31 @@ test('Mock workflows require a fresh runner and the successful exact producer co
     assert(mock.run.includes(argument), argument);
   assert.equal(mock.env?.TMPDIR, undefined, 'Use the existing formal collector filesystem context');
   assert(!mock.run.includes('--diagnostic'), 'The required profile must enforce all thirty samples');
-  assert.equal(mock.if, undefined);
+  for (const event of ['pull_request', 'push', 'workflow_dispatch', 'schedule']) {
+    const selected = step => Function('github', 'return (' +
+      step.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '') + ');')({event_name: event});
+    assert.equal(selected(functional), event !== 'schedule');
+    assert.equal(selected(mock), event === 'schedule');
+  }
   assert.equal(mock['continue-on-error'], undefined);
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(mock));
   assert(mockJob.steps.indexOf(download) < mockJob.steps.indexOf(authentication));
   assert(mockJob.steps.indexOf(authentication) < mockJob.steps.indexOf(mock));
+  assert(mockJob.steps.indexOf(authentication) < mockJob.steps.indexOf(functional));
   assert(!/--measure|performance-diagnostic/u.test(mock.run), 'The formal collector is not the diagnostic consumer');
   assert(!mockJob.steps.some(step => /produce-native|native-cli-release/u.test(step.run ?? '')),
     'Neither formal sampling nor failure diagnostics may rebuild the fixed Native payload');
   const diagnostics = mockJob.steps.filter(step => step.run?.includes('--diagnose-approval-syscalls'));
-  assert.equal(diagnostics.length, 1, 'One separate diagnostic may follow a failed formal campaign');
+  assert.equal(diagnostics.length, 1, 'One separate diagnostic may follow the selected failed acceptance');
   const diagnostic = diagnostics[0];
   const diagnosticCondition = diagnostic.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '');
   const diagnose = Function('failure', 'steps', `return (${diagnosticCondition});`);
-  for (const failed of [false, true]) for (const outcome of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
-    assert.equal(diagnose(() => failed, {[mock.id]: {outcome}}), failed && outcome === 'failure');
-  }
+  const outcomes = ['success', 'failure', 'cancelled', 'skipped', undefined];
+  for (const failed of [false, true]) for (const ordinary of outcomes) for (const formal of outcomes)
+    assert.equal(diagnose(() => failed, {[functional.id]: {outcome: ordinary}, [mock.id]: {outcome: formal}}),
+      failed && (ordinary === 'failure' || formal === 'failure'));
   assert(mockJob.steps.indexOf(diagnostic) > mockJob.steps.indexOf(mock));
+  assert(mockJob.steps.indexOf(diagnostic) > mockJob.steps.indexOf(functional));
   assert(diagnostic.run.includes('"$RUNNER_TEMP/native-cli-linux-local/release"'), 'Keep the same original RC');
   assert(diagnostic.run.includes('--measure-approval-resources'));
 });
