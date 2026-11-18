@@ -1,0 +1,34 @@
+{
+  "source": "3cb1294bbc2c2c8f49580b99eda135c7140c9d40",
+  "qualification": "Finite current JS package-configuration review only. One literal JS whitebox selector extends the previous five-selector review in the genuine joined source. Imports, aliases, supported targets, all prior selectors, linker options, hooks and external resolvers remain byte-exact. Every immediate source byte/mode/membership and transitive literal import remains an input. This descriptor issues no compiler/test execution or reuse authority.",
+  "path": "src/client_local_host/moon.pkg",
+  "mode": "100644",
+  "sha256": "b30ff1c30337f7ac7903f712f8768ba44d7b59194e3b1d20fa92627d208a6f6f",
+  "bytes": 12567,
+  "previousRevision": "9c7c171223e59d73c11da9b5a2ad7f620a7a293c",
+  "previousSha256": "b66436cc7f406ada75dc1349518a55ca4ab94334f06c9e99686548677620da9a",
+  "previousBytes": 12507,
+  "previousReview": "docs/reviews/2026-11-18-session-local-current-fixture-selectors-review.json",
+  "rule": "literal-target-selectors-with-bound-source-membership",
+  "addedSelectors": [
+    {
+      "file": "mock_file_footprint_quantity_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    }
+  ],
+  "meaning": "The original Mock footprint fixture invokes Node process.getBuiltinModule and imports the original JS geometry and Local Mock row projector through createRequire. Both cases exercise the same shared reservation; they cannot run as Native/Wasm fixtures. Explicit JS selection preserves that boundary without changing product code or any other backend choice.",
+  "fixture": {
+    "source": "0b9710145d8ae6ce05aaa33f70f380e3a927d937",
+    "path": "src/client_local_host/mock_file_footprint_quantity_js_wbtest.mbt",
+    "mode": "100644",
+    "sha256": "2a5a411cbd272d9c17da3f43813d8cd74d1d373cb710952da63c86a96dd6ef40",
+    "bytes": 3764,
+    "originalImports": [
+      "adapters/host-node/declared-project-catalog-construction.mjs",
+      "adapters/local-node/installed-mock-row-effect.mjs"
+    ]
+  },
+  "refusalPolicy": "Only this exact descriptor, JS target and reviewed toolchain qualify. All earlier preimages/reviews remain historical and unchanged. Missing/changed selectors, imports, aliases, options, source membership, path, target or toolchain retain refusal/full-source fallback and unresolved reuse. Configuration identity is not runtime or proof acceptance."
+}

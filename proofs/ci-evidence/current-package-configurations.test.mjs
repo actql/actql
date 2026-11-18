@@ -287,7 +287,7 @@ test('current configuration entries bind exact authored Git inputs and literal d
 
 test('current Local JS review admits only reviewed fixture selectors and keeps every source bound', () => {
   const review = JSON.parse(readFileSync(new URL(
-    '../../docs/reviews/2026-11-18-session-local-current-fixture-selectors-review.json', import.meta.url)));
+    '../../docs/reviews/2026-11-18-session-local-mock-footprint-selector-review.json', import.meta.url)));
   const path = review.path;
   const entry = currentPackageConfigurations[path];
   const reviewedTree = gitTree(root, review.source);
@@ -309,6 +309,13 @@ test('current Local JS review admits only reviewed fixture selectors and keeps e
     reconstructed = reconstructed.replace(line, '');
   }
   assert.equal(reconstructed, previous, 'Imports, aliases, hooks and every preceding option remain exact');
+  const priorReview = JSON.parse(readFileSync(new URL('../../' + review.previousReview, import.meta.url)));
+  assert.equal(priorReview.source, review.previousRevision);
+  assert.equal(priorReview.sha256, review.previousSha256);
+  assert.equal(priorReview.bytes, review.previousBytes);
+  assert.equal(hash(reviewedTree.read(review.fixture.path)), review.fixture.sha256);
+  assert.equal(reviewedTree.read(review.fixture.path).length, review.fixture.bytes);
+  assert.equal(reviewedTree.entries.get(review.fixture.path)?.mode, review.fixture.mode);
   assert.deepEqual(packageImports(body).imports, packageImports(previous).imports);
   const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
   assert(!selected.unresolved.includes('Unreviewed package configuration: ' + path));
