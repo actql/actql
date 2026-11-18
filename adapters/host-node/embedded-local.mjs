@@ -108,7 +108,7 @@ import {installPreparedProjectLocalFileEffects}
 import {installPreparedProjectMockEffects, observeInstalledMockEffectResources}
   from '../local-node/installed-mock-row-effect.mjs';
 import {installedRuntimeBundleCid} from './source-profile-json.mjs';
-import {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
+import {initializeOrdinaryMockAccount, prepareOrdinaryMockAccountSubjects} from './ordinary-mock-account.mjs';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun, finishInstalledEffectModelScope,
@@ -8478,45 +8478,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
           const originalTasks = models.originalsForRuntime(moon);
           const configurationWire = installedProjectOriginalsForRuntime(project, moon).configurationWire;
           const requestRealization = installedMockRequestRealization(mockPreparation, moon);
-          let units = BigInt(project.directory.length + configurationWire.length + requestRealization.length + 256);
-          let nodes = 64n + 2n * BigInt(originalTasks.length);
-          for (const entry of bundle.sources) {
-            units += BigInt(entry.wire.length + entry.catalogue.connection.length + entry.catalogue.registration.length);
-            nodes += 8n;
-            for (const view of entry.catalogue.views) {units += BigInt(view.resource.length);nodes += 4n;}
-          }
-          for (const entry of originalTasks) units += BigInt(entry.taskCid.length);
-          for (const target of bundle.writables) {
-            units += BigInt(target.write.mappingWire.length + target.source.catalogue.connection.length +
-              target.write.resource.length + target.physical.primaryIdentity.length);
-            nodes += 24n + 2n * BigInt(target.physical.itemsPath.length + target.physical.keyPath.length);
-            for (const part of target.physical.itemsPath) units += BigInt(part.length);
-            for (const part of target.physical.keyPath) units += BigInt(part.length);
-          }
-          // Admission precedes every new vector/tuple, subject hash Buffer and
-          // complete target record. No Program or maxMembers selects funding.
-          frame.record(units, nodes, 8n);
-          const tasks = originalTasks.map(entry => entry.taskCid);
-          const sources = bundle.sources.flatMap(entry => entry.catalogue.views.map(view =>
-            [entry.catalogue.connection, view.resource]));
-          const updates = bundle.writables.map(target =>
-            [target.source.catalogue.connection, target.write.resource]);
-          const subject = {projectDirectory: project.directory,
-            configurationCid: bytesCid(Buffer.from(configurationWire)),
-            sources: bundle.sources.map(entry => ({connection: entry.catalogue.connection,
-              registration: entry.catalogue.registration, declarationCid: bytesCid(Buffer.from(entry.wire))})),
-            modelTasks: tasks, requestRealization};
-          if (updates.length > 1) subject.targets = bundle.writables.map(target => {
-            const mapping = target.source.effectPrepared.mappings.find(value => value.resource === target.write.resource);
-            if (typeof mapping?.mappingCid !== 'string') throw clientOperationError('InstalledMockMappingUnavailable');
-            return {connection: target.source.catalogue.connection, resource: target.write.resource,
-              mappingCid: mapping.mappingCid, itemsPath: target.physical.itemsPath,
-              keyPath: target.physical.keyPath, primaryIdentity: target.physical.primaryIdentity};
-          });
-          // One-target subjects and preimages remain byte-exact; a saved
-          // installation is never upgraded or merged with newly found targets.
-          return {subject, sources, modelTasks: tasks,
-            requestTarget: ['local-mock', requestRealization], updateTargets: updates};
+          return prepareOrdinaryMockAccountSubjects(frame, bundle, originalTasks,
+            project.directory, configurationWire, requestRealization);
         },
         explicitSelection: record.explicitMockSelection,
         assertExclusiveCurrent: () => {assertInitialControlHostPreparation(originals); journal.assertInitializationCurrent();},

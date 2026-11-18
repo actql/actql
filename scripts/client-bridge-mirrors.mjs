@@ -45,6 +45,7 @@ export function checkRelaClientBridges(root, write = false) {
     'client_check_environment_construction_bridge.mbt',
     'client_mock_churn_risk_bridge.mbt',
     'client_relation_document_bridge.mbt',
+    'client_row_source_mapping_construction_bridge.mbt',
     'client_relation_restore_construction_bridge.mbt',
     'client_host_signers_bridge.mbt',
     'client_local_signing_bridge.mbt',

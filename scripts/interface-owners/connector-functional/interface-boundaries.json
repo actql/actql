@@ -12971,7 +12971,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "ace3b7593f5c0882a735005fdcaa3ad35e098d3b99ab57e502ca44dad383a62f",
+      "sha256": "665f140250f6dbb866f53ac163cb59d88308674ba6b5c1b2d18950147041595c",
       "operations": [
         {
           "name": "byCid/byCid/byCid",
@@ -14516,7 +14516,8 @@
             "writesJson",
             "resource",
             "sources",
-            "operation"
+            "operation",
+            "sourcesJson"
           ],
           "async": false
         },

@@ -3,6 +3,10 @@ import test from 'node:test';
 import {mkdir, mkdtemp, open, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {realpathSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {createAccountConstruction} from './account-construction.mjs';
+import {prepareOrdinaryMockAccountSubjects} from './ordinary-mock-account.mjs';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {inspectProjectMockDeclarations, prepareInstalledProjectMock,
@@ -12,6 +16,50 @@ import {projectTemplateFiles} from '../../packages/native-cli/lib/project-templa
 
 assert.ok(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME, 'Select the matching actual Common runtime');
 const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
+
+test('Mock subject construction hashes borrowed wires on the same real Account Read for one and two targets', async () => {
+  const {openHostInitializationPreparation, closeHostInitializationPreparation} = await import(new URL(
+    '../../../../../adapters/local-node/request-preparation-adapter.mjs',
+    pathToFileURL(realpathSync(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME))));
+  const digest = value => 'sha256:' + createHash('sha256').update(value, 'utf8').digest('hex');
+  // This is borrowed metadata DATA, not a declaration/Account admission or an
+  // ordinary installation. The actual Core parent and Account child are real.
+  const configurationWire = JSON.stringify({original: '日本語'.repeat(12000)});
+  const wire = JSON.stringify({original: 'declaration'.repeat(12000)});
+  for (const count of [1, 2]) {
+    const state = {}, input = Object.freeze({purpose: 'Mock subject Read component'});
+    let current = true;
+    const parent = openHostInitializationPreparation(state, moon, input,
+      () => assert.equal(current, true), () => false);
+    const construction = createAccountConstruction({moon, current() {assert.equal(current, true);},
+      prepareRead: () => moon.clientProgramPrepareHostAccountRead(parent)});
+    const source = {wire, catalogue: {connection: 'mock', registration: 'fixture',
+      views: [{resource: 'first'}, {resource: 'second'}]}, effectPrepared: {mappings: [
+        {resource: 'first', mappingCid: 'sha256:' + '1'.repeat(64)},
+        {resource: 'second', mappingCid: 'sha256:' + '2'.repeat(64)}]}};
+    const bundle = {sources: [source], writables: ['first', 'second'].slice(0, count).map(resource => ({
+      source, write: {resource}, physical: {itemsPath: [resource], keyPath: ['id'], primaryIdentity: 'id'}}))};
+    const frame = construction.begin();
+    let result = prepareOrdinaryMockAccountSubjects(frame, bundle, [], '/original/project',
+      configurationWire, 'original-request');
+    const expected = {projectDirectory: '/original/project', configurationCid: digest(configurationWire),
+      sources: [{connection: 'mock', registration: 'fixture', declarationCid: digest(wire)}],
+      modelTasks: [], requestRealization: 'original-request'};
+    if (count === 2) expected.targets = [
+      {connection: 'mock', resource: 'first', mappingCid: 'sha256:' + '1'.repeat(64),
+        itemsPath: ['first'], keyPath: ['id'], primaryIdentity: 'id'},
+      {connection: 'mock', resource: 'second', mappingCid: 'sha256:' + '2'.repeat(64),
+        itemsPath: ['second'], keyPath: ['id'], primaryIdentity: 'id'}];
+    assert.deepEqual(result.subject, expected);
+    assert.deepEqual(result.updateTargets, ['first', 'second'].slice(0, count).map(value => ['mock', value]));
+    frame.hold();frame.finish(true);
+    assert.throws(() => closeHostInitializationPreparation(state), {code: 'MoonBitHostFailure'},
+      'retained subject child cannot be replaced with a parent cleanup acknowledgement');
+    result = undefined;
+    assert.equal(await construction.close(), true);
+    closeHostInitializationPreparation(state);current = false;
+  }
+});
 
 // Real Common and metadata-file reader; the current callback is an explicit
 // operational fixture, not the selected Source issuer or a physical grant.

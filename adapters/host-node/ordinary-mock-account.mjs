@@ -11,6 +11,62 @@ const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {co
 const flights = new Map();
 const maximum = 1024 * 1024;
 
+// The trusted installed caller supplies its SAME retained catalog originals.
+// Full declaration/configuration wires are hash inputs, not subject members.
+// Quote the actual returned forest separately from one synchronous hash's
+// Buffer scratch; the existing Account Read keeps all failed-prefix debt.
+export function prepareOrdinaryMockAccountSubjects(frame, bundle, originalTasks,
+  projectDirectory, configurationWire, requestRealization) {
+  let units = BigInt(projectDirectory.length + requestRealization.length + 256 + 71);
+  let nodes = 64n + 2n * BigInt(originalTasks.length);
+  for (const entry of bundle.sources) {
+    units += BigInt(71 + entry.catalogue.connection.length + entry.catalogue.registration.length);
+    nodes += 8n;
+    for (const view of entry.catalogue.views) {
+      units += BigInt(entry.catalogue.connection.length + view.resource.length);nodes += 4n;
+    }
+  }
+  for (const entry of originalTasks) units += BigInt(entry.taskCid.length);
+  for (const target of bundle.writables) {
+    units += BigInt(128 + target.source.catalogue.connection.length + target.write.resource.length);
+    nodes += 24n + 2n * BigInt(target.physical.itemsPath.length + target.physical.keyPath.length);
+    if (bundle.writables.length > 1) {
+      units += BigInt(71 + target.physical.primaryIdentity.length);
+      for (const part of target.physical.itemsPath) units += BigInt(part.length);
+      for (const part of target.physical.keyPath) units += BigInt(part.length);
+    }
+  }
+  // This includes the subject, source/update tuples and original path/task
+  // references. It does not charge a second retained copy of borrowed wires.
+  frame.record(units, nodes, 8n);
+  const hashOriginal = value => {
+    // Buffer.from and digest are synchronous. Each Buffer dies before the
+    // next call; the SAME frame keeps the maximum execution peak, while its
+    // record debit retains every returned CID. This is no GC/physical ACK.
+    frame.prepare(0n, 128n + BigInt(Buffer.byteLength(value, 'utf8')));
+    return bytesCid(Buffer.from(value));
+  };
+  const tasks = originalTasks.map(entry => entry.taskCid);
+  const sources = bundle.sources.flatMap(entry => entry.catalogue.views.map(view =>
+    [entry.catalogue.connection, view.resource]));
+  const updates = bundle.writables.map(target =>
+    [target.source.catalogue.connection, target.write.resource]);
+  const subject = {projectDirectory, configurationCid: hashOriginal(configurationWire),
+    sources: bundle.sources.map(entry => ({connection: entry.catalogue.connection,
+      registration: entry.catalogue.registration, declarationCid: hashOriginal(entry.wire)})),
+    modelTasks: tasks, requestRealization};
+  if (updates.length > 1) subject.targets = bundle.writables.map(target => {
+    const mapping = target.source.effectPrepared.mappings.find(value => value.resource === target.write.resource);
+    if (typeof mapping?.mappingCid !== 'string') fail('InstalledMockMappingUnavailable');
+    return {connection: target.source.catalogue.connection, resource: target.write.resource,
+      mappingCid: mapping.mappingCid, itemsPath: target.physical.itemsPath,
+      keyPath: target.physical.keyPath, primaryIdentity: target.physical.primaryIdentity};
+  });
+  // Preserve the original one-target preimage and complete plural inventory.
+  return {subject, sources, modelTasks: tasks,
+    requestTarget: ['local-mock', requestRealization], updateTargets: updates};
+}
+
 // This is the existing Local Host's installation work, under its actual Store
 // exclusion. Common owns the limited policy; these files do not create grants
 // from a profile name, discovered Project, equal CID or missing saved state.

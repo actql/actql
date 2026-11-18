@@ -2429,6 +2429,8 @@ pub fn client_program_row_source_typed_json_page_next_cursor(@client_row_source_
 
 pub fn client_program_row_source_typed_json_page_row_count(@client_row_source_host.RowSourceProjectedJsonPage) -> Int
 
+pub fn client_program_row_source_update_mapping_construction_capacity(@client_row_source_host.RowDeclaration, String, String, String) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
+
 pub fn client_program_run_observation_key(String, Int64, Bool, Bool, Bool, Bool) -> String?
 
 pub fn client_program_run_state_observation_key(@run_publication.RunStateObservation) -> String

@@ -60919,13 +60919,6 @@
         {
           "operations": [
             "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/init:prepareSubjects",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/init:prepareSubjects/mapping/mapping",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/sources/sources",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/sources/sources/sources",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/subject/subject",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/tasks/tasks",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/updates/updates",
             "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects/init:bindingFor/init:bindingFor"
           ],
           "exports": [],
@@ -63419,55 +63412,6 @@
           "async": false
         },
         {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/init:prepareSubjects",
-          "parameters": [
-            "target"
-          ],
-          "async": false
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/init:prepareSubjects/mapping/mapping",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/sources/sources",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/sources/sources/sources",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/subject/subject",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/tasks/tasks",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/binding/init:prepareSubjects/init:prepareSubjects/updates/updates",
-          "parameters": [
-            "target"
-          ],
-          "async": false
-        },
-        {
           "name": "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects",
           "parameters": [
             "runtime",
@@ -65046,7 +64990,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "b5da24848caf60dfa0fa52b5a5b9d08d62df892fc2479f1a7dc8aa888544840d"
+      "sha256": "0c6602c829980291478ffd10cfec2f301295469d6e530a9386b14930095f59b9"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -90238,7 +90182,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ace3b7593f5c0882a735005fdcaa3ad35e098d3b99ab57e502ca44dad383a62f",
+      "sha256": "665f140250f6dbb866f53ac163cb59d88308674ba6b5c1b2d18950147041595c",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -91797,7 +91741,8 @@
             "writesJson",
             "resource",
             "sources",
-            "operation"
+            "operation",
+            "sourcesJson"
           ],
           "async": false
         },
