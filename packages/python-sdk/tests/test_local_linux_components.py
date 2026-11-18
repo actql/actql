@@ -5,13 +5,14 @@ from pathlib import Path
 import json
 import importlib.util
 import os
+import re
 import struct
 import subprocess
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from image_fixture import ENGINE
+from image_fixture import ENGINE, linux_version_library
 from actql_sdk._local_distribution import (
     LocalInstallationError, _inspect_local_components_for_packaging, inspect_local_components,
     _execution_component_platform, installed_local_components,
@@ -155,7 +156,7 @@ class LinuxLibraryMetadataTests(unittest.TestCase):
         temporary = TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.path = Path(temporary.name) / 'libduckdb.so'
-        self.header = b'\x7fELF\x02\x01\x01' + b'\0' * 9 + struct.pack('<HHI', 3, 62, 1) + b'\0' * 40
+        self.header = linux_version_library()
         self.path.write_bytes(self.header)
         script = Path(__file__).resolve().parents[3] / 'scripts/prepare-python-local-runtime.py'
         spec = importlib.util.spec_from_file_location('linux_component_recipe_under_test', script)
@@ -164,8 +165,11 @@ class LinuxLibraryMetadataTests(unittest.TestCase):
         self.dynamic = '\n'.join(f'(NEEDED) Shared library: [{name}]'
             for name in ('libc.so.6', 'libgcc_s.so.1', 'libstdc++.so.6'))
         self.versions = 'Name: GLIBC_2.25\nName: GLIBCXX_3.4.22\nName: CXXABI_1.3.8\n'
+        self.symbol_bytes = 0
 
     def inspect(self):
+        self.path.write_bytes(linux_version_library(
+            tuple(re.findall(r'Name: (\S+)', self.versions)), symbol_bytes=self.symbol_bytes))
         def execute(args, *, stdout, **options):
             self.assertEqual(args[0], 'readelf')
             descriptor, = options['pass_fds']
@@ -185,6 +189,52 @@ class LinuxLibraryMetadataTests(unittest.TestCase):
             'GLIBC': [2, 25, 0], 'GLIBCXX': [3, 4, 22], 'CXXABI': [1, 3, 8]})
         self.assertEqual(actual['dependencies'], ['libc.so.6', 'libgcc_s.so.1', 'libstdc++.so.6'])
         self.assertIs(actual['native_loaded'], False)
+
+    def test_large_symbol_index_does_not_expand_version_requirement_capture(self):
+        self.symbol_bytes = 2 * 1024 * 1024
+        self.versions = 'Version symbols: ' + '2 (GLIBC_2.25) ' * 100000 + '\n' + self.versions
+        actual = self.inspect()
+        self.assertEqual(actual['required_versions'], {
+            'GLIBC': [2, 25, 0], 'GLIBCXX': [3, 4, 22], 'CXXABI': [1, 3, 8]})
+        self.assertIs(actual['native_loaded'], False)
+
+    def test_malformed_requirement_offsets_counts_and_names_refuse(self):
+        original = linux_version_library()
+        needs_header = 64 + 2 * 64
+        needs_offset = struct.unpack_from('<Q', original, needs_header + 24)[0]
+        for offset, encoding, value in (
+                (40, '<Q', len(original) + 1),
+                (needs_header + 40, '<I', 4),
+                (needs_header + 32, '<Q', 1048577),
+                (needs_offset + 2, '<H', 4097),
+                (needs_offset + 8, '<I', 0),
+                (needs_offset + 12, '<I', 16),
+                (needs_offset + 24, '<I', len(original)),
+                (needs_offset + 16 + 32 + 12, '<I', 16)):
+            with self.subTest(offset=offset, value=value):
+                changed = bytearray(original)
+                struct.pack_into(encoding, changed, offset, value)
+                self.path.write_bytes(changed)
+                with patch.object(self.recipe.subprocess, 'run') as execute:
+                    execute.side_effect = lambda args, **options: options['stdout'].write(self.dynamic.encode())
+                    with self.assertRaises(ValueError):
+                        self.recipe.linux_library_target(self.path,
+                            original_sha256=sha256(changed).hexdigest(), original_bytes=len(changed))
+        # A last name without its terminator cannot borrow unrelated table bytes.
+        changed = bytearray(original)
+        strings_end = struct.unpack_from('<Q', original, 64 + 64 + 24)[0] + struct.unpack_from('<Q', original, 64 + 64 + 32)[0]
+        changed[strings_end - 1] = ord('X')
+        self.path.write_bytes(changed)
+        with self.path.open('rb') as retained, self.assertRaises(ValueError):
+            self.recipe._linux_version_requirements(retained.fileno(), bytes(changed[:64]), len(changed))
+
+    def test_private_unknown_and_newer_cpp_requirements_remain_refused(self):
+        for name in ('GLIBC_PRIVATE', 'GLIBC_ABI_DT_RELR', 'GLIBC_2.29',
+                     'GLIBCXX_3.4.23', 'CXXABI_1.3.9'):
+            with self.subTest(name=name):
+                self.versions = 'Name: GLIBC_2.25\nName: ' + name + '\n'
+                with self.assertRaises(ValueError):
+                    self.inspect()
 
     def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage(self):
         self.path.write_bytes(self.header[:18] + b'\xb7\x00' + self.header[20:])

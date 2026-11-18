@@ -84992,27 +84992,51 @@
       "module": "scripts/prepare-python-local-runtime.py",
       "operations": [
         {
-          "async": false,
+          "name": "_linux_version_requirements",
+          "parameters": [
+            "descriptor",
+            "header",
+            "size"
+          ],
+          "async": false
+        },
+        {
+          "name": "_linux_version_requirements/read",
+          "parameters": [
+            "offset",
+            "length",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "_linux_version_requirements/text",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "_source_original",
           "parameters": [
             "root",
             "source",
             "relative",
             "label"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "image_recipe_original",
           "parameters": [
             "root",
             "source",
             "runtime_allocation",
             "target_platform"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "library_target",
           "parameters": [
             "path",
@@ -85022,26 +85046,26 @@
             "target_platform",
             "original_sha256",
             "original_bytes"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "linux_library_target",
           "parameters": [
             "path",
             "original_sha256",
             "original_bytes"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "linux_library_target/inspect",
           "parameters": [
             "option"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "module_image_recipe_original",
           "parameters": [
             "root",
@@ -85050,15 +85074,15 @@
             "module_sha256",
             "runtime_allocation",
             "target_platform"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "notice_originals",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "prepare",
           "parameters": [
             "artifact",
@@ -85066,46 +85090,47 @@
             "bindings_source",
             "native_libraries",
             "target_platform"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "prepare_private_bindings",
           "parameters": [
             "bindings_source",
             "stage"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "stage_private_runtime",
           "parameters": [
             "components",
             "bindings_source",
             "native_libraries",
             "target"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "stage_selected_private_runtime",
           "parameters": [
             "selected",
             "bindings_source",
             "native_libraries",
             "target"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "verify_artifact",
           "parameters": [
             "artifact",
             "target_platform"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "84fd7a1e4d38216610079878b5231283f9afd78403cd56c3be7c64a605d69b4b",
+      "sha256": "bee452decd1258010939869972e9cd793affb09e0c5fa52f282795632b274a74",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local component recipe, original image and release staging owners",
@@ -85114,6 +85139,9 @@
         {
           "operations": [
             "<module>",
+            "_linux_version_requirements",
+            "_linux_version_requirements/read",
+            "_linux_version_requirements/text",
             "_source_original",
             "image_recipe_original",
             "library_target",
@@ -85235,6 +85263,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_linux_components.py",
                 "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_large_symbol_index_does_not_expand_version_requirement_capture("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_malformed_requirement_offsets_counts_and_names_refuse("
               }
             ]
           }

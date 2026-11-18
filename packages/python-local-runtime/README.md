@@ -44,6 +44,12 @@ Linux arm64 and other unselected targets refuse, with Remote as the alternative.
 The existing Python3.11+ package declaration is unchanged; actual CPython
 minimum/current and normal installed execution need their own acceptance.
 
+Packaging checks dynamic dependencies with `readelf` and reads only the ELF
+version-needs records and their bounded linked names from the same retained
+component descriptor. The per-symbol version index table is not expanded.
+Malformed offsets/counts, unavailable ABI requirements or changed originals
+refuse; this metadata inspection never loads the library.
+
 One closed target descriptor binds the Engine target/baseline, original runtime
 member, DuckDB filename and serialized-image ELF architecture. Packaging reads
 the same component predicate explicitly for its target; inspection is not

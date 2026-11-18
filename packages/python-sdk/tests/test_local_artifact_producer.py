@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
-from image_fixture import IMAGE, ORIGINAL, RUNTIME_HASH, descriptor, table_module
+from image_fixture import IMAGE, ORIGINAL, RUNTIME_HASH, descriptor, table_module, linux_version_library
 import hashlib
 import errno
 import importlib.util
@@ -233,8 +233,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
         shutil.copyfile(ROOT / 'packages/python-local-runtime/WASMTIME-LICENSE',
                         self.source / 'packages/python-local-runtime/WASMTIME-LICENSE')
         self.commit()
-        self.library.write_bytes(b'\x7fELF\x02\x01\x01' + b'\0' * 9 +
-            struct.pack('<HHI', 3, 62, 1) + b'\0' * 40)
+        self.library.write_bytes(linux_version_library())
         image = IMAGE[:18] + b'\x3e\x00' + IMAGE[20:]
         self.image_path.write_bytes(image)
         self.duckdb.update(source_sha=self.head, library_sha256=hash_bytes(self.library.read_bytes()),
@@ -273,7 +272,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.assertIs(result['public_local_accepted'], False)
         self.assertIs(staged['runtime_executed'], False)
         self.assertGreaterEqual(inspected.count('--dynamic'), 1)
-        self.assertEqual(inspected.count('--dynamic'), inspected.count('--version-info'))
+        self.assertNotIn('--version-info', inspected)
 
     def test_fixed_originals_copy_and_stage_through_existing_recipe_without_engine_loading(self):
         result = self.run_producer()

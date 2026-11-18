@@ -116,6 +116,78 @@ def library_target(path: Path, *, identity: bytes | None = None,
             raise ValueError('Installed native library search path differs from the selected package')
 
 
+def _linux_version_requirements(descriptor: int, header: bytes, size: int) -> list[str]:
+    """Read only ELF64 Verneed/Vernaux and their bounded linked strings.
+
+    The version-symbol index table has one entry per dynamic symbol. Expanding
+    it with readelf is unrelated to checking required system ABI versions and
+    can exhaust the metadata budget for the selected original DuckDB binary.
+    """
+    def read(offset: int, length: int, maximum: int) -> bytes:
+        if not 0 <= offset <= size or not 0 <= length <= min(maximum, size - offset):
+            raise ValueError('Linux version requirement metadata is out of bounds')
+        value = os.pread(descriptor, length, offset)
+        if len(value) != length:
+            raise ValueError('Incomplete Linux version requirement metadata')
+        return value
+
+    offset = struct.unpack_from('<Q', header, 40)[0]
+    entry_bytes, count = struct.unpack_from('<HH', header, 58)
+    if entry_bytes != 64 or not 1 <= count <= 4096:
+        raise ValueError('Invalid Linux version requirement section inventory')
+    table = read(offset, count * 64, 262144)
+    sections = [struct.unpack_from('<IIQQQQIIQQ', table, index * 64) for index in range(count)]
+    needs = [section for section in sections if section[1] == 0x6ffffffe]
+    if len(needs) != 1:
+        raise ValueError('Missing or duplicate Linux version requirement section')
+    selected, = needs
+    if not 0 < selected[6] < count or not 1 <= selected[7] <= 4096:
+        raise ValueError('Invalid Linux version requirement links or count')
+    strings = sections[selected[6]]
+    if strings[1] != 3 or strings[4] > size or strings[5] > size - strings[4]:
+        raise ValueError('Invalid Linux version requirement string section')
+    data = read(selected[4], selected[5], 1048576)
+
+    def text(index: int) -> str:
+        if not 0 < index < strings[5]:
+            raise ValueError('Invalid Linux version requirement name offset')
+        value = read(strings[4] + index, min(256, strings[5] - index), 256)
+        end = value.find(b'\0')
+        if not 0 < end < 256:
+            raise ValueError('Invalid bounded Linux version requirement name')
+        return value[:end].decode('ascii', errors='strict')
+
+    names: list[str] = []
+    position = 0
+    for index in range(selected[7]):
+        if position + 16 > len(data):
+            raise ValueError('Incomplete Linux version requirement record')
+        version, auxiliaries, filename, auxiliary, following = struct.unpack_from('<HHIII', data, position)
+        if (version != 1 or not 1 <= auxiliaries <= 4096 - len(names)
+                or auxiliary < 16 or (following != 0 and following < 16)):
+            raise ValueError('Invalid Linux version requirement record')
+        text(filename)
+        boundary = position + following if following else len(data)
+        if not position + 16 <= boundary <= len(data):
+            raise ValueError('Invalid Linux version requirement record boundary')
+        cursor = position + auxiliary
+        for child in range(auxiliaries):
+            if not position + 16 <= cursor <= boundary - 16:
+                raise ValueError('Invalid Linux version requirement auxiliary offset')
+            _, _, _, name, next_auxiliary = struct.unpack_from('<IHHII', data, cursor)
+            names.append(text(name))
+            if child + 1 == auxiliaries:
+                if next_auxiliary != 0:
+                    raise ValueError('Excess Linux version requirement auxiliary record')
+            elif next_auxiliary < 16:
+                raise ValueError('Incomplete Linux version requirement auxiliary chain')
+            cursor += next_auxiliary
+        if (index + 1 == selected[7]) != (following == 0):
+            raise ValueError('Inconsistent Linux version requirement count')
+        position += following
+    return names
+
+
 def linux_library_target(path: Path, *, original_sha256: str, original_bytes: int) -> dict[str, object]:
     """Check ELF/system dependency requirements with the producer's readelf.
 
@@ -150,7 +222,8 @@ def linux_library_target(path: Path, *, original_sha256: str, original_bytes: in
                 raise ValueError('Linux library metadata exceeds its bound')
             return text.decode('utf-8', errors='strict')
         dynamic = inspect('--dynamic')
-        versions = inspect('--version-info')
+        versions = '\n'.join(_linux_version_requirements(descriptor, header, original_bytes))
+        original.observe()
     dependencies = re.findall(r'\(NEEDED\)\s+Shared library: \[([^\]\r\n]+)\]', dynamic)
     allowed = {'libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0',
         'libgcc_s.so.1', 'libstdc++.so.6', 'ld-linux-x86-64.so.2'}
@@ -161,8 +234,13 @@ def linux_library_target(path: Path, *, original_sha256: str, original_bytes: in
             or '(RPATH)' in dynamic or '(RUNPATH)' in dynamic):
         raise ValueError('Linux library has an unavailable system dependency or search path')
     maximums: dict[str, tuple[int, int, int]] = {}
-    for family, major, minor, patch in re.findall(
-            r'\b(GLIBC|GLIBCXX|CXXABI)_([0-9]+)\.([0-9]+)(?:\.([0-9]+))?\b', versions):
+    for name in versions.splitlines():
+        if not name.startswith(('GLIBC', 'CXXABI')):
+            continue
+        matched = re.fullmatch(r'(GLIBC|GLIBCXX|CXXABI)_([0-9]+)\.([0-9]+)(?:\.([0-9]+))?', name)
+        if matched is None:
+            raise ValueError('Linux library has an unqualified system ABI requirement')
+        family, major, minor, patch = matched.groups()
         value = (int(major), int(minor), int(patch or '0'))
         maximums[family] = max(maximums.get(family, (0, 0, 0)), value)
     # These are independent requirements: a glibc floor is not evidence that
