@@ -100,6 +100,7 @@ const pythonWheelInputs = new Set([
   'scripts/ci-targets.mjs', 'scripts/ci-targets.test.mjs', 'scripts/ci-preflight.mjs',
   'scripts/ci-preflight.test.mjs', 'scripts/ci-focused-tests.mjs',
   'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
+  'scripts/ci-supported-python.py', 'scripts/test_ci_supported_python.py',
   'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',
   'scripts/fixtures/ci-python-installed-run.py',
   'scripts/fixtures/python-product-installed.py', 'scripts/fixtures/python-local-duckdb-physical.py',
