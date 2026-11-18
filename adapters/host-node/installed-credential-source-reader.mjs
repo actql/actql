@@ -473,8 +473,7 @@ export function createInstalledCredentialSourceReader(options) {
               // This original is an occurrence key, not permission or another
               // request issuer. Preserve it unchanged across native cursors.
               const issued = await Reflect.apply(authorizeReadChild, selected,
-                supplied !== undefined ? [operation,responseCount,occurrence?.value,supplied]
-                  : occurrence === undefined ? [operation,responseCount] : [operation,responseCount,occurrence.value]);
+                [operation,responseCount,occurrence?.value,supplied,signal]);
               if (supplied !== undefined && (issued?.originalAuthorization !== supplied.originalAuthorization ||
                   issued?.authorization !== supplied.authorization)) fail('ForeignInstalledSourceReadChild');
               const originalAuthorization = issued?.originalAuthorization;
@@ -485,14 +484,14 @@ export function createInstalledCredentialSourceReader(options) {
               let credential, verifyChild = verify;
               if (issuedPurpose?.kind === 'read' && rootPurpose.kind === 'read' &&
                   issuedPurpose.resource !== rootPurpose.resource) {
+                const verifyCurrent = ownMethod(issued, 'verifyCurrent', true);
                 if (bindResourceChild === undefined || !resourceChildren.includes(issuedPurpose.resource) ||
-                    supplied?.verifyCurrent === undefined || issued.verifyCurrent !== supplied.verifyCurrent) {
+                    verifyCurrent === undefined || supplied !== undefined && verifyCurrent !== supplied.verifyCurrent) {
                   fail('ForeignInstalledSourceReadResourceChild');
                 }
                 let child = resourceBindings.find(value => value.resource === issuedPurpose.resource);
                 if (child === undefined) {
                   if (resourceBindings.length >= resourceChildren.length) fail('InstalledSourceResourceChildLimit');
-                  const verifyCurrent = supplied.verifyCurrent;
                   const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {
                     await verify();await Reflect.apply(verifyCurrent, undefined, []);await verify();
                   }});
@@ -504,7 +503,7 @@ export function createInstalledCredentialSourceReader(options) {
                   try {
                     child.close = ownMethod(bound, 'close');child.retire = ownMethod(bound, 'retire', true);
                   } catch (cause) {escapedResponseGraph = true;throw cause;}
-                } else if (child.originalAuthorization !== originalAuthorization || child.verifyCurrent !== supplied.verifyCurrent) {
+                } else if (child.originalAuthorization !== originalAuthorization || child.verifyCurrent !== verifyCurrent) {
                   fail('ForeignInstalledSourceReadResourceChild');
                 }
                 credential = Reflect.apply(resourceChildCredential, selectedSite,

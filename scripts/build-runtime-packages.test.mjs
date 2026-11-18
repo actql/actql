@@ -42,6 +42,45 @@ test('holder terminal facade runs after the existing prepared Remote Site CI gat
   }
 });
 
+test('metadata child regressions use the existing prepared Site gate with a bounded nonzero named selection', () => {
+  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+  const prepared = pkg.scripts['prepare:remote-site-runtime'];
+  assert(prepared.includes('src/connectors_builtin_node'));
+  assert(prepared.includes('src/connectors/hubspot/host_node'));
+  const commands = pkg.scripts['test:remote-site-runtime'].split(' && ');
+  assert.equal(commands.length, 2);
+  assert(commands[0].startsWith('node --test '));
+  assert(commands[0].includes('adapters/connectors/hubspot/test/hubspot-managed-sequence.test.mjs'));
+  assert(commands[0].includes('adapters/host-node/installed-credential-source-reader.test.mjs'));
+  const prefix = 'node scripts/local-checks.mjs test node --timeout-seconds 120 -- --test-name-pattern ';
+  assert(commands[1].startsWith(prefix));
+  const selection = commands[1].slice(prefix.length).match(/^'([^']+)' (.+)$/u);
+  assert(selection);
+  const pattern = new RegExp(selection[1], 'u');
+  const controls = {
+    'adapters/connectors/hubspot/test/installed-hubspot-source.test.mjs': [
+      'managed metadata children retain the same parent target and their independent current decisions',
+      'metadata current loss after its first observation cannot send the later property recheck',
+      'metadata authorization retains the Reader cancellation signal across its original await',
+      'a data read grant cannot authorize identity or property metadata',
+    ],
+    'adapters/host-node/installed-source-resource-child.test.mjs': [
+      'resource child is bound once under the same reader and joins its own close and retirement',
+      'undeclared or foreign resource child credentials refuse before physical send',
+      'original Form current failure and callback replacement cannot send another request',
+      'returned resource child with no close method cannot supply cleanup acknowledgement',
+    ],
+  };
+  assert.deepEqual(selection[2].split(' '), Object.keys(controls));
+  for (const [file, intended] of Object.entries(controls)) {
+    const source = readFileSync(join(root, file), 'utf8');
+    const named = [...source.matchAll(/\btest\('([^']+)'/gu)].map(value => value[1]);
+    assert(intended.length > 0);
+    for (const name of intended) assert(named.includes(name) && pattern.test(name), name);
+    assert.deepEqual(named.filter(name => pattern.test(name)).sort(), [...intended].sort());
+  }
+});
+
 const packages = {
   'run-host-core': {builder: 'build-run-host-core-package', args: ['--runtime-only'],
     sources: ['client_values_host_abi', 'checkpoint_runtime_node',

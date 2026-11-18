@@ -122965,7 +122965,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "0f21a15f4e54ee8d1535938be8ea3e9518bfe52745f976d2aa29cc6d366bcf8c",
+      "sha256": "251c25be8918fa8d7bddac7bb3ffcc9d6fc17ab74f7aba33952eacbd7de54d4b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -123601,6 +123601,10 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
                 "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/installed-hubspot-source.test.mjs",
+                "anchor": "managed metadata children retain the same parent target and their independent current decisions"
               }
             ]
           }

@@ -3078,17 +3078,18 @@ export async function createInstalledRowSource({moon, declaration, commands,
             : directReadIdentity.useId(nonce, index);
           if (!text(useId)) fail('InvalidInstalledSourceReadIdentity');
           return {...grant, useId};
-        }, authorizeReadChild: async (childOperation,index,occurrence,supplied) => {
+        }, authorizeReadChild: async (childOperation,index,occurrence,supplied,childSignal = signal) => {
           if (readerDemand?.sequence !== undefined || readerDemand?.sequences !== undefined) {
             const sequence = readerDemand.sequences?.[owner.resource] ?? readerDemand.sequence;
             if (sequence === undefined || operation !== sequence.operation || !Number.isSafeInteger(index) || index !== readChildIndex ||
                 index >= readerDemand.responses || occurrence === null || typeof occurrence !== 'object' ||
                 nodeTypes.isProxy(occurrence) || readChildOriginals.has(occurrence)) fail('InvalidInstalledSourceReadChild');
+            let selected;
             if (childOperation === sequence.operation) {
               if (rootReadUses >= sequence.maxUses) fail('InstalledSourceQueryUseLimit');
               rootReadUses++;
             } else {
-              const selected = sequence.children.find(entry => entry.operation === childOperation);
+              selected = sequence.children.find(entry => entry.operation === childOperation);
               if (selected === undefined) fail('InvalidInstalledSourceReadChild');
               const used = readChildUses.get(childOperation) ?? 0;
               if (used >= selected.maxUses) fail('InstalledSourceReadChildUseLimit');
@@ -3100,6 +3101,36 @@ export async function createInstalledRowSource({moon, declaration, commands,
             readChildOriginals.set(occurrence,true);
             const decision = await currentRead(prepared,access,signal);
             if (supplied !== undefined) return supplied;
+            if (selected?.resource !== undefined && selected.resource !== owner.resource) {
+              // This child shares the original request/target, not the parent
+              // Resource's permission. The already declared Resource gets its
+              // own current Account decision and original Site-issued grant.
+              let original = readChildGrants.get(childOperation);
+              if (original === undefined) {
+                const verifyCurrent = async () => {
+                  childSignal?.throwIfAborted();
+                  const childDecision = await access.authorization.authorize('acquisition',
+                    {connection: prepared.readTuple.connection, resource: selected.resource, operation: 'read'},
+                    {subjectCid: cid({binding: prepared.physicalBinding, operation: childOperation}), signal: childSignal});
+                  childSignal?.throwIfAborted();
+                  if (childDecision?.action !== 'dispatch') {
+                    throw Object.assign(new Error('ExecutionAuthorizationDenied'),
+                      {code: 'ExecutionAuthorizationDenied', decision: childDecision});
+                  }
+                  return childDecision;
+                };
+                const childDecision = await verifyCurrent();
+                const childGrant = site.issueReadGrant({operation: childOperation, decision: childDecision,
+                  resource: selected.resource, runInvocationCid, dispatchRequestCid, maxUses: selected.maxUses});
+                original = Object.freeze({grant: childGrant, verifyCurrent});
+                readChildGrants.set(childOperation, original);
+              } else await original.verifyCurrent();
+              const useId = directReadIdentity === undefined ? `${nonce}-read-${index}`
+                : directReadIdentity.useId(nonce,index);
+              if (!text(useId)) fail('InvalidInstalledSourceReadIdentity');
+              return Object.freeze({originalAuthorization: original.grant,
+                authorization: Object.freeze({...original.grant, useId}), verifyCurrent: original.verifyCurrent});
+            }
             const childGranted = owner.originalRead === undefined && decision.basis === 'resumed_approval'
               ? site.admitCheckpointReadApproval(decision) : decision;
             let original = childOperation === operation ? grant : readChildGrants.get(childOperation);

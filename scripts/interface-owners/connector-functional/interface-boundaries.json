@@ -12971,7 +12971,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "665f140250f6dbb866f53ac163cb59d88308674ba6b5c1b2d18950147041595c",
+      "sha256": "c25aef0f6f3ff06fdf8130f4310fc897f38079d59d3fc566efe68e2fc2dd6781",
       "operations": [
         {
           "name": "byCid/byCid/byCid",
@@ -13073,11 +13073,16 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
           "parameters": [
             "entry"
           ],
           "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
@@ -13097,7 +13102,8 @@
             "childOperation",
             "index",
             "occurrence",
-            "supplied"
+            "supplied",
+            "childSignal"
           ],
           "async": true
         },
@@ -14590,7 +14596,6 @@
             "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
             "createInstalledRowSource/constructReadMetadata/constructReadMetadata",
             "createInstalledRowSource/constructReadMetadata/constructReadMetadata/sourceReadAccesses/sourceReadAccesses",
             "createInstalledRowSource/createInstalledRowSource",
@@ -14698,7 +14703,9 @@
             "rowSourceCheckEnvironment/parse/parse",
             "rowSourceCheckEnvironment/rowSourceCheckEnvironment",
             "rowSourceCheckEnvironment/rowSourceCheckEnvironment/rowSourceCheckEnvironment",
-            "text/text"
+            "text/text",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -15495,6 +15502,10 @@
               {
                 "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
                 "anchor": "installed identity response retains original RowRun credit through failed raw commit until byte-holder release"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/installed-hubspot-source.test.mjs",
+                "anchor": "managed metadata children retain the same parent target and their independent current decisions"
               }
             ]
           }

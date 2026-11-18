@@ -93469,7 +93469,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "665f140250f6dbb866f53ac163cb59d88308674ba6b5c1b2d18950147041595c",
+      "sha256": "c25aef0f6f3ff06fdf8130f4310fc897f38079d59d3fc566efe68e2fc2dd6781",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -93585,11 +93585,16 @@
           "async": false
         },
         {
-          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
           "parameters": [
             "entry"
           ],
           "async": false
+        },
+        {
+          "name": "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
@@ -93609,7 +93614,8 @@
             "childOperation",
             "index",
             "occurrence",
-            "supplied"
+            "supplied",
+            "childSignal"
           ],
           "async": true
         },
@@ -95436,7 +95442,6 @@
             "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
             "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
             "createInstalledRowSource/constructReadMetadata/constructReadMetadata",
             "createInstalledRowSource/constructReadMetadata/constructReadMetadata/sourceReadAccesses/sourceReadAccesses",
             "createInstalledRowSource/createInstalledRowSource",
@@ -95498,7 +95503,9 @@
             "encodeTypedResponseJson",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
-            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets"
+            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions#2",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/verifyCurrent/verifyCurrent"
           ],
           "exports": [
             "createInstalledRowSource",

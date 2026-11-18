@@ -15,7 +15,7 @@ const names = ['hubspotRecheckAccountIdentityJson', 'hubspotProjectProperties',
 export function prepareHubSpotManagedSequence({moon, originalPortalId, originalCatalog,
   objectType, properties, limits, authorizeMetadata, responseCapacity}) {
   if (names.some(name => typeof moon?.[name] !== 'function') ||
-      typeof authorizeMetadata !== 'function' || typeof responseCapacity !== 'function' ||
+      authorizeMetadata !== undefined && typeof authorizeMetadata !== 'function' || typeof responseCapacity !== 'function' ||
       !Array.isArray(properties) || new Set(properties).size !== properties.length ||
       properties.some(name => typeof name !== 'string' || !name || name === 'id' || name.includes(',')) ||
       properties.length > limits.maxColumns || objectType === '.' || objectType === '..' ||
@@ -59,7 +59,7 @@ export function prepareHubSpotManagedSequence({moon, originalPortalId, originalC
         current();context.signal.throwIfAborted();
         if (requestCount >= limits.maxRequests) fail('HubSpotReadRequestLimit');
         const index = requestCount++;
-        const supplied = operation === HUBSPOT_OBJECT_LIST_OPERATION ? undefined
+        const supplied = operation === HUBSPOT_OBJECT_LIST_OPERATION || authorizeMetadata === undefined ? undefined
           : await authorizeMetadata(operation, index, context.signal);
         current();context.signal.throwIfAborted();
         return await context.readChild({operation, prepare() {

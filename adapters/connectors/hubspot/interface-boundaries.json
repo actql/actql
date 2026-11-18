@@ -523,7 +523,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "8b34206e5c7d73cdcae99ec1c5ed9c884e1ad8d09a10b26541e7b7197568601b",
+      "sha256": "ec6e06e94fd285bea545c174fec8121a83202e34c124f714991c12ce77b58caf",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -722,20 +722,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata",
-          "parameters": [
-            "operation",
-            "index",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata/verifyCurrent/verifyCurrent",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/init:prepareReadSequence",
           "parameters": [
             "name"
@@ -898,8 +884,6 @@
             "loadInstalledHubSpotSource/loadInstalledHubSpotSource#2",
             "loadInstalledHubSpotSource/protocolBounds/protocolBounds",
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
-            "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata",
-            "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeMetadata/authorizeMetadata/verifyCurrent/verifyCurrent",
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/init:prepareReadSequence",
             "loadInstalledHubSpotSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/objectType/objectType",
             "loadInstalledHubSpotSource/readerBounds/readerBounds",
@@ -1037,6 +1021,10 @@
               {
                 "path": "src/connectors/hubspot/catalog/property-response-source.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/installed-hubspot-source.test.mjs",
+                "anchor": "managed metadata children retain the same parent target and their independent current decisions"
               }
             ]
           }
@@ -1045,7 +1033,6 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/compiler-binding.generated.mjs",
-        "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-credential-source-reader.mjs",
         "../../../host-node/source-profile-json.mjs",
@@ -3271,7 +3258,7 @@
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing HubSpot typed protocol under the same generic Reader/RowRun and original Account/Credential owners",
-      "sha256": "834a7a33558ad6286c07882e8056a474d873c3a9ffd01f68ef155579fcdf0de6",
+      "sha256": "cee0fc43d7bfab121d5b384a0dd6c357b9bb9474cd2aff4f8586b9812b7514eb",
       "exports": [
         "prepareHubSpotManagedSequence"
       ],
