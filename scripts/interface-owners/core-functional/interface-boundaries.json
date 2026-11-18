@@ -2960,7 +2960,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4044,7 +4044,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6566,7 +6566,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -17185,7 +17185,7 @@
     },
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
-      "sha256": "01806815c5b54aacacfe43f1ec37240a33813ce20cc4b6dff5e10403562c290e",
+      "sha256": "bc844dec74534fbd1baed62edc4cfee87ca8db7d3e632c050f2ab747be2b69b1",
       "role": "physical-io",
       "exports": [
         "configureInferEvidence",
@@ -17321,26 +17321,14 @@
           "async": false
         },
         {
-          "name": "projectInferUsage/projectInferUsage",
+          "name": "projectInferUsage/child/child",
           "parameters": [],
           "async": false
         },
         {
-          "name": "projectInferUsage/projectInferUsage#2",
+          "name": "projectInferUsage/cleanup/cleanup",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "projectInferUsage/projectInferUsage#3",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "projectInferUsage/unavailable/unavailable",
-          "parameters": [
-            "item"
-          ],
-          "async": false
         },
         {
           "name": "withPreparedInferEvidence",
@@ -17395,15 +17383,13 @@
             "projectInferEvidence/projectInferEvidence#7",
             "projectInferEvidence/projectInferEvidence/projectInferEvidence",
             "projectInferEvidence/unavailable/unavailable",
+            "projectInferUsage/check/check",
+            "projectInferUsage/child/child",
+            "projectInferUsage/cleanup/cleanup",
             "withPreparedInferEvidence",
             "withPreparedInferEvidence/withPreparedInferEvidence",
             "withPreparedInferEvidence/withPreparedInferEvidence#2",
-            "withPreparedInferEvidence/withPreparedInferEvidence#3",
-            "projectInferUsage/check/check",
-            "projectInferUsage/projectInferUsage",
-            "projectInferUsage/projectInferUsage#2",
-            "projectInferUsage/projectInferUsage#3",
-            "projectInferUsage/unavailable/unavailable"
+            "withPreparedInferEvidence/withPreparedInferEvidence#3"
           ],
           "exports": [
             "configureInferEvidence",
@@ -17423,6 +17409,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "inputsOutputs": [
@@ -17433,6 +17423,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "identity": [
@@ -17447,6 +17441,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "ownership": [
@@ -17461,6 +17459,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "synchronization": [
@@ -17471,6 +17473,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "failure": [
@@ -17485,6 +17491,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "cancellation": [
@@ -17499,6 +17509,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "resources": [
@@ -17513,6 +17527,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "extension": [
@@ -17523,6 +17541,10 @@
               {
                 "path": "docs/design/infer-model-observations.md",
                 "anchor": "# Model response observation compatibility"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "verification": [
@@ -17533,6 +17555,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ]
           }
@@ -17673,8 +17699,10 @@
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
         "./infer-operation.mjs",
-        "node:crypto"
+        "node:crypto",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -17695,6 +17723,7 @@
             "openNodeComposedInferProvider/component/component#2",
             "openNodeComposedInferProvider/component/component#3",
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
+            "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit",
             "openNodeComposedInferProvider/openOriginal/openOriginal",
             "openNodeComposedInferProvider/openOriginal/openOriginal/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/provider/provider",
@@ -17722,6 +17751,7 @@
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateWriter/init:advanceOriginalCurrentStateWriter",
             "openNodeInferOperation/operation/init:advanceStoppedAttemptUsage/init:advanceStoppedAttemptUsage",
             "openNodeInferOperation/operation/init:beginOriginalResourceInvalidation/init:beginOriginalResourceInvalidation",
+            "openNodeInferOperation/operation/init:beginOriginalUsage/init:beginOriginalUsage",
             "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture",
             "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture",
             "openNodeInferOperation/operation/init:bindOriginalResultArtifact/init:bindOriginalResultArtifact",
@@ -17743,6 +17773,7 @@
             "openNodeInferOperation/operation/init:parkOriginalResourcesForStateWrite/init:parkOriginalResourcesForStateWrite",
             "openNodeInferOperation/operation/init:prepareOriginalCurrentStateWriter/init:prepareOriginalCurrentStateWriter",
             "openNodeInferOperation/operation/init:prepareOriginalCurrentStateWriter/init:prepareOriginalCurrentStateWriter/init:prepareOriginalCurrentStateWriter",
+            "openNodeInferOperation/operation/init:prepareOriginalUsage/init:prepareOriginalUsage",
             "openNodeInferOperation/operation/init:releaseOriginalPublicationCapacity/init:releaseOriginalPublicationCapacity",
             "openNodeInferOperation/operation/init:reserveOriginalPublicationCapacity/init:reserveOriginalPublicationCapacity",
             "openNodeInferOperation/operation/init:startOriginalCurrentStateComparison/init:startOriginalCurrentStateComparison",
@@ -17827,10 +17858,7 @@
             "withNodeInferResult/cancel/cancel",
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
-            "withNodeInferResult/withNodeInferResult",
-            "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit",
-            "openNodeInferOperation/operation/init:prepareOriginalUsage/init:prepareOriginalUsage",
-            "openNodeInferOperation/operation/init:projectOriginalUsage/init:projectOriginalUsage"
+            "withNodeInferResult/withNodeInferResult"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -17876,6 +17904,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "inputsOutputs": [
@@ -17914,6 +17946,10 @@
               {
                 "path": "adapters/host-node/infer-operation.mjs",
                 "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "identity": [
@@ -17960,6 +17996,10 @@
               {
                 "path": "src/client_local_host/infer_retained_input_original.mbt",
                 "anchor": "pub fn prepare_original_client_infer_input_materialization("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "ownership": [
@@ -18006,6 +18046,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "synchronization": [
@@ -18040,6 +18084,10 @@
               {
                 "path": "src/client_infer_host/original_restored_send_mask.mbt",
                 "anchor": "pub fn prepare_original_restored_send_mask("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "failure": [
@@ -18090,6 +18138,10 @@
               {
                 "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
                 "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "cancellation": [
@@ -18128,6 +18180,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "resources": [
@@ -18178,6 +18234,10 @@
               {
                 "path": "src/run_publication_host/client_model_read_preparation.mbt",
                 "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "extension": [
@@ -18208,6 +18268,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "verification": [
@@ -18310,6 +18374,10 @@
               {
                 "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
                 "anchor": "restored original129 funds lazy map before journal view and restricts the same complete Saved mask"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ]
           }
@@ -19419,6 +19487,16 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:beginOriginalUsage/init:beginOriginalUsage",
+          "parameters": [
+            "source",
+            "capture",
+            "count",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture",
           "parameters": [
             "registration",
@@ -19615,17 +19693,6 @@
             "source",
             "capture",
             "count"
-          ],
-          "async": false
-        },
-        {
-          "name": "openNodeInferOperation/operation/init:projectOriginalUsage/init:projectOriginalUsage",
-          "parameters": [
-            "source",
-            "capture",
-            "slot",
-            "count",
-            "maxBytes"
           ],
           "async": false
         },
@@ -20313,7 +20380,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "25db7dd8b7f1499b9148886a60c9bc158ae0af3503ec0d9fbc212ecd82e20f57"
+      "sha256": "fc17396ba2dc1218d2e4c41f6337d4d9b2249a2e35f879d1aa9af7d15dba3bd1"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -34300,7 +34367,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -35894,7 +35961,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -36132,7 +36199,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -37638,7 +37705,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -37926,7 +37993,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -40007,7 +40074,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -50041,7 +50108,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -50137,7 +50204,7 @@
       "sha256": "c2b6127bfff44e9c3f59fd0a2a4f75d8ab1ed8960110ed73289a392949016d1e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -50446,7 +50513,7 @@
       "sha256": "af85920af4da377b630cdbd29a6f6596313fe03015e8c366414a42b9a8ab2d3a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -53885,7 +53952,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -54019,7 +54086,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -54276,7 +54343,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -54374,7 +54441,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -54742,7 +54809,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -55003,7 +55070,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -55176,7 +55243,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -55289,7 +55356,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -56677,7 +56744,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -57393,7 +57460,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -60212,7 +60279,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -66671,7 +66738,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -90463,7 +90530,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -90916,7 +90983,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [

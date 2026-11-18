@@ -53,6 +53,8 @@ pub fn advance_native_decision_projection(NativeDecisionProjection) -> Result[Na
 
 pub fn advance_openai_chat_projection(OpenAIChatProjection) -> Result[(String, String, String, String, String, String, String)?, OpenAIChatProjectionIssue]
 
+pub fn begin_original_model_usage_publication(ModelExecution, OriginalModelPublicationCapacity, VerifiedModelCapture, Int64, Int64, Int) -> Result[ModelUsagePublication, ModelExecutionIssue]
+
 pub fn bind_original_model_mock_answers(ModelMockInstallation, ModelMockAnswers) -> Result[Unit, ModelMockInstallationIssue]
 
 pub fn bind_prepared_model_dispatch(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> Bool) -> Result[Unit, ModelExecutionIssue]
@@ -237,7 +239,11 @@ pub fn native_decision_request_matches(NativeDecisionRequest, AdmittedModelProvi
 
 pub fn native_decision_request_wires(NativeDecisionRequest) -> (String, String)?
 
+pub fn next_original_model_usage_action(ModelUsagePublication) -> Result[ModelUsageAction?, ModelExecutionIssue]
+
 pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
+
+pub fn observe_original_model_usage_action(ModelUsageAction, ModelUsageObservation) -> Result[Unit, ModelExecutionIssue]
 
 pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
 
@@ -256,6 +262,32 @@ pub fn original_model_publication_capacity_covers(OriginalModelPublicationCapaci
 pub fn original_model_publication_capacity_current(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
 
 pub fn original_model_publication_capacity_matches_parent(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
+
+pub fn original_model_publication_execution_bytes(OriginalModelPublicationCapacity) -> Int64
+
+pub fn original_model_publication_payload_extent(Int64) -> Int64?
+
+pub fn original_model_publication_retained_bytes(OriginalModelPublicationCapacity) -> Int64
+
+pub fn original_model_usage_action_belongs_to(ModelUsagePublication, ModelUsageAction) -> Bool
+
+pub fn original_model_usage_action_kind(ModelUsageAction) -> String?
+
+pub fn original_model_usage_action_slot(ModelUsageAction) -> Int?
+
+pub fn original_model_usage_action_wire(ModelUsageAction) -> String?
+
+pub fn original_model_usage_binding_matches(ModelUsageAction, String, String) -> Bool
+
+pub fn original_model_usage_completion(ModelUsagePublication) -> ModelUsageCompletion
+
+pub fn original_model_usage_finished(ModelUsagePublication) -> Bool
+
+pub fn original_model_usage_item(ModelUsagePublication, Int) -> (Int, ModelUsageCompletion)?
+
+pub fn original_model_usage_item_attempt(ModelUsagePublication, Int) -> String?
+
+pub fn original_model_usage_item_count(ModelUsagePublication) -> Int
 
 pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
 
@@ -368,6 +400,8 @@ pub fn start_original_model_execution(OriginalModelStartup, @execution_relation.
 pub fn start_restored_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, @run_publication.ModelCaptureBundleRead, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_restored_model_slot_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, ModelSlotReplayRead, String, ModelExecutionLimits, compiled_run? : @run_publication_host.ClientCompiledRun?) -> Result[ModelExecution, ModelExecutionIssue]
+
+pub fn stop_original_model_usage_publication(ModelUsagePublication) -> Unit
 
 pub fn stopped_model_attempt_count(ModelExecution) -> Int?
 
@@ -829,6 +863,56 @@ pub struct ModelSlotReplayRead {
 type ModelSlotReplayStorage
 
 type ModelState
+
+pub struct ModelUsageAction {
+  mut publication : ModelUsagePublication?
+  phase : ModelUsagePhase
+  slot : Int
+  mut wire : String?
+  mut bound : Bool
+}
+
+pub(all) enum ModelUsageCompletion {
+  Complete
+  RequiredUnavailable
+  ReadDenied
+  SinkFailure
+  BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ModelUsageObservation {
+  CopyRetained
+  CopyRefused
+  Authorized
+  Denied
+  Unavailable
+  CaptureComplete
+  CaptureIncomplete
+  Recorded
+  CallbackFailed
+  CleanupPending
+  CleanupComplete
+}
+
+type ModelUsagePhase derive(Eq)
+
+pub struct ModelUsagePublication {
+  mut capacity : OriginalModelPublicationCapacity?
+  mut capture : VerifiedModelCapture?
+  retained_prefix : Int64
+  execution_prefix : Int64
+  max_bytes : Int
+  count : Int
+  mut slot : Int
+  mut copied_bytes : Int
+  mut phase : ModelUsagePhase
+  mut active : ModelUsageAction?
+  mut completion : ModelUsageCompletion
+  mut stopped : Bool
+  mut advancing : Bool
+  mut attempt : String?
+  items : Array[(Int, ModelUsageCompletion, String?)]
+}
 
 pub(all) enum NativeDecisionAnswerIssue {
   ForeignRequest

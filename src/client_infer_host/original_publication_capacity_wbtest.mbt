@@ -18,11 +18,11 @@ test "original publication capacity uses same Ledger and pins cleanup until rele
   )
   assert_eq(
     funded.reserved_retention_bytes,
-    before.reserved_retention_bytes + 7L,
+    before.reserved_retention_bytes + 15L,
   )
   assert_eq(
     funded.reserved_execution_bytes,
-    before.reserved_execution_bytes + 5L,
+    before.reserved_execution_bytes + 13L,
   )
   assert_eq(funded.attempts, before.attempts)
   assert_eq(funded.planning_work, before.planning_work)
@@ -54,7 +54,7 @@ test "original publication capacity uses same Ledger and pins cleanup until rele
 
 ///|
 test "original publication capacity exact fit and one short preserve original usage" {
-  for (retained, execution) in [(7L, 5L), (6L, 5L), (7L, 4L)] {
+  for (retained, execution) in [(15L, 13L), (14L, 13L), (15L, 12L)] {
     // Include the test filler and publication token in the synthetic census.
     // This changes no installed Run limits or normal production profile.
     let (active, _, _, _, _, _, ledger) = model_resource_park_test_start(
@@ -63,8 +63,8 @@ test "original publication capacity exact fit and one short preserve original us
     assert_true(fixture_finish(active) is Complete(_, ..))
     let limits = @resources.ledger_limits(ledger)
     let before = @resources.ledger_usage(ledger)
-    // Fill the existing admitted ledger to independently chosen 7/5, 6/5 or
-    // 7/4 remaining bytes. This is not a formula inferred from product work or
+    // Fill the existing admitted ledger to independently chosen 15/13, 14/13 or
+    // 15/12 remaining bytes. This is not a formula inferred from product work or
     // a proposed normal physical profile. No resource limits are changed.
     let filler = @resources.reserve_capacity(
       ledger,
@@ -81,21 +81,21 @@ test "original publication capacity exact fit and one short preserve original us
       7L,
       5L,
     )
-    if retained == 7L && execution == 5L {
+    if retained == 15L && execution == 13L {
       let capacity = result.unwrap()
       assert_eq(
         @resources.ledger_usage(ledger).reserved_retention_bytes,
-        before.reserved_retention_bytes + 7L,
+        before.reserved_retention_bytes + 15L,
       )
       assert_eq(
         @resources.ledger_usage(ledger).reserved_execution_bytes,
-        before.reserved_execution_bytes + 5L,
+        before.reserved_execution_bytes + 13L,
       )
       assert_true(
         @model.release_original_model_publication_capacity(capacity).unwrap(),
       )
     } else {
-      if retained == 6L {
+      if retained == 14L {
         assert_true(result is Err(@model.Ledger(@resources.RetentionLimit)))
       } else {
         assert_true(result is Err(@model.Ledger(@resources.ExecutionLimit)))

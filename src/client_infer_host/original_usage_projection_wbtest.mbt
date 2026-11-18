@@ -179,11 +179,11 @@ test "usage growth exact and one short stays on the same original Ledger and pre
           limits.retained_bytes -
           before.held_bytes -
           before.reserved_retention_bytes -
-          (needed_retained - 1L) -
+          (needed_retained - 9L) -
           (if trial == 2 { -1L } else { 0L }),
           limits.execution_bytes -
           before.reserved_execution_bytes -
-          (needed_execution - 1L) -
+          (needed_execution - 9L) -
           (if trial == 3 { -1L } else { 0L }),
         ).unwrap(),
       )

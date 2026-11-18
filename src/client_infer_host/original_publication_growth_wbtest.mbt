@@ -9,7 +9,7 @@ test "original publication grows one live token from small demand without new wo
   let initial = @resources.ledger_usage(ledger)
   assert_eq(
     initial.reserved_retention_bytes,
-    before.reserved_retention_bytes + 1L,
+    before.reserved_retention_bytes + 9L,
   )
   grow_original_infer_publication_capacity(active, capacity, 300L, 9L).unwrap()
   let grown = @resources.ledger_usage(ledger)

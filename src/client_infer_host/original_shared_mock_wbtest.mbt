@@ -230,8 +230,8 @@ test "shared original Mock publication keeps parent live bytes and its own plann
   // the existing publication planning step still has that purpose's cap1.
   // Fill exactly the independently inventoried parent remainder, then reject
   // one extra byte without changing usage. No ceiling is raised here.
-  let retained = parent.retained_bytes - 148586L
-  let workspace = parent.execution_bytes - 22L
+  let retained = parent.retained_bytes - 148586L - 8L
+  let workspace = parent.execution_bytes - 22L - 8L
   let grant = @model.reserve_original_model_publication_capacity(
     model, scope, retained, workspace,
   ).unwrap()
