@@ -66,6 +66,13 @@ or approval. Receipt binding includes both Program digests, parameters and the
 independent expected values. Receipts are created exclusively; retain a failed
 attempt and use new state for a distinct attempt.
 
+The original capture wait, approval status and post-approval wait replies retain
+their bounded public status/diagnostic before the success assertions. An actual
+`needs_reconciliation` reply stays Unknown and fails this success-only case;
+it does not permit a Result read, another submission or another approval. A
+thrown wait keeps its original exception and creates no wait-observation
+receipt. These receipts are diagnostic DATA, not execution or recovery authority.
+
 Without `signer`, approval uses the existing default Local signer. A configured
 operator can supply `signer: {keyId, reviewerId, privateKeyPath}` for the existing
 signed resolution API. These inputs do not grant a connector Account or provider

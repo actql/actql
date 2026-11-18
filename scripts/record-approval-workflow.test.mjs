@@ -227,6 +227,55 @@ test('shared capture keeps a thrown first wait primary and never invents a retur
   assert.equal(f.events.at(-1), 'close');
 });
 
+for (const connector of ['hubspot', 'kintone']) {
+  test(`shared ${connector} existing Unknown status cannot approve or resend the original update`, async () => {
+    const value = await definition(connector), f = publicDouble(value);
+    await phase('capture', value, f);
+    f.effect.status = async () => {f.events.push('effect:status');return {status: 'needs_reconciliation', run_id: 'same-run'};};
+    const split = f.events.length;
+    await assert.rejects(phase('approve', value, f), {code: 'ERR_ASSERTION'});
+    assert.deepEqual(f.saved.get('approve-status'), {ref: f.effect.ref, status: 'needs_reconciliation'});
+    const events = f.events.slice(split);
+    assert(!events.some(value => value.startsWith('submit:') || ['approve', 'effect:wait', 'effect:result'].includes(value)));
+    assert(!f.saved.has('approved'));assert(!f.saved.has('approve-wait'));
+    assert.equal(events.filter(value => value === 'close').length, 1);
+  });
+
+  test(`shared ${connector} post-commit Unknown is retained before refusing Result without another send`, async () => {
+    const value = await definition(connector), f = publicDouble(value);
+    await phase('capture', value, f);
+    const state = {status: 'needs_reconciliation', run_id: 'same-run'};
+    Object.defineProperty(state, 'unselectedInput', {enumerable: true,
+      get() {assert.fail('Do not read unselected returned DATA');}});
+    f.effect.wait = async () => {f.events.push('effect:wait');return state;};
+    const split = f.events.length;
+    await assert.rejects(phase('approve', value, f), {code: 'ERR_ASSERTION'});
+    assert.deepEqual(f.saved.get('approve-wait'), {ref: f.saved.get('captured').ref, status: 'needs_reconciliation'});
+    assert(!f.saved.has('approved'));
+    const events = f.events.slice(split);
+    assert.equal(events.filter(value => value === 'approve').length, 1);
+    assert.equal(events.filter(value => value === 'effect:wait').length, 1);
+    assert(events.indexOf('effect:wait') < events.indexOf('save:approve-wait'));
+    assert(events.indexOf('save:approve-wait') < events.indexOf('close'));
+    assert(!events.some(value => value.startsWith('submit:') || value === 'effect:result'));
+    assert.equal(events.filter(value => value === 'close').length, 1);
+  });
+
+  test(`shared ${connector} thrown post-commit wait preserves original failure without an invented observation`, async () => {
+    const value = await definition(connector), f = publicDouble(value), primary = new Error('OriginalApprovalWaitLost');
+    await phase('capture', value, f);
+    f.effect.wait = async () => {f.events.push('effect:wait');throw primary;};
+    const split = f.events.length;
+    await assert.rejects(phase('approve', value, f), error => error === primary);
+    assert(f.saved.has('approve-status'));assert(!f.saved.has('approve-wait'));assert(!f.saved.has('approved'));
+    const events = f.events.slice(split);
+    assert.equal(events.filter(value => value === 'approve').length, 1);
+    assert.equal(events.filter(value => value === 'effect:wait').length, 1);
+    assert(!events.some(value => value.startsWith('submit:') || value === 'effect:result'));
+    assert.equal(events.filter(value => value === 'close').length, 1);
+  });
+}
+
 for (const primary of [undefined, null, false, 0, '']) {
   test(`shared fixture preserves original falsy rejection ${String(primary)} through cleanup`, async () => {
     const value = await definition('salesforce');let closed = 0, rejected = false;

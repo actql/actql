@@ -84,6 +84,16 @@ async function readOriginal(client, value, phase, save) {
   await save(phase, {ref: run.ref, rows});
 }
 
+async function saveRunObservation(save, name, run, state) {
+  // Only the original returned public reply: never a private cause, a second
+  // status request, or a synthesized observation when the original await threw.
+  const issue = state.terminal_error;
+  await save(name, {ref: run.ref, status: state.status,
+    ...(issue === undefined ? {} : {terminal_error: {
+      code: issue.code.slice(0, 1024), message: issue.message.slice(0, 1024)},
+      terminal_error_truncated: issue.code.length > 1024 || issue.message.length > 1024})});
+}
+
 // One invocation is one existing phase. The external ordinary consumer owns
 // the separate processes, fresh installation/state, provider snapshot and alive
 // FD observations. This helper does not infer cleanup ACK from process exit.
@@ -108,13 +118,7 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       // Persist the actual public reference before the first wait can fail.
       await save('submitted', {binding: originalBinding, ref: run.ref});
       const state = await run.wait();
-      // Retain only this admitted reply's public status/terminal diagnostic.
-      // No extra read, private cause, row/input dump or observer is selected.
-      const issue = state.terminal_error;
-      await save('capture-wait', {ref: run.ref, status: state.status,
-        ...(issue === undefined ? {} : {terminal_error: {
-          code: issue.code.slice(0, 1024), message: issue.message.slice(0, 1024)},
-          terminal_error_truncated: issue.code.length > 1024 || issue.message.length > 1024})});
+      await saveRunObservation(save, 'capture-wait', run, state);
       assert.equal(state.status, 'waiting_checkpoint');
       const page = await client.checkpoints({checkpointId: state.checkpoint.id});
       assert.equal(page.items.length, 1);
@@ -133,6 +137,7 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       assert.deepEqual(run.ref, captured.ref);
       if (phase === 'approve') {
         const state = await run.status();
+        await saveRunObservation(save, 'approve-status', run, state);
         assert.equal(state.run_id, captured.runId);
         assert.equal(state.status, 'waiting_checkpoint');
         assert.equal(state.checkpoint.id, captured.checkpointId);
@@ -144,6 +149,7 @@ export async function runRecordUpdateApprovalPhase({phase, client,
         const answer = await approve(client, captured);
         assert.deepEqual(answer.results.map(item => item.status), ['committed']);
         const terminal = await run.wait();
+        await saveRunObservation(save, 'approve-wait', run, terminal);
         assert.equal(terminal.status, 'succeeded');
         assert.equal(terminal.run_id, captured.runId);
         const rows = await run.result(value.effect.resultName).all();
