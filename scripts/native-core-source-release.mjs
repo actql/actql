@@ -93,6 +93,9 @@ export async function executeNativeCoreSourceRelease({root = repository, env = p
   const result = execute(process.execPath, ['scripts/test-native-http-client.mjs'], {
     cwd: root, stdio: 'inherit', env: {...env, MOONBIT_NEW_NATIVE: '0',
       ACTQL_TEST_SCRATCH_ROOT: owner.path,
+      // The inner legacy fixture must not erase a failed original. This outer
+      // handle removes its own namespace only after the complete proof joins.
+      ACTQL_TEST_PRESERVE_SCRATCH: '1',
       ACTQL_TEST_NATIVE_HTTP_FOCUS: 'core-source',
       ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER: undefined,
       ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS: JSON.stringify(selection.args),

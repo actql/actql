@@ -86,6 +86,7 @@ test('Linux Source release verifies original preparation before a fresh counted 
       assert.deepEqual(args, ['scripts/test-native-http-client.mjs']);
       assert.equal(options.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION, env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION);
       assert.equal(options.env.ACTQL_TEST_SCRATCH_ROOT, '/fresh/source');
+      assert.equal(options.env.ACTQL_TEST_PRESERVE_SCRATCH, '1');
       assert.equal(options.env.ACTQL_TEST_NATIVE_HTTP_FOCUS, 'core-source');
       assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT, '2');
       assert.equal(options.env.MOON_CC, undefined, 'The portable verifier must see its original compiler environment');
