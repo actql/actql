@@ -195,8 +195,20 @@ pub fn checked_timestamp_value(
   text : String,
   contract : @contract.Contract,
 ) -> CheckedValue? {
-  guard !contract.nullable &&
-    contract.shape is @contract.Timestamp &&
+  guard !contract.nullable else { return None }
+  checked_timestamp_conversion(text, contract)
+}
+
+///|
+/// Convert canonical UTC text under the same Timestamp contract. A non-null
+/// value can inhabit a nullable contract; no contract or text is reconstructed.
+/// The caller must select the original Timestamp target before attributing a
+/// failed conversion to its canonical spelling or calendar value.
+pub fn checked_timestamp_conversion(
+  text : String,
+  contract : @contract.Contract,
+) -> CheckedValue? {
+  guard contract.shape is @contract.Timestamp &&
     timestamp_instant(text) is Some(_) else {
     return None
   }

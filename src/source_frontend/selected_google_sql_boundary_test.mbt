@@ -42,11 +42,7 @@ test "original unkeyed ARRAY_AGG queries preserve separate syntax and candidate 
   let fixture = "WITH t AS (SELECT 1 AS n, 'a' AS s, 10 AS v UNION ALL SELECT 2 AS n, 'b' AS s, 20 AS v UNION ALL SELECT 3 AS n, 'a' AS s, 30 AS v) "
   assert_true(
     lower(fixture + "SELECT ARRAY_AGG(n) AS x FROM t", Sql, Some(context))
-    is Err(
-      QuerySyntax(
-        { issue: Syntax("ARRAY_AGG requires aggregate ORDER BY"), .. }
-      )
-    ),
+    is Err(QuerySyntax({ issue: AggregateOrderRequired, .. })),
   )
   assert_true(
     lower(

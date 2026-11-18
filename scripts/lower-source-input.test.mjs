@@ -30,7 +30,11 @@ test('lowercase public fixtures retain checked NULL, parameters, duplicate rows 
   assert.deepEqual(cases.get('lower-typed-empty').columns, cases.get('lower-sql-input').columns);
   assert.equal(lowerSuccesses.length, 19);
   assert.equal(lowerRefusals.length, 7);
-  assert.ok(lowerRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+  const undeclared = lowerRefusals.find(item => item.name === 'lower-undeclared-parameter');
+  assert.equal(undeclared.expectedCode, 'ClientProgramParameterUndeclared');
+  assert.equal(undeclared.parameterDeclarations, undefined);
+  assert.ok(lowerRefusals.filter(item => item !== undeclared)
+    .every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   assert.equal(lowerExecutionFailures.length, 1);
   const all = [...lowerSuccesses, ...lowerRefusals, ...lowerExecutionFailures];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);

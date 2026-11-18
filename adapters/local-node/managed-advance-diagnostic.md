@@ -13,7 +13,8 @@ The same failed advance can separately identify the original physical
 retained-byte or execution-byte quota constructor. Generic capacity failures
 are not evidence of either dimension.
 The original row failure can also expose a bounded semantic category and its
-actual sequence step. The Core `RowIssue`/`EvalIssueKind` remains the sole cause
+actual sequence step. Other original Local constructors expose a fixed path
+code selected in Common, including nested Compute/Sequence/Capture causes. The Core `RowIssue`/`EvalIssueKind` remains the sole cause
 selector; no adapter reinterprets operation names, exception text or Source.
 
 ## Inputs and outputs
@@ -23,7 +24,7 @@ Result once. Only its typed Core getter may project `control_work` from the
 closed `ControlWorkLimit(initialWorkLimit)` constructor. The already-retained
 immutable execution limit supplies that scalar only when the provider reports
 its original `ControlWorkLimit`; no new state counter or allowance is added. Successful yields and
-completions, missing getters and unclassified causes produce no diagnosis.
+completions and missing getters produce no diagnosis.
 The separate Capture getter accepts only the SAME failed advance's
 `Configuration(Execution(Capture(step, CaptureWorkLimit(limit))))` and returns
 the fixed `[step, limit]` DATA vector. It does not classify `CaptureLimit`.
@@ -39,6 +40,32 @@ The row-cause getters inspect the SAME failed Result and return a constant
 category String and original nonnegative step, or no cause / step `-1`.
 `row_failure` carries only Task, step and that category. It never exposes an
 expression, field name, row index/value, Program text or provider response.
+A non-row cause uses `local_issue` and omits `step`; it does not invent a row
+occurrence. The same existing cause export returns static bounded literals.
+Composite `capture.capture_limit` and `sequence.input_limit` are reasons, not
+work/memory dimensions. More specific resource/work getters remain preferred.
+All Local issue constructors carry payloads; the adapter rejects a payload-free
+foreign enum before invoking a projector. This structural fence is not a
+nominal issuer and does not admit arbitrary foreign JavaScript values.
+
+The logical-work getter projects only the original `LogicalWorkLimit` failure.
+The existing `LocalDispatchPreparation` retains one immutable origin word:
+the fixed ordinary source-free Core constructor selects
+`SourceFreeInstallation`, while other and legacy constructors retain
+`Unspecified`. Equal numeric limits and Host Program shapes cannot select a
+setting. Failure mapping requires the SAME graph, module and original/refined
+sequence, then reads the actual selected kernel's immutable context limit.
+Missing, duplicate, foreign or unselected contexts keep the old cause path.
+The ordinary materializing `PreparedExecution` does not construct this managed
+frame: its planned offer and actual reservation keep the same materializer
+capacity. The installed managed parent reads the managed task projection of
+that SAME frozen configuration; it adds the complete diagnostic frame through
+the same census used by actual managed construction. No provider name, numeric
+limit or caller boolean selects either execution family.
+No current callback, counter, semantic check or provider is invoked by this
+projection. Node formats only the closed Core DATA: step, limit and the fixed
+setting literal or `unavailable`. Neither requested nor remaining work is
+reconstructed from a later Ledger observation.
 
 ## Identity
 
@@ -118,8 +145,43 @@ The row diagnostic uses six fields on the same optional primary slot. This is
 within the existing resource diagnostic's six fields plus four budget fields,
 without a second retained error or nested budget record. Core returns shared
 constant category Strings rather than constructing a message from an input.
-The cause/step getters use no additional retained holder or tuple. This bound
+The cause/step getters use no additional retained holder or tuple. A non-row
+alternative has five fields instead of six, borrows the same static literals,
+and uses the same single optional slot. It returns the existing row Some
+unchanged rather than coholding a second carrier. The cold renderer uses the
+same one regex/match frame with an optional step capture; it keeps the existing
+512-character boundary and has no additional retained message or collection.
+
+The original task reserve in `managed_dispatch.mbt` composes the 16-byte
+`local_managed_finalization_diagnostic_controls` (one borrowed namespace
+reference and task word) before the adapter call. Those aliases are unchanged.
+The pre-existing row/resource diagnostic envelope and its same-parent cleanup
+lifetime are not enlarged: the non-row record, snapshot and rendered text are
+strictly bounded by their existing row alternatives. No Store/Model spare
+allowance is used to fund this extension. This is a dominance argument for
+the existing route, not a new certificate pricing all Host/error allocations.
+This bound
 does not price arbitrary exception chains, provider text or allocator backing.
+
+The logical-work extension has its own explicit delta on the SAME original
+preparation/task allowance. Before construction, the Request Plan quote adds
+two scalar words for retained original/policy-copy records and four words for
+their replacement overlap. The managed task envelope and actual managed
+preparation include the same complete diagnostic delta: retained 3 headers,
+5 references, 6 words and 19 UTF16 units; temporary 3 headers, 6 references
+and 5 words. Both the issue discriminator and the portable Some discriminator
+are explicit words. These give 174 retained and 310 execution bytes. The
+earlier mapping phase conservatively coholds refinement/step/context Options,
+the selected holder, returned Int64 Option, new issue and fixed locals:
+6 headers, 7 references and 11 words (240 bytes), below the projection peak.
+The phases do not overlap, and no old error/Some replacement credit or
+metadata ceiling spare is used. This covers the original issue, Node DATA,
+decimal limit String, projection carriers and fixed descriptor/locals. The preparation quote and
+execution quote are two views of the same future managed task holding, not two new
+reservations. They preserve existing metadata ceilings, logical work debits,
+primary resource refusal precedence and cleanup ownership. Direct legacy
+preparation callers still own their original Host constructor backing; the
+managed projection exposes the diagnostic delta only for its actual route.
 
 ## Extension
 
@@ -159,3 +221,30 @@ Selected Filter tests exercise counted reclamation of an actual stopped,
 unpublished output and unchanged work/source availability. Provider and typed
 bridge tests retain the original continuation and exact resource constructor.
 These checks do not establish normal first-close or post-refusal recovery.
+
+## Canonical Timestamp conversion
+
+The original Common Text-to-Timestamp CAST failure projects the closed cause
+`evaluation.timestamp_canonical_required`. Its conversion owns canonical UTC
+spelling and calendar validation; the Host does not reinterpret the authored SQL
+or parse an exception message. A generic operand failure stays generic, and
+foreign or copied Host errors do not become an original typed cause. This adds
+no public Problem field, phase transition, value text, or resource quantity.
+
+The non-row cases pass actual typed Core results through the compiled getter
+and imported Node helper, including the same failed confirmed-stop Journal
+message. Optional/frozen/malformed/foreign controls preserve the primary and
+never turn a generic constructor into a quota or stop acknowledgement.
+
+The row owner exhaustively selects closed `RowIssue`, `EvalIssueKind` and
+nested `LogicalBudgetIssue`/`LogicalMeasureIssue` alternatives. Logical-budget
+codes are shared by their row and scalar-entry/value contexts; they never
+infer a physical memory dimension, installation setting or unavailable amount.
+Window, analytic and nest codes discard original row indexes and payloads.
+Existing precise scalar/text/time codes remain unchanged. The same returned
+Some borrows one static literal under the original six-field/96-character
+row envelope; no new holder, tuple, text copy, API or per-Run allowance exists.
+The imported typed ABI regressions keep the same Result, Task, step and primary
+error; constructed cases qualify projection only, not the unobserved inner
+constructor of an older failed Run. Arbitrary foreign FFI remains outside the
+original typed contract and cannot grant execution or cleanup authority.

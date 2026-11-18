@@ -1781,7 +1781,7 @@ test('public submit rejects checker failures before Run admission', async t => {
       [null, 'ClientProgramNeedsInputs', 'requirements'],
       [{n: null}, 'ClientProgramInvalidInput', 'invalid_input'],
       [{n: 'bad'}, 'ClientProgramInvalidInput', 'invalid_input'],
-      [{n: 2, extra: true}, 'ClientProgramInvalidInput', 'invalid_input'],
+      [{n: 2, extra: true}, 'ClientSuppliedParameterUndeclared', 'invalid_input'],
       // The funded Request admits this wire demand; its String still fails
       // the original number contract. Raw bounded-bridge refusal is separate.
       [{n: 'x'.repeat(65536)}, 'ClientProgramInvalidInput', 'invalid_input'],

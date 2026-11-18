@@ -102,6 +102,8 @@ pub fn checked_number_value(Double, @value_contract.Contract) -> CheckedValue?
 
 pub fn checked_text_value(String, @value_contract.Contract) -> CheckedValue?
 
+pub fn checked_timestamp_conversion(String, @value_contract.Contract) -> CheckedValue?
+
 pub fn checked_timestamp_value(String, @value_contract.Contract) -> CheckedValue?
 
 pub fn compare_author_order_values(CheckedValue, CheckedValue) -> Result[Int, KeyOrderIssue]

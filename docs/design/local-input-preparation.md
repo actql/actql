@@ -6855,6 +6855,45 @@ reads, target ABI and physical cleanup require their own matching artifacts and
 original callers; pure component success does not establish them.
 
 
+### Original Local Compute finalization diagnostics
+
+The same bounded Local Compute owner consumes finalization preparation,
+finalization advance, settlement and completion Results through its existing
+typed failure projection. These operations share `LocalDispatchIssue`; their
+different successful payloads are never inspected by a failure getter. Common
+alone chooses the closed cause and any original quantity. Node only formats
+that DATA through the existing `local_managed_advance` Compute-phase message;
+this is not an assertion of a finer internal finalization step. Unknown causes
+remain unclassified, rather than being inferred from an unpublished Result.
+
+The existing exported Moon declarations retain their advance Result type.
+At the already existing Node FFI boundary, their error-only projection also
+accepts the same compiler's original `Err(LocalDispatchIssue)` from Unit,
+managed Relation completion and Carrier completion Results. Actual compiled
+values and original getter functions qualify this closed interoperability;
+Node neither decodes error tags nor constructs a replacement Result. Successful
+payloads are checked by their original consumer and never sent to a failure
+getter. The generated `runtimeIsError` check precedes every projection; a
+foreign checker exception on Ok or malformed DATA cannot reach the getters.
+This pinned JS-backend contract is not a Native/Wasm interoperability claim,
+a static generic-export claim or permission to reinterpret another
+error family, copied DATA, or an arbitrary successful payload.
+
+The existing finalization async frame additionally retains one original module
+reference and one selected task ordinal. Its dedicated one-reference/one-word
+inventory is 16 bytes, added to the same Task's constructor allowance before
+the adapter or a finalization callback can be entered. It adds no callback,
+error carrier, reservation, issuer or cleanup Owner. The original diagnostic
+shape is shared with ordinary advance, not duplicated after each phase.
+
+Failure retains the same primary and cleanup continuation. A failed attempt
+does not release its pending physical duty or execute Compute again. The
+existing dispatch owner writes only recognized diagnostic DATA after confirmed
+failed stop to the same original Journal frame; Saved observation uses that
+retained message and its original current/revision gates. If no original cause
+was retained, later Source inspection or preparation diagnostics cannot
+reconstruct it.
+
 ### Original preparation work problem code
 
 A reached `RuntimeFragmentWorkLimit` retains the original typed step and selected
@@ -6873,6 +6912,15 @@ The code borrows an immutable Common constant, with no owned text. This is in
 addition to the original typed work issue's 40 bytes, not a new Request owner,
 reservation or policy grant.
 
+The same nominal association retains a frozen code/refusal-category pair
+(one header and two borrowed references, 32 bytes). The original query diagnostic
+getter also returns its pipeline-issue Some and parameter-name Some; their two
+headers, two references and two tag words add 64 bytes, conservatively coheld.
+The same Request reserves these additional 96 bytes before any domain current
+or resize callback. Both independent bootstrap oracles include the original
+roles; no later domain packet, policy headroom or second reservation supplies
+them. The parameter name remains internal and is not copied into the outcome.
+
 Node retains the original typed error in its existing private association and
 preserves the existing outer `ClientProgramRejected` refusal. Copied errors or
 mutable properties cannot issue the more specific code. Opaque Host failures
@@ -6887,3 +6935,28 @@ or resubmission. This code uses the existing bounded open-string contract, so
 strict published decoders continue to accept it. Rich diagnostic text would need
 its own explicitly compatible or negotiated contract and is not part of this
 wire or this construction inventory.
+
+### Original parameter declaration problem codes
+
+The existing Common diagnostic distinguishes an actual query
+`UnknownParameter` from the supplied-map binder rejecting a top-level key outside
+its original declared names. They select `ClientProgramParameterUndeclared` and
+`ClientSuppliedParameterUndeclared`, respectively, with the existing
+`invalid_input` classification. A nested unknown field in a declared value,
+default value, generic decoder failure or foreign Request does not establish
+the supplied-map cause. No query reference or authored source range is inferred
+from a supplied key, and no input is checked again to explain the refusal.
+
+The same nominal error association retains the original trusted refusal category
+alongside that fixed Common code. Mutable error properties and copied errors
+cannot reclassify the original failure as runtime work or issue either specific
+code. Existing current-audience disclosure and original check-observation gates
+remain in force; an unavailable or protected report keeps the existing coarse
+refusal rather than revealing a private distinction.
+
+The original Journal phase alone selects `not_accepted` or
+`preparation_failed`. Reopening and looking up the same reference preserves the
+two-field outcome without preparing or submitting another Run. SDK/Python can
+display these already admitted open code values through their existing public
+presentation. This adds no Problem field, reason-schema variant, message text,
+owner, resource grant, cancellation rule or cleanup acknowledgment.

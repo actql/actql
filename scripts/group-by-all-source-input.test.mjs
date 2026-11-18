@@ -14,7 +14,12 @@ test('GROUP BY ALL fixtures discriminate key inference and preserve multiplicity
   assert.deepEqual(cases.get('group-by-all-typed-empty-groups').expected, []);
   assert.deepEqual(cases.get('group-by-all-nullable-property-prefix').expected,
     [{score: null, next: null, n: 1}, {score: 10, next: 11, n: 2}]);
-  assert.ok(groupByAllRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+  const undeclared = groupByAllRefusals.find(item => item.name === 'group-by-all-refuse-4');
+  assert.equal(undeclared.text, 'SELECT id, @missing AS marker FROM records GROUP BY ALL');
+  assert.equal(undeclared.expectedCode, 'ClientProgramParameterUndeclared');
+  const otherRefusals = groupByAllRefusals.filter(item => item !== undeclared);
+  assert.equal(otherRefusals.length, 5);
+  assert.ok(otherRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   const all = [...groupByAllSuccesses, ...groupByAllRefusals];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
 });

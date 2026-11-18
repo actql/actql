@@ -26,11 +26,19 @@ const dispatchFailureFields = Object.freeze(['primaryFailure', 'closeFailure',
   'cleanupFailure', 'finishFailure', 'releaseFailure', 'preparationRetirementFailure']);
 
 
-// Resolve only the engine's own lazy Error stack. An observer receives code
-// locations, never the original exception, its message, or its cause/owners.
+// Resolve only the engine's own lazy Error stack. The managed cleanup wrapper
+// retains its original failure in one inert own slot; prefer that original
+// site without walking a cause chain or changing the cleanup owner. An
+// observer receives locations, never the exception, message or capabilities.
 function dispatchFailureCodeSite(error, errorType, formatter) {
   try {
     if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
+    const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+    if (primary !== undefined) {
+      if (!Object.hasOwn(primary, 'value') || primary.value === error) return undefined;
+      error = primary.value;
+      if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
+    }
     if (Object.getPrototypeOf(error) !== errorType.prototype) return undefined;
     const currentFormatter = Object.getOwnPropertyDescriptor(errorType, 'prepareStackTrace');
     if (currentFormatter !== undefined && !Object.hasOwn(currentFormatter, 'value') ||

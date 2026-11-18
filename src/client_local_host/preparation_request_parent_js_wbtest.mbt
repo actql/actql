@@ -251,7 +251,14 @@ test "fixed Request control envelope preserves original upper bound through the 
     // The original String constant is borrowed without a second text buffer.
     16L +
     8L * 3L +
-    8L
+    8L +
+    // Same nominal error's frozen code/category record, both literals borrowed.
+    16L +
+    8L * 2L +
+    // Existing typed query-issue and original-name Some carriers, no copied name.
+    16L * 2L +
+    8L * 2L +
+    8L * 2L
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,

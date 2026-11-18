@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/local/driver/preparation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fe1f8bb85956d369df6ca4a1ebf29ee0f0139fcb717f4b362fb3cbcbbd4de6ee",
+      "sha256": "784df1c1af1ec310f2a6c4688996aa6e755af5e33eec716f47e7b3a76a1caefd",
       "role": "physical-io",
       "owner": "Existing Local dispatch preparation and original Run binding; pure quotations do not grant physical resources",
       "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
@@ -35,6 +35,10 @@
           "declaration": "local_dispatch_preparation_input_scan_work ( original : LocalDispatchPreparation , task : Int , ) - > Int ?"
         },
         {
+          "name": "local_dispatch_preparation_managed_task_capacity",
+          "declaration": "local_dispatch_preparation_managed_task_capacity ( original : LocalDispatchPreparation , task : Int , ) - > @ strategy . PhysicalEnvelope ?"
+        },
+        {
           "name": "local_dispatch_preparation_policies",
           "declaration": "local_dispatch_preparation_policies ( original : LocalDispatchPreparation , inputs : ( @ local . LocalImportLimits , Int64 ? ) ? , metadata : LocalManagedMetadataLimits ? , output : ( @ local . LocalExportLimits , Int64 ? ) ? , ) - > LocalDispatchPreparation"
         },
@@ -49,6 +53,14 @@
         {
           "name": "local_dispatch_preparation_transfer_bytes",
           "declaration": "local_dispatch_preparation_transfer_bytes ( original : LocalDispatchPreparation , ) - > Int64 ?"
+        },
+        {
+          "name": "local_dispatch_preparation_work_policy",
+          "declaration": "local_dispatch_preparation_work_policy ( original : LocalDispatchPreparation , ) - > LocalWorkPolicy"
+        },
+        {
+          "name": "local_dispatch_preparation_work_policy_capacity",
+          "declaration": "local_dispatch_preparation_work_policy_capacity ( ) - > @ execution . ExecutionCapacity"
         },
         {
           "name": "local_retained_input_metadata",
@@ -79,7 +91,10 @@
             "local_retained_input_metadata",
             "local_retained_output_policy_valid",
             "prepare_local_dispatch_plan",
-            "local_dispatch_preparation_input_scan_work"
+            "local_dispatch_preparation_input_scan_work",
+            "local_dispatch_preparation_work_policy",
+            "local_dispatch_preparation_work_policy_capacity",
+            "local_dispatch_preparation_managed_task_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -197,6 +212,14 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "## Logical rows and physical windows"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "The logical-work extension has its own explicit delta"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_task_capacity("
               }
             ],
             "extension": [
@@ -229,6 +252,14 @@
               {
                 "path": "src/client_local_host/original_values_text_working_js_wbtest.mbt",
                 "anchor": "original many small Text rows cross sixteen MiB total on the same finite owner"
+              },
+              {
+                "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
+                "anchor": "logical work diagnostic quote retains"
+              },
+              {
+                "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
+                "anchor": "managed task projection adds only its complete diagnostic frame"
               }
             ]
           }
@@ -238,7 +269,7 @@
     {
       "module": "src/connectors/local/module.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "635a1f354bf9670d055cab2d33354bad2277a8cba42f9fd2f59e39c4063698e7",
+      "sha256": "0bcf0612a86254d46157670b8a68c727e5dcfd1f70946a8ee503b2d4576948b2",
       "role": "connector-semantics",
       "owner": "Existing installed Local module, exact default bounded constructors and injected provider selection",
       "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",

@@ -1922,6 +1922,19 @@ test "Local identity frame exact growth and one-short refusal keep original cust
             )
           ),
         )
+        // The original finalization Result retains the same typed failure
+        // family as ordinary advance. Do not derive a quota from stop or a
+        // later ledger sample; this original failed operation proves it.
+        assert_eq(
+          @local_driver.local_managed_failure_resource_dimension(
+            failure.unwrap(),
+          ),
+          Some("execution_bytes"),
+        )
+        assert_eq(
+          @local_driver.local_managed_failure_budget(failure.unwrap()),
+          None,
+        )
       } else if boundary == "schema_fields" {
         assert_true(
           failure
