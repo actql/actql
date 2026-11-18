@@ -6,6 +6,14 @@ import {setJoinProgram, setJoinSuccesses, setJoinRefusals} from './fixtures/set-
 test('JOIN set controls preserve duplicate multiplication, NULL and exact arguments', () => {
   assert.equal(setJoinSuccesses.length, 13);
   assert.equal(setJoinRefusals.length, 6);
+  assert.deepEqual(setJoinRefusals.map(item => [item.name, item.expectedCode]), [
+    ['set-join-refuse-operand-range-after-set', 'ClientProgramInvalidInput'],
+    ['set-join-refuse-right-alias-after-set', 'ClientProgramInvalidInput'],
+    ['set-join-refuse-undeclared-final-limit', 'ClientProgramParameterUndeclared'],
+    ['set-join-refuse-unsupported-join-key', 'ClientProgramImplementationLimit'],
+    ['set-join-refuse-anonymous-by-name', 'ClientProgramImplementationLimit'],
+    ['set-join-refuse-anonymous-private-field', 'ClientProgramInvalidInput'],
+  ]);
   assert.deepEqual(setJoinSuccesses[1].expected, [{id: 1, amount: 10},
     {id: 2, amount: 20}, {id: 2, amount: 20}, {id: 2, amount: 20},
     {id: 2, amount: 20}, {id: 3, amount: null}]);

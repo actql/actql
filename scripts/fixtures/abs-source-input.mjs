@@ -59,8 +59,9 @@ export const absRefusals = [
   {name: 'string-parameter', text: 'SELECT ABS(@n) AS value',
     parameterDeclarations: {n: {type: 'string'}}, parameters: {n: 'secret-value'}},
   {name: 'array-domain', text: 'SELECT ABS([1, 2]) AS value'},
-  {name: 'undeclared-parameter', text: 'SELECT ABS(@missing) AS value'},
-].map(value => ({...value, name: 'abs-' + value.name, format: 'sql', expectedCode: 'ClientProgramInvalidInput'}));
+  {name: 'undeclared-parameter', text: 'SELECT ABS(@missing) AS value', expectedCode: 'ClientProgramParameterUndeclared'},
+].map(value => ({expectedCode: 'ClientProgramInvalidInput', ...value,
+  name: 'abs-' + value.name, format: 'sql'}));
 export const absExecutionFailures = [
   {name: 'demanded-operand', text: 'SELECT ABS(1 / 0) AS value', sourceReadSessionCount: 0},
   {name: 'failure-after-valid-row', text: 'SELECT id, ABS(1 / amount) AS value FROM records ORDER BY id',
