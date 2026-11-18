@@ -361,3 +361,73 @@ test "original nonrow cause ABI reaches imported Node and same failed Journal re
     ),
   )
 }
+
+///|
+#cfg(target="js")
+extern "js" fn original_remaining_row_cause_node_abi(
+  original : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+  cause : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> String?,
+  step : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> Int,
+  expected : String,
+) -> Bool =
+  #|(original, cause, step, expected) => {
+  #|  const require = process.getBuiltinModule('module').createRequire(process.cwd() + '/package.json');
+  #|  const {checkedLocalManagedAdvance} = require('./adapters/local-node/managed-advance-diagnostic.mjs');
+  #|  const {checked} = require('./adapters/host-common/runtime-result.mjs');
+  #|  const {dispatchFailureSnapshot,publicBudgetFailureMessage} = require('./adapters/host-node/client-dispatch-diagnostic.mjs');
+  #|  let primary, calls = 0;
+  #|  const moon = {strategyModule_local_ManagedAdvanceCause(value) {
+  #|    if (this !== moon || value !== original) throw new Error('ForeignOriginalResult');
+  #|    calls++; return cause(value);
+  #|  }, strategyModule_local_ManagedAdvanceRowStep:step};
+  #|  try { checkedLocalManagedAdvance(moon,original,value => {
+  #|    try { return checked(value); } catch(error) {primary=error;throw error;}
+  #|  },43);return false; } catch(error) {
+  #|    const data=dispatchFailureSnapshot(error)?.primaryDiagnostic;
+  #|    return error===primary && calls===1 && data?.kind==='row_failure' && data?.task===43 && data?.step===43 &&
+  #|      data?.cause===expected && !Object.hasOwn(data,'dimension') && !Object.hasOwn(data,'budget') &&
+  #|      publicBudgetFailureMessage(error)===`Execution failed: phase=local_managed_advance; task=43; step=43; cause=${expected}. Original execution failure; resource quantities were not retained.`;
+  #|  }
+  #|}
+
+///|
+#cfg(target="js")
+test "remaining original typed row causes reach the actual imported Node ABI with the same original failure and step" {
+  for
+    (issue, expected) in [
+      (
+        @execution.LogicalRows(@execution.LiveValueLimit),
+        "logical.live_value_limit",
+      ),
+      (@execution.LogicalRows(@execution.WorkLimit), "logical.work_limit"),
+      (@execution.OwnerMismatch, "rows.owner_mismatch"),
+      (
+        @execution.MissingOrderedResourceContext,
+        "rows.missing_ordered_resource_context",
+      ),
+      (
+        @execution.AnalyticEnvelope(@execution.Measurement),
+        "analytic.measurement",
+      ),
+    ] {
+    assert_true(
+      original_remaining_row_cause_node_abi(
+        Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.Rows(43, issue)),
+          ),
+        ),
+        local_managed_advance_cause,
+        local_managed_advance_row_step,
+        expected,
+      ),
+    )
+  }
+}

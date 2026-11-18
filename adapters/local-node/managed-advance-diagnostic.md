@@ -196,3 +196,16 @@ The non-row cases pass actual typed Core results through the compiled getter
 and imported Node helper, including the same failed confirmed-stop Journal
 message. Optional/frozen/malformed/foreign controls preserve the primary and
 never turn a generic constructor into a quota or stop acknowledgement.
+
+The row owner exhaustively selects closed `RowIssue`, `EvalIssueKind` and
+nested `LogicalBudgetIssue`/`LogicalMeasureIssue` alternatives. Logical-budget
+codes are shared by their row and scalar-entry/value contexts; they never
+infer a physical memory dimension, installation setting or unavailable amount.
+Window, analytic and nest codes discard original row indexes and payloads.
+Existing precise scalar/text/time codes remain unchanged. The same returned
+Some borrows one static literal under the original six-field/96-character
+row envelope; no new holder, tuple, text copy, API or per-Run allowance exists.
+The imported typed ABI regressions keep the same Result, Task, step and primary
+error; constructed cases qualify projection only, not the unobserved inner
+constructor of an older failed Run. Arbitrary foreign FFI remains outside the
+original typed contract and cannot grant execution or cleanup authority.

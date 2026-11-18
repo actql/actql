@@ -17185,7 +17185,7 @@
     },
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
-      "sha256": "01806815c5b54aacacfe43f1ec37240a33813ce20cc4b6dff5e10403562c290e",
+      "sha256": "2dc302273675d9c879943e4cc72c8fa8f4a9e537d7aa78ac94939623b715938c",
       "role": "physical-io",
       "exports": [
         "configureInferEvidence",
@@ -17321,26 +17321,14 @@
           "async": false
         },
         {
-          "name": "projectInferUsage/projectInferUsage",
+          "name": "projectInferUsage/child/child",
           "parameters": [],
           "async": false
         },
         {
-          "name": "projectInferUsage/projectInferUsage#2",
+          "name": "projectInferUsage/cleanup/cleanup",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "projectInferUsage/projectInferUsage#3",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "projectInferUsage/unavailable/unavailable",
-          "parameters": [
-            "item"
-          ],
-          "async": false
         },
         {
           "name": "withPreparedInferEvidence",
@@ -17395,15 +17383,13 @@
             "projectInferEvidence/projectInferEvidence#7",
             "projectInferEvidence/projectInferEvidence/projectInferEvidence",
             "projectInferEvidence/unavailable/unavailable",
+            "projectInferUsage/check/check",
+            "projectInferUsage/child/child",
+            "projectInferUsage/cleanup/cleanup",
             "withPreparedInferEvidence",
             "withPreparedInferEvidence/withPreparedInferEvidence",
             "withPreparedInferEvidence/withPreparedInferEvidence#2",
-            "withPreparedInferEvidence/withPreparedInferEvidence#3",
-            "projectInferUsage/check/check",
-            "projectInferUsage/projectInferUsage",
-            "projectInferUsage/projectInferUsage#2",
-            "projectInferUsage/projectInferUsage#3",
-            "projectInferUsage/unavailable/unavailable"
+            "withPreparedInferEvidence/withPreparedInferEvidence#3"
           ],
           "exports": [
             "configureInferEvidence",
@@ -17423,6 +17409,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "inputsOutputs": [
@@ -17433,6 +17423,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "identity": [
@@ -17447,6 +17441,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "ownership": [
@@ -17461,6 +17459,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "synchronization": [
@@ -17471,6 +17473,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "failure": [
@@ -17485,6 +17491,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "cancellation": [
@@ -17499,6 +17509,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "resources": [
@@ -17513,6 +17527,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "extension": [
@@ -17523,6 +17541,10 @@
               {
                 "path": "docs/design/infer-model-observations.md",
                 "anchor": "# Model response observation compatibility"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "verification": [
@@ -17533,6 +17555,10 @@
               {
                 "path": "src/model_execution/pkg.generated.mbti",
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ]
           }
@@ -17673,8 +17699,10 @@
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
         "./infer-operation.mjs",
-        "node:crypto"
+        "node:crypto",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -17695,6 +17723,7 @@
             "openNodeComposedInferProvider/component/component#2",
             "openNodeComposedInferProvider/component/component#3",
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
+            "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit",
             "openNodeComposedInferProvider/openOriginal/openOriginal",
             "openNodeComposedInferProvider/openOriginal/openOriginal/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/provider/provider",
@@ -17722,6 +17751,7 @@
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateWriter/init:advanceOriginalCurrentStateWriter",
             "openNodeInferOperation/operation/init:advanceStoppedAttemptUsage/init:advanceStoppedAttemptUsage",
             "openNodeInferOperation/operation/init:beginOriginalResourceInvalidation/init:beginOriginalResourceInvalidation",
+            "openNodeInferOperation/operation/init:beginOriginalUsage/init:beginOriginalUsage",
             "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture",
             "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture",
             "openNodeInferOperation/operation/init:bindOriginalResultArtifact/init:bindOriginalResultArtifact",
@@ -17743,6 +17773,7 @@
             "openNodeInferOperation/operation/init:parkOriginalResourcesForStateWrite/init:parkOriginalResourcesForStateWrite",
             "openNodeInferOperation/operation/init:prepareOriginalCurrentStateWriter/init:prepareOriginalCurrentStateWriter",
             "openNodeInferOperation/operation/init:prepareOriginalCurrentStateWriter/init:prepareOriginalCurrentStateWriter/init:prepareOriginalCurrentStateWriter",
+            "openNodeInferOperation/operation/init:prepareOriginalUsage/init:prepareOriginalUsage",
             "openNodeInferOperation/operation/init:releaseOriginalPublicationCapacity/init:releaseOriginalPublicationCapacity",
             "openNodeInferOperation/operation/init:reserveOriginalPublicationCapacity/init:reserveOriginalPublicationCapacity",
             "openNodeInferOperation/operation/init:startOriginalCurrentStateComparison/init:startOriginalCurrentStateComparison",
@@ -17827,10 +17858,7 @@
             "withNodeInferResult/cancel/cancel",
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
-            "withNodeInferResult/withNodeInferResult",
-            "openNodeComposedInferProvider/component/init:startSourceFreeSingleUnit/init:startSourceFreeSingleUnit",
-            "openNodeInferOperation/operation/init:prepareOriginalUsage/init:prepareOriginalUsage",
-            "openNodeInferOperation/operation/init:projectOriginalUsage/init:projectOriginalUsage"
+            "withNodeInferResult/withNodeInferResult"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -17876,6 +17904,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "inputsOutputs": [
@@ -17914,6 +17946,10 @@
               {
                 "path": "adapters/host-node/infer-operation.mjs",
                 "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "identity": [
@@ -17960,6 +17996,10 @@
               {
                 "path": "src/client_local_host/infer_retained_input_original.mbt",
                 "anchor": "pub fn prepare_original_client_infer_input_materialization("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "ownership": [
@@ -18006,6 +18046,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "synchronization": [
@@ -18040,6 +18084,10 @@
               {
                 "path": "src/client_infer_host/original_restored_send_mask.mbt",
                 "anchor": "pub fn prepare_original_restored_send_mask("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "failure": [
@@ -18090,6 +18138,10 @@
               {
                 "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
                 "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "cancellation": [
@@ -18128,6 +18180,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "resources": [
@@ -18178,6 +18234,10 @@
               {
                 "path": "src/run_publication_host/client_model_read_preparation.mbt",
                 "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "extension": [
@@ -18208,6 +18268,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ],
             "verification": [
@@ -18310,6 +18374,10 @@
               {
                 "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
                 "anchor": "restored original129 funds lazy map before journal view and restricts the same complete Saved mask"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Optional usage publication on the original capacity"
               }
             ]
           }
@@ -19419,6 +19487,16 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/init:beginOriginalUsage/init:beginOriginalUsage",
+          "parameters": [
+            "source",
+            "capture",
+            "count",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture",
           "parameters": [
             "registration",
@@ -19615,17 +19693,6 @@
             "source",
             "capture",
             "count"
-          ],
-          "async": false
-        },
-        {
-          "name": "openNodeInferOperation/operation/init:projectOriginalUsage/init:projectOriginalUsage",
-          "parameters": [
-            "source",
-            "capture",
-            "slot",
-            "count",
-            "maxBytes"
           ],
           "async": false
         },
@@ -20313,7 +20380,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "25db7dd8b7f1499b9148886a60c9bc158ae0af3503ec0d9fbc212ecd82e20f57"
+      "sha256": "fc17396ba2dc1218d2e4c41f6337d4d9b2249a2e35f879d1aa9af7d15dba3bd1"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -99087,12 +99154,16 @@
     },
     {
       "module": "src/execution_relation/row_failure_diagnostic.mbt",
-      "sha256": "f3a2fb1cd6c4cea88e9c2b83b996ea43643e4e00e1c7fadad4f84e9db5e7a414",
+      "sha256": "05ed007f9196f43f5afc00eeb360e3c953c2ffb32ff7f0ee855636bec5d4a1a3",
       "exports": [],
       "operations": [
         {
           "name": "row_failure_diagnostic_cause",
           "declaration": "row_failure_diagnostic_cause ( issue : RowIssue ) - > String ?"
+        },
+        {
+          "name": "row_logical_failure_diagnostic_cause",
+          "declaration": "row_logical_failure_diagnostic_cause ( issue : LogicalBudgetIssue ) - > String"
         }
       ],
       "role": "observation-presentation",
@@ -99103,7 +99174,8 @@
         {
           "operations": [
             "<module>",
-            "row_failure_diagnostic_cause"
+            "row_failure_diagnostic_cause",
+            "row_logical_failure_diagnostic_cause"
           ],
           "exports": [],
           "attributes": {
@@ -99169,6 +99241,14 @@
               {
                 "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
                 "anchor": "test('original typed row cause reaches"
+              },
+              {
+                "path": "src/execution_relation/row_failure_diagnostic_wbtest.mbt",
+                "anchor": "closed row diagnosis preserves"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "remaining original typed row causes reach"
               }
             ]
           }
