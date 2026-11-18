@@ -4833,11 +4833,14 @@ async function openInstalledHost(originalInstallation, preparation) {
           compilation, allowed, definition, authorityScopeCid, namespaceId,
           storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy,
           queryTimePreparation, queryTime, identity};
-        return inferSelections.has(prepared) ||
+        if (inferSelections.has(prepared) ||
           moon.clientProgramEffectSerializationOccurrences(prepared).length > 0 ||
-          moon.clientProgramEffectAcquisitionCount(prepared) > 0
-          ? acquiredEffectPublicationAdmission(options)
-          : sourceFreeEffectPublicationPlanOriginal(options);
+          moon.clientProgramEffectAcquisitionCount(prepared) > 0) {
+          return acquiredEffectPublicationAdmission(options);
+        }
+        const managed = preparation.effectManagedPlanRun(moon, prepared, identity);
+        return sourceFreeEffectPublicationPlanOriginal({...options,
+          managedRun: managed.value, sourcePlan: managed.operationPlan});
       },
       execute: executeEffectComputation,
     });

@@ -5055,6 +5055,26 @@ function publicationControl(moon) {
         evidenceToken(observation), authorityScopeCid, dataPolicyCid,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
+    issueProgramInitialRetention(owner, prepared, request, policy, selection, contracts, limits) {
+      if (owner === undefined || prepared === undefined || request === undefined) {
+        throw new TypeError('OriginalProgramRetentionOwnerRequired');
+      }
+      limits = captureContractLimits(limits, 'Initial Program retention');
+      return inspect(checked(moon.clientProgramIssueProgramInitialRetention(owner, prepared, request,
+        contracts[0].cid, policy, selection.availableUntil, selection.deleteBy, selection.metadataDeleteBy,
+        contracts[1].cid, selection.metadataDeleteBy, contracts[2].cid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth)), limits);
+    },
+    issueInstalledEffectInitialRetention(owner, prepared, request, plan, policy, selection, limits) {
+      if (owner === undefined || prepared === undefined || request === undefined || plan === undefined) {
+        throw new TypeError('OriginalEffectRetentionOwnerRequired');
+      }
+      limits = captureContractLimits(limits, 'Initial Effect retention');
+      return inspect(checked(moon.clientProgramIssueInstalledEffectInitialRetention(owner, prepared, request, plan,
+        selection.retentionContractCid, policy, selection.availableUntil, selection.deleteBy, selection.metadataDeleteBy,
+        selection.metadataRetentionPolicyCid, selection.metadataDeleteBy, selection.clockContractCid,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth)), limits);
+    },
     rebindInstalledEffectResultRetention(managedRun, prepared, request, plan, retention, policy, limits) {
       if (managedRun == null || prepared == null || request == null || plan == null) {
         throw new TypeError('OriginalEffectRetentionPreparationRequired');

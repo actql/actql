@@ -1,4 +1,33 @@
 ///|
+#export_name("clientProgramIssueInstalledEffectInitialRetention")
+pub fn client_program_issue_installed_effect_initial_retention(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  retention_contract_cid : String,
+  effective_data_policy_cid : String,
+  available_until : String,
+  delete_by : String,
+  extension_ceiling_at : String,
+  metadata_retention_policy_cid : String,
+  metadata_delete_by : String,
+  clock_contract_cid : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.PublicationContract,
+  @client_local_host.ClientEffectUnitPreparationIssue,
+] {
+  @client_local_host.issue_installed_effect_initial_retention(
+    owner, prepared, request, plan, retention_contract_cid, effective_data_policy_cid,
+    available_until, delete_by, extension_ceiling_at, metadata_retention_policy_cid,
+    metadata_delete_by, clock_contract_cid, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 // Closed actual issuers on the same installed Effect host/Run. No generic
 // callback/setter port, alternate owner, or CID-only publication witness.
 

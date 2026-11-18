@@ -4156,6 +4156,44 @@ Local profile. Empty authoring annotations, normalization journals and private
 Host identities are separate responsibilities. Publication Request and Attempt
 already use their Common constructors and are unchanged.
 
+### Initial retention construction on existing Program and Effect owners
+
+The Node Host still selects its physical clock and existing retention,
+metadata and clock contracts. Availability remains at least one hour and
+covers an explicit `retainUntil`; deletion and metadata windows keep their
+existing values. Common accepts eight explicit selected fields and emits the
+same closed canonical retention contract. It does not select another Host
+profile, authorize access or extend a saved original.
+
+The managed Values/Tasks caller passes its original PureManaged Run,
+Prepared Program and Request. The installed Effect caller instead passes
+its original managed Run, checked Effect, Request and installed Plan.
+Their existing body holders and publication growth paths remain distinct.
+The original transition latch precedes Resource currentness. A fixed quote
+for arguments, control/failure/return carriers and the measuring Writer is
+reserved before measuring the same emitter. The body quote then adds the
+existing text/hash, preimage/final parser, canonical value, self-CID wire and
+returned-view overlap before construction. Self-CID width comes from the
+checked original Request scope, not a possibly malformed selected field.
+Both retained and execution
+dimensions preserve their original basis; overflow and one-short admission
+refuse rather than borrowing another owner's spare capacity.
+
+After each grow and after emission the same live original holder is checked
+again. A failed later grow retains its earlier admitted prefix. No failed or
+unfinished constructor reports successful output, renewal, physical release
+or a new cleanup acknowledgement. Actual Run retirement owns the consumed
+initial admission; a second cleanup request remains `AlreadyConsumed`.
+
+Plural Source-unit preparation passes its exact initial retention forward
+to final publication without reissuing it. The shared publication builder
+does not infer or create a Resource owner. Existing standalone paths remain
+separate, and selected managed callers cannot fall back after an absent,
+foreign or refused tuple. Content/INFER staged-to-live Program ownership is
+a separate connection; its complete existing path is retained. The already
+Common keyed lookup reservations and the distinct Wasm 24-hour profile are
+unchanged.
+
 ## Retained evidence keeps exact bounded-writer facts
 
 An admitted Run evidence value retains the UTF-8 bytes, value nodes and peak

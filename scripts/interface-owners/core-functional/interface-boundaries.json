@@ -2315,6 +2315,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -2545,6 +2549,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -2697,6 +2705,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -2849,6 +2861,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
@@ -9907,6 +9923,75 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:issueInstalledEffectInitialRetention/init:issueInstalledEffectInitialRetention",
+            "publicationControl/init:issueProgramInitialRetention/init:issueProgramInitialRetention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -13927,6 +14012,19 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueInstalledEffectInitialRetention/init:issueInstalledEffectInitialRetention",
+          "parameters": [
+            "owner",
+            "prepared",
+            "request",
+            "plan",
+            "policy",
+            "selection",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
           "parameters": [
             "owner",
@@ -14003,6 +14101,19 @@
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#4",
           "parameters": [
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueProgramInitialRetention/init:issueProgramInitialRetention",
+          "parameters": [
+            "owner",
+            "prepared",
+            "request",
+            "policy",
+            "selection",
+            "contracts",
+            "limits"
           ],
           "async": false
         },
@@ -19052,7 +19163,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4b3679b92585a593c1882549117c09b84adb5c7e36e8f3b8ff7437e75aa6a9b5"
+      "sha256": "cf5877f525245a23c1c7d8ac4dcad6ff64ec01c2dbd8877545836d763ae0f59e"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -43751,7 +43862,7 @@
     },
     {
       "module": "src/client_local_host/preparation_closed_values_initial.mbt",
-      "sha256": "b752d2381e22b8f3af74b7e504d98e1fb947a267d8e27fa4734afdd4a12c795d",
+      "sha256": "85fb596d3e24b24e83f43884387a1edfaf9849b7954ebfa2558db14645094029",
       "exports": [],
       "operations": [],
       "responsibilityFacet": "primary",
@@ -43769,6 +43880,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -43787,6 +43902,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -43799,6 +43918,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -43811,6 +43934,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Request retains its original snapshot, Program or Query, Parameters,"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
@@ -106902,7 +107029,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_publication_bridge.mbt",
-      "sha256": "f641606b46914b8b361e629d5f270dde364e7fe3ae0e4f7f733c147d454a0996",
+      "sha256": "4fba4c4962233e387630463ffcbd3a986e091200574305e01ca284ae6131fbd2",
       "operations": [
         {
           "name": "client_program_bind_installed_effect_model_invocation",
@@ -106931,6 +107058,10 @@
         {
           "name": "client_program_issue_installed_effect_content_invocation",
           "declaration": "client_program_issue_installed_effect_content_invocation ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , host : ClientLocalEffectHost , compilation : @ publication_host . ClientEffectCompilation , admission : @ publication . RunPublicationAdmission , definition : @ publication . PublicationContract , compiled : @ publication_host . ClientCompiledRun , generation : @ publication_host . ClientSerializationGeneration , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ publication . RunEvidenceValue , @ publication . PublicationContract ) , @ client_local_host . ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "client_program_issue_installed_effect_initial_retention",
+          "declaration": "client_program_issue_installed_effect_initial_retention ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , retention_contract_cid : String , effective_data_policy_cid : String , available_until : String , delete_by : String , extension_ceiling_at : String , metadata_retention_policy_cid : String , metadata_delete_by : String , clock_contract_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . PublicationContract , @ client_local_host . ClientEffectUnitPreparationIssue , ]"
         },
         {
           "name": "client_program_issue_installed_effect_multi_captured_invocation",
@@ -106971,6 +107102,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -106989,6 +107124,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -107001,6 +107140,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -107013,6 +107156,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
@@ -107033,6 +107180,74 @@
               {
                 "path": "adapters/host-node/original-retention-rebinding.test.mjs",
                 "anchor": "actual runtime retention projection preserves the original token and rejects a foreign control"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_issue_installed_effect_initial_retention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ]
           }
@@ -107277,6 +107492,203 @@
               {
                 "path": "adapters/host-node/original-retention-rebinding.test.mjs",
                 "anchor": "actual runtime retention projection preserves the original token and rejects a foreign control"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/initial_retention.mbt",
+      "sha256": "d46b513b5715f3bfa38ee051ab78bb9e43a2ff6b11649a5a4ffce7cebe2b8050",
+      "operations": [
+        {
+          "name": "initial_retention_control_capacity",
+          "declaration": "initial_retention_control_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "issue_installed_effect_initial_retention",
+          "declaration": "issue_installed_effect_initial_retention ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , retention_contract_cid : String , effective_data_policy_cid : String , available_until : String , delete_by : String , extension_ceiling_at : String , metadata_retention_policy_cid : String , metadata_delete_by : String , clock_contract_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . PublicationContract , ClientEffectUnitPreparationIssue ]"
+        },
+        {
+          "name": "issue_program_initial_retention",
+          "declaration": "issue_program_initial_retention ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , retention_contract_cid : String , effective_data_policy_cid : String , available_until : String , delete_by : String , extension_ceiling_at : String , metadata_retention_policy_cid : String , metadata_delete_by : String , clock_contract_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . PublicationContract , ClientClosedValuesPreparationIssue , ]"
+        },
+        {
+          "name": "reserve_program_retention_capacity",
+          "declaration": "reserve_program_retention_capacity ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , ClientClosedValuesPreparationIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Program or installed Effect preparation body and publication owner",
+      "referenceQualification": "Pure canonical DATA and original-owner component construction; no new normal, physical adequacy or custody extension claim.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "initial_retention_control_capacity",
+            "issue_installed_effect_initial_retention",
+            "issue_program_initial_retention",
+            "reserve_program_retention_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication/initial_retention.mbt",
+      "sha256": "514dc9baa8d50af86239515e114d16e2621d7f31601114f2e80e57ca9970b520",
+      "operations": [
+        {
+          "name": "emit_initial_retention",
+          "declaration": "emit_initial_retention ( writer : @ encode . Writer , retention_contract_cid : String , effective_data_policy_cid : String , available_until : String , delete_by : String , extension_ceiling_at : String , metadata_retention_policy_cid : String , metadata_delete_by : String , clock_contract_cid : String , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "initial_result_retention_construction_geometry",
+          "declaration": "initial_result_retention_construction_geometry ( retention_contract_cid : String , effective_data_policy_cid : String , available_until : String , delete_by : String , extension_ceiling_at : String , metadata_retention_policy_cid : String , metadata_delete_by : String , clock_contract_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ encode . EncodingConstructionGeometry , PublicationContractIssue ]"
+        },
+        {
+          "name": "issue_initial_result_retention",
+          "declaration": "issue_initial_result_retention ( retention_contract_cid : String , effective_data_policy_cid : String , available_until : String , delete_by : String , extension_ceiling_at : String , metadata_retention_policy_cid : String , metadata_delete_by : String , clock_contract_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ PublicationContract , PublicationContractIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Program or installed Effect preparation body and publication owner",
+      "referenceQualification": "Pure canonical DATA and original-owner component construction; no new normal, physical adequacy or custody extension claim.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "emit_initial_retention",
+            "initial_result_retention_construction_geometry",
+            "issue_initial_result_retention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ]
           }

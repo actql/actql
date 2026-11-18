@@ -16076,6 +16076,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -16154,6 +16158,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -16206,6 +16214,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -16254,6 +16266,10 @@
               {
                 "path": "adapters/host-common/deferred-catalog-control.test.mjs",
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
@@ -25591,6 +25607,75 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:issueInstalledEffectInitialRetention/init:issueInstalledEffectInitialRetention",
+            "publicationControl/init:issueProgramInitialRetention/init:issueProgramInitialRetention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -29611,6 +29696,19 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueInstalledEffectInitialRetention/init:issueInstalledEffectInitialRetention",
+          "parameters": [
+            "owner",
+            "prepared",
+            "request",
+            "plan",
+            "policy",
+            "selection",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
           "parameters": [
             "owner",
@@ -29687,6 +29785,19 @@
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#4",
           "parameters": [
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:issueProgramInitialRetention/init:issueProgramInitialRetention",
+          "parameters": [
+            "owner",
+            "prepared",
+            "request",
+            "policy",
+            "selection",
+            "contracts",
+            "limits"
           ],
           "async": false
         },
@@ -34736,7 +34847,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4b3679b92585a593c1882549117c09b84adb5c7e36e8f3b8ff7437e75aa6a9b5"
+      "sha256": "cf5877f525245a23c1c7d8ac4dcad6ff64ec01c2dbd8877545836d763ae0f59e"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -48459,6 +48570,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -48529,6 +48644,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -48573,6 +48692,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -48613,6 +48736,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
@@ -68171,7 +68298,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "9737228f00f737ce34e157d03e4b39f2ac255425e79ed28b2cd0d115235d8c66"
+      "sha256": "723122af765d7a732e025252d439b683c7fd1f1d4a1ed13fe6671840d4cec605"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -100442,7 +100569,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "496d3918c000d580394ce533769530eec688c0586fd30cb9de51329ed89d1a06",
+      "sha256": "d539fdceb8ba9b182ef5660f20e236412338986ad32adcb4ac3e753857829f35",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -101169,6 +101296,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -101227,6 +101358,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -101263,6 +101398,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -101295,6 +101434,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [

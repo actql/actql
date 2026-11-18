@@ -15,4 +15,5 @@ pub(all) enum ClientClosedValuesPreparationIssue {
   PublicationInvocation(@publication.RunEvidenceValueIssue)
   PublicationCapture(@publication.CapturedRunIssuanceIssue)
   PublicationSnapshot(@publication_host.PublicationOutputExportIssue)
+  PublicationRetention(@publication.PublicationContractIssue)
 }

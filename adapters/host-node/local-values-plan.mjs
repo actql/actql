@@ -224,9 +224,8 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
   dataPolicyCid, createdAt, now, resultCount, retainUntil,
   compiled, preparedProgram, publicationOriginal, authoringContextOriginal, effectCompilation, preparedEffect, moon,
   modelEvidence = [], outputLimits = localOutputLimits, retentionSelection, originalRetention}) {
-  const {availableUntil, deleteBy, metadataDeleteBy} = retentionSelection ?? localRetentionTimes(now, retainUntil);
   const retention = originalRetention ?? issueLocalResultRetention(control, dataPolicyCid,
-    {availableUntil, deleteBy, metadataDeleteBy});
+    retentionSelection ?? localRetentionTimes(now, retainUntil));
   const normalizationJournal = preparedProgram === undefined
     // Unselected Effect/legacy material retains its existing separate profile.
     ? control.sealRunEvidence('normalization_journal', JSON.stringify({
@@ -336,7 +335,7 @@ export function openSourceFreeEffectComputation({moon, facts, managedRun}) {
 }
 
 function finishSourceFreeEffectPublicationPlan(acquired, observation, invocation, invocationOwner,
-  sourceFreeInvocationOriginal) {
+  sourceFreeInvocationOriginal, managedRun, sourcePlan) {
   const {moon, control, prepared, compilation, admission, runDefinition,
     compiledPlan, dataPolicyCid, authorityScopeCid, namespaceId, storeAuthorityCid, now} = acquired;
   const run = JSON.parse(runDefinition.wire);
@@ -349,7 +348,9 @@ function finishSourceFreeEffectPublicationPlan(acquired, observation, invocation
     storeAuthorityCid, dataPolicyCid, createdAt: run.created_at, now,
     resultCount, retainUntil: run.valid_until,
     moon, effectCompilation: compilation, preparedEffect: prepared,
-    retentionSelection: acquired.selectRetention?.()});
+    retentionSelection: acquired.selectRetention?.(),
+    originalRetention: (managedRun === undefined ? undefined : control.issueInstalledEffectInitialRetention(managedRun, prepared,
+      acquired.requestIdentity, sourcePlan, dataPolicyCid, acquired.selectRetention(), limits))});
   const result = {...plan, effectInputRetention: retention, invocationOwner,
     localEvidenceContext: Object.freeze({admission, runDefinition,
       runInvocation: invocation, observation})};
@@ -376,7 +377,7 @@ export function sourceFreeEffectPublicationPlanOriginal(options) {
   const issued = acquired.control.issueCheckedClientEffectSourceFreeInvocationOriginal(
     acquired.compilation, acquired.dataPolicyCid, limits);
   return finishSourceFreeEffectPublicationPlan(acquired, issued.observation,
-    issued.invocation, issued.owner, issued.original);
+    issued.invocation, issued.owner, issued.original, options.managedRun, options.sourcePlan);
 }
 
 // The accepted Effect Run can be admitted before provider I/O, but its
@@ -410,7 +411,9 @@ export function sourceFreeContentEffectPublicationPlan({acquired,compiled,genera
     createdAt:run.created_at,now,retainUntil:run.valid_until,
     resultCount:moon.clientProgramEffectCompilationResultNames(compilation).length,
     moon,effectCompilation:compilation,preparedEffect:prepared,
-    retentionSelection: acquired.selectRetention?.()});
+    retentionSelection: acquired.selectRetention?.(),
+    originalRetention: (managedRun === undefined ? undefined : control.issueInstalledEffectInitialRetention(managedRun, prepared,
+      acquired.requestIdentity, sourcePlan, policy.cid, acquired.selectRetention(), limits))});
   const contentGenerations=Object.freeze([generation]);
   return Object.freeze({...plan,effectInputRetention:retention,invocationOwner,
     receiptEvidence:Object.freeze({...plan.receiptEvidence,contentGenerations}),
@@ -448,7 +451,9 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
       resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
       retainUntil: run.valid_until,
       moon, effectCompilation: compilation, preparedEffect: prepared,
-      retentionSelection: acquired.selectRetention?.()});
+      retentionSelection: acquired.selectRetention?.(),
+    originalRetention: (managedRun === undefined ? undefined : control.issueInstalledEffectInitialRetention(managedRun, prepared,
+      acquired.requestIdentity, sourcePlan, JSON.parse(observation.wire).data_policy_cid, acquired.selectRetention(), limits))});
     return Object.freeze({...issued, plan: Object.freeze({...plan, effectInputRetention: retention,
       invocationOwner, localEvidenceContext: Object.freeze({admission,
         runDefinition, retentionDependencies: Object.freeze([...retentionDependencies,
@@ -501,7 +506,9 @@ export function acquiredKeyedEffectPublicationPlan({acquired, sources, keyedFami
     moon, effectCompilation: compilation, preparedEffect: prepared,
     outputLimits: checkedPublicationLimitValues(moon.clientProgramInstalledEffectPublicationLimits(
       managedRun, prepared, acquired.requestIdentity, sourcePlan, hostResultStorePolicy.maxObjectBytes)),
-    retentionSelection: acquired.selectRetention?.()});
+    retentionSelection: acquired.selectRetention?.(),
+    originalRetention: (managedRun === undefined ? undefined : control.issueInstalledEffectInitialRetention(managedRun, prepared,
+      acquired.requestIdentity, sourcePlan, JSON.parse(observation.wire).data_policy_cid, acquired.selectRetention(), limits))});
   const acquiredEvidence = control.prepareInstalledEffectKeyedSourceUnit(managedRun,
     prepared, acquired.requestIdentity, sourcePlan, sourceHost, keyedFamily.sourceOriginal,
     keyedFamily.lookup, retention, limits, deferCatalogs);
@@ -572,7 +579,9 @@ export function acquiredEffectPublicationPlan({acquired, captured,
     dataPolicyCid, createdAt: run.created_at,
     now, resultCount, retainUntil: run.valid_until,
     moon, effectCompilation: compilation, preparedEffect: prepared,
-    retentionSelection: acquired.selectRetention?.()});
+    retentionSelection: acquired.selectRetention?.(),
+    originalRetention: (managedRun === undefined ? undefined : control.issueInstalledEffectInitialRetention(managedRun, prepared,
+      acquired.requestIdentity, sourcePlan, dataPolicyCid, acquired.selectRetention(), limits))});
   let sourceRetention = retention;
   if (content !== undefined && !whole) {
     sourceRetention = control.rebindInstalledEffectResultRetention(
@@ -640,7 +649,8 @@ export function prepareAcquiredEffectSourceUnits({acquired, sources, sourcePlan,
   const {moon, control} = acquired;
   const policy = moon.clientProgramEffectPublicationDataPolicyCid(acquired.prepared);
   if (typeof policy !== 'string') throw new TypeError('UnavailableAcquiredEffectPolicy');
-  const retention = issueLocalResultRetention(control, policy, acquired.selectRetention());
+  const retention = control.issueInstalledEffectInitialRetention(managedRun, acquired.prepared,
+    acquired.requestIdentity, sourcePlan, policy, acquired.selectRetention(), limits);
   const evidence = sources.map(source => source.sourceEvidence === undefined
     ? control.admitRunEvidence('source_evidence', source.sourceEvidenceWire, limits) : source.sourceEvidence);
   const inputs = control.prepareCheckedInstalledEffectSourceUnits(sourcePlan, acquired.prepared,
@@ -749,7 +759,9 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
     resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
     retainUntil: run.valid_until,
     moon, effectCompilation: compilation, preparedEffect: prepared,
-    retentionSelection: acquired.selectRetention?.(), originalRetention: sourceUnitsOriginal?.retention});
+    retentionSelection: acquired.selectRetention?.(), originalRetention: sourceUnitsOriginal?.retention ??
+      (managedRun === undefined ? undefined : control.issueInstalledEffectInitialRetention(managedRun, prepared,
+      acquired.requestIdentity, sourcePlan, dataPolicyCid, acquired.selectRetention(), limits))});
   const acquisitionDependencies = [];
   const acquiredEvidenceByUnit = [];
   for (const [slot, {captured}] of sources.entries()) {
@@ -935,7 +947,15 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
   const dataPolicyCid = policyCid('local-result-data');
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     compiled, runDefinition, {dataPolicyCid}, limits, publicationPreparation, preparedProgram);
-  const plan = localPublicationPlan({control, admission, runDefinition, invocation,
+  if ((publicationPreparation !== undefined || publicationOriginal?.kind === 'installed_run') &&
+      (publicationOriginal?.kind !== 'installed_run' || publicationPreparation === undefined ||
+        publicationPreparation !== publicationOriginal.value)) {
+    throw new TypeError('OriginalProgramRetentionOwnerRequired');
+  }
+  const originalRetention = publicationOriginal?.kind !== 'installed_run' ? undefined :
+    control.issueProgramInitialRetention(publicationPreparation, preparedProgram, requestIdentity, dataPolicyCid,
+      localRetentionTimes(now), retentionDependencies, limits);
+  const plan = localPublicationPlan({control, originalRetention, admission, runDefinition, invocation,
     observation, compiledPlanCid: compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid,
@@ -1178,7 +1198,15 @@ export function sourceFreeTaskPlan(options) {
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     acquired.compiled, acquired.runDefinition, {dataPolicyCid}, limits,
     publicationPreparation, preparedProgram);
-  const plan = localPublicationPlan({control, admission: acquired.admission,
+  if ((publicationPreparation !== undefined || publicationOriginal?.kind === 'installed_run') &&
+      (publicationOriginal?.kind !== 'installed_run' || publicationPreparation === undefined ||
+        publicationPreparation !== publicationOriginal.value)) {
+    throw new TypeError('OriginalProgramRetentionOwnerRequired');
+  }
+  const originalRetention = publicationOriginal?.kind !== 'installed_run' ? undefined :
+    control.issueProgramInitialRetention(publicationPreparation, preparedProgram, acquired.requestIdentity, dataPolicyCid,
+      localRetentionTimes(now), retentionDependencies, limits);
+  const plan = localPublicationPlan({control, originalRetention, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),

@@ -41,7 +41,14 @@ function fixture({mixed = false, refusal, typed = true, managed = false, content
   runDefinition: {wire: '{"created_at":"2026-11-11T00:00:00Z","valid_until":"2026-11-12T00:00:00Z"}'},
   compiledPlan: {identity: 'compiled'}, authorityScopeCid: 'scope',
   namespaceId: 'namespace', storeAuthorityCid: 'store', now: () => '2026-11-11T00:00:00Z'};
+  acquired.selectRetention = () => ({availableUntil: '2026-11-12T00:00:00Z',
+    deleteBy: '2026-11-12T01:00:00Z', metadataDeleteBy: '2026-11-18T00:00:00Z'});
   acquired.control = {
+    issueInstalledEffectInitialRetention(parent, prepared, request, plan) {
+      assert.strictEqual(parent, managedRun); assert.strictEqual(prepared, acquired.prepared);
+      assert.strictEqual(request, acquired.requestIdentity); assert.strictEqual(plan, sourcePlan);
+      return retention;
+    },
     admitRunEvidence(name, wire, bounds) {
       assert.equal(name, 'source_evidence'); assert.strictEqual(bounds, limits);
       calls.push('admit'); return originals[Number(wire.at(-1))];

@@ -585,6 +585,8 @@ pub fn generated_content_reference_wire(GeneratedContentReference) -> String
 
 pub fn grow_durable_result_row_frame_buffer(DurableResultRowFrames, Int) -> Result[Unit, DurableResultRowFrameIssue]
 
+pub fn initial_result_retention_construction_geometry(String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, PublicationContractIssue]
+
 pub fn inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[(String, Int), CapturedRunIssuanceIssue]
 
 pub fn install_publication_publisher_port(PublicationContract, PublicationContract, String, () -> Bool, (PublicationPublisherAuthorization) -> Bool) -> Result[PublicationPublisherPort, PublicationPublisherIssue]
@@ -662,6 +664,8 @@ pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContrac
 pub fn issue_file_lookup_transport(PublicationContract, @encode_core.EncodedDocument, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn issue_generated_content_reference(GeneratedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
+
+pub fn issue_initial_result_retention(String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn issue_keyed_source_acquisition_scope(String, String, PublicationContract, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 

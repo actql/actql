@@ -219,6 +219,7 @@ options(
     "installed_effect_content_model_js_wbtest.mbt": [ "js" ],
     "installed_effect_operation_parent_js_wbtest.mbt": [ "js" ],
     "installed_effect_retention_js_wbtest.mbt": [ "js" ],
+    "initial_retention_js_wbtest.mbt": [ "js" ],
     "installed_effect_provider_plan_js_wbtest.mbt": [ "js" ],
     "installed_capture_parent_js_wbtest.mbt": [ "js" ],
     "managed_source_free_preparation_js_wbtest.mbt": [ "js" ],

@@ -7557,6 +7557,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -7919,6 +7923,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -8143,6 +8151,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -8371,6 +8383,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
@@ -28860,7 +28876,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "9737228f00f737ce34e157d03e4b39f2ac255425e79ed28b2cd0d115235d8c66"
+      "sha256": "723122af765d7a732e025252d439b683c7fd1f1d4a1ed13fe6671840d4cec605"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -29699,7 +29715,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "496d3918c000d580394ce533769530eec688c0586fd30cb9de51329ed89d1a06",
+      "sha256": "d539fdceb8ba9b182ef5660f20e236412338986ad32adcb4ac3e753857829f35",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -30531,6 +30547,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -30665,6 +30685,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -30753,6 +30777,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -30841,6 +30869,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
