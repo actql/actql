@@ -7,6 +7,55 @@ import test from 'node:test';
 import {normalProviderDiagnostics} from './fixtures/normal-provider-diagnostics.fixture.mjs';
 import {workflowWorkObservation} from '../adapters/host-node/fixtures/work-observation.fixture.mjs';
 import {createHostObservationConnection, installHostObservation} from '../adapters/host-common/observation.mjs';
+import {createDiagnosticObserver} from '../adapters/host-common/diagnostic-observer.mjs';
+
+test('normal provider existing authorization callback retains generic dispatch scalars without masking primary', async () => {
+  const files = new Map();
+  const diagnostic = normalProviderDiagnostics({phase: 'warm', work: {snapshot: () => ({complete: true})},
+    write: async (path, wire) => {files.set(path, JSON.parse(wire));}});
+  let delivered;
+  const delivery = new Promise(resolve => {delivered = resolve;});
+  let callbacks = 0, accessorCalls = 0;
+  const observer = createDiagnosticObserver((event, detail) => {
+    diagnostic.dispatchFailure(event, detail);
+    if (++callbacks === 3) {delivered();throw Error('AuthoredOptionalCallbackFailure');}
+  });
+  const primary = {phase: 'dispatch', kind: 'code_site',
+    message: 'do-not-copy-code-site-or-exception', body: 'do-not-copy-body'};
+  Object.defineProperty(primary, 'cause', {get() {accessorCalls++;throw Error('UnexpectedGetter');}});
+  const cleanup = {owner: 'managed_operations', phase: 'await_stop', continuation: 'blocked',
+    message: 'do-not-copy-cleanup-message'};
+  const detail = {primaryDiagnostic: primary, cleanupDiagnostic: cleanup,
+    issueTag: 10, nestedIssueTag: 65535, leafIssueTag: 65536,
+    code: 'do-not-copy-exception', message: 'do-not-copy-message',
+    ref: {secret: 'do-not-copy-ref'}, headers: {authorization: 'do-not-copy-credential'}};
+  const originalPrimary = Object.freeze({original: true});
+  let caught;
+  try {
+    observer('dispatch_failed', detail);
+    observer('dispatch_failed', {cleanupDiagnostic: cleanup, issueTag: -1});
+    observer('dispatch_failed', {primaryDiagnostic: {phase: 'replacement', kind: 'replacement'}});
+    await delivery;
+    throw originalPrimary;
+  } catch (cause) {caught = cause;}
+  assert.strictEqual(caught, originalPrimary);
+  primary.kind = 'later_mutation';cleanup.continuation = 'runnable';
+  await diagnostic.terminal(0, {status: 'failed'});
+  const result = await diagnostic.finish({attempted: true, returned: true, calls: 1}, undefined, []);
+  const expected = [
+    {primary: {phase: 'dispatch', kind: 'code_site'},
+      cleanup: {owner: 'managed_operations', phase: 'await_stop', continuation: 'blocked'},
+      issueTag: 10, nestedIssueTag: 65535},
+    {cleanup: {owner: 'managed_operations', phase: 'await_stop', continuation: 'blocked'}},
+  ];
+  assert.deepEqual(result.value.dispatchFailures, expected);
+  assert.deepEqual(files.get('normal-diagnostic-before-assert.json').dispatchFailures, expected);
+  assert.equal(result.complete, false, 'An excess diagnostic remains incomplete, never a replaced primary');
+  assert.equal(result.value.diagnosticFailures.length, 1);
+  assert.equal(accessorCalls, 0);
+  assert.equal(JSON.stringify(result.value).includes('do-not-copy'), false);
+  observer.close();
+});
 
 test('normal provider diagnostics retain full original terminal, bounded dispatch and HTTP facts before assertion', async () => {
   const work = workflowWorkObservation({createObservation: createHostObservationConnection});

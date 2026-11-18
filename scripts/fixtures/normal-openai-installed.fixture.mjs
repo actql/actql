@@ -124,6 +124,7 @@ const port = fresh ? 0 : Number(await readFile('endpoint.fixture', 'utf8'));
 await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
 if (fresh) await writeFile('endpoint.fixture', String(server.address().port), {flag: 'wx', mode: 0o600});
 const authorization = {
+  observe: (event, detail) => diagnostic.dispatchFailure(event, detail),
   hostKey: {keyId: 'fixture-host', privateKey: await readFile('operator-private.fixture', 'utf8')},
   reviewers: [{keyId: 'fixture-reviewer', reviewerId: 'fixture-reviewer', principalId: userInfo().username,
     publicKey: await readFile('operator-public.fixture', 'utf8')}],
