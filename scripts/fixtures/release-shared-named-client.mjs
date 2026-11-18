@@ -20,11 +20,13 @@ try {
   client = await connect({mode: 'remote', endpoint, token: (await readFile('token.txt', 'utf8')).trim(), durability: 'durable'});
   let execution;
   if (phase === 'lookup') {
-    const lookup = await client.lookupRequest(requestName);
+    const target = JSON.parse(await readFile('named-lost-recovery-target.json', 'utf8'));
+    const recovery = client.recoverRequest(target);
+    const lookup = await recovery.lookup();
     await save('named-original-lookup.json', lookup);
-    assert.equal(lookup.kind, 'found');
-    execution = await client.attach(lookup.ref);
-    assert.deepEqual(execution.ref, lookup.ref);
+    assert.equal(lookup.kind, 'ready');
+    execution = await recovery.attach(lookup);
+    assert.deepEqual(execution.ref, lookup.admission.ref);
     await save('named-recovered-run.json', execution.ref);
   } else {
     const pending = client.startSource(phase === 'conflict' ? 'SELECT 3 AS id' : query,
@@ -50,6 +52,9 @@ try {
         assert.equal(failure.code, 'SubmissionUnknown');
         assert.equal(attempt, undefined);
         assert.equal(failure.requestName, requestName);
+        // This is the SAME SDK error's captured public lookup target, not a
+        // name-to-ID guess or a claim that its sent candidate was accepted.
+        await save('named-lost-recovery-target.json', client.recoverRequest(failure).target);
       }
     } else {
       execution = await pending;

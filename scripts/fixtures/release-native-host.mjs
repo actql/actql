@@ -12,7 +12,9 @@ const executable = process.argv[2]; assert(executable);
 const sharedClients = process.argv[3] === '--shared-clients';
 const sharedSavedRestart = process.argv[3] === '--shared-saved-restart';
 const sharedNames = process.argv[3] === '--shared-names';
-assert(process.argv.length === 3 || (process.argv.length === 4 && (sharedClients || sharedSavedRestart || sharedNames)),
+const lostReplyOnly = sharedNames && process.argv[4] === '--lost-reply-only';
+assert(process.argv.length === 3 || (process.argv.length === 4 && (sharedClients || sharedSavedRestart || sharedNames)) ||
+  (process.argv.length === 5 && lostReplyOnly),
   'Unknown Remote Host fixture selection');
 const root = process.cwd(), records = [];
 // Only the standalone acceptance harness selects this environment. The Host
@@ -185,17 +187,19 @@ async function sharedNamesCase() {
   const endpoint = `https://127.0.0.1:${schemaServer.address().port}/`;
   const child = phase => runCaptured(process.execPath,
     [join(root, 'named-client.mjs'), phase, endpoint], ['named-client', phase]);
-  await child('first'); assert.equal(computes, 1);
-  await child('duplicate'); assert.equal(computes, 1);
-  await child('conflict'); assert.equal(computes, 1);
+  if (!lostReplyOnly) {
+    await child('first'); assert.equal(computes, 1);
+    await child('duplicate'); assert.equal(computes, 1);
+    await child('conflict'); assert.equal(computes, 1);
+  }
   loseNamedReply = true;
   await child('lost'); assert.equal(lostNamedReplies, 1);
-  await child('lookup'); assert.equal(computes, 2);
-  assert.equal(namedSubmissions, 4, 'Lookup must not resend the uncertain submission');
+  await child('lookup'); assert.equal(computes, lostReplyOnly ? 1 : 2);
+  assert.equal(namedSubmissions, lostReplyOnly ? 1 : 4, 'Lookup must not resend the uncertain submission');
   await writeFile('named-shared-host-acceptance.json', JSON.stringify({
     version: 'actql-named-shared-host-acceptance/0.1',
     scope: 'public SDK independent CLI named binding/conflict/lost-reply lookup',
-    computes, namedSubmissions, lostNamedReplies, operations: records,
+    computes, namedSubmissions, lostNamedReplies, lostReplyOnly, operations: records,
     ownerClose: 'not_yet_attempted',
     unexecuted: ['active-cancel-isolation', 'client-crash', 'owner-crash-recovery'],
   }, null, 2), {flag: 'wx'});
