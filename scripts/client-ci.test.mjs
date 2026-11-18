@@ -118,6 +118,66 @@ test('shared Host preparation builds its original Common and signing checkpoint 
   }
 });
 
+test('catalogue compiled projection requires the same prepared Host namespace and one bounded selection', () => {
+  const file = 'adapters/local-node/declared-project-catalog.actual.test.mjs';
+  const steps = jobs.host.steps;
+  const selected = steps.filter(step => step.run?.split(/\s+/u).includes(file));
+  assert.equal(selected.length, 1);
+  const [gate] = selected, preparation = steps.find(step => step.id === 'host-runtime-preparation');
+  assert(steps.indexOf(preparation) < steps.indexOf(gate));
+  assert.notEqual(gate['continue-on-error'], true);
+  const namespace = '${{ github.workspace }}/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+  const checkNamespace = env => {
+    assert.equal(env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME, namespace);
+    assert.equal(env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME, env.ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME);
+    assert.equal(env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME, env.ACTQL_METADATA_COMMON_RUNTIME);
+  };
+  checkNamespace(gate.env);
+  for (const runtime of [undefined, '', '/foreign/installed-mock.js'])
+    assert.throws(() => checkNamespace({...gate.env, ACTQL_TEST_PROJECT_PROFILE_RUNTIME: runtime}));
+  const expression = gate.if.slice(3, -3)
+    .replace(/steps\.([a-z][a-z0-9-]*)/gu, (_, name) => `steps[${JSON.stringify(name)}]`);
+  for (const outcome of ['success', 'failure', 'cancelled', 'skipped']) for (const cancelled of [false, true])
+    assert.equal(runInNewContext(expression, {cancelled: () => cancelled,
+      steps: {'host-runtime-preparation': {outcome}}}), outcome === 'success' && !cancelled);
+  const command = gate.run.split('\n').find(line => line.includes(file));
+  const args = command.match(/'[^']*'|\S+/gu).map(value => value.replace(/^'|'$/gu, ''));
+  assert.equal(args.filter(arg => arg === file).length, 1);
+  assert(args.includes('scripts/local-checks.mjs') && args.includes('test') && args.includes('node'));
+  assert.equal(args[args.indexOf('--test-name-pattern') + 1], '^declared catalogue Common projection binds');
+  const seconds = Number(args[args.indexOf('--timeout-seconds') + 1]);
+  const grace = Number(args[args.indexOf('--kill-grace-seconds') + 1]);
+  assert(Number.isFinite(seconds) && seconds > 0 && Number.isFinite(grace) && grace > 0);
+  assert(seconds + grace <= jobs.host['timeout-minutes'] * 60);
+  assert.equal(steps.filter(step => step.run?.includes('moon build') &&
+    step.run.includes('src/connectors_builtin_node')).length, 1);
+});
+
+test('catalogue compiled projection cannot hide a preceding or selected consumer failure', t => {
+  const file = 'adapters/local-node/declared-project-catalog.actual.test.mjs';
+  const gate = jobs.host.steps.find(step => step.run?.split(/\s+/u).includes(file));
+  const directory = mkdtempSync(join(tmpdir(), 'actql-catalogue-common-ci-')), bin = join(directory, 'bin');
+  t.after(() => rmSync(directory, {recursive: true, force: true}));mkdirSync(bin);
+  const calls = join(directory, 'calls.jsonl');
+  writeFileSync(join(bin, 'node'), '#!' + process.execPath + '\n' +
+    'const fs = require("node:fs"), args = process.argv.slice(2);\n' +
+    'const role = args.includes(' + JSON.stringify(file) + ') ? "catalogue" : ' +
+      'args.includes("scripts/ci-rest-actual-common.mjs") ? "rest" : "model";\n' +
+    'fs.appendFileSync(process.env.CALLS, JSON.stringify({role, runtime:process.env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME})+"\\n");\n' +
+    'process.exit(role === process.env.FAIL_ROLE ? 73 : 0);\n', {mode: 0o755});
+  for (const failed of ['', 'model', 'rest', 'catalogue']) {
+    writeFileSync(calls, '');
+    const result = run(gate.run, {PATH: bin + ':' + process.env.PATH, CALLS: calls, FAIL_ROLE: failed,
+      ACTQL_TEST_PROJECT_PROFILE_RUNTIME: '/original/host/connectors_builtin_node.js'});
+    assert.equal(result.error, undefined);assert.equal(result.signal, null);
+    assert.equal(result.status, failed ? 73 : 0, result.stderr);
+    const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    assert.deepEqual(observed.map(row => row.role), failed === 'model' ? ['model'] :
+      failed === 'rest' ? ['model', 'rest'] : ['model', 'rest', 'catalogue']);
+    assert(observed.every(row => row.runtime === '/original/host/connectors_builtin_node.js'));
+  }
+});
+
 test('normal Model Host HTTP retains its single prepared Common and required SDK and FD tools', t => {
   const steps=jobs.host.steps, file='adapters/host-node/normal-openai-http.actual.test.mjs';
   const selected=steps.filter(step=>step.run?.split(/\s+/u).includes(file));

@@ -1454,9 +1454,11 @@ jobs:
           ACTQL_TEST_PUBLIC_MODEL_TASK_RUNTIME: ${{ github.workspace }}/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js
           ACTQL_TEST_BOUND_CONSTRUCTION_RUNTIME: ${{ github.workspace }}/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js
           ACTQL_METADATA_COMMON_RUNTIME: ${{ github.workspace }}/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js
+          ACTQL_TEST_PROJECT_PROFILE_RUNTIME: ${{ github.workspace }}/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js
         run: |
           node scripts/local-checks.mjs test node -- adapters/host-node/installed-project-model-task-funding.actual.test.mjs adapters/host-node/account-construction.test.mjs adapters/host-node/installed-model-configuration.test.mjs adapters/host-node/model-task-candidate-binding.actual.test.mjs
           node scripts/ci-rest-actual-common.mjs
+          node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- --test-name-pattern '^declared catalogue Common projection binds' adapters/local-node/declared-project-catalog.actual.test.mjs
       - name: Test normal Model Host HTTP and original Saved
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: |
