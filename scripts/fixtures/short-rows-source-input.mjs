@@ -92,5 +92,5 @@ export const shortRowsRefusals = [
   {name: 'undeclared-parameter', text: sql('@missing PRECEDING'),
     expectedCode: 'ClientProgramParameterUndeclared'},
   {name: 'missing-boundary', text: sql('')},
-].map(item => ({format: 'sql', expectedCode: 'ClientProgramInvalidInput', ...item,
-  name: 'short-rows-refuse-' + item.name}));
+].map(({expectedCode = 'ClientProgramInvalidInput', ...item}) => ({format: 'sql', ...item,
+  name: 'short-rows-refuse-' + item.name, expectedCode}));

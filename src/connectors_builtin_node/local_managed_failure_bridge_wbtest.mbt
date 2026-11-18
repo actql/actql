@@ -305,3 +305,59 @@ test "original budget bridge returns the actual compiler Option tuple unchanged 
     is None,
   )
 }
+
+///|
+#cfg(target="js")
+extern "js" fn original_nonrow_failure_node_diagnostic(
+  original : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+  cause : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> String?,
+  step : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> Int,
+) -> Bool =
+  #|(original, cause, step) => {
+  #|  const require = process.getBuiltinModule('module').createRequire(process.cwd() + '/package.json');
+  #|  const {checkedLocalManagedAdvance} = require('./adapters/local-node/managed-advance-diagnostic.mjs');
+  #|  const {checked} = require('./adapters/host-common/runtime-result.mjs');
+  #|  const {dispatchFailureSnapshot, publicBudgetFailureMessage, retainedBudgetFailureMessage} = require('./adapters/host-node/client-dispatch-diagnostic.mjs');
+  #|  let primary, reads = 0;
+  #|  const moon = {strategyModule_local_ManagedAdvanceCause(value) {
+  #|    if (this !== moon || value !== original) throw new Error('ForeignOriginal');
+  #|    reads++; return cause(value);
+  #|  }, strategyModule_local_ManagedAdvanceRowStep: step};
+  #|  try { checkedLocalManagedAdvance(moon, original, value => {
+  #|    try { return checked(value); } catch (error) { primary = error; throw error; }
+  #|  }, 42); return false; } catch (error) {
+  #|    const expected = 'Execution failed: phase=local_managed_advance; task=42; cause=capture.capture_limit. Original execution failure; resource quantities were not retained.';
+  #|    if (error !== primary || reads !== 1 || error.primaryDiagnostic?.kind !== 'local_issue' ||
+  #|        error.primaryDiagnostic?.cause !== 'capture.capture_limit' || Object.hasOwn(error.primaryDiagnostic, 'step') ||
+  #|        publicBudgetFailureMessage(error) !== expected || dispatchFailureSnapshot({primaryFailure:error}).primaryDiagnostic?.cause !== 'capture.capture_limit') return false;
+  #|    const control = {physical_stop:'confirmed',revision:1};
+  #|    const state = {run_id:'original-fixture',status:'failed',result_available:false,next_action:{kind:'none'},
+  #|      terminal_error:{code:'ACTQL_E_UNPUBLISHED_RUN',message:expected},control};
+  #|    return retainedBudgetFailureMessage(JSON.stringify(state),state,'original-fixture',control) === expected &&
+  #|      retainedBudgetFailureMessage(JSON.stringify(state),state,'foreign',control) === undefined &&
+  #|      retainedBudgetFailureMessage(JSON.stringify(state),state,'original-fixture',{...control,physical_stop:'unknown'}) === undefined;
+  #|  }
+  #|}
+
+///|
+#cfg(target="js")
+test "original nonrow cause ABI reaches imported Node and same failed Journal renderer without a fabricated row step" {
+  assert_true(
+    original_nonrow_failure_node_diagnostic(
+      Err(
+        @local_driver.Configuration(
+          @connector.Execution(@execution.Capture(42, @execution.CaptureLimit)),
+        ),
+      ),
+      local_managed_advance_cause,
+      local_managed_advance_row_step,
+    ),
+  )
+}

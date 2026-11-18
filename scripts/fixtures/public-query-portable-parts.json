@@ -1,10 +1,10 @@
 {
-  "fullInventorySha256": "2f868b175baeb09f31342016e1bd2fdf387866d354429923c678347b58d01160",
+  "fullInventorySha256": "c89639f320bd01d7b49ecf0df4a899c979c4d969ac92e2e99952f8895cab9985",
   "totalCases": 4240,
   "parts": {
     "portable-1": {
       "totalCases": 1527,
-      "inventorySha256": "54c0d0a8d5595d5fbac5253aed3b3de64681a660f0cdf44f9c78de76e648d36a",
+      "inventorySha256": "8e86fd2dec9ef4270c6c32192da0b4a1074d6814d9800e197a2fc153bbe67552",
       "receiptPrefixes": []
     },
     "portable-2": {

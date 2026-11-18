@@ -92732,7 +92732,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "bcb236882c2f6ab0a8c48828ee5aced50ca791f9f731900ec64dc64e27445050",
+      "sha256": "abfdb55325483453d6bff5b10598ae0158374c454532095344a02b3c3ca105a6",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -92949,7 +92949,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_advance_diagnostic.mbt",
-      "sha256": "d0d52578d108c2d8fe041fba3c8a24b53d53077290c09f53249f034ed1eafa26",
+      "sha256": "b3f5bdf5ac57ec64551a827919c2ea1c4003f0bec0d2246746a52fb93f9c50bc",
       "exports": [],
       "operations": [
         {
@@ -92959,6 +92959,14 @@
         {
           "name": "local_managed_advance_control_work_limit",
           "declaration": "local_managed_advance_control_work_limit ( issue : LocalDispatchIssue , ) - > Int ?"
+        },
+        {
+          "name": "local_managed_capture_failure_cause",
+          "declaration": "local_managed_capture_failure_cause ( issue : @ execution . CaptureIssue , ) - > String"
+        },
+        {
+          "name": "local_managed_compute_failure_cause",
+          "declaration": "local_managed_compute_failure_cause ( issue : @ connector . FixedComputeIssue , ) - > String ?"
         },
         {
           "name": "local_managed_failure_budget",
@@ -92979,12 +92987,20 @@
         {
           "name": "local_managed_provider_failure",
           "declaration": "local_managed_provider_failure ( issue : @ connector . FixedComputeIssue , initial_work_limit : Int , ) - > LocalDispatchIssue"
+        },
+        {
+          "name": "local_managed_resource_failure_cause",
+          "declaration": "local_managed_resource_failure_cause ( issue : @ resources . LedgerIssue , ) - > String"
+        },
+        {
+          "name": "local_managed_sequence_failure_cause",
+          "declaration": "local_managed_sequence_failure_cause ( issue : @ execution . SequenceRunIssue , ) - > String ?"
         }
       ],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
       "owner": "Existing Local managed execution and original dispatch failure owner; diagnostic DATA grants no authority or cleanup acknowledgement",
-      "referenceQualification": "Original control-work diagnostic source/component correspondence only",
+      "referenceQualification": "Original typed cause projection; closed constructor DATA only, no ordinary runtime or quota cause claim",
       "contracts": [
         {
           "operations": [
@@ -93153,7 +93169,11 @@
         {
           "operations": [
             "local_managed_failure_cause",
-            "local_managed_failure_row_step"
+            "local_managed_failure_row_step",
+            "local_managed_capture_failure_cause",
+            "local_managed_compute_failure_cause",
+            "local_managed_resource_failure_cause",
+            "local_managed_sequence_failure_cause"
           ],
           "exports": [],
           "attributes": {
@@ -93219,6 +93239,10 @@
               {
                 "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
                 "anchor": "test('original typed row cause reaches"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
+                "anchor": "original nonrow cause ABI reaches imported Node"
               }
             ]
           }
@@ -98924,7 +98948,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-diagnostic.mjs",
-      "sha256": "6a5378016107730e9f0fb959907de0ae8683c1d3d273a73da4562b9055924eb8",
+      "sha256": "458c8999dd132476fda1d5d4b69a7629f1d48e1a8775447843b69746b0aefbc4",
       "exports": [
         "dispatchFailureSnapshot",
         "publicBudgetFailureMessage",
