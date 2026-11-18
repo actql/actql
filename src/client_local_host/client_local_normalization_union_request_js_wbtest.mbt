@@ -15,6 +15,12 @@ test "original Source normalization reserves its audit before construction at ex
     let (parent, child, _, input) = registration_parent_fixture(
       text=source_query_original_document,
       environment=Some(environment),
+      computation_limits=Some(
+        (
+          @publication_host.client_standard_program_preparation_limits(),
+          @publication_host.client_standard_effect_computation_limits(),
+        ),
+      ),
     )
     assert_true(
       finish_program_check_preparation(child).unwrap() is @checked.Checked(_),
@@ -32,7 +38,11 @@ test "original Source normalization reserves its audit before construction at ex
     let sources = @publication_host.prepared_client_normalization_source_count(
       prepared,
     )
-    assert_eq(sources, 1L)
+    assert_true(parent.phase == ProgramCompiled)
+    assert_true(parent.computation_limits is Some(_))
+    // The existing single Source has five execution bindings. This cached
+    // occurrence bound is not a claim of five distinct completion entries.
+    assert_eq(sources, 5L)
     let additional = request_normalization_audit_extent_cost(
       parent.program_data.unwrap(),
       sources,
@@ -59,13 +69,20 @@ test "original Source normalization reserves its audit before construction at ex
       },
     ).unwrap()
     let refused = prepare_request_program_normalization(parent, input)
-    assert_true(
-      if retention {
-        refused is Err(Preparation(Capacity(Resource(RetentionLimit))))
-      } else {
-        refused is Err(Preparation(Capacity(Resource(ExecutionLimit))))
-      },
-    )
+    let expected_refusal = if retention {
+      refused is Err(Preparation(Capacity(Resource(RetentionLimit))))
+    } else {
+      refused is Err(Preparation(Capacity(Resource(ExecutionLimit))))
+    }
+    if !expected_refusal {
+      match refused {
+        Err(issue) => {
+          let original : Error = issue
+          fail(@debug.to_string(original))
+        }
+        Ok(_) => fail("one-short original audit entered its constructor")
+      }
+    }
     let selected = parent.program_normalization.unwrap()
     assert_true(selected.audit is None)
     assert_eq(selected.charged_work, 0L)

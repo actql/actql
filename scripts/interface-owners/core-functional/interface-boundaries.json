@@ -2960,7 +2960,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4044,7 +4044,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -6566,7 +6566,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -8779,7 +8779,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -9619,7 +9619,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -36281,7 +36281,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -37875,7 +37875,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -38113,7 +38113,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -39619,7 +39619,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -39907,7 +39907,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -41988,7 +41988,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -52102,7 +52102,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -52198,7 +52198,7 @@
       "sha256": "c2b6127bfff44e9c3f59fd0a2a4f75d8ab1ed8960110ed73289a392949016d1e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -52507,7 +52507,7 @@
       "sha256": "af85920af4da377b630cdbd29a6f6596313fe03015e8c366414a42b9a8ab2d3a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B — original prepared schema demand and installed Effect composition",
+      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -55946,7 +55946,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -56080,7 +56080,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -56337,7 +56337,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -56435,7 +56435,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -56803,7 +56803,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -57064,7 +57064,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -57237,7 +57237,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -57350,7 +57350,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -58738,7 +58738,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D — original installed Effect Plan and Model demand correspondence",
+      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -59454,7 +59454,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -62273,7 +62273,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -70672,7 +70672,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -94464,7 +94464,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -94917,7 +94917,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -99750,7 +99750,7 @@
     },
     {
       "module": "src/program_check/local_common_normalization.mbt",
-      "sha256": "9de1ed12f77772726d61cd1318afba4413d490f69814360d0bcd571b76991ad3",
+      "sha256": "a6464ce18363b46927033c54298718eaf1899f9909b78ab701b1c96db76d49e3",
       "exports": [],
       "operations": [
         {
@@ -99758,12 +99758,20 @@
           "declaration": "audit_local_common_normalization_inventory ( owner : CheckedProgram , max_work : Int , work_out ? : Ref [ Int ] ?"
         },
         {
+          "name": "canonical_local_common_entries",
+          "declaration": "canonical_local_common_entries ( entries : Array [ LocalCommonNormalizationEntry ] , available : Int , ) - > Int ?"
+        },
+        {
           "name": "local_common_charge",
           "declaration": "local_common_charge ( budget : LocalCommonAuditBudget , work : Int , ) - > Unit raise LocalCommonAuditFailure"
         },
         {
           "name": "local_common_entry",
-          "declaration": "local_common_entry ( entries : Array [ LocalSortNormalizationEntry ] , entry : LocalSortNormalizationEntry , budget : LocalCommonAuditBudget , ) - > Unit raise LocalCommonAuditFailure"
+          "declaration": "local_common_entry ( entries : Array [ LocalCommonNormalizationEntry ] , entry : LocalCommonNormalizationEntry , budget : LocalCommonAuditBudget , ) - > Unit raise LocalCommonAuditFailure"
+        },
+        {
+          "name": "local_common_entry_rule",
+          "declaration": "local_common_entry_rule ( entry : LocalCommonNormalizationEntry ) - > String ?"
         },
         {
           "name": "local_common_normalization_entry_at",
@@ -99786,6 +99794,10 @@
           "declaration": "local_common_normalization_inventory_work ( inventory : LocalCommonNormalizationInventory , ) - > Int"
         },
         {
+          "name": "local_common_normalization_uses_source_completion",
+          "declaration": "local_common_normalization_uses_source_completion ( inventory : LocalCommonNormalizationInventory , ) - > Bool"
+        },
+        {
           "name": "local_program_common_normalization_inventory",
           "declaration": "local_program_common_normalization_inventory ( owner : CheckedProgram , max_work : Int , ) - > Result [ LocalCommonNormalizationInventory , LocalCommonNormalizationIssue ]"
         },
@@ -99806,13 +99818,16 @@
           "operations": [
             "<module>",
             "audit_local_common_normalization_inventory",
+            "canonical_local_common_entries",
             "local_common_charge",
             "local_common_entry",
+            "local_common_entry_rule",
             "local_common_normalization_entry_at",
             "local_common_normalization_entry_count",
             "local_common_normalization_inventory_matches",
             "local_common_normalization_inventory_requirements",
             "local_common_normalization_inventory_work",
+            "local_common_normalization_uses_source_completion",
             "local_program_common_normalization_inventory",
             "observe_local_program_common_normalization_inventory",
             "record_local_common_normalization_work"
@@ -99886,7 +99901,7 @@
     },
     {
       "module": "src/run_publication_host/client_local_normalization.mbt",
-      "sha256": "a7276dd58eb85034ae85b01a1cdc9672e9344e59f05b089fdc0d73b627befb1a",
+      "sha256": "3f905a9af68fc9e23597b96becf0fedeac77665223fd63bd6cb98651facb26d6",
       "exports": [],
       "operations": [
         {
@@ -100052,7 +100067,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_normalization.mbt",
-      "sha256": "9560fbeeef88a7f042d4095fa52f701ca83a039b034d10182189fac3c6910a78",
+      "sha256": "20512f8b256734c29035f7f8587789a3977ee950ceb69869ec50523f174b74fc",
       "exports": [],
       "operations": [
         {
@@ -100078,6 +100093,10 @@
         {
           "name": "[I]request_program_normalization_work",
           "declaration": "[ I ] request_program_normalization_work ( owner : ClientRequestPreparation [ I ] , input : I , ) - > ( Int64 , Int64 , Bool ) ?"
+        },
+        {
+          "name": "request_normalization_audit_extent_cost",
+          "declaration": "request_normalization_audit_extent_cost ( data : @ checked . ParsedCheckDataEstimate , sources : Int64 , ) - > Int64 ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -100092,7 +100111,8 @@
             "[I]finish_request_program_normalization_work",
             "[I]prepare_request_program_normalization",
             "[I]prepare_request_program_normalization_owned",
-            "[I]request_program_normalization_work"
+            "[I]request_program_normalization_work",
+            "request_normalization_audit_extent_cost"
           ],
           "exports": [],
           "attributes": {
@@ -100409,7 +100429,7 @@
     },
     {
       "module": "src/program_check/local_common_normalization_construction.mbt",
-      "sha256": "4027399155b0725f1c365b851f9db656b63386385de89438d16d618edea1a352",
+      "sha256": "e65ac32ceb20bab000b82f98885a28ebed21ed8ef8c444d8be22f96d0d583ec1",
       "exports": [],
       "operations": [
         {
@@ -100495,7 +100515,7 @@
     },
     {
       "module": "src/run_publication_host/client_local_normalization_preparation.mbt",
-      "sha256": "122308f62b24e8a2421a754509941abe8534405854e6524d6d99e3bba9be9166",
+      "sha256": "b1a7f39e4e0700a7ce0c3c2c1867ace8472785cb0809f0ff9f75caa506102f53",
       "exports": [],
       "operations": [
         {
@@ -100521,6 +100541,10 @@
         {
           "name": "prepared_client_local_normalization_original",
           "declaration": "prepared_client_local_normalization_original ( owner : PreparedClientProgram , ) - > ClientLocalNormalization ?"
+        },
+        {
+          "name": "prepared_client_normalization_source_count",
+          "declaration": "prepared_client_normalization_source_count ( owner : PreparedClientProgram , ) - > Int64"
         }
       ],
       "responsibilityFacet": "primary",
@@ -100535,7 +100559,8 @@
             "finish_prepared_client_local_normalization",
             "measure_client_local_normalization_construction",
             "observe_prepare_client_local_normalization",
-            "prepared_client_local_normalization_original"
+            "prepared_client_local_normalization_original",
+            "prepared_client_normalization_source_count"
           ],
           "exports": [],
           "attributes": {
@@ -104812,6 +104837,183 @@
         }
       ],
       "referenceQualification": "Original same-parent authoring source and focused component boundaries; not normal ABI, current Account/physical cleanup, or Saved acceptance."
+    },
+    {
+      "module": "src/program_check/local_source_normalization.mbt",
+      "sha256": "318adfebc7cc9a5a43937f8a049793e80502a06b441ab928d284b51f14e7e2a1",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_source_normalization_entry",
+          "declaration": "local_source_normalization_entry ( source : @ sourceviews . ResolvedInput , available : Int , ) - > ( LocalCommonNormalizationEntry , Int ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_source_normalization_entry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Source occurrence/catalogue and same Request construction/failed-child responsibilities only; no artifact, ordinary or physical acceptance."
+    },
+    {
+      "module": "src/run_publication_host/client_local_source_normalization_catalog.mbt",
+      "sha256": "8a8bebdefdaba91ce4ed94c71abc3759c68f4ee33737a8df4d5783e154d6359f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "common_normalization_catalog_cid",
+          "declaration": "common_normalization_catalog_cid ( inventory : @ checked . LocalCommonNormalizationInventory , ) - > String"
+        },
+        {
+          "name": "local_source_normalization_catalog_cid",
+          "declaration": "local_source_normalization_catalog_cid ( ) - > String"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing client_local_host original preparation driver",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "common_normalization_catalog_cid",
+            "local_source_normalization_catalog_cid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Source occurrence/catalogue and same Request construction/failed-child responsibilities only; no artifact, ordinary or physical acceptance."
     }
   ]
 }
