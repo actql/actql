@@ -469,6 +469,46 @@ test('Native approval rejects foreign runs attempts artifacts and uncompleted pr
   ]) {const p = nativeApprovalProvenance({merge: true}); mutate(p); assert.throws(() => validateNativeApprovalSource(p));}
 });
 
+function originalNativeWorkflow(p) {
+  const pr = structuredClone(p.run.pull_requests[0]);
+  pr.number = 5;
+  return {runId: String(p.run.id), runAttempt: String(p.run.run_attempt), sourceSha: p.manifest.sourceSha,
+    event: {number: 5, repository: structuredClone(p.run.repository), pull_request: pr}};
+}
+
+test('Native approval keeps original event parents when the REST PR base changes', () => {
+  const p = nativeApprovalProvenance({merge: true});
+  p.originalWorkflow = originalNativeWorkflow(p);
+  p.run.pull_requests[0].base.sha = 'f'.repeat(40);
+  const actual = validateNativeApprovalSource(p);
+  assert.equal(actual.sourceSha, 'c'.repeat(40));
+  assert.deepEqual(actual.sourceParents, ['b'.repeat(40), sha]);
+  const withoutOriginal = structuredClone(p); delete withoutOriginal.originalWorkflow;
+  assert.throws(() => validateNativeApprovalSource(withoutOriginal), /original PR base\/head parents/u);
+});
+
+test('Native approval refuses foreign original events and workflow contexts', () => {
+  for (const mutate of [
+    p => {p.originalWorkflow.runId = '18';}, p => {p.originalWorkflow.runAttempt = '3';},
+    p => {p.originalWorkflow.sourceSha = 'f'.repeat(40);},
+    p => {p.originalWorkflow.event.number++;}, p => {p.originalWorkflow.event.pull_request.number++;},
+    p => {p.originalWorkflow.event.repository.id++;},
+    p => {p.originalWorkflow.event.repository.full_name = 'foreign/repo';},
+    p => {p.originalWorkflow.event.pull_request.head.repo.id++;},
+    p => {p.originalWorkflow.event.pull_request.base.repo.id++;},
+    p => {p.originalWorkflow.event.pull_request.head.sha = 'f'.repeat(40);},
+    p => {p.originalWorkflow.event.pull_request.base.sha = 'f'.repeat(40);},
+    p => {p.originalWorkflow.event.pull_request.base.sha = '';},
+    p => {delete p.originalWorkflow.event.pull_request;},
+    p => {p.sourceCommit.parents.reverse();}, p => {p.sourceCommit.parents.pop();},
+    p => {p.sourceCommit.tree.sha = 'f'.repeat(40);}, p => {p.jobs[0].conclusion = 'failure';},
+    p => {p.artifact.digest = '';},
+  ]) {
+    const p = nativeApprovalProvenance({merge: true}); p.originalWorkflow = originalNativeWorkflow(p);
+    mutate(p); assert.throws(() => validateNativeApprovalSource(p));
+  }
+});
+
 test('Native approval rejects wrong merge parents tree manifest source or original PR correspondence', () => {
   for (const mutate of [p => {p.run.event = 'push';}, p => {p.run.pull_requests = [];},
     p => {p.run.pull_requests[0].head.sha = 'f'.repeat(40);},
