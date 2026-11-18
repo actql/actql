@@ -82,7 +82,13 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
     await save(join(output, 'fixture-paths.json'), {paths: family.paths,
       resourceHttps: family.resourceHttps, providerTokenPath: family.providerTokenPath});
     let connectorTar,tarBytes,packed;
-    const author = join(output, 'author'), packageRoot = join(output, 'connector-package');
+    await mkdir(consumer);await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
+    await runTool('install-normal-five', 'npm', ['install', '--offline', '--no-audit', '--no-fund',
+      ...manifest.packages.map(pkg => join(dirname(artifactManifestPath), pkg.file))], consumer);
+    before = await verifyNodeBenchmarkPackages(manifest, artifactManifestPath, consumer);
+    // The author tool resolves only this consumer's already installed public
+    // pure validator. No new Common build or framework pack occurs here.
+    const author = join(consumer, 'author'), packageRoot = join(output, 'connector-package');
     const cli = join(root, 'scripts/connector.mjs'), introductionStart = performance.now();
     if(!builtin){
       await runInstalledFamilyProcess({script: cli, args: ['init', author, 'acme'], cwd: root, env,
@@ -102,14 +108,11 @@ test('one generated npm REST connector uses ordinary Node Host and original cold
       connectorTar = join(artifacts, packed.filename);tarBytes = await readFile(connectorTar);
       assert.equal(packed.integrity, 'sha512-' + createHash('sha512').update(tarBytes).digest('base64'));
     }
-    await mkdir(consumer);await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
-    // Default lifecycle and exact five framework tars. Only an external
-    // author case adds its generated package; the Notion case uses the
-    // original built-in installation, without a replacement connector table.
-    await runTool(builtin?'install-normal-five':'install-normal-six', 'npm', ['install', '--offline', '--no-audit', '--no-fund',
-      ...manifest.packages.map(pkg => join(dirname(artifactManifestPath), pkg.file)), ...(builtin?[]:[connectorTar])], consumer);
-    before = await verifyNodeBenchmarkPackages(manifest, artifactManifestPath, consumer);
+    // The optional generated sixth package reuses that SAME installation.
+    // Built-in Notion supplies no replacement table or extra package.
     if(!builtin){
+      await runTool('install-generated-connector', 'npm', ['install', '--offline', '--no-audit', '--no-fund', connectorTar], consumer);
+      assert.deepEqual(await verifyNodeBenchmarkPackages(manifest, artifactManifestPath, consumer), before);
       pluginRoot = join(consumer, 'node_modules/@actql-connectors/acme');
       assert.deepEqual(await inventory(pluginRoot), expectedPlugin);
     }

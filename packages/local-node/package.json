@@ -22,6 +22,7 @@
     "./http-host": {"types": "./http-host.d.ts", "default": "./http-host.mjs"},
     "./observation": {"types": "./observation.d.ts", "default": "./observation.mjs"},
     "./connector-installation": {"types": "./connector-installation.d.ts", "default": "./connector-installation.mjs"},
+    "./connector-authoring": {"types": "./connector-authoring.d.ts", "default": "./connector-authoring.mjs"},
     "./effect-run": "./adapters/host-node/client-effect-run.mjs",
     "./effect-site": "./adapters/host-node/installed-effect-site.mjs",
     "./selected-infer-startup": "./selected-infer-startup.cjs",
@@ -29,5 +30,5 @@
     "./_internal/compile-cache": "./adapters/host-node/compile-cache.mjs",
     "./runtime": "./_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js"
   },
-  "files": ["index.mjs", "index.d.ts", "http-host.mjs", "http-host.d.ts", "host-policy.d.ts", "observation.mjs", "observation.d.ts", "connector-installation.mjs", "connector-installation.d.ts", "selected-infer-startup.cjs", "initial-control-public-dispatch.cjs", "_build/js/release/build", "_build/native", "adapters", "spec", "src/connectors", "README.md", "MOONBIT-CORE-LICENSE", "MOONBIT-CORE-NOTICE"]
+  "files": ["index.mjs", "index.d.ts", "http-host.mjs", "http-host.d.ts", "host-policy.d.ts", "observation.mjs", "observation.d.ts", "connector-installation.mjs", "connector-installation.d.ts", "connector-authoring.mjs", "connector-authoring.d.ts", "selected-infer-startup.cjs", "initial-control-public-dispatch.cjs", "_build/js/release/build", "_build/native", "adapters", "spec", "src/connectors", "README.md", "MOONBIT-CORE-LICENSE", "MOONBIT-CORE-NOTICE"]
 }

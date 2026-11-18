@@ -128466,13 +128466,69 @@
     {
       "module": "adapters/host-node/installed-rest-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "68479ebab30b4e10ec07af1b0fca81c04f224fe1e385e11d7b44273d33d1be1e",
+      "sha256": "24e93ee712cb59a9aa28e04a2fe003bcfa0a12b0add906861ac47522dc400c44",
       "role": "physical-io",
       "owner": "Existing installed Host Source initialization, Credential Site, managed Reader and RowRun Owners; facade retains only its selected original author declaration/service composition.",
       "exports": [
         "createInstalledRestSource"
       ],
       "operations": [
+        {
+          "name": "captureCoreTargetConstruction/captureCoreTargetConstruction",
+          "parameters": [
+            "sources",
+            "declared",
+            "physicalTarget",
+            "policy"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureCoreTargetConstruction/captureCoreTargetConstruction/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureCoreTargetConstruction/captureCoreTargetConstruction/init:capacity/init:capacity/init:capacity",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureCoreTargetConstruction/captureCoreTargetConstruction/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureCoreTargetConstruction/captureCoreTargetConstruction/init:project/init:project/init:project",
+          "parameters": [
+            "source",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureCoreTargetConstruction/captureCoreTargetConstruction/init:project/init:project/init:project/init:project",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureCoreTargetConstruction/captureCoreTargetConstruction/init:project/init:project/requests/requests",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureCoreTargetConstruction/captureCoreTargetConstruction/view/view",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
         {
           "name": "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction",
           "parameters": [
@@ -128545,6 +128601,13 @@
           "name": "createInstalledRestSource/captureDeclarationPreparation/prepareOriginalDeclaration/prepareOriginalDeclaration",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/createInstalledRestSource",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -128647,7 +128710,8 @@
           "name": "createInstalledRestSource/load/physicalTarget/physicalTarget",
           "parameters": [
             "resource",
-            "fields"
+            "fields",
+            "originalPath"
           ],
           "async": false
         },
@@ -128655,6 +128719,13 @@
           "name": "createInstalledRestSource/load/physicalTarget/physicalTarget/physicalTarget",
           "parameters": [
             "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRestSource/load/physicalTarget/physicalTarget/source/source",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -128671,7 +128742,7 @@
           "async": false
         },
         {
-          "name": "createInstalledRestSource/load/targets/targets",
+          "name": "createInstalledRestSource/nativeReads/nativeReads",
           "parameters": [
             "source"
           ],
@@ -128693,6 +128764,7 @@
         "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
         "./installed-row-source.mjs",
+        "./rest-read-original.mjs",
         "./rest-source-metadata.mjs",
         "./rest-source-page.mjs",
         "./rest-source-request.mjs",
@@ -128724,7 +128796,6 @@
             "createInstalledRestSource/load/physicalTarget/physicalTarget/physicalTarget",
             "createInstalledRestSource/load/physicalTarget/physicalTarget/view/view",
             "createInstalledRestSource/load/services/services",
-            "createInstalledRestSource/load/targets/targets",
             "createInstalledRestSource/publish",
             "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction",
             "capturePhysicalTargetConstruction/capturePhysicalTargetConstruction/init:capacity/init:capacity",
@@ -129037,6 +129108,140 @@
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "test('REST authored bounds still refuse above any selected policy before implementation or Site'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captureCoreTargetConstruction/captureCoreTargetConstruction",
+            "captureCoreTargetConstruction/captureCoreTargetConstruction/init:capacity/init:capacity",
+            "captureCoreTargetConstruction/captureCoreTargetConstruction/init:capacity/init:capacity/init:capacity",
+            "captureCoreTargetConstruction/captureCoreTargetConstruction/init:project/init:project",
+            "captureCoreTargetConstruction/captureCoreTargetConstruction/init:project/init:project/init:project",
+            "captureCoreTargetConstruction/captureCoreTargetConstruction/init:project/init:project/init:project/init:project",
+            "captureCoreTargetConstruction/captureCoreTargetConstruction/init:project/init:project/requests/requests",
+            "captureCoreTargetConstruction/captureCoreTargetConstruction/view/view",
+            "createInstalledRestSource/createInstalledRestSource",
+            "createInstalledRestSource/load/physicalTarget/physicalTarget/source/source",
+            "createInstalledRestSource/nativeReads/nativeReads"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
               }
             ]
           }
@@ -129507,7 +129712,7 @@
     {
       "module": "adapters/host-node/rest-source-page.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2f06d2f18aeba6dfcd7bf66f83dcc6d3b816042d1099911fcf83a811db6064b0",
+      "sha256": "4d51b361561c267e4b5a321c8d4c8326ed6b0bb31bc41bcba02d75437db80bdb",
       "role": "connector-semantics",
       "owner": "Existing Common JSON/row projection and pagination DATA with Host ManagedReader owners; REST adapter forwards original pages/progress and authored request/pure transform without an independent cursor engine",
       "exports": [
@@ -135779,6 +135984,260 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/rest-read-original.mjs",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Common GET declaration and Source/Reader construction owners; thin original namespace/capsule/transport composition, no physical or permission issuer",
+      "exports": [
+        "captureRestReadOriginals",
+        "restReadOriginalControlUnits",
+        "restReadTransportConstructionUnits"
+      ],
+      "operations": [
+        {
+          "name": "captureRestReadOriginals",
+          "parameters": [
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestReadOriginals/init:composeConstruction/init:composeConstruction",
+          "parameters": [
+            "units",
+            "quotes"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestReadOriginals/init:project/init:project",
+          "parameters": [
+            "readWire",
+            "cursorParameter",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestReadOriginals/init:project/init:project/init:capacityOption/init:capacityOption",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureRestReadOriginals/init:project/init:project/init:page/init:page",
+          "parameters": [
+            "remaining",
+            "hint",
+            "cursor"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestReadOriginals/init:quote/init:quote",
+          "parameters": [
+            "readWire",
+            "cursorParameter",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestReadOriginals/init:requestCapacity/init:requestCapacity",
+          "parameters": [
+            "units",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestReadOriginals/init:requestCapacity/init:requestCapacity/init:requestCapacity",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestReadOriginals/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureRestReadOriginals/value/value",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "restReadOriginalControlUnits",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "restReadTransportConstructionUnits",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureRestReadOriginals",
+            "captureRestReadOriginals/init:composeConstruction/init:composeConstruction",
+            "captureRestReadOriginals/init:project/init:project",
+            "captureRestReadOriginals/init:project/init:project/init:capacityOption/init:capacityOption",
+            "captureRestReadOriginals/init:project/init:project/init:page/init:page",
+            "captureRestReadOriginals/init:quote/init:quote",
+            "captureRestReadOriginals/init:requestCapacity/init:requestCapacity",
+            "captureRestReadOriginals/init:requestCapacity/init:requestCapacity/init:requestCapacity",
+            "captureRestReadOriginals/ports/ports",
+            "captureRestReadOriginals/value/value",
+            "restReadOriginalControlUnits",
+            "restReadTransportConstructionUnits"
+          ],
+          "exports": [
+            "captureRestReadOriginals",
+            "restReadOriginalControlUnits",
+            "restReadTransportConstructionUnits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "08d069e0ecb03a29ddc2b3ca45dc3c7c1bbf3862b67b056d0d5419892236659c",
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/http-exchange.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ],
   "generated": [],

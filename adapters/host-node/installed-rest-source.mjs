@@ -11,6 +11,8 @@ import {createRestSourceMetadata} from './rest-source-metadata.mjs';
 import {restSourcePageReader} from './rest-source-page.mjs';
 import {captureRestSourceRead, restSourceReadConstructionUnits,
   restSourceRequestConstructionUnits} from './rest-source-request.mjs';
+import {captureRestReadOriginals, restReadOriginalControlUnits, restReadTransportConstructionUnits}
+  from './rest-read-original.mjs';
 import {installedJsonSourceReaderLimitNames} from './installed-credential-source-reader.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
@@ -65,8 +67,45 @@ function capturePhysicalTargetConstruction(sourceInitialization, moon) {
   };
 }
 
+// The same initializer also retains the original Core parser/Bytes for the
+// shipped readWire representation. Legacy row-only DATA keeps its existing
+// projector above; Program/Account DATA cannot select a budget or Reader mode.
+function captureCoreTargetConstruction(sourceInitialization, moon, originals) {
+  const method = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareReadTarget');
+  if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') {
+    fail('RestSourceInitializationUnavailable');
+  }
+  return (sources, declared, physicalTarget, policy) => {
+    const units = restReadOriginalControlUnits(sources.length);
+    let targets = 1n;
+    for (const source of sources) {
+      const view = declared.views.find(view => view.resource === source.resource);
+      if (view === undefined) fail('RestSourceReadTargetMismatch');
+      targets += 10n + BigInt(view.fields.length);
+    }
+    units[0] += targets;
+    // Keep own-values vectors for each eight-field target and each fields
+    // Array, plus pending/growth references, alongside the retained target.
+    units[3] += 3n * targets;
+    return Reflect.apply(method.value, sourceInitialization, [Object.freeze({
+      capacity() {return originals.composeConstruction(units, sources.map(source => originals.quote(
+        source.readWire, source.pagination.parameter, policy)));},
+      project() {
+        const requests = Object.freeze(sources.map(source => originals.project(
+          source.readWire, source.pagination.parameter, policy)));
+        return Object.freeze({targets: Object.freeze(sources.map((source, index) => physicalTarget(
+          source.resource, declared.views.find(view => view.resource === source.resource).fields,
+          requests[index].path))), requests});
+      },
+    })]);
+  };
+}
+
 export function createInstalledRestSource(definition, {decodePage} = {}) {
   const metadata = createRestSourceMetadata(definition), original = metadata.definition;
+  const nativeReads = original.sources.some(source => Object.hasOwn(source, 'readWire'));
+  if (nativeReads && original.sources.some(source => typeof source.readWire !== 'string' ||
+      Object.hasOwn(source, 'read'))) fail('RestSourceReadDeclarationMismatch');
   if (decodePage !== undefined && typeof decodePage !== 'function') fail('InvalidRestSourceTransform');
   const operation = `${original.registration}:rest:read`;
   function captureDeclarationPreparation(sourceInitialization) {
@@ -103,7 +142,10 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
       () => fail('RestSourceInstallationServicesUnavailable'));
     const {moon, installation, sourceInitialization, runtimeBundleCid, resolveSecret} = options;
     const prepare = captureDeclarationPreparation(sourceInitialization);
-    const preparePhysicalTargets = capturePhysicalTargetConstruction(sourceInitialization, moon);
+    const originals = nativeReads ? captureRestReadOriginals(moon) : undefined;
+    const preparePhysicalTargets = nativeReads
+      ? captureCoreTargetConstruction(sourceInitialization, moon, originals)
+      : capturePhysicalTargetConstruction(sourceInitialization, moon);
     const requestCapacity = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSourceConstructionCapacity').value;
     if (typeof resolveSecret !== 'function') fail('RestSourceCredentialMaterialUnavailable');
     const input = await metadata.readInputs(profile, {configurationReader: options.configurationReader});
@@ -133,9 +175,28 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
       [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'].map(name => [name, policy[name]])),
       maxPages: limits.maxPages, maxResponseBytes: limits.maxPageBytes,
       maxRows: limits.maxPageRows, maxTotalRows: limits.maxCaptureRows, ...pageBounds});
+    const physicalTarget = (resource, fields, originalPath) => {
+      const source = original.sources.find(source => source.resource === resource);
+      const view = declared.views.find(view => view.resource === resource);
+      if (source === undefined || view === undefined || !Array.isArray(fields) ||
+          // The constructor passes this SAME Common-checked original fields
+          // Array. Other callers (including approval targets) still receive
+          // the full duplicate/membership checks; no request Bool selects it.
+          !(originalPath !== undefined && fields === view.fields) &&
+          (new Set(fields).size !== fields.length || fields.some(field => !view.fields.includes(field)))) {
+        fail('RestSourceReadTargetMismatch');
+      }
+      return Object.freeze({connectorRegistration: original.registration, connectorRevision: original.revision,
+        catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,
+        origin: original.origin, path: nativeReads
+          ? originalPath ?? material.requests[original.sources.indexOf(source)].path : source.read.path, resource, fields: Object.freeze([...fields])});
+    };
+    let material;
+    if (nativeReads) material = preparePhysicalTargets(original.sources, declared, physicalTarget, policy);
     const requestUnits = [0n, 0n, 0n, 0n, 0n, 0n];
     for (const source of original.sources) {
-      const units = restSourceRequestConstructionUnits(source.read, source.pagination.parameter);
+      const units = nativeReads ? restReadTransportConstructionUnits(material.requests[original.sources.indexOf(source)])
+        : restSourceRequestConstructionUnits(source.read, source.pagination.parameter);
       // Only one page request is entered at a time on the existing Reader.
       // All static Source snapshots are retained separately by the initializer.
       for (let index = 0; index < units.length; index++) {
@@ -147,22 +208,12 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
     // Result overlap add6 workspace slots; all are charged before acquisition.
     requestUnits[3] += 6n;
     const requestConstruction = Object.freeze({
-      capacity: checked(Reflect.apply(requestCapacity, moon, requestUnits)),
+      capacity: nativeReads ? originals.requestCapacity(requestUnits, material.requests)
+        : checked(Reflect.apply(requestCapacity, moon, requestUnits)),
       maxRequestBytes: policy.maxTargetBytes});
     const implementation = services('sourceReaderImplementation', {installation, sourceInitialization, limits: implementationLimits,
       columnCount: Math.max(...declared.views.map(view => view.fields.length)), cursorProgress: true,
       requestConstruction});
-    const targets = new Map(original.sources.map(source => [source.resource, source]));
-    const physicalTarget = (resource, fields) => {
-      const source = targets.get(resource), view = declared.views.find(view => view.resource === resource);
-      if (source === undefined || view === undefined || !Array.isArray(fields) ||
-          new Set(fields).size !== fields.length || fields.some(field => !view.fields.includes(field))) {
-        fail('RestSourceReadTargetMismatch');
-      }
-      return Object.freeze({connectorRegistration: original.registration, connectorRevision: original.revision,
-        catalogCid: declared.catalog_cid, originalStringsCid: input.originalStringsCid,
-        origin: original.origin, path: source.read.path, resource, fields: Object.freeze([...fields])});
-    };
     const connection = `${original.registration}:${input.installed.connectorId}`;
     const opened = await services('openRowSite', {installation, sourceInitialization,
       accountConfiguration: input.installed.accountConfigurationWire, connection,
@@ -176,7 +227,7 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
     const {site, authorization} = opened;
     let providerReader;
     try {
-      const material = preparePhysicalTargets(original.sources, declared, physicalTarget);
+      if (!nativeReads) material = preparePhysicalTargets(original.sources, declared, physicalTarget);
       const pages = new Map(original.sources.map((source, index) =>
         [source.resource, restSourcePageReader({moon, source, decodePage, request: material.requests[index]})]));
       // One original Host factory for the complete installation. Selecting a

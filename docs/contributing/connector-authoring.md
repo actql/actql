@@ -90,8 +90,10 @@ other, the cursor parameter and the page-size parameter. Only a canonical
 version-header name is accepted; transport and credential headers remain Host
 owned. The Host encodes query literals without normalization or reordering.
 These are finite request DATA, not a callback, permission or capacity setting.
-The Node Source constructor retains and funds the captured DATA and request
-workspace through its existing Owner. This authoring connection does not by
+The generated package retains a Common-validated `readWire` original. The Node
+Source constructor parses and funds it once, then keeps the private checked read
+and its target through the existing Owner. Each page borrows that original and
+combines one active Core request peak with Host transport construction. This authoring connection does not by
 itself establish a matching compiled normal installation or Wasm Host parity.
 The standard projector already preserves JSON row bytes and cursor identity;
 an identity projection needs no extra JavaScript file. If a projection is
@@ -115,13 +117,26 @@ From a checkout with the authoring toolkit, scaffold and project the package:
 ```sh
 node scripts/connector.mjs init /absolute/acme-author acme
 # Edit /absolute/acme-author/connector.json.
+# Select the matching distribution that exports the pure author validator.
+npm install --prefix /absolute/acme-author --save-exact "@actql/local-node@${ACTQL_HOST_VERSION:?select a matching distribution}"
 node scripts/connector.mjs build /absolute/acme-author/connector.json /absolute/acme-package
 node scripts/connector.mjs test /absolute/acme-author/connector.json /absolute/acme-package
 npm pack /absolute/acme-package --pack-destination /absolute/artifacts
 ```
 
-`test` here checks projection freshness only. It never runs a Source or
-qualifies authentication, currentness, charging, cancellation or cleanup.
+`init` needs no runtime library. `build` and `test` require the author's
+explicitly installed `@actql/local-node/connector-authoring` public entry.
+Its bounded, nonsecret JSON validation executes the package's same shipped
+pure Common codec; it creates no Host, session, Source, secret resolver or
+I/O authority. Missing exports or an older Common refuse with
+`RestAuthoringValidatorUnavailable`; the tool never compiles or loads a raw
+checkout runtime as a fallback. A package version label alone is not evidence
+that this API exists in that distribution.
+
+`test` checks projection freshness after the same pure validation. Neither
+command runs a Source or qualifies authentication, currentness, charging,
+cancellation or cleanup. The command report distinguishes pure Common
+validation from Host execution.
 Build produces the checked installation manifest, original views wire,
 Source module, package metadata and lazy `installedConnectors` export. The
 author writes no MoonBit package or per-connector Core/Host patch. The

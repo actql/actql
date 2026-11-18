@@ -10,8 +10,9 @@ import {installFinitePageSource} from '../../../host-node/installed-finite-page-
 import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
 import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
 import {prepareNotionUserListPages,NOTION_USER_LIST_OPERATION,NOTION_USER_LIST_REQUEST} from '../site/user-list-read.mjs';
-import {captureRestSourceRead,restSourceReadConstructionUnits,
-  restSourceRequestConstructionUnits} from '../../../host-node/rest-source-request.mjs';
+import {captureRestReadOriginals,restReadOriginalControlUnits,restReadTransportConstructionUnits}
+  from '../../../host-node/rest-read-original.mjs';
+import {notionUserListReadWire} from '../site/user-list-read-wire.generated.mjs';
 
 export const INSTALLED_NOTION_SOURCE_VERSION='actql-installed-notion-source/0.1';
 export const INSTALLED_NOTION_SITE_VERSION='actql-installed-notion-site/0.1';
@@ -97,11 +98,10 @@ export async function loadInstalledNotionSource(profile,{moon,providerMoon,runti
   if(!constructor||!Object.hasOwn(constructor,'value')||typeof constructor.value!=='function'||
     nodeTypes.isAsyncFunction(constructor.value))fail('NotionSourceInitializationUnavailable');
   const prepareDeclaration=constructor.value;
+  const originals=captureRestReadOriginals(moon);
   const targetConstructor=Object.getOwnPropertyDescriptor(sourceInitialization,'prepareReadTarget');
-  const constructionCapacity=Object.getOwnPropertyDescriptor(moon,'clientProgramInstalledSourceConstructionCapacity');
   if(!targetConstructor||!Object.hasOwn(targetConstructor,'value')||typeof targetConstructor.value!=='function'||
-      nodeTypes.isAsyncFunction(targetConstructor.value)||!constructionCapacity||
-      !Object.hasOwn(constructionCapacity,'value')||typeof constructionCapacity.value!=='function') {
+      nodeTypes.isAsyncFunction(targetConstructor.value)) {
     fail('NotionSourceInitializationUnavailable');
   }
   const services=captureInstalledSourceServices(installationServices,()=>Object.assign(
@@ -120,17 +120,16 @@ export async function loadInstalledNotionSource(profile,{moon,providerMoon,runti
   const{declaration,declared,environment}=Reflect.apply(prepareDeclaration,sourceInitialization,
     [[{resource,resource_kind:'notion_users',schema_wire:wire,schema_cid:sha(wire),
       facts_wire:provider.notionUserListRelationFactsWire()}],undefined]);
-  const requestConstruction=Object.freeze({capacity:checked(Reflect.apply(constructionCapacity.value,moon,
-    restSourceRequestConstructionUnits(NOTION_USER_LIST_REQUEST.read,NOTION_USER_LIST_REQUEST.pagination.parameter))),
-    maxRequestBytes:limits.maxTargetBytes});
+  const request=Reflect.apply(targetConstructor.value,sourceInitialization,[Object.freeze({
+    capacity(){return originals.composeConstruction(restReadOriginalControlUnits(1),[originals.quote(
+      notionUserListReadWire,NOTION_USER_LIST_REQUEST.pagination.parameter,limits)]);},
+    project(){return originals.project(notionUserListReadWire,NOTION_USER_LIST_REQUEST.pagination.parameter,limits);},
+  })]);
+  const requestConstruction=Object.freeze({capacity:originals.requestCapacity(
+    restReadTransportConstructionUnits(request),[request]),maxRequestBytes:limits.maxTargetBytes});
   const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,
     limits:Object.fromEntries([...readLimitKeys,'maxSecretBytes'].map(name=>[name,limits[name]])),
     columnCount:provider.notionUserListColumnNames().length,requestConstruction});
-  const request=Reflect.apply(targetConstructor.value,sourceInitialization,[Object.freeze({
-    capacity(){return checked(Reflect.apply(constructionCapacity.value,moon,
-      restSourceReadConstructionUnits(NOTION_USER_LIST_REQUEST.read,NOTION_USER_LIST_REQUEST.pagination.parameter)));},
-    project(){return captureRestSourceRead(NOTION_USER_LIST_REQUEST.read,NOTION_USER_LIST_REQUEST.pagination.parameter);},
-  })]);
   const connection=`notion:${installed.connectorId}`;
   const target=(selected,fields)=>Object.freeze({version:'actql-installed-notion-user-target/0.1',
     apiOrigin:siteProfile.apiOrigin,resource:selected,fields:Object.freeze([...fields])});

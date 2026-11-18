@@ -92,12 +92,19 @@ export function restSourcePageReader({moon, source, decodePage, request: capture
       bound.maxPages, bound.maxRows, bound.maxPageRows, bound.maxCursorBytes));
     return Object.freeze({
       fetchPage({pageIndex, rowCount}) {
-        const requestRows = cursorResult(original.clientProgramRowSourceCursorRequestRows(progress, pageIndex, rowCount,
-          request.pageSize !== undefined, request.pageSize?.limit ?? 0));
+        // The SAME progress record supplies total remaining rows and current
+        // cursor. A checked Core read owns declared size/min/query/header
+        // semantics; the legacy row-only representation keeps its old port.
+        const requestRows = typeof request.page === 'function'
+          ? cursorResult(original.clientProgramRowSourceCursorRemainingRows(progress, pageIndex, rowCount))
+          : cursorResult(original.clientProgramRowSourceCursorRequestRows(progress, pageIndex, rowCount,
+            request.pageSize !== undefined, request.pageSize?.limit ?? 0));
         const hasNext = original.clientProgramRowSourceCursorHasNext(progress);
         if (typeof hasNext !== 'boolean') fail('RestSourceCursorRuntimeBindingMismatch');
         const cursor = hasNext ? cursorResult(original.clientProgramRowSourceCursorNext(progress)) : undefined;
-        return Object.freeze(restSourcePageRequest(request, parameter, requestRows, cursor));
+        return typeof request.page === 'function'
+          ? request.page(requestRows, bound.maxPageRows, cursor)
+          : Object.freeze(restSourcePageRequest(request, parameter, requestRows, cursor));
       },
       decodePage(response, {pageIndex, rowCount}) {
         if (!response.accepted || response.statusCode !== 200) fail('RestSourceProviderRejected');

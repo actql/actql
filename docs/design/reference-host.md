@@ -1696,6 +1696,57 @@ and parsed as a new input before the same schema admission. External wire and
 ordinary JS-row consumers retain their existing checked entrances. No JS JSON
 parser, numeric conversion, cursor fallback or independent Reader is added.
 
+#### Original finite GET declarations
+
+The author tool validates an original GET declaration through its installed
+package's Common namespace. It emits the same accepted `readWire` String,
+not a Host handle, Account grant, selected Resource budget or executable callback.
+The legacy row-only installation DATA remains a separate supported representation;
+a source cannot supply both originals or mix representations in one installation.
+The shipped public author entry creates no Host, store, credential or transport.
+
+The existing Source initializer quotes the complete read inventory before
+encoding or admission. It then retains each original UTF-8 input, independent
+Core byte copy, preserving parser/tree/index, checked read, target and private
+capsule through that SAME initialization reservation. Its controller keeps the
+full failed constructor peak. No failed parse, returned object or opaque getter
+proves retirement, and no spare budget or GC release is assumed. All request
+semantics (GET, exact path, ordered literals, page-size/cursor collisions and the
+purpose-specific version header) are checked in Core. Provider-owned response
+envelopes and row/schema admission remain independent.
+
+Core originals stay inside the capsule's captured functions. The Source's JSON
+projection freezer walks only the ordinary capsule/target DATA; it cannot freeze
+or traverse a foreign native Buffer, cursor, parser or quantity. Native Option,
+Result, tuple and Array values retain their actual compiler-binding contracts.
+An opaque capacity is passed to its typed consumer, never read as a record or
+substituted with hand-built flags. Preparation-capacity failure keeps its own
+typed cause rather than being decoded as a GET grammar issue.
+
+The outgoing Reader reservation combines the existing Host transport recipe with
+the largest one-active-page Core request/frame quantity. Retained reads remain
+on the Source initializer, not on a borrowed Reader attempt. Query/header vectors
+and the page-size decimal moved into Core are counted once; Host encoding,
+owned headers and request target overlap remain charged. Target and capsule
+control graphs, copied fields, their freezer own-values/pending growth and failed
+prefixes stay in the same Source constructor inventory. These are logical Host
+allowances under existing shared tariffs, not measured backend heap or RSS.
+
+The same progress original supplies remaining rows and the present cursor. Core
+selects the minimum of that remaining ceiling, the declared page limit and the
+current reader hint without advancing progress or narrowing response admission.
+An empty cursor remains present; cursor text is neither normalized nor repaired.
+The original definition and exact checked path continue to bind each logical
+target, Account scope, schema and Saved identity. No restore/reprojection sends
+another request or establishes a current approval.
+
+The Notion user-list wire is a generated literal of its existing provider-owned
+request asset. Ordinary assembly checks that exact projection. The Host uses the
+same finite managed reader and the provider's complete object/list,
+`has_more`/cursor, variant and email projector before exposing any rows. The
+credential resource still owns secret resolution, TLS, Abort and actual send;
+request identity contains only nonsecret declaration DATA.
+
 The same reader retains response bytes, pending consumption, cancellation,
 charge disposition and physical binding retirement. A thrown charge remains
 unconfirmed even after transport close. Stop cannot acknowledge an unfinished

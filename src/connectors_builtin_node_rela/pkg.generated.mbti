@@ -2357,6 +2357,8 @@ pub fn client_program_row_source_acquisition_contracts_construction_capacity(Int
 
 pub fn client_program_row_source_admit_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_admit_get_read(Bytes, Bool, String, Array[Int]) -> Result[@client_row_source_host.RowSourceGetRead, @client_row_source_host.RowSourceGetReadIssue]
+
 pub fn client_program_row_source_advance_cursor_progress(@client_row_source_host.RowSourceCursorProgress, Int, Int, @client_row_source_host.RowSourceProjectedJsonPage, @client_row_source_host.RowSourceProjectedJsonPage) -> Result[Bool, @client_row_source_host.RowSourceCursorIssue]
 
 pub fn client_program_row_source_advance_listing_page(@client_row_source_host.RowRun, Int, Int64) -> Result[String, @client_row_source_host.RowHostIssue]
@@ -2410,6 +2412,24 @@ pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDec
 pub fn client_program_row_source_ensure_response_transfer_capacity(@client_row_source_host.RowRunResponseBorrow, Int64) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_get_page_capacity(@client_row_source_host.RowSourceGetRead) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_row_source_get_page_frame(@client_row_source_host.RowSourceGetPageRequest) -> Result[(String, String, Array[Array[String]], Array[Array[String]]), @client_row_source_host.RowSourceGetReadIssue]
+
+pub fn client_program_row_source_get_read_author_limits(Int, Int, Int, Int) -> Array[Int]?
+
+pub fn client_program_row_source_get_read_capacity(Array[Int]) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_row_source_get_read_issue_code(@client_row_source_host.RowSourceGetReadIssue) -> String
+
+pub fn client_program_row_source_get_read_metadata(@client_row_source_host.RowSourceGetRead) -> Result[(String, Bool, Int, Int, Int), @client_row_source_host.RowSourceGetReadIssue]
+
+pub fn client_program_row_source_get_read_page(@client_row_source_host.RowSourceGetRead, Int, Int, Bool, String) -> Result[@client_row_source_host.RowSourceGetPageRequest, @client_row_source_host.RowSourceGetReadIssue]
+
+pub fn client_program_row_source_get_read_wire(@client_row_source_host.RowSourceGetRead) -> Result[String, @client_row_source_host.RowSourceGetReadIssue]
+
+pub fn client_program_row_source_get_request_capacity(@execution_relation.ExecutionCapacity, Array[@execution_relation.ExecutionCapacity?]) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_row_source_grow_response_capacity(@client_row_source_host.RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, @client_row_source_host.RowHostIssue]
 

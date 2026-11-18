@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync,spawnSync} from 'node:child_process';
-import {mkdtempSync,readFileSync,writeFileSync,rmSync,readdirSync,realpathSync} from 'node:fs';
+import {mkdtempSync,readFileSync,writeFileSync,rmSync,readdirSync,realpathSync,mkdirSync,symlinkSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
@@ -15,10 +15,10 @@ test('declarative read author projection retains closed request DATA and rejects
         next: ['next_cursor'], parameter: 'after'}, limits: {maxPageRows: 100, maxPageBytes: 4096,
         maxPages: 3, maxRows: 200, maxNodes: 1024, maxDepth: 12, maxCursorBytes: 256}}}};
   const project = () => JSON.parse(projectRestConnector(definition).files['src/connectors/acme/rest-source.json']);
-  assert.deepEqual(project().sources[0].read, {method: 'GET', path: '/v1/records'});
+  assert.deepEqual(JSON.parse(project().sources[0].readWire), {method: 'GET', path: '/v1/records'});
   definition.sources.records.read = {method: 'GET', path: '/v1/records', query: [['kind', 'public']],
     pageSize: {parameter: 'page_size', limit: 100}, versionHeader: {name: 'api-version', value: '2026-03-11'}};
-  assert.deepEqual(project().sources[0].read, definition.sources.records.read);
+  assert.deepEqual(JSON.parse(project().sources[0].readWire), definition.sources.records.read);
   definition.sources.records.read.query.push(['after', 'replacement-cursor']);
   assert.throws(project, /InvalidRestConnectorDefinition:read/u);
 });
@@ -44,9 +44,15 @@ test('the public REST toolkit CLI scaffolds, builds and checks one authored pack
         maxNodes:10000,maxDepth:16,maxCursorBytes:1024},
     }}};
   const wire=JSON.stringify(definition,null,2)+'\n';writeFileSync(started.definition,wire);
+  // Source/component preparation reuses the ONE existing same-source public
+  // library build. This dev alias is not an ordinary installed-package claim,
+  // no connector compiler/pack, and its target is never mutated by the case.
+  const scope=join(author,'node_modules','@actql');mkdirSync(scope,{recursive:true});
+  symlinkSync(join(root,'packages/local-node'),join(scope,'local-node'),'dir');
   const built=JSON.parse(invoke(['build',started.definition,output]));
   assert.equal(built.registration,'acme');assert.equal(built.customMoonBitPackages,0);
-  assert.equal(built.runtimeExecuted,false);assert.deepEqual(built.authorFiles,['connector.json']);
+  assert.equal(built.runtimeExecuted,true);assert.equal(built.pureCommonValidation,true);
+  assert.equal(built.hostRuntimeExecuted,false);assert.deepEqual(built.authorFiles,['connector.json']);
   const views={views:[{resource:'customers',resource_kind:'record',fields:[
     {name:'id',type:'string',nullable:false},{name:'name',type:'string',nullable:true},
   ]}]};
@@ -64,6 +70,20 @@ test('the public REST toolkit CLI scaffolds, builds and checks one authored pack
   assert.equal(refused.status,1);assert.match(refused.stderr,/StaleRestConnectorProjection:index\.mjs/u);
   assert.equal(readFileSync(join(output,'index.mjs'),'utf8'),stale);
   assert.equal(readFileSync(started.definition,'utf8'),wire);
+});
+
+test('author build refuses a missing shipped pure validator before writing a package', t => {
+  const root=fileURLToPath(new URL('../',import.meta.url));
+  const scratch=mkdtempSync(join(realpathSync(tmpdir()),'actql-author-missing-validator-'));
+  t.after(()=>rmSync(scratch,{recursive:true,force:true}));
+  const author=join(scratch,'author'),output=join(scratch,'package');
+  const cli=join(root,'scripts/connector.mjs');
+  const initialized=spawnSync(process.execPath,[cli,'init',author,'acme'],{cwd:root,encoding:'utf8'});
+  assert.equal(initialized.status,0,initialized.stderr);
+  const refused=spawnSync(process.execPath,[cli,'build',join(author,'connector.json'),output],{cwd:root,encoding:'utf8'});
+  assert.equal(refused.status,1);assert.match(refused.stderr,/RestAuthoringValidatorUnavailable/u);
+  assert.deepEqual(readdirSync(scratch),['author']);
+  assert.deepEqual(readdirSync(author),['connector.json']);
 });
 
 test('author conformance selects the installed reference case without creating an installation', t => {

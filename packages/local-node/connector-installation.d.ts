@@ -603,16 +603,20 @@ export interface RestSourceInstallationDefinition {
   readonly profileVersion: string;
   readonly origin: string;
   readonly auth: Readonly<{kind: 'bearer'}>;
-  readonly sources: readonly Readonly<{
+  readonly sources: readonly (Readonly<{
     resource: string;
     resource_kind: string;
     fields: readonly ConnectorJsonObject[];
-    read: Readonly<{method: 'GET'; path: string}>;
     pagination: Readonly<{kind: 'none'; items: readonly string[]}> |
       Readonly<{kind: 'cursor'; items: readonly string[]; next: readonly string[]; parameter: string}>;
     limits: Readonly<{maxPageRows: number; maxPageBytes: number; maxPages: number;
       maxRows: number; maxNodes: number; maxDepth: number; maxCursorBytes: number}>;
-  }>[];
+  }> & (
+    /** Generated, Common-validated original GET retained once by the Source initializer. */
+    Readonly<{readWire: string; read?: never}> |
+    /** Existing row-only installation DATA retains its original projector. */
+    Readonly<{read: Readonly<{method: 'GET'; path: string}>; readWire?: never}>
+  ))[];
 }
 export interface RestSourceProfile {
   readonly version: string;

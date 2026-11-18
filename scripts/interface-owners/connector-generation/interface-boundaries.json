@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fb799e96209e9d48ffdccc1d6fbf125bb73dbd32f223a42b4a7729c20c355972",
+      "sha256": "d5b429c2fed7c679f240b302a8fed346572f7b9389cb9256516c71aeca019d9e",
       "exports": [
         "installedConnectors"
       ],
@@ -1539,6 +1539,163 @@
           }
         }
       ]
+    },
+    {
+      "module": "scripts/notion-user-list-read-wire.mjs",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Node connector assembly freshness owner; projects the existing provider asset into one exact literal, no runtime/semantic admission or new Owner",
+      "exports": [
+        "generateNotionUserListReadWire"
+      ],
+      "operations": [
+        {
+          "name": "generateNotionUserListReadWire",
+          "parameters": [
+            "root",
+            "write"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "generateNotionUserListReadWire"
+          ],
+          "exports": [
+            "generateNotionUserListReadWire"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "2f3af14157d8c14acd34f5ddf3daf451596f4457fb0d787a686340f36b23fe65",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }

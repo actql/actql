@@ -45,7 +45,8 @@ export function prepareNotionUserListPages({moon, names, limits, request: captur
   })));
   const bound = Object.freeze({...limits});
   const request = capturedRequest ?? captureRestSourceRead(userListRequest.read, cursorParameter);
-  if (!limitFields.every(name => positive(bound[name])) || bound.pageSize > request.pageSize.limit) fail('InvalidNotionUserListRead');
+  const declaredPageSize = typeof request.page === 'function' ? request.pageSize : request.pageSize.limit;
+  if (!limitFields.every(name => positive(bound[name])) || bound.pageSize > declaredPageSize) fail('InvalidNotionUserListRead');
   const columns = Object.freeze(provider.notionUserListColumnNames().slice());
   if (names.length > columns.length || new Set(names).size !== names.length ||
       names.some(name => !columns.includes(name))) fail('InvalidNotionUserListRead');
@@ -57,8 +58,9 @@ export function prepareNotionUserListPages({moon, names, limits, request: captur
       if (pageIndex >= bound.maxPages) fail('NotionUserListPageLimit');
       const remaining = bound.maxTotalRows - rowCount;
       if (remaining <= 0) fail('NotionUserListRowLimit');
-      const target = restSourcePageRequest(request, cursorParameter,
-        Math.min(bound.pageSize, remaining), cursor);
+      const target = typeof request.page === 'function'
+        ? request.page(remaining, bound.pageSize, cursor)
+        : restSourcePageRequest(request, cursorParameter, Math.min(bound.pageSize, remaining), cursor);
       if (Buffer.byteLength(requestTarget(target.path, target.query)) > bound.maxTargetBytes) fail('NotionUserListTargetLimit');
       return target;
     },

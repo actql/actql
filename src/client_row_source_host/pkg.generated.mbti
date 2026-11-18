@@ -53,6 +53,8 @@ pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Arr
 
 pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]
 
+pub fn admit_row_source_get_read(Bytes, String?, RowSourceGetReadLimits) -> Result[RowSourceGetRead, RowSourceGetReadIssue]
+
 pub fn advance_keyed_row_page(RowSourceRead, Int) -> Result[RowKeyedPagePoll, RowSourceIssue]
 
 pub fn advance_row_capture(RowRun, Int) -> Result[(Bool, Int64), RowHostIssue]
@@ -471,6 +473,24 @@ pub fn row_source_cursor_remaining_rows(RowSourceCursorProgress, Int, Int) -> Re
 
 pub fn row_source_cursor_request_rows(RowSourceCursorProgress, Int, Int, Int?) -> Result[Int, RowSourceCursorIssue]
 
+pub fn row_source_get_page_construction_capacity(RowSourceGetRead) -> @execution_relation.ExecutionCapacity?
+
+pub fn row_source_get_page_construction_inventory(RowSourceGetRead) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn row_source_get_page_frame(RowSourceGetPageRequest) -> Result[(String, String, Array[Array[String]], Array[Array[String]]), RowSourceGetReadIssue]
+
+pub fn row_source_get_read_construction_capacity(RowSourceGetReadLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn row_source_get_read_construction_inventory(RowSourceGetReadLimits) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn row_source_get_read_metadata(RowSourceGetRead) -> Result[(String, Bool, Int, Int, Int), RowSourceGetReadIssue]
+
+pub fn row_source_get_read_original_wire(RowSourceGetRead) -> Result[String, RowSourceGetReadIssue]
+
+pub fn row_source_get_read_page(RowSourceGetRead, Int, Int, String?) -> Result[RowSourceGetPageRequest, RowSourceGetReadIssue]
+
+pub fn row_source_get_request_construction_capacity(@execution_relation.ExecutionCapacity, Array[@execution_relation.ExecutionCapacity]) -> @execution_relation.ExecutionCapacity?
+
 pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool
 
 pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]
@@ -820,6 +840,33 @@ pub(all) enum RowSourceEvidenceIssue {
   InvalidPolicy
   Encoding(@encode_core.EncodeFailure)
   Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
+type RowSourceGetPageRequest
+
+type RowSourceGetRead
+
+pub(all) enum RowSourceGetReadIssue {
+  InvalidLimits
+  InvalidRead
+  InvalidPath
+  InvalidQuery
+  DuplicateParameter
+  InvalidPageSize
+  InvalidHeader
+  InvalidCursor
+  ForeignRead
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RowSourceGetReadLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_path_bytes : Int
+  max_query_pairs : Int
+  max_query_value_units : Int
+  max_header_name_bytes : Int
+  max_header_value_bytes : Int
 }
 
 pub(all) enum RowSourceIssue {

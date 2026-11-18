@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "fa7478fa13fa8f2b9be7484f9572ff3a5a7e22acde93e399e5de67473eae2094",
+      "sha256": "b33142b1cabe0f790190ac14e3ed352aa9d7238cf7eb7d96c814409da7754b0a",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -1423,7 +1423,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "da50b7f9d427f8e6a7e825005b27ac129073cc768fa195fd1f782340ad1aee9c",
+      "sha256": "88c94553cf2bcd66b7d6f63f879f50842ce49c21662973583cb33c966ec2ed53",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
@@ -1575,8 +1575,9 @@
         "../../../host-node/installed-finite-page-source.mjs",
         "../../../host-node/installed-host-services.mjs",
         "../../../host-node/installed-row-source.mjs",
-        "../../../host-node/rest-source-request.mjs",
+        "../../../host-node/rest-read-original.mjs",
         "../../../host-node/source-profile-json.mjs",
+        "../site/user-list-read-wire.generated.mjs",
         "../site/user-list-read.mjs",
         "node:crypto",
         "node:path",
@@ -2519,6 +2520,148 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/notion/site/user-list-read-wire.generated.mjs",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Notion provider-authored user-list request asset; generated exact literal only, no semantic parser or Host permission issuer",
+      "exports": [
+        "notionUserListReadWire"
+      ],
+      "operations": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "notionUserListReadWire"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "5b97216a712735c4eccf1c3847856d5f35c37c2d31c7ab910ec64aa8a00961c8",
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }

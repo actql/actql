@@ -69594,7 +69594,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_row_json_page_bridge.mbt",
-      "sha256": "6b1c08cf3277b845b2f89615c2fbc1ad5e597dba4104163763ff7a1e19975821",
+      "sha256": "0821413f3e296fd8fee49e75a56ad86b03a575e03bf0f85b2e0c32994b866a00",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -69603,6 +69603,10 @@
         {
           "name": "client_program_row_source_accept_charged_projected_page",
           "declaration": "client_program_row_source_accept_charged_projected_page ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_row_source_admit_get_read",
+          "declaration": "client_program_row_source_admit_get_read ( wire : Bytes , cursor_present : Bool , cursor_parameter : String , limits : Array [ Int ] , ) - > Result [ @ client_row_source_host . RowSourceGetRead , @ client_row_source_host . RowSourceGetReadIssue , ]"
         },
         {
           "name": "client_program_row_source_advance_cursor_progress",
@@ -69627,6 +69631,42 @@
         {
           "name": "client_program_row_source_cursor_request_rows",
           "declaration": "client_program_row_source_cursor_request_rows ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , page_size_present : Bool , page_size : Int , ) - > Result [ Int , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_get_page_capacity",
+          "declaration": "client_program_row_source_get_page_capacity ( read : @ client_row_source_host . RowSourceGetRead , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_row_source_get_page_frame",
+          "declaration": "client_program_row_source_get_page_frame ( page : @ client_row_source_host . RowSourceGetPageRequest , ) - > Result [ ( String , String , Array [ Array [ String ] ] , Array [ Array [ String ] ] ) , @ client_row_source_host . RowSourceGetReadIssue , ]"
+        },
+        {
+          "name": "client_program_row_source_get_read_author_limits",
+          "declaration": "client_program_row_source_get_read_author_limits ( query_pairs : Int , query_units : Int , header_name_bytes : Int , header_value_bytes : Int , ) - > Array [ Int ] ?"
+        },
+        {
+          "name": "client_program_row_source_get_read_capacity",
+          "declaration": "client_program_row_source_get_read_capacity ( limits : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_row_source_get_read_issue_code",
+          "declaration": "client_program_row_source_get_read_issue_code ( issue : @ client_row_source_host . RowSourceGetReadIssue , ) - > String"
+        },
+        {
+          "name": "client_program_row_source_get_read_metadata",
+          "declaration": "client_program_row_source_get_read_metadata ( read : @ client_row_source_host . RowSourceGetRead , ) - > Result [ ( String , Bool , Int , Int , Int ) , @ client_row_source_host . RowSourceGetReadIssue , ]"
+        },
+        {
+          "name": "client_program_row_source_get_read_page",
+          "declaration": "client_program_row_source_get_read_page ( read : @ client_row_source_host . RowSourceGetRead , remaining_rows : Int , page_hint : Int , cursor_present : Bool , cursor : String , ) - > Result [ @ client_row_source_host . RowSourceGetPageRequest , @ client_row_source_host . RowSourceGetReadIssue , ]"
+        },
+        {
+          "name": "client_program_row_source_get_read_wire",
+          "declaration": "client_program_row_source_get_read_wire ( read : @ client_row_source_host . RowSourceGetRead , ) - > Result [ String , @ client_row_source_host . RowSourceGetReadIssue ]"
+        },
+        {
+          "name": "client_program_row_source_get_request_capacity",
+          "declaration": "client_program_row_source_get_request_capacity ( transport : @ execution . ExecutionCapacity , pages : Array [ @ execution . ExecutionCapacity ? ] , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_row_source_json_page_has_next_cursor",
@@ -69671,6 +69711,10 @@
         {
           "name": "client_program_row_source_typed_json_page_row_count",
           "declaration": "client_program_row_source_typed_json_page_row_count ( page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Int"
+        },
+        {
+          "name": "get_read_bridge_limits",
+          "declaration": "get_read_bridge_limits ( limits : Array [ Int ] , ) - > @ client_row_source_host . RowSourceGetReadLimits ?"
         }
       ],
       "contracts": [
@@ -69812,6 +69856,140 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_row_source_admit_get_read",
+            "client_program_row_source_get_page_capacity",
+            "client_program_row_source_get_page_frame",
+            "client_program_row_source_get_read_author_limits",
+            "client_program_row_source_get_read_capacity",
+            "client_program_row_source_get_read_issue_code",
+            "client_program_row_source_get_read_metadata",
+            "client_program_row_source_get_read_page",
+            "client_program_row_source_get_read_wire",
+            "client_program_row_source_get_request_capacity",
+            "get_read_bridge_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
               }
             ]
           }
@@ -71368,7 +71546,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_row_json_page_bridge.mbt",
-      "sha256": "b037c8aed37e194460298b99476e0e77551aee79487f6bad809787a076739a67",
+      "sha256": "cd1cc35555ceb1100ba5e67d5a7b3d8c4360f156b7cbf615c2b3b328fd496fdc",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -71377,6 +71555,10 @@
         {
           "name": "client_program_row_source_accept_charged_projected_page",
           "declaration": "client_program_row_source_accept_charged_projected_page ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
+        },
+        {
+          "name": "client_program_row_source_admit_get_read",
+          "declaration": "client_program_row_source_admit_get_read ( wire : Bytes , cursor_present : Bool , cursor_parameter : String , limits : Array [ Int ] , ) - > Result [ @ client_row_source_host . RowSourceGetRead , @ client_row_source_host . RowSourceGetReadIssue , ]"
         },
         {
           "name": "client_program_row_source_advance_cursor_progress",
@@ -71401,6 +71583,42 @@
         {
           "name": "client_program_row_source_cursor_request_rows",
           "declaration": "client_program_row_source_cursor_request_rows ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , page_size_present : Bool , page_size : Int , ) - > Result [ Int , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_get_page_capacity",
+          "declaration": "client_program_row_source_get_page_capacity ( read : @ client_row_source_host . RowSourceGetRead , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_row_source_get_page_frame",
+          "declaration": "client_program_row_source_get_page_frame ( page : @ client_row_source_host . RowSourceGetPageRequest , ) - > Result [ ( String , String , Array [ Array [ String ] ] , Array [ Array [ String ] ] ) , @ client_row_source_host . RowSourceGetReadIssue , ]"
+        },
+        {
+          "name": "client_program_row_source_get_read_author_limits",
+          "declaration": "client_program_row_source_get_read_author_limits ( query_pairs : Int , query_units : Int , header_name_bytes : Int , header_value_bytes : Int , ) - > Array [ Int ] ?"
+        },
+        {
+          "name": "client_program_row_source_get_read_capacity",
+          "declaration": "client_program_row_source_get_read_capacity ( limits : Array [ Int ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_row_source_get_read_issue_code",
+          "declaration": "client_program_row_source_get_read_issue_code ( issue : @ client_row_source_host . RowSourceGetReadIssue , ) - > String"
+        },
+        {
+          "name": "client_program_row_source_get_read_metadata",
+          "declaration": "client_program_row_source_get_read_metadata ( read : @ client_row_source_host . RowSourceGetRead , ) - > Result [ ( String , Bool , Int , Int , Int ) , @ client_row_source_host . RowSourceGetReadIssue , ]"
+        },
+        {
+          "name": "client_program_row_source_get_read_page",
+          "declaration": "client_program_row_source_get_read_page ( read : @ client_row_source_host . RowSourceGetRead , remaining_rows : Int , page_hint : Int , cursor_present : Bool , cursor : String , ) - > Result [ @ client_row_source_host . RowSourceGetPageRequest , @ client_row_source_host . RowSourceGetReadIssue , ]"
+        },
+        {
+          "name": "client_program_row_source_get_read_wire",
+          "declaration": "client_program_row_source_get_read_wire ( read : @ client_row_source_host . RowSourceGetRead , ) - > Result [ String , @ client_row_source_host . RowSourceGetReadIssue ]"
+        },
+        {
+          "name": "client_program_row_source_get_request_capacity",
+          "declaration": "client_program_row_source_get_request_capacity ( transport : @ execution . ExecutionCapacity , pages : Array [ @ execution . ExecutionCapacity ? ] , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_row_source_json_page_has_next_cursor",
@@ -71445,6 +71663,10 @@
         {
           "name": "client_program_row_source_typed_json_page_row_count",
           "declaration": "client_program_row_source_typed_json_page_row_count ( page : @ client_row_source_host . RowSourceProjectedJsonPage , ) - > Int"
+        },
+        {
+          "name": "get_read_bridge_limits",
+          "declaration": "get_read_bridge_limits ( limits : Array [ Int ] , ) - > @ client_row_source_host . RowSourceGetReadLimits ?"
         }
       ],
       "contracts": [
@@ -71586,6 +71808,140 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable request rows join the same cursor without narrowing response admission"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_row_source_admit_get_read",
+            "client_program_row_source_get_page_capacity",
+            "client_program_row_source_get_page_frame",
+            "client_program_row_source_get_read_author_limits",
+            "client_program_row_source_get_read_capacity",
+            "client_program_row_source_get_read_issue_code",
+            "client_program_row_source_get_read_metadata",
+            "client_program_row_source_get_read_page",
+            "client_program_row_source_get_read_wire",
+            "client_program_row_source_get_request_capacity",
+            "get_read_bridge_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
               }
             ]
           }
@@ -105824,6 +106180,7 @@
       "referenceQualification": "Original Source occurrence/catalogue and same Request construction/failed-child responsibilities only; no artifact, ordinary or physical acceptance."
     },
     {
+<<<<<<< HEAD
       "module": "src/client_local_host/preparation_request_original_failure.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
@@ -105834,65 +106191,215 @@
           "operations": [
             "request_program_authoring_context_issue_code",
             "request_program_normalization_issue_code"
+=======
+      "module": "src/client_row_source_host/get_read_request.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common preserving request DATA, decoder, cursor and nominal page Owner; no Source/current/read or resource issuer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_row_source_get_read",
+          "declaration": "admit_row_source_get_read ( bytes : Bytes , cursor_parameter : String ? , limits : RowSourceGetReadLimits , ) - > Result [ RowSourceGetRead , RowSourceGetReadIssue ]"
+        },
+        {
+          "name": "get_read_header",
+          "declaration": "get_read_header ( name : String , value : String , limits : RowSourceGetReadLimits , ) - > Bool"
+        },
+        {
+          "name": "get_read_name_taken",
+          "declaration": "get_read_name_taken ( query : Array [ ( String , String ) ] , cursor : String ? , name : String , ) - > Bool"
+        },
+        {
+          "name": "get_read_no_control",
+          "declaration": "get_read_no_control ( text : String , space : Bool ) - > Bool"
+        },
+        {
+          "name": "get_read_parameter",
+          "declaration": "get_read_parameter ( name : String ) - > Bool"
+        },
+        {
+          "name": "get_read_path",
+          "declaration": "get_read_path ( path : String , bound : Int ) - > Bool"
+        },
+        {
+          "name": "get_read_text",
+          "declaration": "get_read_text ( object : @ decode . ObjectView , name : String , ) - > String raise GetReadStop"
+        },
+        {
+          "name": "row_source_get_page_frame",
+          "declaration": "row_source_get_page_frame ( page : RowSourceGetPageRequest , ) - > Result [ ( String , String , Array [ Array [ String ] ] , Array [ Array [ String ] ] ) , RowSourceGetReadIssue , ]"
+        },
+        {
+          "name": "row_source_get_read_metadata",
+          "declaration": "row_source_get_read_metadata ( read : RowSourceGetRead , ) - > Result [ ( String , Bool , Int , Int , Int ) , RowSourceGetReadIssue ]"
+        },
+        {
+          "name": "row_source_get_read_original_wire",
+          "declaration": "row_source_get_read_original_wire ( read : RowSourceGetRead , ) - > Result [ String , RowSourceGetReadIssue ]"
+        },
+        {
+          "name": "row_source_get_read_page",
+          "declaration": "row_source_get_read_page ( read : RowSourceGetRead , remaining_rows : Int , page_hint : Int , cursor : String ? , ) - > Result [ RowSourceGetPageRequest , RowSourceGetReadIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_row_source_get_read",
+            "get_read_header",
+            "get_read_name_taken",
+            "get_read_no_control",
+            "get_read_parameter",
+            "get_read_path",
+            "get_read_text",
+            "row_source_get_page_frame",
+            "row_source_get_read_metadata",
+            "row_source_get_read_original_wire",
+            "row_source_get_read_page"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
+<<<<<<< HEAD
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request normalization and authoring failure projection"
+=======
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "inputsOutputs": [
               {
+<<<<<<< HEAD
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request normalization and authoring failure projection"
+=======
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "identity": [
               {
+<<<<<<< HEAD
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request normalization and authoring failure projection"
+=======
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "ownership": [
               {
+<<<<<<< HEAD
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request normalization and authoring failure projection"
+=======
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "synchronization": [
               {
+<<<<<<< HEAD
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request normalization and authoring failure projection"
+=======
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "failure": [
               {
+<<<<<<< HEAD
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request normalization and authoring failure projection"
+=======
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "cancellation": [
               {
+<<<<<<< HEAD
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request normalization and authoring failure projection"
+=======
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "resources": [
               {
+<<<<<<< HEAD
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request normalization and authoring failure projection"
+=======
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "extension": [
               {
+<<<<<<< HEAD
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request normalization and authoring failure projection"
+=======
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ],
             "verification": [
               {
+<<<<<<< HEAD
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request normalization and authoring failure projection"
               },
@@ -105903,11 +106410,36 @@
               {
                 "path": "src/client_local_host/preparation_request_authoring_js_wbtest.mbt",
                 "anchor": "test \"Request original normalization and authoring project actual same-parent capacity refusals\""
+=======
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
               }
             ]
           }
         }
       ],
+<<<<<<< HEAD
       "exports": [],
       "operations": [
         {
@@ -105920,6 +106452,175 @@
         }
       ],
       "sha256": "49cadf2f1507f058f641436de7e4eca816e5b3eb48bdd2eae19f9a5e1293a704"
+=======
+      "sha256": "65e438612e1c3cb25ba7d833f06bf9f61c301b0824b045f2954afe0417f2da99"
+    },
+    {
+      "module": "src/client_row_source_host/get_read_construction.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common construction inventory and shared capacity arithmetic; same Source/Reader reservations remain with actual Host owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "get_read_limits_valid",
+          "declaration": "get_read_limits_valid ( limits : RowSourceGetReadLimits ) - > Bool"
+        },
+        {
+          "name": "row_source_get_page_construction_capacity",
+          "declaration": "row_source_get_page_construction_capacity ( read : RowSourceGetRead , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "row_source_get_page_construction_inventory",
+          "declaration": "row_source_get_page_construction_inventory ( read : RowSourceGetRead , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "row_source_get_read_construction_capacity",
+          "declaration": "row_source_get_read_construction_capacity ( limits : RowSourceGetReadLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "row_source_get_read_construction_inventory",
+          "declaration": "row_source_get_read_construction_inventory ( limits : RowSourceGetReadLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "row_source_get_request_construction_capacity",
+          "declaration": "row_source_get_request_construction_capacity ( transport : @ execution . ExecutionCapacity , pages : Array [ @ execution . ExecutionCapacity ] , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "get_read_limits_valid",
+            "row_source_get_page_construction_capacity",
+            "row_source_get_page_construction_inventory",
+            "row_source_get_read_construction_capacity",
+            "row_source_get_read_construction_inventory",
+            "row_source_get_request_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "#### Original finite GET declarations"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Original finite GET request DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration retains original query header and nominal request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_request_wbtest.mbt",
+                "anchor": "portable GET declaration refuses ambiguous or authority shaped request DATA"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET construction keeps same original reservation before parse and detached page"
+              },
+              {
+                "path": "src/client_row_source_host/get_read_construction_wbtest.mbt",
+                "anchor": "portable GET Reader composes one active request peak with same transport quantity"
+              },
+              {
+                "path": "packages/local-node/connector-installation.typecheck.mts",
+                "anchor": "competingRestReads"
+              },
+              {
+                "path": "scripts/notion-user-list-read-wire.mjs",
+                "anchor": "generateNotionUserListReadWire"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "ad6733b3a4b9b40fdb201c9463392e7939321c2ec25239938d79ce90bd5b9f69"
+>>>>>>> 73edce8677 (feat(source): retain checked GET declarations across managed reads)
     }
   ]
 }

@@ -360,3 +360,28 @@ ClientInstalledWholeSourceCapacity, checks that Source's nominal acquisition and
 liveness, then forwards the actual checked input width. Constructor max_columns
 and saved counts are not width evidence; a foreign equal-schema capacity refuses.
 The legacy unbound identity APIs keep their original defaults.
+
+## Original finite GET request DATA
+
+`RowSourceGetRead` retains the original preserving parser, its own input copy,
+checked path/query/version header and declared page-size/cursor meaning in the
+same namespace. It is pure DATA without a Source permission, Ledger, current
+observation or physical resource. The author entry returns only the original
+wire. The installed Source quotes and reserves the complete parse/target
+construction before admission and keeps this original through Source retirement.
+
+`row_source_get_read_page` derives one request from that original, remaining
+rows, current hint and an optional exact cursor. Its detached tuple vectors may
+be mutated by a consumer without changing the original read or a checked page.
+Empty/decomposed-Unicode cursors, literal order and version bytes are preserved.
+A copied/foreign read, duplicate/colliding parameter, transport header, unsafe
+path or invalid limit refuses before request construction. Provider response
+semantics and full row admission remain with their existing owners.
+
+The construction inventories compose shared preserving-parser, decoder/issue,
+collection-growth and representation units. They fund original input+copy and
+invalid-prefix overlap; quantities issue no reservation or authority. The same
+Reader combines one active request/frame peak with its still-live Host transport
+quantity, rather than summing unrelated per-source page attempts or dropping
+Host encoding. Native Options/tuples/Arrays use the actual canonical bridge;
+opaque quantities do not acquire record fields merely from numeric positions.

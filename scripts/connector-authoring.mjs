@@ -3,7 +3,7 @@
 import {existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {dirname, join, parse, resolve, sep} from 'node:path';
 import {checkHostBundle, generateInstallations} from './connector-host-bundles.mjs';
-import {captureRestSourceRead} from '../adapters/host-node/rest-source-request.mjs';
+import {createRequire} from 'node:module';
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const shape = (value, required, optional = []) => record(value) &&
@@ -28,7 +28,30 @@ const freeze = value => {
 const selectedHostVersion = JSON.parse(readFileSync(new URL('../packages/local-node/package.json',
   import.meta.url), 'utf8')).version;
 
-export function projectRestConnector(definition, {hostPackageVersion = selectedHostVersion} = {}) {
+function installedReadValidator(authorRoot) {
+  // CLI callers resolve the author's explicitly installed dependency. The
+  // repository's source/component caller selects its SAME prepared public
+  // package entry; neither route falls back to a raw runtime or compiler.
+  const selected = authorRoot === undefined
+    ? new URL('../packages/local-node/package.json', import.meta.url)
+    : join(resolve(authorRoot), 'package.json');
+  let namespace;
+  try {namespace = createRequire(selected)('@actql/local-node/connector-authoring');}
+  catch (cause) {
+    if (cause?.code === 'MODULE_NOT_FOUND' || cause?.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
+      throw Object.assign(new Error('RestAuthoringValidatorUnavailable: install a matching @actql/local-node in the author project'),
+        {code: 'RestAuthoringValidatorUnavailable'});
+    }
+    throw cause;
+  }
+  const method = Object.getOwnPropertyDescriptor(namespace, 'validateRestReadDeclaration');
+  if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') {
+    throw Object.assign(new Error('RestAuthoringValidatorUnavailable'), {code: 'RestAuthoringValidatorUnavailable'});
+  }
+  return method.value.bind(namespace);
+}
+
+export function projectRestConnector(definition, {hostPackageVersion = selectedHostVersion, authorRoot} = {}) {
   if (!shape(definition, ['version', 'id', 'origin', 'auth', 'sources'], ['transform']) ||
       definition.version !== 'actql-rest-connector/0.1' || !name(definition.id) ||
       !shape(definition.auth, ['kind']) || definition.auth.kind !== 'bearer' ||
@@ -40,24 +63,22 @@ export function projectRestConnector(definition, {hostPackageVersion = selectedH
       origin.username || origin.password) fail('origin');
   if (definition.transform !== undefined && (!relative(definition.transform) ||
       !definition.transform.endsWith('.mjs'))) fail('transform');
+  const validateRead = installedReadValidator(authorRoot);
   const sources = Object.entries(definition.sources).map(([resource, source]) => {
     if (!name(resource) || !shape(source, ['fields', 'read', 'pagination', 'limits']) ||
-        !Array.isArray(source.fields) || source.fields.length === 0 ||
-        !shape(source.read, ['method', 'path'], ['query', 'pageSize', 'versionHeader']) || source.read.method !== 'GET' ||
-        typeof source.read.path !== 'string' || !source.read.path.startsWith('/') ||
-        source.read.path.startsWith('//') || /[\\?#\u0000-\u0020\u007f]/u.test(source.read.path)) fail('source');
-    const target = new URL(source.read.path, origin);
-    if (target.origin !== origin.origin || target.pathname !== source.read.path ||
-        /%(?:2f|5c|2e)/iu.test(source.read.path)) fail('path');
+        !Array.isArray(source.fields) || source.fields.length === 0 || !record(source.read)) fail('source');
     const p = source.pagination;
     const cursor = shape(p, ['kind', 'items', 'next', 'parameter']) && p.kind === 'cursor' &&
       propertyPath(p.next) && typeof p.parameter === 'string' &&
       /^[a-zA-Z][a-zA-Z0-9_]*$/u.test(p.parameter);
     const single = shape(p, ['kind', 'items']) && p.kind === 'none';
     if ((!cursor && !single) || !propertyPath(p.items)) fail('pagination');
-    let read;
-    try {read = captureRestSourceRead(source.read, cursor ? p.parameter : undefined);}
-    catch {fail('read');}
+    let readWire;
+    try {readWire = validateRead(JSON.stringify(source.read), cursor ? p.parameter : undefined);}
+    catch (cause) {
+      if (cause?.code === 'RestAuthoringValidatorUnavailable') throw cause;
+      throw new Error('InvalidRestConnectorDefinition:read', {cause});
+    }
     const limits = source.limits;
     const keys = ['maxPageRows', 'maxPageBytes', 'maxPages', 'maxRows',
       'maxNodes', 'maxDepth', 'maxCursorBytes'];
@@ -66,7 +87,7 @@ export function projectRestConnector(definition, {hostPackageVersion = selectedH
     // Pass the original typed schema DATA to Common. This is not a second
     // schema/type checker, no generated hash or independent business oracle.
     return {resource, resource_kind: 'record', fields: source.fields,
-      read, pagination: p, limits};
+      readWire, pagination: p, limits};
   });
   const id = definition.id, profileVersion = `actql-installed-${id.replaceAll('_', '-')}-rest-source/0.1`;
   const module = `adapters/connectors/${id}/host/installation.mjs`;
@@ -123,7 +144,7 @@ export function writeRestConnector({definitionPath, outputRoot, check = false}) 
   const authorRoot = dirname(resolve(definitionPath)), root = resolve(outputRoot);
   const host = JSON.parse(readFileSync(new URL('../packages/local-node/package.json', import.meta.url), 'utf8'));
   const projection = projectRestConnector(JSON.parse(readFileSync(definitionPath, 'utf8')),
-    {hostPackageVersion: host.version});
+    {hostPackageVersion: host.version, authorRoot});
   const files = {...projection.files};
   if (projection.transform !== undefined) {
     let path = authorRoot;
@@ -161,7 +182,8 @@ export function writeRestConnector({definitionPath, outputRoot, check = false}) 
   return Object.freeze({registration: projection.registration,
     files: Object.freeze([...Object.keys(files), 'index.mjs'].sort()),
     authorFiles: Object.freeze(['connector.json', ...(projection.transform ? [projection.transform.source] : [])]),
-    customMoonBitPackages: 0, runtimeExecuted: false});
+    customMoonBitPackages: 0, runtimeExecuted: true,
+    pureCommonValidation: true, hostRuntimeExecuted: false});
 }
 
 export function initRestConnector(directory, id) {
