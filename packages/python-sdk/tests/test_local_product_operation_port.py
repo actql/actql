@@ -27,6 +27,42 @@ PORT_INTENT = b'{"kind":"aql","input":{"text":"/*\xf0\x9f\x98\x80*/\\r\\nSELECT 
 
 
 class LocalOperationPortTests(unittest.IsolatedAsyncioTestCase):
+    async def test_rejected_worker_handoff_leaves_no_uninvoked_host_entry_or_replay(self):
+        with TemporaryDirectory(prefix='actql-operation-handoff-') as directory:
+            host, core, events, admission = self.host(Path(directory))
+            client = await AsyncClient._connect_local(host)
+            original = json.loads(input_fixture.INTENT)
+            ref = client.new_submission(nonce='original')
+            failure = RuntimeError('explicit original operation handoff refusal')
+            preimage = json.dumps({'intent': original, 'version': 'actql-submitted-intent/0.1'},
+                ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
+            unresolved = {'kind': 'unresolvable', 'submissionRef': thaw(ref),
+                'problem': {'code': 'submission_history_unresolvable'}}
+            # Explicit saved-read DATA port: the older scalar assembly fixture
+            # has no current submission-observation metadata. Run acceptance,
+            # SQLite writes, worker handoff and subsequent Host entry stay real.
+            observed = wire_bytes({'action': 'missing',
+                'intentCid': 'sha256:' + hashlib.sha256(preimage).hexdigest(),
+                'outcome': unresolved})
+            with patch.object(host, '_read_original_reference',
+                    side_effect=[observed, wire_bytes(unresolved)]) as read:
+                with patch.object(core, '_retain_work_operation', side_effect=failure) as rejected:
+                    with self.assertRaises(ClientError) as failed:
+                        await client.start_source(original['input']['text'], format='sql',
+                            parameters=original['parameters'], submission_ref=ref,
+                            attempt_id='original-invocation')
+                rejected.assert_called_once()
+                observed = await client.lookup_submission(ref)
+                self.assertEqual(observed['kind'], 'unresolvable')
+                self.assertEqual(read.call_count, 2)
+            self.assertEqual(failed.exception.code, 'SubmissionUnknown')
+            self.assertEqual(host._physical_work, [])
+            host._execute_original_admitted_run.assert_not_called()
+            self.assertEqual(failed.exception.submission_ref, ref)
+            self.assertEqual(events.count(('run', 'prepare_sdk')), 1)
+            await client.aclose()
+            self.assertTrue(core._closed)
+
     def host(self, path, intent=PORT_INTENT):
         selected = patch.object(input_fixture, 'INTENT', intent)
         selected.start()

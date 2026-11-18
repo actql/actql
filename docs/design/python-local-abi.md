@@ -3341,6 +3341,15 @@ they do not start a replacement operation or replenish fuel. Nominal worker
 custody and the independently retained original Run reference locate this path.
 The existing Account and complete journal validators still authorize each call.
 
+If the trusted fresh CPython thread constructor rejects creation before any
+child identity exists, the same worker returns only its retained operation
+scope. It preserves the original startup failure and does not refill fuel or
+acknowledge task cleanup. A failed atomic handoff removes its uninvoked Host
+entry. If a child exists, or creation is uncertain, the same physical Future,
+Core and allowance remain retained; a caller-visible startup error does not
+prevent an already-admitted Run from executing. Actual worker exit still
+returns that custody, and no startup path retries or issues another Run.
+
 Managed task driving returns its physical reader and Core lock after each bounded
 quantum. A saved cancellation invalidates the original start claim before any
 later normal quantum. The worker retires the same task operations on refusal;

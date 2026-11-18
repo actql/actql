@@ -26,6 +26,8 @@ class OriginalLocalWork:
         self._on_exit = on_exit
         self._exit_error: BaseException | None = None
         self._cleanup_error: BaseException | None = None
+        self._start_error: BaseException | None = None
+        self._creation_refused = False
         self._future: Future[None] = Future()
         self._thread = Thread(target=self._run, name='actql-local-original-work', daemon=False)
         self._invoked = False
@@ -41,12 +43,25 @@ class OriginalLocalWork:
         self._invoked = True
         # Mark the independent physical Future running before creating work;
         # cancellation of a loop wrapper cannot cancel this actual invocation.
-        if not self._future.set_running_or_notify_cancel():
-            raise RuntimeError('Original Local physical invocation is unavailable')
         try:
+            if not self._future.set_running_or_notify_cancel():
+                raise RuntimeError('Original Local physical invocation is unavailable')
             self._thread.start()
         except BaseException as error:
-            self._future.set_exception(error)
+            self._start_error = error
+            # For this owned fresh CPython Thread, a RuntimeError with no
+            # native identity is a rejected creation. Other failures may have
+            # created a child: keep its actual Future and custody untouched.
+            if (type(error) is RuntimeError and self._thread.ident is None
+                    and not self._thread.is_alive()):
+                self._creation_refused = True
+                try:
+                    if self._on_exit is not None:
+                        self._on_exit(self)
+                except BaseException as cleanup:
+                    self._exit_error = cleanup
+                if not self._future.done():
+                    self._future.set_exception(error)
             raise
 
     def _run(self) -> None:
@@ -79,6 +94,8 @@ class OriginalLocalWork:
         if not self._invoked:
             raise RuntimeError('Original Local physical invocation has not started')
         await self.wait_stopped()
+        if self._creation_refused and self._start_error is not None:
+            raise self._start_error
         # Observe the independent physical outcome only after actual stop.
         # No loop-owned Future can acquire cancellation custody or retain an
         # unobserved exception when the original awaiting coroutine disappears.

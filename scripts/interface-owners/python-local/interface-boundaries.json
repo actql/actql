@@ -8274,7 +8274,7 @@
           "async": false
         }
       ],
-      "sha256": "077e777a2000b9b79afe496642c741402676efa10a4a3afe440260b346f41693",
+      "sha256": "611eff3d7c177f6e395b33791efa70934a042789498c60acf2cf5b9938e8437e",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -15442,6 +15442,14 @@
               {
                 "path": "scripts/fixtures/python-local-public-cancellation-abi.py",
                 "anchor": "assert final['status'] == 'cancelled' and not final['result_available']"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "def test_failed_thread_creation_returns_only_original_undispatched_operation("
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "def test_start_error_after_real_child_preserves_its_original_fuel_and_outcome("
               }
             ]
           }
@@ -53463,7 +53471,7 @@
           "async": false
         }
       ],
-      "sha256": "f2bacf87ba3b44036074bfe3fc775a6b2b74c5a3e0f5739928693849d08dae42",
+      "sha256": "19e3d5326199c86df586d41c459437d92bbdd50ce3e089c754f129e67e33e495",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -54134,6 +54142,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
                 "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_product_operation_port.py",
+                "anchor": "async def test_rejected_worker_handoff_leaves_no_uninvoked_host_entry_or_replay("
               }
             ]
           }
@@ -67838,7 +67850,7 @@
           "async": true
         }
       ],
-      "sha256": "e0ce39796abfa018d589d630c0527b431926eb10a6db889ad90e822f2e38c398",
+      "sha256": "78ee4fb51cb6dc813033357178dfaf69bd91f9a25c1c8b18c4478ff39cb9891d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -67979,6 +67991,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
                 "anchor": "class OriginalLocalWork:"
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "def test_failed_thread_creation_returns_only_original_undispatched_operation("
+              },
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-original.py",
+                "anchor": "def test_start_error_after_real_child_preserves_its_original_fuel_and_outcome("
               }
             ]
           }

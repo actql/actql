@@ -1179,7 +1179,11 @@ class LocalCore:
         yield False
 
     def _finish_work_operation(self, work: OriginalLocalWork) -> None:
-        """Relinquish only the allowance held by this original worker."""
+        """Return this original allowance on worker exit or rejected creation.
+
+        A trusted no-child constructor refusal returns operation custody only;
+        it is not a task stop/cleanup acknowledgment and never refreshes fuel.
+        """
         work._nominal()
         with self._lock:
             ordinary = getattr(self, '_ordinary_host', False)
@@ -1188,7 +1192,9 @@ class LocalCore:
                     ordinary and (retained[1] is not self._host_operation_scope or
                     retained[2] != self._host_operation_id or
                     self._host_fuel_phase != 'operation') or self._invoking or
-                    not work._invoked or work._thread is not current_thread()):
+                    not work._invoked or (work._thread is not current_thread() and not (
+                        work._creation_refused and work._thread.ident is None
+                        and not work._thread.is_alive()))):
                 raise RuntimeError('Original Host physical operation custody changed')
             if ordinary:
                 self._host_operation_id = 0

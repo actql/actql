@@ -515,7 +515,13 @@ class InstalledLocalHost:
             # awaiting coroutine disappears. Host close observes actual worker
             # stop before touching its Core/File/Store loans; no automatic retry.
             self._physical_work.append(work)
-            self._core._retain_work_operation(work)
+            try:
+                self._core._retain_work_operation(work)
+            except BaseException:
+                # Retain is atomic and never invokes this child. A rejected
+                # handoff must not leave an uninvoked worker in Host cleanup.
+                self._physical_work.remove(work)
+                raise
             work.start()
         with self._core._lock:
             response = httpx.Response(200, headers={'content-type': 'application/json',
