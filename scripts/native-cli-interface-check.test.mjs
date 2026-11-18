@@ -10,7 +10,7 @@ import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
 import {nativeCliLauncherInputs} from './native-cli-package-inputs.mjs';
 import {checkStagedNativeCliInterfaces} from './native-cli-interface-check.mjs';
-import {admitInstalledNativeArtifactMaterial} from './native-cli-artifact-reader.mjs';
+import {admitInstalledNativeArtifact, admitInstalledNativeArtifactMaterial} from './native-cli-artifact-reader.mjs';
 import {withNativeMockReleaseAdmission, originalNativeMockReleaseAdmission} from './native-cli-release.mjs';
 import {retainNativeMockCampaignInputs} from './native-mock-campaign-inputs.mjs';
 import {inventory} from './package-release.mjs';
@@ -267,6 +267,8 @@ test('same-call installed artifact reader retains its actual runtime material an
   const f = await localRuntimeFixture(t);
   const material = await admitInstalledNativeArtifactMaterial(f.directory, f.source);
   assert.deepEqual(material.artifact, f.record);
+  assert.deepEqual(await admitInstalledNativeArtifact(f.directory, f.source), f.record,
+    'The ordinary reader retains its original record return shape');
   assert.deepEqual(material.localRuntime, f.manifest);
   const checked = await f.check(f.record);
   assert.deepEqual(checked.artifactMaterial, material);
