@@ -137,3 +137,62 @@ test('Native parallel preparation joins both original owners after either synchr
     assert.equal(existsSync(join(f.destination,'query-tool-copy.json')),false);
   }
 });
+
+test('Darwin preparation assigns portable and bounded Query work to the same two dependency owners',t=>{
+  const f=fixture(t),calls=[];
+  const command=(repository,path,options)=>{
+    assert.equal(repository,f.repository);
+    calls.push(options.compiledInput?'received':'compiled');
+    if(options.compiledInput) {mkdirSync(path);writeFileSync(join(path,'received.json'),'original command');}
+  };
+  const commands=prepareNativeConstructionLane('commands',
+    {...f,moonHome:'/isolated/command-tool',receiverMoonHome:f.moonHome},{
+      bundle:command,resident:command,exportCommand:()=>({original:true}),
+      portable:(repository,path,options)=>{
+        calls.push('portable');assert.equal(repository,f.repository);
+        assert.equal(path,join(f.destination,'portable-runtime.json'));
+        assert.equal(options.env.MOON_HOME,f.moonHome);
+      },
+    });
+  assert.deepEqual(calls,['compiled','received','compiled','received','portable']);
+  assert.equal(commands.portableReceipt,join(f.destination,'portable-runtime.json'));
+  calls.length=0;
+  const components=prepareNativeConstructionLane('components',f,{
+    libraries:()=>calls.push('libraries'),http:()=>{calls.push('http');return '/original/http';},
+    portable:()=>assert.fail('Portable work belongs to the original command owner'),
+    query:(repository,path,options)=>{
+      calls.push('query');assert.equal(repository,f.repository);assert.equal(path,f.destination);
+      assert.equal(options.moonHome,f.moonHome);assert.equal(options.jobs,1);
+      return join(path,'query-software.json');
+    },
+  });
+  assert.deepEqual(calls,['libraries','http','query']);
+  assert.equal(components.queryReceipt,join(f.destination,'query-software.json'));
+  assert.equal(components.portableReceipt,undefined);
+});
+
+test('Darwin Query or portable refusal still joins the other actual construction owner without Ready',async t=>{
+  for(const failed of ['query','portable']) {
+    const f=fixture(t),finished=[];let release;
+    const held=new Promise(resolve=>{release=resolve;});
+    const original=new Error('original '+failed+' preparation refusal');
+    const command=(_repository,path,options)=>{
+      if(options.compiledInput) {mkdirSync(path);writeFileSync(join(path,'received.json'),'original command');}
+    };
+    const ports={bundle:command,resident:command,exportCommand:()=>({original:true}),
+      libraries:()=>{},http:()=>'/original/http',
+      portable:()=>{if(failed==='portable')throw original;finished.push('portable');},
+      query:(_repository,path)=>{if(failed==='query')throw original;finished.push('query');
+        return join(path,'query-software.json');},
+    };
+    const operation=prepareNativeParallel(f,{copyTools:()=>({}),startLane:async(lane,options)=>{
+      if(lane===(failed==='query'?'commands':'components'))await held;
+      return prepareNativeConstructionLane(lane,options,ports);
+    }});
+    let settled=false;operation.then(()=>{settled=true;},()=>{settled=true;});
+    await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);
+    release();await assert.rejects(operation,error=>error===original);
+    assert.deepEqual(finished,[failed==='query'?'portable':'query']);
+    assert.equal(existsSync(join(f.destination,'preparation.json')),false);
+  }
+});
