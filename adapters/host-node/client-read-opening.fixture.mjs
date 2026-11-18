@@ -268,7 +268,9 @@ export async function openReadOpeningFixture(directory, loss,
         run.plan = sourceFreeValuesPlan({moon, control, preparedProgram,
           requestIdentity: identity, ...scope, storeAuthorityCid: cid('7'), now,
           compilationOriginal: funded.manager.compilationOriginal(preparedProgram),
-          publicationOriginal: {kind: 'installed_run', value: run.value},
+          publicationOriginal: {kind: 'installed_run', value: run.value,
+            authoringContext: funded.manager.authoringContextOriginal(preparedProgram,
+              funded.originalRequest(submission))},
           publicationPreparation: funded.manager.publicationPreparation(preparedProgram)});
         const evidence = sourceFreeValuesAdmissionEvidence(run.plan);
         return evidence === undefined ? run.plan.runDefinition : {

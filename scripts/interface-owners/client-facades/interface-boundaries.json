@@ -4645,7 +4645,7 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fab1899039c0bfa82cb229c19b208344064264ad6c1a5fb13f394f3073ddd0f8",
+      "sha256": "15e31dfda636cdfd72af9830d64b847390aee284e5d7953b559978959ef51901",
       "exports": [
         "bytesCid",
         "canonicalJson",
@@ -4813,14 +4813,14 @@
             "canonicalJson/entries/entries",
             "canonicalJson/entries/entries#2",
             "checkedSigner",
+            "checkpointAnswerMatches",
             "contentCid/contentCid",
             "hex/hex/hex",
             "reviewBytesMatchCid",
             "signature",
             "signedAnswer",
             "signedAnswer/signedAnswer",
-            "signedAnswerFromAdmittedSummary",
-            "checkpointAnswerMatches"
+            "signedAnswerFromAdmittedSummary"
           ],
           "exports": [
             "bytesCid",
@@ -4849,6 +4849,10 @@
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## SDK consumers"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "inputsOutputs": [
@@ -4867,6 +4871,10 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "identity": [
@@ -4887,12 +4895,16 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               },
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "expected.resolutionWire === answer.resolutionWire"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "ownership": [
@@ -4911,6 +4923,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "synchronization": [
@@ -4929,6 +4945,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "failure": [
@@ -4947,6 +4967,10 @@
               {
                 "path": "adapters/host-node/local-continuation-evidence.mjs",
                 "anchor": "fail('ContinuationEvidenceRetired')"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "cancellation": [
@@ -4965,6 +4989,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "and cleanup custody remain with their existing Owners."
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "resources": [
@@ -4991,6 +5019,10 @@
               {
                 "path": "packages/sdk/checkpoints.mjs",
                 "anchor": "const candidateLimits = Object.freeze({maxWireBytes: 16384,"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "extension": [
@@ -5007,8 +5039,12 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "verification": [
@@ -5031,6 +5067,22 @@
               {
                 "path": "packages/sdk/checkpoint-candidate-boundary.test.mjs",
                 "anchor": "test('fabricated noncanonical original identities refuse before application signing'"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "src/checkpoint_document/review_identity_test.mbt",
+                "anchor": "test \"pure review integrity preserves existing Model and opaque Effect preimages\""
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Common review preimages keep root-only self exclusion and exact Unicode DATA'"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
+                "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
               }
             ]
           }
@@ -15294,7 +15346,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
-      "sha256": "5af0d6376c84b5ef8ed05bb054497a9a5c8adeef0d95d0475f0c96dc4429ac0f",
+      "sha256": "81ced88517b5078c1d36616beda88211f435c3e4119cb21364aaab2694ab3c96",
       "exports": [
         "createCheckpointAnswerCodec"
       ],
@@ -15375,6 +15427,29 @@
             "approvalSignature"
           ],
           "async": true
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid",
+          "parameters": [
+            "raw",
+            "expected",
+            "selectedLimits"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid/body/body",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid/profile/profile",
+          "parameters": [
+            "item"
+          ],
+          "async": false
         },
         {
           "name": "document/document",
@@ -15522,6 +15597,9 @@
             "createCheckpointAnswerCodec/prepareAnswerCandidate/prepareAnswerCandidate/prepareAnswerCandidate",
             "createCheckpointAnswerCodec/prepareAnswerCandidate/profile/profile",
             "createCheckpointAnswerCodec/prepareAnswerResolution",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid/body/body",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid/profile/profile",
             "document/document",
             "document/document/document",
             "document/document#2",
@@ -15548,54 +15626,90 @@
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Canonical frames and signatures"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/checkpoint-answer-construction.md",
                 "anchor": "## Generation and verification"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "verification": [
@@ -15606,6 +15720,22 @@
               {
                 "path": "src/checkpoint_document/answer_vectors_test.mbt",
                 "anchor": "test "
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "src/checkpoint_document/review_identity_test.mbt",
+                "anchor": "test \"pure review integrity preserves existing Model and opaque Effect preimages\""
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Common review preimages keep root-only self exclusion and exact Unicode DATA'"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
+                "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
               }
             ]
           }
