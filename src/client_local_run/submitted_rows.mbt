@@ -283,10 +283,24 @@ pub fn validate_local_saved_submitted_rows(
   submission_key : String,
   submission_revision : Int64,
   submission_body : Bytes,
+  row_original? : @host.ClientRunJournalRowOriginal? = None,
 ) -> Result[Unit, LocalSubmittedRunRowsIssue] {
   local_saved_submitted_row_originals(
-    value, plan, preparation, run_key, run_revision, run_body, submission_key, submission_revision,
+    value,
+    plan,
+    preparation,
+    run_key,
+    run_revision,
+    run_body,
+    submission_key,
+    submission_revision,
     submission_body,
+    decode_run=bytes => {
+      @host.decode_client_run_journal_row_with_observation_originals(
+        bytes,
+        original=row_original,
+      )
+    },
   ).map(_ => ())
 }
 

@@ -1450,12 +1450,12 @@ test('large CI plans launch both original portable Core step command sequences',
     assert.equal(child.status, 0, child.stderr);
     const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
     assert.deepEqual(observed[0].args, ['test', '--target', target, '--deny-warn', '-j', '2']);
-    assert.deepEqual(observed.map(entry => entry.command), target === 'js' ? ['moon'] : ['moon', 'moon', 'node', 'node', 'node']);
+    assert.deepEqual(observed.map(entry => entry.command), target === 'js' ? ['moon'] : ['moon', 'moon', 'node', 'node', 'node', 'node']);
     if (target === 'wasm') {
       assert.deepEqual(observed[1].args, ['test', '--target', 'wasm', '--release', '--build-only',
         '--deny-warn', '-j', '2', 'src/client_host_wasm', '--filter', '*exported validation reaches*']);
       const requiredCases = ['saved_lookup_validation_dispatch_wbtest.mbt',
-        'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt'];
+        'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt', 'sdk_row_original_wbtest.mbt'];
       assert.deepEqual(observed.slice(2).map(entry => entry.args), requiredCases.map(name => [
         'scripts/test-python-local-metadata-wasm.mjs',
         '_build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm',
@@ -1464,7 +1464,7 @@ test('large CI plans launch both original portable Core step command sequences',
       const failed = spawnSync('bash', ['-eo', 'pipefail', scriptPath], {encoding: 'utf8',
         env: {...process.env, CI_PLAN: '', CI_PLAN_PATH: join(root, 'plan.json'),
           PATH: `${join(root, 'bin')}:/usr/bin:/bin`, CALLS: failedCalls,
-          FAIL_CASE: 'managed_task_current_wbtest.mbt'}});
+          FAIL_CASE: 'sdk_row_original_wbtest.mbt'}});
       assert.equal(failed.status, 23, failed.stderr);
       assert.deepEqual(readFileSync(failedCalls, 'utf8').trim().split('\n').map(line => JSON.parse(line)), observed);
     }

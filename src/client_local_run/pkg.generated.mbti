@@ -274,11 +274,11 @@ pub fn validate_local_result_publication_current(LocalResultPublication, @execut
 
 pub fn[Store, E] validate_local_run_publication_binding(LocalRunPublicationBindingStep[Store, E], @run_publication_host.ClientJournalPhysicalRow, @run_publication_host.ClientJournalPhysicalRow) -> Result[Unit, LocalRunPublicationBindingIssue[E]]
 
-pub fn[Store, E] validate_local_run_publication_binding_original(LocalRunPublicationBinding[Store, E], @run_publication_host.ClientJournalPhysicalRow, @run_publication_host.ClientJournalPhysicalRow) -> Result[Unit, LocalRunPublicationBindingIssue[E]]
+pub fn[Store, E] validate_local_run_publication_binding_original(LocalRunPublicationBinding[Store, E], @run_publication_host.ClientJournalPhysicalRow, @run_publication_host.ClientJournalPhysicalRow, row_original? : @run_publication_host.ClientRunJournalRowOriginal?) -> Result[Unit, LocalRunPublicationBindingIssue[E]]
 
-pub fn validate_local_saved_snapshot_rows(LocalRunPlan, @run_publication_host.ClientSavedSubmissionSnapshot, @run_publication_host.ClientJournalPhysicalRow, @run_publication_host.ClientJournalPhysicalRow) -> Result[Unit, LocalSubmittedRunRowsIssue]
+pub fn validate_local_saved_snapshot_rows(LocalRunPlan, @run_publication_host.ClientSavedSubmissionSnapshot, @run_publication_host.ClientJournalPhysicalRow, @run_publication_host.ClientJournalPhysicalRow, row_original? : @run_publication_host.ClientRunJournalRowOriginal?) -> Result[Unit, LocalSubmittedRunRowsIssue]
 
-pub fn validate_local_saved_submitted_rows(LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, String, Int64, Bytes, String, Int64, Bytes) -> Result[Unit, LocalSubmittedRunRowsIssue]
+pub fn validate_local_saved_submitted_rows(LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, String, Int64, Bytes, String, Int64, Bytes, row_original? : @run_publication_host.ClientRunJournalRowOriginal?) -> Result[Unit, LocalSubmittedRunRowsIssue]
 
 pub fn[E] validate_local_sdk_payload_encoding_current(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, LocalSDKReadDeliveryPreparation, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[Unit, LocalSDKReadPayloadCodecIssue[E]]
 

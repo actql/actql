@@ -49,6 +49,36 @@ pub fn client_journal_issuance_count(
 }
 
 ///|
+/// The result of this exact pure row decoder, not a journal observation or
+/// current grant. The existing Run/material Owner retains its bounded storage.
+pub struct ClientRunJournalRowOriginal {
+  body : Bytes
+  decoded : (ClientRunJournalEncoding, String?, String?)
+}
+
+///|
+/// Retain only the existing exact-wire decoder's original result. The caller
+/// admits storage before this constructor and separately validates its purpose.
+pub fn retain_client_run_journal_row_original(
+  body : Bytes,
+  request : ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+) -> Result[ClientRunJournalRowOriginal, ClientJournalDecodingIssue] {
+  decode_client_run_journal_row_with_retained_identity(
+    body, request, definition,
+  ).map(decoded => { body, decoded, })
+}
+
+///|
+/// An exact body comparison is only codec DATA correspondence.
+pub fn client_run_journal_row_original_matches(
+  original : ClientRunJournalRowOriginal,
+  body : Bytes,
+) -> Bool {
+  original.body == body
+}
+
+///|
 /// Decode the existing Run row's closed shape and original request/Definition.
 /// Returned encoding fields are not a retained Run or committed admission.
 /// Policy, Effect and Checkpoint originals still require their existing Owners;
@@ -92,6 +122,7 @@ pub fn decode_client_run_journal_row_with_local_policy(
 /// original compiled-evidence validation and current authority remain separate.
 pub fn decode_client_run_journal_row_with_observation_originals(
   body : Bytes,
+  original? : ClientRunJournalRowOriginal? = None,
   before_construction? : ((ClientRunJournalConstruction) -> Result[
     Unit,
     ClientJournalDecodingIssue,
@@ -100,6 +131,11 @@ pub fn decode_client_run_journal_row_with_observation_originals(
   (ClientRunJournalEncoding, String?, String?),
   ClientJournalDecodingIssue,
 ] {
+  if original is Some(retained) &&
+    retained.body == body &&
+    before_construction is None {
+    return Ok(retained.decoded)
+  }
   decode_client_run_journal_row_originals(
     body,
     true,
