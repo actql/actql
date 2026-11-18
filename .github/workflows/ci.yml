@@ -2680,7 +2680,8 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/release/source-free-observed-*.json
           if-no-files-found: warn
           retention-days: 14
-  # The original Mock workflows supply the required fixed-artifact 30+30 profile.
+  # Ready PR/main retain both installed functional workflows. The existing weekly
+  # schedule keeps formal30+30 here; explicit campaigns and RC gates also retain it.
   native-cli-linux-local-mock:
     needs: [select-targets, native-cli-linux-local]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.native-cli-linux-local.result == 'success' }}
@@ -2727,16 +2728,22 @@ jobs:
           node scripts/ordinary-operation-packages.mjs inspect-native-approval-source \
             "$RUNNER_TEMP/native-cli-linux-local/release" \
             > "$RUNNER_TEMP/native-cli-linux-local/approval/source.json"
-      - name: Require thirty complete approvals for each original Mock workflow
+      - name: Require both complete installed Mock workflows and ordinary maximum smoke
+        id: functional_profile
+        if: github.event_name != 'schedule'
+        timeout-minutes: 5
+        run: node scripts/test-native-cli-mock-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
+      - name: Require thirty complete approvals per original Mock workflow on the weekly schedule
         id: approval_profile
+        if: github.event_name == 'schedule'
         run: |
           node scripts/test-native-approval-performance.mjs \
             --normal "$RUNNER_TEMP/native-cli-linux-local/release" \
             --binding "$RUNNER_TEMP/native-cli-linux-local/approval/source.json" \
             --output "$RUNNER_TEMP/native-cli-linux-local/approval/assessment.json" \
             --runner ubuntu-24.04
-      - name: Diagnose one fresh original workflow only after formal failure
-        if: ${{ failure() && steps.approval_profile.outcome == 'failure' }}
+      - name: Diagnose one fresh original workflow only after its selected acceptance fails
+        if: ${{ failure() && (steps.functional_profile.outcome == 'failure' || steps.approval_profile.outcome == 'failure') }}
         run: |
           if [ ! -x /usr/bin/strace ]; then
             sudo apt-get update
@@ -2745,7 +2752,7 @@ jobs:
           timeout 300s node scripts/test-native-cli-mock-install.mjs \
             "$RUNNER_TEMP/native-cli-linux-local/release" \
             --measure-approval-resources --diagnose-approval-syscalls
-      - name: Retain complete Native approval samples and original Mock receipts
+      - name: Retain original Mock receipts and any formal approval samples
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

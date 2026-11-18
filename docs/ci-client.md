@@ -77,8 +77,12 @@ unexpectedly skipped work cannot become acceptance.
 Compare completed hosted runs using the existing `ci-evidence` / `ci-timing`
 reporter. Report aggregate-check completion, distinct runner consumption and
 individual job/step intervals separately; a shorter dependency path alone is
-not a measured speedup. The thirty approvals for each original Mock workflow,
-all source-free cases and their original limits remain unchanged.
+not a measured speedup. Normal Ready PR/main CI retains both complete Mock
+functional workflows and the ordinary maximum-only smoke check. Formal thirty
+approvals per template remain in the weekly CI schedule, explicit performance
+campaigns and the exact-candidate release gate. Their samples and p95/maximum
+limits are unchanged; normal functional success supplies no formal p95 evidence.
+All source-free cases and their original limits remain required.
 
 The successful Mock report retains each iteration's complete child-process wall time,
 release verification, source/platform admission, scratch and registry setup,

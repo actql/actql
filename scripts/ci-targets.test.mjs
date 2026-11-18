@@ -1251,7 +1251,7 @@ test('every heavy primitive is selected as one complete job and lint/spec always
 
 test('full integration cannot skip, omit or fail any actual CLI acceptance job', () => {
   for (const [name, script] of [['native-cli-linux-local-installed', 'test-native-cli-source-free-install.mjs'],
-    ['native-cli-linux-local-mock', 'test-native-approval-performance.mjs']]) {
+    ['native-cli-linux-local-mock', 'test-native-cli-mock-install.mjs']]) {
     assert(jobs[name].steps.some(step =>
       step.run?.includes(`node scripts/${script}`) && step['continue-on-error'] === undefined),
     `The required Local job must execute ${script}`);
