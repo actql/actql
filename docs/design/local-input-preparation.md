@@ -4217,11 +4217,14 @@ codec overlap still require the real constructor's reservation.
 Failure presence, including a thrown `undefined`, and closed/retiring records
 refuse before invoking retained current callbacks. The same record's raw
 fields must remain exact before and after currentness and construction.
-Existing unmanaged/legacy and recovery paths remain separate. The Mock profile
-wrapper does not yet forward its underlying Host record/current predicate to
-this terminal entry; that connection is distinct from the configured path. A
-route holding only a Source Ledger cannot manufacture a managed Run or select
-this handoff.
+The Request-owned Mock profile forwards the same mutable Host record through
+its existing Model preparation view, not a copied opaque Run. Its predicate
+checks the same Model/selection/budget/Scope and Host record before and after
+the original installation/current callback. Payload aliases are cut by the
+existing checked Host retirement continuation; this projection supplies no
+physical close acknowledgement. Existing unmanaged/legacy and recovery paths
+remain separate. A route holding only a Source Ledger cannot manufacture a
+managed Run or select this handoff.
 The already Common keyed lookup reservations and distinct Wasm 24-hour
 profile are unchanged. No new Model/Source grant or physical acknowledgement
 is supplied by the returned retention DATA.

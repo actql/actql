@@ -2,6 +2,97 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan} from './local-values-plan.mjs';
 import {runtimePair} from '../host-common/compiler-binding.generated.mjs';
+import {readFileSync} from 'node:fs';
+import {installPreparedProjectMockSources} from '../local-node/installed-project-mock.mjs';
+import {createInstalledHostServices, retireInstalledSourceInitialization} from './installed-host-services.mjs';
+
+test('imported Mock profile forwards its same Host record and refuses retired current before hooks', async () => {
+  // Explicit typed Resource/Environment ports delimit this adapter component.
+  // They do not establish actual Ledger admission or semantic Core validation.
+  const ok = value => ({$tag: 1, _0: value});
+  const input = {}, unit = {}, capacity = {}, initial = {}, prepared = {}, request = {}, value = {};
+  const compiled = {}, runDefinition = {}, scope = {}, selection = {graph: {}};
+  let hooks = 0, failCurrent, mutateCurrent, managed;
+  const current = () => {hooks++;mutateCurrent?.();if (failCurrent !== undefined) throw failCurrent;};
+  const moon = {
+    clientProgramInstalledSourceConstructionCapacity: () => ok({}),
+    clientProgramComposeInstalledSourceConstructionCapacity: (quote, providers) => ok({quote, providers}),
+    clientProgramInstalledSourceRetainedConstructionCapacity: quote => ok(quote),
+    clientProgramTakeHostInitializationSourceCapacity(actual) {assert.strictEqual(actual, initial);return ok({_0: input, _1: unit});},
+    clientProgramContinueInstalledSourceMaterial: () => ok(capacity),
+    clientProgramRetireInstalledSourceMaterial: () => ok(true),
+    clientProgramCheckEnvironmentWireConstructionCapacity: () => ({}),
+    clientProgramReadCheckEnvironmentWire: () => ({}),
+    clientProgramCheckEnvironmentFromWireConstructionCapacity: () => ({}),
+    clientProgramCheckEnvironmentFromWire: () => ({}),
+    clientProgramAcquisitionCount: () => 0,
+    clientProgramRowSourceRestoreRelationDeclaration() {assert.fail('No declaration restoration');},
+    clientProgramRowSourceDeclarationJson() {assert.fail('No declaration projection');},
+    clientProgramInstalledManagedRunCheck(actual, p, r) {
+      assert.strictEqual(actual, value);assert.strictEqual(p, prepared);assert.strictEqual(r, request);return ok();
+    },
+  };
+  for (const name of ['ReserveInstalledSourceConstruction', 'ReconcileInstalledSourceConstruction',
+    'CompleteInstalledSourceMaterial', 'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment',
+    'ReturnInstalledSourceMaterial', 'AbortUncontinuedSourceMaterial', 'BeginInstalledSourceIo',
+    'ChargeInstalledSourceIo', 'MarkInstalledSourceIoTransferUncertain',
+    'FinishInstalledSourceIoAfterCleanup']) moon['clientProgram' + name] = () => ok();
+  const services = createInstalledHostServices({root: '/component/mock-retention', principalId: 'component',
+    moon, initialPreparation: initial, assertCurrent: current});
+  const wire = readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8').trimEnd();
+  const declaration = {}, original = {
+    declaration, wire: 'explicit-declaration', catalogue: {connection: 'fixture', queryAliases: []},
+    fileBindings: [], physical: [],
+    sourcePrepared: {declaration, wire: 'explicit-declaration', declared: {views: []}, environment: {wire}},
+    sourceMember: {async load() {return {environmentWire: wire, connectorBindings: [], close() {}};}},
+  };
+  const bundle = {sources: [original], dataPath: '/component/mock-data', catalog: {fileReadDeclarations: []}};
+  const control = {}, plan = {compiled, runDefinition};
+  const profile = await installPreparedProjectMockSources({moon, installationServices: services,
+    mockPreparation: {originalsForRuntime(runtime) {assert.strictEqual(runtime, moon);return bundle;}},
+    sourceManaged: {assertCurrent: current, prepareRead() {assert.fail('No Source acquisition');}},
+    baseEnvironmentWire: wire, authorizationFor: async () => ({}), readAsset() {assert.fail('No data read');},
+    prepareManagedSourceRun() {assert.fail('No Source Run');},
+    prepareManagedModelRun(p, r, model) {
+      assert.strictEqual(p, prepared);assert.strictEqual(r, request);
+      model.scope = scope;model.component = {bindOriginal() {}};model.budget = {};
+      managed = {runtime: moon, prepared, request, value, model, original: {}, closed: false};
+      return managed;
+    },
+  }).catch(error => {throw error.primaryFailure ?? error;});
+  assert.strictEqual(profile.prepareManagedMockModelRun(prepared, request, control, plan, selection), value);
+  const view = profile.modelPreparation(prepared, plan);
+  assert.strictEqual(view.managedPublication, managed);
+  assert.strictEqual(view.scope, scope);assert.strictEqual(view.selection, selection);
+  view.assertRuntimeCurrent();
+  const baseline = hooks;
+  managed.closed = true;
+  assert.throws(() => view.assertRuntimeCurrent(), {code: 'ForeignInstalledModelPreparation'});
+  assert.equal(hooks, baseline);
+  managed.closed = false;managed.failure = undefined;failCurrent = Error('LaterCurrentMustNotReplacePrimary');
+  let caught = false;
+  try {view.assertRuntimeCurrent();} catch (cause) {caught = true;assert.strictEqual(cause, undefined);}
+  assert.equal(caught, true);assert.equal(hooks, baseline);
+  delete managed.failure;failCurrent = undefined;
+  const originalScope = managed.model.scope;managed.model.scope = {};
+  assert.throws(() => view.assertRuntimeCurrent(), {code: 'ForeignInstalledModelPreparation'});
+  assert.equal(hooks, baseline);managed.model.scope = originalScope;
+  failCurrent = Error('OriginalMockInstallationChanged');
+  assert.throws(() => view.assertRuntimeCurrent(), error => error === failCurrent);
+  failCurrent = undefined;mutateCurrent = () => {managed.model.scope = {};};
+  assert.throws(() => view.assertRuntimeCurrent(), {code: 'ForeignInstalledModelPreparation'});
+  mutateCurrent = undefined;managed.model.scope = originalScope;managed.closed = true;
+  managed.model.scopeFinished = true;
+  // Simulate only the already checked Host payload-sever continuation. No
+  // physical/SDK/FD cleanup or close ACK is inferred from this component port.
+  Reflect.apply(managed.model.releaseAliases, managed.model, []);
+  assert.equal(managed.model.closed, true);assert.strictEqual(managed.model.scope, undefined);
+  const afterRelease = hooks;
+  assert.throws(() => view.assertRuntimeCurrent(), {code: 'ForeignInstalledModelPreparation'});
+  assert.equal(hooks, afterRelease);
+  await profile.close();
+  assert.equal(retireInstalledSourceInitialization(services), true);
+});
 test('actual terminal Content and INFER publication borrow the same managed record and preserve current after growth', async () => {
   const {serializationTaskPublicationPlan, inferTaskPublicationPlan} = await import('./local-values-plan.mjs');
   for (const kind of ['serialization', 'infer']) {

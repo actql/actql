@@ -24139,7 +24139,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "88c8264dc0fc2c69cfb4b1ee51283e7894e998c087da021a2a5262782d65d9d9",
+      "sha256": "63b2bcbacf9976c2a7d7891ed5f253eb5c783194174037cb9e6e0bd02cad59a9",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"

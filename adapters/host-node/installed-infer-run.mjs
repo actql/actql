@@ -228,6 +228,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             : configuredModel ? acquiredInfer?.captured === undefined : acquiredInfer?.sources?.length !== 2)) {
         throw new TypeError('InvalidInstalledMockModelPreparation');
       }
+      if (selected.localMock) managedPublication = originalPreparation.managedPublication;
       if (!sourceFree) {
         if (preparationHolder === undefined || originalPreparation.selection !== selected ||
             typeof originalPreparation.component?.bindOriginal !== 'function' ||
