@@ -6,6 +6,7 @@ import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {nativeCoreFocusedTestCount} from './native-core-test-selection.mjs';
+import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import {partitionNativeCorePlatformPackages} from './native-core-platform-packages.mjs';
 import {nativeCoreLinuxCommonArguments, nativeCoreLinuxCommonPartitions, runNativeCoreLinuxCommon} from './test-native-core-linux-common.mjs';
 
@@ -24,7 +25,7 @@ test('Linux importers retain eight mandatory shards and five explicit Darwin pro
   assert.equal(core['runs-on'], 'ubuntu-24.04');
   assert.equal(workflow.jobs['core-darwin']['runs-on'], 'macos-15');
   assert.deepEqual([...workflow.jobs['core-darwin'].strategy.matrix.partition].sort(),
-    ['1/2', '2/2', 'scoped-review', 'scoped-runtime', 'source']);
+    [...nativeCoreCiPartitions].sort());
 });
 
 test('Linux common Native uses its selected compiler profile rather than Darwin preparation', () => {

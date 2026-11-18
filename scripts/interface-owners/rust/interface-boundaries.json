@@ -1662,7 +1662,7 @@
     },
     {
       "module": "scripts/check-rust-interface-owners.mjs",
-      "sha256": "b7967e398f3a21700a174b36a9d1241bd323a584d5e17b88c1c638ad4529c63a",
+      "sha256": "48bee79f811d73d82ccd3ac0b57cc0f06b2b2aa2b460105c21083dcf472e0c49",
       "exports": [
         "checkRustInterfaceOwners"
       ],

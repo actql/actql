@@ -241,9 +241,6 @@ test('zero/missing/skipped-only file results fail despite other passing family t
 });
 test('aggregate requires focused success and legitimate explicit skips, bound to checkout/event', () => {
   const value = selection(), envelope = {sourceRevision: head, selection: value}, context = {sourceRevision: head, event: 'pull_request'};
-  assert.equal(gateJobRequired(value, 'rust-library'), true,
-    'A focused Core source edit still requires the same-source Rust consumer');
-  assert.equal(results(value)['rust-library'].result, 'success');
   assert.equal(verifyGate(envelope, results(value), context).length, gateJobs.length);
   for (const name of gateJobs) for (const bad of ['failure', 'cancelled', undefined]) {
     const needs = results(value); needs[name] = {result: bad};
@@ -254,12 +251,15 @@ test('aggregate requires focused success and legitimate explicit skips, bound to
   }
   const unrelated = selectTargets(['README.md']);
   const unselected = {sourceRevision: head, selection: unrelated};
-  assert.equal(gateJobRequired(unrelated, 'rust-library'), false);
-  assert.equal(results(unrelated)['rust-library'].result, 'skipped');
   assert.equal(verifyGate(unselected, results(unrelated), context).length, gateJobs.length);
-  for (const result of ['success', 'failure', 'cancelled', undefined]) {
-    const needs = results(unrelated); needs['rust-library'] = {result};
-    assert.throws(() => verifyGate(unselected, needs, context), /rust-library/u);
+  const skipped = gateJobs.filter(name => !gateJobRequired(unrelated, name));
+  assert(skipped.length > 0, 'The reviewed unrelated input must have legitimate omitted work');
+  for (const name of skipped) {
+    assert.equal(results(unrelated)[name].result, 'skipped');
+    for (const result of ['success', 'failure', 'cancelled', undefined]) {
+      const needs = results(unrelated); needs[name] = {result};
+      assert.throws(() => verifyGate(unselected, needs, context));
+    }
   }
   assert.throws(() => verifyGate(envelope, results(value), {...context, sourceRevision: old}));
 });

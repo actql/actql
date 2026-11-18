@@ -9,6 +9,7 @@ import {nativeCoreTestSelection, portableMoonTestCount, nativeCoreHttpArguments,
   nativeCoreOrdinaryPartitions, nativeCorePartitionProfiles, nativeScopedTestFiles, nativeCoreScopedAllocationProfile,
   nativeCoreScopedTestEnvironment, nativeCoreScopedBackingPages, nativeCoreCheckpointRequired} from './native-core-test-selection.mjs';
 import {assertTestExecution} from './test-execution.mjs';
+import {nativeCoreCiPartitions, nativeCoreHostedPartitions} from './ci-core-partitions.mjs';
 
 test('Journal metadata original Read selects its scoped allocator without changing sibling profiles', () => {
   const source = 'src/platform_native/client_host/journal_metadata_original_read_physical_scoped_wbtest.mbt';
@@ -290,26 +291,33 @@ test('eight Linux ordinary partitions retain original case ownership without phy
 
 test('combined Darwin profiles keep HTTP Source scoped and repeated geometry under their original owners', () => {
   const partitions = [{args: ['--release', 'src/a'], cases: 4}, {args: ['--release', 'src/b'], cases: 7}];
+  const runtime = 'src/cmd/native_client/local_project_mock_physical_scoped_wbtest.mbt';
+  const geometry = 'src/cmd/native_client/local_command_business_wbtest.mbt';
+  const review = 'src/platform_native/installed_arena_control/original_read_consumer_scoped_wbtest.mbt';
+  const scoped = [{source: runtime, index: 0}, {source: geometry, index: 3}, {source: review, index: 0}];
   const profiles = {ordinary: {args: ['--release', 'src/a', 'src/b'], cases: 11, partitions},
     http: {args: ['src/http'], cases: 3}, source: {args: ['src/source'], cases: 5},
-    scoped: {args: ['src/scoped'], cases: 9, tests: [{source: 'original', index: 0}]},
-    physicalCases: 7, repeatedGeometryCases: 2};
+    scoped: {args: [runtime, geometry, review], cases: scoped.length, tests: scoped},
+    physicalCases: 2, repeatedGeometryCases: 1};
   const original = JSON.stringify(profiles);
-  const selected = ['1/2', '2/2', 'source', 'scoped'].map(value =>
-    nativeCorePartitionProfiles(profiles, value, {hostedDarwin: true}));
+  const jobs = nativeCoreCiPartitions.map(value => nativeCoreHostedPartitions(value));
+  const selected = jobs.flatMap(values => values.map(value =>
+    nativeCorePartitionProfiles(profiles, value, {hostedDarwin: true})));
   for (const name of ['ordinary', 'http', 'source', 'scoped'])
     assert.equal(selected.reduce((sum, value) => sum + value[name].cases, 0), profiles[name].cases);
-  assert.equal(selected[0].ordinary, partitions[0]);
-  assert.equal(selected[1].ordinary, partitions[1]);
-  assert.equal(selected[0].http, profiles.http);
-  assert.equal(selected[2].source, profiles.source);
-  assert.equal(selected[3].scoped, profiles.scoped);
-  assert.equal(selected.reduce((sum, value) => sum + value.physicalCases, 0), 7);
-  assert.equal(selected.reduce((sum, value) => sum + value.repeatedGeometryCases, 0), 2);
+  const first = jobs[nativeCoreCiPartitions.indexOf('1/2')];
+  assert.deepEqual(first, ['1/2', 'source']);
+  assert.equal(jobs.flat().filter(value => value === 'source').length, 1);
+  assert.equal(selected.filter(value => value.source.args !== null).length, 1);
+  assert.equal(selected.find(value => value.source.args !== null).source, profiles.source);
+  assert.equal(selected.reduce((sum, value) => sum + value.physicalCases, 0), profiles.physicalCases);
+  assert.equal(selected.reduce((sum, value) => sum + value.repeatedGeometryCases, 0), profiles.repeatedGeometryCases);
   assert.equal(JSON.stringify(profiles), original);
   assert.throws(() => nativeCorePartitionProfiles({...profiles, http: {args: null, cases: 0}},
     '1/2', {hostedDarwin: true}), /retain the original HTTP/u);
   assert.throws(() => nativeCorePartitionProfiles(profiles, '1/2', {hostedDarwin: 'true'}), /Invalid/u);
+  for (const value of ['source', 'http', 'scoped', 'foreign', undefined])
+    assert.throws(() => nativeCoreHostedPartitions(value), /Unknown hosted/u);
 });
 
 test('hosted scoped partitions preserve the disjoint original file index allocator and geometry union', () => {
