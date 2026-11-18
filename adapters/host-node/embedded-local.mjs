@@ -3902,7 +3902,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       : preparedSource === undefined ? {} : {acquisition: acquisitionDescriptor(preparedSource)}),
   });
   const planFor = ({preparedProgram, requestId},
-    retainedDefinitionWire, requestIdentity, keyedOriginal, constructingModel) => {
+    retainedDefinitionWire, requestIdentity, keyedOriginal, constructingModel,
+    retainInferMaterials = false) => {
     prepareSubmit.assertOwned(preparedProgram);
     const earlyMock = earlyMockInferPlans.get(preparedProgram);
     if (constructingModel !== undefined && (earlyMock !== constructingModel ||
@@ -3949,10 +3950,22 @@ async function openInstalledHost(originalInstallation, preparation) {
         ? infer.graph : [infer.graph];
       const compilationOriginal = preparation?.prepareManagedModelCompilation?.(
         moon, preparedProgram, infer.graph);
-      try {return Object.freeze({...inferTaskRunAdmission({...common,
-        compilationOriginal, inferGraph: compilationGraphs}),
-        inferGraph: infer.graph,
-        ...(infer.serializationGraph === undefined ? {} : {serializationGraph: infer.serializationGraph})});}
+      try {
+        const admitted = inferTaskRunAdmission({...common,
+          compilationOriginal, inferGraph: compilationGraphs});
+        // The SAME Request still owns its compiler and working capacity here.
+        // Scope/Complete/Adopt below consumes those transient aliases. A later
+        // journal callback may only borrow this pre-funded original ticket.
+        const originalInferRun = retainInferMaterials && infer.serializationGraph === undefined
+          ? preparation.captureManagedModelOriginal(moon, preparedProgram,
+            (parent, input) => control.captureOriginalClientInferRun(admitted.compiled,
+              preparedProgram, admitted.runDefinition, requestIdentity,
+              undefined, undefined, {parent, input}))
+          : undefined;
+        return Object.freeze({...admitted, inferGraph: infer.graph,
+          ...(originalInferRun === undefined ? {} : {originalInferRun}),
+          ...(infer.serializationGraph === undefined ? {} : {serializationGraph: infer.serializationGraph})});
+      }
       catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'task_compilation',
           code: cause.code, cause: cause.cause ?? cause});
@@ -3999,12 +4012,11 @@ async function openInstalledHost(originalInstallation, preparation) {
         if (held.plan.kind === 'infer') {
           // Retain the complete original compiler inventory at first admission.
           // Absence never authorizes a cold reconstruction or a new Source read.
-          const originalInferRun = held.plan.serializationGraph !== undefined ? undefined : (() => {
-              return preparation.captureManagedModelOriginal(moon, submission.preparedProgram,
-                (parent, input) => control.captureOriginalClientInferRun(held.plan.compiled,
-                  submission.preparedProgram, held.plan.runDefinition, requested,
-                  undefined, undefined, {parent, input}));
-            })();
+          const originalInferRun = held.plan.serializationGraph !== undefined
+            ? undefined : held.plan.originalInferRun;
+          if (held.plan.serializationGraph === undefined && originalInferRun === undefined) {
+            throw clientOperationError('InstalledModelOperationalAdmissionUnavailable');
+          }
           return {
             runDefinition: held.plan.runDefinition,
             ...(originalInferRun === undefined ? {} : {originalInferRun}),
@@ -4235,7 +4247,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     early.model = model;
     earlyMockInferPlans.set(prepared, early); // Retain before compiler/Definition/Plan can fail.
     try {
-      early.plan = planFor(submission, undefined, requested, undefined, early);
+      early.plan = planFor(submission, undefined, requested, undefined, early, true);
       model.compiled = early.plan.compiled; model.runDefinition = early.plan.runDefinition;
       model.queryTimePreparation = early.plan.queryTimePreparation;
       if (group) for (const member of model.components) {
@@ -5459,7 +5471,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           }
           let early = earlyMockInferPlans.get(submission.preparedProgram);
           if (early === undefined) {
-            early = {requestId: submission.requestId, plan: planFor(submission, undefined, requested)};
+            early = {requestId: submission.requestId,
+              plan: planFor(submission, undefined, requested, undefined, undefined, true)};
             earlyMockInferPlans.set(submission.preparedProgram, early);
           }
           sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,

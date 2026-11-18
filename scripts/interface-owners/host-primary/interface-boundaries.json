@@ -8465,7 +8465,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -11804,7 +11804,6 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit"
           ],
           "exports": [],
@@ -11813,6 +11812,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "inputsOutputs": [
@@ -11823,6 +11826,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "identity": [
@@ -11833,6 +11840,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "ownership": [
@@ -11843,6 +11854,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "synchronization": [
@@ -11853,6 +11868,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "failure": [
@@ -11863,12 +11882,20 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "resources": [
@@ -11879,6 +11906,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "extension": [
@@ -11889,6 +11920,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "verification": [
@@ -11902,7 +11937,11 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ]
           }
@@ -15246,7 +15285,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -15877,8 +15916,8 @@
             "readSourceManagedEffectRunRequirements",
             "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned",
             "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun/originalInferRun",
-            "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal"
+            "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor/originalInferRun/originalInferRun"
           ],
           "exports": [
             "readHostEffectResultPublicationRunRequirements",
@@ -15909,6 +15948,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "inputsOutputs": [
@@ -15935,6 +15978,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "identity": [
@@ -15961,6 +16008,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "ownership": [
@@ -15987,6 +16038,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "synchronization": [
@@ -16013,6 +16068,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "failure": [
@@ -16039,6 +16098,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "cancellation": [
@@ -16065,6 +16128,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "resources": [
@@ -16091,6 +16158,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "extension": [
@@ -16117,6 +16188,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "verification": [
@@ -16151,6 +16226,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ]
           }
@@ -16682,6 +16761,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "inputsOutputs": [
@@ -16804,6 +16887,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "identity": [
@@ -16946,6 +17033,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "Within one Local wait invocation, the next poll may borrow the last completed"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "ownership": [
@@ -17072,6 +17163,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "synchronization": [
@@ -17198,6 +17293,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "failure": [
@@ -17312,6 +17411,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "cancellation": [
@@ -17422,6 +17525,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "resources": [
@@ -17556,6 +17663,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "extension": [
@@ -17670,6 +17781,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "verification": [
@@ -17742,7 +17857,7 @@
                 "path": "adapters/host-node/infer-run-original-host.test.mjs"
               },
               {
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1",
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921",
                 "path": "adapters/host-node/model-resume-public.test.mjs"
               },
               {
@@ -17920,6 +18035,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
                 "anchor": "test('ordinary material inverse receives the same installed text-time and calendar selections'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ]
           }
@@ -19865,7 +19984,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -21145,7 +21264,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -22425,7 +22544,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -23705,7 +23824,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -24886,19 +25005,6 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted/originalInferRun/originalInferRun/originalInferRun",
-          "parameters": [
-            "parent",
-            "input"
-          ],
-          "async": false
-        },
-        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitDefinition/admitDefinition/accepted/accepted#2",
           "parameters": [
             "cause"
@@ -25572,7 +25678,16 @@
             "retainedDefinitionWire",
             "requestIdentity",
             "keyedOriginal",
-            "constructingModel"
+            "constructingModel",
+            "retainInferMaterials"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor/originalInferRun/originalInferRun",
+          "parameters": [
+            "parent",
+            "input"
           ],
           "async": false
         },
@@ -28584,12 +28699,12 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "70a182650dc4fb272b6fb877aff94658018b1c66742657e1aa531353db5dd00b"
+      "sha256": "e4e68ba85fa8750b24fe763df66fdb0a212c908cfa58d274af7a0d90482b4397"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -30616,7 +30731,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -31001,7 +31116,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
@@ -31621,7 +31736,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -32239,7 +32354,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -32635,7 +32750,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",

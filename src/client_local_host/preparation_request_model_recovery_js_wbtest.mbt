@@ -798,7 +798,7 @@ test "warm INFER material refusal preserves its original Request before codec en
     f.parent.ledger,
     limits.retained_bytes -
     usage.reserved_retention_bytes -
-    request_effect_material_control_bytes +
+    (request_effect_material_control_bytes + 8L) +
     1L,
     0L,
   ).unwrap()
@@ -824,4 +824,97 @@ test "warm INFER material refusal preserves its original Request before codec en
   assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
   abort_request_preparation_after_cleanup(f.parent).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "original material Plan view admits its one reference before the same callback" {
+  for retention in [true, false] {
+    let f = request_serialized_model_fixture(serialized=false)
+    let capacity = f.parent.program_capacity.unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      capacity,
+      f.input,
+    ).unwrap()
+    let limits = @resources.ledger_limits(f.parent.ledger)
+    let usage = @resources.ledger_usage(f.parent.ledger)
+    // Independent existing logical tariff: one reference, no extra object,
+    // is8bytes. The original fixed codec census is unchanged for Effects.
+    let added = request_effect_material_control_bytes + 8L
+    let available = if retention {
+      limits.retained_bytes - usage.held_bytes - usage.reserved_retention_bytes
+    } else {
+      limits.execution_bytes - usage.reserved_execution_bytes
+    }
+    let entered = Ref(0)
+    let run = fn() -> Result[Unit, ClientRequestProgramPlanIssue] {
+      construct_request_original_materials_owned(
+        f.parent,
+        f.input,
+        capacity,
+        () => {
+          f.parent.phase == Selecting &&
+          f.parent.input is Some(original) &&
+          physical_equal(original, f.input)
+        },
+        retained_aliases=1L,
+        _ => {
+          entered.val += 1
+          Ok(())
+        },
+      )
+    }
+    let blocked = @resources.reserve_capacity(
+      f.parent.ledger,
+      if retention {
+        available - added + 1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        available - added + 1L
+      },
+    ).unwrap()
+    let refusal = run()
+    assert_true(
+      if retention {
+        refusal is Err(Preparation(Capacity(Resource(RetentionLimit))))
+      } else {
+        refusal is Err(Preparation(Capacity(Resource(ExecutionLimit))))
+      },
+    )
+    assert_eq(entered.val, 0)
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, f.input).unwrap(),
+      before,
+    )
+    @resources.settle_capacity(f.parent.ledger, blocked).unwrap()
+    let exact = @resources.reserve_capacity(
+      f.parent.ledger,
+      if retention {
+        available - added
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        available - added
+      },
+    ).unwrap()
+    run().unwrap()
+    assert_eq(entered.val, 1)
+    assert_true(f.parent.phase == ModelPlanReserved)
+    let after = @resources.preparation_capacity_working_extents(
+      capacity,
+      f.input,
+    ).unwrap()
+    assert_eq(after.0, before.0 + added)
+    assert_eq(after.1, before.1 + added)
+    @resources.settle_capacity(f.parent.ledger, exact).unwrap()
+    assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+    abort_request_preparation_after_cleanup(f.parent).unwrap()
+    assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+  }
 }

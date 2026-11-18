@@ -92506,7 +92506,7 @@
     {
       "module": "src/client_local_host/preparation_request_model_recovery.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b0815cc815a622c1efb2a1ca0aaa3e8129f81b6d0279f5c5b4d6f01caa3f86ac",
+      "sha256": "4731da7f215f090dd8880d9baf3df69e53cd90a5f0544ad1541d2978bea6e0b6",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -92612,6 +92612,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "inputsOutputs": [
@@ -92638,6 +92642,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "identity": [
@@ -92664,6 +92672,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "ownership": [
@@ -92690,6 +92702,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "synchronization": [
@@ -92716,6 +92732,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "failure": [
@@ -92742,6 +92762,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "cancellation": [
@@ -92768,6 +92792,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "resources": [
@@ -92794,6 +92822,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "extension": [
@@ -92820,6 +92852,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ],
             "verification": [
@@ -92834,6 +92870,10 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Pre-adoption material ticket retention"
               }
             ]
           }

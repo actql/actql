@@ -830,6 +830,7 @@ pub fn[I] issue_request_model_run_materials(
         compiled, current, current_compilation,
       )
     },
+    retained_aliases=1L,
     fund => {
       @publication_host.issue_original_client_infer_run_materials(
         compiled,

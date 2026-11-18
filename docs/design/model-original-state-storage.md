@@ -284,3 +284,30 @@ checker. Source completion path/escaping frames, original audit entries and
 publication writer/hash/failed-child overlap keep their existing construction
 laws and separate live reservations. This changes neither the compiler's
 work/codec policy nor the Request's capacity ceilings.
+
+### Pre-adoption material ticket retention
+
+The installed Model's existing preparation constructs its Run Definition and
+compiled Plan before Scope completion/adoption. At that point the SAME Request
+still owns the working compiler/capacity. Its funded material constructor must
+run there, before Complete/Adopt consumes the transient compiler aliases. The
+later journal Definition callback borrows the one opaque ticket from that same
+Plan view; it cannot issue materials, reopen the working reservation, relax an
+adopting guard or select a standalone codec.
+
+Only actual Run preparation selects retention; the private plan constructor's
+metadata-only default performs no material issuance. The original material ticket
+remains bound by the existing complete Definition/Request/evidence checks. It
+follows the existing Plan's retained/pending/retirement lifetime rather than a new
+cache or Owner.
+
+The existing final Plan object gains one reference slot (8 logical bytes), with
+no additional view header or wrapper. Its previous admitted temporary and final
+spread view already coexisted during construction. The same four-reference
+material callback and two-reference parent/input argument record are moved
+before adoption; the former late IIFE is removed, not duplicated. Existing fixed
+Request/codec controls remain funded without a refund. The Model constructor
+adds the one reference to its original retained and execution control extent
+before constructing the Plan field; the Effect constructor keeps its prior
+zero-additional-reference control inventory. The existing Plan cleanup drops the
+ticket alias with the Plan, and pending cleanup retains both.

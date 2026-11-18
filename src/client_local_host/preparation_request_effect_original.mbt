@@ -427,6 +427,7 @@ fn[I, O, A] construct_request_original_materials_owned(
   input : I,
   capacity : @resources.PreparationCapacity[I, O],
   original_is_current : () -> Bool,
+  retained_aliases? : Int64 = 0L,
   construct : ((String, Int, Int, Int) -> Bool) -> Result[
     A,
     ClientRequestProgramPlanIssue,
@@ -438,17 +439,25 @@ fn[I, O, A] construct_request_original_materials_owned(
     Err(issue) => return Err(Preparation(Capacity(issue)))
     Ok(value) => value
   }
-  guard @execution.checked_preparation_add_product(
-      base.0,
-      request_effect_material_control_bytes,
-      1L,
-    )
-    is Some(base_r) &&
+  // One Model Plan field retains its already-funded original ticket. Admit
+  // that reference before the existing view is constructed; no extra view,
+  // closure or authority wrapper is created. Effects retain their old count.
+  guard retained_aliases >= 0L &&
+    @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: retained_aliases,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(aliases) &&
     @execution.checked_preparation_add_product(
-      base.1,
-      request_effect_material_control_bytes,
-      1L,
+      request_effect_material_control_bytes, aliases, 1L,
     )
+    is Some(control) &&
+    @execution.checked_preparation_add_product(base.0, control, 1L)
+    is Some(base_r) &&
+    @execution.checked_preparation_add_product(base.1, control, 1L)
     is Some(base_e) else {
     return Err(Preparation(Policy))
   }
