@@ -434,7 +434,8 @@ class InstalledLocalHost:
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
                     if run is not None:
                         self._register_original_run_reference(run, admission)
-                        work = OriginalLocalWork(partial(self._execute_original_admitted_run, run))
+                        work = OriginalLocalWork(partial(self._execute_original_admitted_run, run),
+                            on_exit=self._core._finish_work_operation)
                 else:
                     raise ValueError('Invalid original Local Submission action')
             elif operation in ('status', 'wait'):
@@ -481,6 +482,7 @@ class InstalledLocalHost:
             # awaiting coroutine disappears. Host close observes actual worker
             # stop before touching its Core/File/Store loans; no automatic retry.
             self._physical_work.append(work)
+            self._core._retain_work_operation(work)
             work.start()
             await work.wait()
         with self._core._lock:

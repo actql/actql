@@ -15,11 +15,14 @@ class OriginalLocalWork:
     This worker only calls the existing Owner-driven physical assembly once.
     """
 
-    def __init__(self, invoke: Callable[[], None]) -> None:
-        if not callable(invoke):
+    def __init__(self, invoke: Callable[[], None], *,
+                 on_exit: Callable[[OriginalLocalWork], None] | None = None) -> None:
+        if not callable(invoke) or (on_exit is not None and not callable(on_exit)):
             raise ValueError('Invalid original Local physical invocation')
         self._original = self
         self._invoke = invoke
+        self._on_exit = on_exit
+        self._exit_error: BaseException | None = None
         self._future: Future[None] = Future()
         self._thread = Thread(target=self._run, name='actql-local-original-work', daemon=False)
         self._invoked = False
@@ -44,10 +47,22 @@ class OriginalLocalWork:
             raise
 
     def _run(self) -> None:
+        failure: BaseException | None = None
         try:
             self._invoke()
         except BaseException as error:
-            self._future.set_exception(error)
+            failure = error
+        try:
+            if self._on_exit is not None:
+                self._on_exit(self)
+        except BaseException as error:
+            # Keep the original physical cause separate from scope retirement.
+            # Neither formatting nor replacement of either error is necessary.
+            self._exit_error = error
+            if failure is None:
+                failure = error
+        if failure is not None:
+            self._future.set_exception(failure)
         else:
             self._future.set_result(None)
 

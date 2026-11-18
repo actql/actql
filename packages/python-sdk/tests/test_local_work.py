@@ -67,12 +67,38 @@ class LocalWorkTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             work.start()
 
+    def test_retirement_failure_preserves_original_physical_cause_without_formatting(self):
+        class OriginalFailure(RuntimeError):
+            def __str__(self):
+                raise AssertionError('Original physical cause must remain opaque')
+        original = OriginalFailure()
+        retirement = RuntimeError('Original operation retirement is pending')
+        observed = []
+
+        def invoke():
+            raise original
+
+        def finish(work):
+            observed.append(work)
+            raise retirement
+
+        work = OriginalLocalWork(invoke, on_exit=finish)
+        work.start()
+        asyncio.run(work.wait_stopped())
+        with self.assertRaises(OriginalFailure) as failed:
+            asyncio.run(work.wait())
+        self.assertIs(failed.exception, original)
+        self.assertIs(work._exit_error, retirement)
+        self.assertEqual(observed, [work])
+        self.assertTrue(work.stopped)
+
     def test_host_close_cannot_touch_core_loans_before_actual_worker_stop(self):
         release = Event()
         work = OriginalLocalWork(lambda: release.wait(2))
         work.start()
         host = object.__new__(InstalledLocalHost)
         host._original = host
+        host._state_observing = False
         host._physical_work = [work]
         # There is intentionally no Core/Store on this fixture: early close
         # must return pending before it can reach any resource cleanup.

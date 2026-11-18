@@ -12,7 +12,7 @@ from importlib import import_module
 import secrets
 from struct import pack_into
 import sys
-from threading import RLock
+from threading import RLock, current_thread
 from types import MethodType
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 from ._local_journal_port import _JournalCallbacks, _JournalRowTransfer
 from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
+from ._local_work import OriginalLocalWork
 
 _NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
 _NORMAL_HOST_OPERATION_FUEL = 32_000_000_000
@@ -586,6 +587,8 @@ class LocalCore:
         # Run identity, submitted continuation or independent fuel allowance.
         self._host_operation_sequence = 0
         self._host_operation_id = 0
+        self._host_operation_scope: object | None = None
+        self._host_retained_work: tuple[OriginalLocalWork, object, int] | None = None
         self._host_cleanup_depth = 0
         self._engine: Any = None
         self._engine_configuration: Any = None
@@ -1120,12 +1123,54 @@ class LocalCore:
             self._host_operation_sequence = sequence + 1
             self._host_operation_id = sequence + 1
             self._host_fuel_phase = 'operation'
+            scope = object()
+            self._host_operation_scope = scope
         try:
             yield
         finally:
             with self._lock:
-                self._host_operation_id = 0
-                self._host_fuel_phase = None
+                retained = getattr(self, '_host_retained_work', None)
+                if (self._host_operation_scope is scope and
+                        (retained is None or retained[1] is not scope)):
+                    self._host_operation_id = 0
+                    self._host_fuel_phase = None
+                    self._host_operation_scope = None
+
+    def _retain_work_operation(self, work: OriginalLocalWork) -> None:
+        """Hand the current finite allowance to the same physical invocation.
+
+        This is lifetime custody only. It issues no Run permission or fresh fuel
+        and does not interpret coroutine cancellation as physical stop.
+        """
+        work._nominal()
+        if not getattr(self, '_ordinary_host', False):
+            return
+        with self._lock:
+            scope = getattr(self, '_host_operation_scope', None)
+            if (scope is None or self._host_fuel_phase != 'operation' or
+                    self._host_operation_id <= 0 or self._invoking or
+                    getattr(self, '_host_retained_work', None) is not None or
+                    work._invoked or work._on_exit != self._finish_work_operation):
+                raise RuntimeError('Original Host operation cannot transfer its physical custody')
+            self._host_retained_work = (work, scope, self._host_operation_id)
+
+    def _finish_work_operation(self, work: OriginalLocalWork) -> None:
+        """Relinquish only the allowance held by this original worker."""
+        work._nominal()
+        if not getattr(self, '_ordinary_host', False):
+            return
+        with self._lock:
+            retained = getattr(self, '_host_retained_work', None)
+            if (retained is None or retained[0] is not work or
+                    retained[1] is not self._host_operation_scope or
+                    retained[2] != self._host_operation_id or
+                    self._host_fuel_phase != 'operation' or self._invoking or
+                    not work._invoked or work._thread is not current_thread()):
+                raise RuntimeError('Original Host physical operation custody changed')
+            self._host_operation_id = 0
+            self._host_fuel_phase = None
+            self._host_operation_scope = None
+            self._host_retained_work = None
 
     @contextmanager
     def _host_cleanup(self) -> Iterator[None]:
