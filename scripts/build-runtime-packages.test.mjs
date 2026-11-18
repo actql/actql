@@ -74,7 +74,7 @@ function put(directory, path, contents) {
 }
 
 function run(t, requested, {fail, stalePayload, wrapper, version, additionalProvider = false,
-  refuseInterfaces = false, normalCli = false, missingInterfaceOwner = false, jobs, temporaryParent = tmpdir()} = {}) {
+  refuseInterfaces = false, normalCli = false, missingInterfaceOwner = false, jobs, commandEntry = false, temporaryParent = tmpdir()} = {}) {
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
@@ -233,8 +233,9 @@ try {
       ...${JSON.stringify(jobs === undefined ? [] : ['--moon-jobs', String(jobs)])}, ...${JSON.stringify(requested)}];
     await import('./scripts/build-runtime-packages.mjs');
   } else {
-    const {prepareRuntimePackages} = await import('./scripts/build-runtime-packages.mjs');
-    await prepareRuntimePackages(${JSON.stringify(requested)}, {
+    const {prepareRuntimePackages,runRuntimePackageCommand} = await import('./scripts/build-runtime-packages.mjs');
+    const prepare = ${JSON.stringify(commandEntry)} ? runRuntimePackageCommand : prepareRuntimePackages;
+    await prepare(${JSON.stringify(commandEntry ? [...(jobs === undefined ? [] : ['--moon-jobs', String(jobs)]), ...requested] : requested)}, {
       jobs: ${JSON.stringify(jobs)},
       checkInterfaces: async (root, {manifests}) => {
         record({command: 'fixture-interface-admission', root, manifests});
@@ -279,7 +280,7 @@ test('explicit fixture interface admission is awaited for the physical root and 
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(calls, expectedCalls(['coordinator-core', 'transfer-core'], directory));
   assert.equal(realpathSync(calls[0].root), directory);
-  const bounded=run(t,['coordinator-core','transfer-core'],{jobs:1});
+  const bounded=run(t,['coordinator-core','transfer-core'],{jobs:1,commandEntry:true});
   assert.equal(bounded.result.status,0,bounded.result.stderr);
   const compiler=bounded.calls.find(call=>call.command==='moon');
   assert.equal(compiler.args[compiler.args.indexOf('-j')+1],'1');
@@ -291,7 +292,7 @@ test('explicit fixture interface admission is awaited for the physical root and 
 });
 
 test('original interface refusal prevents every compiler and builder call', t => {
-  const {result, calls, directory} = run(t, ['local-node', 'run-host-core'], {refuseInterfaces: true,jobs:1});
+  const {result, calls, directory} = run(t, ['local-node', 'run-host-core'], {refuseInterfaces: true,jobs:1,commandEntry:true});
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Original fixture interface admission refused/u);
   assert.deepEqual(calls, [expectedCalls(['local-node', 'run-host-core'], directory)[0],
