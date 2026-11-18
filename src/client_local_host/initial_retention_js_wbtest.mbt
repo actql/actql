@@ -1,6 +1,80 @@
 ///|
 
 ///|
+
+///|
+test "successor acquired Source retention borrows its actual captured Program body beside the live Source child" {
+  let (parent, input, prepared) = request_capture_fixture()
+  let (plan, request) = request_capture_plan_fixture(prepared)
+  complete_request_capture_preparation(parent, input, plan).unwrap()
+  let run = begin_request_capture_managed_run(parent, request).unwrap()
+  let source = begin_installed_managed_capture_read(run, 0).unwrap()
+  let holder = managed_run_publication_body(run, prepared).unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  let retention = issue_program_initial_retention(
+    run,
+    prepared,
+    request,
+    "sha256:" + "1".repeat(64),
+    "sha256:" + "5".repeat(64),
+    "2026-11-18T01:00:00.000Z",
+    "2026-11-18T02:00:00.000Z",
+    "2026-11-25T00:00:00.000Z",
+    "sha256:" + "2".repeat(64),
+    "2026-11-25T00:00:00.000Z",
+    "sha256:" + "3".repeat(64),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  check_original_retention_test_result(retention, "sha256:" + "5".repeat(64))
+  assert_true(
+    physical_equal(managed_run_publication_body(run, prepared).unwrap(), holder),
+  )
+  assert_true(
+    run.captured_preparation is Some(original) && physical_equal(original, plan),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, before.attempts)
+  let copied = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "original-request-capture-plan",
+  ).unwrap()
+  assert_eq(
+    @publication_host.client_request_scope_cid(copied),
+    @publication_host.client_request_scope_cid(request),
+  )
+  assert_false(physical_equal(copied, request))
+  let held = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    issue_program_initial_retention(
+      run,
+      prepared,
+      copied,
+      "sha256:" + "1".repeat(64),
+      "sha256:" + "5".repeat(64),
+      "2026-11-18T01:00:00.000Z",
+      "2026-11-18T02:00:00.000Z",
+      "2026-11-25T00:00:00.000Z",
+      "sha256:" + "2".repeat(64),
+      "2026-11-25T00:00:00.000Z",
+      "sha256:" + "3".repeat(64),
+      10000,
+      1000,
+      32,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), held)
+  // Publication cannot retire the still-owned Source child or fabricate its
+  // physical ACK. The original child closes first, then the same Run body.
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  retire_installed_source_read(source).unwrap()
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
 test "new malformed initial selection keeps full canonical identity width on the same Program owner" {
   let (run, initial, ledger) = initial_retention_program_fixture()
   let prepared = match run.preparation {

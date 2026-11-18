@@ -3558,7 +3558,7 @@
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+                "anchor": "test('all original Source publication callers retain original evidence and funded owner without wire admission'"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -4368,7 +4368,7 @@
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+                "anchor": "test('all original Source publication callers retain original evidence and funded owner without wire admission'"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -29715,7 +29715,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "d539fdceb8ba9b182ef5660f20e236412338986ad32adcb4ac3e753857829f35",
+      "sha256": "cc0753e07ce66de5d241f04d2ec39c1b0f801743df8cfeb07f5b7bd0f85d7f3a",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -30944,7 +30944,7 @@
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+                "anchor": "test('all original Source publication callers retain original evidence and funded owner without wire admission'"
               },
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
@@ -31949,7 +31949,7 @@
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+                "anchor": "test('all original Source publication callers retain original evidence and funded owner without wire admission'"
               },
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
@@ -32567,7 +32567,7 @@
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+                "anchor": "test('all original Source publication callers retain original evidence and funded owner without wire admission'"
               },
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",
@@ -32963,7 +32963,7 @@
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "test('all original Source publication callers retain original evidence without wire admission'"
+                "anchor": "test('all original Source publication callers retain original evidence and funded owner without wire admission'"
               },
               {
                 "path": "adapters/host-node/request-content-caller.test.mjs",

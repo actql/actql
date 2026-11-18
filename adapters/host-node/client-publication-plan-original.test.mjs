@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
-import {checkedLocalOutputLimits} from './local-values-plan.mjs';
+import {checkedLocalOutputLimits, acquiredMultiTaskPublicationPlan, acquiredKeyedTaskPublicationPlan, localOutputLimits} from './local-values-plan.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 
 function originalGetter(record) {
@@ -56,7 +56,9 @@ test('publication phase dispatch preserves nominal owners and rejects invalid pr
 // and invocation ports are explicit; no physical publication is claimed here.
 function capturedPublicationFixture(kind, mode = 'managed') {
   const prepared = {}, live = {}, compiled = {}, definition = {}, evidence = [{}, {}];
-  const acquired = {compiled, runDefinition: definition, compiledPlan: {identity: 'compiled'}, createdAt: 'start'};
+  const request = {};
+  const acquired = {compiled, runDefinition: definition, compiledPlan: {identity: 'compiled'}, createdAt: 'start',
+    requestIdentity: request, publicationPreparation: mode === 'legacy' ? undefined : live};
   const captures = [0, 1].map(index => ({logicalInput: {}, identity: {}, requirement: {},
     checkedSource: {}, capture: {source: () => index}}));
   const vector = resultOutputLimitFields.map((name, index) => index + 128);
@@ -68,7 +70,7 @@ function capturedPublicationFixture(kind, mode = 'managed') {
     clientProgramCapturedTaskSourceMatches: original => original === prepared,
     clientProgramCapturedSourceLogicalCid: identity => captures.findIndex(value => value.identity === identity),
     clientProgramDefinitionCid: original => {assert.equal(original, prepared); return 'program';},
-    clientProgramResultCount: original => {assert.equal(original, prepared); return 1;},
+    clientProgramResultCount: original => {assert.equal(original, prepared); return 0;},
     clientProgramInstalledManagedPublicationLimits(original, program) {
       seen.limits++;
       assert.equal(original, live); assert.equal(program, prepared);
@@ -77,6 +79,13 @@ function capturedPublicationFixture(kind, mode = 'managed') {
     },
   };
   const control = {
+    issueProgramInitialRetention(owner, program, actualRequest) {
+      assert.strictEqual(owner, live); assert.strictEqual(program, prepared);
+      assert.strictEqual(actualRequest, request); return {};
+    },
+    seal: () => ({}), // Existing complete standalone path, not managed admission.
+    preparedClientNormalizationEvidence() { seen.publication++; return {}; },
+    preparedClientAuthoringContextEvidence: () => ({}),
     checkClientCompiledRunOwner(original, program) {assert.equal(original, compiled); assert.equal(program, prepared);},
     issueCheckedClientCompiledInvocation(original, run, fields, _limits, _owner, program) {
       assert.equal(original, compiled); assert.equal(run, definition); assert.equal(program, prepared);
@@ -85,13 +94,8 @@ function capturedPublicationFixture(kind, mode = 'managed') {
     keyedLookupPublicationEvidence(original) {assert.equal(original, evidence[1]); return {logicalRelationCid: 'right', source: evidence[1]};},
   };
   const name = kind === 'multi' ? 'acquiredMultiTaskPublicationPlan' : 'acquiredKeyedTaskPublicationPlan';
-  const builderSource = readFileSync(new URL('./local-values-plan.mjs', import.meta.url), 'utf8');
-  const builderAst = parse(builderSource, {ecmaVersion: 'latest', sourceType: 'module'});
-  const declaration = builderAst.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === name)?.declaration;
-  assert(declaration);
-  const build = new Function('checkedLocalOutputLimits', 'localPublicationPlan', 'limits',
-    `return (${builderSource.slice(declaration.start, declaration.end)});`)(checkedLocalOutputLimits,
-      plan => {seen.publication++; return plan;}, {});
+  const build = kind === 'multi' ? acquiredMultiTaskPublicationPlan : acquiredKeyedTaskPublicationPlan;
+
   const dispatch = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
   const calls = [];
   function walk(node) {
@@ -108,8 +112,15 @@ function capturedPublicationFixture(kind, mode = 'managed') {
     captured: captures[0], sourceEvidence: evidence[0], keyedObservation: {observation: evidence[1]},
     authorityScopeCid: 'authority', effectiveDataPolicyCid: 'policy', captureStartedAt: 'start', captureCompletedAt: 'end',
     namespaceId: 'namespace', storeAuthorityCid: 'store', now: () => 'end', [name]: build};
-  const invoke = new Function(...Object.keys(context), `return (${dispatch.slice(calls[0].start, calls[0].end)});`);
-  return {run: () => invoke(...Object.values(context)), seen, vector, foreign};
+  // Source wiring only: the caller's installed-run value must be the SAME
+  // expression tested for absence. Runtime behavior below uses actual imports.
+  const original = calls[0].arguments[0].properties.find(p => p.key?.name === 'publicationOriginal')?.value;
+  assert.equal(original?.type, 'ConditionalExpression');
+  const selected = original.alternate.properties.find(p => p.key?.name === 'value')?.value;
+  assert.equal(dispatch.slice(selected.start, selected.end), dispatch.slice(original.test.left.start, original.test.left.end));
+  return {run: () => build({...context,
+    publicationOriginal: managedRun === undefined ? undefined : {kind: 'installed_run', value: managedRun},
+    now: () => '2026-11-19T00:00:00.000Z'}), seen, vector, foreign};
 }
 
 for (const kind of ['multi', 'keyed']) {
@@ -125,7 +136,7 @@ for (const kind of ['multi', 'keyed']) {
     assert.throws(foreign.run, error => error === foreign.foreign);
     assert.deepEqual(foreign.seen, {limits: 1, publication: 0});
     const legacy = capturedPublicationFixture(kind, 'legacy');
-    assert.equal(legacy.run().outputLimits, undefined);
+    assert.deepEqual(legacy.run().outputLimits, localOutputLimits);
     assert.deepEqual(legacy.seen, {limits: 0, publication: 1});
   });
 }

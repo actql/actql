@@ -1239,12 +1239,23 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
         captured.capture.source()) !== true) {
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
+  // The adopted capture constructor retains this SAME Program body. Grow
+  // before the existing complete Source/lookup invocation checks so current
+  // callbacks cannot invalidate an earlier capture check unnoticed.
+  if ((acquired.publicationPreparation !== undefined || publicationOriginal?.kind === 'installed_run') &&
+      (publicationOriginal?.kind !== 'installed_run' || acquired.publicationPreparation === undefined ||
+        acquired.publicationPreparation !== publicationOriginal.value)) {
+    throw new TypeError('OriginalProgramRetentionOwnerRequired');
+  }
+  const originalRetention = publicationOriginal?.kind !== 'installed_run' ? undefined :
+    control.issueProgramInitialRetention(acquired.publicationPreparation, preparedProgram,
+      acquired.requestIdentity, effectiveDataPolicyCid, localRetentionTimes(now), retentionDependencies, limits);
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     acquired.compiled, acquired.runDefinition,
     {dataPolicyCid: effectiveDataPolicyCid, source: {captured, sourceEvidence,
       authorityScopeCid, captureStartedAt, captureCompletedAt}}, limits,
     acquired.publicationPreparation, preparedProgram);
-  return localPublicationPlan({control, admission: acquired.admission,
+  return localPublicationPlan({control, originalRetention, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
@@ -1281,11 +1292,22 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
   const observed = sources;
+  // The adopted capture constructor retains this SAME Program body. Grow
+  // before the existing complete Source/lookup invocation checks so current
+  // callbacks cannot invalidate an earlier capture check unnoticed.
+  if ((acquired.publicationPreparation !== undefined || publicationOriginal?.kind === 'installed_run') &&
+      (publicationOriginal?.kind !== 'installed_run' || acquired.publicationPreparation === undefined ||
+        acquired.publicationPreparation !== publicationOriginal.value)) {
+    throw new TypeError('OriginalProgramRetentionOwnerRequired');
+  }
+  const originalRetention = publicationOriginal?.kind !== 'installed_run' ? undefined :
+    control.issueProgramInitialRetention(acquired.publicationPreparation, preparedProgram,
+      acquired.requestIdentity, effectiveDataPolicyCid, localRetentionTimes(now), retentionDependencies, limits);
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
     acquired.compiled, acquired.runDefinition, {source: {sources: observed, authorityScopeCid,
       captureStartedAt, captureCompletedAt}, dataPolicyCid: effectiveDataPolicyCid}, limits,
     acquired.publicationPreparation, preparedProgram);
-  return localPublicationPlan({control, admission: acquired.admission,
+  return localPublicationPlan({control, originalRetention, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
@@ -1321,6 +1343,17 @@ export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
       moon.clientProgramCapturedSourceMatches(preparedProgram, captured.capture.source()) !== true) {
     throw new TypeError('InvalidAcquiredTaskPublication');
   }
+  // The adopted capture constructor retains this SAME Program body. Grow
+  // before the existing complete Source/lookup invocation checks so current
+  // callbacks cannot invalidate an earlier capture check unnoticed.
+  if ((acquired.publicationPreparation !== undefined || publicationOriginal?.kind === 'installed_run') &&
+      (publicationOriginal?.kind !== 'installed_run' || acquired.publicationPreparation === undefined ||
+        acquired.publicationPreparation !== publicationOriginal.value)) {
+    throw new TypeError('OriginalProgramRetentionOwnerRequired');
+  }
+  const originalRetention = publicationOriginal?.kind !== 'installed_run' ? undefined :
+    control.issueProgramInitialRetention(acquired.publicationPreparation, preparedProgram,
+      acquired.requestIdentity, effectiveDataPolicyCid, localRetentionTimes(now), retentionDependencies, limits);
   const right = control.keyedLookupPublicationEvidence(keyedObservation.observation);
   const left = sourceEvidence;
   const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
@@ -1328,7 +1361,7 @@ export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
       keyedObservation: keyedObservation.observation, authorityScopeCid,
       captureStartedAt, captureCompletedAt}, dataPolicyCid: effectiveDataPolicyCid}, limits,
     acquired.publicationPreparation, preparedProgram);
-  return localPublicationPlan({control, admission: acquired.admission,
+  return localPublicationPlan({control, originalRetention, admission: acquired.admission,
     runDefinition: acquired.runDefinition, invocation, observation,
     compiledPlanCid: acquired.compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),

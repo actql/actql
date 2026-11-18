@@ -4189,7 +4189,15 @@ Plural Source-unit preparation passes its exact initial retention forward
 to final publication without reissuing it. The shared publication builder
 does not infer or create a Resource owner. Existing standalone paths remain
 separate, and selected managed callers cannot fall back after an absent,
-foreign or refused tuple. Content/INFER staged-to-live Program ownership is
+foreign or refused tuple. Ordinary acquired single, multi-Source and keyed
+publication uses its actual capture adoption: the existing constructor
+retains the same PureManaged Program body, captured Plan and Request. Its
+retention grow precedes the existing complete captured/lookup invocation
+checks, so a current callback cannot invalidate an earlier Source check
+without the original validator refusing. Live evidence is passed by original
+reference, without another wire admission. The original Source child remains
+owned until its own cleanup; publication does not acknowledge or retire it.
+Content/INFER staged-to-live Program ownership is
 a separate connection; its complete existing path is retained. The already
 Common keyed lookup reservations and the distinct Wasm 24-hour profile are
 unchanged.

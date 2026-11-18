@@ -256,38 +256,78 @@ test('original Source publication consumes retained observation tokens on its sa
 });
 
 
-test('all original Source publication callers retain original evidence without wire admission', () => {
-  for (const kind of ['single', 'multi', 'keyed']) {
-    const owner = {}, prepared = {}, compiled = {}, definition = {}, rightOriginal = {}, right = {}, observations = [];
+test('all original Source publication callers retain original evidence and funded owner without wire admission', async () => {
+  const {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan, acquiredKeyedTaskPublicationPlan,
+    localOutputLimits} = await import('./local-values-plan.mjs');
+  const {resultOutputLimitFields} = await import('../host-common/result-output-limits.mjs');
+  for (const [kind, invoke] of [['single', acquiredTaskPublicationPlan], ['multi', acquiredMultiTaskPublicationPlan],
+      ['keyed', acquiredKeyedTaskPublicationPlan]]) {
+    const owner = {}, prepared = {}, request = {}, compiled = {}, definition = {}, rightOriginal = {},
+      right = {}, observations = {}, retention = {}, issued = [], events = [];
     const evidence = [{}, {}];
     const captures = [0, 1].map(index => ({logicalInput: {}, identity: {}, requirement: {},
       checkedSource: {}, capture: {source: () => `source-${index}`}}));
-    const issued = [];
+    let live = true, primary, retireOnGrow = false;
+    const retired = Error('OriginalSourceRetiredDuringRetentionGrowth');
     const control = {
-      checkClientCompiledRunOwner: (run, program) => {assert.equal(run, compiled); assert.equal(program, prepared);},
-      admitRunEvidence: () => assert.fail('live original Source evidence admitted again'),
-      issueCheckedClientCompiledInvocation: (...args) => {issued.push(args); return {observation: observations, invocation: {}};},
-      keyedLookupPublicationEvidence: value => {assert.equal(value, rightOriginal); return {source: right, logicalRelationCid: 'right-logical'};},
+      checkClientCompiledRunOwner(run, program) {assert.strictEqual(run, compiled); assert.strictEqual(program, prepared);},
+      admitRunEvidence() {assert.fail('live original Source evidence admitted again');},
+      seal() {assert.fail('selected managed caller cannot fall back to JS retention');},
+      issueProgramInitialRetention(actualOwner, actualPrepared, actualRequest, policy, selected, contracts) {
+        assert.strictEqual(actualOwner, owner); assert.strictEqual(actualPrepared, prepared);
+        assert.strictEqual(actualRequest, request); assert.equal(policy, 'policy');
+        assert.equal(selected.availableUntil, '2026-11-19T01:00:00.000Z');
+        assert.equal(selected.deleteBy, '2026-11-19T02:00:00.000Z'); assert.equal(contracts.length, 3);
+        events.push('grow'); if (primary) throw primary; if (retireOnGrow) live = false; return retention;
+      },
+      issueCheckedClientCompiledInvocation(...args) {
+        events.push('validate'); if (!live) throw retired;
+        issued.push(args); return {observation: observations, invocation: {}};
+      },
+      keyedLookupPublicationEvidence(value) {
+        assert.strictEqual(value, rightOriginal); events.push('lookup');
+        if (!live) throw retired; return {source: right, logicalRelationCid: 'right-logical'};
+      },
+      preparedClientNormalizationEvidence: () => ({}),
+      preparedClientAuthoringContextEvidence: () => ({}),
     };
     const moon = {clientProgramCapturedSourceMatches: () => true, clientProgramCapturedTaskSourceMatches: () => true,
       clientProgramPublicationDataPolicyCid: () => 'policy', clientProgramDefinitionCid: () => 'program',
       clientProgramCapturedSourceLogicalCid: identity => `logical-${captures.findIndex(x => x.identity === identity)}`,
-      clientProgramResultCount: () => 1, strategyRunEvidenceJson: () => assert.fail('retained input serialized again')};
-    const name = kind === 'single' ? 'acquiredTaskPublicationPlan' : kind === 'multi'
-      ? 'acquiredMultiTaskPublicationPlan' : 'acquiredKeyedTaskPublicationPlan';
-    const invoke = get('./local-values-plan.mjs', name, {limits: {}, localPublicationPlan: value => value,
-      JSON: {parse: () => assert.fail('retained keyed input parsed again')}});
-    const acquired = {compiled, runDefinition: definition, compiledPlan: {identity: 'plan'}, publicationPreparation: owner};
+      clientProgramResultCount: () => 0,
+      clientProgramInstalledManagedPublicationLimits(actualOwner, actualPrepared) {
+        assert.strictEqual(actualOwner, owner); assert.strictEqual(actualPrepared, prepared);
+        return resultOutputLimitFields.map(name => localOutputLimits[name]);
+      }};
+    const acquired = {compiled, runDefinition: definition, compiledPlan: {identity: 'plan'},
+      publicationPreparation: owner, requestIdentity: request};
     const input = {moon, control, acquired, preparedProgram: prepared, captured: captures[0], sourceEvidence: evidence[0],
+      publicationOriginal: {kind: 'installed_run', value: owner},
       sources: captures.map((captured, i) => ({captured, sourceEvidence: evidence[i]})),
       keyedObservation: {observation: rightOriginal}, effectiveDataPolicyCid: 'policy', authorityScopeCid: 'authority',
-      captureStartedAt: 'start', captureCompletedAt: 'end'};
+      captureStartedAt: 'start', captureCompletedAt: 'end', now: () => '2026-11-19T00:00:00.000Z'};
     const plan = invoke(input);
-    assert.equal(issued.length, 1); assert.equal(issued[0][4], owner); assert.equal(issued[0][5], prepared);
-    assert.deepEqual(plan.sourceEvidence, kind === 'keyed' ? [evidence[0], right]
+    assert.deepEqual(events, kind === 'keyed' ? ['grow', 'lookup', 'validate'] : ['grow', 'validate']);
+    assert.equal(issued.length, 1); assert.strictEqual(issued[0][4], owner); assert.strictEqual(issued[0][5], prepared);
+    assert.deepEqual(plan.receiptEvidence.sourceEvidence, kind === 'keyed' ? [evidence[0], right]
       : kind === 'multi' ? evidence : [evidence[0]]);
-    assert.equal(issued[0][2].source.sourceEvidence ?? issued[0][2].source.sources[0].sourceEvidence, evidence[0]);
-    assert.equal(plan.observation, observations);
+    assert.strictEqual(issued[0][2].source.sourceEvidence ?? issued[0][2].source.sources[0].sourceEvidence, evidence[0]);
+    assert.strictEqual(plan.observation, observations);
+    // A new Resource-current boundary must precede the existing complete
+    // Source/lookup validator, and its failure cannot trigger another issuer.
+    events.length = 0; retireOnGrow = true;
+    assert.throws(() => invoke(input), error => error === retired);
+    assert.equal(events[0], 'grow'); assert.equal(issued.length, 1);
+    events.length = 0; retireOnGrow = false; live = true; primary = Error('OriginalRetentionReservationRefused');
+    assert.throws(() => invoke(input), error => error === primary);
+    assert.deepEqual(events, ['grow']); assert.equal(issued.length, 1);
+    for (const replacement of [undefined, {}]) {
+      events.length = 0; primary = undefined;
+      assert.throws(() => invoke({...input, acquired: {...acquired, publicationPreparation: replacement}}),
+        /OriginalProgramRetentionOwnerRequired/);
+      assert.deepEqual(events, []); assert.equal(issued.length, 1);
+    }
+    assert.throws(() => invoke({...input, publicationOriginal: undefined}), /OriginalProgramRetentionOwnerRequired/);
   }
 });
 
