@@ -60,7 +60,8 @@ export function nativeReleaseVerificationTiming(stderr) {
     for (const phase of ['sourcePreparation', 'artifactVerification']) {
       const row = value[phase];
       assert.deepEqual(Object.keys(row).sort(), ['state', 'wallNs']);
-      assert.equal(row.state, 'completed');
+      assert(phase === 'sourcePreparation' ? row.state === 'completed'
+        : ['completed', 'retained'].includes(row.state));
       assert(Number.isSafeInteger(row.wallNs) && row.wallNs >= 0);
       phases[phase] = {state: row.state, wallNs: row.wallNs};
     }
@@ -181,6 +182,7 @@ export async function publishNativeApprovalReceipt({receipt, receiptFile, measur
   await writeFile(receiptFile, `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
   if (!measureResources) assert.equal(receipt.approvalSmoke.status, 'passed', receipt.approvalSmoke.failures.join('; '));
   scratch.passed();
+  scratch.close();
   log(`Installed Native mock approval/recovery passed: ${receiptFile}`);
 }
 

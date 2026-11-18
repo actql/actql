@@ -267,6 +267,11 @@ jobs:
         run: node --test scripts/ci-moon-test-plan.test.mjs
       - name: Test ordinary operation performance policy oracles
         run: npm run test:operation-performance-policy
+      - name: Test original Native Mock admission controls
+        run: >-
+          node scripts/local-checks.mjs test node --timeout-seconds 120 --
+          --test-name-pattern '^(same-call|Native Mock)'
+          scripts/native-cli-interface-check.test.mjs
       - name: Test ordinary operation performance assessment
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: npm run test:operation-performance-collectors
