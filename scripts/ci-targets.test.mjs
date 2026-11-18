@@ -790,27 +790,99 @@ test('Native Core matrix retains Darwin profiles and adds Linux common without m
   const artifact = core.steps.find(step => step.name === 'Retain only sanitized current Native compiler diagnostics');
   assert(artifact.with.name.includes('${{ strategy.job-index }}'));
   assert(!artifact.with.name.includes('${{ matrix.partition }}'), 'Partition slashes are invalid artifact names');
-  const root = mkdtempSync(join(tmpdir(), 'actql-native-partition-workflow-'));
-  t.after(() => rmSync(root, {recursive: true, force: true}));
-  writeFileSync(join(root, 'node'), '#!/bin/sh\nprintf "%s|%s|%s\\n" "$ACTQL_TEST_NATIVE_CORE_PARTITION" "$MOONBIT_NEW_NATIVE" "$*"\nexit "$ACTQL_FIXTURE_EXIT"\n');
-  chmodSync(join(root, 'node'), 0o755);
+  const f = nativeCoreCommandPort(t, command.run);
   for (const partition of partitions) for (const status of [0, 7]) {
-    const run = command.run.replaceAll('${{ matrix.target }}', 'native')
-      .replaceAll('${{ matrix.partition }}', String(partition));
-    const env = {...process.env, PATH: root + ':' + process.env.PATH, ACTQL_FIXTURE_EXIT: String(status)};
-    env.ACTQL_TEST_NATIVE_CORE_PARTITION = partition.startsWith('linux-common-') ? '' : partition; delete env.MOONBIT_NEW_NATIVE;
-    const result = spawnSync('bash', ['-eo', 'pipefail', '-c', run], {cwd: root, env, encoding: 'utf8', timeout: 5000});
+    const {result, calls} = f.run(partition, {clock: status, ordinary: status});
     assert.equal(result.error, undefined); assert.equal(result.signal, null);
     assert.equal(result.status, status, result.stderr);
-    const lines = result.stdout.trim().split('\n');
     if (partition.startsWith('linux-common-')) {
-      assert.deepEqual(lines, [`|0|scripts/test-native-core-linux-common.mjs ${partition}`]);
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].entry, 'scripts/test-native-core-linux-common.mjs');
+      assert.equal(calls[0].args[0], partition); assert.equal(calls[0].backend, '0');
       continue;
     }
-    assert.equal(lines[0], '||scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock');
-    assert.equal(lines.length, status === 0 ? 2 : 1);
-    if (status === 0) assert.equal(lines[1], `${partition}|0|scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose`);
+    assert.equal(calls[0].phase, 'clock'); assert.equal(calls[0].partition, '');
+    assert(calls[0].args.includes('platform_native/trusted_clock'));
+    const profiles = calls.filter(call => call.phase === 'profile');
+    assert.deepEqual(profiles.map(call => call.partition), status ? [] :
+      partition === '1/2' ? [partition, 'source'] : [partition]);
+    for (const call of profiles) {
+      assert.equal(call.entry, 'scripts/test-native-core.mjs'); assert.equal(call.backend, '0');
+      for (const flag of ['--deny-warn', '--release', '--strip', '--no-parallelize']) assert(call.args.includes(flag));
+      assert.equal(Number(call.args[call.args.indexOf('-j') + 1]), 2);
+      assert(!call.args.some(arg => /^(?:--filter|--index|--test-name-pattern)(?:=|$)/u.test(arg)));
+    }
   }
+});
+
+
+// Execute the actual YAML recipe with its public partition module. Only the
+// compiler entrances are command ports; no test/runtime compiler is started.
+function nativeCoreCommandPort(t, command) {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-partition-workflow-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  mkdirSync(join(root, 'scripts'));
+  writeFileSync(join(root, 'scripts/ci-core-partitions.mjs'),
+    readFileSync(new URL('./ci-core-partitions.mjs', import.meta.url)));
+  const log = join(root, 'commands.jsonl');
+  writeFileSync(join(root, 'node'), '#!' + process.execPath + '\n' + `
+    const {appendFileSync}=require('node:fs'),{spawnSync}=require('node:child_process');
+    const args=process.argv.slice(2),entry=args.shift();
+    if(entry==='--input-type=module') {
+      const result=spawnSync(process.execPath,[entry,...args],{stdio:'inherit',env:process.env});
+      process.exit(result.status??1);
+    }
+    const phase=entry==='scripts/test-native-core-linux-common.mjs'?'linux':args.includes('--release')?'profile':'clock';
+    const partition=process.env.ACTQL_TEST_NATIVE_CORE_PARTITION??'';
+    appendFileSync(${JSON.stringify(log)},JSON.stringify({entry,args,phase,partition,pid:process.pid,
+      backend:process.env.MOONBIT_NEW_NATIVE,cache:process.env.ACTQL_TEST_NATIVE_CORE_CCACHE,
+      cacheDirectory:process.env.ACTQL_TEST_NATIVE_CORE_CCACHE_DIR})+'\\n');
+    if(phase==='profile'&&partition!=='source'&&process.env.ACTQL_FIXTURE_SIGNAL==='ordinary')process.kill(process.pid,'SIGTERM');
+    else process.exit(Number(process.env[phase==='clock'?'ACTQL_FIXTURE_CLOCK_EXIT':
+      partition==='source'?'ACTQL_FIXTURE_SOURCE_EXIT':'ACTQL_FIXTURE_ORDINARY_EXIT']??0));
+  `);
+  chmodSync(join(root, 'node'), 0o755);
+  return {run(partition, {clock = 0, ordinary = 0, source = 0, signal = '', readonlyCache = false} = {}) {
+    writeFileSync(log, '');
+    const run = command.replaceAll('${{ matrix.target }}', 'native')
+      .replaceAll('${{ matrix.partition }}', partition);
+    const result = spawnSync('bash', ['-eo', 'pipefail', '-c',
+      (readonlyCache ? 'readonly ACTQL_TEST_NATIVE_CORE_CCACHE\n' : '') + run], {cwd: root,
+      encoding: 'utf8', timeout: 5000, env: {...process.env,
+        PATH: root + ':' + process.env.PATH, CI_PLAN_PATH: '',
+        ACTQL_TEST_NATIVE_CORE_PARTITION: partition.startsWith('linux-common-') ? '' : partition,
+        ACTQL_TEST_NATIVE_CORE_CCACHE: '/explicit-original-cache',
+        ACTQL_TEST_NATIVE_CORE_CCACHE_DIR: '/explicit-original-cache-directory',
+        ACTQL_FIXTURE_CLOCK_EXIT: String(clock), ACTQL_FIXTURE_ORDINARY_EXIT: String(ordinary),
+        ACTQL_FIXTURE_SOURCE_EXIT: String(source), ACTQL_FIXTURE_SIGNAL: signal}});
+    return {result, calls: readFileSync(log, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line))};
+  }};
+}
+
+test('Darwin Source co-location retains independent failures and its original non-cache child', t => {
+  const command = jobs['core-darwin'].steps.find(step => step.name === 'Test common core');
+  const f = nativeCoreCommandPort(t, command.run);
+  for (const [ordinary, source] of [[0, 0], [7, 0], [0, 9], [7, 9]]) {
+    const {result, calls} = f.run('1/2', {ordinary, source});
+    assert.ifError(result.error); assert.equal(result.signal, null);
+    assert.equal(result.status, ordinary || source, result.stderr);
+    const selected = calls.filter(call => call.phase === 'profile');
+    assert.deepEqual(selected.map(call => call.partition), ['1/2', 'source']);
+    assert.notEqual(selected[0].pid, selected[1].pid, 'each original entrance is a fresh process');
+    assert.equal(selected[0].cache, '/explicit-original-cache');
+    assert.equal(selected[0].cacheDirectory, '/explicit-original-cache-directory');
+    assert.equal(selected[1].cache, undefined); assert.equal(selected[1].cacheDirectory, undefined);
+  }
+  const stopped = f.run('1/2', {signal: 'ordinary'});
+  assert.equal(stopped.result.status, 143, stopped.result.stderr);
+  assert.deepEqual(stopped.calls.filter(call => call.phase === 'profile').map(call => call.partition), ['1/2']);
+  const retainedCache = f.run('1/2', {readonlyCache: true});
+  assert.notEqual(retainedCache.result.status, 0, 'cannot select Source if cache isolation failed');
+  assert.deepEqual(retainedCache.calls.filter(call => call.phase === 'profile').map(call => call.partition), ['1/2']);
+  const invalid = f.run('foreign');
+  assert.notEqual(invalid.result.status, 0);
+  assert.match(invalid.result.stderr, /Unknown hosted Native Core partition/u);
+  assert.equal(invalid.calls.filter(call => call.phase === 'profile').length, 0);
 });
 
 test('required aggregate rejects failed, cancelled, skipped and missing selected jobs', () => {
