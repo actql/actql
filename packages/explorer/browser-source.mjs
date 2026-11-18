@@ -112,6 +112,7 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
           value.run_ref.runDefinitionCid !== original.runDefinitionCid) refused('ExplorerInvalidReply');
       return value;
     },
+    runPresentation(ref, options) {return read('run-presentation', {ref, ...options});},
     describe(ref, name) {return read('result', {ref, name});},
     async cancel(original) {
       const saved=captureCancellation(original.cancelRef,original.attemptRef);

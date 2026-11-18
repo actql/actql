@@ -332,6 +332,17 @@ test('Gateway explanation close retains the original pending read without closin
   assert.equal((await response).status, 401, 'Closed scope must not disclose the delayed Facts');
 });
 
+test('Gateway original presentation rejects extra execution inputs and unsupported locale before SDK I/O', async () => {
+  const h = harness({client: {attach() {assert.fail('invalid presentation must not attach');}}});
+  const session = await h.connect();
+  for (const body of [{ref, locale: 'fr'}, {ref, captureSamples: true},
+    {ref, input: 'SELECT 1'}, {ref, plan: {}}, {ref: {runDefinitionCid: ref.runDefinitionCid}}]) {
+    assert.equal((await h.read('run-presentation', body, session)).status, 400);
+  }
+  assert.equal((await h.read('run-presentation', {ref}, session, {'X-Actql-CSRF': ''})).status, 403);
+  await h.gateway.close();
+});
+
 test('bootstrap and established session expiry never silently renew', async () => {
   let time = 1000;
   const h = harness({now: () => time, sessionMs: 100, bootstrapMs: 50});

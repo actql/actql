@@ -6,7 +6,7 @@ import type {OriginalCancellation, CancellationObservation} from '@actql/explore
 import {validCancellationRef, validOperationAttemptRef} from '@actql/client-wire';
 import type {WireCancellationLookup} from '@actql/client-wire';
 import type {RunObservationModel} from '@actql/explorer-ui/run-observation';
-import type {PlanReadModel, OriginalRunPlanReadModel} from '@actql/explorer-ui/read-model';
+import type {PlanReadModel, OriginalRunPlanReadModel, OriginalRunPresentationReadModel} from '@actql/explorer-ui/read-model';
 import {createExplorerBrowserSource} from '@actql/explorer/browser-source';
 import '@actql/explorer-ui/styles.css';
 import './styles.css';
@@ -17,6 +17,7 @@ function App() {
   const [run, showRun] = useState<RunObservationModel>(), [result, showResult] = useState<unknown>();
   const [follow, setFollow] = useState(false);
   const [originalPlan, showOriginalPlan] = useState<OriginalRunPlanReadModel>();
+  const [originalPresentation, showOriginalPresentation] = useState<OriginalRunPresentationReadModel>();
   const [programText, setProgramText] = useState('SELECT 1 AS answer');
   const [programFormat, setProgramFormat] = useState<'sql' | 'aql' | 'aql-text' | 'program'>('sql');
   const [runReference, setRunReference] = useState('');
@@ -35,7 +36,7 @@ function App() {
   const epoch = useRef(0);
   const runSelection = useRef(0);
   const invalidate = () => {epoch.current++; runSelection.current++; setFollow(false); source.close(); connect(false); enableCancellation(false); busy(false);
-    showPlan(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showLauncherProgram(false);
+    showPlan(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showOriginalPresentation(undefined); showLauncherProgram(false);
     reviewSelection.current++;showCheckpointPage(null);showReview(null);setCheckpointCapabilities({list:false,read:false});
     showCancellationHistory(null);showCancellation(originalCancellation && cancelSent.current
       ? {state:'unknown',original:originalCancellation} : null);showError('');};
@@ -83,11 +84,15 @@ function App() {
   const readRun = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget);
     const raw = String(data.get('ref')), name = String(data.get('name'));
-    const savedPlan = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'run-plan';
+    const selectedRead = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value');
+    const locale = String(data.get('locale')) as 'en' | 'ja';
     const selected = ++runSelection.current, scope = epoch.current; setFollow(false);
-    void perform(async () => {showRun(undefined); showResult(undefined); showOriginalPlan(undefined);
+    void perform(async () => {showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showOriginalPresentation(undefined);
       const ref = JSON.parse(raw);
-      if (savedPlan) {
+      if (selectedRead === 'run-presentation') {
+        const value = await source.runPresentation(ref, {locale});
+        if (runSelection.current === selected && epoch.current === scope) showOriginalPresentation(value);
+      } else if (selectedRead === 'run-plan') {
         const value = await source.runPlan(ref);
         if (runSelection.current === selected && epoch.current === scope) showOriginalPlan(value);
       } else {
@@ -153,12 +158,29 @@ function App() {
       {plan && <PlanExplorer model={plan} scopeKey={String(epoch.current)}/>}</section>
     <section><h2>Existing Run</h2><form onSubmit={readRun}>
       <label>Original Run reference JSON <textarea name="ref" value={runReference} onChange={event => {
-        runSelection.current++; setFollow(false); showRun(undefined); setRunReference(event.target.value);
+        runSelection.current++; setFollow(false); showRun(undefined); showOriginalPlan(undefined); showOriginalPresentation(undefined); setRunReference(event.target.value);
       }} maxLength={4096} required
         placeholder={'{"namespaceId":"...","authorityScopeCid":"sha256:...","runDefinitionCid":"sha256:..."}'}/></label>
       <label>Named Result (optional metadata) <input name="name" maxLength={1024}/></label>
+      <label>Explanation language <select name="locale" defaultValue="en"><option value="en">English</option><option value="ja">日本語</option></select></label>
       <button disabled={!connected || pending}>Read Run and metadata</button>
-      <button type="submit" value="run-plan" disabled={!connected || pending}>Read saved Run Plan</button></form>
+      <button type="submit" value="run-plan" disabled={!connected || pending}>Read saved Run Plan</button>
+      <button type="submit" value="run-presentation" disabled={!connected || pending}>Read original explanation</button></form>
+      {originalPresentation && <section aria-label="Original structural explanation">
+        <h3>Original structural explanation</h3>
+        <pre>{JSON.stringify(originalPresentation.runRef, null, 2)}</pre>
+        {originalPresentation.explanation.state === 'not_projected'
+          ? <p>Original explanation not projected: {originalPresentation.explanation.reason}. No replacement was compiled.</p>
+          : <>
+            <p>{originalPresentation.explanation.story.ordering.text}</p>
+            {originalPresentation.plan && <PlanExplorer model={originalPresentation.plan}
+              scopeKey={`${epoch.current}:${JSON.stringify(originalPresentation.runRef)}`}/>}
+            {originalPresentation.explanation.story.occurrences.map(occurrence => <article key={occurrence.stepId}>
+              <h4>{occurrence.title}</h4><p>{occurrence.explanation.text}</p>
+              <p>Original occurrence: <code>{occurrence.stepId}</code></p>
+            </article>)}
+          </>}
+      </section>}
       {originalPlan && <><h3>Saved original Run Plan</h3>
         <p>Static original map; no live progress overlay. Missing old evidence stays unavailable.</p>
         <pre>{JSON.stringify(originalPlan.runRef, null, 2)}</pre>

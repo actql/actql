@@ -27,6 +27,13 @@ if (explanation.explanation.state === 'not_projected') {
 // @ts-expect-error The explanation read never supplies execution/control options.
 await browser.explain(ref, {stopOnEntry: true});
 void explanationRef;
+const presentation = await browser.runPresentation(ref, {locale: 'ja'});
+if (presentation.explanation.state === 'projected') {
+  const originalText: string = presentation.explanation.story.occurrences[0].explanation.text;
+  void originalText;
+}
+// @ts-expect-error No new runtime selector belongs to the presentation route.
+await browser.runPresentation(ref, {locale: 'en', captureSamples: true});
 await browser.describe(ref, 'answer');
 // @ts-expect-error The launcher owns no Run cancellation operation.
 await server.cancel(ref);

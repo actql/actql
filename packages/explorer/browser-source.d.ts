@@ -3,7 +3,7 @@ import type {OriginalCancellation, CancellationObservation} from '@actql/explore
 import type {Client, RunReference, ResultDescription, CancellationReference} from '@actql/sdk';
 import type {WireCancellationLookup, WireRunView, WireRunExplanationView} from '@actql/client-wire';
 import type {RunObservationModel} from '@actql/explorer-ui/run-observation';
-import type {PlanReadModel, OriginalRunPlanReadModel} from '@actql/explorer-ui/read-model';
+import type {PlanReadModel, OriginalRunPlanReadModel, OriginalRunPresentationReadModel} from '@actql/explorer-ui/read-model';
 export type ExplorerCapabilities = Readonly<{plan: boolean; run: true;
   resultMetadata: true; resultPayload: false; control: false; sample: false; cancellation: boolean;checkpointList:boolean;checkpointReview:boolean}>;
 export function createExplorerBrowserSource(options: Readonly<{
@@ -17,6 +17,7 @@ export function createExplorerBrowserSource(options: Readonly<{
   observe(ref: RunReference): Promise<RunObservationModel>;
   runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;
   explain(ref: RunReference): Promise<WireRunExplanationView>;
+  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;
   describe(ref: RunReference, name: string): Promise<ResultDescription>;
   cancel(original: OriginalCancellation): Promise<CancellationObservation>;
   lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;

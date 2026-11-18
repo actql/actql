@@ -4,7 +4,7 @@ import {Hono} from 'hono';
 import {serve} from '@hono/node-server';
 import {validRunRef} from '@actql/client-wire';
 import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
-  readExistingRunExplanation, readStaticPlan} from '@actql/explorer-ui/read-model';
+  readExistingRunExplanation, readExistingRunPresentation, readStaticPlan} from '@actql/explorer-ui/read-model';
 import {copyExplorerLaunchInput} from './launch-input.mjs';
 import {requestExistingCancellation, lookupExistingCancellation} from './cancellation.mjs';
 import {readRunObservation} from '@actql/explorer-ui/run-observation';
@@ -245,6 +245,11 @@ export function createExplorerGateway({client, origin, assets = new Map(),
         case 'run-explanation':
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readExistingRunExplanation(client, body.ref, ticket);
+          break;
+        case 'run-presentation':
+          if (!exact(body, ['ref'], ['locale']) || !validRunRef(body.ref) ||
+              body.locale !== undefined && !['en', 'ja'].includes(body.locale)) fail('ExplorerInvalidRequest');
+          data = await readExistingRunPresentation(client, body.ref, {locale: body.locale}, ticket);
           break;
         case 'checkpoints':
           if(!exact(body,[]))fail('ExplorerInvalidRequest');
