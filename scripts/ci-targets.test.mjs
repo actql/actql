@@ -1909,7 +1909,8 @@ test('Python original observation fixture selects its same-source wheel consumer
   for (const path of ['scripts/fixtures/python-local-submission-observation-abi.py',
     'scripts/fixtures/python-local-public-cancellation-abi.py',
     'scripts/fixtures/python-local-saved-state-abi.py',
-    'scripts/fixtures/python-local-public-success-abi.py']) {
+    'scripts/fixtures/python-local-public-success-abi.py',
+    'scripts/fixtures/python_local_task_drive_trace.py']) {
     readFileSync(new URL('../' + path, import.meta.url));
     const selection = selectTargets([path], {draft: true});
     assert.equal(pythonWheelAcceptanceRequired(selection), true);

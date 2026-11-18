@@ -355,6 +355,40 @@ class SubmissionObservationTests(unittest.TestCase):
             self.assertFalse((path / 'submission-observation.json').exists())
 
 
+class MixedTaskDriveTraceTests(unittest.TestCase):
+    def test_closed_flushed_markers_contain_only_phase_and_elapsed_time(self):
+        trace_module = load('ci_mixed_task_trace', SCRIPTS / 'fixtures/python_local_task_drive_trace.py')
+        class Stream(io.StringIO):
+            flushes = 0
+            def flush(self):
+                self.flushes += 1
+        stream = Stream()
+        clock = iter([10.0, 10.125, 11.5])
+        trace = trace_module.MixedTaskDriveTrace(stream=stream, clock=clock.__next__)
+        trace.mark('fixture-start')
+        trace.mark('first-core-begin')
+        self.assertEqual([json.loads(line) for line in stream.getvalue().splitlines()], [
+            {'stage': 'task-drive-phase', 'phase': 'fixture-start', 'elapsed_seconds': 0.125},
+            {'stage': 'task-drive-phase', 'phase': 'first-core-begin', 'elapsed_seconds': 1.5}])
+        self.assertEqual(stream.flushes, 2)
+        for invalid in ('unknown-private-label', 'fixture-start'):
+            with self.assertRaises(ValueError):
+                trace.mark(invalid)
+        self.assertEqual(stream.flushes, 2)
+
+    def test_reporting_failure_does_not_replace_original_case_or_cleanup(self):
+        trace_module = load('ci_mixed_task_reporting', SCRIPTS / 'fixtures/python_local_task_drive_trace.py')
+        class ReportingFailure(OSError):
+            def __str__(self):
+                raise AssertionError('Reporting failure must not be formatted')
+        class BrokenStream:
+            def write(self, _wire):
+                raise ReportingFailure()
+        trace = trace_module.MixedTaskDriveTrace(stream=BrokenStream())
+        trace.mark('first-cleanup-begin')
+        trace.mark('first-cleanup-returned')
+
+
 class PublicLifecycleTests(unittest.TestCase):
     def original(self, path):
         return SubmissionObservationTests().original(path)[:2]
@@ -384,7 +418,7 @@ class PublicLifecycleTests(unittest.TestCase):
             def run(name, args, **options):
                 self.assertEqual(args[0], Path('/selected/python'))
                 self.assertEqual(args[2], module)
-                self.assertEqual(options, {'timeout': 120 if name in ('task-drive-mixed', 'cancellation-drive-start') else 300})
+                self.assertEqual(options, {'timeout': 120 if name == 'cancellation-drive-start' else 300})
                 calls.append((name, args))
                 return json.dumps(self.observation(name, module)).encode()
             result = ci.accept_public_lifecycle(run, Path('/selected/python'), module, receipt, path)

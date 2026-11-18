@@ -108,6 +108,7 @@ const pythonWheelInputs = new Set([
   'scripts/fixtures/python-local-public-cancellation-abi.py',
   'scripts/fixtures/python-local-saved-state-abi.py',
   'scripts/fixtures/python-local-public-success-abi.py',
+  'scripts/fixtures/python_local_task_drive_trace.py',
   'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
   'scripts/compile-python-local-image.py', 'scripts/python_release_cohort.py',
   'scripts/prepare-python-local-runtime.py', 'scripts/generate-local-wasm-abi.py',

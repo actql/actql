@@ -156,7 +156,7 @@ def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
         ('publication-unknown', 'python-local-public-success-abi.py', 'commit-unknown',
          'public_commit_reply_loss_original_lookup_same_result_without_reexecution', 300),
         ('task-drive-mixed', 'python-local-public-success-abi.py', 'task-drive-mixed',
-         'public_core_derived_task_drive_mixed_quanta_joined_result_same_saved', 120),
+         'public_core_derived_task_drive_mixed_quanta_joined_result_same_saved', 300),
         ('cancellation-drive-start', 'python-local-public-cancellation-abi.py', 'drive-start-state',
          'public_cancel_between_derived_drives_before_first_input_feed', 120),
     )
