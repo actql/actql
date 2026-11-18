@@ -28787,7 +28787,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "retainedIntentOriginal(row, control, originalEpoch).value;"
+                "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -29471,7 +29471,7 @@
               },
               {
                 "path": "adapters/host-node/client-submission-operation.test.mjs",
-                "case_id": "shared observation compares the selected journal original rather than a repeated incoming alias"
+                "anchor": "test('shared observation compares the selected journal original rather than a repeated incoming alias'"
               }
             ]
           }
@@ -30482,7 +30482,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "retainedIntentOriginal(row, control, originalEpoch).value;"
+                "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
@@ -34106,7 +34106,7 @@
               },
               {
                 "path": "adapters/host-node/client-submission-operation.test.mjs",
-                "case_id": "shared observation compares the selected journal original rather than a repeated incoming alias"
+                "anchor": "test('shared observation compares the selected journal original rather than a repeated incoming alias'"
               }
             ]
           }

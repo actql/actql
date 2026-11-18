@@ -368,6 +368,30 @@ class LocalSubmissionLookupTests(unittest.TestCase):
                 self.assertTrue(host.close())
                 close.assert_called_once_with(output)
 
+    def test_attempt_observation_pending_close_keeps_original_intent_and_output(self):
+        identity = self.submit_body({})['intentCid']
+        with TemporaryDirectory(prefix='actql-attempt-observation-') as directory:
+            host, core, _, counters, reference = self.fixture(directory, {
+                'kind': 'missing', 'observation': 'missing', 'expectedIntentCid': identity})
+            body = self.submit_body(reference)
+            intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
+            original = core.close_submission_lookup
+            with patch.object(core, 'close_submission_lookup', return_value=False):
+                with self.assertRaises(LocalProductCleanupPending):
+                    host._read_original_reference(reference, kind=4,
+                        intent=json.dumps(intent, ensure_ascii=False, separators=(',', ':')).encode(),
+                        intent_cid=identity)
+            output = host._projections[-1]
+            source = host._append_sources[output.ticket]
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertIs(core._loans[source.ticket], source)
+            self.assertEqual(counters['produce'], 1)
+            self.assertFalse(host._run_loans)
+            self.assertFalse(host._prepared_inputs)
+            with patch.object(core, 'close_submission_lookup', wraps=original) as close:
+                self.assertTrue(host.close())
+                close.assert_called_once_with(output)
+
     def test_public_attach_returns_exact_original_admission_without_executable_run(self):
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
