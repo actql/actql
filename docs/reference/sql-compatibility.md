@@ -128,9 +128,11 @@ Comparison and backtracking remain subject to the original execution work and
 cancellation limits.
 
 Timestamp casts require a valid canonical UTC value with `T`, a trailing `Z`
-and 3–9 fractional digits. For example, `2026-01-02T03:04:05.123Z` and
+and 3–9 fractional digits, without redundant trailing zeros beyond the minimum
+three places. For example, `2026-01-02T03:04:05.123Z` and
 `2026-01-02T03:04:05.123456789Z` are valid. Zero fractional digits, spaces,
-offset suffixes and surrounding whitespace are refused rather than normalized.
+offset suffixes, redundant fractions such as `.123000Z`, and surrounding
+whitespace are refused rather than normalized.
 An admitted program can fail when its runtime text is converted: this boundary
 reports `evaluation.timestamp_canonical_required`, rather than treating the
 canonical-form failure as a generic operand failure.
