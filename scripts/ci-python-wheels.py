@@ -128,6 +128,51 @@ def accept_submission_observation(run, python: Path, module: Path, receipt: Path
     return result
 
 
+def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
+                            destination: Path) -> dict:
+    """Reuse this producer's Core for the existing public lifecycle boundary.
+
+    Each control owns fresh SQLite state. These source SDK/raw ABI checks do
+    not replace the later normal wheel install or promote physical ACK scope.
+    """
+    original = json.loads(receipt.read_text())
+    def unchanged():
+        if (Path(original['module']).resolve() != module.resolve()
+                or original['module_sha256'] != hashlib.sha256(module.read_bytes()).hexdigest()):
+            raise ValueError('Public lifecycle requires the original Core module')
+    unchanged()
+    cases = []
+    controls = (
+        ('cancellation-saved', 'python-local-public-cancellation-abi.py', 'process-state',
+         'public_default_cancel_separate_process_saved_without_reprepare'),
+        ('state-unknown', 'python-local-public-cancellation-abi.py', 'fault-state',
+         'public_state_commit_reply_loss_original_readback_without_rewrite'),
+        ('state-partial-close', 'python-local-public-cancellation-abi.py', 'partial-state',
+         'public_state_partial_input_close_same_original_retirement'),
+        ('succeeded-result-saved', 'python-local-public-success-abi.py', None,
+         'public_succeeded_execute_typed_result_same_saved_and_close'),
+    )
+    for name, fixture, selection, expected in controls:
+        args = [python, ROOT / 'scripts/fixtures' / fixture, module,
+                destination / (name + '-state')]
+        if selection is not None:
+            args.append(selection)
+        observed = json.loads(run(name, args, timeout=300))
+        unchanged()
+        if (observed.get('success') is not True or type(observed.get('actualCases')) is not int
+                or observed['actualCases'] != 1 or observed.get('case') != expected
+                or observed.get('module_sha256') != original['module_sha256']):
+            raise ValueError('Incomplete original public lifecycle component')
+        cases.append(observed)
+    result = {'source_sha': original['source_sha'], 'module_sha256': original['module_sha256'],
+              'cases': cases, 'qualification': 'actual source SDK/raw ABI/SQLite components only',
+              'normal_image_acceptance': False, 'installed_wheel_acceptance': False}
+    with (destination / 'public-lifecycle.json').open('x') as output:
+        json.dump(result, output, indent=2)
+        output.write('\n')
+    return result
+
+
 def run_acceptance(destination: Path) -> None:
     target_platform = normal_target()
     _, _, archive_bytes, library_name = duckdb_release(target_platform)
@@ -180,6 +225,7 @@ def run_acceptance(destination: Path) -> None:
                         '--compiled-source', source, '--module', module, '--link-response', str(module) + '.rsp',
                         '--moon-home', os.environ['MOON_HOME'], '--destination', receipt])
     accept_submission_observation(run, python, module, receipt, destination)
+    accept_public_lifecycle(run, python, module, receipt, destination)
     image = destination / 'image'
     run('image', [python, ROOT / 'scripts/compile-python-local-image.py', '--compile-platform',
                   '--source', source, '--core-receipt', receipt, '--destination', image])

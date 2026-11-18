@@ -1793,14 +1793,18 @@ test('normal wheel platforms reject foreign machines and keep independent same-p
 });
 
 test('Python original observation fixture selects its same-source wheel consumer on draft', () => {
-  const path = 'scripts/fixtures/python-local-submission-observation-abi.py';
-  readFileSync(new URL('../' + path, import.meta.url));
-  const selection = selectTargets([path], {draft: true});
-  assert.equal(pythonWheelAcceptanceRequired(selection), true);
-  for (const outcome of ['failure', 'cancelled', 'skipped']) {
-    const needs = results(selection);
-    needs['python-wheels'].result = outcome;
-    assert.throws(() => verifyGate(plan(selection), needs, context), /python-wheels/);
+  for (const path of ['scripts/fixtures/python-local-submission-observation-abi.py',
+    'scripts/fixtures/python-local-public-cancellation-abi.py',
+    'scripts/fixtures/python-local-saved-state-abi.py',
+    'scripts/fixtures/python-local-public-success-abi.py']) {
+    readFileSync(new URL('../' + path, import.meta.url));
+    const selection = selectTargets([path], {draft: true});
+    assert.equal(pythonWheelAcceptanceRequired(selection), true);
+    for (const outcome of ['failure', 'cancelled', 'skipped']) {
+      const needs = results(selection);
+      needs['python-wheels'].result = outcome;
+      assert.throws(() => verifyGate(plan(selection), needs, context), /python-wheels/);
+    }
   }
 });
 

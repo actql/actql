@@ -199,13 +199,14 @@ class LinuxOrchestrationTests(unittest.TestCase):
                     patch.object(ci, 'open_duckdb_release', return_value=io.BytesIO(b'archive port')) as download, \
                     patch.object(ci, 'extract_duckdb', side_effect=extract), \
                     patch.object(ci, 'accept_submission_observation', side_effect=component), \
+                    patch.object(ci, 'accept_public_lifecycle', side_effect=component), \
                     patch.object(ci, 'select_release_version', return_value={'pythonVersion': '0.0.0.dev0'}), \
                     patch.object(ci, 'verify_built_cohort', side_effect=ReachedOriginalCohort):
                 with self.assertRaises(ReachedOriginalCohort):
                     ci.run_acceptance(destination)
             download.assert_called_once_with('linux-x64')
             self.assertEqual(len(builds), 1)
-            self.assertEqual(observed, builds)
+            self.assertEqual(observed, builds * 2)
             image = next(args for args in commands if '--compile-platform' in args)
             runtime = next(args for args in commands if '--platform-runtime' in args)
             wheel = next(args for args in commands if 'scripts/build-python-product-wheels.py' in args[1])
@@ -236,7 +237,7 @@ class LinuxOrchestrationTests(unittest.TestCase):
 
 
 class SubmissionObservationTests(unittest.TestCase):
-    def test_normal_recipe_reaches_component_with_its_single_original_build(self):
+    def test_normal_recipe_reaches_public_lifecycle_after_same_original_component(self):
         import subprocess
         class ReachedOriginalComponent(RuntimeError):
             pass
@@ -270,6 +271,9 @@ class SubmissionObservationTests(unittest.TestCase):
                 self.assertEqual(python, destination / 'builder/bin/python')
                 self.assertEqual(selected, destination)
                 reached.append(module)
+            def lifecycle(run, python, module, receipt, selected):
+                self.assertEqual(reached, [module])
+                component(run, python, module, receipt, selected)
                 raise ReachedOriginalComponent()
             with patch.object(ci.sys, 'platform', 'darwin'), patch.object(ci.platform, 'machine', return_value='arm64'), \
                     patch.dict(ci.os.environ, {'MOON_HOME': '/explicit/moon-tool-port'}), \
@@ -277,10 +281,11 @@ class SubmissionObservationTests(unittest.TestCase):
                     patch.object(ci.subprocess, 'run', side_effect=command), \
                     patch.object(ci, 'open_duckdb_release', return_value=io.BytesIO(b'archive port')), \
                     patch.object(ci, 'extract_duckdb', side_effect=extract), \
-                    patch.object(ci, 'accept_submission_observation', side_effect=component):
+                    patch.object(ci, 'accept_submission_observation', side_effect=component), \
+                    patch.object(ci, 'accept_public_lifecycle', side_effect=lifecycle):
                 with self.assertRaises(ReachedOriginalComponent):
                     ci.run_acceptance(destination)
-            self.assertEqual(len(reached), 1)
+            self.assertEqual(reached, builds * 2)
             self.assertFalse((destination / 'acceptance.json').exists())
 
     def original(self, path):
@@ -348,6 +353,75 @@ class SubmissionObservationTests(unittest.TestCase):
                 ci.accept_submission_observation(run, Path('/python'), module, receipt, path)
             self.assertIs(caught.exception, original)
             self.assertFalse((path / 'submission-observation.json').exists())
+
+
+class PublicLifecycleTests(unittest.TestCase):
+    def original(self, path):
+        return SubmissionObservationTests().original(path)[:2]
+
+    def observation(self, name, module):
+        cases = {
+            'cancellation-saved': 'public_default_cancel_separate_process_saved_without_reprepare',
+            'state-unknown': 'public_state_commit_reply_loss_original_readback_without_rewrite',
+            'state-partial-close': 'public_state_partial_input_close_same_original_retirement',
+            'succeeded-result-saved': 'public_succeeded_execute_typed_result_same_saved_and_close',
+        }
+        return {'success': True, 'actualCases': 1, 'case': cases[name],
+                'module_sha256': hashlib.sha256(module.read_bytes()).hexdigest()}
+
+    def test_same_original_four_controls_without_build_or_installed_claim(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            module, receipt = self.original(path)
+            calls = []
+            def run(name, args, **options):
+                self.assertEqual(args[0], Path('/selected/python'))
+                self.assertEqual(args[2], module)
+                self.assertEqual(options, {'timeout': 300})
+                calls.append((name, args))
+                return json.dumps(self.observation(name, module)).encode()
+            result = ci.accept_public_lifecycle(run, Path('/selected/python'), module, receipt, path)
+            self.assertEqual([name for name, _ in calls],
+                ['cancellation-saved', 'state-unknown', 'state-partial-close', 'succeeded-result-saved'])
+            self.assertEqual([args[-1] for _, args in calls[:3]],
+                ['process-state', 'fault-state', 'partial-state'])
+            self.assertEqual(len({args[3] for _, args in calls}), 4)
+            self.assertFalse(result['installed_wheel_acceptance'])
+            self.assertFalse(result['normal_image_acceptance'])
+            self.assertEqual(json.loads((path / 'public-lifecycle.json').read_text()), result)
+            self.assertFalse((path / 'acceptance.json').exists())
+
+    def test_changed_or_missing_component_refuses_without_receipt_or_next_control(self):
+        for change in ({'success': False}, {'actualCases': 0}, {'actualCases': True},
+                       {'module_sha256': 'b' * 64}, {'case': 'unrelated'}):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp)
+                module, receipt = self.original(path)
+                calls = []
+                def run(name, args, **options):
+                    calls.append(name)
+                    return json.dumps({**self.observation(name, module), **change}).encode()
+                with self.assertRaisesRegex(ValueError, 'Incomplete original'):
+                    ci.accept_public_lifecycle(run, Path('/python'), module, receipt, path)
+                self.assertEqual(calls, ['cancellation-saved'])
+                self.assertFalse((path / 'public-lifecycle.json').exists())
+
+    def test_original_module_and_failure_cannot_be_substituted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            module, receipt = self.original(path)
+            original = RuntimeError('original public lifecycle failure')
+            def failed(*args, **kwargs):
+                raise original
+            with self.assertRaises(RuntimeError) as caught:
+                ci.accept_public_lifecycle(failed, Path('/python'), module, receipt, path)
+            self.assertIs(caught.exception, original)
+            module.write_bytes(b'changed original')
+            with self.assertRaisesRegex(ValueError, 'original Core'):
+                ci.accept_public_lifecycle(
+                    lambda *args, **kwargs: self.fail('Changed Core reached consumer'),
+                    Path('/python'), module, receipt, path)
+            self.assertFalse((path / 'public-lifecycle.json').exists())
 
 
 class InstalledAuditTests(unittest.TestCase):
