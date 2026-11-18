@@ -29,7 +29,7 @@ export function notionUsersProvider(){
     handle({method,target}){
       assert.equal(method,'GET');assert.equal(target,targets[requests.length]);
       requests.push({method,target});const second=requests.length===2;
-      return {statusCode:200,body:JSON.stringify({object:'list',type:'user',
+      return {statusCode:200,body:JSON.stringify({object:'list',type:'user',user:{},
         results:second?[users[2]]:users.slice(0,2),has_more:!second,next_cursor:second?null:cursor})};
     },
     requests(){return requests.map(value=>({...value}));},
