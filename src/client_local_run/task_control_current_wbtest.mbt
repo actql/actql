@@ -232,7 +232,22 @@ test "Core owner control pause during actual work parks after its output and ter
 
 ///|
 test "Core owner control prepays all three original completion scans or refuses before state construction" {
-  for (work, succeeds) in [(17, false), (18, true)] {
+  // Configuration has its own existing charged work. Measure that unchanged
+  // baseline independently; the new three checks plus nine completion-slot
+  // visits are a fixed authored expectation, not read from the product quote.
+  let witness_root = capacity_boundary_root(100000L, 100000L)
+  let witness = source_free_shared_host(
+    plan(
+      prepared(@input.Program(control_values_program)),
+      "control-work-baseline",
+    ),
+    witness_root,
+  ).unwrap()
+  prepare_local_compute_task_boundaries(witness).unwrap() |> ignore
+  let baseline = @resources.ledger_usage(witness_root).planning_work
+  @strategy.stop_captured_dag(local_compute_run(witness))
+  @strategy.refresh_captured_retention(local_compute_run(witness))
+  for (work, succeeds) in [(baseline + 11, false), (baseline + 12, true)] {
     let root = @resources.create_ledger({
       planning_work: work,
       attempts: 10,
@@ -256,9 +271,9 @@ test "Core owner control prepays all three original completion scans or refuses 
     assert_eq(
       @resources.ledger_usage(root).planning_work,
       if succeeds {
-        18
+        baseline + 12
       } else {
-        6
+        baseline
       },
     )
     assert_eq(
