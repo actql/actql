@@ -604,23 +604,29 @@ pub fn advance_managed_task_lifecycle(
   if record.issue is Some(_) {
     return -32
   }
-  let code = managed_task_run_current(value, record)
-  if code != 0 {
-    return code
-  }
+  // Deriving the next action is pure. Each delegated action retains its own
+  // current check before work; only no-action returns need the check here.
   if record.completed is Some(_) {
+    let code = managed_task_run_current(value, record)
+    if code != 0 {
+      return code
+    }
     return if record.invoked && record.operations is Some(_) { 1 } else { -33 }
   }
   if !record.invoked {
     if record.operations is Some(_) ||
       record.progress is Some(_) ||
       record.finalization_invoked {
-      return -33
+      let code = managed_task_run_current(value, record)
+      return if code != 0 { code } else { -33 }
     }
     let code = start_managed_task(nonce, handle)
     return if code != 0 { code } else { managed_task_started(nonce, handle) }
   }
-  guard record.operations is Some(_) else { return -33 }
+  guard record.operations is Some(_) else {
+    let code = managed_task_run_current(value, record)
+    return if code != 0 { code } else { -33 }
+  }
   if record.finished_inputs.any(finished => !finished) {
     return feed_managed_task(nonce, handle, quantum)
   }
@@ -628,7 +634,14 @@ pub fn advance_managed_task_lifecycle(
   // poll it as runnable work or discard the original settlement observation.
   if record.progress is Some(progress) &&
     (progress.waiting || progress.settlement is Some(_)) {
-    return if record.finalization_invoked { 3 } else { 2 }
+    let code = managed_task_run_current(value, record)
+    return if code != 0 {
+      code
+    } else if record.finalization_invoked {
+      3
+    } else {
+      2
+    }
   }
   let code = if !record.finalization_invoked {
     if record.progress is Some({ complete: true, .. }) {

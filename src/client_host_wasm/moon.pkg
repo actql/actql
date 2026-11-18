@@ -36,6 +36,7 @@ options(
   targets: {
     "saved_lookup_validation_dispatch_wbtest.mbt": [ "release" ],
     "non_sdk_source_restore_wbtest.mbt": [ "release" ],
+    "managed_task_current_wbtest.mbt": [ "release" ],
   },
   link: {
     "wasm": {
