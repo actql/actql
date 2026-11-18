@@ -56,7 +56,7 @@ test "provider Source Plan retains original reader and simultaneous completed ta
       task in plan.capacity_plan.graph_offset..<@strategy.graph_task_count(
         plan.configuration.graph,
       ) {
-      tail_execution += @local_driver.local_dispatch_preparation_task_capacity(
+      tail_execution += @local_driver.local_dispatch_preparation_managed_task_capacity(
           plan.configuration.dispatch,
           task,
         ).unwrap().execution_bytes

@@ -76,12 +76,10 @@ test "missing input copy quote preserves original scratch metadata export and ex
     let actual = local_dispatch_copy_capacity(
       base, 7L, 11L, 13L, 37L, copies, true,
     ).unwrap()
-    // Independent complete census includes the issue and Some discriminators:
-    // 3H5R6W +19 UTF16 retained, 3H6R5W projection/locals/descriptor.
-    let diagnostic = 3L * 16L + 5L * 8L + 6L * 8L + 19L * 2L
-    let temporary = 3L * 16L + 6L * 8L + 5L * 8L
-    assert_eq(actual.retained_bytes, retained + diagnostic)
-    assert_eq(actual.execution_bytes, execution + diagnostic + temporary)
+    // The materializing route constructs its original transport, not the
+    // managed-only logical-work diagnostic frame.
+    assert_eq(actual.retained_bytes, retained)
+    assert_eq(actual.execution_bytes, execution)
     assert_eq(actual.transfer_bytes, transfer)
   }
   assert_true(
@@ -96,6 +94,27 @@ test "missing input copy quote preserves original scratch metadata export and ex
 }
 
 ///|
+test "managed task projection adds only its complete diagnostic frame" {
+  let plain : @strategy.PhysicalEnvelope = {
+    transfer_bytes: 37L,
+    retained_bytes: 101L,
+    execution_bytes: 211L,
+  }
+  // Independently authored representation counts, not the helper's output.
+  let retained = 3L * 16L + 5L * 8L + 6L * 8L + 19L * 2L
+  let temporary = 3L * 16L + 6L * 8L + 5L * 8L
+  let managed = local_managed_task_capacity(plain).unwrap()
+  assert_eq(managed.transfer_bytes, plain.transfer_bytes)
+  assert_eq(managed.retained_bytes, plain.retained_bytes + retained)
+  assert_eq(
+    managed.execution_bytes,
+    plain.execution_bytes + retained + temporary,
+  )
+  assert_eq(plain.retained_bytes, 101L)
+  assert_eq(plain.execution_bytes, 211L)
+}
+
+///|
 test "logical work diagnostic quote retains fixed fields and preserves explicit metadata ceilings" {
   let (retained, execution) = local_managed_logical_work_diagnostic_capacity().unwrap()
   assert_eq(retained, 3L * 16L + 5L * 8L + 6L * 8L + 19L * 2L)
@@ -104,30 +123,19 @@ test "logical work diagnostic quote retains fixed fields and preserves explicit 
   assert_eq(origin.retained_bytes, 2L * 8L)
   assert_eq(origin.execution_bytes, 4L * 8L)
   assert_true(
-    local_dispatch_copy_capacity(
-      @execution.execution_capacity(
-        9223372036854775807L - retained + 1L,
-        9223372036854775807L,
-      ).unwrap(),
-      0L,
-      0L,
-      0L,
-      0L,
-      0,
-      false,
-    )
+    local_managed_task_capacity({
+      transfer_bytes: 0L,
+      retained_bytes: 9223372036854775807L - retained + 1L,
+      execution_bytes: 9223372036854775807L,
+    })
     is None,
   )
   assert_true(
-    local_dispatch_copy_capacity(
-      @execution.execution_capacity(0L, 9223372036854775807L - execution + 1L).unwrap(),
-      0L,
-      0L,
-      0L,
-      0L,
-      0,
-      false,
-    )
+    local_managed_task_capacity({
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      execution_bytes: 9223372036854775807L - execution + 1L,
+    })
     is None,
   )
 }
@@ -144,15 +152,11 @@ test "logical work complete frame admits exact backing and refuses either one-by
   let locals = 3L * 8L + 2L * 8L
   let descriptor = 16L + 8L
   let execution = retained + tuple_some + locals + descriptor
-  let actual = local_dispatch_copy_capacity(
-    @execution.execution_capacity(0L, 0L).unwrap(),
-    0L,
-    0L,
-    0L,
-    0L,
-    0,
-    false,
-  ).unwrap()
+  let actual = local_managed_task_capacity({
+    transfer_bytes: 0L,
+    retained_bytes: 0L,
+    execution_bytes: 0L,
+  }).unwrap()
   for
     (r, e, expected) in [
       (retained, execution, None),
