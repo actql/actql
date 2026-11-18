@@ -2354,10 +2354,12 @@
     {
       "module": "packages/provider-ai-sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "246dd2023a7b6c2aef81ac027b24515b090661aa60e23e7798de458c374bc759",
+      "sha256": "4b63bac42aed35e8691c488d1672ab474bed93c4191d40a79fde7c177c850821",
       "exports": [
+        "ConfiguredModelProviderRegistration",
         "ModelProviderRegistration",
         "OpenAIChatMaterialsRegistrationOptions",
+        "OpenAIChatProviderOptions",
         "OpenAIChatRecipeRegistrationOptions",
         "OpenAIChatRegistrationOptions",
         "OpenAIInstallationData",
@@ -2376,7 +2378,8 @@
         "UndiciOpenAIChatRecipeRegistrationOptions",
         "UndiciOpenAIChatRegistrationOptions",
         "createInstalledOpenAIChatRegistration",
-        "createInstalledUndiciOpenAIChatRegistration"
+        "createInstalledUndiciOpenAIChatRegistration",
+        "createOpenAIChatProvider"
       ],
       "operations": [
         {
@@ -2388,16 +2391,29 @@
         },
         {
           "name": "<call>#2",
-          "parameters": [],
-          "result": "boolean"
+          "parameters": [
+            "runtime: unknown",
+            "context: unknown"
+          ],
+          "result": "Promise<readonly Readonly<Record<string, unknown>>[]>"
         },
         {
           "name": "<call>#3",
           "parameters": [],
-          "result": "string"
+          "result": "Readonly<{classification: string; region: string;\n    providerRetention: boolean; trainingUse: boolean}>"
         },
         {
           "name": "<call>#4",
+          "parameters": [],
+          "result": "boolean"
+        },
+        {
+          "name": "<call>#5",
+          "parameters": [],
+          "result": "string"
+        },
+        {
+          "name": "<call>#6",
           "parameters": [
             "facts: unknown"
           ],
@@ -2444,6 +2460,13 @@
             "options: UndiciOpenAIChatMaterialsRegistrationOptions"
           ],
           "result": "ModelProviderRegistration"
+        },
+        {
+          "name": "createOpenAIChatProvider",
+          "parameters": [
+            "options: OpenAIChatProviderOptions"
+          ],
+          "result": "ConfiguredModelProviderRegistration"
         }
       ],
       "role": "physical-io",
@@ -2461,7 +2484,10 @@
             "createInstalledOpenAIChatRegistration#3",
             "createInstalledUndiciOpenAIChatRegistration",
             "createInstalledUndiciOpenAIChatRegistration#2",
-            "createInstalledUndiciOpenAIChatRegistration#3"
+            "createInstalledUndiciOpenAIChatRegistration#3",
+            "<call>#5",
+            "<call>#6",
+            "createOpenAIChatProvider"
           ],
           "exports": [
             "ModelProviderRegistration",
@@ -2484,7 +2510,10 @@
             "UndiciOpenAIChatRecipeRegistrationOptions",
             "UndiciOpenAIChatRegistrationOptions",
             "createInstalledOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration"
+            "createInstalledUndiciOpenAIChatRegistration",
+            "ConfiguredModelProviderRegistration",
+            "OpenAIChatProviderOptions",
+            "createOpenAIChatProvider"
           ],
           "attributes": {
             "responsibility": [
@@ -2598,10 +2627,11 @@
     {
       "module": "packages/provider-ai-sdk/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "129e67d4530f122511619f6a725205fbf184acee021f83d1c70e70ce8d9f2cec",
+      "sha256": "8fa10583204c9108e139d599aa3ffa3f003845e74e269b2c96a8c81448674cfe",
       "exports": [
         "createInstalledOpenAIChatRegistration",
-        "createInstalledUndiciOpenAIChatRegistration"
+        "createInstalledUndiciOpenAIChatRegistration",
+        "createOpenAIChatProvider"
       ],
       "operations": [],
       "role": "physical-io",
@@ -2613,7 +2643,8 @@
           ],
           "exports": [
             "createInstalledOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration"
+            "createInstalledUndiciOpenAIChatRegistration",
+            "createOpenAIChatProvider"
           ],
           "attributes": {
             "responsibility": [
@@ -3237,6 +3268,257 @@
               {
                 "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
                 "anchor": "no success claim"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "e21cfdf5b6a7840e949b0e083eadd7ce66a275668d4af76451d30a20b8e4c262",
+      "exports": [
+        "createOpenAIChatProvider"
+      ],
+      "operations": [
+        {
+          "name": "amount/amount",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider",
+          "parameters": [
+            "moon",
+            "context"
+          ],
+          "async": true
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/bindings/bindings",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/config/config",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries/register/register",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/owned/owned",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/profile/profile",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "data/data",
+          "parameters": [
+            "source",
+            "required",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data/data#3",
+          "parameters": [
+            "key",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "observation/observation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "observation/observation/fields/fields",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "observation/observation/observation",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "observation/observation/observation#2",
+          "parameters": [
+            "field",
+            "index"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing configured Model Host initial Resource, Common Task originals and per-Run async physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "amount/amount",
+            "createOpenAIChatProvider",
+            "createOpenAIChatProvider/createOpenAIChatProvider",
+            "createOpenAIChatProvider/createOpenAIChatProvider/bindings/bindings",
+            "createOpenAIChatProvider/createOpenAIChatProvider/config/config",
+            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
+            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
+            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
+            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries",
+            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
+            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries/register/register",
+            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider#2",
+            "createOpenAIChatProvider/createOpenAIChatProvider/owned/owned",
+            "createOpenAIChatProvider/createOpenAIChatProvider/profile/profile",
+            "data/data",
+            "data/data/data",
+            "data/data/data#2",
+            "data/data/data#3",
+            "observation/observation",
+            "observation/observation/fields/fields",
+            "observation/observation/observation",
+            "observation/observation/observation#2"
+          ],
+          "exports": [
+            "createOpenAIChatProvider"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "anchor": "export async function installConfiguredModelProviders"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "anchor": "export function createOpenAIChatProvider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "anchor": "context.prepareBindingOriginals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "snapshotTaskInstallations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "startSourceFreeSingleUnit"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "anchor": "OpenAIProviderConfigurationReused"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/physical_preflight.mbt",
+                "anchor": "cleanup: cursor.cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "anchor": "const nodes = 128n + 2048n"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model.mjs",
+                "anchor": "InstalledModelTaskProfileUnavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/normal-openai-http.actual.test.mjs",
+                "anchor": "normal OpenAI factory executes two unequal Tasks through actual Host and HTTP"
               }
             ]
           }

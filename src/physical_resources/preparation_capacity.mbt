@@ -467,6 +467,7 @@ priv enum PreparationBodyGrowth {
   Publication
   PublicationProofWork(Int64, Ref[PreparationPhaseWorkContinuation64?])
   NativeWork
+  NativeWorkBacking
   EnterRunningInventory
   LeaveRunningInventory
   RunningInventory(OriginalLedgerIdentity, Int, Int, Int)
@@ -561,9 +562,9 @@ fn[I, P] make_preparation_body_borrow(
             }
           }
         }
-        Publication | NativeWork =>
+        Publication | NativeWork | NativeWorkBacking =>
           reserve_original_preparation_running_phase(
-            value, body, retained, execution,
+            value, body, retained, execution, inventory,
           )
         EnterRunningInventory =>
           enter_preparation_inventory_growth(value.owner, body, Some(value))

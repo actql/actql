@@ -93,10 +93,11 @@ export type HostInstallation = Readonly<{
   verifyRequestValuePolicy?: HostRequestValuePolicyVerifier;
   resultDataPolicy?: Readonly<Record<string, unknown>>;
   inferEvidence?: Readonly<{
-    /** Select only original logical Model inputs; omitted keeps full physical Evidence.
-     * Requires live prepared originals and parent publication funding; otherwise incomplete.
-     * Partial/restored calls do not reconstruct unavailable input originals. */
-    kind?: 'typed-input';
+    /** Omitted keeps full physical Evidence. typed-input selects retained logical inputs;
+     * usage selects only available Store-confirmed token/provenance observations.
+     * Both require original parent publication funding; missing stays incomplete.
+     * Neither reconstructs unavailable originals or implies disclosure permission. */
+    kind?: 'typed-input' | 'usage';
     target: string | readonly string[]; destination: string; maxBytes: number;
     authorize: (binding: Readonly<Record<string, unknown>>) => boolean | Promise<boolean>;
     sink: Readonly<{

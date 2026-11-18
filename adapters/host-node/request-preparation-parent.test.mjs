@@ -76,6 +76,61 @@ async function fixture({beginFailure, environment, observe, sourceFreeMaxWork, v
   return {view,calls,shapes,context,originals,get parent(){return parent;},get original(){return admission?.original;}};
 }
 
+test('actual manager preserves synchronous Model Graph ports and forwards only the installed admitted Provider role', async () => {
+  // Actual imported manager and Resource owner; explicit Core ports isolate
+  // routing from the separately tested real Core exact/one-short accounting.
+  for (const kind of ['legacy', 'mock', 'async']) for (const keyed of [false, true]) {
+    const f = await fixture(), moon = f.context.runtime;
+    const prepared = {}, inventory = {}, selected = {}, occurrence = {}, execution = {}, graph = {}, admission = {};
+    const admitted = kind === 'async' ? {} : undefined;
+    const declarations = keyed ? Object.freeze([{}]) : undefined;
+    f.originals.installation = {sequenceContractOriginal: {moon, admission}};
+    moon.clientProgramPrepareRequestNativeComputation = () => ok(undefined);
+    moon.clientProgramBorrowRequestProgramPlanInput = () => ok(inventory);
+    moon.clientProgramPreparationBorrowRead = holder => {
+      assert(holder === inventory || holder === selected); return prepared;
+    };
+    moon.clientProgramComposedInferOccurrences = () => ok([occurrence]);
+    moon.clientProgramBorrowRequestModelPlanInput = () => ok(selected);
+    moon.clientProgramPreparationBorrowReturn = holder => {
+      assert(holder === inventory || holder === selected); return ok(holder === selected);
+    };
+    moon.clientProgramPreparationBorrowRetirementStarted = holder => {assert.equal(holder, selected); return true;};
+    const abort = moon.clientProgramAbortRequestPreparation;
+    let aborted = false;
+    moon.clientProgramAbortRequestPreparation = function(parent) {
+      assert.equal(parent, f.parent);
+      if (aborted) return ok(undefined);
+      const result = Reflect.apply(abort, moon, [parent]); aborted = true; return result;
+    };
+    moon.clientProgramRequestParametersOriginal = () => ok(undefined);
+    const routed = [];
+    for (const name of ['clientProgramPrepareRequestModelGraph', 'clientProgramPrepareRequestDeclaredFileModelGraph',
+      'clientProgramPrepareRequestProviderModelGraph']) {
+      moon[name] = function(...args) {
+        assert.equal(this, moon);
+        const expected = [f.parent, receipt, occurrence, execution, admission];
+        if (kind === 'async') expected.push(admitted, declarations);
+        else if (keyed) expected.push(declarations);
+        assert.deepEqual(args, expected);
+        routed.push(name); return ok(graph);
+      };
+    }
+    const original = input(), request = {};
+    const receipt = f.view.beforeSourceSnapshot('program', original, {}, connection);
+    const body = f.view.captureSourceSnapshot(receipt, {kind:'program', input:original, parameters:{}}, snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+    assert.equal((await f.view.fundedPreparation(request)).prepared, prepared);
+    assert.equal(f.view.prepareModelGraph(prepared, request, occurrence, execution, undefined, undefined,
+      declarations, admitted), graph);
+    assert.deepEqual(routed, [kind === 'async' ? 'clientProgramPrepareRequestProviderModelGraph'
+      : keyed ? 'clientProgramPrepareRequestDeclaredFileModelGraph' : 'clientProgramPrepareRequestModelGraph']);
+    f.view.finishSourceProducer(receipt, 'returned');
+    assert.equal((await f.view.close()).pending, false);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  }
+});
+
 test('public Source capture preserves an original snapshot refusal before exchange and emits only its typed quantities', async t => {
   const observed = [], f = await fixture({observe: (event, detail) => observed.push({event, detail})});
   const issue = {}, result = {$tag: 0, _0: issue};

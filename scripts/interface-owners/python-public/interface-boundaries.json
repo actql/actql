@@ -3973,7 +3973,7 @@
           ]
         }
       ],
-      "sha256": "3acf1d16a823824259bd109ac25d7f052cb67c0b48371523871fc1571710ac76",
+      "sha256": "ecce51525adf268f732b94cb32e9c501492d24867fe22ae172af280bd3129404",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -5010,27 +5010,27 @@
     {
       "exports": [
         "Callable",
+        "CheckpointCandidateError",
         "ClientError",
         "Signer",
         "base64",
+        "bytes_cid",
         "canonical_bytes",
         "capture_signer",
         "content_cid",
+        "create_checkpoint_answer_codec",
         "dataclass",
         "decode_json",
         "hashlib",
         "inspect",
         "re",
         "review_bytes_match_cid",
-        "signed_answer",
-        "snapshot",
-        "thaw",
-        "valid"
+        "signed_answer"
       ],
       "imports": [
+        "._checkpoint_answer_codec",
         "._errors",
         "._values",
-        "._wire",
         "base64",
         "collections.abc",
         "dataclasses",
@@ -5045,6 +5045,13 @@
           "async": false,
           "name": "Signer",
           "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_candidate_error",
+          "parameters": [
+            "cause"
+          ]
         },
         {
           "async": true,
@@ -5080,7 +5087,7 @@
           ]
         }
       ],
-      "sha256": "b639b81157450fa5f07ef099d2617b0c237aeb45aeba7348b11bd23050e67838",
+      "sha256": "4afdcdb8c8cc052ca5375898d867961da907ccc72b5c7ac57ad09f5f6d168492",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup. Effect review integrity uses exact DATA keys and root-self exclusion; Model and legacy byte domains remain distinct. Integrity does not issue signing, resolve, permission or cleanup authority.",
@@ -5089,6 +5096,7 @@
           "operations": [
             "<module>",
             "Signer",
+            "_candidate_error",
             "_signature",
             "capture_signer",
             "review_bytes_match_cid",
@@ -5096,22 +5104,22 @@
           ],
           "exports": [
             "Callable",
+            "CheckpointCandidateError",
             "ClientError",
             "Signer",
             "base64",
+            "bytes_cid",
             "canonical_bytes",
             "capture_signer",
             "content_cid",
+            "create_checkpoint_answer_codec",
             "dataclass",
             "decode_json",
             "hashlib",
             "inspect",
             "re",
             "review_bytes_match_cid",
-            "signed_answer",
-            "snapshot",
-            "thaw",
-            "valid"
+            "signed_answer"
           ],
           "attributes": {
             "responsibility": [
@@ -5122,12 +5130,20 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_checkpoints.py",
                 "anchor": "\"\"\"Existing Checkpoint artifact preimages, signed by an application callback.\"\"\""
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## SDK consumers"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_checkpoints.py",
                 "anchor": "\"\"\"Existing Checkpoint artifact preimages, signed by an application callback.\"\"\""
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## SDK consumers"
               }
             ],
             "identity": [
@@ -5138,6 +5154,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_checkpoints.py",
                 "anchor": "\"\"\"Existing Checkpoint artifact preimages, signed by an application callback.\"\"\""
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## SDK consumers"
               }
             ],
             "ownership": [
@@ -5188,6 +5208,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_checkpoints.py",
                 "anchor": "\"\"\"Existing Checkpoint artifact preimages, signed by an application callback.\"\"\""
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## SDK consumers"
               }
             ],
             "extension": [
@@ -5204,6 +5228,10 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "AsyncBoundaryTests"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_checkpoint_candidate_boundary.py",
+                "anchor": "async def test_original_noncanonical_identities_refuse_before_signing"
               }
             ]
           }
@@ -9575,6 +9603,7 @@
         "Mapping",
         "Observation",
         "SAFE_INTEGER",
+        "bytes_cid",
         "canonical_bytes",
         "content_cid",
         "decode_json",
@@ -9650,6 +9679,13 @@
           "name": "Observation/to_dict",
           "parameters": [
             "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "bytes_cid",
+          "parameters": [
+            "value"
           ]
         },
         {
@@ -9749,7 +9785,7 @@
           ]
         }
       ],
-      "sha256": "fd51954fbe5f42f34b3a4c3aee949c631ebead165fb8a3efcb6c149a0709ec8d",
+      "sha256": "a0cae180e5efe05761a32f72764515aac19b6a36a33e0634bcb31aa41650a1f1",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -9887,6 +9923,440 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "ValueTests"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "bytes_cid"
+          ],
+          "exports": [
+            "bytes_cid"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate captures data, key and primitive receivers before first asynchronous digest'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "CheckpointCandidateError",
+        "WeakKeyDictionary",
+        "create_checkpoint_answer_codec",
+        "json",
+        "math",
+        "namedtuple",
+        "re",
+        "unicodedata",
+        "valid"
+      ],
+      "imports": [
+        "._wire_codec",
+        "collections",
+        "json",
+        "math",
+        "re",
+        "unicodedata",
+        "weakref"
+      ],
+      "module": "packages/python-sdk/src/actql_sdk/_checkpoint_answer_codec.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "CheckpointCandidateError",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "CheckpointCandidateError/__init__",
+          "parameters": [
+            "self",
+            "code",
+            "field"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_Stage",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_canonical_text",
+          "parameters": [
+            "value",
+            "field"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_capture",
+          "parameters": [
+            "value",
+            "limits"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_capture/add",
+          "parameters": [
+            "count"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_capture/string",
+          "parameters": [
+            "text"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_capture/visit",
+          "parameters": [
+            "item",
+            "depth"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_cid",
+          "parameters": [
+            "value",
+            "field"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_document",
+          "parameters": [
+            "fields",
+            "context"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_limits_of",
+          "parameters": [
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_present",
+          "parameters": [
+            "value",
+            "path"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_quoted_bytes",
+          "parameters": [
+            "text"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_refuse",
+          "parameters": [
+            "code",
+            "field"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_shape",
+          "parameters": [
+            "value",
+            "required",
+            "optional"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_signature",
+          "parameters": [
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_source",
+          "parameters": [
+            "context",
+            "path"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_timestamp",
+          "parameters": [
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "create_checkpoint_answer_codec",
+          "parameters": [
+            "canonical_bytes",
+            "bytes_cid"
+          ]
+        },
+        {
+          "async": false,
+          "name": "create_checkpoint_answer_codec/answer_candidate_approval_preimage",
+          "parameters": [
+            "stage"
+          ]
+        },
+        {
+          "async": false,
+          "name": "create_checkpoint_answer_codec/answer_resolution_preimage",
+          "parameters": [
+            "stage"
+          ]
+        },
+        {
+          "async": false,
+          "name": "create_checkpoint_answer_codec/finish_answer_candidate",
+          "parameters": [
+            "stage",
+            "resolution_signature"
+          ]
+        },
+        {
+          "async": false,
+          "name": "create_checkpoint_answer_codec/frame",
+          "parameters": [
+            "value",
+            "limits"
+          ]
+        },
+        {
+          "async": false,
+          "name": "create_checkpoint_answer_codec/identity",
+          "parameters": [
+            "value",
+            "limits"
+          ]
+        },
+        {
+          "async": false,
+          "name": "create_checkpoint_answer_codec/original",
+          "parameters": [
+            "mapping",
+            "stage"
+          ]
+        },
+        {
+          "async": false,
+          "name": "create_checkpoint_answer_codec/prepare_answer_candidate",
+          "parameters": [
+            "summary",
+            "decision",
+            "actor",
+            "decided_at",
+            "selected_limits"
+          ]
+        },
+        {
+          "async": false,
+          "name": "create_checkpoint_answer_codec/prepare_answer_resolution",
+          "parameters": [
+            "stage",
+            "approval_signature"
+          ]
+        },
+        {
+          "async": false,
+          "name": "create_checkpoint_answer_codec/with_proof",
+          "parameters": [
+            "body",
+            "key_id",
+            "proof",
+            "kind",
+            "limits"
+          ]
+        }
+      ],
+      "sha256": "ce094f6038e0f4ae1dff12519170830b5989cee1454350b27b073725e3bb9002",
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated bounded candidate DATA and original wire projection; no signing authority, Local engine, Host permission or second Checkpoint state machine.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "CheckpointCandidateError",
+            "CheckpointCandidateError/__init__",
+            "_Stage",
+            "_canonical_text",
+            "_capture",
+            "_capture/add",
+            "_capture/string",
+            "_capture/visit",
+            "_cid",
+            "_document",
+            "_limits_of",
+            "_present",
+            "_quoted_bytes",
+            "_refuse",
+            "_shape",
+            "_signature",
+            "_source",
+            "_timestamp",
+            "create_checkpoint_answer_codec",
+            "create_checkpoint_answer_codec/answer_candidate_approval_preimage",
+            "create_checkpoint_answer_codec/answer_resolution_preimage",
+            "create_checkpoint_answer_codec/finish_answer_candidate",
+            "create_checkpoint_answer_codec/frame",
+            "create_checkpoint_answer_codec/identity",
+            "create_checkpoint_answer_codec/original",
+            "create_checkpoint_answer_codec/prepare_answer_candidate",
+            "create_checkpoint_answer_codec/prepare_answer_resolution",
+            "create_checkpoint_answer_codec/with_proof"
+          ],
+          "exports": [
+            "CheckpointCandidateError",
+            "WeakKeyDictionary",
+            "create_checkpoint_answer_codec",
+            "json",
+            "math",
+            "namedtuple",
+            "re",
+            "unicodedata",
+            "valid"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate captures data, key and primitive receivers before first asynchronous digest'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
               }
             ]
           }

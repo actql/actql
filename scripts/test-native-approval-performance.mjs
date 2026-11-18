@@ -10,7 +10,7 @@ import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
 import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
-import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalPhases, assertNativeApprovalAcceptanceBinding, assertNativeApprovalObservation, nativeMockWorkflowTiming} from './native-approval-performance.mjs';
+import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalPhases, assertNativeApprovalAcceptanceBinding, assertNativeApprovalObservation, nativeMockWorkflowTiming, nativeReleaseVerificationTiming} from './native-approval-performance.mjs';
 
 const {values} = parseArgs({options: {normal: {type: 'string'}, output: {type: 'string'},
   runner: {type: 'string'}, binding: {type: 'string'}, diagnostic: {type: 'boolean', default: false}}});
@@ -47,7 +47,7 @@ for (let iteration = 0; iteration < count; iteration++) {
   const started = process.hrtime.bigint();
   const result = spawnSync(process.execPath,
     [fileURLToPath(new URL('./test-native-cli-mock-install.mjs', import.meta.url)), directory, '--measure-approval-resources'],
-    {cwd: root, env: process.env, encoding: 'utf8', timeout: 240000,
+    {cwd: root, env: {...process.env, ACTQL_CI_NATIVE_RELEASE_PHASES: '1'}, encoding: 'utf8', timeout: 240000,
       killSignal: 'SIGKILL', maxBuffer: 8 * 1024 ** 2});
   const consumerWallNs = Number(process.hrtime.bigint() - started);
   if (result.error || result.signal || result.status !== 0) {
@@ -65,7 +65,8 @@ for (let iteration = 0; iteration < count; iteration++) {
     assert.equal(receipt.cliSourceSha, source.revision);
     assert.equal(receipt.scenarios.length, 2);
     report.receipts.push({iteration, path: receiptPath, sha256: hash(bytes)});
-    report.workflowTimings.push({iteration, consumerWallNs, ...nativeMockWorkflowTiming(receipt)});
+    report.workflowTimings.push({iteration, consumerWallNs, ...nativeMockWorkflowTiming(receipt),
+      ...nativeReleaseVerificationTiming(result.stderr)});
     for (const selected of series) {
       const scenario = receipt.scenarios.find(value => value.template === selected.template);
       assert(scenario, 'Missing original template workflow');

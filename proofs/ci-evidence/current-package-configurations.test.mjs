@@ -285,9 +285,9 @@ test('current configuration entries bind exact authored Git inputs and literal d
   }
 });
 
-test('current Local JS review admits only the lifecycle fixture selector and keeps every source bound', () => {
+test('current Local JS review admits only reviewed fixture selectors and keeps every source bound', () => {
   const review = JSON.parse(readFileSync(new URL(
-    '../../docs/reviews/2026-11-18-session-local-resource-lifecycle-selector-review.json', import.meta.url)));
+    '../../docs/reviews/2026-11-18-session-local-current-fixture-selectors-review.json', import.meta.url)));
   const path = review.path;
   const entry = currentPackageConfigurations[path];
   const reviewedTree = gitTree(root, review.source);
@@ -320,8 +320,10 @@ test('current Local JS review admits only the lifecycle fixture selector and kee
     assert.equal(currentTree.entries.get(source)?.mode, '100644');
   }
   for (const changed of [
-    body.replace('"resource_lifecycle_regressions_wbtest.mbt": [ "js" ]',
-      '"resource_lifecycle_regressions_wbtest.mbt": [ "native" ]'),
+    ...review.addedSelectors.flatMap(selector => {
+      const original = `    "${selector.file}": [ "js" ],\n`;
+      return [body.replace(original, ''), body.replace(original, original.replace('"js"', '"native"'))];
+    }),
     body + '\noptions(pre_build: "unreviewed-hook")\n',
     body.replace('"actql/actql/decode_shape" @shape', '"actql/actql/decode_shape" @permission'),
   ]) {
@@ -342,6 +344,7 @@ test('current Local JS review admits only the lifecycle fixture selector and kee
 test('the prior Local descriptor stays historical without admitting it as current', () => {
   const path = 'src/client_local_host/moon.pkg';
   for (const [revision, digest] of [
+    ['8385cf48bbffd611f7fa62e872a21c764aa7787f', '497f93c3defd265ba83791d7a8c3290302f368406e1d348f04a5d5f1c472fefd'],
     ['942da5f7cff320f37489be12498fee6f742c40c3', 'b0d5e68d9e82221e6ae49e364de6175ca92377e8227443eafa84149e5ee25b23'],
     ['776746d359ec107cf3172d90016d07e009384fc9', '8c60608fabbcc3310000730ac92fb17768d5b87796e189a192dd1bee513f3ce8'],
     ['4d25879b4f9443cfc73758b948fc472401a5a96e', '4411b9a5d341bf6d5ab235cb1c1a4f99ac12de9387b08f582bbe9e41c610f359'],

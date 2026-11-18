@@ -44,7 +44,7 @@ test "source-free work bounds Fragment preparation after independent Program che
   }
   assert_true(
     @lower.prepare_fragment_pipeline(sequence, 1, { ..roots, max_work: 1, })
-    is Err(@lower.RootLimit),
+    is Err(@lower.RootWorkLimit),
   )
   let fragment = @lower.prepare_fragment_pipeline(sequence, 1, roots).unwrap()
   assert_true(
@@ -69,6 +69,6 @@ test "source-free work bounds Fragment preparation after independent Program che
     )
   }
   assert_eq(client_local_source_free_max_work(Some(1)), Some(1))
-  assert_true(prepare(1) is Err(Unsupported))
+  assert_true(prepare(1) is Err(RuntimeFragmentWorkLimit(1, 1)))
   assert_eq(prepare(100000).unwrap().length(), 1)
 }

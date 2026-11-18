@@ -1944,6 +1944,7 @@ pub(all) enum RootIssue {
   InvalidStep
   NotExpressionKernel
   NeedsOrderedEncoding
+  RootWorkLimit
 }
 
 pub(all) struct RootLimits {

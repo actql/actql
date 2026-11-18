@@ -263,6 +263,8 @@ pub fn prepare_model_raw_capture_save(ModelPhysicalCall, @run_publication_host.C
 
 pub fn prepare_model_response_reconciliation(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ModelResponseReconciliation, ModelExecutionIssue]
 
+pub fn prepare_original_model_capture_usage(ModelExecution, OriginalModelPublicationCapacity, VerifiedModelCapture, Int64, Int64) -> Result[(Int64, Int64), ModelExecutionIssue]
+
 pub fn prepare_original_model_consumer_startup(@run_publication_host.ClientModelReadConsumer, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[OriginalModelStartup, @run_publication_host.ClientModelInputCapacityIssue]
 
 pub fn prepare_original_model_mock(@check_environment.ModelMockProfile, @check_environment.PublicModelTaskDeclaration, @check_environment.NormalizedPublicModelTask, () -> String) -> Result[ModelMockInstallation, ModelMockInstallationIssue]
@@ -296,6 +298,8 @@ pub fn project_http_chat_request(AdmittedModelProvider, ModelRequest, String, In
 pub fn project_native_decision_answers(NativeDecisionRequest, AdmittedModelProvider, ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), NativeDecisionAnswerIssue]
 
 pub fn project_openai_chat_request(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), OpenAIChatProjectionIssue]
+
+pub fn project_original_model_capture_usage(ModelExecution, OriginalModelPublicationCapacity, VerifiedModelCapture, Int, Int64, Int64, Int) -> Result[(String, Int64, Int64), ModelExecutionIssue]
 
 pub fn read_model_mock_answer_document(@check_environment.PublicModelTaskDeclaration, String, String, ModelMockAnswerLimits) -> Result[ModelMockAnswers, ModelMockAnswerIssue]
 

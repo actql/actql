@@ -259,6 +259,8 @@ pub fn bind_client_local_runtime_policy_upgrade(ClientLocalRunPolicyUpgrade, Cli
 
 pub fn[Store, E] bind_client_local_worker_run_journal_key(ClientLocalAdoptedHostMaterial[Store, E], Store, ClientRequestIdentity, ClientRetainedRunJournalRow, String, String) -> Result[ClientLocalWorkerRunJournalKey[Store, E], ClientLocalWorkerRunKeyIssue[E]]
 
+pub fn bind_client_logical_task_boundary(ClientStructuralExplanationOriginal, ClientCompiledRun, PreparedClientProgram, @physical_strategy_host.CapturedDAG, @physical_strategy_host.CapturedTaskBoundary, Int) -> Result[ClientLogicalTaskBoundaryProjection, ClientLogicalTaskBoundaryIssue]
+
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
 
 pub fn bind_client_model_raw_response(ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelRawResponse, ClientModelRawCaptureIssue]
@@ -1166,6 +1168,14 @@ pub fn client_local_runtime_successor_metadata_cid(ClientLocalRuntimeSuccessorMe
 pub fn client_local_runtime_successor_metadata_field(ClientLocalRuntimeSuccessorMetadata, String) -> String?
 
 pub fn[Store, E] client_local_worker_run_journal_coordinates(ClientLocalWorkerRunJournalKey[Store, E], Store, ClientRetainedRunJournalRow) -> Result[(String, String), ClientLocalWorkerRunKeyIssue[E]]
+
+pub fn client_logical_task_boundary_current(ClientLogicalTaskBoundary, ClientCompiledRun, PreparedClientProgram) -> Bool
+
+pub fn client_logical_task_boundary_key_json(ClientLogicalTaskBoundary, ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[String, ClientLogicalTaskBoundaryIssue]
+
+pub fn client_logical_task_boundary_output_port_id(ClientLogicalTaskBoundary, ClientCompiledRun, PreparedClientProgram, Int, Int) -> Result[String?, ClientLogicalTaskBoundaryIssue]
+
+pub fn client_logical_task_boundary_step_id(ClientLogicalTaskBoundary, ClientCompiledRun, PreparedClientProgram) -> Result[String, ClientLogicalTaskBoundaryIssue]
 
 pub fn client_model_current_state_match_current(@physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin]?
 
@@ -2739,6 +2749,8 @@ pub fn retire_client_model_resource_park(@physical_resources.OriginalResourcePar
 
 pub fn retire_client_project_profile(ClientProjectProfileSelection) -> Result[Unit, ClientProjectProfileIssue]
 
+pub fn return_client_logical_task_boundary(ClientLogicalTaskBoundary) -> Result[Unit, ClientLogicalTaskBoundaryIssue]
+
 pub fn reuse_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest, Int) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_runtime.CheckpointRequest, String, @checkpoint_runtime.WireLimits) -> Result[@checkpoint_runtime.SealedCheckpoint, ClientRequestedEffectStopIssue]
@@ -4208,6 +4220,27 @@ pub(all) enum ClientLocalWorkerRunKeyIssue[E] {
   Current(ClientLocalAdoptedCurrentIssue[E])
   ForeignRun
   InvalidOriginal
+}
+
+pub(all) enum ClientLogicalBoundaryUnavailable {
+  FusedPhysicalTask
+  NoLogicalOperation
+} derive(Eq, @debug.Debug)
+
+type ClientLogicalTaskBoundary
+
+pub(all) enum ClientLogicalTaskBoundaryIssue {
+  ForeignOriginal
+  StaleBoundary
+  InvalidReadLimits
+  MissingOriginalOccurrence
+  Encoding(@encode_core.EncodeFailure)
+  Boundary(@physical_strategy_host.CapturedTaskBoundaryIssue)
+} derive(Eq, @debug.Debug)
+
+pub enum ClientLogicalTaskBoundaryProjection {
+  Projected(ClientLogicalTaskBoundary)
+  NotProjected(ClientLogicalBoundaryUnavailable)
 }
 
 pub(all) enum ClientModelInputCapacityIssue {

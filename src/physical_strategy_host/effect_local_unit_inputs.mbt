@@ -349,7 +349,7 @@ pub fn retain_captured_effect_local_unit_result_pending_inputs(
   let run = inputs.run.captured
   guard next_captured_task(run) is Some(task) &&
     run.managed_selections[task] is None &&
-    run.activation_grant is None else {
+    !captured_task_activation_pending(run) else {
     return Err(ForeignOutput)
   }
   let source = @execution.restrict_completed_output(output, fn() {
@@ -404,7 +404,7 @@ pub fn retain_captured_effect_local_unit_result_pending_inputs(
     }
     guard next_captured_task(run) == Some(task) &&
       run.managed_selections[task] is None &&
-      run.activation_grant is None &&
+      !captured_task_activation_pending(run) &&
       captured_effect_local_unit_result_export_retained(inputs, value) &&
       captured_effect_local_result_export_derived_retained(value) else {
       return Err(ForeignOutput)

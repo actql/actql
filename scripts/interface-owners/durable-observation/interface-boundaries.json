@@ -2369,7 +2369,7 @@
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6495ba1b4e031982c643d9afcf3e6cd457872a2e2ebdea04ddde0a663034eab0",
+      "sha256": "46edea0203446b104cdc706dc6e75fba3ee6bcaa7a23b7532b002d47892ba555",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -2486,6 +2486,22 @@
           "async": true
         },
         {
+          "name": "openNodeInferCaptureCustody/init:projectUsage/init:projectUsage",
+          "parameters": [
+            "slot",
+            "maxBytes",
+            "current"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:usageInventory/init:usageInventory",
+          "parameters": [
+            "current"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferCaptureCustody/openNodeInferCaptureCustody",
           "parameters": [
             "preparePublication"
@@ -2553,7 +2569,9 @@
             "openNodeInferCaptureCustody/retainCompleted",
             "openNodeInferCaptureCustody/retirePublication/retirePublication",
             "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication",
-            "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication#2"
+            "openNodeInferCaptureCustody/retirePublication/retirePublication/retirePublication#2",
+            "openNodeInferCaptureCustody/init:projectUsage/init:projectUsage",
+            "openNodeInferCaptureCustody/init:usageInventory/init:usageInventory"
           ],
           "exports": [
             "openNodeInferCaptureCustody"

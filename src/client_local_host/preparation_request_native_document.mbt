@@ -335,12 +335,20 @@ pub fn[I] request_native_static_plan_view(
             owner.program_capacity.unwrap(),
             input,
             data,
+            @publication_host.prepared_client_graph(
+              owner.compiled_program.unwrap(),
+            ),
           )
         Effect =>
           reserve_native_static_plan_capacity(
             owner.effect_capacity.unwrap(),
             input,
             data,
+            @strategy.checked_effect_computation_graph(
+              @publication_host.prepared_client_effect_computation_graph(
+                owner.compiled_effect.unwrap(),
+              ),
+            ),
           )
       }
       match reserved {
@@ -418,9 +426,18 @@ fn[I, P] reserve_native_static_plan_capacity(
   capacity : @resources.PreparationCapacity[I, P],
   input : I,
   data : @checked.ParsedCheckDataEstimate,
+  graph : @strategy.CheckedDAG,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard installed_text_bound_views_layout(graph) is Some(text_bound_views) else {
+    return Err(Policy)
+  }
   let (r, e) = match
-    original_request_plan_construction_quote(capacity, input, data) {
+    original_request_plan_construction_quote(
+      capacity,
+      input,
+      data,
+      text_bound_views~,
+    ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }

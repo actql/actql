@@ -3,10 +3,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {parse} from 'acorn';
 import {installNodeClientProgramPreparation, checkedRequestProgramPreparation} from './client-program-preparation.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
-import {validCheckOutcome, isClientSubmitRejection} from '../../packages/client-wire/index.mjs';
+import {installNodeClientSubmission} from './client-submission.mjs';
+import {validCheckOutcome} from '../../packages/client-wire/index.mjs';
 
 const invalid = JSON.parse(await readFile(new URL('../../packages/client-wire/fixtures/check-default-type.invalid.json', import.meta.url), 'utf8'));
 const verified = JSON.parse(await readFile(new URL('../../packages/client-wire/fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
@@ -155,73 +155,85 @@ test('original Request observation omits unavailable and refuses stale binding o
 });
 
 
-// Extract the actual closed refusal/disclosure functions. Explicit Journal and
-// audience ports isolate call ordering; no SQLite/Core/Run or cleanup ACK is
-// claimed. The generated bodies are neither copied implementations nor a
-// second preparation path.
-const submissionSource = await readFile(new URL('./client-submission.mjs', import.meta.url), 'utf8');
-const submissionAst = parse(submissionSource, {ecmaVersion: 'latest', sourceType: 'module'});
-function actualInitializer(name) {
-  let found;
-  const visit = node => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'VariableDeclarator' && node.id?.name === name) {
-      assert.equal(found, undefined, `unique original ${name}`); found = node.init;
-    }
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value === 'object') visit(value);
-    }
-  };
-  visit(submissionAst); assert.ok(found, name);
-  return submissionSource.slice(found.start, found.end);
-}
-const actualRefusal = new Function('ports', `
-  const {authorize, observeOriginalPreparationFailure, checkSubmissionInput,
-    journal, value, input, moon, retained, attempt, restartFields, storedOutcome,
-    validCheckOutcome, isClientSubmitRejection, fail} = ports;
-  const classification = ${actualInitializer('classification')};
-  const immutable = ${actualInitializer('immutable')};
-  const supportsCheckObservation = ${actualInitializer('supportsCheckObservation')};
-  const discloseOutcome = ${actualInitializer('discloseOutcome')};
-  const retainPreparationRefusal = ${actualInitializer('retainPreparationRefusal')};
-  return {discloseOutcome, retainPreparationRefusal};
-`);
+// Exercise the imported submission service with explicit Journal and audience
+// ports. These fixtures establish refusal/disclosure call ordering, not actual
+// SQLite/Core/Run admission or a physical cleanup acknowledgement.
 function refusalPorts(options = {}) {
   const {observationFailure, changedScope = false} = options;
   const report = Object.hasOwn(options, 'report') ? options.report : invalid;
   const events = [], scope = {authorityScopeCid: 'sha256:' + 'a'.repeat(64), namespaceId: 'unit'};
+  const submissionRef = {epoch: {version: 'actql-submission-epoch/0.1',
+    authorityScopeCid: scope.authorityScopeCid, epochNonce: 'b'.repeat(64),
+    notBefore: 1, expiresAt: 2, authenticator: 'c'.repeat(64)}, nonce: 'original'};
+  const intentCid = 'sha256:' + 'd'.repeat(64);
   const intentWire = JSON.stringify({kind: 'aql', input: sourceRequest.input, parameters: sourceRequest.parameters});
-  const value = {...sourceRequest, submissionRef: {}, intentCid: 'fixture-intent'};
-  let observations = 0, checks = 0, recorded = 0;
-  const ports = {value, input: {}, validCheckOutcome, isClientSubmitRejection,
-    fail(code) {throw Object.assign(new Error(code), {code});},
-    async authorize() {
+  const value = {...sourceRequest, submissionRef, intentCid};
+  const input = Object.freeze({original: 'fixture submitted intent'});
+  let observations = 0, checks = 0, recorded = 0, originalRequest, refusal;
+  let retained = options.retained ? {phase: 'not_accepted', intentWire, intentCid, submissionRef,
+    outcome: {kind: 'not_accepted', submissionRef, intentCid,
+      problem: {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}}} : undefined;
+  const sameRef = ref => assert.deepEqual(ref, submissionRef);
+  const service = installNodeClientSubmission({
+    async authorizedScope(actual) {
+      originalRequest ??= actual;
+      assert.strictEqual(actual, originalRequest);
       events.push('current');
       return changedScope && observations > 0 ? {...scope, namespaceId: 'changed'} : scope;
     },
     async observeOriginalPreparationFailure(error, actual) {
-      assert.strictEqual(actual, value); observations++; events.push('original');
+      assert.strictEqual(error, refusal); assert.strictEqual(actual, originalRequest);
+      observations++; events.push('original');
       if (observationFailure) throw observationFailure;
       return report;
     },
-    async checkSubmissionInput() {checks++; events.push('retained-check'); return report;},
-    moon: {clientSubmittedIntentWire() {return intentWire;}},
-    restartFields: current => current,
-    storedOutcome: retained => retained.outcome,
-    journal: {recordSubmittedIntent(ref, input, fields) {
-      assert.strictEqual(ref, value.submissionRef); recorded++; events.push('record');
-      return {intentWire, outcome: fields.outcome};
-    }},
+    async checkSubmissionInput(actual) {
+      assert.deepEqual(actual, {principalId: value.principalId, connection: value.connection,
+        kind: 'text', scope: 'bound_input', input: value.input, parameters: value.parameters});
+      checks++; events.push('retained-check'); return report;
+    },
+    async prepareSubmit(actual) {
+      assert.equal(actual.requestId, 'original-request');
+      assert.deepEqual(actual.input, value.input); sameRef(actual.submissionRef);
+      throw refusal;
+    },
+    submit() {assert.fail('A preparation refusal must not submit a Run');},
+    lookupRequest() {assert.fail('A retained refusal must not look up a Run');},
+    moon: {
+      clientSubmittedIntent(wire) {
+        assert.deepEqual(JSON.parse(wire), JSON.parse(intentWire)); return input;
+      },
+      clientSubmittedIntentCid(actual) {assert.strictEqual(actual, input); return intentCid;},
+      clientSubmittedIntentWire(actual) {assert.strictEqual(actual, input); return intentWire;},
+    },
+    journal: {
+      checkSubmittedIntent(ref, actual) {sameRef(ref); assert.strictEqual(actual, input);},
+      lookupSubmittedIntent(ref) {sameRef(ref); return retained;},
+      verifySubmissionEpoch(epoch) {assert.deepEqual(epoch, submissionRef.epoch); return {validity: 'admissible'};},
+      submissionIdentity(epoch, nonce) {
+        assert.deepEqual(epoch, submissionRef.epoch); assert.equal(nonce, submissionRef.nonce);
+        return {requestId: 'original-request'};
+      },
+      recordSubmittedIntent(ref, actual, fields) {
+        sameRef(ref); assert.strictEqual(actual, input);
+        assert.equal(Object.hasOwn(fields.outcome, 'checkObservation'), false);
+        recorded++; events.push('record');
+        retained = {intentWire, intentCid, submissionRef: ref, phase: fields.phase, outcome: fields.outcome};
+        return retained;
+      },
+    },
+  });
+  return {events, counts: () => ({observations, checks, recorded}),
+    refuse(error) {refusal = error; return service.submitIntent(value);},
+    lookup() {return service.lookupSubmission({principalId: value.principalId,
+      connection: value.connection, submissionRef});},
   };
-  return {...actualRefusal(ports), ports, scope, events,
-    counts: () => ({observations, checks, recorded})};
 }
 
 test('fresh original refusal projects the same checked result across the durable boundary without a semantic recheck', async () => {
   const report = structuredClone(invalid), f = refusalPorts({report});
   const error = Object.assign(new Error('original typed refusal'), {code: 'ClientProgramInvalidInput'});
-  const result = await f.retainPreparationRefusal(error);
+  const result = await f.refuse(error);
   assert.equal(result.kind, 'not_accepted'); assert.equal(result.problem.code, error.code);
   assert.strictEqual(result.checkObservation, report);
   assert.deepEqual(f.counts(), {observations: 2, checks: 0, recorded: 1});
@@ -232,9 +244,8 @@ test('fresh original refusal projects the same checked result across the durable
 for (const missing of ['unavailable', 'throw']) {
   test(`fresh original ${missing} projection cannot select a public semantic recheck`, async () => {
     const f = refusalPorts({report: undefined, observationFailure: missing === 'throw' ? Error('reporting unavailable') : undefined});
-    const actual = actualRefusal(f.ports);
     const error = Object.assign(new Error('same typed refusal'), {code: 'ClientProgramInvalidInput'});
-    const result = await actual.retainPreparationRefusal(error);
+    const result = await f.refuse(error);
     assert.equal(result.problem.code, 'ClientProgramRejected');
     assert.equal(Object.hasOwn(result, 'checkObservation'), false);
     assert.equal(f.counts().checks, 0); assert.equal(f.counts().recorded, 1);
@@ -243,16 +254,14 @@ for (const missing of ['unavailable', 'throw']) {
 
 test('fresh original audience change refuses before recording and never rechecks the Program', async () => {
   const f = refusalPorts({changedScope: true});
-  await assert.rejects(f.retainPreparationRefusal(Object.assign(Error('original'),
+  await assert.rejects(f.refuse(Object.assign(Error('original'),
     {code: 'ClientProgramInvalidInput'})), {code: 'ClientRequestLookupDenied'});
   assert.deepEqual(f.counts(), {observations: 1, checks: 0, recorded: 0});
 });
 
 test('retained disclosure remains a separate current-audience check-only boundary without preparing a Run', async () => {
-  const f = refusalPorts();
-  const result = await f.discloseOutcome(f.ports.value,
-    {kind: 'not_accepted', problem: {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}},
-    f.scope, {intentWire: f.ports.moon.clientSubmittedIntentWire()});
+  const f = refusalPorts({retained: true});
+  const result = await f.lookup();
   assert.equal(result.problem.code, 'ClientProgramInvalidInput');
   assert.deepEqual(f.counts(), {observations: 0, checks: 1, recorded: 0});
 });

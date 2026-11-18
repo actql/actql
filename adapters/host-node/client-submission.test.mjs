@@ -17,7 +17,7 @@ import {installedSourceFor as selectInstalledSource} from './installed-source.mj
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {validSubmissionLookup, validCheckOutcome, snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {checkedRequestProgramPreparation, installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -1793,4 +1793,44 @@ test('an arbitrary acquired Effect source lookup throw cannot issue original sel
   const candidate = {preparedProgram: p.prepared, requestId: 'original'};
   assert.throws(() => p.callback(candidate), error => error === p.sourceError && error.cause === thrown);
   assert.equal(Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [p.sourceError, candidate]), false);
+});
+
+function compatibleWorkRefusal() {
+  const issue={},result={$tag:0,_0:issue};
+  const selected={clientProgramRequestPreparationIssueCode(value) {
+    assert.equal(value,result); return 'ClientProgramRuntimeFragmentWorkLimit';
+  }};
+  try {checkedRequestProgramPreparation(selected,result);assert.fail('original refusal');}
+  catch(error) {assert.equal(error.code,'ClientProgramRejected');return error;}
+}
+for(const phase of ['not_accepted','preparation_failed']) {
+  test(`compatible work code retains actual Journal ${phase} and same saved identity`, async t=>{
+    const original=compatibleWorkRefusal();
+    original.code='ClientProgramInvalidInput'; // mutable properties cannot reinterpret the original cause
+    const f=await fixture(t,{prepare:()=>{if(phase==='not_accepted')throw original;return {};},
+      submit:()=>{throw original;}});
+    const first=await f.service.submitIntent(f.body());
+    assert.equal(first.kind,phase);
+    assert.deepEqual(first.problem,{code:'ClientProgramRuntimeFragmentWorkLimit',classification:'operation_failed'});
+    const stored=f.journal.lookupSubmittedIntent(f.ref,fields,moon);
+    assert.equal(stored.phase,phase);assert.deepEqual(stored.outcome.problem,first.problem);
+    assert.equal(Object.hasOwn(first,'admission'),false);
+    const calls={...f.counts};f.restart();
+    const saved=await f.service.lookupSubmission({principalId,connection,submissionRef:f.ref});
+    assertReferenceOnly(saved,first);assert.deepEqual(f.counts,calls);
+    f.authorize(false);
+    await assert.rejects(()=>f.service.lookupSubmission({principalId,connection,submissionRef:f.ref}),{code:'ClientRequestLookupDenied'});
+  });
+}
+test('compatible work code cannot be issued by copied errors or opaque Host500',async t=>{
+  const copy=Object.assign(new Error('private'),{code:'ClientProgramRejected',
+    problemCode:'ClientProgramRuntimeFragmentWorkLimit'});
+  const f=await fixture(t,{prepare:()=>{throw copy;}});
+  const known=await f.service.submitIntent(f.body());
+  assert.deepEqual(known.problem,{code:'ClientProgramRejected',classification:'operation_failed'});
+  const opaque=Object.assign(new Error('private untyped Host500'),{status:500,
+    problemCode:'ClientProgramRuntimeFragmentWorkLimit'});
+  const foreign=await fixture(t,{prepare:()=>{throw opaque;}});
+  await assert.rejects(()=>foreign.service.submitIntent(foreign.body()),error=>error===opaque);
+  assert.equal(foreign.journal.lookupSubmittedIntent(foreign.ref,fields,moon),undefined);
 });

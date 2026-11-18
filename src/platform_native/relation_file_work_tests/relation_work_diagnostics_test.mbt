@@ -192,6 +192,11 @@ fn relation_work_values_issue(
 fn relation_work_issue(issue : @client.NativeClientSourceWorkIssue) -> String {
   match issue {
     Configuration => "Configuration"
+    FileWorkSourceBinding => "FileWorkSourceBinding"
+    FileWorkControlQuote => "FileWorkControlQuote"
+    FileWorkEntry(_) => "FileWorkEntry (original retained)"
+    FileWorkPreparedCapacity(_) =>
+      "FileWorkPreparedCapacity (original retained)"
     InstalledRun(_) => "InstalledRun (original retained)"
     InstalledRead(_) => "InstalledRead (original retained)"
     InstalledCapture(_) => "InstalledCapture (original retained)"
@@ -284,6 +289,11 @@ fn relation_return_work_label(
 ) -> String {
   match issue {
     Configuration => "Work.Configuration; original custody retained"
+    FileWorkSourceBinding => "Work.FileWorkSourceBinding"
+    FileWorkControlQuote => "Work.FileWorkControlQuote"
+    FileWorkEntry(_) => "Work.FileWorkEntry; original custody retained"
+    FileWorkPreparedCapacity(_) =>
+      "Work.FileWorkPreparedCapacity; original custody retained"
     InstalledRun(_) => "Work.InstalledRun"
     InstalledRead(_) => "Work.InstalledRead"
     InstalledCapture(_) => "Work.InstalledCapture"

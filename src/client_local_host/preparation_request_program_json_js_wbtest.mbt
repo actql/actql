@@ -203,11 +203,26 @@ fn request_json_expected_bootstrap_control() -> Int64 {
   // two real constructor controls add 48 and 56 bytes, not domain payload.
   // The existing 4096-byte entry group remains separate.
   // This independent tariff expansion includes no domain Source or Check body.
-  16L * (225L + 2L + 2L + 2L + 2L + 1L + 4L + 3L + 1L + 1L + 3L + 3L + 8L) +
-  8L *
-  (409L + 1L + 2L + 2L + 2L + 2L + 11L + 6L + 1L + 1L + 4L + 1L + 16L + 14L) +
-  8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L + 14L + 13L + 1L + 7L + 2L + 4L) +
-  4096L
+  let original_controls = 16L *
+    (225L + 2L + 2L + 2L + 2L + 1L + 4L + 3L + 1L + 1L + 3L + 3L + 8L) +
+    8L *
+    (409L + 1L + 2L + 2L + 2L + 2L + 11L + 6L + 1L + 1L + 4L + 1L + 16L + 14L) +
+    8L * (468L + 3L + 1L + 2L + 3L + 4L + 1L + 14L + 13L + 1L + 7L + 2L + 4L) +
+    4096L
+  // The original work issue keeps its variant tag, step and selected work:
+  // 1H/0R/3W. Its returned fixed-code Some keeps 1H/1R/1W, while the
+  // nominal error association keeps the original key and borrowed value2R.
+  // All remain coheld with the original controls on failure; neither the
+  // shared code String nor an input-sized diagnostic body is copied here.
+  // Fund these alternatives before the first domain current/resize callback,
+  // not from the later JSON domain packet or from unused policy headroom.
+  let original_work_issue = 16L + 8L * 3L
+  let returned_code = 16L + 8L + 8L
+  let original_error_association = 8L * 2L
+  original_controls +
+  original_work_issue +
+  returned_code +
+  original_error_association
 }
 
 ///|

@@ -11,8 +11,8 @@ test('reviewed source-only Python callers reach the original nonzero runner once
   assert.deepEqual([...remotePythonClientTests].sort(), candidates,
     'New callers need an explicit dependency/profile review before joining this selection');
   const steps = pythonClientSteps('selected-python', {remoteOnly: true}).slice(1);
-  assert.equal(steps.length, 16);
-  assert.equal(new Set(steps.map(step => step.args.at(-1))).size, 16);
+  assert.equal(steps.length, remotePythonClientTests.length);
+  assert.deepEqual([...new Set(steps.map(step => step.args.at(-1)))].sort(), [...remotePythonClientTests].sort());
   for (const step of steps) {
     assert.equal(step.command, 'selected-python');
     assert.deepEqual(step.args.slice(0, -1), ['-B', 'packages/python-sdk/tests/run.py', '--pattern']);
@@ -25,16 +25,19 @@ test('reviewed source-only Python callers reach the original nonzero runner once
 
 test('reviewed Local-source callers keep their explicit Source facade and no physical runtime selection', () => {
   const steps = pythonClientSteps('selected-python', {sourceOnly: true}).slice(1);
-  assert.equal(steps.length, 41);
-  assert.equal(new Set(steps.map(step => step.args.at(-1))).size, 41);
-  assert.equal(sourceLocalPythonClientTests.length, 25);
-  assert.deepEqual(steps.slice(0, 16).map(step => step.args.at(-1)), [...remotePythonClientTests]);
-  assert.deepEqual(steps.slice(16).map(step => step.args.at(-1)), [...sourceLocalPythonClientTests]);
-  for (const [index, step] of steps.entries()) {
+  const remote = new Set(remotePythonClientTests), local = new Set(sourceLocalPythonClientTests);
+  assert.equal([...remote].some(name => local.has(name)), false);
+  const expected = [...remotePythonClientTests, ...sourceLocalPythonClientTests];
+  assert.equal(steps.length, expected.length);
+  assert.deepEqual([...new Set(steps.map(step => step.args.at(-1)))].sort(), [...expected].sort());
+  for (const step of steps) {
     assert.equal(step.command, 'selected-python');
     assert.deepEqual(step.args.slice(0, -1), ['-B', 'packages/python-sdk/tests/run.py', '--pattern']);
-    if (index < 16) assert.equal(step.env, undefined);
-    else assert.deepEqual(step.env, {PYTHONPATH: fileURLToPath(new URL('../packages/python-product/src', import.meta.url))});
+    if (remote.has(step.args.at(-1))) assert.equal(step.env, undefined);
+    else {
+      assert(local.has(step.args.at(-1)), 'Unreviewed source-only Python caller');
+      assert.deepEqual(step.env, {PYTHONPATH: fileURLToPath(new URL('../packages/python-product/src', import.meta.url))});
+    }
     assert.ok(!['test_local_closed_publisher.py', 'test_local_closed_reconciliation_prepare.py',
       'test_local_closed_wasm_sql.py', 'test_local_journal_row_transport.py',
       'test_local_native_initial_custody.py'].includes(step.args.at(-1)));

@@ -104,6 +104,38 @@ pub fn[P] prepared_run_native_capacity(
 }
 
 ///|
+/// Acquire the original Native Work's absolute physical backing while its
+/// business Read is entered. This preserves the SAME isolated prepared body,
+/// reservation and Ledger without logical resize, new token or consumed work.
+/// The later canonical Journal resize still owns the only logical debit.
+pub fn[P] prepare_prepared_run_native_work_backing(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  retained_peak : Int64,
+  execution_peak : Int64,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  let holder = match prepared_run_native_body(value, prepared, ledger) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  if !preparation_body_usage_isolated(holder, ledger) {
+    return Err(Unavailable)
+  }
+  (holder.reserve_phase_original)(
+    prepared,
+    retained_peak,
+    execution_peak,
+    NativeWorkBacking,
+  ).map_err(issue => {
+    match issue {
+      Resource(issue) => ImportedChildLedgerIssue::Resource(issue)
+      _ => Unavailable
+    }
+  })
+}
+
+///|
 /// Back the fixed Native Work constructor on the SAME body reservation before
 /// its first child. Absolute targets survive refusal without a second debit.
 /// The existing runtime-phase engine owns current, resize and reentry. This

@@ -8,7 +8,7 @@ from unittest.mock import patch
 import httpx
 from actql_sdk import AsyncClient, Client, ClientError, Signer
 from fixtures import PROFILE
-from test_checkpoints import SUMMARY
+from test_checkpoints import SUMMARY, original_checkpoint_clock
 
 
 class Peer:
@@ -43,6 +43,9 @@ class Peer:
 
 
 class CheckpointConvenienceTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        original_checkpoint_clock(self)
+
     async def client(self, peer, **options):
         result = await AsyncClient.connect('https://host.invalid/', 'token',
             transport=httpx.MockTransport(peer.handle), **options)
@@ -148,7 +151,16 @@ class CheckpointConvenienceTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.Future()
         client = await self.client(peer, signer=Signer('key', 'alice', sign))
         pending = asyncio.create_task(client.approve(SUMMARY['checkpointId']))
-        await entered.wait()
+        observed = asyncio.create_task(entered.wait())
+        try:
+            done, _ = await asyncio.wait((pending, observed), return_when=asyncio.FIRST_COMPLETED)
+            if pending in done:
+                await pending  # Preserve a refusal before signer entry instead of waiting forever.
+                self.fail('Answer completed without entering the original signer')
+            await observed
+        finally:
+            if not observed.done():
+                observed.cancel()
         pending.cancel()
         with self.assertRaises(asyncio.CancelledError):
             await pending
@@ -178,6 +190,9 @@ class CheckpointConvenienceTests(unittest.IsolatedAsyncioTestCase):
 
 
 class SyncCheckpointConvenienceTests(unittest.TestCase):
+    def setUp(self):
+        original_checkpoint_clock(self)
+
     def test_sync_uses_same_configured_signer_and_async_resolve(self):
         for decision in ('approve', 'reject'):
             with self.subTest(decision=decision):

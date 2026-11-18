@@ -239,6 +239,235 @@ test "Native Work constructor grows the same preparation reservation without a s
 }
 
 ///|
+test "Native Work preflight grows backing without a logical debit before the Journal resize" {
+  let (_, _, admission, body, ledger, frame, _, _) = backed_prepared_operation_fixture()
+  let window = Ref(5L)
+  let entered = Ref(false)
+  let acquires = Ref(0)
+  let current = frame.origin.current
+  let currents = Ref(0)
+  frame.origin.current = nonce => {
+    currents.val += 1
+    current(nonce)
+  }
+  frame.origin.current_window = Some(window)
+  frame.origin.acquire_window = Some((retained, execution) => {
+    if !entered.val {
+      return Err(ChildFundingUnavailable)
+    }
+    acquires.val += 1
+    window.val = retained + execution
+    Ok(())
+  })
+  let before = ledger_usage(ledger)
+  let serial = ledger.next_capacity_serial
+  // Original Journal entry cannot acquire beyond the current window while
+  // the physical business Read is not entered.
+  assert_true(
+    reserve_prepared_run_native_work_capacity(admission, body, ledger, 6L, 2L)
+    is Err(Resource(ChildFundingUnavailable)),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  currents.val = 0
+  entered.val = true
+  prepare_prepared_run_native_work_backing(admission, body, ledger, 6L, 2L).unwrap()
+  assert_eq(window.val, 8L)
+  assert_eq(acquires.val, 1)
+  // One original current before acquisition; one required post-acquire fence.
+  assert_eq(currents.val, 2)
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger.next_capacity_serial, serial)
+  assert_eq(prepared_run_native_capacity(admission, body, ledger), Ok((4L, 0L)))
+  entered.val = false
+  currents.val = 0
+  prepare_prepared_run_native_work_backing(admission, body, ledger, 6L, 2L).unwrap()
+  assert_eq(currents.val, 1)
+  assert_eq(acquires.val, 1)
+  assert_eq(ledger_usage(ledger), before)
+  reserve_prepared_run_native_work_capacity(admission, body, ledger, 6L, 2L).unwrap()
+  assert_eq(acquires.val, 1)
+  assert_eq(prepared_run_native_capacity(admission, body, ledger), Ok((6L, 2L)))
+  let grown = ledger_usage(ledger)
+  assert_eq(grown.reserved_retention_bytes, 6L)
+  assert_eq(grown.reserved_execution_bytes, 2L)
+  assert_eq(grown.live_reservations, before.live_reservations)
+  assert_eq(grown.attempts, before.attempts)
+  assert_eq(grown.planning_work, before.planning_work)
+  assert_eq(ledger.next_capacity_serial, serial)
+  reserve_prepared_run_native_work_capacity(admission, body, ledger, 6L, 2L).unwrap()
+  assert_eq(ledger_usage(ledger), grown)
+}
+
+///|
+test "Native Work backing preflight preserves exact limits original identity and isolation" {
+  let (_, _, admission, body, ledger, frame, _, _) = backed_prepared_operation_fixture()
+  let window = Ref(5L)
+  let calls = Ref(0)
+  frame.origin.current_window = Some(window)
+  frame.origin.acquire_window = Some((retained, execution) => {
+    calls.val += 1
+    window.val = retained + execution
+    Ok(())
+  })
+  let before = ledger_usage(ledger)
+  // The original fixture admits exactly 12 retained and 20 execution bytes.
+  assert_true(
+    prepare_prepared_run_native_work_backing(admission, body, ledger, 13L, 20L)
+    is Err(Resource(RetentionLimit)),
+  )
+  assert_true(
+    prepare_prepared_run_native_work_backing(admission, body, ledger, 12L, 21L)
+    is Err(Resource(ExecutionLimit)),
+  )
+  assert_true(
+    prepare_prepared_run_native_work_backing(admission, body, ledger, 3L, 0L)
+    is Err(Unavailable),
+  )
+  assert_true(
+    prepare_prepared_run_native_work_backing(
+      admission,
+      Ref(4),
+      ledger,
+      12L,
+      20L,
+    )
+    is Err(ForeignOriginal),
+  )
+  let foreign = create_ledger(ledger_limits(ledger)).unwrap()
+  assert_true(
+    prepare_prepared_run_native_work_backing(admission, body, foreign, 12L, 20L)
+    is Err(ForeignOriginal),
+  )
+  assert_eq(calls.val, 0)
+  assert_eq(ledger_usage(ledger), before)
+  let sibling = reserve_capacity(ledger, 0L, 0L).unwrap()
+  let coheld = ledger_usage(ledger)
+  assert_true(
+    prepare_prepared_run_native_work_backing(admission, body, ledger, 12L, 20L)
+    is Err(Unavailable),
+  )
+  assert_eq(calls.val, 0)
+  assert_eq(ledger_usage(ledger), coheld)
+  settle_capacity(ledger, sibling).unwrap()
+  prepare_prepared_run_native_work_backing(admission, body, ledger, 12L, 20L).unwrap()
+  assert_eq(calls.val, 1)
+  assert_eq(window.val, 32L)
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(prepared_run_native_capacity(admission, body, ledger), Ok((4L, 0L)))
+}
+
+///|
+test "Native Work backing preflight fences reentry and keeps acquired backing on current loss" {
+  let (_, _, admission, body, ledger, frame, _, _) = backed_prepared_operation_fixture()
+  let window = Ref(5L)
+  let stopped = Ref(false)
+  let current = frame.origin.current
+  frame.origin.current = nonce => if stopped.val { 1 } else { current(nonce) }
+  frame.origin.current_window = Some(window)
+  let reentry = Ref(0)
+  frame.origin.acquire_window = Some((retained, execution) => {
+    if prepare_prepared_run_native_work_backing(admission, body, ledger, 6L, 2L)
+      is Err(Unavailable) {
+      reentry.val += 1
+    }
+    if reserve_prepared_run_native_work_capacity(
+        admission, body, ledger, 6L, 2L,
+      )
+      is Err(Unavailable) {
+      reentry.val += 1
+    }
+    window.val = retained + execution
+    stopped.val = true
+    Ok(())
+  })
+  let before = ledger_usage(ledger)
+  assert_true(
+    prepare_prepared_run_native_work_backing(admission, body, ledger, 6L, 2L)
+    is Err(Resource(ClosedReservation)),
+  )
+  assert_eq(reentry.val, 2)
+  assert_eq(window.val, 8L)
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(prepared_run_native_capacity(admission, body, ledger), Ok((4L, 0L)))
+  assert_true(
+    prepare_prepared_run_native_work_backing(admission, body, ledger, 6L, 2L)
+    is Err(Resource(ClosedReservation)),
+  )
+}
+
+///|
+test "Native Work backing preflight rejects custody changed by original current" {
+  let (_, _, admission, body, ledger, frame, _, _) = backed_prepared_operation_fixture()
+  // Adoption returns a different constructor borrower. This check must return
+  // the SAME borrower selected by the prepared admission, not that sibling.
+  let holder = match admission {
+    BackedPreparedRun(original) => original.holder.unwrap()
+    NodePreparedRun(_) => fail("expected original backed admission")
+  }
+  let window = Ref(5L)
+  frame.origin.current_window = Some(window)
+  frame.origin.acquire_window = Some((retained, execution) => {
+    window.val = retained + execution
+    Ok(())
+  })
+  let before = ledger_usage(ledger)
+  let current = frame.origin.current
+  let returned = Ref(false)
+  frame.origin.current = nonce => {
+    if !returned.val {
+      returned.val = true
+      return_preparation_body_borrow(holder).unwrap() |> ignore
+    }
+    current(nonce)
+  }
+  assert_true(
+    prepare_prepared_run_native_work_backing(admission, body, ledger, 6L, 2L)
+    is Err(Unavailable),
+  )
+  assert_eq(window.val, 8L)
+  assert_eq(ledger_usage(ledger), before)
+  assert_true(preparation_body_borrow_value(holder) is None)
+}
+
+///|
+test "Native Work backing preflight rejects a new zero-byte sibling from original current" {
+  let (_, _, admission, body, ledger, frame, _, _) = backed_prepared_operation_fixture()
+  let window = Ref(5L)
+  frame.origin.current_window = Some(window)
+  frame.origin.acquire_window = Some((retained, execution) => {
+    window.val = retained + execution
+    Ok(())
+  })
+  let before = ledger_usage(ledger)
+  let current = frame.origin.current
+  let sibling : Ref[CapacityReservation?] = Ref(None)
+  frame.origin.current = nonce => {
+    frame.origin.current = current
+    sibling.val = Some(reserve_capacity(ledger, 0L, 0L).unwrap())
+    current(nonce)
+  }
+  assert_true(
+    prepare_prepared_run_native_work_backing(admission, body, ledger, 6L, 2L)
+    is Err(Unavailable),
+  )
+  assert_eq(window.val, 8L)
+  assert_eq(
+    ledger_usage(ledger).live_reservations,
+    before.live_reservations + 1,
+  )
+  assert_eq(
+    ledger_usage(ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes,
+  )
+  assert_eq(
+    ledger_usage(ledger).reserved_execution_bytes,
+    before.reserved_execution_bytes,
+  )
+  settle_capacity(ledger, sibling.val.unwrap()).unwrap()
+  assert_eq(ledger_usage(ledger), before)
+}
+
+///|
 test "backed prepared operation retains same control and constructor until actual retirement" {
   let (access, input, admission, body, ledger, frame, retirement, holder) = backed_prepared_operation_fixture()
   let (control, backing) = reserve_prepared_run_operation(

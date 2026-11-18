@@ -16974,6 +16974,1519 @@
           }
         }
       ]
+    },
+    {
+      "module": "scripts/checkpoint-answer-wire.mjs",
+      "sha256": "214fc15f8cb85743ad78cfe61529b1571ef18a1052d485295ed34d0b4fdc1373",
+      "exports": [
+        "checkpointAnswerContract",
+        "commonCheckpointProfileSource"
+      ],
+      "operations": [
+        {
+          "name": "checkpointAnswerContract",
+          "parameters": [
+            "registry",
+            "protocol"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointAnswerContract/candidates/candidates",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointAnswerContract/candidates/candidates/selected/selected",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointAnswerContract/checkpointAnswerContract",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointAnswerContract/checkpointAnswerContract/checkpointAnswerContract",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointAnswerContract/checkpointAnswerContract#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointAnswerContract/checkpointAnswerContract#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointAnswerContract/checkpointAnswerContract#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointAnswerContract/checkpointAnswerContract#5",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonCheckpointProfileSource",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonCheckpointProfileSource/commonCheckpointProfileSource",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonCheckpointProfileSource/commonCheckpointProfileSource/commonCheckpointProfileSource",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonCheckpointProfileSource/commonCheckpointProfileSource/commonCheckpointProfileSource#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonCheckpointProfileSource/commonCheckpointProfileSource#2",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonCheckpointProfileSource/commonCheckpointProfileSource#3",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonCheckpointProfileSource/commonCheckpointProfileSource#4",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonCheckpointProfileSource/commonCheckpointProfileSource#5",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonCheckpointProfileSource/kinds/kinds",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "commonCheckpointProfileSource/literal/literal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "requirements",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "requirements/requirements",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "requirements/requirements/requirements",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./generate-client-publication-wire.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated bounded candidate DATA and original wire projection; no signing authority, Local engine, Host permission or second Checkpoint state machine.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkpointAnswerContract",
+            "checkpointAnswerContract/candidates/candidates",
+            "checkpointAnswerContract/candidates/candidates/selected/selected",
+            "checkpointAnswerContract/checkpointAnswerContract",
+            "checkpointAnswerContract/checkpointAnswerContract/checkpointAnswerContract",
+            "checkpointAnswerContract/checkpointAnswerContract#2",
+            "checkpointAnswerContract/checkpointAnswerContract#3",
+            "checkpointAnswerContract/checkpointAnswerContract#4",
+            "checkpointAnswerContract/checkpointAnswerContract#5",
+            "closed/closed",
+            "closed/closed#2",
+            "commonCheckpointProfileSource",
+            "commonCheckpointProfileSource/commonCheckpointProfileSource",
+            "commonCheckpointProfileSource/commonCheckpointProfileSource/commonCheckpointProfileSource",
+            "commonCheckpointProfileSource/commonCheckpointProfileSource/commonCheckpointProfileSource#2",
+            "commonCheckpointProfileSource/commonCheckpointProfileSource#2",
+            "commonCheckpointProfileSource/commonCheckpointProfileSource#3",
+            "commonCheckpointProfileSource/commonCheckpointProfileSource#4",
+            "commonCheckpointProfileSource/commonCheckpointProfileSource#5",
+            "commonCheckpointProfileSource/kinds/kinds",
+            "commonCheckpointProfileSource/literal/literal",
+            "requirements",
+            "requirements/requirements",
+            "requirements/requirements/requirements"
+          ],
+          "exports": [
+            "checkpointAnswerContract",
+            "commonCheckpointProfileSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These bounded source generators run no Client or Host operation and confer no cancellation or physical cleanup authority. The caller owns process cancellation; output freshness remains a separate check."
+            },
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate inventories derive from protocol and unknown construction expressions refuse generation'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/checkpoint-answer-wire-js.mjs",
+      "sha256": "51a63b431061938c7acc089dbbae54f3ff8667efeb6ab0b7c98a5e254d72a89f",
+      "exports": [
+        "checkpointAnswerJavaScriptSource"
+      ],
+      "operations": [
+        {
+          "name": "checkpointAnswerJavaScriptSource",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./generate-client-publication-wire.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated bounded candidate DATA and original wire projection; no signing authority, Local engine, Host permission or second Checkpoint state machine.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkpointAnswerJavaScriptSource"
+          ],
+          "exports": [
+            "checkpointAnswerJavaScriptSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These bounded source generators run no Client or Host operation and confer no cancellation or physical cleanup authority. The caller owns process cancellation; output freshness remains a separate check."
+            },
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate inventories derive from protocol and unknown construction expressions refuse generation'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/checkpoint-answer-wire-python.mjs",
+      "sha256": "6512b19208f205bccaabc82f0aad88f91d3968848e22eaea7bbd399f9fa71d89",
+      "exports": [
+        "checkpointAnswerPythonSource"
+      ],
+      "operations": [
+        {
+          "name": "checkpointAnswerPythonSource",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated bounded candidate DATA and original wire projection; no signing authority, Local engine, Host permission or second Checkpoint state machine.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkpointAnswerPythonSource"
+          ],
+          "exports": [
+            "checkpointAnswerPythonSource"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These bounded source generators run no Client or Host operation and confer no cancellation or physical cleanup authority. The caller owns process cancellation; output freshness remains a separate check."
+            },
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate inventories derive from protocol and unknown construction expressions refuse generation'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/generate-client-host-wire.mjs",
+      "sha256": "976affbf89e67407bc2bcfbbf0e4a66ab59edd01f142f60d840e66bec729cfad",
+      "exports": [
+        "buildClientHostWire",
+        "nativeProgramSchema",
+        "projectClientHostOptionalFields"
+      ],
+      "operations": [
+        {
+          "name": "buildClientHostWire",
+          "parameters": [
+            "registry",
+            "protocol"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/buildClientHostWire",
+          "parameters": [
+            "name",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/buildClientHostWire/buildClientHostWire",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/buildClientHostWire#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/buildClientHostWire#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/buildClientHostWire#4",
+          "parameters": [
+            "branch"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/checkVariants/checkVariants",
+          "parameters": [
+            "branch"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/module/module",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/nullLiterals/nullLiterals",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/nullLiterals/nullLiterals/nullLiterals",
+          "parameters": [
+            "key",
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/runWait/runWait",
+          "parameters": [
+            "status"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/schemas/schemas",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/types/types",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/types/types#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/types/types#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/types/types#4",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeProgramSchema",
+          "parameters": [
+            "protocol"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectClientHostOptionalFields",
+          "parameters": [
+            "registry"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectClientHostOptionalFields/canonical/canonical/canonical",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectClientHostOptionalFields/expected/expected",
+          "parameters": [
+            "branch"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectClientHostOptionalFields/projectClientHostOptionalFields",
+          "parameters": [
+            "name",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectClientHostOptionalFields/projectClientHostOptionalFields/projectClientHostOptionalFields",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectClientHostOptionalFields/projectClientHostOptionalFields/projectClientHostOptionalFields#2",
+          "parameters": [
+            "field",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectClientHostOptionalFields/projectClientHostOptionalFields#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectClientHostOptionalFields/projectClientHostOptionalFields#3",
+          "parameters": [
+            "name",
+            "fields"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./checkpoint-answer-wire-js.mjs",
+        "./checkpoint-answer-wire.mjs",
+        "./client-check-report-rules.mjs",
+        "./generate-check-reason-catalog.mjs",
+        "./generate-client-publication-wire.mjs",
+        "./generate-native-client-wire.mjs",
+        "./interactive-run-control-contract.mjs",
+        "./interactive-run-control-schema.mjs",
+        "node:fs/promises",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated bounded candidate DATA and original wire projection; no signing authority, Local engine, Host permission or second Checkpoint state machine.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "buildClientHostWire",
+            "buildClientHostWire/buildClientHostWire",
+            "buildClientHostWire/buildClientHostWire/buildClientHostWire",
+            "buildClientHostWire/buildClientHostWire#2",
+            "buildClientHostWire/buildClientHostWire#3",
+            "buildClientHostWire/buildClientHostWire#4",
+            "buildClientHostWire/checkVariants/checkVariants",
+            "buildClientHostWire/module/module",
+            "buildClientHostWire/nullLiterals/nullLiterals",
+            "buildClientHostWire/nullLiterals/nullLiterals/nullLiterals",
+            "buildClientHostWire/runWait/runWait",
+            "buildClientHostWire/schemas/schemas",
+            "buildClientHostWire/types/types",
+            "buildClientHostWire/types/types#2",
+            "buildClientHostWire/types/types#3",
+            "buildClientHostWire/types/types#4",
+            "nativeProgramSchema",
+            "projectClientHostOptionalFields",
+            "projectClientHostOptionalFields/canonical/canonical/canonical",
+            "projectClientHostOptionalFields/expected/expected",
+            "projectClientHostOptionalFields/projectClientHostOptionalFields",
+            "projectClientHostOptionalFields/projectClientHostOptionalFields/projectClientHostOptionalFields",
+            "projectClientHostOptionalFields/projectClientHostOptionalFields/projectClientHostOptionalFields#2",
+            "projectClientHostOptionalFields/projectClientHostOptionalFields#2",
+            "projectClientHostOptionalFields/projectClientHostOptionalFields#3"
+          ],
+          "exports": [
+            "buildClientHostWire",
+            "nativeProgramSchema",
+            "projectClientHostOptionalFields"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These bounded source generators run no Client or Host operation and confer no cancellation or physical cleanup authority. The caller owns process cancellation; output freshness remains a separate check."
+            },
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate inventories derive from protocol and unknown construction expressions refuse generation'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/generate-python-client-wire.mjs",
+      "sha256": "29fcf7aaba98b05465350d43a629b5fe72ec2272f54cf676334d1b6205715362",
+      "exports": [
+        "pythonClientContract",
+        "pythonTypes"
+      ],
+      "operations": [
+        {
+          "name": "pythonClientContract",
+          "parameters": [
+            "registry",
+            "protocol",
+            "publication",
+            "reasons"
+          ],
+          "async": false
+        },
+        {
+          "name": "pythonClientContract/schemas/schemas",
+          "parameters": [
+            "name",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "pythonTypes",
+          "parameters": [
+            "schemas"
+          ],
+          "async": false
+        },
+        {
+          "name": "pythonTypes/identifier/identifier",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "pythonTypes/identifier/identifier/identifier",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "pythonTypes/literal/literal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "pythonTypes/pythonTypes",
+          "parameters": [
+            "line"
+          ],
+          "async": false
+        },
+        {
+          "name": "pythonTypes/pythonTypes/pythonTypes",
+          "parameters": [
+            "_",
+            "wrapper",
+            "expression"
+          ],
+          "async": false
+        },
+        {
+          "name": "pythonTypes/type",
+          "parameters": [
+            "schema",
+            "path",
+            "root"
+          ],
+          "async": false
+        },
+        {
+          "name": "pythonTypes/type/fields/fields",
+          "parameters": [
+            "key",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "pythonTypes/type/type",
+          "parameters": [
+            "rule",
+            "index"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../packages/client-wire/index.mjs",
+        "./checkpoint-answer-wire-python.mjs",
+        "./checkpoint-answer-wire.mjs",
+        "./client-check-report-rules.mjs",
+        "./generate-client-host-wire.mjs",
+        "./generate-client-publication-wire.mjs",
+        "./generate-native-client-wire.mjs",
+        "./python-client-wire-codec.mjs",
+        "node:fs/promises",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated bounded candidate DATA and original wire projection; no signing authority, Local engine, Host permission or second Checkpoint state machine.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "pythonClientContract",
+            "pythonClientContract/schemas/schemas",
+            "pythonTypes",
+            "pythonTypes/identifier/identifier",
+            "pythonTypes/identifier/identifier/identifier",
+            "pythonTypes/literal/literal",
+            "pythonTypes/pythonTypes",
+            "pythonTypes/pythonTypes/pythonTypes",
+            "pythonTypes/type",
+            "pythonTypes/type/fields/fields",
+            "pythonTypes/type/type"
+          ],
+          "exports": [
+            "pythonClientContract",
+            "pythonTypes"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These bounded source generators run no Client or Host operation and confer no cancellation or physical cleanup authority. The caller owns process cancellation; output freshness remains a separate check."
+            },
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate inventories derive from protocol and unknown construction expressions refuse generation'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/generate-native-client-wire.mjs",
+      "sha256": "0b4b5ad5b89553c234d3bad7ce3f1d23470a531fc20f806cc1529e4ce71fc2e2",
+      "exports": [
+        "formatMoonBit",
+        "jsRequestResponseRules",
+        "jsResponseRules",
+        "nativeClientWire",
+        "requestResponseRules",
+        "responseRules"
+      ],
+      "operations": [
+        {
+          "name": "formatMoonBit",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "jsRequestResponseRules",
+          "parameters": [
+            "schemas",
+            "rules"
+          ],
+          "async": false
+        },
+        {
+          "name": "jsRequestResponseRules/jsRequestResponseRules",
+          "parameters": [
+            "name",
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "jsRequestResponseRules/jsRequestResponseRules/alternatives/alternatives",
+          "parameters": [
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "jsResponseRules",
+          "parameters": [
+            "rules"
+          ],
+          "async": false
+        },
+        {
+          "name": "jsResponseRules/jsResponseRules",
+          "parameters": [
+            "name",
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "jsResponseRules/jsResponseRules/jsResponseRules",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "jsResponseRules/jsResponseRules/jsResponseRules#2",
+          "parameters": [
+            "field",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire",
+          "parameters": [
+            "schemas",
+            "rules",
+            "requestRules",
+            "checkPins",
+            "reportRules"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/alternatives/alternatives",
+          "parameters": [
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/candidates/candidates",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/constrained/constrained",
+          "parameters": [
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/constrained/constrained/constrained",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/emit",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/emit#10",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/emit#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/emit#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/emit#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/emit#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/emit#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/emit#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/emit#8",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/emit#9",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/known/known",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/emit/needsText/needsText",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/nativeClientWire",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/production/production",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/source/source",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/testOnly/testOnly",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeClientWire/testOnly/testOnly#2",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestResponseRules",
+          "parameters": [
+            "registry",
+            "schemas"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestResponseRules/canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestResponseRules/canonical/canonical/canonical",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestResponseRules/requestResponseRules",
+          "parameters": [
+            "name",
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestResponseRules/requestResponseRules/correlated/correlated",
+          "parameters": [
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestResponseRules/requestResponseRules/requestResponseRules",
+          "parameters": [
+            "status"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestResponseRules/requestResponseRules/requestResponseRules#2",
+          "parameters": [
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestResponseRules/requestResponseRules/requestResponseRules#3",
+          "parameters": [
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "responseRules",
+          "parameters": [
+            "registry"
+          ],
+          "async": false
+        },
+        {
+          "name": "responseRules/responseRules",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "responseRules/responseRules#2",
+          "parameters": [
+            "field",
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./client-check-report-rules.mjs",
+        "./client-wire-scalar-rules.mjs",
+        "node:child_process",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated bounded candidate DATA and original wire projection; no signing authority, Local engine, Host permission or second Checkpoint state machine.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "formatMoonBit",
+            "jsRequestResponseRules",
+            "jsRequestResponseRules/jsRequestResponseRules",
+            "jsRequestResponseRules/jsRequestResponseRules/alternatives/alternatives",
+            "jsResponseRules",
+            "jsResponseRules/jsResponseRules",
+            "jsResponseRules/jsResponseRules/jsResponseRules",
+            "jsResponseRules/jsResponseRules/jsResponseRules#2",
+            "nativeClientWire",
+            "nativeClientWire/alternatives/alternatives",
+            "nativeClientWire/candidates/candidates",
+            "nativeClientWire/emit/constrained/constrained",
+            "nativeClientWire/emit/constrained/constrained/constrained",
+            "nativeClientWire/emit/emit",
+            "nativeClientWire/emit/emit#10",
+            "nativeClientWire/emit/emit#2",
+            "nativeClientWire/emit/emit#3",
+            "nativeClientWire/emit/emit#4",
+            "nativeClientWire/emit/emit#5",
+            "nativeClientWire/emit/emit#6",
+            "nativeClientWire/emit/emit#7",
+            "nativeClientWire/emit/emit#8",
+            "nativeClientWire/emit/emit#9",
+            "nativeClientWire/emit/known/known",
+            "nativeClientWire/emit/needsText/needsText",
+            "nativeClientWire/nativeClientWire",
+            "nativeClientWire/production/production",
+            "nativeClientWire/source/source",
+            "nativeClientWire/testOnly/testOnly",
+            "nativeClientWire/testOnly/testOnly#2",
+            "requestResponseRules",
+            "requestResponseRules/canonical/canonical",
+            "requestResponseRules/canonical/canonical/canonical",
+            "requestResponseRules/requestResponseRules",
+            "requestResponseRules/requestResponseRules/correlated/correlated",
+            "requestResponseRules/requestResponseRules/requestResponseRules",
+            "requestResponseRules/requestResponseRules/requestResponseRules#2",
+            "requestResponseRules/requestResponseRules/requestResponseRules#3",
+            "responseRules",
+            "responseRules/responseRules",
+            "responseRules/responseRules#2"
+          ],
+          "exports": [
+            "formatMoonBit",
+            "jsRequestResponseRules",
+            "jsResponseRules",
+            "nativeClientWire",
+            "requestResponseRules",
+            "responseRules"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These bounded source generators run no Client or Host operation and confer no cancellation or physical cleanup authority. The caller owns process cancellation; output freshness remains a separate check."
+            },
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate inventories derive from protocol and unknown construction expressions refuse generation'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mjs",
+                "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

@@ -5,6 +5,7 @@
 priv enum NonModelWorkEntryCapacity {
   DedicatedNonModelWorkCapacity(@resources.CapacityReservation)
   PreparedNonModelWorkCapacity((Int64, Int64) -> Bool)
+  FailedPreparedNonModelWorkCapacity(@resources.ImportedChildLedgerIssue)
   RetiredPreparedNonModelWorkCapacity
 }
 
@@ -207,6 +208,46 @@ pub fn InstalledArenaHost::prepare_domain_nonmodel_work_entry(
 }
 
 ///|
+/// Back the exact additional constructor demand while this SAME original
+/// business child is entered. This neither selects the Work nor changes its
+/// prepared-body debit. The later original Journal Read still owns the one
+/// canonical reservation and constructor admission.
+pub fn[P] InstalledArenaHost::prepare_domain_nonmodel_prepared_work_backing(
+  self : InstalledArenaHost,
+  execution : InstalledArenaRetainedExecution,
+  admission : @resources.PreparedRunAdmission[P],
+  prepared : P,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, InstalledArenaRetainedExecutionIssue] {
+  if execution.nonmodel_prepared_work_selected ||
+    retained_bytes <= 0L ||
+    execution_bytes <= 0L {
+    return Err(Child(@resources.Unavailable))
+  }
+  let ledger = match self.borrow_domain_retained_execution_ledger(execution) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let (base_r, base_e) = match
+    @resources.prepared_run_native_capacity(admission, prepared, ledger) {
+    Err(issue) => return Err(Child(issue))
+    Ok(value) => value
+  }
+  if retained_bytes > 9223372036854775807L - base_r ||
+    execution_bytes > 9223372036854775807L - base_e {
+    return Err(Child(@resources.Unavailable))
+  }
+  @resources.prepare_prepared_run_native_work_backing(
+    admission,
+    prepared,
+    ledger,
+    base_r + retained_bytes,
+    base_e + execution_bytes,
+  ).map_err(issue => Child(issue))
+}
+
+///|
 /// Borrow the SAME prepared body's reservation for one fixed Native Work.
 /// The complete additional Work envelope is supplied before its constructor.
 /// No second reservation, admission, attempt or physical cleanup owner exists.
@@ -287,8 +328,29 @@ pub fn[P] InstalledArenaHost::prepare_domain_nonmodel_prepared_work_entry(
     Some(Ok(ReadyNonModelWorkEntry(entry)))
   } else {
     entry.finished = true
-    entry.control = RetiredPreparedNonModelWorkCapacity
+    // Diagnostic refinement of THIS already cleanup-only constructor branch.
+    // Other Pending acquisitions and shared Resource Errs are not classified.
+    entry.control = match grown {
+      Err(original) => FailedPreparedNonModelWorkCapacity(original)
+      Ok(_) => RetiredPreparedNonModelWorkCapacity
+    }
     Some(Ok(PendingNonModelWorkEntry(entry)))
+  }
+}
+
+///|
+/// Observe only this original entry's retained reserve refusal. No current
+/// callback, retry, budget, scope transition or cleanup acknowledgement occurs.
+/// The caller must pre-fund this optional diagnostic and its primary carrier.
+pub fn InstalledArenaNonModelWorkEntry::prepared_capacity_failure(
+  self : InstalledArenaNonModelWorkEntry,
+) -> @resources.ImportedChildLedgerIssue? {
+  if !self.is_original() || self.closed || self.growing {
+    return None
+  }
+  match self.control {
+    FailedPreparedNonModelWorkCapacity(original) => Some(original)
+    _ => None
   }
 }
 
@@ -309,7 +371,8 @@ fn InstalledArenaNonModelWorkEntry::capacity_original_matches(
       )
     PreparedNonModelWorkCapacity(matches) =>
       matches(self.retained_bytes, self.execution_bytes)
-    RetiredPreparedNonModelWorkCapacity => false
+    RetiredPreparedNonModelWorkCapacity
+    | FailedPreparedNonModelWorkCapacity(_) => false
   }
 }
 
@@ -596,7 +659,10 @@ pub fn InstalledArenaNonModelWorkEntry::matches_business_scope(
     (
       cleanup &&
       self.finished &&
-      self.control is RetiredPreparedNonModelWorkCapacity
+      (
+        self.control is RetiredPreparedNonModelWorkCapacity ||
+        self.control is FailedPreparedNonModelWorkCapacity(_)
+      )
     ) ||
     self.capacity_original_matches()
   )
@@ -648,7 +714,8 @@ pub fn InstalledArenaNonModelWorkEntry::finish_business_cleanup(
     return false
   }
   self.finished = true
-  if self.control is PreparedNonModelWorkCapacity(_) {
+  if self.control is PreparedNonModelWorkCapacity(_) ||
+    self.control is FailedPreparedNonModelWorkCapacity(_) {
     self.control = RetiredPreparedNonModelWorkCapacity
   }
   true
@@ -707,7 +774,8 @@ pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(
   if self.control is PreparedNonModelWorkCapacity(_) {
     return false
   }
-  if self.control is RetiredPreparedNonModelWorkCapacity {
+  if self.control is RetiredPreparedNonModelWorkCapacity ||
+    self.control is FailedPreparedNonModelWorkCapacity(_) {
     if !self.is_original() ||
       self.growing ||
       (self.claimed && !self.finished) ||
@@ -716,6 +784,7 @@ pub fn InstalledArenaNonModelWorkEntry::close_after_original_return(
       !self.execution.closed {
       return false
     }
+    self.control = RetiredPreparedNonModelWorkCapacity
     self.closed = true
     self.original.val = None
     return true

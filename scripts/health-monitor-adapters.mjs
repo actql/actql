@@ -9,7 +9,7 @@ import {gzipSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {inventory, unpack} from './package-release.mjs';
-import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
+import {CLIENT_PACKAGES, packedClientPackage} from './packed-client-packages.mjs';
 import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
@@ -63,7 +63,8 @@ export async function execute(command, args, {cwd, raw, name, timeout = 600_000,
   return result;
 }
 
-export async function prepareHealthPackages({repository, root, source, retained, command, normalLifecycle = false}) {
+export async function prepareHealthPackages({repository, root, source, retained, command, normalLifecycle = false,
+  optionalProvider}) {
   assert.equal(typeof normalLifecycle, 'boolean');
   const destination = join(root, 'packages'); await mkdir(destination);
   let manifest;
@@ -108,9 +109,33 @@ export async function prepareHealthPackages({repository, root, source, retained,
     await writeFile(retained, JSON.stringify(manifest, null, 2) + '\n', {flag: 'wx'});
   }
   assert.deepEqual(manifest.packages.map(row => row.name).sort(), CLIENT_PACKAGES.map(name => '@actql/' + name).sort());
+  if (optionalProvider !== undefined) {
+    assert(retained && normalLifecycle, 'Optional provider requires original normal packages and lifecycle');
+    const originalBytes = await readFile(join(optionalProvider, 'packed-client-packages.json'));
+    const original = JSON.parse(originalBytes);
+    assert.deepEqual(Object.keys(original).sort(), ['revision', 'tarballs']);
+    assert.equal(original.revision, source.sha, 'Optional provider source differs');
+    assert.deepEqual(Object.keys(original.tarballs), ['provider-ai-sdk']);
+    assert.match(original.tarballs['provider-ai-sdk'], /^[a-f0-9]{64}$/u);
+    await packedClientPackage({repository, name: 'provider-ai-sdk', destination,
+      shared: optionalProvider, pack: () => {throw new Error('No optional provider packing fallback');}});
+    const file = 'actql-provider-ai-sdk-0.0.0-development.tgz';
+    const bytes = await readFile(join(destination, file));
+    const unpacked = await unpack(join(destination, file), join(root, 'unpacked-provider-ai-sdk'));
+    const metadata = JSON.parse(await readFile(join(unpacked, 'package.json')));
+    assert.equal(metadata.name, '@actql/provider-ai-sdk');
+    assert.equal(metadata.version, '0.0.0-development');
+    manifest = {...manifest, optionalManifestSha256: digest(originalBytes), packages: [...manifest.packages,
+      {name: metadata.name, version: metadata.version, file, bytes: bytes.length, sha256: digest(bytes),
+        integrity: 'sha512-' + createHash('sha512').update(bytes).digest('base64'), files: await inventory(unpacked)}]};
+    // The original required-five descriptor remains unchanged beside this selected installation.
+    retained = join(destination, 'optional-provider-packages.json');
+    await writeFile(retained, JSON.stringify(manifest, null, 2) + '\n', {flag: 'wx'});
+  }
   const consumer = join(root, 'consumer'); await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
-  await command('npm', ['install', '--offline', normalLifecycle ? '--ignore-scripts=false' : '--ignore-scripts',
+  await command('npm', ['install', ...(optionalProvider === undefined ? ['--offline'] : []),
+    normalLifecycle ? '--ignore-scripts=false' : '--ignore-scripts',
     '--no-audit', '--no-fund', '--no-save', '--omit=optional',
     ...manifest.packages.map(row => {
       assert.equal(row.file, row.file.split('/').at(-1)); return resolve(dirname(retained), row.file);

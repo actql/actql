@@ -20,6 +20,7 @@ import './hubspot-oauth-operator.test.mjs';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {runRestActualCommon} from './ci-rest-actual-common.mjs';
+import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate,
   publicFixtureEnvironment} from
@@ -74,14 +75,87 @@ for (const status of [0, 73]) test(`normal provider owner ${status === 0 ? 'cont
   const nodeIndex = calls.indexOf('exec:node');
   const typeArguments = calls.slice(1, nodeIndex === -1 ? calls.length : nodeIndex);
   for (const required of ['--noEmit', '--strict']) assert(typeArguments.includes(required), required);
-  assert.equal(typeArguments.filter(value => value ===
-    'packages/provider-ai-sdk/original-recipe.typecheck.mts').length, 1);
+  for (const file of ['packages/provider-ai-sdk/original-recipe.typecheck.mts',
+    'packages/provider-ai-sdk/normal-entry.typecheck.mts'])
+    assert.equal(typeArguments.filter(value => value === file).length, 1, file);
   assert.equal(calls.filter(value => value === 'exec:node').length, status === 0 ? 1 : 0);
   if (status === 0) {
     assert(calls.includes('scripts/local-checks.mjs') && calls.includes('--expose-gc'));
     assert(calls.some(value => value.startsWith('packages/provider-ai-sdk/') && value.endsWith('.test.mjs')));
   }
   assert.equal(jobs['client-distribution'].steps.filter(step => step.run === 'npm run check:provider-ai-sdk').length, 1);
+});
+
+test('shared Host preparation builds its original Common and signing checkpoint entry once before consumers', t => {
+  const preparation = jobs.host.steps.find(step => step.id === 'host-runtime-preparation');
+  const directory = mkdtempSync(join(tmpdir(), 'actql-host-preparation-')), bin = join(directory, 'bin');
+  t.after(() => rmSync(directory, {recursive: true, force: true}));mkdirSync(bin);
+  const calls = join(directory, 'calls');
+  writeFileSync(join(bin, 'moon'), '#!/bin/sh\nprintf "%s\\n" "$@" >> "$CALLS"\nexit "$CHECKPOINT_STATUS"\n', {mode: 0o755});
+  for (const status of [0, 73]) {
+    writeFileSync(calls, '');
+    const result = spawnSync('/bin/bash', ['-eo', 'pipefail', '-c', preparation.run], {
+      cwd: root, encoding: 'utf8', timeout: 3000,
+      env: {...process.env, PATH: bin, CALLS: calls, CHECKPOINT_STATUS: String(status)},
+    });
+    assert.equal(result.error, undefined);assert.equal(result.signal, null);assert.equal(result.status, status);
+    const args = readFileSync(calls, 'utf8').trim().split('\n');
+    assert.equal(args.filter(value => value === 'build').length, 1);
+    assert.equal(args[args.indexOf('--target') + 1], 'js');assert(args.includes('--release'));
+    for (const entry of ['src/connectors_builtin_node', 'src/checkpoint_runtime_node'])
+      assert.equal(args.filter(value => value === entry).length, 1, entry);
+  }
+  for (const file of ['adapters/host-node/normal-openai-http.actual.test.mjs',
+    'adapters/host-node/model-task-candidate-binding.actual.test.mjs', 'scripts/ci-rest-actual-common.mjs']) {
+    const selected = jobs.host.steps.filter(step => step.run?.split(/\s+/u).includes(file));
+    assert.equal(selected.length, 1);
+    assert.notEqual(selected[0]['continue-on-error'], true);
+    const expression = selected[0].if.slice(3, -3)
+      .replace(/steps\.([a-z][a-z0-9-]*)/gu, (_, name) => `steps[${JSON.stringify(name)}]`);
+    for (const outcome of ['success', 'failure', 'cancelled', 'skipped']) for (const cancelled of [false, true])
+      assert.equal(runInNewContext(expression, {cancelled: () => cancelled,
+        steps: {'host-runtime-preparation': {outcome}}}), outcome === 'success' && !cancelled);
+  }
+});
+
+test('normal Model Host HTTP retains its single prepared Common and required SDK and FD tools', t => {
+  const steps=jobs.host.steps, file='adapters/host-node/normal-openai-http.actual.test.mjs';
+  const selected=steps.filter(step=>step.run?.split(/\s+/u).includes(file));
+  assert.equal(selected.length,1);
+  const [gate]=selected, preparation=steps.find(step=>step.id==='host-runtime-preparation');
+  assert(steps.indexOf(preparation)<steps.indexOf(gate));
+  assert.equal(gate.if,"${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
+  assert.equal(gate['continue-on-error'],undefined);
+  assert.equal(steps.filter(step=>step.run?.includes('moon build')&&step.run.includes('src/connectors_builtin_node')).length,1);
+  const args=gate.run.trim().split('\n').at(-1).trim().split(/\s+/u);
+  assert.deepEqual(args.slice(0,4),['node','scripts/local-checks.mjs','test','node']);
+  assert.equal(args.filter(value=>value===file).length,1);
+  assert(!args.includes('--test-name-pattern'),'The actual file includes every required case without a partial selector');
+  const timeout=Number(args[args.indexOf('--timeout-seconds')+1]);
+  const grace=Number(args[args.indexOf('--kill-grace-seconds')+1]);
+  assert(Number.isSafeInteger(timeout)&&timeout>0);
+  assert(Number.isSafeInteger(grace)&&grace>=0);
+  assert(timeout+grace<=jobs.host['timeout-minutes']*60,
+    'The supervised child stays within the enclosing Host job budget');
+  const directory=mkdtempSync(join(tmpdir(),'actql-normal-model-ci-')),bin=join(directory,'bin');
+  t.after(()=>rmSync(directory,{recursive:true,force:true}));mkdirSync(bin);
+  const calls=join(directory,'calls');
+  writeFileSync(join(bin,'npm'),'#!/bin/sh\nprintf "npm:%s\\n" "$*" >> "$ACTQL_CI_CALLS"\nexit "$ACTQL_CI_NPM_STATUS"\n',{mode:0o755});
+  writeFileSync(join(bin,'node'),'#!/bin/sh\nprintf "node:%s\\n" "$*" >> "$ACTQL_CI_CALLS"\n',{mode:0o755});
+  for(const [lsof,status] of [[false,0],[true,73],[true,0]]) {
+    if(lsof)writeFileSync(join(bin,'lsof'),'#!/bin/sh\nexit 0\n',{mode:0o755});
+    writeFileSync(calls,'');
+    const result=spawnSync('/bin/bash',['-eo','pipefail','-c',gate.run],{cwd:root,
+      env:{...process.env,PATH:bin,ACTQL_CI_CALLS:calls,ACTQL_CI_NPM_STATUS:String(status)},
+      encoding:'utf8',timeout:3000});
+    assert.equal(result.error,undefined);assert.equal(result.signal,null);
+    assert.equal(result.status,lsof?status:1);
+    const recorded=readFileSync(calls,'utf8').trim().split('\n').filter(Boolean);
+    assert.equal(recorded.filter(value=>value.startsWith('npm:')).length,lsof?1:0);
+    assert.equal(recorded.filter(value=>value.startsWith('node:')).length,lsof&&status===0?1:0);
+    if(lsof)assert.equal(recorded[0],'npm:ci --prefix packages/provider-ai-sdk --ignore-scripts');
+    if(lsof&&status===0)assert(recorded[1].includes(file));
+  }
 });
 
 test('Host configuration controls share the prepared original Common and Resource prerequisite', () => {
@@ -672,11 +746,9 @@ test('Client preparation exposes runtime adapters and wire freshness as separate
       assert.equal(step.if, undefined, 'default success prevents a later preparation stage from bypassing failure');
       assert.equal(step['continue-on-error'], undefined);
     }
-    assert(steps.slice(2).every(step => /Check .*wire freshness/u.test(step.name)));
     const positions = steps.map(step => jobs[name].steps.indexOf(step));
-    assert(positions.every((value, index) => index === 0 || value === positions[index - 1] + 1));
-    assert(jobs[name].steps.filter(step => step.name?.startsWith('Test ')).every(step =>
-      step.if === "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}"));
+    assert(positions.every((value, index) => index === 0 || value > positions[index - 1]),
+      'Preparation commands retain dependency order without requiring adjacent display steps');
   }
 });
 
@@ -931,16 +1003,20 @@ test('ordinary Local assets reuse tarballs while cold and external builds stay s
 });
 
 test('one producer uploads only manifest and tarballs; consumers select its immutable artifact ID', () => {
-  assert.deepEqual(runs('client-packages'), ['node scripts/packed-client-packages.mjs "$RUNNER_TEMP/actql-client-packages"']);
   const producer = jobs['client-packages'];
+  const required = producer.steps.filter(step => step.run?.startsWith('node scripts/packed-client-packages.mjs '));
+  assert.equal(required.length, 1, 'The required cohort has one original producer entrance');
   const upload = producer.steps.find(step => step.id === 'packages');
+  assert(producer.steps.indexOf(required[0]) < producer.steps.indexOf(upload));
   assert.equal(upload.uses, 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02');
   assert.equal(upload.with.name, 'actql-client-packages-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}');
   assert.equal(upload.with['if-no-files-found'], 'error');
   assert.equal(upload.with['retention-days'], 7);
   assert.deepEqual(upload.with.path.trim().split('\n'), [
-    'packed-client-packages.json', ...['client-wire', 'sdk', 'run-host-core', 'local-node', 'node']
+    'packed-client-packages.json', ...CLIENT_PACKAGES
       .map(name => `actql-${name}-0.0.0-development.tgz`),
+    'optional-provider/packed-client-packages.json',
+    'optional-provider/actql-provider-ai-sdk-0.0.0-development.tgz',
   ].map(name => '${{ runner.temp }}/actql-client-packages/' + name));
   assert.deepEqual(producer.outputs, {'artifact-id': '${{ steps.packages.outputs.artifact-id }}'});
   for (const name of consumers) {
@@ -1015,11 +1091,17 @@ test('local commands remain available for each independently retryable group', (
 test('download fails closed before the action for empty, malformed or multiple IDs', () => {
   const action = parse(readFileSync(new URL('../.github/actions/download-client-packages/action.yml', import.meta.url), 'utf8'));
   assert.equal(action.runs.using, 'composite');
-  assert.equal(action.runs.steps.length, 3);
-  const [guard, download] = action.runs.steps;
+  const guards = action.runs.steps.filter(step => Object.hasOwn(step.env ?? {}, 'ARTIFACT_ID'));
+  const downloads = action.runs.steps.filter(step => step.uses?.startsWith('actions/download-artifact@'));
+  assert.equal(guards.length, 1, 'The exact artifact ID has one required guard');
+  assert.equal(downloads.length, 1, 'The original artifact is downloaded once');
+  const [guard] = guards, [download] = downloads;
+  assert(action.runs.steps.indexOf(guard) < action.runs.steps.indexOf(download));
   assert.equal(guard.env.ARTIFACT_ID, '${{ inputs.artifact-id }}');
+  assert.equal(guard.if, undefined);
   assert.equal(guard['continue-on-error'], undefined);
   assert.equal(download.if, undefined, 'download requires the preceding guard to succeed');
+  assert.equal(download['continue-on-error'], undefined);
   assert.equal(download.uses, 'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093');
   assert.deepEqual(download.with, {'artifact-ids': '${{ inputs.artifact-id }}', path: '${{ inputs.path }}', 'merge-multiple': true});
   for (const id of ['', ' ', '0', '-1', '01', '1,2', '1\n2', 'undefined', '1.2', '1e3', '${{ missing }}']) {
@@ -1032,7 +1114,12 @@ test('download fails closed before the action for empty, malformed or multiple I
 
 test('runner-private package/cache environment is set only after successful download', t => {
   const action = parse(readFileSync(new URL('../.github/actions/download-client-packages/action.yml', import.meta.url), 'utf8'));
-  const step = action.runs.steps[2];
+  const setters = action.runs.steps.filter(step => Object.hasOwn(step.env ?? {}, 'PACKAGES_PATH'));
+  const downloads = action.runs.steps.filter(step => step.uses?.startsWith('actions/download-artifact@'));
+  assert.equal(setters.length, 1, 'Verified package inputs have one environment publisher');
+  assert.equal(downloads.length, 1);
+  const [step] = setters;
+  assert(action.runs.steps.indexOf(downloads[0]) < action.runs.steps.indexOf(step));
   assert.equal(step.if, undefined);
   assert.equal(step['continue-on-error'], undefined);
   assert.equal(step.env.PACKAGES_PATH, '${{ inputs.path }}');

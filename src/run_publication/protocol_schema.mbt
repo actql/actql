@@ -220,8 +220,11 @@ fn protocol_string_pattern(value : String, pattern : Int) -> Bool {
       }
     9 => {
       let mut valid = value.length() > 0
-      for char in value.to_array() {
-        if char.to_int() < 32 || char.to_int() == 127 {
+      // Only ASCII controls are excluded. Indexed UTF-16 scanning preserves
+      // scalar acceptance without allocating a namespace-sized Char array.
+      for index = 0; index < value.length(); index = index + 1 {
+        let unit = value[index].to_int()
+        if unit < 32 || unit == 127 {
           valid = false
         }
       }

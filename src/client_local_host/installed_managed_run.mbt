@@ -180,6 +180,8 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Sequence(@lower.SequenceIssue)
   SerializationPrefix(ClientSerializationPrefixIssue)
   MetadataCapacityUnavailable
+  // Original step ordinal and selected work ceiling, not measured demand.
+  RuntimeFragmentWorkLimit(Int, Int)
 }
 
 ///|

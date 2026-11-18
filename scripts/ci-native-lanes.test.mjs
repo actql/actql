@@ -13,6 +13,7 @@ import {gateJobs, gateJobRequired, selectTargets, verifyGate} from './ci-targets
 import {validateGroups} from './ci-native-background-groups.mjs';
 import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import {nativeCoreLinuxCommonPartitions} from './test-native-core-linux-common.mjs';
+import {inventory as verificationInventory} from './verification-actions.mjs';
 import {spawnSync} from 'node:child_process';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -476,12 +477,25 @@ test('local Native route retains every original case serially with one preparati
 });
 
 test('required lint directly selects Native preparation controls and both workload runners use isolated construction overlap',()=>{
-  const required=workflow.jobs.lint.steps.filter(step=>step.name==='Test Native preparation originals and bounded compiler orchestration');
-  assert.equal(required.length,1);assert.equal(required[0].if,undefined,'Drafts require these source/port controls too');
-  assert.equal(required[0].run,'node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs scripts/native-http-phases.test.mjs');
+  const actions=verificationInventory({workflowText:JSON.stringify({jobs:{lint:workflow.jobs.lint,
+    'core-darwin':workflow.jobs['core-darwin']}}),
+    packageText:readFileSync(new URL('../package.json',import.meta.url),'utf8')}).actions;
+  for(const file of ['scripts/native-preparation-originals.test.mjs','scripts/native-runtime-bundle-fixture.test.mjs',
+    'scripts/native-preparation-lanes.test.mjs','scripts/native-preparation-resources.test.mjs',
+    'scripts/native-remote-runtime-isolation.test.mjs','scripts/native-core-linux-common.test.mjs','scripts/native-http-phases.test.mjs']) {
+    const selected=actions.filter(action=>action.origin==='workflow'&&action.job==='lint'&&
+      action.invocation?.kind==='node-test'&&action.invocation.argv.includes(file));
+    assert.equal(selected.length,1,`Required Native preparation control: ${file}`);
+    assert.equal(selected[0].condition.step,null,'Drafts require these source/port controls too');
+    assert.equal(selected[0].condition.continueOnError,false);
+  }
   const core=workflow.jobs['core-darwin'].steps;
   const compiler=core.find(step=>step.name==='Test pinned Native C compiler orchestration');
-  assert.equal(compiler.run,'node --test scripts/native-core-c-compiler.test.mjs');
+  const compilerControls=actions.filter(action=>action.origin==='workflow'&&action.job==='core-darwin'&&
+    action.invocation?.kind==='node-test'&&action.invocation.argv.includes('scripts/native-core-c-compiler.test.mjs')&&
+    action.matrix?.target==='native'&&action.matrix?.partition==='1/2');
+  assert.equal(compilerControls.length,1);
+  assert.equal(compilerControls[0].condition.continueOnError,false);
   assert.equal(compiler.if,"${{ matrix.target == 'native' && matrix.partition == '1/2' }}");
   const setup=core.findIndex(step=>step.uses==='./.github/actions/setup-toolchain');
   assert(setup>=0&&setup<core.indexOf(compiler));

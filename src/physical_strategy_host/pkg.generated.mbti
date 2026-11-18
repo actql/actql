@@ -137,6 +137,8 @@ pub fn captured_dag_ledger(CapturedDAG) -> @physical_resources.Ledger
 
 pub fn captured_dag_strategy(CapturedDAG) -> StrategyRevision?
 
+pub fn captured_dag_strategy_revision(CapturedDAG) -> Int
+
 pub fn captured_effect_apply_preflight_target_version_changed(CapturedEffectApplyPreflightIssue) -> Bool
 
 pub fn captured_effect_checked_proposal_row_available(CapturedEffectCheckedProposalRow) -> Bool
@@ -409,6 +411,26 @@ pub fn captured_task_asof_search_at(CapturedDAG, Int, Int) -> (Int, Int64)?
 
 pub fn captured_task_asof_search_count(CapturedDAG, Int) -> Int?
 
+pub fn captured_task_boundary_cleanup_issue(CapturedDAG) -> @physical_resources.LedgerIssue?
+
+pub fn captured_task_boundary_cleanup_pending(CapturedDAG) -> Bool
+
+pub fn captured_task_boundary_current(CapturedDAG, CapturedTaskBoundary) -> Bool
+
+pub fn captured_task_boundary_generation(CapturedTaskBoundary) -> Int
+
+pub fn captured_task_boundary_hooks(CapturedDAG) -> CapturedTaskBoundaryHooks?
+
+pub fn captured_task_boundary_matches_graph(CapturedTaskBoundary, @physical_strategy.CheckedDAG) -> Bool
+
+pub fn captured_task_boundary_phase(CapturedTaskBoundary) -> CapturedTaskBoundaryPhase
+
+pub fn captured_task_boundary_setup_failure(CapturedDAG) -> CapturedTaskBoundaryIssue?
+
+pub fn captured_task_boundary_strategy_revision(CapturedTaskBoundary) -> Int
+
+pub fn captured_task_boundary_task(CapturedTaskBoundary) -> Int
+
 pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
 pub fn captured_task_input(CapturedDAG, Int, Int, Int, input_index? : Int, data_index? : Int) -> Result[@execution_relation.ProducerRead, RunIssue]
@@ -569,6 +591,8 @@ pub fn finish_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Resul
 
 pub fn finish_captured_effect_proposal_plan(CapturedEffectProposalPlan, Int) -> Result[Unit, CapturedEffectProposalIssue]
 
+pub fn fork_captured_task_boundary_for_logical_projection(CapturedDAG, CapturedTaskBoundary) -> Result[CapturedTaskBoundary, CapturedTaskBoundaryIssue]
+
 pub fn graph_captured_prefix(@physical_strategy.CheckedDAG) -> Int
 
 pub fn graph_control_at(@physical_strategy.CheckedDAG, Int) -> @physical_strategy.ControlEdge?
@@ -723,7 +747,11 @@ pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, I
 
 pub fn prepare_captured_effect_proposal_plan(CapturedEffectInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?, input_key? : CapturedEffectCommandKeyValidation?) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue]
 
+pub fn prepare_captured_task_boundary_hooks(CapturedDAG, @physical_strategy.CheckedDAG, Int) -> Result[CapturedTaskBoundaryHooks, CapturedTaskBoundaryIssue]
+
 pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.GraphIssue]
+
+pub fn prepare_checked_debug_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.DebugTaskGraphIssue]
 
 pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[@physical_strategy.CheckedEffectComputationDAG, @physical_strategy.GraphIssue]
 
@@ -776,6 +804,8 @@ pub fn project_captured_effect_checked_proposal_row(CapturedEffectProposalPlan, 
 pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), CapturedEffectProposalIssue]
 
 pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSidecar, Int, String, Int64, quantity? : String) -> Result[EmpiricalRanking, SearchIssue]
+
+pub fn read_captured_task_boundary(CapturedDAG, CapturedTaskBoundaryHooks, CapturedTaskBoundaryPhase) -> Result[CapturedTaskBoundary?, CapturedTaskBoundaryIssue]
 
 pub fn record_host_cleanup_closes_awaited(HostCleanupProgress) -> Bool
 
@@ -910,6 +940,8 @@ pub fn retire_captured_task_consumers(CapturedDAG) -> Bool
 pub fn retire_captured_task_outputs(CapturedDAG) -> Bool
 
 pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
+
+pub fn return_captured_task_boundary(CapturedTaskBoundary) -> Result[Unit, CapturedTaskBoundaryIssue]
 
 pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -1211,6 +1243,27 @@ type CapturedResultOutputSet
 type CapturedTableInputBorrow
 
 type CapturedTableInputOutputSet
+
+type CapturedTaskBoundary
+
+type CapturedTaskBoundaryHooks
+
+pub(all) enum CapturedTaskBoundaryIssue {
+  AlreadyStarted
+  Stopped
+  ForeignGraph
+  ForeignStrategy
+  StaleBoundary
+  ReadReturned
+  ReadInProgress
+  Resource(@physical_resources.LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CapturedTaskBoundaryPhase {
+  Before
+  Settled
+  OutputEmitted
+} derive(Eq, @debug.Debug)
 
 pub(all) struct EmpiricalRanking {
   request : PolicyRequest
@@ -1531,6 +1584,8 @@ pub using @physical_strategy {type CheckedTaskReferenceIssue}
 pub using @physical_strategy {type ControlEdge}
 
 pub using @physical_strategy {type DataEdge}
+
+pub using @physical_strategy {type DebugTaskGraphIssue}
 
 pub using @physical_strategy {type GraphIssue}
 

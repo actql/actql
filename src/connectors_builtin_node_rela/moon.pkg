@@ -29,6 +29,7 @@ import {
   "actql/actql/effect_application" @effect,
   "actql/actql/remote_transfer" @transfer,
   "moonbitlang/core/encoding/utf8",
+  "actql/actql/model_execution" @model,
   "actql/actql/client_local_host",
   "actql/actql/canonical_json" @identity,
   "actql/actql/physical_cost" @cost,

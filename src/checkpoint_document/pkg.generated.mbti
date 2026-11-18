@@ -7,6 +7,10 @@ import {
 }
 
 // Values
+pub fn answer_candidate_approval_preimage(AnswerPreparation) -> String?
+
+pub fn answer_resolution_preimage(AnswerResolution) -> String
+
 pub fn artifact_type(String) -> String?
 
 pub fn canonical_of(Json, Limits) -> @canonical_json.CanonicalValue?
@@ -19,7 +23,13 @@ pub fn closed_shape(@canonical_json.CanonicalValue, Array[String], Array[String]
 
 pub fn combination_valid(String, String, String) -> Bool
 
+pub fn finish_answer_candidate(AnswerResolution, String) -> Result[(String, String, String), CandidateIssue]
+
 pub fn parse_wire(String, Limits) -> @canonical_json.CanonicalValue?
+
+pub fn prepare_answer_candidate(String, String, String, String, String?, String, Limits) -> Result[AnswerPreparation, CandidateIssue]
+
+pub fn prepare_answer_resolution(AnswerPreparation, String?) -> Result[AnswerResolution, CandidateIssue]
 
 pub fn requirement_max_arity(String) -> Int?
 
@@ -46,6 +56,39 @@ pub fn wire_of(@canonical_json.CanonicalValue, Limits) -> String?
 // Errors
 
 // Types and methods
+pub struct AnswerPreparation {
+  summary : @canonical_json.CanonicalValue
+  approval : @canonical_json.CanonicalValue?
+  approval_preimage : String?
+  decision : String
+  actor : String
+  key_id : String
+  decided_at : String
+  effect : Bool
+  run_subject : Bool
+  limits : Limits
+}
+
+pub struct AnswerResolution {
+  body : @canonical_json.CanonicalValue
+  preimage : String
+  evidence_wire : String
+  checkpoint_cid : String
+  key_id : String
+  limits : Limits
+}
+
+pub(all) enum CandidateIssue {
+  InvalidLimits
+  InvalidWire
+  InvalidField(String)
+  InvalidShape
+  UnsupportedProfile
+  InvalidRequirements
+  OutsideWindow
+  Encoding
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Limits {
   max_wire_bytes : Int
   max_nodes : Int

@@ -45,7 +45,12 @@ pub fn native_relation_file_entry_read_capacity(
 ///|
 fn native_relation_file_entry_read_control_capacity(
   selection : @row_file.NativeRelationFileSelection,
+  prepared_diagnostic? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
+  // Whole-only reserve refusal: private Failed control, optional getter and
+  // primary issue carrier can coexist, each H1/R1/S1. They borrow the exact
+  // original typed payload; no copied Source, callback or new entry field.
+  let diagnostic = if prepared_diagnostic { 3L } else { 0L }
   let key_fields = match selection.key_path {
     None => 0L
     Some(path) => 14L + 3L * path.length().to_int64()
@@ -69,7 +74,8 @@ fn native_relation_file_entry_read_control_capacity(
       6L +
       16L +
       16L +
-      9L,
+      9L +
+      diagnostic,
       reference_slots: 2L +
       20L +
       12L +
@@ -84,7 +90,8 @@ fn native_relation_file_entry_read_control_capacity(
       source.reference_slots +
       25L +
       12L +
-      11L,
+      11L +
+      diagnostic,
       scalar_words: 25L +
       60L +
       8L +
@@ -98,7 +105,8 @@ fn native_relation_file_entry_read_control_capacity(
       12L +
       12L +
       11L +
-      6L,
+      6L +
+      diagnostic,
       owned_utf16_units: 237L,
       owned_wire_bytes: 0L,
     })
@@ -132,6 +140,28 @@ pub fn native_relation_file_entry_outer_capacity() -> @execution.ExecutionCapaci
 }
 
 ///|
+// Only the new Journal-Read caller frontier. The entered business adapter
+// reuses the original prepared-current/backing frame, not this Read allowance.
+// Quote+Some H2/R1/S3; original-admission getter's two Options H2/R2/S2;
+// callback captures Self/Host/execution/admission/Prepared and two byte words
+// H1/R5/S2; stage Option H1/R1/S1; mapped Command/Err H2/R2/S2. Count success and
+// refusal carriers together without temporal reuse. No copied wire/String,
+// retained field, second reservation or constructor authority is introduced.
+fn native_relation_whole_file_preback_read_capacity() -> @execution.ExecutionCapacity? {
+  guard @execution.preparation_representation_cost({
+      record_headers: 8L,
+      reference_slots: 11L,
+      scalar_words: 10L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) else {
+    return None
+  }
+  @execution.execution_capacity(bytes, bytes)
+}
+
+///|
 /// Complete conservative original-Read envelope for the fixed Whole entry.
 /// Sum the existing entry and Whole caller frontiers without temporal reuse.
 /// Their distinct business reservation is still owned by the original body;
@@ -148,16 +178,33 @@ pub fn native_relation_whole_file_entry_read_capacity(
       selection, limits, provider, graph,
     )
     is Some(whole) &&
-    native_relation_file_entry_read_control_capacity(selection) is Some(entry) &&
+    native_relation_file_entry_read_control_capacity(
+      selection,
+      prepared_diagnostic=true,
+    )
+    is Some(entry) &&
+    native_relation_whole_file_preback_read_capacity() is Some(preback) &&
     @execution.checked_preparation_add_product(
       @execution.execution_capacity_retained_bytes(entry),
       @execution.execution_capacity_retained_bytes(whole),
+      1L,
+    )
+    is Some(base_r) &&
+    @execution.checked_preparation_add_product(
+      base_r,
+      @execution.execution_capacity_retained_bytes(preback),
       1L,
     )
     is Some(r) &&
     @execution.checked_preparation_add_product(
       @execution.execution_capacity_execution_bytes(entry),
       @execution.execution_capacity_execution_bytes(whole),
+      1L,
+    )
+    is Some(base_e) &&
+    @execution.checked_preparation_add_product(
+      base_e,
+      @execution.execution_capacity_execution_bytes(preback),
       1L,
     )
     is Some(e) else {

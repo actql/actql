@@ -31,6 +31,18 @@ pub(all) enum RootIssue {
   InvalidStep
   NotExpressionKernel
   NeedsOrderedEncoding
+  // Only an observed work-only check selects this cause. Other root/byte
+  // ceilings retain RootLimit; no dimension is inferred from that code.
+  RootWorkLimit
+}
+
+///|
+// A nullary private result preserves the refusing dimension through the
+// existing aggregate/analytic callback without allocating a new error frame.
+priv enum RootAddition {
+  Added
+  IndexLimit
+  WorkLimit
 }
 
 ///|
@@ -242,7 +254,7 @@ fn prepare_root_range(
       step_index < end_step
       step_index = step_index + 1 {
     if work == 0 {
-      return Err(RootLimit)
+      return Err(RootWorkLimit)
     }
     work -= 1
     let bindings = match sequence.steps[step_index] {
@@ -277,10 +289,11 @@ fn prepare_root_range(
       SequenceMatchStep(sequence_match) => {
         for index in 0..<sequence_match.predicates.length() {
           let pointer = "/pattern/" + index.to_string() + "/where"
-          if sorted.length() == limits.max_roots ||
-            pointer.length() > bytes ||
-            pointer.length() >= work {
+          if sorted.length() == limits.max_roots || pointer.length() > bytes {
             return Err(RootLimit)
+          }
+          if pointer.length() >= work {
+            return Err(RootWorkLimit)
           }
           bytes -= pointer.length()
           work -= 1 + pointer.length()
@@ -314,17 +327,20 @@ fn prepare_root_range(
           | CountGroups(_) => continue
           AnalyticRows(analytic) => {
             for call in analytic.calls {
-              let add = fn(leaf : String, expr : Expression) -> Bool {
-                if sorted.length() == limits.max_roots || work == 0 {
-                  return false
+              let add = fn(leaf : String, expr : Expression) -> RootAddition {
+                if sorted.length() == limits.max_roots {
+                  return IndexLimit
+                }
+                if work == 0 {
+                  return WorkLimit
                 }
                 guard analytic_root_pointer(call.name, leaf, bytes)
                   is Some(pointer) else {
-                  return false
+                  return IndexLimit
                 }
                 let size = @utf8.encode(pointer).length()
                 if size >= work {
-                  return false
+                  return WorkLimit
                 }
                 bytes -= size
                 work -= 1 + size
@@ -335,23 +351,32 @@ fn prepare_root_range(
                   expression: expr,
                   typed_expression: expr.typed_owner,
                 })
-                true
+                Added
               }
               match call.function {
                 PreparedLag(expression, _)
                 | PreparedLead(expression, _)
                 | PreparedFirstValue(expression)
                 | PreparedLastValue(expression) =>
-                  if !add("expr", expression) {
-                    return Err(RootLimit)
+                  match add("expr", expression) {
+                    Added => ()
+                    IndexLimit => return Err(RootLimit)
+                    WorkLimit => return Err(RootWorkLimit)
                   }
                 PreparedFrameAggregate(aggregate) => {
-                  if aggregate.filter is Some(filter) && !add("filter", filter) {
-                    return Err(RootLimit)
+                  if aggregate.filter is Some(filter) {
+                    match add("filter", filter) {
+                      Added => ()
+                      IndexLimit => return Err(RootLimit)
+                      WorkLimit => return Err(RootWorkLimit)
+                    }
                   }
-                  if aggregate.argument is AggregateExpression(expression) &&
-                    !add("expr", expression) {
-                    return Err(RootLimit)
+                  if aggregate.argument is AggregateExpression(expression) {
+                    match add("expr", expression) {
+                      Added => ()
+                      IndexLimit => return Err(RootLimit)
+                      WorkLimit => return Err(RootWorkLimit)
+                    }
                   }
                 }
                 PreparedRowNumber | PreparedRank | PreparedDenseRank => ()
@@ -362,17 +387,20 @@ fn prepare_root_range(
           Groups(group) => {
             for i in 0..<group.aggregates.length() {
               let aggregate = group.aggregates[i]
-              let add = fn(leaf : String, expr : Expression) -> Bool {
-                if sorted.length() == limits.max_roots || work == 0 {
-                  return false
+              let add = fn(leaf : String, expr : Expression) -> RootAddition {
+                if sorted.length() == limits.max_roots {
+                  return IndexLimit
+                }
+                if work == 0 {
+                  return WorkLimit
                 }
                 guard group_root_pointer(aggregate.name, leaf, bytes)
                   is Some(pointer) else {
-                  return false
+                  return IndexLimit
                 }
                 let size = @utf8.encode(pointer).length()
                 if size >= work {
-                  return false
+                  return WorkLimit
                 }
                 bytes -= size
                 work -= 1 + size
@@ -383,21 +411,31 @@ fn prepare_root_range(
                   expression: expr,
                   typed_expression: expr.typed_owner,
                 })
-                true
+                Added
               }
-              if aggregate.filter is Some(filter) && !add("filter", filter) {
-                return Err(RootLimit)
+              if aggregate.filter is Some(filter) {
+                match add("filter", filter) {
+                  Added => ()
+                  IndexLimit => return Err(RootLimit)
+                  WorkLimit => return Err(RootWorkLimit)
+                }
               }
-              if aggregate.argument is AggregateExpression(expression) &&
-                !add("expr", expression) {
-                return Err(RootLimit)
+              if aggregate.argument is AggregateExpression(expression) {
+                match add("expr", expression) {
+                  Added => ()
+                  IndexLimit => return Err(RootLimit)
+                  WorkLimit => return Err(RootWorkLimit)
+                }
               }
             }
             continue
           }
           Filter(expr) | AssertAll(expr) => {
-            if sorted.length() == limits.max_roots || bytes < 5 || work < 6 {
+            if sorted.length() == limits.max_roots || bytes < 5 {
               return Err(RootLimit)
+            }
+            if work < 6 {
+              return Err(RootWorkLimit)
             }
             bytes -= 5
             work -= 6
@@ -413,10 +451,11 @@ fn prepare_root_range(
           OrderedBindings(bindings) => {
             for i = 0; i < bindings.length(); i = i + 1 {
               let pointer = "/bindings/" + i.to_string() + "/expr"
-              if sorted.length() == limits.max_roots ||
-                pointer.length() > bytes ||
-                pointer.length() >= work {
+              if sorted.length() == limits.max_roots || pointer.length() > bytes {
                 return Err(RootLimit)
+              }
+              if pointer.length() >= work {
+                return Err(RootWorkLimit)
               }
               bytes -= pointer.length()
               work -= 1 + pointer.length()
@@ -440,7 +479,7 @@ fn prepare_root_range(
     for (name, expr) in bindings {
       // A scan is charged even if the subsequent pointer byte ceiling fails.
       if work == 0 || name.length() > work - 1 {
-        return Err(RootLimit)
+        return Err(RootWorkLimit)
       }
       work -= 1 + name.length()
       guard root_pointer(name, bytes) is Some(pointer) else {
@@ -448,7 +487,7 @@ fn prepare_root_range(
       }
       let size = @utf8.encode(pointer).length()
       if size > work {
-        return Err(RootLimit)
+        return Err(RootWorkLimit)
       }
       work -= size
       bytes -= size
@@ -474,7 +513,7 @@ fn prepare_root_range(
       let mut right = middle
       while left < middle || right < end {
         if work == 0 {
-          return Err(RootLimit)
+          return Err(RootWorkLimit)
         }
         work -= 1
         let take_left = if left == middle {
@@ -490,7 +529,7 @@ fn prepare_root_range(
               sorted[right].parameter_pointer,
             ] {
             if pointer.length() > work {
-              return Err(RootLimit)
+              return Err(RootWorkLimit)
             }
             work -= pointer.length()
           }

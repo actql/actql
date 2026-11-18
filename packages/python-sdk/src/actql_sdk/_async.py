@@ -519,6 +519,9 @@ class AsyncClient:
                     result = ClientError(code, outcome=Observation({key: child for key, child in outcome.items() if key != 'checkObservation'}), **context)
                     if 'checkObservation' in outcome:
                         retain_submission_check(result, outcome['checkObservation'], body)
+                    elif 'code' in outcome.get('problem', {}):
+                        # Already-admitted text; no code parsing or decision.
+                        result.args = (f"{code}: phase={outcome['kind']}; problem={outcome['problem']['code']}",)
         except asyncio.CancelledError as error:
             for key, value in context.items():
                 setattr(error, key, value)

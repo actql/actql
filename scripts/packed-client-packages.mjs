@@ -145,8 +145,7 @@ async function digest(path) {
 // the shared one when available, otherwise `pack(name)`, which must pack it
 // into `destination` itself.
 export async function packedClientPackage({repository, name, destination,
-  pack}) {
-  const shared = process.env.ACTQL_PACKED_CLIENT_PACKAGES;
+  pack, shared = process.env.ACTQL_PACKED_CLIENT_PACKAGES}) {
   if (shared === undefined || shared === '') return pack(name);
   const manifest = JSON.parse(await readFile(join(shared, MANIFEST), 'utf8'));
   const state = checkoutState(repository);
@@ -196,7 +195,16 @@ export function packedNpmCache(root) {
 // manifest is written only when the build inputs are unchanged from the
 // revision before the first pack and after the last.
 export async function packClientPackages({repository, destination,
-  names = CLIENT_PACKAGES, pack}) {
+  names = CLIENT_PACKAGES, pack = name => {
+    const result = spawnSync('npm', normalNpmPackJsonArgs(['pack', '--pack-destination',
+      resolve(destination), '--json']), {cwd: join(repository, 'packages', name),
+      encoding: 'utf8', timeout: 600_000,
+      env: {...process.env, npm_config_cache: packedNpmCache(destination)}});
+    if (result.error || result.status !== 0) {
+      throw new Error(`npm pack ${name} failed:\n${result.stdout}\n${result.stderr}`,
+        {cause: result.error});
+    }
+  }}) {
   const state = checkoutState(repository);
   if (!state.clean) throw new Error('Build inputs differ from HEAD');
   await mkdir(destination, {recursive: true});
@@ -222,16 +230,6 @@ if (process.argv[1] && resolve(process.argv[1]) ===
     throw new Error('usage: packed-client-packages.mjs <directory>');
   }
   const repository = fileURLToPath(new URL('../', import.meta.url));
-  const revision = await packClientPackages({repository, destination,
-    pack: name => {
-      const result = spawnSync('npm', ['pack', '--pack-destination',
-        resolve(destination), '--json'], {cwd: join(repository, 'packages',
-        name), encoding: 'utf8', timeout: 600_000,
-      env: {...process.env, npm_config_cache: packedNpmCache(destination)}});
-      if (result.error || result.status !== 0) {
-        throw new Error(`npm pack ${name} failed:\n${result.stdout}\n${
-          result.stderr}`, {cause: result.error});
-      }
-    }});
+  const revision = await packClientPackages({repository, destination});
   console.log(`Packed Client packages for ${revision}: ${destination}`);
 }

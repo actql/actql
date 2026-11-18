@@ -1075,13 +1075,19 @@ fn expand_internal_carrier_tasks_with_work(
   graph : CheckedDAG,
   max_tasks : Int,
   work : Ref[Int],
+  split_override? : Array[Int?]? = None,
 ) -> Result[CheckedDAG, GraphIssue] raise CarrierWorkStop {
   let stages = graph.owners.length()
   let mut any_segmentable = false
   let split_boundaries : Array[Int?] = []
   for stage in 0..<stages {
     carrier_work(work)
-    let boundary = carrier_segment_prefix_end(graph, stage, work)
+    // Only the private Debug preflight supplies this complete same-graph
+    // vector. Normal retains the original classifier and its work charges.
+    let boundary = match split_override {
+      Some(boundaries) => boundaries[stage]
+      None => carrier_segment_prefix_end(graph, stage, work)
+    }
     split_boundaries.push(boundary)
     if boundary is Some(_) {
       any_segmentable = true

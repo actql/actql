@@ -853,10 +853,10 @@ test('controlled performance check consumes existing artifacts and cannot omit f
     'python-package-artifact-id': '${{ inputs.performance_python_package_artifact_id }}',
     'python-package-producer-job': "${{ fromJSON(inputs.performance_process_package_jobs || '{}').python || '' }}",
   });
-  assert.ok(ci.jobs.lint.steps.some(s => s.run === 'node --test scripts/ordinary-operation-packages.test.mjs'));
   const actions = verificationInventory({workflowText: JSON.stringify({jobs: {lint: ci.jobs.lint}}),
     packageText: readFileSync(new URL('../package.json', import.meta.url), 'utf8')}).actions;
-  for (const file of ['scripts/benchmark-node-operations.test.mjs', 'scripts/benchmark-node-process-operations.test.mjs',
+  for (const file of ['scripts/ordinary-operation-packages.test.mjs', 'scripts/packed-provider-ai-sdk.test.mjs',
+    'scripts/benchmark-node-operations.test.mjs', 'scripts/benchmark-node-process-operations.test.mjs',
     'scripts/benchmark-node-boundaries.test.mjs', 'scripts/operation-performance.test.mjs',
     'scripts/operation-performance-policy.test.mjs', 'scripts/native-approval-performance.test.mjs',
     'scripts/native-approval-cpu-diagnostic.test.mjs', 'scripts/node-wait-cpu-diagnostic.test.mjs']) {

@@ -695,6 +695,10 @@ pub fn installed_mock_model_run_requirements(@run_publication_host.PreparedClien
 
 pub fn installed_native_source_reader_capacity(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?, received? : (Int64, Int)?, max_query_bytes? : Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_node_model_async_control_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn installed_node_model_caller_control_inventory(@model_execution.ModelProvider, Int) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn installed_pending_duckdb_capture_capacity(ClientDuckDBCaptureCapacity) -> ClientInstalledCaptureCapacity
 
 pub fn installed_physical_write_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity, control_wire_bytes? : Int?, request_construction? : @execution_relation.ExecutionCapacity?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
@@ -1303,6 +1307,8 @@ pub fn[I] request_program_normalization_work(ClientRequestPreparation[I], I) -> 
 
 pub fn request_program_plan_issue_is_sequence_limit(ClientRequestProgramPlanIssue) -> Bool
 
+pub fn request_program_plan_work_refusal_code(ClientRequestProgramPlanIssue) -> String?
+
 pub fn[I] request_query_syntax_work(ClientRequestPreparation[I], I) -> Result[(Int64, Bool), ClientRequestQuerySyntaxIssue]
 
 pub fn[I] request_source_input_parts(ClientRequestPreparation[I], I) -> Result[(String, @source_frontend.Format, String?, @decode_core.Cursor?), ClientRequestPreparationIssue]
@@ -1781,6 +1787,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Sequence(@lowering_relation.SequenceIssue)
   SerializationPrefix(ClientSerializationPrefixIssue)
   MetadataCapacityUnavailable
+  RuntimeFragmentWorkLimit(Int, Int)
 }
 
 type ClientInstalledManagedSerializationPreparation

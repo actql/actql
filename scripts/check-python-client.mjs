@@ -10,6 +10,7 @@ export const remotePythonClientTests = Object.freeze([
   'test_boundaries.py',
   'test_bounded_text.py',
   'test_check_reason_presentation.py',
+  'test_checkpoint_candidate_boundary.py',
   'test_checkpoint_convenience.py',
   'test_checkpoints.py',
   'test_connection_string.py',

@@ -126,7 +126,9 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-17-session-local-text-publication-selector-review.json.
   // One JS-only original Request lifecycle fixture; all imports/options remain exact.
   // See docs/reviews/2026-11-18-session-local-resource-lifecycle-selector-review.json.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '497f93c3defd265ba83791d7a8c3290302f368406e1d348f04a5d5f1c472fefd', rule: 'literal-target-selectors-with-bound-source-membership', revision: '8385cf48bbffd611f7fa62e872a21c764aa7787f'}),
+  // TextBound views and async Model inventory also use the existing JS fixtures.
+  // See docs/reviews/2026-11-18-session-local-current-fixture-selectors-review.json.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '70ad1e83c3d1c750fc59a759b8e8946c0134213b86650dd9dfcdce862416dcfe', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'ec40b17a1cf113fb44b92e58e0de5b1f829178c0'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   // One literal timestamp-pattern dependency; existing JS/non-JS selectors unchanged.
   // See docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json.

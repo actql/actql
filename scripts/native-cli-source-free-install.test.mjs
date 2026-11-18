@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {nativeFileSourceQueries, observeNativeFileSourceQuery} from './fixtures/native-file-source-queries.mjs';
 import {nativeLocalDefaultAssets} from './native-cli-default-assets.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
 import {finishSourceFreeObservations} from './test-native-cli-source-free-install.mjs';
@@ -845,3 +846,92 @@ test(`Native resource ${failure} cannot become acceptance or trigger another sub
   assert.equal(existsSync(join(actor.project, 'few-long-strings.json')), ['run', 'signal'].includes(failure));
 });
 }
+
+// Explicit CLI ports exercise only this harness. Real Native queries are
+// selected separately by the installed consumer on the matching artifact.
+async function fileQueryHarness(t, {name='projection', rows=[{trend:'flat'},{trend:'down'}],
+  stop, changeInput=false, throwOriginal=false, runnable=true}={}) {
+  const parent=await mkdtemp(join(tmpdir(),'actql-file-query-harness-'));
+  t.after(()=>rm(parent,{recursive:true,force:true}));
+  const fixture=nativeFileSourceQueries.find(value=>value.name===name),calls=[];
+  const originalError=new Error('original CLI port failure');
+  const data=JSON.stringify({snowflake:{usage_30d:{rows:[
+    {account_id:'001Acme',active_users:4,trend:'down'},
+    {account_id:'001Globex',active_users:12,trend:'flat'}]}}});
+  const cli=async(args,cwd)=>{
+    calls.push({args,cwd});
+    if(args[0]==='init') {
+      assert.deepEqual(args,['init','--template','churn-risk-mock',join(parent,name)]);
+      assert.equal(cwd,parent);
+      await mkdir(join(parent,name,'mock'),{recursive:true});
+      await writeFile(join(parent,name,'mock/data.json'),data,{flag:'wx'});
+    } else {
+      assert.equal(cwd,join(parent,name));
+      assert.equal(await readFile(join(cwd,name+'.sql'),'utf8'),fixture.sql);
+    }
+    if(args[0]===stop) {
+      if(changeInput)await writeFile(join(parent,name,'mock/data.json'),'changed original');
+      if(throwOriginal)throw originalError;
+      return {status:1,signal:null,stdout:'',stderr:'LocalSourceWorkEntryUnavailable:prepared-unknown'};
+    }
+    return {status:0,signal:null,stdout:args[0]==='check'?JSON.stringify({report:{verdict:'verified',runnable:{verdict:runnable?'yes':'no'}}})
+      :args[0]==='sql'?rows.map(row=>JSON.stringify(row)).join('\n')+'\n':''};
+  };
+  return {parent,fixture,calls,originalError,observe:()=>observeNativeFileSourceQuery({parent,fixture,cli})};
+}
+
+test('original File query harness uses fresh template input and full unordered rows with the control oracle',async t=>{
+  const original=await fileQueryHarness(t);
+  assert.deepEqual((await original.observe()).rows,[{trend:'flat'},{trend:'down'}]);
+  assert.deepEqual(original.calls.map(value=>value.args[0]),['init','check','sql']);
+  const control=await fileQueryHarness(t,{name:'combined-control',rows:[{total:16,average:8}]});
+  assert.deepEqual((await control.observe()).rows,[{total:16,average:8}]);
+  assert.notEqual(original.parent,control.parent);
+});
+
+test('original File query harness refuses missing duplicate extra or changed typed rows',async t=>{
+  for(const rows of [[],[{trend:'down'}],[{trend:'down'},{trend:'down'}],
+    [{trend:'down'},{trend:'flat'},{trend:'flat'}],[{trend:'down'},{trend:'flat',extra:1}],
+    [{trend:'down'},{trend:0}]]) {
+    const actor=await fileQueryHarness(t,{rows});
+    await assert.rejects(actor.observe());
+    assert.equal(actor.calls.filter(value=>value.args[0]==='sql').length,1);
+  }
+});
+
+test('original File query harness preserves int64 wire strings and distinct Number literals',async t=>{
+  for(const [name,rows] of [
+    ['numeric-projection',[{active_users:'4'},{active_users:'12'}]],
+    ['star',[
+      {account_id:'001Acme',active_users:'4',trend:'down'},
+      {account_id:'001Globex',active_users:'12',trend:'flat'}]],
+    ['projection-literal',[{trend:'down',n:1},{trend:'flat',n:1}]],
+  ]) {
+    const actor=await fileQueryHarness(t,{name,rows});
+    assert.deepEqual((await actor.observe()).rows,rows);
+    assert.deepEqual(actor.calls.map(value=>value.args[0]),['init','check','sql']);
+  }
+  const rounded=await fileQueryHarness(t,{name:'numeric-projection',
+    rows:[{active_users:4},{active_users:12}]});
+  await assert.rejects(rounded.observe(),{code:'ERR_ASSERTION'});
+  assert.deepEqual(rounded.calls.map(value=>value.args[0]),['init','check','sql']);
+});
+
+test('original File query harness keeps refusal Unknown and unrunnable checks failed without retry',async t=>{
+  for(const stop of ['init','check','sql']) {
+    const actor=await fileQueryHarness(t,{stop});
+    await assert.rejects(actor.observe(),/prepared-unknown/u);
+    assert.equal(actor.calls.filter(value=>value.args[0]===stop).length,1);
+    if(stop!=='sql')assert.equal(actor.calls.some(value=>value.args[0]==='sql'),false);
+  }
+  const unrunnable=await fileQueryHarness(t,{runnable:false});
+  await assert.rejects(unrunnable.observe());
+  assert.equal(unrunnable.calls.some(value=>value.args[0]==='sql'),false);
+});
+
+test('original File query failure and changed input retain the same primary separately',async t=>{
+  const actor=await fileQueryHarness(t,{stop:'sql',throwOriginal:true,changeInput:true});
+  await assert.rejects(actor.observe(),error=>error instanceof AggregateError&&
+    error.errors[0]===actor.originalError&&error.errors.length===2);
+  assert.equal(actor.calls.filter(value=>value.args[0]==='sql').length,1);
+});

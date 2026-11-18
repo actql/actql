@@ -39,17 +39,21 @@ const policy = original({schema: 'actql.contract/0.1', id: 'candidate-fixture-po
     accepted_classifications: ['public'], allowed_regions: ['fixture'],
     retention: 'none', training_use: 'forbidden'}});
 
-async function fixture(t) {
+async function fixture(t, {twoTasks = false} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-task-candidates-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   await writeFile(join(directory, 'actql.config.json'),
     '{"version":"actql-config/0.1","model_tasks":"./model-tasks.json"}');
   await writeFile(join(directory, 'model-tasks.json'), canonical({version: 'actql-model-tasks/0.1',
-    tasks: {'model-task:candidate': './task.json'},
+    tasks: {'model-task:candidate': './task.json',
+      ...(twoTasks ? {'model-task:other': './other-task.json'} : {})},
     providers: {[providerId]: {type: 'fixture'}}, default_provider: providerId}));
   await writeFile(join(directory, 'task.json'), canonical({task: 'model-task:candidate',
     instructions: 'Exact é\r\n', input: {text: 'string'}, output: {answer: 'boolean'},
     limits: {max_output_tokens: 200}}));
+  if (twoTasks) await writeFile(join(directory, 'other-task.json'), canonical({task: 'model-task:other',
+    instructions: 'A different Task', input: {quantity: 'number'}, output: {label: 'string'},
+    limits: {max_output_tokens: 150}}));
   const project = await loadInstalledProjectConfiguration(moon, {directory});
   const bindings = providerBindingOriginals(providerId);
   bindings.configurationContract = original({...JSON.parse(bindings.configurationContract.wire),
@@ -190,6 +194,211 @@ test('normal configuration real parent refuses excessive read funding without fa
   await resource.close();
   assert.equal(resource.pending(), false);
   assert.equal(resource.retire(), true);
+});
+
+test('normal configuration funds actual binding profile and execution constructors on the same Task', async t => {
+  const resource = await boundConstructionActualFixture(t), f = await fixture(t);
+  const templateCase = JSON.parse(readFileSync(new URL(
+    '../../portability/corpus/model-response-profiles.json', import.meta.url))).cases[0];
+  let selected, profile, execution;
+  const configured = await installConfiguredModelProviders({moon, project: f.project,
+    installationServices: resource.services, taskLimits: limits,
+    assertCurrent: f.check, assertHostRuntime: f.check, assertNewHostRuntime: f.check,
+    async register(_, context) {
+      const bindings = await context.prepareBindingOriginals(f.bindings.installationRevision.wire,
+        f.bindings.configurationContract.wire, f.bindings.configuration.wire);
+      assert.deepEqual(bindings, f.bindings, 'independent original preimages and CID oracle');
+      selected = await context.prepareTasks([{providerId, bindingOriginals: bindings}]);
+      profile = await selected.responseProfileFor('model-task:candidate',
+        {wire: templateCase.wire, cid: templateCase.expected_cid});
+      const actual = JSON.parse(profile.wire);
+      assert.equal(actual.task.contract_cid, selected.tasks[0].taskCid);
+      assert.equal(actual.task.input_schema_cid, original({additional_properties: false,
+        fields: {text: {nullable: false, type: 'string'}}, nullable: false, type: 'object'}).cid);
+      assert.equal(actual.task.output_schema_cid, selected.tasks[0].outputSchemaCid);
+      assert.notEqual(actual.task.input_schema_cid, actual.task.output_schema_cid);
+      assert.deepEqual(actual.adapter, templateCase.body.adapter);
+      execution = await selected.executionOriginalsFor('model-task:candidate', {
+        maxAttempts: 2n, maxCostUnits: 123456n, maxDurationMs: 30000n,
+        maxWireBytes: 65536n, maxTokens: 8192n});
+      assert.equal(JSON.parse(execution.execution.wire).model_task_contract_cid, selected.tasks[0].taskCid);
+      return [{providerId, bindingOriginals: selected.bindingOriginalsFor(providerId),
+        validatePrompt: () => true, invoke() {assert.fail('No Model invocation');}}];
+    }});
+  const base = readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8').trimEnd();
+  const {evidence_bundle_cid: cid, ...body} = JSON.parse(base);
+  const environment = configured.projectTasks.projectEnvironmentForRuntime(moon, base, cid, body);
+  const installation = configured.modelInstallationForRuntime(moon, environment.environmentWire);
+  assert.equal(Object.isFrozen(installation), true);
+  assert.deepEqual(installation.executionContracts, [{modelTaskCid: selected.tasks[0].taskCid,
+    bodyWire: execution.execution.wire, cid: execution.execution.cid}]);
+  assert.equal(installation.dependencyBodies.length, 3);
+  assert.equal(installation.dependencyBodies.some(value => value.cid === selected.tasks[0].promptCid), true);
+  assert.throws(() => selected.responseProfileFor('model-task:candidate', {}),
+    {code: 'InstalledModelConfigurationClosed'});
+  assert.throws(() => configured.modelInstallationForRuntime(moon, environment.environmentWire),
+    {code: 'ForeignInstalledModelConfiguration'});
+});
+
+test('normal configuration cannot replace a prepared execution original after swallowing duplicate preparation', async t => {
+  const resource = await boundConstructionActualFixture(t), f = await fixture(t);
+  const policy = {maxAttempts: 2n, maxCostUnits: 123456n, maxDurationMs: 30000n,
+    maxWireBytes: 65536n, maxTokens: 8192n};
+  let primary;
+  await assert.rejects(installConfiguredModelProviders({moon, project: f.project,
+    installationServices: resource.services, taskLimits: limits,
+    assertCurrent: f.check, assertHostRuntime: f.check, assertNewHostRuntime: f.check,
+    async register(_, context) {
+      const selected = await context.prepareTasks([{providerId, bindingOriginals: f.bindings}]);
+      await selected.executionOriginalsFor('model-task:candidate', policy);
+      try {await selected.executionOriginalsFor('model-task:candidate', {...policy, maxAttempts: 3n});}
+      catch (cause) {primary = cause;}
+      return [{providerId, bindingOriginals: selected.bindingOriginalsFor(providerId),
+        validatePrompt: () => true, invoke() {assert.fail('No Model invocation');}}];
+    }}), cause => cause === primary && cause.code === 'InstalledModelExecutionAlreadyPrepared');
+});
+
+// Actual Task/profile/Resource owners; the finite physical declarations below
+// are component DATA only. These cases perform no transport or public Run.
+async function taskViewsFixture(t, {foreign, change, reenter, preflight} = {}) {
+  const resource = await boundConstructionActualFixture(t), f = await fixture(t, {twoTasks: true});
+  const template = JSON.parse(readFileSync(new URL(
+    '../../portability/corpus/model-response-profiles.json', import.meta.url))).cases[0].body;
+  const control = runtimeCore(moon).publicationControl;
+  const policies = ['retention_contract', 'metadata_retention_policy', 'clock_contract', 'data_policy']
+    .map(kind => {
+      const value = original(kind === 'data_policy'
+        ? {version: 'actql-effective-data-policy/0.1', classification: 'unknown',
+          source_data_policy_cids: [], source_response_policy_cids: [], unknown_provenance: true}
+        : {version: 'actql-installed-local-policy/0.1', name: `task-view-${kind}`});
+      return checked(moon.clientProgramAdmitEffectDependencyBody(kind, value.cid, value.wire, 16384, 1000, 32));
+    });
+  let selected, entries, configured;
+  const profileData = new Map();
+  configured = await installConfiguredModelProviders({moon, project: f.project,
+    installationServices: resource.services, taskLimits: limits,
+    assertCurrent: f.check, assertHostRuntime: f.check, assertNewHostRuntime: f.check,
+    async register(_, context) {
+      selected = await context.prepareTasks([{providerId, bindingOriginals: f.bindings}]);
+      const bindings = selected.bindingOriginalsFor(providerId);
+      entries = [];
+      for (const task of selected.tasks) {
+        const profile = await selected.responseProfileFor(task.name, JSON.stringify(template));
+        profileData.set(task.taskCid, profile);
+        const installation = {};
+        const originalReadRecipe = {bootstrap: {bootstrapRetainedBytes: 4096n, bootstrapExecutionBytes: 4096n,
+          maxReservations: 16, maxHoldings: 16, maxDelegations: 16},
+          modelRetainedBytes: 8192n, modelExecutionBytes: 8192n,
+          nodeInstallation: {installation, probability: undefined,
+            runtimeArtifactCid: original({component: 'runtime'}).cid,
+            layoutArtifactCid: original({component: 'layout'}).cid,
+            layout: {runtime_artifact_cid: original({component: 'runtime'}).cid,
+              layout_artifact_cid: original({component: 'layout'}).cid,
+              prepared_rows: 2n, retained_bytes: 16384n, execution_bytes: 16384n,
+              response_profile: profile.profile}}};
+        const entry = Object.freeze({providerId, entryPersistence: 'async', bindingOriginals: bindings,
+          originalReadRecipe,
+          rawCaptureSelection: {profile: profile.profile, installation, probability: undefined,
+            retention: policies[0], metadata: policies[1], clock: policies[2], data: policies[3],
+            selectedAt: '2026-11-18T00:00:00.000Z', availableUntil: '2026-11-19T00:00:00.000Z',
+            deleteBy: '2026-11-20T00:00:00.000Z', extensionCeilingAt: '2026-11-20T00:00:00.000Z',
+            metadataDeleteBy: '2026-11-21T00:00:00.000Z', selectionAvailable: () => true},
+          quantityCapacity: {limits: {tokens: 1000n, costUnits: 100n, durationMs: 1000n},
+            perAttempt: {tokens: 200n, costUnits: 10n, durationMs: 1000n}},
+          observeEgress: () => undefined,
+          validatePrompt(cid, selector, payload) {
+            reenter?.(configured);
+            return cid === task.taskCid && selector === task.modelSelector && payload === task.promptPayloadWire;
+          }, physicalPreflight(...args) {if (preflight) return preflight(configured, ...args);
+            assert.fail('No transport in a Task-view component');}});
+        entries.push(Object.freeze({taskCid: task.taskCid, entry}));
+      }
+      let views = entries;
+      if (foreign !== undefined) views = foreign;
+      if (change !== undefined) views = change(entries);
+      return [{...entries[0].entry,
+        validatePrompt: (...args) => entries.some(value => value.entry.validatePrompt(...args)),
+        taskInstallations: Object.freeze(views)}];
+    }});
+  return {...f, configured, selected, entries, profileData, control};
+}
+
+test('normal configuration retains two unequal Task profiles under one actual Core Provider', async t => {
+  const f = await taskViewsFixture(t), base = f.configured.providers.get(providerId);
+  const [first, second] = f.selected.tasks;
+  const a = base.selectTaskOriginals(first.taskCid), b = base.selectTaskOriginals(second.taskCid);
+  assert.notStrictEqual(a, b);
+  assert.strictEqual(a.provider, base.provider);
+  assert.strictEqual(b.provider, base.provider);
+  assert.notEqual(first.outputSchemaCid, second.outputSchemaCid);
+  for (const [task, view, other] of [[first, a, second], [second, b, first]]) {
+    assert.strictEqual(view.rawCaptureSelection.profile, f.profileData.get(task.taskCid).profile);
+    assert.strictEqual(view.originalReadRecipe.nodeInstallation.layout.response_profile,
+      view.rawCaptureSelection.profile);
+    assert.equal(JSON.parse(f.profileData.get(task.taskCid).wire).task.output_schema_cid, task.outputSchemaCid);
+    assert.equal(view.validatePrompt(task.taskCid, task.modelSelector, task.promptPayloadWire), true);
+    assert.equal(view.validatePrompt(other.taskCid, other.modelSelector, other.promptPayloadWire), false);
+    assert.strictEqual(view.bindingOriginals, base.bindingOriginals);
+    assert.strictEqual(view.resolveTaskDefaults(undefined, undefined, readerLimits).value,
+      base.resolveTaskDefaults(undefined, undefined, readerLimits).value);
+  }
+  assert.deepEqual(base.taskOriginals(), [a, b]);
+  assert.throws(() => base.selectTaskOriginals(original({foreign: true}).cid),
+    {code: 'InstalledModelTaskProfileUnavailable'});
+});
+
+test('normal configuration refuses foreign same-CID Task views and incomplete inventories', async t => {
+  const first = await taskViewsFixture(t);
+  // Equal Task/CID text in another actual initial Owner does not transfer its
+  // defaults, physical profile, read recipe or authority to this installation.
+  await assert.rejects(taskViewsFixture(t, {foreign: first.entries}),
+    /InvalidInstalledModelTaskInstallations/);
+  for (const change of [entries => entries.slice(0, 1), entries => [entries[0], entries[0]],
+    entries => [{...entries[0], taskCid: original({foreign: true}).cid}, entries[1]],
+    entries => [{...entries[0], entry: {...entries[0].entry, originalReadRecipe: undefined}}, entries[1]]]) {
+    await assert.rejects(taskViewsFixture(t, {change}), /InvalidInstalledModelTaskInstallations/);
+  }
+});
+
+test('normal configuration Task view checks original currentness after callbacks and map replacement', async t => {
+  const f = await taskViewsFixture(t), base = f.configured.providers.get(providerId);
+  const view = base.selectTaskOriginals(f.selected.tasks[0].taskCid);
+  f.configured.providers.set(providerId, Object.freeze({...base}));
+  assert.throws(() => view.assertNewTrustedRuntime(), {code: 'InferTrustedRuntimeOriginalChanged'});
+  assert.throws(() => base.selectTaskOriginals(f.selected.tasks[0].taskCid),
+    {code: 'InferTrustedRuntimeOriginalChanged'});
+  const changed = await taskViewsFixture(t, {reenter: configured => configured.providers.delete(providerId)});
+  const task = changed.selected.tasks[0], selected = changed.configured.providers.get(providerId)
+    .selectTaskOriginals(task.taskCid);
+  assert.throws(() => selected.validatePrompt(task.taskCid, task.modelSelector, task.promptPayloadWire),
+    {code: 'InferTrustedRuntimeOriginalChanged'});
+  const lost = await taskViewsFixture(t), retained = lost.configured.providers.get(providerId)
+    .selectTaskOriginals(lost.selected.tasks[0].taskCid);
+  lost.loseCurrent();
+  assert.throws(() => retained.assertTrustedRuntime(), {code: 'OriginalLost'});
+});
+
+test('normal configuration software identities use the same initial bounded reader and refuse after closure', async t => {
+  const resource = await boundConstructionActualFixture(t), f = await fixture(t);
+  const artifact = join(f.directory, 'nonsecret-software.fixture');
+  const bytes = 'actual immutable component bytes\n';
+  await writeFile(artifact, bytes);
+  let context;
+  const before = readFileSync(artifact);
+  await installConfiguredModelProviders({moon, project: f.project,
+    runtimeUrl: pathToFileURL(artifact).href, installationServices: resource.services,
+    taskLimits: limits, assertCurrent: f.check, assertHostRuntime: f.check, assertNewHostRuntime: f.check,
+    async register(_, actual) {
+      context = actual;
+      const expected = 'sha256:' + createHash('sha256').update(before).digest('hex');
+      assert.equal(await actual.runtimeIdentity(), expected);
+      assert.equal(await actual.artifactIdentity(pathToFileURL(artifact).href), expected);
+      return [];
+    }});
+  assert.deepEqual(readFileSync(artifact), before);
+  assert.throws(() => context.runtimeIdentity(), {code: 'InstalledModelConfigurationClosed'});
+  assert.throws(() => context.artifactIdentity(pathToFileURL(artifact).href),
+    {code: 'InstalledModelConfigurationClosed'});
 });
 
 async function rawConfigurationFixture(t) {
@@ -368,4 +577,20 @@ test('bound candidate currentness keeps both original project and actual registr
   assert.throws(() => providers.get(providerId).resolveTaskDefaults(undefined, undefined, readerLimits),
     {code: 'OriginalLost'});
   assert.equal(f.counts().invokes, 0);
+});
+
+
+test('normal Task view returns an acquired cursor before a later current refusal', async t => {
+  let cleaned = false;
+  const cursor = {cleanup() {cleaned = true; return true;}};
+  const f = await taskViewsFixture(t, {preflight(configured) {
+    configured.providers.delete(providerId);
+    return cursor;
+  }});
+  const base = f.configured.providers.get(providerId);
+  const view = base.selectTaskOriginals(f.selected.tasks[0].taskCid);
+  assert.strictEqual(view.physicalPreflight({}), cursor);
+  assert.throws(() => view.assertTrustedRuntime(), {code: 'InferTrustedRuntimeOriginalChanged'});
+  assert.equal(cursor.cleanup(), true);
+  assert.equal(cleaned, true);
 });

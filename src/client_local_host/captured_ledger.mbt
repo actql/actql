@@ -103,6 +103,10 @@ fn client_local_filter_expression_slots(
 // This is not a bound on StringAgg builders or other constructors:
 // their complete existing workspace/Fragment/DATA quotes use the SAME selected
 // shared Plan limit. No byte/work amount is reinterpreted as an entry count.
+// Checked scalar Append keeps two output-row slots per admitted row, three
+// aligned name/column slots per field and one active checked-cell slot per
+// field. Two additional slots bound the scalar input/name scan or output-name
+// measurement. The same checked alignment covers both complete input schemas.
 fn client_local_request_operation_entries(
   sequences : Array[@execution.GeneratedSequence],
   rows : Int,
@@ -115,8 +119,32 @@ fn client_local_request_operation_entries(
   let mut selected = fallback
   for sequence in sequences {
     for index in 0..<@execution.generated_sequence_step_count(sequence) {
-      guard @execution.generated_sequence_step_at(sequence, index)
-        is Some(@lower.RowStep(kernel)) &&
+      let step = @execution.generated_sequence_step_at(sequence, index)
+      if step is Some(@lower.AppendStep(kernel)) &&
+        physical_equal(
+          @lower.append_kernel_owner(kernel),
+          @execution.generated_sequence_owner(sequence),
+        ) {
+        let schema = @lower.append_kernel_output_schema(kernel)
+        let mut primitive = @schema.all_fields_required(schema)
+        for column in 0..<@schema.field_count(schema) {
+          match @schema.field_at(schema, column).unwrap().contract.shape {
+            @contract.Number | @contract.Boolean => ()
+            _ => primitive = false
+          }
+        }
+        if !primitive || rows > 1073741822 {
+          continue
+        }
+        let row_entries = 2 * rows + 2
+        let width = @schema.field_count(schema)
+        if width > (2147483647 - row_entries) / 4 {
+          continue
+        }
+        selected = Int::max(selected, row_entries + 4 * width)
+        continue
+      }
+      guard step is Some(@lower.RowStep(kernel)) &&
         physical_equal(
           @lower.kernel_owner(kernel),
           @execution.generated_sequence_owner(sequence),

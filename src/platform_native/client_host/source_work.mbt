@@ -20,6 +20,10 @@ struct NativeClientSourceWork {
 ///|
 pub(all) enum NativeClientSourceWorkIssue {
   Configuration
+  FileWorkSourceBinding
+  FileWorkControlQuote
+  FileWorkEntry(@arena.InstalledArenaNonModelWorkEntryIssue)
+  FileWorkPreparedCapacity(@resources.ImportedChildLedgerIssue)
   OriginalOperation(NativeClientValuesWorkIssue)
   RelationFile(@row_file.NativeRelationFileIssue)
   LocalExecution(@local.LocalValuesExecutionIssue)

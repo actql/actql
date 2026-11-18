@@ -62,13 +62,12 @@ test('required packed dependency boundaries keep cold approval, locked physical 
   for (const suffix of ['*.observation.json', '*.pending.json', '*.source-progress.json']) {
     assert(upload.with.path.split('\n').includes('${{ runner.temp }}/client-readme-packed/dependency-boundary/*/' + suffix));
   }
-  assert(!upload.with.path.includes('original.json'), 'Private signing originals are not public diagnostics');
   const source = await readFile(new URL('./test-packed-readme-workflows.mjs', import.meta.url), 'utf8');
   assert.match(source, /await runPackedDependencyBoundaries\(\{prepared,/u);
   assert.match(source, /report\.complete = failures\.length === 0 && report\.account\.completed &&\s*report\.dependencyBoundaries\.complete &&/u);
 });
 
-test('README artifact retains File STORE partial and final observations without private application state', async t => {
+test('README artifact retains bounded observations and usage receipts without signing originals or application state', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-readme-upload-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const upload = job.steps.find(step => step.name === 'Preserve actual functional outcomes and failures');
@@ -90,6 +89,19 @@ test('README artifact retains File STORE partial and final observations without 
       'state/service-private.pem', 'source-data/input.pending.json',
       'destination-data/output.observation.json'].map(path => `${directory}/${path}`));
   }
+  for (const selected of packedDependencyBoundaryCases) {
+    const directory = `dependency-boundary/${selected.case}`;
+    for (const suffix of ['pending', 'observation', 'source-progress'])
+      expected.push(`${directory}/capture.${suffix}.json`);
+    privateFiles.push(...['original.json', 'approval.json', 'state/ledger.sqlite', 'operator-private.fixture']
+      .map(path => `${directory}/${path}`));
+  }
+  for (const mode of ['reported', 'zero', 'absent']) {
+    const directory = `optional-provider/cases/usage-${mode}/consumer`;
+    expected.push(`${directory}/usage-original.json`, `${directory}/usage-receipt.json`);
+    privateFiles.push(...['original.json', 'operator-private.fixture', 'api-key.fixture', 'provider.key',
+      '.state/private.db', '.state/private.db-wal'].map(path => `${directory}/${path}`));
+  }
   // These are path-selection fixtures, not runtime outcomes or credentials.
   // The real fixture writes only its bounded report to these diagnostic names.
   for (const path of [...expected, ...privateFiles]) {
@@ -99,7 +111,7 @@ test('README artifact retains File STORE partial and final observations without 
   const selected = [];
   for await (const path of glob(patterns, {cwd: root})) selected.push(path);
   assert.deepEqual(selected.sort(), expected.sort(),
-    'Keep both sides of FIRST-close, including a failed approval, without uploading signing originals or Store state');
+    'Keep bounded original usage DATA and both sides of FIRST-close without uploading signing originals, keys or Store state');
 });
 
 test('README call bounds come from authored joined rows and declared per-row Tasks rather than prior observations', () => {

@@ -2,7 +2,8 @@
 // signer. The Host authenticates the caller, verifies each signature against
 // its trusted reviewer keys and admits every answer on its own; the Client
 // never evaluates accounts or holds a key.
-import {validCheckpointPage} from '@actql/client-wire';
+import {createCheckpointAnswerCodec} from './internal/checkpoint-answer-construction.generated.mjs';
+import {validAnswerEvidence, validAnswerResolution} from './internal/checkpoint-answer-contract.generated.mjs';
 const encoder = new TextEncoder();
 
 function wellFormed(value) {
@@ -69,6 +70,12 @@ export async function bytesCid(bytes) {
 export const contentCid = value =>
   bytesCid(encoder.encode(canonicalJson(value)));
 
+// The existing resolve-item wire ceiling also bounds the maximum possible
+// value-node count. Keep the SDK's existing JSON container-depth ceiling.
+const candidateLimits = Object.freeze({maxWireBytes: 16384,
+  maxNodes: 16384, maxDepth: 64});
+const answerCodec = createCheckpointAnswerCodec({canonicalJson, bytesCid});
+
 // Model and Effect reviews use the common self-addressed artifact identity. Legacy
 // review envelopes retain their full-byte digest. Never strip an arbitrary
 // field or accept a noncanonical encoding as a semantic-CID proof.
@@ -133,126 +140,70 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
   if (decision !== 'approved' && decision !== 'rejected') {
     throw new TypeError('InvalidCheckpointDecision');
   }
-  // Own the public data and callback before the first asynchronous digest or
-  // signature. A caller cannot relabel an answer while its signer is waiting.
-  summary = JSON.parse(canonicalJson(summary));
+  // Capture the original callback before the generated codec captures the
+  // bounded Summary and actor, all before its first asynchronous digest.
   const sourceSigner = checkedSigner(signer);
   const signBytes = sourceSigner.sign;
   signer = Object.freeze({keyId: sourceSigner.keyId,
     reviewerId: sourceSigner.reviewerId,
     authorityScopeCid: sourceSigner.authorityScopeCid,
     sign: bytes => signBytes.call(sourceSigner, bytes)});
-  const profile = supportedAnswerProfile(summary);
-  if (!validCheckpointPage({items: [summary]}, 1)) {
-    throw new TypeError(profile.model ? 'UnsupportedCheckpointAnswer' : 'InvalidCheckpointAnswer');
-  }
-  return constructSignedAnswer(summary, decision, signer, decidedAt, profile);
+  return constructSignedAnswer(summary, decision, signer, decidedAt);
 }
 
-// Generic safe Checkpoint metadata also includes profiles this signing helper
-// has never supported. Retain that cheap selection independently of admission.
-function supportedAnswerProfile(summary) {
-  const preparation = ['run_scope', 'read_access'].includes(summary?.kind) &&
-    summary.subject?.kind === 'prepare_attempt';
-  const acquiredRead = summary?.kind === 'read_access' &&
-    summary.phase === 'preflight' && summary.subject?.kind === 'run_unit' &&
-    summary.requiredArtifact?.type === 'read_scope';
-  const effect = summary?.kind === 'effect_set' &&
-    summary.phase === 'commit' && summary.subject?.kind === 'run_unit' &&
-    summary.requiredArtifact?.type === 'effect_set_preview';
-  const model = summary?.kind === 'model_invocation' &&
-    summary.phase === 'preflight' && summary.subject?.kind === 'run_unit' &&
-    summary.requiredArtifact?.type === 'model_invocation_scope' &&
-    /^sha256:[0-9a-f]{64}$/u.test(summary.preparedInvocationCid ?? '') &&
-    Array.isArray(summary.requirements) &&
-    summary.requirements.length === 1 &&
-    summary.requirements[0] === 'invocation_scope_approved';
-  if ((!preparation && !acquiredRead && !effect && !model) ||
-      (!model && summary.preparedInvocationCid !== undefined)) {
-    // Run acceptance and a held Source read before or within its Run
-    // share the invocation-scope approval profile. Other kinds carry their own
-    // evidence profiles (for example an Effect Set attestation).
-    throw new TypeError('UnsupportedCheckpointAnswer');
+// Error presentation keeps existing SDK names; it does not select a profile or
+// admit a claim. The generated constructor owns every candidate decision.
+function candidateError(cause) {
+  let code = 'InvalidCheckpointAnswer';
+  if (cause.code === 'UnsupportedProfile') {
+    code = 'UnsupportedCheckpointAnswer';
+  } else if (cause.field === 'authority_scope_cid') {
+    code = 'EffectApprovalAuthorityScopeRequired';
   }
-  return {effect, acquiredRead, model};
+  return new TypeError(code, {cause});
 }
 
-// Private SDK continuation, not a package entry or an admission/authority
-// factory. Its callers already own the validated immutable Summary and the
-// captured application signer. Constructing their artifact creates no second
-// wire-admission boundary; the external signer's output is still checked below.
+// Private SDK continuation, not a package entry or an authority factory.
+// Candidate construction consumes the same generated Common-owned recipe.
 export async function signedAnswerFromAdmittedSummary(summary, decision, signer, decidedAt) {
-  return constructSignedAnswer(summary, decision, signer, decidedAt,
-    supportedAnswerProfile(summary));
+  return constructSignedAnswer(summary, decision, signer, decidedAt);
 }
 
-async function constructSignedAnswer(summary, decision, signer, decidedAt,
-  {effect, acquiredRead, model}) {
-  let evidence;
-  if (decision === 'approved') {
-    if (effect && !/^sha256:[0-9a-f]{64}$/u.test(
-      signer.authorityScopeCid ?? '')) {
-      throw new TypeError('EffectApprovalAuthorityScopeRequired');
-    }
-    if (effect && (!Array.isArray(summary.requirements) ||
-        !summary.requirements.includes('effect_scope_approved') ||
-        summary.requirements.some(claim => !['effect_scope_approved',
-          'partial_application_accepted'].includes(claim)))) {
-      throw new TypeError('UnsupportedEffectApprovalClaims');
-    }
-    const approval = effect ? {
-      version: 'actql-approval-attestation/0.1',
-      effect_preview_cid: summary.requiredArtifact.cid,
-      review_projection_cid: summary.reviewProjectionCid,
-      authority_scope_cid: signer.authorityScopeCid,
-      claims: [...summary.requirements],
-      approver: signer.reviewerId, approved_at: decidedAt,
-    } : {
-      version: 'actql-run-scope-approval/0.1',
-      // A Model scope is not a PreparedInvocation. The Host independently
-      // checks this original against retained Run admission and review bytes.
-      prepared_invocation_cid: model ? summary.preparedInvocationCid :
-        summary.requiredArtifact.cid,
-      review_projection_cid: summary.reviewProjectionCid,
-      claim: 'invocation_scope_approved',
-      approver: signer.reviewerId,
-      approved_at: decidedAt,
-      expires_at: summary.expiresAt,
-    };
-    approval.proof = {scheme: 'ed25519-v1', key_id: signer.keyId,
-      signature: await signature(signer, await contentCid(approval))};
-    approval[effect ? 'attestation_cid' : 'run_scope_approval_cid'] =
-      await contentCid(approval);
-    evidence = {
-      version: 'actql-checkpoint-approval-evidence/0.1',
-      kind: summary.kind,
-      checkpoint_cid: summary.checkpointCid,
-      review_projection_cid: summary.reviewProjectionCid,
-      compatibility_approval: approval,
-    };
-  }
-  const body = {
-    version: 'actql-checkpoint-resolution/0.1',
-    resolution_id: `resolution-${summary.checkpointId}-${decision}`,
-    checkpoint_id: summary.checkpointId,
-    checkpoint_cid: summary.checkpointCid,
-    ...(effect || acquiredRead || model ? {run_id: summary.subject.runId,
-      run_definition_cid: summary.subject.runDefinitionCid} :
-      {prepare_attempt_id: summary.subject.prepareAttemptId}),
-    decision,
-    actor: signer.reviewerId,
-    decided_at: decidedAt,
-    required_artifact_cid: summary.requiredArtifact.cid,
-    review_projection_cid: summary.reviewProjectionCid,
-    ...(evidence === undefined ? {} :
-      {approval_evidence_cid: await contentCid(evidence)}),
-  };
-  body.proof = {scheme: 'ed25519-v1', key_id: signer.keyId,
-    signature: await signature(signer, await contentCid(body))};
-  body.resolution_cid = await contentCid(body);
-  return Object.freeze({
-    checkpointCid: summary.checkpointCid,
-    resolutionWire: canonicalJson(body),
-    approvalEvidenceWire: evidence === undefined ? '' : canonicalJson(evidence),
-  });
+async function constructSignedAnswer(summary, decision, signer, decidedAt) {
+  let prepared;
+  try {
+    prepared = await answerCodec.prepareAnswerCandidate(summary, decision,
+      {keyId: signer.keyId, reviewerId: signer.reviewerId,
+        ...(signer.authorityScopeCid === undefined ? {} :
+          {authorityScopeCid: signer.authorityScopeCid})}, decidedAt, candidateLimits);
+  } catch (cause) { throw candidateError(cause); }
+  const approvalPreimage = answerCodec.answerCandidateApprovalPreimage(prepared);
+  const approvalSignature = approvalPreimage === undefined ? undefined :
+    await signature(signer, approvalPreimage);
+  const resolution = await answerCodec.prepareAnswerResolution(prepared, approvalSignature);
+  return answerCodec.finishAnswerCandidate(resolution,
+    await signature(signer, answerCodec.answerResolutionPreimage(resolution)));
+}
+
+// Compare an external original answer using its actual returned proof bytes.
+// This constructs DATA for comparison only: no signer, reissue or verification
+// authority is obtained from a proof. The Host keeps independent admission.
+export async function checkpointAnswerMatches(answer, summary, decision) {
+  try {
+    const resolution = JSON.parse(answer.resolutionWire);
+    if (!validAnswerResolution(resolution)) return false;
+    const evidence = decision === 'approved' ? JSON.parse(answer.approvalEvidenceWire) : undefined;
+    if (evidence !== undefined && !validAnswerEvidence(evidence)) return false;
+    const approval = evidence?.compatibility_approval;
+    const actor = {keyId: resolution.proof.key_id, reviewerId: resolution.actor,
+      ...(approval?.authority_scope_cid === undefined ? {} :
+        {authorityScopeCid: approval.authority_scope_cid})};
+    const prepared = await answerCodec.prepareAnswerCandidate(summary, decision,
+      actor, resolution.decided_at, candidateLimits);
+    const stage = await answerCodec.prepareAnswerResolution(prepared, approval?.proof.signature);
+    const expected = await answerCodec.finishAnswerCandidate(stage, resolution.proof.signature);
+    return expected.checkpointCid === answer.checkpointCid &&
+      expected.resolutionWire === answer.resolutionWire &&
+      expected.approvalEvidenceWire === answer.approvalEvidenceWire;
+  } catch { return false; }
 }

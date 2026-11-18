@@ -366,6 +366,11 @@ fn original_bound_text_working_case(mode : Int) -> Unit raise {
       let detail = match issue {
         InsufficientCapacity => "InsufficientCapacity"
         MetadataCapacityUnavailable => "MetadataCapacityUnavailable"
+        RuntimeFragmentWorkLimit(step, work) =>
+          "RuntimeFragmentWorkLimit:" +
+          step.to_string() +
+          ":" +
+          work.to_string()
         Preparation(_) => "Preparation"
         Resource(_) => "Resource"
         Ledger(_) => "Ledger"

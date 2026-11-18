@@ -122,14 +122,17 @@ fn[I] request_program_plan_quote(
     guard owner.compiled_program is Some(program) else {
       return Err(WrongPhase)
     }
+    let graph = @publication_host.prepared_client_graph(program)
+    guard installed_text_bound_views_layout(graph) is Some(text_bound_views) else {
+      return Err(Policy)
+    }
     let (r, e) = match
       original_request_plan_construction_quote(
         capacity,
         input,
         data,
-        tasks=@strategy.graph_task_count(
-          @publication_host.prepared_client_graph(program),
-        ),
+        tasks=@strategy.graph_task_count(graph),
+        text_bound_views~,
       ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
@@ -454,6 +457,21 @@ pub fn request_program_plan_issue_is_sequence_limit(
       true
     _ => false
   }
+}
+
+///|
+/// Fixed original cause DATA within the existing open Problem.code contract.
+/// The reached owner selects it; no caller infers work from RootLimit or Host
+/// errors. Step and selected work remain on the internal typed issue only.
+pub fn request_program_plan_work_refusal_code(
+  issue : ClientRequestProgramPlanIssue,
+) -> String? {
+  guard issue is Installed(RuntimeFragmentWorkLimit(step, selected)) &&
+    step >= 0 &&
+    selected > 0 else {
+    return None
+  }
+  Some("ClientProgramRuntimeFragmentWorkLimit")
 }
 
 ///|
@@ -1440,6 +1458,7 @@ fn[I, P] original_request_plan_construction_quote(
   input : I,
   data : @checked.ParsedCheckDataEstimate,
   tasks? : Int = 0,
+  text_bound_views? : (Int64, Int64) = (0L, 0L),
 ) -> Result[(Int64, Int64), ClientRequestPreparationIssue] {
   guard program_check_data_extent_cost(data) is Some(bytes) &&
     client_local_value_node_proof_retained_bytes() is Some(proof_retained) &&
@@ -1465,6 +1484,14 @@ fn[I, P] original_request_plan_construction_quote(
     @execution.checked_preparation_add_product(
       execution,
       providers.execution_bytes,
+      1L,
+    )
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(retained, text_bound_views.0, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      execution,
+      text_bound_views.1,
       1L,
     )
     is Some(execution) &&

@@ -316,6 +316,24 @@ pub fn client_program_model_physical_evidence_plan(
 /// Optional Host-copy capacity is explicit and separate from Model dispatch.
 /// The existing physical Ledger reserves before serialization; no read or
 /// send authority and no new execution receipt is issued here.
+#export_name("clientProgramOriginalInferUsageProjection")
+pub fn client_program_original_infer_usage_projection(
+  active : @infer_host.Execution,
+  capacity : @model.OriginalModelPublicationCapacity,
+  capture : @model.VerifiedModelCapture,
+  slot : Int,
+  retained_prefix : Int64,
+  execution_prefix : Int64,
+  max_bytes : Int,
+) -> Result[(String, Int64, Int64), @infer_host.Issue] {
+  @infer_host.project_original_infer_capture_usage(
+    active, capacity, capture, slot, retained_prefix, execution_prefix, max_bytes,
+  )
+}
+
+///|
+/// Legacy optional full-copy entrance. The usage-only projection does not
+/// select this separate Ledger or treat its maximum as admitted parent backing.
 #export_name("clientProgramReserveInferEvidenceCopy")
 pub fn client_program_reserve_infer_evidence_copy(
   max_bytes : Int,
@@ -3529,4 +3547,18 @@ pub fn client_program_infer_cleanup_progress(
   active : @infer_host.Execution,
 ) -> Int {
   @infer_host.model_cleanup_progress(active)
+}
+
+///|
+#export_name("clientProgramPrepareOriginalInferUsage")
+pub fn client_program_prepare_original_infer_usage(
+  active : @infer_host.Execution,
+  capacity : @model.OriginalModelPublicationCapacity,
+  capture : @model.VerifiedModelCapture,
+  retained_prefix : Int64,
+  execution_prefix : Int64,
+) -> Result[(Int64, Int64), @infer_host.Issue] {
+  @infer_host.prepare_original_infer_capture_usage(
+    active, capacity, capture, retained_prefix, execution_prefix,
+  )
 }
