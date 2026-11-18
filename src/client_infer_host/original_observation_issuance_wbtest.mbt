@@ -445,6 +445,7 @@ test "original issued binding retains current after same bootstrap publication g
   assert_true(cleanup_observation_issuance(issued).unwrap())
   assert_true(release_original_infer_publication_capacity(capacity).unwrap())
   assert_true(cleanup(active).unwrap())
+  @publication_host.settle_client_model_read_consumer(consumer, true).unwrap()
   assert_true(
     @publication_host.finish_client_model_read_scope(
       scope,
