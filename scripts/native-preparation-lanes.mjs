@@ -11,6 +11,20 @@ import {prepareNativeResidentHttpComponent,prepareNativeResidentSite,prepareNati
   prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import {prepareNativeResidentPortableRuntime} from './native-resident-portable-preparation.mjs';
 
+// Build-action slots, not OS thread or memory quotas. Both portable Moon
+// invocations share the command-side slot; Query uses the component-side two.
+const darwinJobs=Object.freeze({portable:1,query:2});
+
+export function nativePreparationConsumerJobs({target,selection,lanes,destination,queryReceipt,portableReceipt}) {
+  assert(['darwin-arm64','linux-x64'].includes(target));
+  assert(['bundle','resident','all'].includes(selection)&&[1,2].includes(lanes));
+  if(target!=='darwin-arm64'||selection!=='all'||lanes!==2)return {};
+  assert.equal(queryReceipt,join(destination,'query-software.json'));
+  assert.equal(portableReceipt,join(destination,'portable-runtime.json'));
+  return {ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:String(darwinJobs.query),
+    ACTQL_TEST_NATIVE_PORTABLE_PREPARATION_JOBS:String(darwinJobs.portable)};
+}
+
 
 function timed(destination,source,target,phase,prepare) {
   const started=performance.now(),startedEpochMs=Date.now();let succeeded=false;
@@ -60,7 +74,7 @@ export function prepareNativeConstructionLane(lane,configuration,ports={}) {
     if(!queryLane)return {entries};
     const portableReceipt=join(destination,'portable-runtime.json');
     prepare('portable_runtime',()=>(ports.portable??prepareNativeResidentPortableRuntime)(repository,portableReceipt,
-      {env:{...process.env,MOON_HOME:receiverMoonHome}}));
+      {env:{...process.env,MOON_HOME:receiverMoonHome},jobs:darwinJobs.portable}));
     return {entries,portableReceipt};
   }
   const components=join(destination,'components');
@@ -73,7 +87,7 @@ export function prepareNativeConstructionLane(lane,configuration,ports={}) {
     repository,join(destination,'http'),{seconds,tlsArchive:sharedOpenSSL,tlsJobs:httpJobs}));
   if(queryLane) {
     const queryReceipt=prepare('query_software',()=>(ports.query??prepareNativeQuerySoftware)(
-      repository,destination,{moonHome,jobs:1}));
+      repository,destination,{moonHome,jobs:darwinJobs.query}));
     assert.equal(queryReceipt,join(destination,'query-software.json'),'Foreign Query preparation output');
     return {components,httpReceipt,queryReceipt};
   }

@@ -74,7 +74,7 @@ function put(directory, path, contents) {
 }
 
 function run(t, requested, {fail, stalePayload, wrapper, version, additionalProvider = false,
-  refuseInterfaces = false, normalCli = false, missingInterfaceOwner = false, temporaryParent = tmpdir()} = {}) {
+  refuseInterfaces = false, normalCli = false, missingInterfaceOwner = false, jobs, temporaryParent = tmpdir()} = {}) {
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
@@ -229,11 +229,13 @@ const refusal = new Error('Original fixture interface admission refused');
 try {
   if (${JSON.stringify(normalCli || missingInterfaceOwner)}) {
     record({normalCli: true});
-    process.argv = [process.execPath, 'scripts/build-runtime-packages.mjs', ...${JSON.stringify(requested)}];
+    process.argv = [process.execPath, 'scripts/build-runtime-packages.mjs',
+      ...${JSON.stringify(jobs === undefined ? [] : ['--moon-jobs', String(jobs)])}, ...${JSON.stringify(requested)}];
     await import('./scripts/build-runtime-packages.mjs');
   } else {
     const {prepareRuntimePackages} = await import('./scripts/build-runtime-packages.mjs');
     await prepareRuntimePackages(${JSON.stringify(requested)}, {
+      jobs: ${JSON.stringify(jobs)},
       checkInterfaces: async (root, {manifests}) => {
         record({command: 'fixture-interface-admission', root, manifests});
         await Promise.resolve();
@@ -277,10 +279,19 @@ test('explicit fixture interface admission is awaited for the physical root and 
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(calls, expectedCalls(['coordinator-core', 'transfer-core'], directory));
   assert.equal(realpathSync(calls[0].root), directory);
+  const bounded=run(t,['coordinator-core','transfer-core'],{jobs:1});
+  assert.equal(bounded.result.status,0,bounded.result.stderr);
+  const compiler=bounded.calls.find(call=>call.command==='moon');
+  assert.equal(compiler.args[compiler.args.indexOf('-j')+1],'1');
+  assert(compiler.args.includes('src/remote_coordinator_abi'));
+  assert(compiler.args.includes('src/remote_transfer_abi'));
+  assert.equal(bounded.calls[0].command,'fixture-interface-admission');
+  assert.equal(bounded.calls[1].fixtureInterfacesAdmitted,true);
+  assert.equal(bounded.calls.at(-1).done,true);
 });
 
 test('original interface refusal prevents every compiler and builder call', t => {
-  const {result, calls, directory} = run(t, ['local-node', 'run-host-core'], {refuseInterfaces: true});
+  const {result, calls, directory} = run(t, ['local-node', 'run-host-core'], {refuseInterfaces: true,jobs:1});
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Original fixture interface admission refused/u);
   assert.deepEqual(calls, [expectedCalls(['local-node', 'run-host-core'], directory)[0],
@@ -288,13 +299,24 @@ test('original interface refusal prevents every compiler and builder call', t =>
 });
 
 test('normal runtime CLI selects its real interface checker instead of fixture admission', t => {
-  const {result, calls} = run(t, ['transfer-core'], {normalCli: true});
+  for(const jobs of [undefined,1]) {
+  const {result, calls} = run(t, ['transfer-core'], {normalCli: true,jobs});
   assert.notEqual(result.status, 0);
   // The isolated scheduling fixture deliberately has no real Owner checker
   // or approvals. Normal CLI selection must load that missing dependency.
   assert.match(result.stderr, /ERR_MODULE_NOT_FOUND/u);
   assert.match(result.stderr, /scripts\/check-interface-owners\.mjs/u);
   assert.deepEqual(calls, [{normalCli: true}]);
+  }
+  const invalid=run(t,['transfer-core'],{normalCli:true,jobs:2});
+  assert.notEqual(invalid.result.status,0);
+  assert.match(invalid.result.stderr,/requires one selected build slot/u);
+  assert.deepEqual(invalid.calls,[{normalCli:true}]);
+  for(const requested of [['--moon-jobs'],['--moon-jobs','1','--moon-jobs','1','transfer-core']]) {
+    const refused=run(t,requested,{normalCli:true});
+    assert.notEqual(refused.result.status,0);
+    assert.deepEqual(refused.calls,[{normalCli:true}]);
+  }
 });
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {

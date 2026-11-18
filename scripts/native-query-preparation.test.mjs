@@ -54,18 +54,21 @@ test('one prepared Query image serves both original selections with independent 
   assert.equal(calls.slice(1).filter(x=>x.args.includes('--build-only')).length,0);
 });
 
-test('Query parallel preparation binds its one-job command to the original consumer mode',async t=>{
+test('Query parallel preparation binds its bounded command to the original consumer mode',async t=>{
   const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
-  const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env,jobs:1});
+  const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env,jobs:2});
   const args=f.calls()[0].args;
-  assert.equal(args[args.indexOf('-j')+1],'1');assert(args.includes('--build-only'));
+  assert.equal(args[args.indexOf('-j')+1],'2');assert(args.includes('--build-only'));
   const env={...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt,
-    ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'1'};
+    ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'2'};
   const original=preparedNativeQuerySoftware(f.repository,env);original.verify();
   const absent={...env};delete absent.ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS;
   assert.throws(()=>preparedNativeQuerySoftware(f.repository,absent));
   assert.throws(()=>preparedNativeQuerySoftware(f.repository,
-    {...env,ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'2'}));
+    {...env,ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'1'}));
+  for(const mode of ['0','3','false'])assert.throws(()=>preparedNativeQuerySoftware(f.repository,
+    {...env,ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:mode}));
+  for(const jobs of [0,3,'2'])assert.throws(()=>prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env,jobs}));
   const bytes=readFileSync(receipt),body=JSON.parse(bytes);
   body.identity.command.splice(body.identity.command.indexOf('-j'),2);
   writeFileSync(receipt,JSON.stringify(body));
@@ -73,6 +76,10 @@ test('Query parallel preparation binds its one-job command to the original consu
   original.verify(); // The retained original does not adopt a replacement receipt.
   writeFileSync(receipt,bytes);original.verify();
   assert.equal(f.calls().length,1,'Mode checks cannot rebuild or execute a case');
+  const legacy=fixture(t);
+  const legacyReceipt=prepareNativeQuerySoftware(legacy.repository,legacy.destination,{env:legacy.env,jobs:1});
+  preparedNativeQuerySoftware(legacy.repository,{...legacy.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:legacyReceipt,
+    ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'1'}).verify();
 });
 
 test('Query reuse refuses changed source, compiler settings, tool and generated image without rebuilding',async t=>{
