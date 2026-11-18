@@ -22,7 +22,8 @@ test "ordered ARRAY_AGG accepts the documented omitted NULL modifier without cha
 test "ordinary collection calls name their existing explicit order requirement" {
   for
     call in [
-      "STRING_AGG(name, ',')", "ARRAY_AGG(id)", "ARRAY_AGG(id IGNORE NULLS)",
+      "STRING_AGG(name, ',')", "ARRAY_AGG(id)", "ARRAY_AGG(id IGNORE NULLS)", "ARRAY_AGG(id WHERE amount > 0)",
+      "ARRAY_AGG(id IGNORE NULLS WHERE amount > 0)",
     ] {
     assert_true(
       parse_query("SELECT " + call + " AS items FROM records", query_limits())

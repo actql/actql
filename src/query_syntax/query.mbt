@@ -1935,9 +1935,11 @@ fn QueryParser::aggregate(
       .unwrap_or(false) {
       []
     } else {
-      if !self.has("ORDER") {
-        // The original parser owns this requirement. Keep a typed cause,
-        // rather than asking a Host to classify the authored diagnostic text.
+      if !self.has("ORDER") && self.peek().value == Symbol(41) {
+        // Only a completed call can omit this required clause. An unexpected
+        // modifier/tail still reaches the original keyword syntax refusal.
+        // The original parser owns the typed order requirement; a Host never
+        // classifies the authored diagnostic text.
         raise QueryAggregateOrderRequired(token.start)
       }
       self.keyword("ORDER")
