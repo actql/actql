@@ -173,6 +173,51 @@ fn installed_publication_binding(
 }
 
 ///|
+fn cancellation_run_operation_facts(
+  run : NativeClientRunRecord,
+) -> @host.ClientCancellationRunOperationFacts {
+  {
+    request: run.request,
+    definition: run.definition,
+    revision: run.revision,
+    cancellation_requested: run.cancellation_requested,
+    publication_binding: run.publication_binding,
+  }
+}
+
+///|
+fn cancellation_operation_issue(
+  issue : @host.ClientCancellationJournalOperationIssue[
+    NativeClientRunJournalIssue,
+  ],
+) -> NativeClientRunJournalIssue {
+  match issue {
+    @host.Observation(original) => original
+    @host.CustodyLost => CustodyLost
+    @host.Encoding => Encoding
+    @host.CapacityExceeded => CapacityExceeded
+    @host.AuthorizationDenied => AuthorizationDenied
+    @host.ChangedIntent => ChangedIntent
+    @host.Identity(original) => CancellationIdentity(original)
+    @host.Operation(original) => CancellationOperation(original)
+  }
+}
+
+///|
+fn NativeClientRunJournal::cancellation_original(
+  self : NativeClientRunJournal,
+  key : String,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[NativeClientCancellationRecord?, NativeClientRunJournalIssue] {
+  match
+    read_client_journal_value(self.database, "client_cancellations", key, reads) {
+    Ok(row) => read_cancellation(row).map(value => Some(value))
+    Err(@sqlite.NotFound) => Ok(None)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 pub fn NativeClientRunJournal::cancel_operation(
   self : NativeClientRunJournal,
   request : @host.ClientRequestIdentity,
@@ -223,112 +268,46 @@ fn NativeClientRunJournal::cancel_operation_with_operations(
   }
   self.transaction_with_reads(
     () => {
-      let (issued, witness_revision) = match
-        cancellation_custody(self.database, self.max_records, reads~) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      let run = match self.retained(request, reads~) {
-        Ok(Some(value)) => value
-        Ok(None) => return Err(CustodyLost)
-        Err(issue) => return Err(issue)
-      }
-      let identity = match
-        @host.prepare_client_cancellation_identity(
+      let selected = match
+        @host.prepare_client_cancellation_journal_append(
+          request,
           namespace_id,
-          @host.client_request_authority_scope_cid(request),
           cancel_id,
-          run.definition,
           expected_revision,
+          self.max_records,
+          publication.binding,
+          () => cancellation_custody(self.database, self.max_records, reads~),
+          () => self.retained(request, reads~),
+          cancellation_run_operation_facts,
+          key => self.cancellation_original(key, reads),
+          publication.observe,
+          current,
         ) {
         Ok(value) => value
-        Err(issue) => return Err(CancellationIdentity(issue))
+        Err(issue) => return Err(cancellation_operation_issue(issue))
       }
-      guard cancellation_index(
-          namespace_id,
-          @host.client_request_authority_scope_cid(request),
-          cancel_id,
-        )
-        is Some(key) else {
-        return Err(Encoding)
-      }
-      let original = match
-        read_client_journal_value(
-          self.database,
-          "client_cancellations",
-          key,
-          reads,
-        ) {
-        Ok(row) =>
-          match read_cancellation(row) {
-            Ok(value) => Some(value)
-            Err(issue) => return Err(issue)
-          }
-        Err(@sqlite.NotFound) => None
-        Err(issue) => return Err(Physical(issue))
-      }
-      if original is None && run.publication_binding != publication.binding {
-        return Err(ChangedIntent)
-      }
-      // Only a new operation observes the original publication under the same
-      // physical journal fence held by the installed Local publication service.
-      // The closed observer reads only the scoped durable Store commit.
-      let terminal = if original is Some(_) {
-        false
-      } else {
-        match (publication.observe)(run) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-      }
-      if run.revision > 2147483647L {
-        return Err(CapacityExceeded)
-      }
-      let action = match
-        @host.prepare_client_cancellation_operation(
-          identity,
-          original.map(value => value.identity),
-          run.definition,
-          run.revision.to_int(),
-          true,
-          terminal,
-          run.cancellation_requested,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(CancellationOperation(issue))
-      }
-      if !current() {
-        return Err(AuthorizationDenied)
-      }
-      match action {
-        @host.ReplayOriginalCancellation => Ok(original.unwrap())
-        @host.RecordCancellation(action) => {
-          if issued >= self.max_records {
-            return Err(CapacityExceeded)
-          }
-          let observed = if action == @host.AcceptCancellation {
-            match
+      match selected {
+        @host.RetainedCancellation(original) => Ok(original)
+        @host.AppendCancellation(plan) => {
+          let run = @host.client_cancellation_append_original(plan)
+          let record = @host.client_cancellation_append_record(plan)
+          if record.action == @host.AcceptCancellation {
+            let saved = match
               self.save_with_operations(
                 { ..run, cancellation_requested: true, },
                 operations~,
               ) {
-              Ok(value) => value.revision
+              Ok(value) => value
               Err(issue) => return Err(issue)
             }
-          } else {
-            run.revision
+            // The candidate predicts no physical ACK. Check the revision
+            // returned by the original actual CAS before storing its outcome.
+            if saved.revision != record.observed_revision {
+              return Err(CustodyLost)
+            }
           }
-          let record : NativeClientCancellationRecord = {
-            namespace_id,
-            cancel_id,
-            expected_revision,
-            request,
-            definition: run.definition,
-            identity,
-            action,
-            observed_revision: observed,
-          }
-          guard cancellation_body(record) is Some(body) else {
+          guard @host.client_cancellation_append_rows(plan)
+            is Some((key, body, original_body, witness_revision, issued_body)) else {
             return Err(Encoding)
           }
           match
@@ -342,15 +321,12 @@ fn NativeClientRunJournal::cancel_operation_with_operations(
             Ok(_) => ()
             Err(issue) => return Err(Physical(issue))
           }
-          // Independently witness exact original result bytes, not only issuance
-          // count or a self-consistent intent. Both rows and the request fence
-          // commit together; neither lookup nor replay rewrites this witness.
           match
             insert_client_journal_value(
               self.database,
               "client_cancel_originals",
               key,
-              @utf8.encode(@journal.effect_response_body_digest(body)),
+              original_body,
               operations,
             ) {
             Ok(_) => ()
@@ -362,7 +338,7 @@ fn NativeClientRunJournal::cancel_operation_with_operations(
               "client_cancel_custody",
               "issued",
               witness_revision,
-              @utf8.encode((issued + 1).to_string()),
+              issued_body,
               operations,
             ) {
             Ok(_) => Ok(record)
@@ -410,67 +386,24 @@ fn NativeClientRunJournal::lookup_cancellation_with_reads(
   }
   self.transaction_with_reads(
     () => {
-      match cancellation_custody(self.database, self.max_records, reads~) {
-        Ok(_) => ()
-        Err(issue) => return Err(issue)
-      }
-      let run = match self.retained(request, reads~) {
-        Ok(Some(value)) => value
-        Ok(None) => return Err(CustodyLost)
-        Err(issue) => return Err(issue)
-      }
-      let identity = match
-        @host.prepare_client_cancellation_identity(
-          namespace_id,
-          @host.client_request_authority_scope_cid(request),
-          cancel_id,
-          run.definition,
-          expected_revision,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(CancellationIdentity(issue))
-      }
-      guard cancellation_index(
-          namespace_id,
-          @host.client_request_authority_scope_cid(request),
-          cancel_id,
-        )
-        is Some(key) else {
-        return Err(Encoding)
-      }
-      let original = match
-        read_client_journal_value(
-          self.database,
-          "client_cancellations",
-          key,
-          reads,
-        ) {
-        Ok(row) =>
-          match read_cancellation(row) {
-            Ok(value) => Some(value)
-            Err(issue) => return Err(issue)
-          }
-        Err(@sqlite.NotFound) => None
-        Err(issue) => return Err(Physical(issue))
-      }
-      if !current() {
-        return Err(AuthorizationDenied)
-      }
-      match original {
-        None => Ok(UnresolvedCancellationHistory)
-        Some(value) =>
-          match
-            @host.client_cancellation_identity_relation(
-              identity,
-              value.identity,
-            ) {
-            @host.SameOperation => Ok(OriginalCancellation(value))
-            @host.ChangedIntent =>
-              Err(CancellationOperation(@host.ChangedIntent))
-            @host.DifferentOperation =>
-              Err(CancellationOperation(@host.DifferentOperation))
-          }
-      }
+      @host.lookup_client_cancellation_journal_original(
+        request,
+        namespace_id,
+        cancel_id,
+        expected_revision,
+        () => cancellation_custody(self.database, self.max_records, reads~),
+        () => self.retained(request, reads~),
+        cancellation_run_operation_facts,
+        key => self.cancellation_original(key, reads),
+        current,
+      )
+      .map(value => {
+        match value {
+          @host.UnresolvedCancellationHistory => UnresolvedCancellationHistory
+          @host.OriginalCancellation(original) => OriginalCancellation(original)
+        }
+      })
+      .map_err(cancellation_operation_issue)
     },
     reads~,
   )
