@@ -8,10 +8,14 @@ const seed = [{account_id: '001Acme', active_users: 4, trend: 'down'},
   {account_id: '001Globex', active_users: 12, trend: 'flat'}];
 export const nativeFileSourceQueries = Object.freeze([
   {name: 'projection', sql: 'SELECT trend FROM snowflake.usage_30d', rows: [{trend: 'down'}, {trend: 'flat'}]},
-  {name: 'numeric-projection', sql: 'SELECT active_users FROM snowflake.usage_30d', rows: [{active_users: 4}, {active_users: 12}]},
+  // The template declares active_users as int64. Its schema-directed JSONL
+  // wire uses canonical decimal strings, independently of the seed JSON.
+  {name: 'numeric-projection', sql: 'SELECT active_users FROM snowflake.usage_30d', rows: [{active_users: '4'}, {active_users: '12'}]},
   {name: 'key-projection', sql: 'SELECT account_id, trend FROM snowflake.usage_30d', rows: [
     {account_id: '001Acme', trend: 'down'}, {account_id: '001Globex', trend: 'flat'}]},
-  {name: 'star', sql: 'SELECT * FROM snowflake.usage_30d', rows: seed},
+  {name: 'star', sql: 'SELECT * FROM snowflake.usage_30d', rows: [
+    {account_id: '001Acme', active_users: '4', trend: 'down'},
+    {account_id: '001Globex', active_users: '12', trend: 'flat'}]},
   {name: 'projection-literal', sql: 'SELECT trend, 1 AS n FROM snowflake.usage_30d', rows: [{trend: 'down', n: 1}, {trend: 'flat', n: 1}]},
   {name: 'count', sql: 'SELECT COUNT(*) AS n FROM snowflake.usage_30d', rows: [{n: 2}]},
   {name: 'sum', sql: "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total FROM snowflake.usage_30d", rows: [{total: 16}]},

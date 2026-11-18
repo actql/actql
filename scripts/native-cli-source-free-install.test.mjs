@@ -899,6 +899,24 @@ test('original File query harness refuses missing duplicate extra or changed typ
   }
 });
 
+test('original File query harness preserves int64 wire strings and distinct Number literals',async t=>{
+  for(const [name,rows] of [
+    ['numeric-projection',[{active_users:'4'},{active_users:'12'}]],
+    ['star',[
+      {account_id:'001Acme',active_users:'4',trend:'down'},
+      {account_id:'001Globex',active_users:'12',trend:'flat'}]],
+    ['projection-literal',[{trend:'down',n:1},{trend:'flat',n:1}]],
+  ]) {
+    const actor=await fileQueryHarness(t,{name,rows});
+    assert.deepEqual((await actor.observe()).rows,rows);
+    assert.deepEqual(actor.calls.map(value=>value.args[0]),['init','check','sql']);
+  }
+  const rounded=await fileQueryHarness(t,{name:'numeric-projection',
+    rows:[{active_users:4},{active_users:12}]});
+  await assert.rejects(rounded.observe(),{code:'ERR_ASSERTION'});
+  assert.deepEqual(rounded.calls.map(value=>value.args[0]),['init','check','sql']);
+});
+
 test('original File query harness keeps refusal Unknown and unrunnable checks failed without retry',async t=>{
   for(const stop of ['init','check','sql']) {
     const actor=await fileQueryHarness(t,{stop});
