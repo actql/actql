@@ -9,7 +9,7 @@ import {existsSync, realpathSync} from 'node:fs';
 import {build} from 'esbuild';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
-import {projectOwnerSources} from './interface-owner-source-projection.mjs';
+import {ownerSourcePath, projectOwnerSources} from './interface-owner-source-projection.mjs';
 import {interfaceOwnerCoverage} from './interface-owner-coverage.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 import {checkedOriginalInterface} from './check-interface-owners.mjs';
@@ -37,15 +37,22 @@ export function installedInterfaceCorrespondence({repository, directory, source,
     assert(binding, `Unbound installed authored interface: ${module.module}`);
     return binding.source;
   });
-  const original = selected.length ? projectOwnerSources(repository,
+  const commands = selected.filter(path => !/\.[^/]+$/u.test(path));
+  // The same checker already retains the original parsed model. Keep the
+  // existing source eligibility and compare its hash with actual Git bytes
+  // below before using it for installed correspondence.
+  const original = checkedSource ? selected.filter(path => ownerSourcePath(path, commands))
+    .map(path => checkedOriginalInterface(repository, path, checkedSource)) : selected.length ? projectOwnerSources(repository,
     {source, base: source, paths: selected, all: true,
-      commands: selected.filter(path => !/\.[^/]+$/u.test(path))}).modules : [];
+      commands}).modules : [];
   const bySource = new Map(original.map(module => [module.module, module]));
   const actual = installed.modules.map(module => {
     const binding = byMember.get(module.module), input = bySource.get(binding.source);
     assert(input, `Missing original authored interface: ${binding.source}`);
     const bytes = execFileSync('git', ['show', `${source}:${binding.source}`],
       {cwd: repository, maxBuffer: 16 * 1024 * 1024});
+    if (checkedSource) assert.equal(input.sha256, digest(bytes),
+      `Changed checked original source interface: ${binding.source}`);
     const expected = binding.transform === 'local-node-public-imports'
       ? Buffer.from(rewriteLocalNodePackageImports(bytes.toString('utf8'), binding.source)) : bytes;
     assert.equal(module.sha256, digest(expected), `Changed installed interface bytes: ${module.module}`);
@@ -53,13 +60,6 @@ export function installedInterfaceCorrespondence({repository, directory, source,
     assert.deepEqual(module.operations, input.operations, `Changed installed interface operations: ${module.module}`);
     assert.deepEqual(module.compilerFields ?? [], input.compilerFields ?? [],
       `Changed installed compiler representation: ${module.module}`);
-    if (checkedSource) {
-      const checked = checkedOriginalInterface(repository, binding.source, checkedSource);
-      for (const field of ['sha256', 'exports', 'operations', 'compilerFields']) {
-        assert.deepEqual(checked[field] ?? [], input[field] ?? [], `Changed checked source interface: ${binding.source}:${field}`);
-      }
-      return checked;
-    }
     return input;
   });
   const coverage = interfaceOwnerCoverage({root: repository, modules: actual, owners, generated});

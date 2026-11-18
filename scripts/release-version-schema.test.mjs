@@ -34,9 +34,18 @@ test('existing public lint selects the release files without new publication aut
   assert.equal(job.if, "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}");
   const selected = job.steps.filter(step => step.name === 'Test explicit release policy and publication refusal');
   assert.equal(selected.length, 1);
-  assert.deepEqual(selected[0], {name: 'Test explicit release policy and publication refusal',
-    if: "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}",
-    run: 'node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-review.test.mjs scripts/release-promotion-review.test.mjs scripts/release-registry.test.mjs scripts/release-stage.test.mjs scripts/release-native-registry.test.mjs scripts/release-native-publish.test.mjs scripts/release-native-latest.test.mjs scripts/release-public-install.test.mjs scripts/release-python-install.test.mjs scripts/release-python-publish.test.mjs scripts/release-python-cold-verifier.test.mjs scripts/release-native-install.test.mjs scripts/release-lanes.test.mjs scripts/release-fixed-source.test.mjs scripts/native-standalone-release.test.mjs scripts/native-cli-version.test.mjs'});
+  const [step] = selected;
+  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assert.equal(step['continue-on-error'], undefined);
+  const args = step.run.trim().split(/\s+/u);
+  assert.deepEqual(args.slice(0, 2), ['node', '--test']);
+  for (const file of ['release-policy', 'release-version-schema', 'release-review',
+    'release-registry', 'release-native-publish', 'release-python-publish', 'release-public-install']) {
+    assert.equal(args.filter(value => value === `scripts/${file}.test.mjs`).length, 1,
+      `normal lint must execute the ${file} control once`);
+  }
+  assert.equal(job.environment, undefined);
+  assert.equal(job.permissions?.['id-token'], undefined);
 });
 
 test('dotted channel schema and shared owner match independent literal channel oracles', () => {

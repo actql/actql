@@ -113,6 +113,73 @@ test('foreign compiled Source is refused before parsing or self-reported verific
   assert.throws(() => installedInterfaceCorrespondence(options), /Foreign installed interface artifact source/u);
 });
 
+async function checkedFixture(t) {
+  const f = fixture(t);
+  f.put(f.options.repository, 'package.json', JSON.stringify({name: '@example/original', exports: './outside/owner.mjs'}));
+  f.put(f.options.repository, 'interface-boundaries.json', JSON.stringify([f.declaration]));
+  f.commit();
+  f.options.checkedSource = await checkInterfaceOwners(f.options.repository);
+  return f;
+}
+
+test('same original checked source retains its Git byte read without rebuilding the source projection', async t => {
+  const {options} = await checkedFixture(t);
+  const trace = join(dirname(options.repository), 'git-trace.json');
+  const previous = process.env.GIT_TRACE2_EVENT;
+  let result;
+  try {
+    process.env.GIT_TRACE2_EVENT = trace;
+    result = installedInterfaceCorrespondence(options);
+  } finally {
+    if (previous === undefined) delete process.env.GIT_TRACE2_EVENT;
+    else process.env.GIT_TRACE2_EVENT = previous;
+  }
+  assert.equal(result.coverage.covered, 1);
+  const commands = readFileSync(trace, 'utf8').trim().split('\n').map(line => JSON.parse(line))
+    .filter(event => event.event === 'start').map(event => event.argv);
+  assert.deepEqual({
+    sourceProjections: commands.filter(args => args.includes('ls-tree')).length,
+    originalByteReads: commands.filter(args => args.includes('show') &&
+      args.includes(`${options.source}:${options.bindings[0].source}`)).length,
+  }, {sourceProjections: 0, originalByteReads: 1});
+});
+
+test('original checked correspondence refuses copied foreign and changed originals', async t => {
+  const {options, put, commit} = await checkedFixture(t);
+  const foreign = await checkedFixture(t);
+  for (const checkedSource of [structuredClone(options.checkedSource), foreign.options.checkedSource]) {
+    assert.throws(() => installedInterfaceCorrespondence({...options, checkedSource}), /Untrusted checked interface source/u);
+  }
+  const changed = 'export function read(original) {return !original;}';
+  put(options.repository, 'outside/owner.mjs', changed);
+  put(options.directory, 'entry.mjs', changed);
+  commit();
+  assert.throws(() => installedInterfaceCorrespondence(options), /Changed checked (?:original )?source interface/u);
+});
+
+test('original checked correspondence still reads staged bytes and current Owner references', async t => {
+  const {options, put} = await checkedFixture(t);
+  const original = readFileSync(join(options.directory, 'entry.mjs'), 'utf8');
+  // Returned report DATA cannot replace the checker's private original model.
+  options.checkedSource.modules[0].sha256 = 'f'.repeat(64);
+  assert.equal(installedInterfaceCorrespondence(options).coverage.covered, 1);
+  put(options.directory, 'entry.mjs', 'export function read(original) {return !original;}');
+  assert.throws(() => installedInterfaceCorrespondence(options), /Changed installed interface bytes/u);
+  put(options.directory, 'entry.mjs', original);
+  put(options.repository, 'owner.md', 'Missing original semantic reference');
+  assert.throws(() => installedInterfaceCorrespondence(options), /Missing interface reference/u);
+});
+
+test('a bound module outside the original checked closure cannot acquire a checked model', async t => {
+  const {options, put, commit} = await checkedFixture(t);
+  const source = 'export const later = 1;';
+  put(options.repository, 'outside/later.mjs', source);
+  put(options.directory, 'later.mjs', source);
+  options.bindings.push({member: 'later.mjs', source: 'outside/later.mjs'});
+  commit();
+  assert.throws(() => installedInterfaceCorrespondence(options), /Missing checked original interface: outside\/later.mjs/u);
+});
+
 
 test('installed lazy imports retain original checked target discovery rather than suppressing unresolved syntax', async t => {
   const source = "const target = new URL('./runtime-owner.mjs', import.meta.url); export const load = () => import(target.href);";
