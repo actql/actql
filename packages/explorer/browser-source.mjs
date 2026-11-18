@@ -1,5 +1,5 @@
 import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';
-import {validCancellationLookup} from '@actql/client-wire';
+import {validCancellationLookup, validRunRef, validWireRunExplanationViewShape} from '@actql/client-wire';
 import {captureCancellation, validCancellationObservation} from '@actql/explorer-ui/cancellation';
 import {createReadEpoch} from '@actql/explorer-ui/read-model';
 
@@ -102,6 +102,16 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
     inspect(ref) {return read('run', {ref});},
     observe(ref) {return read('observation', {ref});},
     runPlan(ref) {return read('run-plan', {ref});},
+    async explain(ref) {
+      const original = Object.freeze({...ref});
+      if (!validRunRef(original)) refused('ExplorerInvalidReply');
+      const value = await read('run-explanation', {ref: original});
+      if (!validWireRunExplanationViewShape(value) ||
+          value.run_ref.namespaceId !== original.namespaceId ||
+          value.run_ref.authorityScopeCid !== original.authorityScopeCid ||
+          value.run_ref.runDefinitionCid !== original.runDefinitionCid) refused('ExplorerInvalidReply');
+      return value;
+    },
     describe(ref, name) {return read('result', {ref, name});},
     async cancel(original) {
       const saved=captureCancellation(original.cancelRef,original.attemptRef);

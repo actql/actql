@@ -1,4 +1,5 @@
 import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape, validWireExplanationFactsShape} from '@actql/client-wire';
+import {validWireRunExplanationViewShape, withinResultDescriptionLimits} from '@actql/client-wire';
 
 import {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
 export {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
@@ -407,6 +408,26 @@ export async function readExistingRunPlan(client, ref, ticket) {
   const {original, view} = await originalRunPlan(client, ref, ticket);
   ticket.assertCurrent();
   return freeze({runRef: original, plan: planReadModel(view.plan_view)});
+}
+
+// Only the existing public Execution read may supply these retained originals.
+// Missing legacy Facts remain its authorized NotProjected result; neither Plan
+// nor static compilation is a fallback for this separate disclosure operation.
+export async function readExistingRunExplanation(client, ref, ticket) {
+  const original = Object.freeze({...ref});
+  if (!validRunRef(original)) refuse('ExplorerInvalidExplanation');
+  const run = await currentRead(ticket, () => client.attach(original));
+  const explain = run.explain;
+  ticket.assertCurrent();
+  if (typeof explain !== 'function') refuse('ExplorerCapabilityUnavailable');
+  const view = await currentRead(ticket, () => Reflect.apply(explain, run, [projectionLimits]));
+  if (!withinResultDescriptionLimits(view, projectionLimits) ||
+      !validWireRunExplanationViewShape(view) ||
+      view.run_ref.namespaceId !== original.namespaceId ||
+      view.run_ref.authorityScopeCid !== original.authorityScopeCid ||
+      view.run_ref.runDefinitionCid !== original.runDefinitionCid) refuse('ExplorerInvalidExplanation');
+  ticket.assertCurrent();
+  return freeze(view);
 }
 
 // Capture presentation options before the first asynchronous read, then use

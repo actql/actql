@@ -2670,7 +2670,7 @@
     {
       "module": "packages/explorer-ui/read-model.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8be46ab2a23e83db35ca39b69b543d6ca7cc2f8bf09d8c1d21f8b1d040013a0e",
+      "sha256": "a3558e4df36d067bb1e33667a2698bfa8ab4386207a11acdc9b531e0ce18963e",
       "exports": [
         "ExplorerReadError",
         "createReadEpoch",
@@ -2680,6 +2680,7 @@
         "planReadModel",
         "planStoryModel",
         "readExistingRun",
+        "readExistingRunExplanation",
         "readExistingRunPlan",
         "readExistingRunStory",
         "readStaticPlan"
@@ -2825,6 +2826,25 @@
         },
         {
           "name": "readExistingRun/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readExistingRunExplanation",
+          "parameters": [
+            "client",
+            "ref",
+            "ticket"
+          ],
+          "async": true
+        },
+        {
+          "name": "readExistingRunExplanation/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readExistingRunExplanation/view/view",
           "parameters": [],
           "async": false
         },
@@ -3076,6 +3096,82 @@
               {
                 "path": "packages/explorer-ui/read-model.test.mjs",
                 "anchor": "structural construction admits escaped expansion before the native quote call"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "readExistingRunExplanation",
+            "readExistingRunExplanation/run/run",
+            "readExistingRunExplanation/view/view"
+          ],
+          "exports": [
+            "readExistingRunExplanation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/gateway.test.mjs",
+                "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
           }
@@ -4329,7 +4425,7 @@
     {
       "module": "packages/explorer/browser-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2d078f8fe0969191582f8b8d1eee6509a311fca569afec90467ddec4e4a68157",
+      "sha256": "6ffbeaecc6ceae3f75451d899e06d9fe6b28693d426c8da2267bc0b924d36ed0",
       "exports": [
         "createExplorerBrowserSource"
       ],
@@ -4369,6 +4465,13 @@
             "name"
           ],
           "async": false
+        },
+        {
+          "name": "createExplorerBrowserSource/init:explain/init:explain",
+          "parameters": [
+            "ref"
+          ],
+          "async": true
         },
         {
           "name": "createExplorerBrowserSource/init:inspect/init:inspect",
@@ -4553,6 +4656,78 @@
               {
                 "path": "packages/explorer/cancellation.test.mjs",
                 "anchor": "lost or malformed cancellation replies"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createExplorerBrowserSource/init:explain/init:explain"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/gateway.test.mjs",
+                "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
           }
@@ -5363,7 +5538,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ce8cbc285d7ed3d66ef3ef9447d2ae25bd97192dc45e57e73f47e16f32e6ad50",
+      "sha256": "ce735bf00c7ec61b9637acf539a1df182029fceb33346404d84994341202e1e1",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",

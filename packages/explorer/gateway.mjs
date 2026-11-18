@@ -4,7 +4,7 @@ import {Hono} from 'hono';
 import {serve} from '@hono/node-server';
 import {validRunRef} from '@actql/client-wire';
 import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
-  readStaticPlan} from '@actql/explorer-ui/read-model';
+  readExistingRunExplanation, readStaticPlan} from '@actql/explorer-ui/read-model';
 import {copyExplorerLaunchInput} from './launch-input.mjs';
 import {requestExistingCancellation, lookupExistingCancellation} from './cancellation.mjs';
 import {readRunObservation} from '@actql/explorer-ui/run-observation';
@@ -91,7 +91,7 @@ function safeReadError(error) {
     'ExplorerSessionExpired', 'ExplorerBootstrapRefused', 'ExplorerSessionRefused',
     'ExplorerBusy', 'ExplorerCapabilityUnavailable', 'ExplorerReplyLimit',
     'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerMapLimit',
-    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan', 'ExplorerInvalidCancellation','ExplorerInvalidCheckpointReview'].includes(error?.code)) {
+    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan', 'ExplorerInvalidExplanation', 'ExplorerInvalidCancellation','ExplorerInvalidCheckpointReview'].includes(error?.code)) {
     return {code: error.code, status: error.status ?? 409};
   }
   // Never serialize Host messages, bodies, URLs, stack traces or credentials.
@@ -241,6 +241,10 @@ export function createExplorerGateway({client, origin, assets = new Map(),
         case 'run-plan':
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readExistingRunPlan(client, body.ref, ticket);
+          break;
+        case 'run-explanation':
+          if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
+          data = await readExistingRunExplanation(client, body.ref, ticket);
           break;
         case 'checkpoints':
           if(!exact(body,[]))fail('ExplorerInvalidRequest');

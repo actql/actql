@@ -1,5 +1,5 @@
 import type {Client, RunReference} from '@actql/sdk';
-import {createReadEpoch, describeExistingResult, explanationStoryModel, planStoryModel, readExistingRun, readExistingRunPlan, readExistingRunStory, readStaticPlan} from './read-model.js';
+import {createReadEpoch, describeExistingResult, explanationStoryModel, planStoryModel, readExistingRun, readExistingRunPlan, readExistingRunExplanation, readExistingRunStory, readStaticPlan} from './read-model.js';
 import type {WirePlanView, WireExplanationFacts, WireRunExplanationView} from '@actql/client-wire';
 declare const structuralFacts: WireExplanationFacts;
 declare const savedExplanation: WireRunExplanationView;
@@ -44,6 +44,11 @@ const run = await readExistingRun(client, ref, ticket);
 const nonAtomic: 'non_atomic' = run.consistency;
 const original = await readExistingRunPlan(client, ref, ticket);
 const originalRef: RunReference = original.runRef;
+const retainedExplanation: WireRunExplanationView = await readExistingRunExplanation(client, ref, ticket);
+const explanationRef: RunReference = retainedExplanation.run_ref;
+// @ts-expect-error Reading absent original Facts does not expose a repair operation.
+await readExistingRunExplanation(client, ref, ticket, {recompile: true});
+void explanationRef;
 const savedStory = await readExistingRunStory(client, ref, {locale: 'ja'}, ticket);
 const sameStoryRef: RunReference = savedStory.runRef;
 const staticOriginal: 'static' = original.plan.observation;

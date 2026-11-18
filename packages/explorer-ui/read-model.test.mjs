@@ -6,7 +6,9 @@ import {connectInProcess} from '../sdk/host-port.mjs';
 import {startExplorerGateway} from '../explorer/gateway.mjs';
 import {createExplorerBrowserSource} from '../explorer/browser-source.mjs';
 import {createReadEpoch, describeExistingResult, explanationStoryModel, planReadModel, planStoryModel,
-  readExistingRun, readExistingRunPlan, readExistingRunStory, readStaticPlan} from './read-model.mjs';
+  readExistingRun, readExistingRunPlan, readExistingRunExplanation, readExistingRunStory, readStaticPlan} from './read-model.mjs';
+import {runExplanation, unprojectedRunExplanation, explanationLeakageVectors}
+  from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 
 // Independent semantic fixture, not compiler output or public acceptance.
 const cid = unit => `sha256:${unit.repeat(64)}`;
@@ -308,6 +310,53 @@ test('saved Run Plan uses only exact original attach and Run.plan with frozen re
   assert.equal(observed.plan.nodes[0].id, view.logical_map.steps[0].step_id);
   assert.deepEqual(calls, [['attach', expected], ['run-plan', {
     maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+});
+
+test('original explanation read uses only same Execution and preserves projected or absent retained Facts', async () => {
+  for (const value of [runExplanation, unprojectedRunExplanation]) {
+    const view = structuredClone(value), original = {...view.run_ref}, expected = {...original}, calls = [];
+    const execution = {explain(options) {
+      assert.equal(this, execution); calls.push(['explain', options]); return view;
+    }, plan() {assert.fail('no replacement Plan');}, inspect() {assert.fail('no permission inference');}};
+    const client = {attach(selected) {
+      assert(Object.isFrozen(selected)); calls.push(['attach', selected]);
+      original.namespaceId = 'changed-after-capture'; return execution;
+    }, start() {assert.fail('no Run');}, plan() {assert.fail('no recompile');}};
+    const result = await readExistingRunExplanation(client, original, ticket());
+    assert.deepEqual(result, value); assert(Object.isFrozen(result.explanation));
+    assert.deepEqual(calls, [['attach', expected], ['explain', {
+      maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+  }
+});
+
+test('original explanation read refuses stale scope and propagates original Owner refusal without repair', async () => {
+  for (const boundary of ['attach', 'explain']) {
+    const epoch = createReadEpoch(); let explained = 0;
+    const client = {async attach() {
+      if (boundary === 'attach') epoch.invalidate();
+      return {async explain() {explained++; epoch.invalidate(); return structuredClone(runExplanation);}};
+    }};
+    await assert.rejects(readExistingRunExplanation(client, runExplanation.run_ref, epoch.capture()),
+      {code: 'ExplorerStaleScope'});
+    assert.equal(explained, boundary === 'attach' ? 0 : 1);
+  }
+  const primary = Object.assign(new Error('original read refusal'), {code: 'RunObservationAccessDenied'});
+  await assert.rejects(readExistingRunExplanation({attach: () => ({explain() {throw primary;},
+    plan() {assert.fail('no fallback');}})}, runExplanation.run_ref, ticket()), cause => cause === primary);
+  await assert.rejects(readExistingRunExplanation({attach: () => ({})}, runExplanation.run_ref, ticket()),
+    {code: 'ExplorerCapabilityUnavailable'});
+});
+
+test('original explanation read rejects foreign bindings, disclosure additions and oversized DTOs', async () => {
+  const foreign = structuredClone(runExplanation); foreign.run_ref.namespaceId = 'foreign';
+  const oversized = structuredClone(runExplanation);
+  oversized.explanation.facts.steps[0].meaning.predicate.nodes[1].name = 'x'.repeat(65536);
+  const leaked = explanationLeakageVectors.map(({value}) => ({...structuredClone(runExplanation),
+    explanation: {state: 'projected', facts: value}}));
+  for (const view of [foreign, oversized, ...leaked]) {
+    await assert.rejects(readExistingRunExplanation({attach: () => ({explain: () => view})},
+      runExplanation.run_ref, ticket()), {code: 'ExplorerInvalidExplanation'});
+  }
 });
 
 test('saved Story uses the same original Run without recompilation and captures locale once', async () => {

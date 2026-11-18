@@ -96,6 +96,15 @@ invalidates the Gateway on a scope change; SDK failures and old-scope replies
 cannot establish facts for the new scope. In-flight expiry is checked again
 before disclosure. No new authorization Boolean replaces an existing Owner.
 
+The browser source's `explain(ref)` reads retained structural Facts through
+`/api/read/run-explanation` and the same public `Execution.explain` operation.
+It keeps the complete original Run reference and fixed read bounds. The Host
+still checks current Run/Plan read and egress; matching identities do not grant
+access. Authorized missing legacy Facts remain typed `not_projected`, while
+unsupported reads, authorization failures and stale sessions remain failures.
+Neither Plan compilation nor Source execution repairs missing Facts. This read
+adds no session capability, Sample retention or Run control operation.
+
 Requests are bounded to 65,536 bytes, depth 64 and 10,000 JSON nodes. Projection
 bounds retain tighter caller limits through the shared read model. Replies are
 bounded to 262,144 bytes, with at most four outstanding SDK reads. The 15-second

@@ -5,6 +5,8 @@ import {createExplorerBrowserSource} from './browser-source.mjs';
 import {gatewayLaunchPlanFixture} from './gateway-launch.fixture.mjs';
 import {observationRef, runObservationFixture, ownerObservationFixture}
   from '../explorer-ui/run-observation.fixture.mjs';
+import {runExplanation, unprojectedRunExplanation}
+  from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 
 test('current observation endpoint reads only the same original Run and one Owner-local page', async () => {
   const calls=[], original=observationRef();
@@ -242,6 +244,92 @@ test('saved Run Plan has a closed read-only body and no static fallback for old 
   assert.equal(response.status, 409);
   assert.deepEqual(await response.json(), {error: 'ExplorerCapabilityUnavailable'});
   assert.deepEqual(h.calls, [['attach', ref]]);
+});
+
+test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O', async () => {
+  const calls = [], original = runExplanation.run_ref;
+  const h = harness({client: {attach(selected) {
+    calls.push(['attach', selected]); return {explain(options) {
+      calls.push(['explain', options]); return structuredClone(runExplanation);
+    }};
+  }, plan() {assert.fail('no static repair');}, start() {assert.fail('no Run');}}});
+  assert.equal((await h.send('/api/read/run-explanation', {ref: original})).status, 401);
+  const session = await h.connect();
+  for (const headers of [{'X-Actql-CSRF': ''}, {Origin: 'https://foreign.example'}]) {
+    assert.equal((await h.read('run-explanation', {ref: original}, session, headers)).status, 403);
+  }
+  for (const body of [{ref: original, options: {sample: true}}, {ref: {runDefinitionCid: original.runDefinitionCid}}]) {
+    assert.equal((await h.read('run-explanation', body, session)).status, 400);
+  }
+  assert.deepEqual(calls, []);
+  const response = await h.read('run-explanation', {ref: original}, session);
+  assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.deepEqual((await response.json()).data, runExplanation);
+  assert.deepEqual(calls, [['attach', original], ['explain', {maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+  await h.gateway.close();
+});
+
+test('Gateway explanation distinguishes authorized NotProjected from missing support or Owner denial', async () => {
+  for (const [kind, status] of [['absent', 200], ['unsupported', 409], ['denied', 403]]) {
+    let calls = 0;
+    const h = harness({client: {attach() {
+      return kind === 'unsupported' ? {} : {explain() {
+        calls++;
+        if (kind === 'denied') throw Object.assign(new Error('private Host diagnostic'), {status: 403});
+        return structuredClone(unprojectedRunExplanation);
+      }, plan() {assert.fail('no legacy repair');}};
+    }}});
+    const session = await h.connect();
+    const response = await h.read('run-explanation', {ref: runExplanation.run_ref}, session);
+    assert.equal(response.status, status);
+    assert.deepEqual(await response.json(), status === 200
+      ? {scopeEpoch: session.body.scopeEpoch, data: unprojectedRunExplanation}
+      : {error: kind === 'unsupported' ? 'ExplorerCapabilityUnavailable' : 'ExplorerReadRefused'});
+    assert.equal(calls, kind === 'unsupported' ? 0 : 1);
+    await h.gateway.close();
+  }
+});
+
+test('browser explanation traverses the actual Gateway read and drops a delayed invalidated scope', async () => {
+  let pending, entered, release;
+  const started = new Promise(resolve => {entered = resolve;});
+  const wait = new Promise(resolve => {release = resolve;});
+  const h = harness({client: {attach: () => ({async explain() {
+    if (pending) {entered(); await wait;}
+    return structuredClone(runExplanation);
+  }})}});
+  let cookie;
+  const source = createExplorerBrowserSource({origin, async fetch(url, options) {
+    const response = await h.gateway.fetch(new Request(url, {...options, headers: {...options.headers,
+      Host: '127.0.0.1:43210', Origin: origin, ...(cookie ? {Cookie: cookie} : {})}}));
+    cookie = response.headers.get('set-cookie')?.split(';')[0] ?? cookie;
+    return response;
+  }});
+  const capabilities = await source.connect(h.gateway.issueBootstrap().bootstrap);
+  assert.equal(capabilities.sample, false); assert.equal(capabilities.control, false);
+  assert.deepEqual(await source.explain(runExplanation.run_ref), runExplanation);
+  pending = true;
+  const reply = source.explain(runExplanation.run_ref);
+  await started; h.gateway.invalidateScope(); release();
+  await assert.rejects(reply, {code: 'ExplorerStaleScope'});
+  await assert.rejects(source.explain(runExplanation.run_ref), {code: 'ExplorerSessionExpired'});
+  source.close(); await h.gateway.close();
+});
+
+test('Gateway explanation close retains the original pending read without closing its borrowed Client', async () => {
+  let entered, release, completed = false;
+  const started = new Promise(resolve => {entered = resolve;});
+  const pending = new Promise(resolve => {release = resolve;});
+  const h = harness({client: {attach: () => ({async explain() {entered(); return pending;}}),
+    close() {assert.fail('Gateway does not own the Client');}}});
+  const response = h.read('run-explanation', {ref: runExplanation.run_ref}, await h.connect());
+  await started;
+  const closing = h.gateway.close().then(() => {completed = true;});
+  await tick(); assert.equal(completed, false, 'Presentation closure is not original read settlement');
+  release(structuredClone(runExplanation));
+  await closing;
+  assert.equal(completed, true);
+  assert.equal((await response).status, 401, 'Closed scope must not disclose the delayed Facts');
 });
 
 test('bootstrap and established session expiry never silently renew', async () => {

@@ -1,7 +1,7 @@
 import type {CheckpointPageModel,ReviewObservation,ReviewReference} from '@actql/explorer-ui/checkpoint-review';
 import type {OriginalCancellation, CancellationObservation} from '@actql/explorer-ui/cancellation';
 import type {Client, RunReference, ResultDescription, CancellationReference} from '@actql/sdk';
-import type {WireCancellationLookup, WireRunView} from '@actql/client-wire';
+import type {WireCancellationLookup, WireRunView, WireRunExplanationView} from '@actql/client-wire';
 import type {RunObservationModel} from '@actql/explorer-ui/run-observation';
 import type {PlanReadModel, OriginalRunPlanReadModel} from '@actql/explorer-ui/read-model';
 export type ExplorerCapabilities = Readonly<{plan: boolean; run: true;
@@ -16,6 +16,7 @@ export function createExplorerBrowserSource(options: Readonly<{
   inspect(ref: RunReference): Promise<WireRunView>;
   observe(ref: RunReference): Promise<RunObservationModel>;
   runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;
+  explain(ref: RunReference): Promise<WireRunExplanationView>;
   describe(ref: RunReference, name: string): Promise<ResultDescription>;
   cancel(original: OriginalCancellation): Promise<CancellationObservation>;
   lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;

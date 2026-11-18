@@ -18,6 +18,15 @@ const view = await browser.inspect(ref);
 const notAtomic: 'non_atomic' = view.consistency;
 const original = await browser.runPlan(ref);
 const boundReference: RunReference = original.runRef;
+const explanation = await browser.explain(ref);
+const explanationRef: RunReference = explanation.run_ref;
+if (explanation.explanation.state === 'not_projected') {
+  const absent: 'not_retained' | 'profile_not_supported' = explanation.explanation.reason;
+  void absent;
+}
+// @ts-expect-error The explanation read never supplies execution/control options.
+await browser.explain(ref, {stopOnEntry: true});
+void explanationRef;
 await browser.describe(ref, 'answer');
 // @ts-expect-error The launcher owns no Run cancellation operation.
 await server.cancel(ref);
