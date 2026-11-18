@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {verifyCommonLocalNormalizationCatalog} from './local-common-normalization-catalog.mjs';
+import {verifyCommonLocalNormalizationCatalog, verifySourceLocalNormalizationCatalog} from './local-common-normalization-catalog.mjs';
 
 const read = name => JSON.parse(readFileSync(name, 'utf8'));
 const stem = 'spec/contracts/actql-effect-free-local-common-normalization-';
@@ -10,6 +10,13 @@ const canonical = value => value === null || typeof value !== 'object' ? JSON.st
   : Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
   : '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}';
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+
+test('Source successor retains old rules and independently pinned nonempty original journals', () => {
+  const prior = read(stem + 'fixture.json');
+  const result = verifySourceLocalNormalizationCatalog();
+  assert.notEqual(result.catalogCid, prior.catalog_cid);
+  assert.notEqual(result.journalCid, prior.journal_cid);
+});
 
 test('all complete legacy catalogue schema and journal bodies retain their accepted identities', () => {
   const fixed = read('scripts/fixtures/local-common-normalization/legacy-members.json');

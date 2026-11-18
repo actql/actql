@@ -178,3 +178,12 @@ pub fn client_local_normalization_retained_extent(
 ) -> (@shape.CollectionConstructionExtent, Int64, Int64)? {
   @checked.local_common_normalization_retained_extent(original.inventory)
 }
+
+///|
+/// Cached original Source inventory length; no resolution, allocation or
+/// permission is performed while selecting its construction allowance.
+pub fn prepared_client_normalization_source_count(
+  owner : PreparedClientProgram,
+) -> Int64 {
+  @checked.source_execution_count(@strategy.graph_program(owner.graph)).to_int64()
+}

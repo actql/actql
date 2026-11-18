@@ -2,6 +2,104 @@
 // Actual phased Request parser/checker/compiler and its SAME Prepared owner.
 // This component supplies a nominal Ledger, not physical Native backing,
 // Account/Run admission, old state or a cleanup ACK.
+
+///|
+test "original Source normalization reserves its audit before construction at exact and one-short lanes" {
+  for retention in [true, false] {
+    let environment = @publication_host.admit_client_check_environment(
+      source_query_original_environment,
+      "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    ).unwrap()
+    let (parent, child, _, input) = registration_parent_fixture(
+      text=source_query_original_document,
+      environment=Some(environment),
+    )
+    assert_true(
+      finish_program_check_preparation(child).unwrap() is @checked.Checked(_),
+    )
+    let prepared = compile_program_check_preparation(
+      child,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        continue_request_program_preparation(parent, input).unwrap(),
+        prepared,
+      ),
+    )
+    let sources = @publication_host.prepared_client_normalization_source_count(
+      prepared,
+    )
+    assert_eq(sources, 1L)
+    let additional = request_normalization_audit_extent_cost(
+      parent.program_data.unwrap(),
+      sources,
+    ).unwrap()
+    let usage = @resources.ledger_usage(parent.ledger)
+    let limits = @resources.ledger_limits(parent.ledger)
+    let remaining = if retention {
+      limits.retained_bytes - usage.held_bytes - usage.reserved_retention_bytes
+    } else {
+      limits.execution_bytes - usage.reserved_execution_bytes
+    }
+    assert_true(remaining > additional)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        remaining - additional + 1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        remaining - additional + 1L
+      },
+    ).unwrap()
+    let refused = prepare_request_program_normalization(parent, input)
+    assert_true(
+      if retention {
+        refused is Err(Preparation(Capacity(Resource(RetentionLimit))))
+      } else {
+        refused is Err(Preparation(Capacity(Resource(ExecutionLimit))))
+      },
+    )
+    let selected = parent.program_normalization.unwrap()
+    assert_true(selected.audit is None)
+    assert_eq(selected.charged_work, 0L)
+    assert_true(physical_equal(selected.original, prepared))
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        remaining - additional
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        remaining - additional
+      },
+    ).unwrap()
+    let original = prepare_request_program_normalization(parent, input).unwrap()
+    assert_true(selected.audit is Some(_))
+    assert_true(physical_equal(parent.program_normalization.unwrap(), selected))
+    assert_true(
+      physical_equal(
+        prepare_request_program_normalization(parent, input).unwrap(),
+        original,
+      ),
+    )
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
 test "ordinary direct forty UNION branches retain original normalization through same Request" {
   let statements : Array[String] = []
   for index in 0..<40 {

@@ -6777,6 +6777,30 @@ independent; these projections do not grant Resource capacity or compile a body.
 
 ### Original normalization on the same Request
 
+The original Source resolver's `SoleView` selection is a real completion. Its
+same `ResolvedInput`, declaration stage/input name, selected view and complete
+requirements remain with this inventory and Prepared owner. A Source entry uses
+the existing JSONPath quoted-member form, the absent-member marker `null`, and
+the exact selected view String. The scalar Common writer escapes only the path
+member; it does not re-resolve or reinterpret the Source. Repeated visits to the
+same original occurrence retain one entry; foreign equal declarations do not.
+The Source successor catalogue extends the existing three rules. Only an audit
+with an actual Source completion selects it; explicit-view/source-free journals
+and all saved prior catalogue preimages keep their exact original identities.
+Restoration compares the same Prepared/original journal/catalogue and complete
+wire, rejecting an empty, substituted or foreign journal.
+
+Common occurrence records retain their typed Relation/Source original. The
+same Request quotes the record/tag controls before the audit using its cached
+original parsed-check counts and Source inventory length. Two Source frames
+cover retained/current failure overlap; seven bounded String intermediates and
+the existing one-scalar TextWriter inventory cover path construction. The
+original text extent bounds quoted member spelling, not a guessed node count
+or a raised codec policy. After the audit returns, actual retained entries,
+String units and Sort views replace disposed constructor scratch. Currentness,
+work charging, rejected growth, cancellation and cleanup keep the same Request
+owner and original borrowed input; none of this DATA grants Source authority.
+
 The Native submitted-request handoff runs its selected original constructor
 inside the caller's already-active business Request, before borrowing the Plan
 input. Its optional `before_program_borrow` callback does not replace the

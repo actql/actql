@@ -2591,6 +2591,8 @@ pub fn prepared_client_local_normalization_original(PreparedClientProgram) -> Cl
 
 pub fn prepared_client_model_measurement_storage(PreparedClientProgram, Array[ClientInferPlanGraph], ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
 
+pub fn prepared_client_normalization_source_count(PreparedClientProgram) -> Int64
+
 pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_publication_data_policy_cid(PreparedClientProgram) -> String?
