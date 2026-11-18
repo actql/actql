@@ -52,20 +52,26 @@ export function prepareInstalledLogicalObservation(moon, control, managedRun,
 
 function createOwnedObservation(moon, original, observation, enabled,
   attach, begin, capture, state, key, phase, release, close) {
-  let active = enabled, closing = false, authorize, ref, principalId;
+  let active = enabled, closing = false, authorize, ref, principalId, runId;
   return Object.freeze({
-    attach(captured, selectedRef, principal, authorizeRead) {
+    attach(captured, selectedRef, principal, authorizeRead, acceptedRunId) {
       if (!active || closing) return;
       // All Node wrappers, method environments and operation memos are within
       // the already admitted SAME Request control/record construction quote.
       ref = selectedRef; principalId = principal; authorize = authorizeRead;
       try {
         if (typeof authorize !== 'function') throw new TypeError('LogicalObservationAuthorityUnavailable');
+        if (typeof acceptedRunId !== 'string' || acceptedRunId.length > 128) {
+          throw new TypeError('LogicalObservationRunIdentityUnavailable');
+        }
         checked(Reflect.apply(attach, moon, [original, captured]));
+        // Borrow the SAME accepted definition's original, not another Journal
+        // lookup or an identity inferred from the graph, task or Facts CID.
+        runId = acceptedRunId;
       } catch {observation.logicalBoundaryUnavailable(); active = false;}
     },
     project(selectedPhase, task) {
-      if (!active || closing || original === undefined || authorize === undefined) return undefined;
+      if (!active || closing || original === undefined || authorize === undefined || runId === undefined) return undefined;
       let record;
       try {record = checked(Reflect.apply(begin, moon, [original, selectedPhase]));}
       catch {observation.logicalBoundaryUnavailable(); return undefined;}
@@ -110,13 +116,16 @@ function createOwnedObservation(moon, original, observation, enabled,
           // This fixed Host projection consumes custody even when selection,
           // durable budget or queue admission drops the optional event.
           transferred = true;
-          observation.logicalBoundary({ref, task}, boundary, custody);
+          observation.logicalBoundary({ref, task, runId}, boundary, custody);
         } catch {observation.logicalBoundaryUnavailable();}
         finally {if (!transferred) observation.returnLogicalBoundary(custody);}
       }
     },
     close() {
       closing = true; active = false;
+      // Queued records own their already admitted copies. Drop this producer
+      // alias before the lower owner may acknowledge or retry its return.
+      runId = undefined;
       if (original === undefined) return;
       // No producer semantic alias may outlive the lower ACK. A
       // pending return keeps the SAME cleanup token and authority for queued

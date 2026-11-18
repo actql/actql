@@ -1050,7 +1050,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.pendingSetup = setup;
         if (entry.logicalObservation !== undefined) {
           entry.logicalObservation.attach(Reflect.apply(capturedRun, moon, [setup]),
-            accepted.ref, actual, operation => authorizeLogicalObservation(operation, connection));
+            accepted.ref, actual, operation => authorizeLogicalObservation(operation, connection),
+            control.runDefinitionRunId(accepted.runDefinition));
         }
       }
       // The resumed admission and physical start reservation are adjacent.

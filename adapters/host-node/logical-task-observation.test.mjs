@@ -14,7 +14,8 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 const ref = Object.freeze({namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 const keyWire = '{"version":"actql-logical-step-key/0.1","stage_ordinal":2,"occurrence":{"kind":"operation","operation_ordinal":3},"compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","self_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}';
-function fixture({deliver = () => {}, projected = true, mutate, captureFailure, recordReturnFailure = () => false} = {}) {
+function fixture({deliver = () => {}, projected = true, mutate, captureFailure, recordReturnFailure = () => false,
+  correlation = ['task'], runIdResolver, runId = 'original-accepted-run'} = {}) {
   const calls = [], loans = new Set(), records = [], original = {}, captured = {}, managed = {}, owner = {}, definition = {};
   let closing = false;
   const moon = {
@@ -56,9 +57,10 @@ function fixture({deliver = () => {}, projected = true, mutate, captureFailure, 
     calls.push('admit'); mutate?.(moon); return ok(original);
   }};
   const observer = installHostObservation(createHostObservationConnection({include: ['compute'],
-    correlation: {include: ['task']}, limits: {shutdownMs: 10},
+    correlation: {include: correlation}, limits: {shutdownMs: 10},
     async deliver(record) {records.push(record); await deliver(record);},
-  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true}), close() {}})}});
+  }), {runId: runIdResolver,
+    journal: {observationStorage: () => ({consume: () => ({accepted: true}), close() {}})}});
   const consumer = prepareInstalledLogicalObservation(moon, control, managed, owner, definition, observer);
   return {consumer, moon, observer, calls, loans, records, captured,
     attach(authorize = () => true) {
@@ -67,9 +69,59 @@ function fixture({deliver = () => {}, projected = true, mutate, captureFailure, 
         assert.equal(operation.purpose, 'run-plan'); assert(Object.isFrozen(operation));
         assert(loans.size > 0, 'Account callback must follow original record admission');
         calls.push('authorize'); return authorize(operation);
-      });
+      }, runId);
     }};
 }
+
+test('logical correlation retains the accepted Run ID through queued fused and projected delivery', async () => {
+  for (const projected of [false, true]) {
+    let settle, resolutions = 0;
+    const pending = new Promise(resolve => {settle = resolve;});
+    const runId = 'accepted-"\\\n-' + 'é'.repeat(64);
+    const f = fixture({projected, runId, correlation: ['run', 'task'],
+      runIdResolver() {resolutions++; throw new Error('NoSecondJournalLookup');},
+      deliver: () => pending});
+    f.attach();
+    f.consumer.project('settled', 7);
+    await turn();
+    assert.equal(f.records.length, 1);
+    const record = f.records[0];
+    assert.equal(record.attributes['actql.run.id'], runId);
+    assert.equal(record.attributes['actql.run.definition_cid'], ref.runDefinitionCid);
+    assert.equal(record.attributes['actql.task.ordinal'], 7);
+    assert.equal(record.event, projected ? 'logical_boundary_observed' : 'logical_boundary_unavailable');
+    assert.equal(record.attributes['actql.logical_step.key'], projected ? keyWire : undefined);
+    assert.equal(record.attributes['actql.logical_boundary.reason'], projected ? undefined : 'not_projected');
+    assert(Buffer.byteLength(JSON.stringify(record)) <= 4096, 'escaped original ID remains in the admitted event envelope');
+    assert.equal(resolutions, 0, 'logical delivery consumes its already accepted original, not a second lookup');
+    assert.throws(() => f.consumer.close(), /MoonBitHostFailure/);
+    f.consumer.project('before', 8);
+    await f.observer.close();
+    assert.equal(f.observer.status().cleanupPending, true);
+    assert.equal(f.records.length, 1, 'closing prevents another projection');
+    settle(); await turn();
+    assert.equal(f.loans.size, 0);
+    assert.equal(record.attributes['actql.run.id'], runId, 'queued copy survives producer alias disposal');
+    f.consumer.close(); f.consumer.close(); await f.observer.close();
+    assert.equal(f.observer.status().cleanupPending, false);
+  }
+});
+
+test('logical correlation cannot replace an unavailable accepted Run ID with a resolver answer', async () => {
+  for (const runId of [null, 'x'.repeat(129), {toString() {assert.fail('Do not coerce an original identity');}}]) {
+    let resolutions = 0;
+    const f = fixture({runId, correlation: ['run', 'task'],
+      runIdResolver() {resolutions++; return 'unrelated-resolver-answer';}});
+    f.attach();
+    f.consumer.project('settled', 0);
+    f.consumer.close(); await f.observer.close();
+    assert.equal(f.calls.includes('attach'), false, 'unsupported identity must not attach a Compute');
+    assert.equal(f.calls.includes('reserve'), false);
+    assert.equal(resolutions, 0);
+    assert.deepEqual(f.records, []);
+    assert.equal(f.loans.size, 0);
+  }
+});
 
 test('funded logical queue retains its same original until actual delivery settles', async () => {
   let settle;

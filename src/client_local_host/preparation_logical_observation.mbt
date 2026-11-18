@@ -48,12 +48,14 @@ pub(all) enum ClientLogicalObservationIssue {
 // retained-original cell and its Some(H2/R2/W1), and eight complete two-reference
 // result/current/error shells across quotation, capture and cleanup(H8/R16/W8).
 // The Node consumer adds its session/method/control records, ten fixed closure
-// environments and bounded read DATA tuple (H24/R112/W32); no new normal root slot.
+// environments and bounded read DATA tuple (H24/R115/W32): the attach/project/
+// close environments each conservatively retain the SAME accepted Run ID.
+// No string body copy or new normal root slot is introduced.
 // Sequential alternatives are conservatively co-counted. Controls remain charged until the existing parent retires;
 // returning a sibling borrow does not shrink that parent's running peak.
 let logical_observation_control_bytes : Int64 = @execution.preparation_representation_cost({
     record_headers: 38L,
-    reference_slots: 137L,
+    reference_slots: 140L,
     scalar_words: 52L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -233,9 +235,11 @@ fn construct_installed_logical_observation(
       // Node queue custody: DATA detail/attributes/record/item; fixed delivery,
       // release/current closure environments; Promise/reaction/Set entry and
       // One immutable read/delivery DATA tuple and current helper. No policy
-      // decision cache. Alternatives are co-counted (H33/R131/W49).
+      // decision cache. Detail and attributes each add one borrowed accepted
+      // Run ID slot; its serialized bytes use the existing complete envelope.
+      // Alternatives are co-counted (H33/R133/W49).
       record_headers: emitter.record_headers + writer.record_headers + 49L,
-      reference_slots: emitter.reference_slots + writer.reference_slots + 157L,
+      reference_slots: emitter.reference_slots + writer.reference_slots + 159L,
       scalar_words: emitter.scalar_words + writer.scalar_words + 65L,
       // Original key, complete worst-case JSON escape expansion and retained
       // envelope coexist BEFORE stringify/SQLite operands/queue insertion.

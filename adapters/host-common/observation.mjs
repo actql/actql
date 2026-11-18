@@ -488,7 +488,10 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       if (config.correlations.has('run') && cid(ref?.runDefinitionCid)) {
         attributes['actql.run.definition_cid'] = ref.runDefinitionCid;
         const id = event === 'selected_rows_observed'
-          ? selectedRowSnapshots.get(options.selectedRows) : resolveRunIdentity(context, ref);
+          ? selectedRowSnapshots.get(options.selectedRows)
+          // Only the fixed logical supplier (guarded above by its private
+          // marker) carries this already accepted Run's original identity.
+          : logical && Object.hasOwn(facts, 'runId') ? facts.runId : resolveRunIdentity(context, ref);
         if (typeof id === 'string' && id.length <= 128) attributes['actql.run.id'] = id;
       }
       if (config.correlations.has('attempt') && cid(facts.attemptCid)) attributes['actql.model.attempt_cid'] = facts.attemptCid;

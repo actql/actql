@@ -2,6 +2,177 @@
 // Nominal original Resource/Request/Plan and the actual installed Compute
 // issuer. Physical input/module backing remains the existing fixture port;
 // no Journal, public observation delivery or installed ABI is claimed here.
+test "logical accepted-runId slots are admitted before retained context and simultaneous records" {
+  // Existing H38/R137/W52 plus three conservative closure-reference slots;
+  // the same shared 16/8/8 tariffs give 2144, not unrelated Normal spare.
+  assert_eq(logical_observation_control_bytes, 2144L)
+  for retention in [true, false] {
+    let (parent, run, prepared, compiled, definition) = original_explanation_capture_fixture()
+    let holder = managed_run_publication_body(run, prepared).unwrap()
+    let before = @resources.preparation_body_borrow_reserved_extents(holder)
+    let used = @resources.ledger_usage(parent.ledger)
+    let limits = @resources.ledger_limits(parent.ledger)
+    let fixed = explanation_capture_entry_control_bytes + 2144L
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes -
+        used.held_bytes -
+        used.reserved_retention_bytes -
+        fixed +
+        1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - used.reserved_execution_bytes - fixed + 1L
+      },
+    ).unwrap()
+    let result = prepare_installed_logical_observation(
+      run, prepared, compiled, definition, 4096, 128, 16,
+    )
+    if retention {
+      assert_true(
+        result is Err(LogicalObservationCapacity(Resource(RetentionLimit))),
+      )
+    } else {
+      assert_true(
+        result is Err(LogicalObservationCapacity(Resource(ExecutionLimit))),
+      )
+    }
+    assert_eq(
+      @resources.preparation_body_borrow_reserved_extents(holder),
+      before,
+    )
+    assert_false(run.source_free_opening)
+    @resources.settle_capacity(parent.ledger, blocker).unwrap() |> ignore
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+  for retention in [true, false] {
+    for short in [true, false] {
+      let (parent, run, prepared, compiled, definition) = original_explanation_capture_fixture()
+      let observation = prepare_installed_logical_observation(
+        run, prepared, compiled, definition, 4096, 128, 16,
+      ).unwrap()
+      let emitter = compilation_canonical_emitter_layout(16).unwrap()
+      let writer = @encode.text_writer_construction_inventory(4096, 128, 16).unwrap()
+      // The detail and emitted attributes each retain one original ID slot.
+      // Existing complete key/envelope byte geometry remains unchanged.
+      let record_bytes = @execution.preparation_representation_cost({
+        record_headers: emitter.record_headers + writer.record_headers + 49L,
+        reference_slots: emitter.reference_slots + writer.reference_slots + 159L,
+        scalar_words: emitter.scalar_words + writer.scalar_words + 65L,
+        owned_utf16_units: emitter.owned_utf16_units +
+        writer.owned_utf16_units +
+        8L * 4096L +
+        4096L,
+        owned_wire_bytes: emitter.owned_wire_bytes + 6L * 4096L + 4096L,
+      }).unwrap()
+      assert_eq(observation.record_bytes, record_bytes)
+      let plan = run.source_free_preparation.unwrap()
+      let setup = open_installed_managed_source_free_host(
+          run,
+          prepared,
+          run.request,
+          plan.installed_contracts,
+          plan.values_body,
+          plan.fragment_body,
+          plan.ordered_body,
+          true,
+        )
+        .unwrap()
+        .unwrap()
+      attach_installed_logical_observation(
+        observation,
+        run.source_free_captured.unwrap(),
+      ).unwrap()
+      let execution = execute_source_free_local_tasks_guarded(
+        setup,
+        64,
+        100000,
+        () => true,
+      ).unwrap()
+      let first = begin_installed_logical_observation(observation, Settled).unwrap()
+      let holder = managed_run_publication_body(run, prepared).unwrap()
+      let before = @resources.preparation_body_borrow_reserved_extents(holder)
+      let used = @resources.ledger_usage(parent.ledger)
+      let limits = @resources.ledger_limits(parent.ledger)
+      let shortfall = if short { 1L } else { 0L }
+      let blocker = @resources.reserve_capacity(
+          parent.ledger,
+          if retention {
+            limits.retained_bytes -
+            used.held_bytes -
+            used.reserved_retention_bytes -
+            record_bytes +
+            shortfall
+          } else {
+            0L
+          },
+          if retention {
+            0L
+          } else {
+            limits.execution_bytes -
+            used.reserved_execution_bytes -
+            record_bytes +
+            shortfall
+          },
+        )
+        |> result => {
+          match result {
+            Ok(value) => value
+            Err(issue) => fail("Record blocker: " + @debug.to_string(issue))
+          }
+        }
+      let second = begin_installed_logical_observation(observation, Settled)
+      if short {
+        if retention {
+          assert_true(
+            second is Err(LogicalObservationCapacity(Resource(RetentionLimit))),
+          )
+        } else {
+          assert_true(
+            second is Err(LogicalObservationCapacity(Resource(ExecutionLimit))),
+          )
+        }
+        assert_eq(observation.pending, 1)
+        assert_eq(observation.record_peak, 1)
+        assert_eq(
+          @resources.preparation_body_borrow_reserved_extents(holder),
+          before,
+        )
+      } else {
+        assert_eq(observation.pending, 2)
+        assert_eq(observation.record_peak, 2)
+        let peak = @resources.ledger_usage(parent.ledger)
+        assert_eq(
+          if retention {
+            peak.held_bytes + peak.reserved_retention_bytes
+          } else {
+            peak.reserved_execution_bytes
+          },
+          if retention {
+            limits.retained_bytes
+          } else {
+            limits.execution_bytes
+          },
+        )
+        return_logical_observation_record(second.unwrap())
+      }
+      @resources.settle_capacity(parent.ledger, blocker).unwrap() |> ignore
+      return_logical_observation_record(first)
+      assert_true(execution.close())
+      return_installed_logical_observation(observation).unwrap() |> ignore
+      retire_installed_managed_run(run).unwrap()
+      assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    }
+  }
+}
+
+///|
 test "logical metadata holds SAME Request through pending delivery and original Compute stop" {
   let (parent, run, prepared, compiled, definition) = original_explanation_capture_fixture()
   let before = @resources.ledger_usage(parent.ledger)
