@@ -357,3 +357,93 @@ test "single-pass nominal saved reader keeps construction fences and fresh mater
   )
   assert_eq(chunk_reads.val, before)
 }
+
+///|
+test "retained material saved reader retains original construction and physical fences" {
+  let wire = "original task materials"
+  let run = saved_snapshot_run()
+  let key = client_request_scope_cid(run.request)
+  let original = capture_client_task_materials_original(
+    (),
+    key,
+    wire,
+    () => Ok("policy"),
+    _ => "encoding",
+  ).unwrap()
+  let pointed = {
+    ..run,
+    task_materials_cid: Some(client_task_materials_original_cid(original)),
+  }
+  let rows = saved_snapshot_rows(saved_submission_ready)
+  rows.push(
+    ("client_task_run_materials", inventory_row(key + ":0", @utf8.encode(wire))),
+  )
+  let chunks = Ref(0)
+  let constructors = Ref(0)
+  let validators = Ref(0)
+  let changed = Ref(false)
+  let read = (table, name) => {
+    if table == "client_task_run_materials" {
+      chunks.val += 1
+      if changed.val && name == key + ":0" {
+        return Ok(None)
+      }
+    }
+    inventory_read(rows, table, name)
+  }
+  let validate = _ => {
+    validators.val += 1
+    Ok(pointed)
+  }
+  let snapshot = read_client_saved_submission_with_task_original(
+      saved_snapshot_reference(),
+      read,
+      validate,
+      "custody",
+      Some(original),
+      before_construction=Some(_ => {
+        constructors.val += 1
+        Ok(())
+      }),
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(
+    client_saved_submission_task_materials_original(snapshot),
+    Some(wire),
+  )
+  assert_eq(chunks.val, 4)
+  assert_eq(constructors.val, 2)
+  assert_eq(validators.val, 1)
+  changed.val = true
+  assert_true(
+    read_client_saved_submission_with_task_original(
+      saved_snapshot_reference(),
+      read,
+      validate,
+      "custody",
+      Some(original),
+      before_construction=Some(_ => {
+        constructors.val += 1
+        Ok(())
+      }),
+    )
+    is Err("custody"),
+  )
+  assert_eq(chunks.val, 8)
+  assert_eq(constructors.val, 4)
+  assert_eq(validators.val, 2)
+  assert_true(
+    read_client_saved_submission_with_task_original(
+      saved_snapshot_reference(),
+      read,
+      validate,
+      "custody",
+      Some(original),
+      before_construction=Some(_ => Err(CustodyLost)),
+    )
+    is Err("custody"),
+  )
+  assert_eq(chunks.val, 8)
+  assert_eq(validators.val, 2)
+}

@@ -1,4 +1,35 @@
 ///|
+// Select only the existing original captured under this SAME Run/Plan and
+// preparation. No cell, array copy, current proof or authority is constructed.
+fn sdk_task_materials_original(
+  value : Instance,
+  run : Int,
+) -> @local_run.LocalRunTaskMaterialsOriginal? {
+  guard value.runs.get(run) is Some({ outcome: Some(Ok(plan)), .. }) &&
+    value.preparations.get(value.runs[run].preparation)
+    is Some({ submitted: Some(preparation), .. }) else {
+    return None
+  }
+  for material in value.materials.values() {
+    if material.run == run &&
+      material.kind == 6 &&
+      material.produced &&
+      !material.closing &&
+      material.submission is Some(submission) &&
+      submission.rows is Some(rows) &&
+      submission.task_materials is Some(captured) {
+      match
+        @local_run.local_submitted_run_task_materials(rows, plan, preparation) {
+        Ok(Some(original)) if physical_equal(original, captured) =>
+          return Some(original)
+        _ => ()
+      }
+    }
+  }
+  None
+}
+
+///|
 /// The same original typed Host/Account fence, never a submitted Bool grant.
 fn submission_append_current(
   value : Instance,
@@ -204,10 +235,13 @@ fn observe_submission_append(
         })
     }
   }
+  let task_original = original_run.bind(run => {
+    sdk_task_materials_original(value, run)
+  })
   // Keep the original complete inventory and unsupported Effect distinction.
   // No missing row, partial scan or outer count substitutes for these checks.
   match
-    @host.inspect_client_run_journal_inventory(
+    @host.inspect_client_run_journal_inventory_with_task_original(
       1024,
       scan,
       read,
@@ -218,6 +252,7 @@ fn observe_submission_append(
         ).map(_ => ())
       },
       -31,
+      task_original,
     ) {
     Ok(_) => ()
     Err(code) => return Err(code)
@@ -236,11 +271,12 @@ fn observe_submission_append(
           Ok(value) => value
           Err(_) => return Err(-31)
         }
-        let observed = @host.read_client_saved_submission(
+        let observed = @host.read_client_saved_submission_with_task_original(
           original.reference,
           read,
           inspect_run,
           -31,
+          task_original,
         )
         match observed {
           Ok(Some(snapshot)) if @host.client_saved_submission_row(snapshot).body ==
