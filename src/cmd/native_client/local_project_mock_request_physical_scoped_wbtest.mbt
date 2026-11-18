@@ -1630,14 +1630,15 @@ fn native_pure_file_request_payload(
             (8L + 4L * tasks + ports) * 8L
           // Independent 3+3-path vector: entry30146 + Work48234 + clock4274
           // + prepared-provider119696 + fixed Whole wrappers704 + diagnostic96
+          // + original preback Read296 (8 headers, 11 references, 10 words)
           // + task loop.
           assert_eq(
             @execution.execution_capacity_retained_bytes(quoted),
-            203150L + task_loop,
+            203150L + (8L * 16L + 11L * 8L + 10L * 8L) + task_loop,
           )
           assert_eq(
             @execution.execution_capacity_execution_bytes(quoted),
-            203150L + task_loop,
+            203150L + (8L * 16L + 11L * 8L + 10L * 8L) + task_loop,
           )
           assert_eq(@initial_resources.ledger_usage(physical), before_quote)
           let admission = @local_values.installed_managed_preparation_admission_original(
