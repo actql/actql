@@ -752,6 +752,48 @@ test('Client preparation exposes runtime adapters and wire freshness as separate
   }
 });
 
+test('normal distribution executes all original Explanation consumers once after preparation', t => {
+  const files = ['client-run-explanation-https.test.mjs', 'client-run-explanation-sdk.test.mjs',
+    'client-original-explanation-journal.test.mjs', 'client-run-explanation.test.mjs']
+    .map(file => `adapters/host-node/${file}`);
+  const recipe = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+    .scripts['check:distribution-client'].split(' && ');
+  const job = jobs['client-distribution'];
+  let consumer;
+  for (const file of files) {
+    readFileSync(new URL('../' + file, import.meta.url));
+    assert.equal(recipe.filter(command => command.split(/\s+/u).includes(file)).length, 1, file);
+    const owners = Object.entries(jobs).flatMap(([name, value]) => (value.steps ?? [])
+      .filter(step => step.run?.split(/\s+/u).includes(file)).map(step => ({name, step})));
+    assert.equal(owners.length, 1, file);
+    assert.equal(owners[0].name, 'client-distribution');
+    consumer ??= owners[0].step;
+    assert.equal(owners[0].step, consumer);
+    assert.equal(consumer.run.split(/\s+/u).filter(value => value === file).length, 1, file);
+  }
+  const prerequisite = job.steps.find(step => step.id === 'distribution-preparation');
+  assert(prerequisite && job.steps.indexOf(prerequisite) < job.steps.indexOf(consumer));
+  assert.equal(consumer.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(consumer['continue-on-error'], undefined);
+  assert.deepEqual(consumer.env, prerequisite.env);
+  const directory = mkdtempSync(join(tmpdir(), 'actql-explanation-ci-command-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  writeFileSync(join(directory, 'node'),
+    '#!/bin/sh\nprintf "%s\\n" "$@" > "$ACTQL_EXPLANATION_ARGS"\nexit "$ACTQL_EXPLANATION_STATUS"\n', {mode: 0o755});
+  const argumentsFile = join(directory, 'args.txt');
+  for (const status of [0, 73]) {
+    const actual = spawnSync('/bin/sh', ['-c', consumer.run], {cwd: root, encoding: 'utf8', timeout: 3000,
+      env: {...process.env, PATH: directory, ACTQL_EXPLANATION_ARGS: argumentsFile,
+        ACTQL_EXPLANATION_STATUS: String(status)}});
+    assert.equal(actual.error, undefined); assert.equal(actual.signal, null);
+    assert.equal(actual.status, status, actual.stderr);
+    const args = readFileSync(argumentsFile, 'utf8').trim().split('\n');
+    assert(args.includes('--test'));
+    assert(!args.some(arg => /^--test-(?:name|skip)-pattern/u.test(arg)));
+    for (const file of files) assert.equal(args.filter(arg => arg === file).length, 1, file);
+  }
+});
+
 test('source-response custody has one same-environment normal Client owner', () => {
   const file = 'adapters/host-common/source-response-custody.test.mjs';
   assert(!runs('client-distribution').some(command => command.split(/\s+/u).includes(file)));
