@@ -81450,13 +81450,12 @@
         "annotations",
         "argparse",
         "args",
-        "compiler_rendered",
-        "contract_rendered",
         "declaration_source",
         "declarations",
         "hashlib",
         "import_parameters",
         "json",
+        "outputs",
         "package_wasm_exports",
         "parameters",
         "parser",
@@ -81466,7 +81465,6 @@
         "render_contract",
         "render_rust",
         "rendered",
-        "rust_rendered",
         "unit"
       ],
       "imports": [
@@ -81584,7 +81582,7 @@
           "async": false
         }
       ],
-      "sha256": "8490eb36db59121efb4e64765d200f6078a5473530b3fad1c7209aa83ceff3d1",
+      "sha256": "bb10cf9912e121c869def2bb93d537f6085c1c4dc870b755df7afea2dce19e9c",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Local Core scalar generator and physical diagnostic fixture owners",
@@ -81623,8 +81621,6 @@
             "annotations",
             "argparse",
             "args",
-            "compiler_rendered",
-            "contract_rendered",
             "declaration_source",
             "declarations",
             "hashlib",
@@ -81639,8 +81635,8 @@
             "render_contract",
             "render_rust",
             "rendered",
-            "rust_rendered",
-            "unit"
+            "unit",
+            "outputs"
           ],
           "attributes": {
             "responsibility": [
@@ -81785,6 +81781,14 @@
               {
                 "path": "scripts/test_local_abi_generation.py",
                 "anchor": "def test_common_contract_preserves_existing_scalar_roles_and_borrows("
+              },
+              {
+                "path": "scripts/test_local_abi_generation.py",
+                "anchor": "def test_neutral_modes_accept_missing_rust_without_creating_it("
+              },
+              {
+                "path": "scripts/test_local_abi_generation.py",
+                "anchor": "def test_explicit_rust_check_requires_exact_frozen_mirror("
               }
             ]
           }
