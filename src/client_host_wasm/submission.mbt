@@ -11,6 +11,7 @@ priv struct StoredSubmissionProjection {
   mut append_plan : @host.ClientSubmittedJournalAppendPlan?
   mut failure_preparation : Int?
   mut failure_plan : (@host.ClientJournalPhysicalRow, Bytes)?
+  mut cancellation_append : StoredCancellationAppend?
   mut invoked : Bool
   mut produced : Bool
   mut output_closed : Bool
@@ -51,6 +52,7 @@ pub fn reserve_submission_projection(
       kind != 7 &&
       kind != 8 &&
       kind != 9 &&
+      kind != 10 &&
       kind != 11
     ) ||
     physical_ticket <= 0 ||
@@ -69,7 +71,7 @@ pub fn reserve_submission_projection(
   let slot = match
     @buffers.reserve_output_buffer(
       value.pool,
-      if (kind >= 3 && kind <= 9) || kind == 11 {
+      if kind >= 3 && kind <= 11 {
         1048576
       } else {
         4096
@@ -95,6 +97,7 @@ pub fn reserve_submission_projection(
     append_plan: None,
     failure_preparation: None,
     failure_plan: None,
+    cancellation_append: None,
     invoked: false,
     produced: false,
     output_closed: false,
@@ -110,6 +113,9 @@ pub fn produce_submission_projection(nonce : Int64, handle : Int) -> Int {
     value.submissions.get(handle) is Some(record) &&
     value.run_configurations.get(record.configuration) is Some(configuration) else {
     return -2
+  }
+  if record.kind == 10 {
+    return produce_cancellation_append(value, record, configuration)
   }
   if record.kind == 9 {
     return produce_submission_preparation_failure(value, record, configuration)
@@ -231,6 +237,7 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
     record.kind == 6 ||
     record.kind == 7 ||
     record.kind == 8 ||
+    record.kind == 10 ||
     record.kind == 11 {
     guard value.run_configurations.get(record.configuration)
       is Some(configuration) else {
@@ -241,6 +248,7 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
       record.kind == 6 ||
       record.kind == 7 ||
       record.kind == 8 ||
+      record.kind == 10 ||
       record.kind == 11 {
       submission_lookup_current(value, record, configuration)
     } else {
@@ -308,6 +316,10 @@ pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
     record.output_closed = true
   }
   let closed = close_saved_result_read(record)
+  if closed != 0 {
+    return closed
+  }
+  let closed = close_cancellation_append(record)
   if closed != 0 {
     return closed
   }

@@ -2123,14 +2123,14 @@ class LocalCore:
         with self._lock:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
-                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6, 7, 8, 11)):
+                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6, 7, 8, 10, 11)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1048576 if kind in (3, 4, 5, 6, 7, 8, 11) else 4096
-            family = ('submission_append' if kind == 3 else
+            limit = 1048576 if kind in (3, 4, 5, 6, 7, 8, 10, 11) else 4096
+            family = ('cancellation_append' if kind == 10 else 'submission_append' if kind == 3 else
                       'submission_lookup' if kind in (4, 5, 6, 7, 8, 11) else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
@@ -2353,6 +2353,53 @@ class LocalCore:
 
     def close_submission_append(self, value: _Output) -> bool:
         return self._close_output(value, 'submission_append', 'close', abi_family='submission')
+
+    def confirm_cancellation_append(self, value: _Output, current: _Output, *,
+                                    allow_pending: bool = False) -> bool:
+        """Observe the SAME original operation; never prepare or repeat writes.
+
+        Core's second produce for this closed kind only reads retained history.
+        Missing history is pending, not nonexecution or permission to retry.
+        """
+        with self._lock:
+            self._owned_output(value, 'cancellation_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            if code == -33 and allow_pending:
+                return False
+            self._check('confirm_cancellation_append', code)
+            return True
+
+    def produce_cancellation_append(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'cancellation_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('produce_cancellation_append', code)
+            self.validate_cancellation_append(value, current)
+
+    def validate_cancellation_append(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'cancellation_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_cancellation_append', code)
+
+    def read_cancellation_append(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self.validate_cancellation_append(value, current)
+            result = self._read_output(value, 'cancellation_append', 'length', abi_family='submission')
+            self.validate_cancellation_append(value, current)
+            return result
+
+    def close_cancellation_append(self, value: _Output) -> bool:
+        return self._close_output(value, 'cancellation_append', 'close', abi_family='submission')
 
     def produce_submission_lookup(self, value: _Output, current: _Output) -> None:
         """Read only the original history in the same current Store snapshot."""

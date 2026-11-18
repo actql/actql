@@ -201,6 +201,7 @@ class InstalledLocalHost:
         # attempt cannot be reused as a transport retry or new acceptance.
         self._row_write_attempts: set[int] = set()
         self._pending_run_write: _Output | None = None
+        self._pending_cancellation_write: _Output | None = None
         self._step_outputs: list[_Output] = []
         self._step_write_attempts: set[int] = set()
         self._pending_start_write: _Output | None = None
@@ -377,6 +378,8 @@ class InstalledLocalHost:
                 raw = self._lookup_original_submission(body['submissionRef'])
             elif operation == 'lookup-cancellation':
                 raw = self._lookup_original_cancellation(body['ref'], body['cancelId'], body['expectedRevision'])
+            elif operation == 'cancel':
+                raw = self._cancel_original(body)
             elif operation == 'attach':
                 raw = self._attach_original_run(body['ref'])
             elif operation == 'submit-intent':
@@ -1126,9 +1129,96 @@ class InstalledLocalHost:
             raw = packets[0]
             if not wire.cancellation_lookup(_object(raw, 8192), selected):  # type: ignore[no-untyped-call]
                 raise ValueError('Invalid original Local cancellation lookup response')
+            pending = self._pending_cancellation_write
+            if pending is not None:
+                confirmed: list[bool] = []
+                installation.binding.inspect(lambda current: confirmed.append(
+                    self._core.confirm_cancellation_append(pending, current, allow_pending=True)))
+                if confirmed == [True]:
+                    if not self._close_projection(pending):
+                        raise LocalProductCleanupPending(self)
+                    self._pending_cancellation_write = None
             if not self._close_projection(output):
                 raise LocalProductCleanupPending(self)
             return raw
+
+    def _cancel_original(self, body: dict[str, Any]) -> bytes:
+        """Transport one Core cancellation candidate and observe its original.
+
+        The same current SQLite transaction reinspects the complete inventories
+        and publication fences before any write. A lost COMMIT reply keeps the
+        original projection and prevents another write attempt. Only an explicit
+        original lookup can retire that pending carrier; no resend is inferred.
+        This returns request admission only, never physical-stop/cleanup facts.
+        """
+        installation = self._active()
+        configuration, store = self._configuration, installation._store
+        captured = _object(wire_bytes(body), 8192)  # type: ignore[no-untyped-call]
+        if (configuration is None or store is None or installation._epoch is None
+                or not wire.valid_body('cancel', captured)  # type: ignore[no-untyped-call]
+                or captured['connection'] != _LOCAL_SELECTION):
+            raise ValueError('Invalid original Local cancellation operation')
+        with self._core._lock:
+            if self._pending_cancellation_write is not None:
+                raise LocalStorageError('Original cancellation requires lookup; another write is unavailable')
+            selection = {**captured['ref'], 'cancelId': captured['cancelId'],
+                         'expectedRevision': captured['expectedRevision'],
+                         'attemptId': captured['attemptRef']['attemptId']}
+            source = self._copy(wire_bytes(selection))  # type: ignore[no-untyped-call]
+            output = self._reserve(lambda: self._core.reserve_submission_projection(
+                configuration.handle, source, 10, cleanup=lambda: True))
+            self._projections.append(output)
+            self._append_sources[output.ticket] = source
+            packets: list[dict[str, Any]] = []
+
+            def prepare(current: _Output) -> None:
+                self._core.produce_cancellation_append(output, current)
+                packets.append(_object(self._core.read_cancellation_append(output, current), 1048576))
+
+            installation.binding.inspect(prepare)
+            packet = packets[0]
+            if (set(packet) != {'response', 'writes'} or type(packet['response']) is not str
+                    or type(packet['writes']) is not list or len(packet['writes']) > 4):
+                raise ValueError('Invalid original Core cancellation transport')
+            cancel_ref = {**captured['ref'], 'cancelId': captured['cancelId'],
+                          'expectedRevision': captured['expectedRevision']}
+            response = packet['response'].encode('utf-8')
+            if not wire.cancellation_attempt(_object(response, 8192), cancel_ref, captured['attemptRef']):  # type: ignore[no-untyped-call]
+                raise ValueError('Invalid original Core cancellation response')
+            writes: list[ByteWrite] = []
+            for row in packet['writes']:
+                if (type(row) is not dict or set(row) != {'namespace', 'key', 'revision', 'body'}
+                        or row['namespace'] not in ('client_runs', 'client_cancellations',
+                                                   'client_cancel_originals', 'client_cancel_custody')
+                        or type(row['key']) is not str or type(row['body']) is not str):
+                    raise ValueError('Invalid original Core cancellation row transport')
+                revision = row['revision']
+                if revision is not None and (type(revision) is not str
+                        or not revision.isascii() or not revision.isdecimal()
+                        or len(revision) > 19 or (len(revision) > 1 and revision.startswith('0'))
+                        or int(revision) >= 2**63 - 1):
+                    raise ValueError('Invalid original Core cancellation CAS generation')
+                payload = row['body'].encode('utf-8')
+                if not 0 < len(payload) <= 262144:
+                    raise ValueError('Invalid bounded Core cancellation row transport')
+                writes.append(ByteWrite(store.namespaced_key(row['namespace'], row['key']),
+                                        None if revision is None else int(revision), payload))
+            self._pending_cancellation_write = output
+            if writes:
+                with installation.binding.fenced() as fences:
+                    def inspect(reader: Any) -> None:
+                        installation.binding.inspect_reader(reader, lambda current:
+                            self._core.validate_cancellation_append(output, current))
+                    result = store.compare_exchange_many_inspected(tuple(writes), fences,
+                        inspect=inspect, current=installation.binding._current_observer)
+                if result is None:
+                    raise LocalStorageError('Original cancellation write conflicted; lookup is required')
+            installation.binding.inspect(lambda current:
+                self._core.confirm_cancellation_append(output, current))
+            if not self._close_projection(output):
+                raise LocalProductCleanupPending(self)
+            self._pending_cancellation_write = None
+            return response
 
     def _read_original_reference(self, reference: object, *, kind: int,
                                  intent: bytes | None = None, intent_cid: str | None = None) -> bytes:
@@ -1264,6 +1354,7 @@ class InstalledLocalHost:
     def _close_projection(self, output: _Output) -> bool:
         """Release only original transport loans after successful cleanup."""
         closed = (self._core.close_submission_append(output) if output.family == 'submission_append'
+                  else self._core.close_cancellation_append(output) if output.family == 'cancellation_append'
                   else self._core.close_submission_lookup(output) if output.family == 'submission_lookup'
                   else self._core.close_submission_projection(output))
         if not closed:
@@ -3397,6 +3488,8 @@ class InstalledLocalHost:
             for output in tuple(reversed(self._projections)):
                 if not self._close_projection(output):
                     return False
+                if self._pending_cancellation_write is output:
+                    self._pending_cancellation_write = None
             if self._configuration is not None:
                 if not self._runs.close_configuration(self._configuration):
                     return False

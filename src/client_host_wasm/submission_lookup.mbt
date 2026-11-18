@@ -22,7 +22,7 @@ fn submission_lookup_current(
     principal: configuration.tuple.principal,
     connection: configuration.tuple.connection,
     resource: "run",
-    operation: if record.kind == 11 {
+    operation: if record.kind == 10 || record.kind == 11 {
       "cancel"
     } else {
       "read"
@@ -93,11 +93,17 @@ fn observe_submission_lookup(
     record.kind == 6 ||
     record.kind == 7 ||
     record.kind == 8 ||
+    record.kind == 10 ||
     record.kind == 11 {
     guard @decode.closed_object(
         cursor,
         if record.kind == 6 {
           ["namespaceId", "authorityScopeCid", "runDefinitionCid", "resultName"]
+        } else if record.kind == 10 {
+          [
+            "namespaceId", "authorityScopeCid", "runDefinitionCid", "cancelId", "expectedRevision",
+            "attemptId",
+          ]
         } else if record.kind == 11 {
           [
             "namespaceId", "authorityScopeCid", "runDefinitionCid", "cancelId", "expectedRevision",

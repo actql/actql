@@ -735,7 +735,8 @@ class AsyncExecution:
         except ClientError as error:
             if isinstance(error, _ExchangeFailure) and not error.sent:
                 raise ClientError(error.code, cancel_ref=freeze(reference), attempt_ref=freeze(attempt)) from None
-            raise ClientError('CancellationUnknown', cancel_ref=freeze(reference), attempt_ref=freeze(attempt)) from None
+            raise ClientError('CancellationUnknown', cancel_ref=freeze(reference), attempt_ref=freeze(attempt),
+                              original_error=error) from None
         return Observation(value)
 
     def lookup_cancellation(self, reference):

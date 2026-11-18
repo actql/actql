@@ -318,6 +318,13 @@ pub fn validate_submission_append(
 ) -> Int {
   if selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
+    record.kind == 10 &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    configuration.host_current == Some(current) {
+    return validate_cancellation_append(value, record, configuration)
+  }
+  if selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
     record.kind == 9 &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     configuration.host_current == Some(current) {
