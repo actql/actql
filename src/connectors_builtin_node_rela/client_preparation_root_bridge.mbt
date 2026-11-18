@@ -1495,8 +1495,9 @@ pub fn client_program_prepare_request_program_module_body(
 }
 
 ///|
-/// Read only the original installed sequence refusal. Foreign/current/cleanup
-/// and all unclassified failures remain uncertain; no input is checked again.
+/// Read only the original installed or compiler sequence refusal.
+/// Foreign/current/cleanup and all unclassified failures remain uncertain;
+/// no input is checked again.
 #export_name("clientProgramRequestProgramModuleIssueCode")
 pub fn client_program_request_program_module_issue_code(
   result : Result[Unit, ClientRequestProgramModuleBridgeIssue],
@@ -1506,8 +1507,16 @@ pub fn client_program_request_program_module_issue_code(
       Some("source_free_capacity_exceeded")
     Err(Preparation(Installed(MetadataCapacityUnavailable))) =>
       Some("source_free_metadata_capacity_unavailable")
-    Err(Preparation(Installed(Sequence(ValuesFailure(_, ValuesLimit))))) =>
-      Some("values_profile_unsupported")
+    Err(Preparation(Installed(Sequence(ValuesFailure(_, ValuesLimit)))))
+    | Err(
+      Preparation(
+        Construction(
+          Graph(
+            Fragment(AoA(Pipeline(Sequence(ValuesFailure(_, ValuesLimit)))))
+          )
+        )
+      )
+    ) => Some("values_profile_unsupported")
     // The original error owner projects only its exact sequence-budget cause.
     // No caller reconstructs this read-only error or treats a current/foreign
     // or general construction failure as a known input refusal.

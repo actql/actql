@@ -3885,7 +3885,11 @@ The existing sequence constructor returns its original typed failure through
 the installed Plan constructor. A Values limit is not converted to `None` and
 then to a generic unsupported installation. Node projects only that original
 `Sequence(ValuesFailure(_, ValuesLimit))` into its existing implementation-limit
-refusal category. Foreign/current/resource/cleanup and other unclassified causes
+refusal category. The same exact cause can reach the pre-module compiler through
+`Construction(Graph(Fragment(AoA(Pipeline(Sequence(...))))))` when the installed
+Journal prepares the original explanation first. That path projects the same
+Values refusal without classifying other construction failures.
+Foreign/current/resource/cleanup and other unclassified causes
 remain uncertain. Projection performs no second input admission, sequence
 construction, public check or error-string classification. Existing Option-only
 consumers keep their own established interface; the normal Result path preserves
