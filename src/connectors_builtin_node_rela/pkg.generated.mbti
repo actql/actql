@@ -2769,6 +2769,10 @@ pub fn client_project_catalog_name(@run_publication_host.ClientProjectCatalog, I
 
 pub fn client_project_catalog_original_wire(@run_publication_host.ClientProjectCatalog) -> String
 
+pub fn client_project_catalog_relation_declaration_construction_capacity(@run_publication_host.ClientProjectCatalog, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_project_catalog_relation_declaration_input(@run_publication_host.ClientProjectCatalog, Int) -> Result[String, @client_row_source_host.RowHostIssue]
+
 pub fn client_project_configuration_admit(String) -> Result[@run_publication_host.ClientProjectConfiguration, @run_publication_host.ClientProjectConfigurationIssue]
 
 pub fn client_project_configuration_connectors_file(@run_publication_host.ClientProjectConfiguration) -> String?

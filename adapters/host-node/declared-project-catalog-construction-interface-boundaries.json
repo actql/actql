@@ -3,13 +3,14 @@
   "declarations": [
     {
       "module": "adapters/host-node/declared-project-catalog-construction.mjs",
-      "sha256": "6bf1b99288fecebb3c8b38e7b00477f6f4b9172f29a490d14523468f25dc5086",
+      "sha256": "b78dcdeba10881e6a32902b1628bec08566839df5e7aa3becbc4610a88381344",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
       "exports": [
         "declaredFileReadProfileBindingConstructionGeometry",
         "declaredProjectCatalogEntryConstructionGeometry",
+        "declaredProjectCatalogEntryHostConstructionGeometry",
         "declaredProjectCatalogEntryProjectionConstructionGeometry",
         "declaredProjectCatalogFileFactsConstructionGeometry",
         "declaredProjectCatalogFileFactsProjectionConstructionGeometry",
@@ -17,6 +18,7 @@
         "declaredProjectCatalogJsonParseConstructionGeometry",
         "declaredProjectCatalogMappingInputsConstructionGeometry",
         "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
+        "declaredProjectCatalogSavedInputArraysConstructionGeometry",
         "declaredProjectCatalogSavedInputConstructionGeometry",
         "declaredProjectCatalogScopeConstructionGeometry",
         "declaredProjectMockFootprintConstructionGeometry",
@@ -35,6 +37,13 @@
           "name": "declaredProjectCatalogEntryConstructionGeometry",
           "parameters": [
             "entryWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogEntryHostConstructionGeometry",
+          "parameters": [
+            "frozenEntry"
           ],
           "async": false
         },
@@ -94,6 +103,13 @@
           "parameters": [
             "entryWire",
             "overrideCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogSavedInputArraysConstructionGeometry",
+          "parameters": [
+            "frozenSavedViews"
           ],
           "async": false
         },
@@ -363,6 +379,78 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "test('plural Mock exact footprints retain one boundary and reject same-row aliases and duplicates'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "declaredProjectCatalogEntryHostConstructionGeometry",
+            "declaredProjectCatalogSavedInputArraysConstructionGeometry"
+          ],
+          "exports": [
+            "declaredProjectCatalogEntryHostConstructionGeometry",
+            "declaredProjectCatalogSavedInputArraysConstructionGeometry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }

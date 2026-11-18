@@ -271,6 +271,8 @@ pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappi
 
 pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]
 
+pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHostIssue]
+
 pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]
 
 pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]
@@ -292,6 +294,8 @@ pub fn relation_document_projection_contract(RowDeclaration, String, String, Row
 pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?
+
+pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?
 

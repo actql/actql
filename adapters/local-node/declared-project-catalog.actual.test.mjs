@@ -304,3 +304,18 @@ test('actual catalog refuses non-object alias requests before fixture access', a
     await f.rejects(catalog => {catalog.connections.drive.query_aliases[0].request = request;});
   }
 });
+
+test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read', () => {
+  const wire = '{"connections":{"original":{"views":[{"resource":"records","resource_kind":"record","schema":{"id":{"type":"string","nullable":false}}}],"query_aliases":[{"name":"records","resource":"records"}],"data":[{"resource":"records","items_path":["雪"],"key_path":["id"],"primary_identity":"id"}]}}}';
+  const catalog = checked(moon.clientProjectCatalogAdmit(wire));
+  const quantity = moon.clientProjectCatalogRelationDeclarationConstructionCapacity(catalog, 0);
+  assert.ok(quantity != null, 'actual observed constructor demand must exist before execution');
+  const projected = checked(moon.clientProjectCatalogRelationDeclarationInput(catalog, 0));
+  assert.equal(projected, '{"views":[{"resource":"records","resource_kind":"record","schema_cid":"sha256:b2022f831ddc08fb0cf0def00bf30679fd2f50e55b6928a42bc8555f016cb84b","schema_wire":"{\\"id\\":{\\"nullable\\":false,\\"type\\":\\"string\\"}}"}]}');
+  assert.equal(moon.clientProjectCatalogOriginalWire(catalog), wire);
+  assert.equal(moon.clientProjectCatalogEntryOriginalJson(catalog, 0), wire.slice(wire.indexOf('{"views"'), -2), 'the original entry span is retained, not regenerated');
+  for (const index of [-1, 1]) {
+    assert.equal(moon.clientProjectCatalogRelationDeclarationConstructionCapacity(catalog, index), undefined);
+    assert.throws(() => checked(moon.clientProjectCatalogRelationDeclarationInput(catalog, index)), commonRefusal);
+  }
+});

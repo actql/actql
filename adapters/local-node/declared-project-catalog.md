@@ -178,3 +178,29 @@ cleanup and NativeInput separation from final preparation. Their fixture quotes
 do not prove production quantity sufficiency. The geometry owner's tests cover
 the declared JS constructor recipes; full installed Source/Content/Effect,
 Account, cross-target and actual-package acceptance remain separate checks.
+
+## Common public-view projection
+
+After the original Project/connection selection and funded entry parse, Host
+validation retains alias/data/File/write structure. The original source member
+then reserves `clientProjectCatalogRelationDeclarationConstructionCapacity` for
+that SAME retained Catalog and exact index before invoking
+`clientProjectCatalogRelationDeclarationInput`. This calls the existing Common
+parser and mechanical projection, not a second schema interpreter or JS-to-Json
+cast. Its real `{wire}` return carrier is retained by the existing native-input
+owner. Missing ports/quantity and current loss remain explicit refusals.
+
+The returned wire is separately parsed/frozen because the existing full restore
+quote requires seven exact saved-string arrays, and File profiles later need
+those saved records. Their parse and array holders are charged before allocation.
+The wire itself goes directly into the initial restore without another canonical
+serialization. Later File facts, physical overrides, Mappings and final
+restoration retain their existing separate quantities and identities. Request
+creation, read authorization, actual bytes/chargePage, RelationDocument/RowRun
+admission and physical stop/retirement are unchanged by this metadata path.
+
+The new same-original bridge control in `declared-project-catalog.actual.test.mjs`
+requires a matching actual Common runtime. Staging controls in
+`declared-file-installation.test.mjs` exercise the real initialization owner with
+explicit semantic-port fixtures; they do not prove the Common ABI, numerical
+quantity sufficiency, physical File profiles or ordinary package acceptance.

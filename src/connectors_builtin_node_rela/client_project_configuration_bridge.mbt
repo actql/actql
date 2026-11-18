@@ -371,3 +371,16 @@ pub fn client_project_model_registry_provider_key_environment(
     None => None
   }
 }
+
+///|
+/// SAME retained catalogue and original entry index; never a JS object cast.
+#export_name("clientProjectCatalogRelationDeclarationInput")
+pub fn client_project_catalog_relation_declaration_input(
+  catalog : @publication_host.ClientProjectCatalog,
+  index : Int,
+) -> Result[String, @client_row_source_host.RowHostIssue] {
+  guard catalog.at(index) is Some((_, wire)) else {
+    return Err(@client_row_source_host.RowHostIssue::InvalidSpecification)
+  }
+  @client_row_source_host.project_relation_declaration_wire_input(wire)
+}

@@ -404,3 +404,40 @@ Reader combines one active request/frame peak with its still-live Host transport
 quantity, rather than summing unrelated per-source page attempts or dropping
 Host encoding. Native Options/tuples/Arrays use the actual canonical bridge;
 opaque quantities do not acquire record fields merely from numeric positions.
+
+### Original catalogue wire construction
+
+`project_relation_declaration_wire_input` adapts the same retained public entry
+wire through the existing Json parser to `project_relation_declaration_input`.
+The Node bridge obtains that wire from the same original `ClientProjectCatalog`
+and exact entry index; a JavaScript object is never cast to MoonBit Json.
+`relation_public_projection_construction_inventory` is a domain recipe for this
+fixed constructor, not another parser, tariff, Owner, capacity grant or policy.
+The caller must reserve it on its existing initialization parent before entry.
+
+The borrowed wire scan reports actual UTF8 bytes, UTF16 units U, conservative
+punctuation/escape nodes N and open-container depth D. Disjoint public body
+emissions are bounded by 6U+25N (JSON escapes and finite Double spelling).
+The returned wrapper includes those bodies escaped once more, original opaque
+keys/values, exact generated destination/CID spelling and original view slots.
+Its encoder ceilings derive from this observed geometry, including D+3, rather
+than importing a Native writer policy. Existing catalogue admission and later
+Relation restoration retain their own unchanged semantic limits.
+
+The recipe composes existing raw-Json, canonical forest, text-writer, checked
+collection/Map growth and representation arithmetic. It separately includes
+all per-body traversal/writer controls, projected Json wrappers, fixed SHA256
+state/word/block/digit/output arrays, UTF8 backing, digest, hex/CID Strings,
+final canonical tree/writer/output and one actual Host `{wire}` carrier.
+Data-key text is borrowed without NFC conversion. Conservative failure-prefix
+peaks are co-held; no previous reservation is refunded or treated as spare.
+This is logical representation funding, not a backend heap/RSS measurement.
+
+The Node loader still needs saved-view Strings for its existing restore quote's
+seven parallel arrays and for separately owned File-profile derivation. It funds
+that actual JS parse/freeze and the array holders separately. The exact returned
+wire is passed directly to the initial restore; it is not serialized again.
+The old JS schema/CID/canonical-body constructors are removed from this path's
+Host recipe, while alias/data/write/File checks and their holdings remain.
+Later native restores, Request/RowRun charge, Source evidence, currentness and
+physical cleanup keep their original owners and require their own backing.

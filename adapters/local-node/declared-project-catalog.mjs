@@ -8,7 +8,8 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {readBoundedConfigurationUtf8} from '../host-node/source-profile-json.mjs';
 import {declaredProjectCatalogJsonParseConstructionGeometry,
-  declaredProjectCatalogEntryProjectionConstructionGeometry,
+  declaredProjectCatalogEntryHostConstructionGeometry,
+  declaredProjectCatalogSavedInputArraysConstructionGeometry,
   declaredProjectCatalogSavedInputConstructionGeometry,
   declaredProjectCatalogScopeConstructionGeometry,
   declaredProjectCatalogFileFactsProjectionConstructionGeometry,
@@ -76,6 +77,8 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
   }
   const methods = Object.fromEntries(['clientProjectCatalogAdmit', 'clientProjectCatalogCount',
     'clientProjectCatalogName', 'clientProjectCatalogEntryOriginalJson',
+    'clientProjectCatalogRelationDeclarationInput',
+    'clientProjectCatalogRelationDeclarationConstructionCapacity',
     'clientProjectConnectionsCount', 'clientProjectConnectionsName', 'clientProjectConnectionsConnector',
     'clientProgramRowSourceRestoreRelationDeclaration', 'clientProgramRowSourceDeclarationJson',
     ...(installationInventory === undefined ? ['clientProgramRelationUpdateMapping'] :
@@ -104,7 +107,7 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
   };
   // Called only inside a funded JS stage. These are the actual original
   // Strings and parallel arrays consumed by the one native restore quote.
-  const savedInput = selected => Object.freeze({wire: wire({views: selected}),
+  const savedInput = (selected, originalWire) => Object.freeze({wire: originalWire ?? wire({views: selected}),
     resources: selected.map(view => view.resource), kinds: selected.map(view => view.resource_kind),
     schemas: selected.map(view => view.schema_wire), requests: selected.map(view => view.request_schema_wire),
     facts: selected.map(view => view.facts_wire), acquisitions: selected.map(view => view.acquisition_wire),
@@ -179,25 +182,18 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
       () => declaredProjectCatalogJsonParseConstructionGeometry(entryWire),
       () => Object.freeze({entry: freeze(JSON.parse(entryWire))}));
     const selected = inputStage(sourceMember,
-      () => declaredProjectCatalogEntryProjectionConstructionGeometry(parsed.entry), () => {
+      () => declaredProjectCatalogEntryHostConstructionGeometry(parsed.entry), () => {
       const entry = parsed.entry;
       if (!closed(entry, ['views', 'query_aliases', 'data'], ['writes', 'file_bindings']) ||
           !list(entry.views) || entry.views.length === 0 || !list(entry.query_aliases) ||
           !list(entry.data) || !list(entry.writes ?? []) || !list(entry.file_bindings ?? [])) invalid();
-      const views = [], publicViews = new Map();
+      const publicViews = new Map();
       for (const view of entry.views) {
         if (!closed(view, ['resource', 'resource_kind', 'schema'],
           ['request_schema', 'facts', 'acquisition', 'resource_identity', 'data_classification']) ||
             !text(view.resource) || !text(view.resource_kind) || !object(view.schema) ||
             publicViews.has(view.resource)) invalid();
-        const schemaWire = wire(view.schema);
-        const saved = {resource: view.resource, resource_kind: view.resource_kind,
-          schema_wire: schemaWire, schema_cid: cid(view.schema)};
-        for (const name of ['request_schema', 'facts', 'acquisition', 'resource_identity']) {
-          if (Object.hasOwn(view, name)) saved[name + '_wire'] = wire(view[name]);
-        }
-        if (Object.hasOwn(view, 'data_classification')) saved.data_classification = view.data_classification;
-        views.push(saved); publicViews.set(view.resource, view);
+        publicViews.set(view.resource, view);
       }
       const queryAliases = entry.query_aliases.map(alias => {
         if (!closed(alias, ['name', 'resource'], ['request']) ||
@@ -252,18 +248,33 @@ async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
       for (const alias of spec.aliases) {if (updates.has(alias)) invalid(); updates.add(alias);}
       writeSpecs.push(spec);
     }
-    return Object.freeze({entry, views: freeze(views), publicViews, queryAliases,
+    return Object.freeze({entry, publicViews, queryAliases,
       data, fileBindings, writeSpecs});
     });
-    const {entry, views, publicViews, queryAliases, data, fileBindings, writeSpecs} = selected;
+    const {entry, publicViews, queryAliases, data, fileBindings, writeSpecs} = selected;
+    const projection = Object.freeze({capacity() {
+      const quantity = call('clientProjectCatalogRelationDeclarationConstructionCapacity', original, index);
+      if (quantity == null) fail('InstalledSourceDeclarationCapacityUnavailable');
+      return quantity;
+    }, project() {
+      return Object.freeze({wire: checked(call('clientProjectCatalogRelationDeclarationInput', original, index))});
+    }});
+    const {wire: projectedWire} = installationInventory === undefined ? projection.project()
+      : sourceMember.prepareNativeInput(projection);
+    // Existing restore geometry requires exact parallel Strings, and File
+    // profile derivation uses saved view descriptors. This conversion is real,
+    // separately funded and retained; never cast a JS object into MoonBit Json.
+    const {views} = inputStage(sourceMember,
+      () => declaredProjectCatalogJsonParseConstructionGeometry(projectedWire),
+      () => Object.freeze({views: freeze(JSON.parse(projectedWire).views)}));
     const dataPath = resolve(directory, dataFile);
     const {scopeCid} = inputStage(sourceMember,
       () => declaredProjectCatalogScopeConstructionGeometry(connection, provider, dataPath, originalWire),
       () => Object.freeze({scopeCid: cid({connection, connector: provider, dataPath, catalog: originalWire})}));
     let finalViews = views;
     let finalInput = inputStage(sourceMember,
-      () => declaredProjectCatalogSavedInputConstructionGeometry(finalViews),
-      () => savedInput(finalViews));
+      () => declaredProjectCatalogSavedInputArraysConstructionGeometry(finalViews),
+      () => savedInput(finalViews, projectedWire));
     if (fileBindings.length) {
       const initialDeclaration = restoreInput(sourceMember, connectorId, registration, revision, finalInput);
       const {initial} = inputStage(sourceMember,

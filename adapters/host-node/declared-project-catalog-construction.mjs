@@ -627,6 +627,32 @@ export function declaredProjectCatalogEntryProjectionConstructionGeometry(frozen
   }, {views: count, savedBodyUnits: bodyUnits});
 }
 
+/** Host catalogue validation and physical/alias descriptors only. The new
+ * Common projector owns every schema/CID/body wire. Original parsed subtrees
+ * remain borrowed from the separately funded JSON parse; no saved-view body
+ * or old JS canonical/hash constructor is claimed as still live here. */
+export function declaredProjectCatalogEntryHostConstructionGeometry(frozenEntry) {
+  const input = immutableJsonShape(frozenEntry);
+  const raw = frozenEntry !== null && typeof frozenEntry === 'object'
+    ? ownData(frozenEntry, 'views') : undefined;
+  const count = Array.isArray(raw) && raw.length <= 128 ? BigInt(raw.length) : 0n;
+  const retained = {nodes: 12n + 5n * input.nodes + count, text: 0n, wire: 0n};
+  return stage(retained, {
+    // Object.keys/closed vocabularies, alias/data/write spreads, duplicate
+    // Sets, publicViews Map and recursive freezing of these bounded outputs.
+    nodes: 20n * input.nodes + 40n * count + 3n * retained.nodes + 16n,
+    text: 0n, wire: 0n,
+  }, {views: count});
+}
+
+/** The exact already-returned Common wire is borrowed. This stage allocates
+ * only the seven restore argument arrays, wrapper and freeze traversal. */
+export function declaredProjectCatalogSavedInputArraysConstructionGeometry(frozenSavedViews) {
+  const views = immutableList(frozenSavedViews), count = BigInt(views.length);
+  const retained = {nodes: 10n + 7n * (1n + count), text: 0n, wire: 0n};
+  return stage(retained, {nodes: 3n * retained.nodes + 8n, text: 0n, wire: 0n}, {views: count});
+}
+
 /** Exact already-owned detached Strings, no re-escaping bound from an earlier
  * unparsed body. Funds canonical {views}, seven native argument arrays, their
  * wrapper and freeze traversal. Call separately for initial/final inputs. */

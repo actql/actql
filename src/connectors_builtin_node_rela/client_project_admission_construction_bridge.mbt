@@ -44,3 +44,18 @@ pub fn client_project_connections_admission_construction_capacity(
     ),
   )
 }
+
+///|
+/// Quote the SAME catalogue entry before its parser/projector is invoked.
+#export_name("clientProjectCatalogRelationDeclarationConstructionCapacity")
+pub fn client_project_catalog_relation_declaration_construction_capacity(
+  catalog : @publication_host.ClientProjectCatalog,
+  index : Int,
+) -> @execution.ExecutionCapacity? {
+  guard catalog.at(index) is Some((_, wire)) else { return None }
+  client_project_admission_capacity(
+    @client_row_source_host.relation_public_projection_construction_inventory(
+      wire,
+    ),
+  )
+}

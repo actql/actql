@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "42f5ab7aaf216d076ba55f4204616e75ff045651f9a26f7fb239b53169a674ac",
+      "sha256": "3f9816825560c5ea2810a4bf373742c6738f11f3d647aa0181183972912332c3",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -485,6 +485,7 @@
         "pub fn prepare_row_source_cursor_progress(Int, Int, Int, Int) -> Result[RowSourceCursorProgress, RowSourceCursorIssue]",
         "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]",
+        "pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHostIssue]",
         "pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]",
         "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
@@ -496,6 +497,7 @@
         "pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]",
         "pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?",
+        "pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_target_before(RelationTargetRow) -> String?",
         "pub fn relation_target_row_count(RelationTargetDocument) -> Int?",
@@ -1125,6 +1127,10 @@
           "declaration": "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]"
         },
         {
+          "name": "project_relation_declaration_wire_input",
+          "declaration": "pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHostIssue]"
+        },
+        {
           "name": "project_relation_target_document",
           "declaration": "pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]"
         },
@@ -1167,6 +1173,10 @@
         {
           "name": "relation_document_usage",
           "declaration": "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?"
+        },
+        {
+          "name": "relation_public_projection_construction_inventory",
+          "declaration": "pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?"
         },
         {
           "name": "relation_restore_construction_inventory",
@@ -5560,6 +5570,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "project_relation_declaration_wire_input",
+            "relation_public_projection_construction_inventory"
+          ],
+          "exports": [
+            "pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHostIssue]",
+            "pub fn relation_public_projection_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue wire construction grows SAME original before constructors with exact and one short bounds\""
+              }
+            ]
+          }
         }
       ]
     },
@@ -7776,6 +7858,173 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/project_relation_declaration_construction.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "c479f465aef2c90d3bb1b11dea211b398d62cbb9c7fd39856494a43707969086",
+      "role": "common-semantics",
+      "owner": "Existing Common original row declaration and construction representation Owner; not authority or physical admission",
+      "exports": [],
+      "operations": [
+        {
+          "name": "project_relation_declaration_wire_input",
+          "declaration": "project_relation_declaration_wire_input ( wire : String , ) - > Result [ String , RowHostIssue ]"
+        },
+        {
+          "name": "relation_public_projection_canonical",
+          "declaration": "relation_public_projection_canonical ( nodes : Int , frames : Int , calls : Int64 , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_public_projection_construction_inventory",
+          "declaration": "relation_public_projection_construction_inventory ( wire : String , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_public_projection_geometry",
+          "declaration": "relation_public_projection_geometry ( wire : String , ) - > RelationPublicProjectionGeometry ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue wire construction grows SAME original before constructors with exact and one short bounds\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "project_relation_declaration_wire_input",
+            "relation_public_projection_canonical",
+            "relation_public_projection_construction_inventory",
+            "relation_public_projection_geometry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Original catalogue wire construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_construction_wbtest.mbt",
+                "anchor": "test \"public catalogue wire construction grows SAME original before constructors with exact and one short bounds\""
               }
             ]
           }
