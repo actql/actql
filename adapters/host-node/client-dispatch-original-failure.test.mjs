@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {pathToFileURL} from 'node:url';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
-import {CapturedRunPublicationError} from './entry.mjs';
+import {CapturedRunPublicationError, CapturedRunExecutionError} from './entry.mjs';
 import {beginManagedFailureProgress, settleFailedManagedOperations} from '../host-common/managed-failure.mjs';
 
 // The selected immutable runtime supplies only the existing pure progress
@@ -91,4 +91,60 @@ test('original failure site reads one inert association without invoking or trav
     assert.equal((await observe(primary)).primaryDiagnostic, undefined);
   }
   assert.equal(reads, 0);
+});
+
+
+test('original failure site reaches the ordinary start catch with the same execution owner', async () => {
+  const primary = failure(), managed = await managedFailure(primary);
+  const records = [], stopped = [];
+  const prepared = {}, request = {}, setup = {};
+  const ref = {runDefinitionCid: 'ordinary-start-original-failure'};
+  const definition = {wire: 'same-original-definition'};
+  const row = {cancellationRequested: false, revision: 1, runDefinition: definition};
+  let closes = 0, cleanups = 0, starts = 0, finished = 0;
+  const execution = {failure: managed, async close() {closes++;},
+    cleanup() {cleanups++; return true;}, cleanupPending: () => false};
+  const publication = new CapturedRunExecutionError(execution);
+  const owner = installNodeClientDispatchOwner({
+    moon: {clientProgramRequiresAcquisitionResultPublication: value => {
+      assert.equal(value, prepared); return false;
+    }, clientProgramOpenSourceFreeLocalHost: value => {
+      assert.equal(value, prepared); return setup;
+    }},
+    observed(name, detail) {if (name === 'dispatch_failed') records.push(detail);},
+    control: {runDefinitionRunId: () => 'original-run', runCancellationConfirmed: () => false},
+    journal: {reservePhysicalStart: value => {assert.equal(value, request); return true;},
+      lookupRunDefinition: value => {assert.equal(value, ref); return row;},
+      lookupReconciliationState: () => undefined,
+      markPhysicalClose(value, outcome, original) {
+        assert.equal(value, ref); assert.equal(original, row); stopped.push(outcome);
+      }},
+    store: {confirmCommittedIndex: async () => undefined},
+    startRun: async ({identity}) => {
+      assert.equal(identity, request); starts++; return {kind: 'reserved', ref};
+    },
+    hostConnection: () => true, planFor: () => ({kind: 'pure'}),
+    // Explicit physical execution port, not another compiler or Run issuer.
+    async runPublished(originalSetup, _publication, _options, _signal, _observer, retain) {
+      assert.equal(originalSetup, setup); retain(execution); throw publication;
+    },
+  });
+  assert.equal(await owner.start({preparedProgram: prepared, principalId: 'owner',
+    connection: {}, requestId: 'original-request'}, request, {ref, runDefinition: definition,
+    dispatchReserved: false, cancellationRequested: false}, {}, () => {finished++;}), 'started');
+  await owner.drain();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(starts, 1); assert.equal(finished, 1);
+  assert.equal(closes, 1); assert.equal(cleanups, 1);
+  assert.deepEqual(stopped, ['failed']);
+  assert.equal(owner.operation(ref), undefined);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].code, 'CapturedRunExecutionFailed');
+  assert.equal(records[0].primaryCode, primary.code);
+  assert.equal(publication.execution, execution);
+  assert.equal(publication.primaryFailure, managed);
+  assert.equal(managed.primaryFailure, primary);
+  assert.match(records[0].primaryDiagnostic.message,
+    /^adapters\/host-node\/client-dispatch-original-failure\.test\.mjs:\d+:\d+/u);
+  assert.equal(records[0].primaryDiagnostic.message.includes('managed-failure.mjs'), false);
 });
