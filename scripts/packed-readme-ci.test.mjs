@@ -1612,6 +1612,8 @@ test('normal Effect driver selects each fresh two-Model capture and public contr
       const capture = args[1] === 'capture', publication = mode === 'publication-io-failure';
       calls.push([mode, publication ? 'publication-failure' : capture ? 'capture' : 'control']);
       assert.equal((await readFile(join(options.cwd, 'capture-original.mjs'), 'utf8')), workflowSource);
+      assert.equal(await readFile(join(options.cwd, 'mock-project-effect-protocol.fixture.mjs'), 'utf8'),
+        await readFile(join(repository, 'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs'), 'utf8'));
       if (capture) {
         assert.deepEqual(args.slice(1), ['capture', join(options.cwd, 'handoff.json'), 'deal-review-mock', 'two-models', 'original-run-control']);
         assert.equal(JSON.parse(await readFile(join(options.cwd, 'model-tasks.json'), 'utf8')).tasks['model-task:deal-review-confirm.v1'],

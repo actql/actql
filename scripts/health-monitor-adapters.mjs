@@ -24,6 +24,7 @@ export const healthFixtures = Object.freeze({
   status: {status: 'succeeded', revision: 'same original observed revision'},
   workflow: 'adapters/host-node/fixtures/mock-project-effect-public.mjs',
   workObservation: 'adapters/host-node/fixtures/work-observation.fixture.mjs',
+  workflowProtocol: 'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs',
 });
 
 export async function execute(command, args, {cwd, raw, name, timeout = 600_000, env = process.env, observeFirstResult = false} = {}) {
@@ -368,6 +369,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     ['two-models', 'two-models-whole', 'two-models-joined-inputs', 'two-models-joined-whole'].includes(variant) && template === 'deal-review-mock');
   const fixture = await readFile(join(repository, healthFixtures.workflow));
   const workFixture = await readFile(join(repository, healthFixtures.workObservation));
+  const protocolFixture = await readFile(join(repository, healthFixtures.workflowProtocol));
   const multipleTargetFixture = multipleTargets ? await readFile(join(repository,
     'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs')) : undefined;
   const files = multipleTargets ? multipleTargetMockProjectFiles()
@@ -384,7 +386,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
   assert(recoveryInputs.every(path => Object.hasOwn(files, path)));
   assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
   const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
-    unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), workObservation: digest(workFixture),
+    unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), workObservation: digest(workFixture), workflowProtocol: digest(protocolFixture),
       ...(multipleTargetFixture === undefined ? {} : {multipleTargetFixture: digest(multipleTargetFixture)}), files}),
     template, variant, samples: [], evidence: root};
   for (let iteration = 0; iteration < counts.coldSamples; iteration++) {
@@ -399,6 +401,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     })));
     await writeFile(join(project, 'workflow.mjs'), fixture, {flag: 'wx'});
     await writeFile(join(project, 'work-observation.fixture.mjs'), workFixture, {flag: 'wx'});
+    await writeFile(join(project, 'mock-project-effect-protocol.fixture.mjs'), protocolFixture, {flag: 'wx'});
     if (multipleTargetFixture !== undefined) {
       await writeFile(join(project, 'mock-multiple-targets.fixture.mjs'), multipleTargetFixture, {flag: 'wx'});
     }

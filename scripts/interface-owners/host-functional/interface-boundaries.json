@@ -113751,7 +113751,7 @@
                 "anchor": "test('Mock target authorization refusal opens no FD and never changes the file'"
               },
               {
-                "path": "adapters/host-node/fixtures/mock-project-effect-public.mjs",
+                "path": "adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs",
                 "anchor": "function checkReview(review, summary, ref) {"
               },
               {
@@ -113927,7 +113927,7 @@
                 "anchor": "test('Mock target authorization refusal opens no FD and never changes the file'"
               },
               {
-                "path": "adapters/host-node/fixtures/mock-project-effect-public.mjs",
+                "path": "adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs",
                 "anchor": "function checkReview(review, summary, ref) {"
               },
               {

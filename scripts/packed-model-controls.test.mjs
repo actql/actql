@@ -40,6 +40,8 @@ async function fixture(t) {
     assert.equal(Object.keys(registry.tasks).length, 129);
     assert.equal(await readFile(join(options.cwd, 'workflow-original.mjs'), 'utf8'),
       await readFile(join(repository, 'adapters/host-node/fixtures/mock-project-effect-public.mjs'), 'utf8'));
+    assert.equal(await readFile(join(options.cwd, 'mock-project-effect-protocol.fixture.mjs'), 'utf8'),
+      await readFile(join(repository, 'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs'), 'utf8'));
     if (phase !== 'budget') {
       assert.deepEqual(args.slice(2), [join(options.cwd, 'handoff.json'), 'deal-review-mock', 'two-models']);
       for (const path of ['deal-review.program.json', 'mock/deal-review.v1.answers.yaml', 'mock/deal-review-confirm.v1.answers.yaml']) {

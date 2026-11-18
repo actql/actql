@@ -7,8 +7,8 @@ import {DatabaseSync} from 'node:sqlite';
 import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {workflowWorkObservation, workflowObservationComplete} from './fixtures/work-observation.fixture.mjs';
-import {multipleTargetMockProjectFiles, checkMultipleTargetMockRows, checkMultipleTargetMockReview,
-  multipleTargetMockExpectedBytes, multipleTargetMockWriteCount} from './fixtures/mock-multiple-targets.fixture.mjs';
+import {mockProjectWorkflowChecks, startMockProjectSource} from './fixtures/mock-project-effect-protocol.fixture.mjs';
+import {multipleTargetMockProjectFiles, multipleTargetMockExpectedBytes, multipleTargetMockWriteCount} from './fixtures/mock-multiple-targets.fixture.mjs';
 
 test('plural Mock fixture authors one document and two exact same-Run UPDATE members without a Model',()=>{
   const files=multipleTargetMockProjectFiles(),config=JSON.parse(files['actql.config.json']);
@@ -43,13 +43,21 @@ test('plural Mock fixture byte oracle preserves both control rows and rejects a 
   assert.throws(()=>multipleTargetMockExpectedBytes(before.replace('keep-contact','foreign-change')));
 });
 
-test('plural Mock fixture oracles require both exact logical targets rather than one successful member',()=>{
+test('plural Mock fixture oracles require both exact logical targets rather than one successful member',async()=>{
   // Public projection DATA only: these oracles issue no actual Review, Run,
   // checkpoint, authorization, claim, version or physical cleanup receipt.
+  const checks=await mockProjectWorkflowChecks({template:'churn-risk-mock',variant:'multiple-targets'});
   const rows=[{account_id:'a1',contact_id:'c1',account_before:'A-old',contact_before:'C-old',
     account_next:'A-new',contact_next:'C-new'}];
-  checkMultipleTargetMockRows(rows);assert.throws(()=>checkMultipleTargetMockRows([]));
-  const review={displayed_scope:{effects:[
+  checks.checkRows(rows);assert.throws(()=>checks.checkRows([]));
+  const cid=letter=>'sha256:'+letter.repeat(64);
+  const summary={reviewProjectionCid:cid('a'),requiredArtifact:{cid:cid('b')},requirements:[]};
+  const ref={authorityScopeCid:cid('c')};
+  const review={version:'actql-review-projection/0.1',review_projection_cid:cid('a'),
+    effect_preview_cid:cid('b'),authority_scope_cid:cid('c'),approval_claims:[],
+    authoring_context_cid:cid('d'),redaction_policy_cid:cid('e'),sensitivity:'restricted',
+    retention_class:'approval-evidence',encryption_required:true,displayed_authoring_context:{},
+    displayed_permissions:[],displayed_scope:{effects:[
     {kind:'update',target:'connector://salesforce/Contact',count:1},
     {kind:'update',target:'connector://salesforce/Account',count:1}]},displayed_rows:[
     ['a1','A-old','A-new'],['c1','C-old','C-new']].map(([id,prior,next])=>({target_row_identity:id,
@@ -57,11 +65,11 @@ test('plural Mock fixture oracles require both exact logical targets rather than
       target_guard:{state:'version',version_cid:'sha256:'+'b'.repeat(64)},
       before:{state:'present',value:{group:'selected',id,value:prior}},
       intended_changes:{state:'present',value:{value:next}},after:{state:'present',value:{value:next}}}))};
-  checkMultipleTargetMockReview(review);
+  checks.checkReview(review,summary,ref);
   const missing=structuredClone(review);missing.displayed_scope.effects.pop();
-  assert.throws(()=>checkMultipleTargetMockReview(missing));
+  assert.throws(()=>checks.checkReview(missing,summary,ref));
   const foreign=structuredClone(review);foreign.displayed_rows[1].before.value.id='a1';
-  assert.throws(()=>checkMultipleTargetMockReview(foreign));
+  assert.throws(()=>checks.checkReview(foreign,summary,ref));
 });
 
 // Execute the fixture's actual capture branch with explicit SDK/filesystem
@@ -397,7 +405,7 @@ function capture({saveFailure, state = {status: 'failed', terminal_error: {code:
       saved = value;
     },
   };
-  const make = new Function('ports', 'assert', `
+  const make = new Function('ports', 'assert', 'startMockProjectSource', `
     const {client,targetState,readFile,save,console}=ports;
     const phase='capture',twoModels=false,dealReview=false,handoffPath='fixture-handoff';
     const template='churn-risk-mock',variant='readme';
@@ -408,7 +416,7 @@ function capture({saveFailure, state = {status: 'failed', terminal_error: {code:
       return {cause,firstFailedStep,runObservation};
     }};
   `);
-  return {invoke: make(ports, assert), events, saved: () => saved, originalRef};
+  return {invoke: make(ports, assert, startMockProjectSource), events, saved: () => saved, originalRef};
 }
 
 test('actual capture retains the original accepted reference before its first failed wait', async () => {
