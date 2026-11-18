@@ -20,7 +20,7 @@ const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', impor
 const original = JSON.parse(readFileSync(new URL('./fixtures/ci-native-obligations.json', import.meta.url), 'utf8'));
 const background = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url)));
 
-test('Darwin Core starts from selected targets while Python retains its original lint and JS boundary', () => {
+test('Darwin Core and Python start from admitted selection without waiting for unrelated lint or JS execution', () => {
   const js = workflow.jobs['core-js'], common = workflow.jobs['core-common'], darwin = workflow.jobs['core-darwin'];
   assert(js, 'The existing JS row needs its own status boundary');
   assert.deepEqual(js.needs, ['select-targets']);
@@ -30,7 +30,7 @@ test('Darwin Core starts from selected targets while Python retains its original
   assert(darwin.strategy['max-parallel'] > 0 && darwin.strategy['max-parallel'] < 5,
     'Core must leave a macOS runner for independent physical workloads');
   assert.deepEqual(darwin.needs, ['select-targets']);
-  assert.deepEqual(workflow.jobs['python-wheels'].needs, ['select-targets', 'lint', 'core-js']);
+  assert.deepEqual(workflow.jobs['python-wheels'].needs, ['select-targets']);
   assert.deepEqual(workflow.jobs['native-macos-workloads'].needs, ['select-targets']);
   const evaluate = (job, targets, lint, result, stopped = false, profile = 'full', selection = {result: 'success'}) =>
     runInNewContext(job.if.slice(3, -2).replaceAll('needs.select-targets', "needs['select-targets']")
@@ -56,27 +56,27 @@ test('Darwin Core starts from selected targets while Python retains its original
     assert.deepEqual(actual.map(row => JSON.stringify(row)).sort(), expected.map(row => JSON.stringify(row)).sort());
     for (const lint of ['success', 'failure', 'cancelled', 'skipped', undefined])
       for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) for (const stopped of [false, true]) {
-        const admitted = !stopped && lint === 'success' && result === (targets.includes('js') ? 'success' : 'skipped');
         assert.equal(evaluate(darwin, targets, lint, result, stopped), !stopped && targets.includes('native'));
-        assert.equal(evaluate(workflow.jobs['python-wheels'], targets, lint, result, stopped), admitted);
+        assert.equal(evaluate(workflow.jobs['python-wheels'], targets, lint, result, stopped), !stopped);
       }
   }
   for (const selection of ['failure', 'cancelled', 'skipped', undefined]) {
     assert.equal(evaluate(darwin, ['js', 'wasm', 'native'], undefined, undefined, false, 'full', {result: selection}), false);
+    assert.equal(evaluate(workflow.jobs['python-wheels'], ['js', 'wasm', 'native'], undefined, undefined, false, 'full', {result: selection}), false);
   }
   for (const profile of ['draft', 'draft-focused', 'focused-tests', 'maintenance', '']) {
     assert.equal(evaluate(darwin, ['native'], undefined, undefined, false, profile), false);
   }
   assert(!darwin.if.includes('needs.lint') && !darwin.if.includes('needs.core-js'));
-  // Targeted Draft wheel acceptance does not select full Core. Its absent JS
-  // row is legitimate only when the original full-only predicate omits it.
+  // Targeted Draft wheel acceptance follows its admitted explicit selection;
+  // it does not need a full Core row or an unrelated lint execution result.
   for (const profile of ['draft', 'draft-focused']) for (const lint of ['success', 'failure', 'cancelled', 'skipped', undefined])
     for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) for (const stopped of [false, true]) {
       assert.equal(evaluate(js, ['js'], lint, result, stopped, profile), false);
       assert.equal(evaluate(common, ['js'], lint, result, stopped, profile), false);
       assert.equal(evaluate(darwin, ['js'], lint, result, stopped, profile), false);
       assert.equal(evaluate(workflow.jobs['python-wheels'], ['js'], lint, result, stopped, profile),
-        !stopped && lint === 'success' && result === 'skipped');
+        !stopped);
     }
 });
 
