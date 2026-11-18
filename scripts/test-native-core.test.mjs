@@ -17,6 +17,7 @@ import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {failedCoreDriver, diagnoseFailedCoreDriver} from './native-compiler-stop-diagnostic.mjs';
 import {runFocusedTests} from './test-execution.mjs';
+import {classifyMoon} from './local-checks-policy.mjs';
 import {nativeCorePartitionProfiles, selectNativeCoreTestProfiles} from './native-core-test-selection.mjs';
 // This file is selected by the canonical CI lint job. Keep the Native fixture
 // and compiler/linker regressions on that existing execution path.
@@ -972,6 +973,55 @@ test('Native Core retains admitted Darwin profiles and selects Linux for common 
   assert.doesNotMatch(coreStep.run, /ACTQL_TEST_NATIVE_SQLITE_LIBRARY/u);
 });
 
+// Classify the actual command ports by required target/profile/case rather
+// than pinning how many physical invocations an earlier workflow happened to use.
+function coreInvocationRoles(records, target) {
+  const wasmCases = ['saved_lookup_validation_dispatch_wbtest.mbt',
+    'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt'];
+  const roles = records.map(({command, args}) => {
+    if (command === 'moon') {
+      assert.equal(args[0], 'test');
+      assert.equal(args[args.indexOf('--target') + 1], target);
+      assert(args.includes('--deny-warn'));
+      if (!args.includes('--build-only')) return 'portable-suite';
+      assert.equal(target, 'wasm');
+      assert(args.includes('--release') && args.includes('src/client_host_wasm'));
+      return 'wasm-counter-build';
+    }
+    assert.equal(command, 'node');
+    if (args[0] === 'scripts/test-native-core.mjs') {
+      assert.equal(target, 'native');
+      assert(args.includes('--deny-warn'));
+      if (!args.includes('--release')) {
+        assert.equal(args[args.indexOf('-p') + 1], 'platform_native/trusted_clock');
+        assert(!args.includes('--strip'));
+        return 'native-prerequisite';
+      }
+      for (const flag of ['--strip', '--no-parallelize', '--verbose']) assert(args.includes(flag));
+      assert.equal(args[args.indexOf('-j') + 1], '2');
+      assert.equal(classifyMoon('test', args.slice(1)).classification, 'full');
+      assert(!args.slice(1).some(value => /^(?:--(?:target|filter|index|doc-index)|-[fi])(?:=|$)/u.test(value)),
+        'The full Native profile cannot select another target or a case filter');
+      return 'native-full';
+    }
+    assert.equal(target, 'wasm');
+    assert.equal(args[0], 'scripts/test-python-local-metadata-wasm.mjs');
+    assert.equal(args[1], '_build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm');
+    assert.equal(args[2], '_build/wasm/release/test/client_host_wasm/__whitebox_test_info.json');
+    assert(wasmCases.includes(args[3]));
+    return args[3];
+  });
+  const expected = target === 'native' ? ['native-prerequisite', 'native-full'] :
+    ['portable-suite', ...(target === 'wasm' ? ['wasm-counter-build', ...wasmCases] : [])];
+  assert.deepEqual([...roles].sort(), expected.sort(), 'Missing, duplicate or foreign Core obligation');
+  if (target === 'native') assert(roles.indexOf('native-prerequisite') < roles.indexOf('native-full'));
+  if (target === 'wasm') {
+    assert(roles.indexOf('portable-suite') < roles.indexOf('wasm-counter-build'));
+    for (const file of wasmCases) assert(roles.indexOf('wasm-counter-build') < roles.indexOf(file));
+  }
+  return roles;
+}
+
 test('common Core stack prerequisite is confined to Linux Native children', t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-native-stack-scope-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
@@ -980,7 +1030,11 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
   // Observe the real shell limits without launching another Core campaign.
   for (const name of ['node', 'moon']) {
     const command = join(bin, name);
-    writeFileSync(command, '#!/bin/sh\nprintf "%s:%s\\n" "$(ulimit -S -s)" "$(ulimit -H -s)"\n');
+    const node = "'" + process.execPath.replaceAll("'", "'\\''") + "'";
+    writeFileSync(command, '#!/bin/sh\n' +
+      'ACTQL_FIXTURE_STACK="$(ulimit -S -s):$(ulimit -H -s)" ' + node +
+      " -e 'console.log(JSON.stringify({command:process.argv[1],args:process.argv.slice(2),stack:process.env.ACTQL_FIXTURE_STACK}));' " +
+      name + ' "$@"\n');
     chmodSync(command, 0o755);
   }
   for (const target of ['js', 'wasm', 'native']) {
@@ -990,21 +1044,18 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
     assert.equal(hardLimit.status, 0, hardLimit.stderr);
     const script = 'ulimit -S -s 8192\n' +
       coreStep.run.replaceAll('${{ matrix.target }}', target)
-        .replaceAll('${{ matrix.partition }}', '1/4')
+        .replaceAll('${{ matrix.partition }}', '')
         .replaceAll('${{ needs.select-targets.outputs.moon_test_selection }}', 'false');
     const result = spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
       cwd: root, encoding: 'utf8', timeout: 5000,
-      env: {...process.env, PATH: bin + ':' + process.env.PATH},
+      env: {...process.env, PATH: bin + ':' + process.env.PATH, CI_PLAN: '', CI_PLAN_PATH: ''},
     });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.signal, null);
-    const observed = result.stdout.trim().split('\n');
+    const observed = result.stdout.trim().split('\n').map(line => JSON.parse(line));
+    coreInvocationRoles(observed, target);
     const expected = target === 'native' && process.platform === 'linux' ? 65536 : 8192;
-    // Wasm builds the exported-counter fixture and runs both saved-lookup
-    // and original-Source restoration entrance harnesses.
-    const invocations = {js: 1, wasm: 4, native: 2}[target];
-    assert.deepEqual(observed, Array(invocations)
-      .fill(`${expected}:${hardLimit.stdout.trim()}`));
+    for (const record of observed) assert.equal(record.stack, `${expected}:${hardLimit.stdout.trim()}`);
   }
 });
 
@@ -1898,7 +1949,7 @@ test('full Native Core selects release code generation while retaining the compl
   for(const name of ['node','moon']){
     const command=join(bin,name);
     writeFileSync(command,`#!${process.execPath}
-console.log(JSON.stringify({args:process.argv.slice(2),native:process.env.MOONBIT_NEW_NATIVE}));
+console.log(JSON.stringify({command:${JSON.stringify(name)},args:process.argv.slice(2),native:process.env.MOONBIT_NEW_NATIVE}));
 if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))process.exit(7);
 `);
     chmodSync(command,0o755);
@@ -1919,22 +1970,20 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
     assert.equal(result.error,undefined);assert.equal(result.signal,null);assert.equal(result.status,0,result.stderr);
     const records=result.stdout.trim().split('\n').map(line=>JSON.parse(line));
     const calls=records.map(record=>record.args);
+    const roles=coreInvocationRoles(records,target);
     if(target==='native'){
-      assert.deepEqual(calls,[
-        ['scripts/test-native-core.mjs','--deny-warn','-p','platform_native/trusted_clock'],
-        ['scripts/test-native-core.mjs','--deny-warn','--release','--strip','-j','2','--no-parallelize','--verbose'],
-      ]);
-      assert.deepEqual(records.map(record=>record.native),['1','0']);
+      assert.equal(records[roles.indexOf('native-prerequisite')].native,'1');
+      assert.equal(records[roles.indexOf('native-full')].native,'0');
       const failed=spawnSync('bash',['-eo','pipefail','-c',command],{
         cwd:root,encoding:'utf8',timeout:5000,
         env:{...environment,ACTQL_FIXTURE_FAIL_FULL:'1'},
       });
       assert.equal(failed.error,undefined);assert.equal(failed.signal,null);assert.equal(failed.status,7);
     }else{
-      assert.equal(calls.length,target==='js'?1:4);
       assert(records.every(record=>record.native==='1'));
       assert(calls.every(args=>!args.includes('--strip')));
-      assert.deepEqual(calls[0],['test','--target',target,'--deny-warn','-j','3']);
+      const portable=calls[roles.indexOf('portable-suite')];
+      assert.equal(portable[portable.indexOf('-j')+1],'3');
     }
   }
 });
