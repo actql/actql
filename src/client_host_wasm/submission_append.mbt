@@ -258,7 +258,7 @@ fn observe_submission_append(
     Err(code) => return Err(code)
   }
   let plan = match
-    @host.prepare_client_submitted_journal_append(
+    @host.prepare_client_submitted_journal_append_with_task_original(
       reference,
       intent,
       validity,
@@ -289,6 +289,7 @@ fn observe_submission_append(
       },
       inspect_run,
       -31,
+      task_original,
     ) {
     Ok(value) => value
     Err(@host.Observation(code)) => return Err(code)
