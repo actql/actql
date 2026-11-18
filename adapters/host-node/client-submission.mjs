@@ -124,6 +124,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     const projectsProblem = outcome.problem.code === 'ClientProgramInvalidInput' ||
       outcome.problem.code === 'ClientProgramParameterUndeclared' ||
       outcome.problem.code === 'ClientProgramTimestampPatternInvalid' ||
+      outcome.problem.code === 'ClientProgramAggregateOrderRequired' ||
+      outcome.problem.code === 'ClientProgramOrderUnresolved' ||
       outcome.problem.code === 'ClientSuppliedParameterUndeclared' ||
       outcome.problem.code === 'ClientProgramAnalysisLimit' ||
       outcome.problem.code === 'ClientProgramImplementationLimit';
@@ -155,6 +157,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         outcome.problem.code === 'ClientProgramInvalidInput' ||
         outcome.problem.code === 'ClientProgramParameterUndeclared' ||
         outcome.problem.code === 'ClientProgramTimestampPatternInvalid' ||
+        outcome.problem.code === 'ClientProgramAggregateOrderRequired' ||
+        outcome.problem.code === 'ClientProgramOrderUnresolved' ||
         outcome.problem.code === 'ClientSuppliedParameterUndeclared'
         ? observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid'
         : observed?.scope.kind === 'bound_input' && observed.coverage.limits.some(

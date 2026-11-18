@@ -24,15 +24,11 @@ test "ordinary collection calls name their existing explicit order requirement" 
     call in [
       "STRING_AGG(name, ',')", "ARRAY_AGG(id)", "ARRAY_AGG(id IGNORE NULLS)",
     ] {
-    let function_name = if call.has_prefix("STRING_AGG") {
-      "STRING_AGG"
-    } else {
-      "ARRAY_AGG"
-    }
     assert_true(
       parse_query("SELECT " + call + " AS items FROM records", query_limits())
-      is Err({ issue: Syntax(reason), .. }) &&
-      reason == function_name + " requires aggregate ORDER BY",
+      is Err({ issue: AggregateOrderRequired, span: Some(span), }) &&
+      span.start_byte == 7 &&
+      span.end_byte == 7,
     )
   }
 }

@@ -742,6 +742,7 @@ pub fn query_work(query : Query) -> Int {
 ///|
 priv suberror QueryAbort {
   QueryAbort(String, Int)
+  QueryAggregateOrderRequired(Int)
   QueryExpression(Diagnostic)
 }
 
@@ -1070,6 +1071,13 @@ fn QueryParser::aggregate_expression(
       Ok(Some((name, parser.index, parser.work, parser.expression_nodes)))
     } catch {
       QueryExpression(error) => Err(error)
+      QueryAggregateOrderRequired(at) =>
+        Err({
+          issue: AggregateOrderRequired,
+          span: Some(
+            @origin.span(@origin.range(self.source.document, at, at).unwrap()),
+          ),
+        })
       QueryAbort(message, at) =>
         Err({
           issue: Syntax(message),
@@ -1928,10 +1936,9 @@ fn QueryParser::aggregate(
       []
     } else {
       if !self.has("ORDER") {
-        raise QueryAbort(
-          function_name + " requires aggregate ORDER BY",
-          token.start,
-        )
+        // The original parser owns this requirement. Keep a typed cause,
+        // rather than asking a Host to classify the authored diagnostic text.
+        raise QueryAggregateOrderRequired(token.start)
       }
       self.keyword("ORDER")
       self.keyword("BY")
@@ -3902,6 +3909,13 @@ fn parse_query_tokens(
     Ok({ ..query, commands, work: parser.work, })
   } catch {
     QueryExpression(error) => Err(error)
+    QueryAggregateOrderRequired(at) =>
+      Err({
+        issue: AggregateOrderRequired,
+        span: Some(
+          @origin.span(@origin.range(source.document, at, at).unwrap()),
+        ),
+      })
     QueryAbort(message, at) =>
       Err({
         issue: Syntax(message),

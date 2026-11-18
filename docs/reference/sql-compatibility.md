@@ -217,3 +217,26 @@ the selected GoogleSQL profile, or deliberately absent from ActQL.
 
 What is defined here and what each environment executes today are different
 questions; see [Implementation status](status.md).
+
+
+### Collection-order refusals
+
+Ordinary `STRING_AGG` and `ARRAY_AGG` retain their required local `ORDER BY`.
+The original parser's typed absence selects `ClientProgramAggregateOrderRequired`
+with the existing invalid-input refusal. An arbitrary diagnostic string cannot
+issue that cause. Window ordering and the already supported ordered forms keep
+their existing meanings.
+
+A checked order that cannot obtain its required original evidence retains the
+general `ClientProgramOrderUnresolved` cause and existing operation-failed
+refusal category. This code does not assert an ARRAY-specific origin or a
+universal candidate-key law: other order sites can have their own applicable
+total-order witness. For `ARRAY_AGG`, the selected aggregate profile still
+requires the retained candidate key described above; writing `ORDER BY` alone
+or observing unique literal rows does not supply that proof. The original
+ordered-but-unkeyed query remains refused. Existing explicit `ASSERT UNIQUE BY`
+controls retain their distinct positive acceptance.
+
+Both causes use the existing two-field Problem and current-audience disclosure
+boundary. A missing or protected original observation reveals only the existing
+coarse refusal, and retained lookup does not submit or compile another Run.

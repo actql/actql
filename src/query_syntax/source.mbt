@@ -17,6 +17,7 @@ pub(all) struct LexicalLimits {
 pub(all) enum Issue {
   InvalidLimits
   Syntax(String)
+  AggregateOrderRequired
   Source(@origin.Issue)
   Lexical(LexicalIssue)
   Limit(Resource)

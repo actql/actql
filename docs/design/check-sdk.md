@@ -2229,3 +2229,29 @@ correspondence retain their existing distinct handling. The same report writer
 and existing finding frame are used; this adds no Source read, recheck, Graph,
 Run or execution authority. Canonical Timestamp value conversion remains a
 separate boundary from these pattern arguments.
+
+
+## Original collection-order causes
+
+The ordinary collection parser rejects missing local order with its closed
+`AggregateOrderRequired` issue at the same authored token span and work point.
+Its private exception retains only the existing offset; compared with the old
+message/offset exception it drops the borrowed message reference. The resulting
+payload-free issue replaces `Syntax(message)` in the same Diagnostic and span
+construction after unwinding, without adding a failure carrier or earlier
+Diagnostic lifetime. The existing parser's before-call/failure envelope remains
+a bound; no limit, phase, allocation margin or new Owner is introduced.
+
+The Source bridge projects only that typed issue as
+`ClientProgramAggregateOrderRequired`. Separately, its original
+`LocalProgram(Order(_, PipelineOrder(UnresolvedOrder)))`, including the
+existing SourceProgram/retained-Source wrappers of that same cause, selects the
+correctly general `ClientProgramOrderUnresolved`, preserving the existing
+`ClientProgramRejected` / `operation_failed` category. It does not infer an
+aggregate site, a missing key name, a row-order witness or an implicit key.
+
+Both use the already funded fixed-code result and nominal code/refusal record.
+Original Request identity, current audience, original refusal phase and retained
+lookup remain unchanged. Check facts stay on the existing schema and reason
+CID; syntax messages are not classification evidence. No public message field,
+reason family, recheck, Source read, implicit order or execution grant is added.
