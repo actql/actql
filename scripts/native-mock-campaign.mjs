@@ -105,7 +105,14 @@ export function openNativeMockCampaign({script, directory, count, cwd,
       // the last receipt. The same external bound still applies to retirement.
       const timer = setTimeout(() => stop(new Error('Native Mock fixture close did not confirm')), timeoutMs);
       try {await closure;} finally {clearTimeout(timer);}
-      if (failure) throw failure;
+      if (failure) {
+        // A failure after the final completion still owns its original output;
+        // do not reduce it to a generic process-close message in the report.
+        failure.stdout ??= Buffer.concat(stdout).toString('utf8');
+        failure.stderr ??= Buffer.concat(stderr).toString('utf8');
+        failure.status ??= closed.code; failure.signal ??= closed.signal;
+        throw failure;
+      }
       return closed;
     },
   });
