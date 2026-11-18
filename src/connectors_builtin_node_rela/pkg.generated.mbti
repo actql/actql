@@ -1127,6 +1127,8 @@ pub fn client_program_installed_model_defaults_usage(@run_publication_host.Clien
 
 pub fn client_program_installed_native_source_reader_capacity(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_node_model_deadline_capacity() -> Array[Int64]
+
 pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
 
 pub fn client_program_installed_preserving_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?

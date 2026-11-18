@@ -2162,6 +2162,8 @@ pub fn client_program_installed_native_source_reader_capacity(Array[Int], Int, I
 
 pub fn client_program_installed_node_effect_model_demand_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @client_infer_host.Limits, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int64, Int64, Int, Int, Int, Int64, Int64) -> Result[@client_local_host.ClientInstalledEffectModelDemand, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_node_model_deadline_capacity() -> Array[Int64]
+
 pub fn client_program_installed_opaque_boundary_footprint_capacity(String, String, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_original_composed_keyed_host_input_left(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientKeyedAcquisition, Array[@client_row_source_host.RowCapturedInput], ClientLocalEffectHost) -> Result[@run_publication_host.ClientKeyedLeftRead?, @run_publication_host.ClientKeyedRequestIssue]

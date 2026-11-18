@@ -1,7 +1,7 @@
 import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createAdmittedOpenAIChatPreflight} from './original-openai-chat.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
-import {createOriginalUndiciFetch,fixedOriginalAcquisitionLimits} from './original-undici-transport.mjs';
+import {createOriginalUndiciFetch,fixedOriginalAcquisitionLimits,fixedOriginalTransportTimeouts} from './original-undici-transport.mjs';
 import {snapshotOpenAIOriginalMaterials,admitOpenAIOriginalMaterials} from './original-materials.mjs';
 import {openAIChatStaticOriginals} from './openai-chat.mjs';
 
@@ -53,7 +53,15 @@ export function createInstalledUndiciOpenAIChatRegistration(config) {
   return installedChatRegistration(config, true);
 }
 
-function installedChatRegistration(config, originalUndici) {
+// Private normal-configuration continuation. The normal factory has already
+// included these same frozen settings in its original contract/configuration
+// bodies under the initial construction Resource. Legacy public low-level
+// registrations accept no unbound timeout field.
+export function createConfiguredUndiciOpenAIChatRegistration(config, transportTimeouts) {
+  return installedChatRegistration(config, true, fixedOriginalTransportTimeouts(transportTimeouts));
+}
+
+function installedChatRegistration(config, originalUndici, transportTimeouts) {
   if (config!==null && typeof config==='object' && !Object.hasOwn(config,'originalStringLimits')) {
     issue('OpenAIOriginalStringLimitsUnavailable');
   }
@@ -113,7 +121,7 @@ function installedChatRegistration(config, originalUndici) {
       entered=true;
       try {
         const originals=admitOpenAIOriginalMaterials(moon,materials);
-        const register=installedChatRegistration({...retained,...originals},originalUndici);
+        const register=installedChatRegistration({...retained,...originals},originalUndici,transportTimeouts);
         return register(moon);
       } finally {
         // Successful entries retain their original duties. A refused reader
@@ -199,7 +207,8 @@ function installedChatRegistration(config, originalUndici) {
     // this selector and all later Client/SDK allocations; matching is no grant.
     physicalFetch??=originalUndici ? createOriginalUndiciFetch({
       endpoint:endpoint.href,requestLimits,responseLimits,
-      physicalAcquisitionLimits:config.physicalAcquisitionLimits}) : fetch;
+      physicalAcquisitionLimits:config.physicalAcquisitionLimits,
+      transportTimeouts}) : fetch;
     return [Object.freeze({providerId,entryPersistence:'async',
       sdkStaticOriginals:openAIChatStaticOriginals,
       bindingOriginals:bindings,
