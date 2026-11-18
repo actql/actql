@@ -367,7 +367,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ad124f55e000ca72e966f095d6389f90409b0cd2a79edd83b7a6c1c00f23e4e4",
+      "sha256": "1e799e24cb0d74bf6ac99ad8b7beb63edd15b99a06e6bebdb512b6f7c38baca4",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",
@@ -8978,7 +8978,7 @@
     {
       "module": "adapters/host-node/logical-task-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cae73731ce9abef9fb28cdc9b9e537112685c847cb36a079bcb88a9d1a79f643",
+      "sha256": "24fa6acdd6cc9be1957843e251a0fd2f3a70f5d4c3e1a7cfbb6645bd93ae759e",
       "exports": [
         "prepareInstalledLogicalObservation"
       ],
@@ -8989,7 +8989,8 @@
             "captured",
             "selectedRef",
             "principal",
-            "authorizeRead"
+            "authorizeRead",
+            "acceptedRunId"
           ],
           "async": false
         },
