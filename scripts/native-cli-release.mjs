@@ -198,6 +198,7 @@ export async function withNativeMockReleaseAdmission(directory, action,
     })]});
   const retained = {source, manifest: JSON.stringify(manifest), assertInputs, checked: undefined};
   let active = true, pending = false;
+  retained.assertActive = () => assert(active, 'Closed Native Mock release admission');
   const assertCurrent = () => {
     assert(active, 'Closed Native Mock release admission');
     try {
@@ -210,7 +211,9 @@ export async function withNativeMockReleaseAdmission(directory, action,
     pending = true;
     try {
       assertCurrent();
-      return await verifyNativeCliReleaseOriginal(directory, {repository: sourceRepository, retained, checkSource});
+      const manifest = await verifyNativeCliReleaseOriginal(directory, {repository: sourceRepository, retained, checkSource});
+      retained.assertActive();
+      return manifest;
     } catch (error) {
       // A failed/changed cohort stops this original campaign. It is never a
       // cache miss permitting another candidate or a replayed consumer.
@@ -246,6 +249,7 @@ async function verifyNativeCliReleaseOriginal(directory, {repository: sourceRepo
     assert(source.clean, 'CLI interface verification requires clean checked source');
     const checkedSource = await checkSource(repository, {manifests: ['packages/native-cli/package.json']});
     if (retained) {
+      retained.assertActive();
       assert.deepEqual(source, retained.source, 'Native Mock campaign source changed');
       assert.equal(JSON.stringify(manifest), retained.manifest, 'Native Mock release manifest changed');
       // Consume a fresh real checker instance, never its public report as proof.
@@ -309,6 +313,7 @@ async function verifyNativeCliReleaseOriginal(directory, {repository: sourceRepo
       } finally {await rm(scratch, {recursive: true});}
     }
     if (retained) {
+      retained.assertActive();
       retained.assertInputs();
       retained.checked ??= JSON.stringify({modules: checkedSource.modules, runtimeBindings: checkedSource.runtimeBindings,
         roots: checkedSource.roots, generated: checkedSource.generated, artifacts: checkedSource.artifacts});
