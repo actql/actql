@@ -1,0 +1,39 @@
+{
+  "wasmtime_version": "38.0.0",
+  "runtime_library_sha256": "88b52d17fdd1d3a3120332cf1a8c108a575d208f84d1d98ee8178ddac88d6ca0",
+  "runtime_library_bytes": 22611336,
+  "provider_library_sha256": null,
+  "provider_library_bytes": null,
+  "engine_body": {
+    "target": "x86_64-unknown-linux-gnu",
+    "cpu_features": [
+      "x86_64-baseline"
+    ],
+    "consume_fuel": true,
+    "strategy": "cranelift",
+    "parallel_compilation": false,
+    "allocation": "pooling",
+    "wasm_gc": false,
+    "wasm_component_model": false,
+    "async_support": false,
+    "memory_reservation": 16777216,
+    "memory_guard_size": 0,
+    "memory_reservation_for_growth": 0,
+    "max_wasm_stack": 524288,
+    "pooling": {
+      "total_core_instances": 1,
+      "total_memories": 1,
+      "max_memories_per_module": 1,
+      "max_memory_size": 16777216,
+      "max_core_instance_size": 1048576,
+      "total_tables": 1,
+      "max_tables_per_module": 1,
+      "table_elements": 1950,
+      "total_gc_heaps": 0,
+      "total_component_instances": 0,
+      "total_stacks": 0
+    }
+  },
+  "image_bytes_limit": 67108864,
+  "runtime_allocation": "platform"
+}

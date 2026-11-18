@@ -16087,6 +16087,11 @@
         },
         {
           "async": false,
+          "name": "_LocalComponentTarget",
+          "parameters": []
+        },
+        {
+          "async": false,
           "name": "_OriginalComponentFile",
           "parameters": []
         },
@@ -16168,6 +16173,26 @@
         },
         {
           "async": false,
+          "name": "_component_engine_target",
+          "parameters": [
+            "target",
+            "features"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_component_target",
+          "parameters": [
+            "name"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_execution_component_platform",
+          "parameters": []
+        },
+        {
+          "async": false,
           "name": "_hex",
           "parameters": [
             "value",
@@ -16209,7 +16234,8 @@
           "name": "_valid_image_header",
           "parameters": [
             "header",
-            "size"
+            "size",
+            "target_platform"
           ]
         },
         {
@@ -16234,7 +16260,7 @@
           ]
         }
       ],
-      "sha256": "087aaf3780bb5bacd082ff241da304ff081bfae1e5a36e7b10fe8b321c2ff394",
+      "sha256": "56bd651d51370a6f172314303f405a822cba50808367a22c27026f8e114acda0",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -17191,21 +17217,29 @@
             "responsibility": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
-                "anchor": "def _valid_image_header(header: bytes, size: int) -> bool:"
+                "anchor": "def _valid_image_header("
               },
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
-                "anchor": "def _valid_image_header(header: bytes, size: int) -> bool:"
+                "anchor": "def _valid_image_header("
               },
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "identity": [
@@ -17215,11 +17249,15 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
-                "anchor": "def _valid_image_header(header: bytes, size: int) -> bool:"
+                "anchor": "def _valid_image_header("
               },
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "ownership": [
@@ -17229,11 +17267,15 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
-                "anchor": "def _valid_image_header(header: bytes, size: int) -> bool:"
+                "anchor": "def _valid_image_header("
               },
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "synchronization": [
@@ -17243,7 +17285,11 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
-                "anchor": "def _valid_image_header(header: bytes, size: int) -> bool:"
+                "anchor": "def _valid_image_header("
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "failure": [
@@ -17253,11 +17299,15 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
-                "anchor": "def _valid_image_header(header: bytes, size: int) -> bool:"
+                "anchor": "def _valid_image_header("
               },
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "cancellation": [
@@ -17267,7 +17317,11 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
-                "anchor": "def _valid_image_header(header: bytes, size: int) -> bool:"
+                "anchor": "def _valid_image_header("
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "resources": [
@@ -17277,11 +17331,15 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
-                "anchor": "def _valid_image_header(header: bytes, size: int) -> bool:"
+                "anchor": "def _valid_image_header("
               },
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "extension": [
@@ -17291,7 +17349,11 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
-                "anchor": "def _valid_image_header(header: bytes, size: int) -> bool:"
+                "anchor": "def _valid_image_header("
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "verification": [
@@ -17309,7 +17371,19 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
-                "anchor": "def _valid_image_header(header: bytes, size: int) -> bool:"
+                "anchor": "def _valid_image_header("
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_component_correspondence_uses_original_recipe_and_binary_target_without_load("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
               }
             ]
           }
@@ -17330,6 +17404,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "inputsOutputs": [
@@ -17340,6 +17418,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "identity": [
@@ -17354,6 +17436,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "ownership": [
@@ -17368,6 +17454,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "synchronization": [
@@ -17378,6 +17468,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def inspect_local_components(root: Path, *, package_version: str,"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "failure": [
@@ -17392,6 +17486,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "cancellation": [
@@ -17402,6 +17500,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def inspect_local_components(root: Path, *, package_version: str,"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "resources": [
@@ -17416,6 +17518,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "extension": [
@@ -17426,6 +17532,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def inspect_local_components(root: Path, *, package_version: str,"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "verification": [
@@ -17444,6 +17554,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def inspect_local_components(root: Path, *, package_version: str,"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_component_correspondence_uses_original_recipe_and_binary_target_without_load("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
               }
             ]
           }
@@ -17468,6 +17590,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The ordinary image recipe explicitly selects"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "inputsOutputs": [
@@ -17482,6 +17608,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "runtime_allocation: str = 'native-owned'"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "identity": [
@@ -17500,6 +17630,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "and compiled-image hashes remain bound together."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "ownership": [
@@ -17518,6 +17652,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "and the existing pinned Wasmtime dependency."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "synchronization": [
@@ -17532,6 +17670,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing maintainer compiler may prepare that ordinary image using actual"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "failure": [
@@ -17550,6 +17692,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "is refused; it does not trigger JIT compilation or another runtime at load."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "cancellation": [
@@ -17564,6 +17710,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "platform Config/pool/Engine/Module handles. It closes those handles and does"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "resources": [
@@ -17582,6 +17732,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "zero-capacity provider. Source/module/ABI, target, Engine settings, exact native"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "extension": [
@@ -17596,6 +17750,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "same-image physical verifier remain distinct and unchanged in meaning."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "verification": [
@@ -17622,6 +17780,18 @@
               {
                 "path": "packages/python-sdk/tests/test_local_distribution.py",
                 "anchor": "def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity("
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_component_correspondence_uses_original_recipe_and_binary_target_without_load("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
               }
             ]
           }
@@ -18042,6 +18212,10 @@
               {
                 "path": "release/README.md",
                 "anchor": "## Prepare a selected Python target on another host"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "inputsOutputs": [
@@ -18052,6 +18226,10 @@
               {
                 "path": "release/README.md",
                 "anchor": "## Prepare a selected Python target on another host"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "identity": [
@@ -18062,6 +18240,10 @@
               {
                 "path": "release/README.md",
                 "anchor": "## Prepare a selected Python target on another host"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "ownership": [
@@ -18072,6 +18254,10 @@
               {
                 "path": "release/README.md",
                 "anchor": "## Prepare a selected Python target on another host"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "synchronization": [
@@ -18082,6 +18268,10 @@
               {
                 "path": "release/README.md",
                 "anchor": "## Prepare a selected Python target on another host"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "failure": [
@@ -18092,6 +18282,10 @@
               {
                 "path": "release/README.md",
                 "anchor": "## Prepare a selected Python target on another host"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "cancellation": [
@@ -18102,6 +18296,10 @@
               {
                 "path": "release/README.md",
                 "anchor": "## Prepare a selected Python target on another host"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "resources": [
@@ -18112,6 +18310,10 @@
               {
                 "path": "release/README.md",
                 "anchor": "## Prepare a selected Python target on another host"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "extension": [
@@ -18122,6 +18324,10 @@
               {
                 "path": "release/README.md",
                 "anchor": "## Prepare a selected Python target on another host"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "verification": [
@@ -18140,6 +18346,18 @@
               {
                 "path": "packages/python-sdk/tests/test_release_packaging_target.py",
                 "anchor": "def test_packaging_keeps_original_producer_library_target_and_abi_refusal("
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_component_correspondence_uses_original_recipe_and_binary_target_without_load("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
               }
             ]
           }
@@ -18270,8 +18488,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "_LocalComponentTarget",
+            "_component_engine_target",
+            "_component_target",
+            "_execution_component_platform"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_component_correspondence_uses_original_recipe_and_binary_target_without_load("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "referenceQualification": "Original Local component source/identity/lifecycle references including Linux candidate. AST/Owner is not native ABI, normal wheel, public Run or Linux acceptance."
     },
     {
       "exports": [
@@ -21973,7 +22267,7 @@
           ]
         }
       ],
-      "sha256": "9aa3b1188f3d0757b6eb9e3c6bc7d35d4649a06116b53a7ddc4785d769536ce7",
+      "sha256": "aad53b0bec9bde348ce4995ab255349f2fba543fb748ab0c4f68d28d24f3eae7",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -22708,6 +23002,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The ordinary image recipe explicitly selects"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "inputsOutputs": [
@@ -22722,6 +23020,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "runtime_allocation: str = 'native-owned'"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "identity": [
@@ -22740,6 +23042,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "and compiled-image hashes remain bound together."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "ownership": [
@@ -22758,6 +23064,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "and the existing pinned Wasmtime dependency."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "synchronization": [
@@ -22772,6 +23082,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing maintainer compiler may prepare that ordinary image using actual"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "failure": [
@@ -22790,6 +23104,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "is refused; it does not trigger JIT compilation or another runtime at load."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "cancellation": [
@@ -22804,6 +23122,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "platform Config/pool/Engine/Module handles. It closes those handles and does"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "resources": [
@@ -22822,6 +23144,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "zero-capacity provider. Source/module/ABI, target, Engine settings, exact native"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "extension": [
@@ -22836,6 +23162,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "same-image physical verifier remain distinct and unchanged in meaning."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "verification": [
@@ -22866,6 +23196,18 @@
               {
                 "path": "packages/python-sdk/tests/test_local_installed_image.py",
                 "anchor": "def test_platform_library_integrity_precedes_importing_its_package("
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_component_correspondence_uses_original_recipe_and_binary_target_without_load("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
               }
             ]
           }
@@ -23754,7 +24096,8 @@
             ]
           }
         }
-      ]
+      ],
+      "referenceQualification": "Original Local component source/identity/lifecycle references including Linux candidate. AST/Owner is not native ABI, normal wheel, public Run or Linux acceptance."
     },
     {
       "exports": [
@@ -29553,6 +29896,13 @@
         },
         {
           "async": false,
+          "name": "_SelectedImageRecipe/platform",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_SelectedImageRecipe/validate",
           "parameters": [
             "self"
@@ -29586,7 +29936,7 @@
           ]
         }
       ],
-      "sha256": "4e3d1f1a6e15c66944a7c95ec8293b0ae1b6117169dcd974177729e3c4ee6119",
+      "sha256": "4274d4343710ff6331e9ca3599550bb9cf5824cb934d6e0e99c4bcf58ca3cf1e",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -29610,6 +29960,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The ordinary image recipe explicitly selects"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "inputsOutputs": [
@@ -29624,6 +29978,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "runtime_allocation: str = 'native-owned'"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "identity": [
@@ -29642,6 +30000,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "and compiled-image hashes remain bound together."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "ownership": [
@@ -29660,6 +30022,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "and the existing pinned Wasmtime dependency."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "synchronization": [
@@ -29674,6 +30040,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The existing maintainer compiler may prepare that ordinary image using actual"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "failure": [
@@ -29692,6 +30062,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "is refused; it does not trigger JIT compilation or another runtime at load."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "cancellation": [
@@ -29706,6 +30080,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "platform Config/pool/Engine/Module handles. It closes those handles and does"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "resources": [
@@ -29724,6 +30102,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "zero-capacity provider. Source/module/ABI, target, Engine settings, exact native"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "extension": [
@@ -29738,6 +30120,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "same-image physical verifier remain distinct and unchanged in meaning."
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "verification": [
@@ -29764,6 +30150,18 @@
               {
                 "path": "packages/python-sdk/tests/test_local_distribution.py",
                 "anchor": "def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity("
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_component_correspondence_uses_original_recipe_and_binary_target_without_load("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
               }
             ]
           }
@@ -29782,6 +30180,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "inputsOutputs": [
@@ -29792,6 +30194,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "identity": [
@@ -29806,6 +30212,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "ownership": [
@@ -29820,6 +30230,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "synchronization": [
@@ -29830,6 +30244,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "def _image_descriptor(body: Any, recipe: _SelectedImageRecipe) -> dict[str, Any]:"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "failure": [
@@ -29844,6 +30262,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "cancellation": [
@@ -29854,6 +30276,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "def _image_descriptor(body: Any, recipe: _SelectedImageRecipe) -> dict[str, Any]:"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "resources": [
@@ -29868,6 +30294,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "extension": [
@@ -29878,6 +30308,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "def _image_descriptor(body: Any, recipe: _SelectedImageRecipe) -> dict[str, Any]:"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
               }
             ],
             "verification": [
@@ -29896,6 +30330,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "def _image_descriptor(body: Any, recipe: _SelectedImageRecipe) -> dict[str, Any]:"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_component_correspondence_uses_original_recipe_and_binary_target_without_load("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
               }
             ]
           }
@@ -30275,8 +30721,81 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "_SelectedImageRecipe/platform"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_component_correspondence_uses_original_recipe_and_binary_target_without_load("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "referenceQualification": "Original Local component source/identity/lifecycle references including Linux candidate. AST/Owner is not native ABI, normal wheel, public Run or Linux acceptance."
     },
     {
       "exports": [
@@ -83190,6 +83709,2146 @@
               {
                 "path": "scripts/native-local-cleanup-order.test.mjs",
                 "anchor": "test('Native Host settings runs original staged decoding"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Distribution",
+        "LocalDistribution",
+        "LocalWheel",
+        "Path",
+        "bdist_wheel",
+        "json",
+        "setup"
+      ],
+      "imports": [
+        "json",
+        "pathlib",
+        "setuptools",
+        "wheel.bdist_wheel"
+      ],
+      "module": "packages/python-local-runtime/setup.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "LocalDistribution",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "LocalDistribution/has_ext_modules",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalWheel",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "LocalWheel/finalize_options",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalWheel/get_tag",
+          "parameters": [
+            "self"
+          ]
+        }
+      ],
+      "sha256": "1ec04503191a7a8352e72a25e41dc55e689efe0386d713cf7d93eafc36472ff1",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Python Local component recipe, original image and release staging owners",
+      "referenceQualification": "Maintainer source recipe references only. Existing native-owned/platform lifetimes retain their original owners; declarations do not establish all compiler/runtime execution or new Linux normal acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "LocalDistribution",
+            "LocalDistribution/has_ext_modules",
+            "LocalWheel",
+            "LocalWheel/finalize_options",
+            "LocalWheel/get_tag"
+          ],
+          "exports": [
+            "Distribution",
+            "LocalDistribution",
+            "LocalWheel",
+            "Path",
+            "bdist_wheel",
+            "json",
+            "setup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Fixed producer input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Maintainer preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_artifact_producer.py",
+                "anchor": "def test_linux_platform_assembly_and_stage_keep_original_target_and_receipts("
+              },
+              {
+                "path": "scripts/test_python_runtime_wheel_layout.py",
+                "anchor": "def test_linux_package_retains_its_actual_floor_and_same_resource_root("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "BytesParser",
+        "Path",
+        "ROOT",
+        "TYPE_CHECKING",
+        "annotations",
+        "argparse",
+        "arguments",
+        "build",
+        "copy_source",
+        "hashlib",
+        "host_capacity_original",
+        "importlib",
+        "json",
+        "parser",
+        "read_cohort",
+        "release_project_metadata",
+        "release_runtime_metadata",
+        "replace",
+        "runtime_wheel_components",
+        "sdk_host_capacity",
+        "sdk_runtime_binding",
+        "select_release_version",
+        "sha256",
+        "subprocess",
+        "sys",
+        "wheel_metadata",
+        "wheel_source_correspondence",
+        "zipfile"
+      ],
+      "imports": [
+        "__future__",
+        "actql_sdk._local_capacity_original",
+        "actql_sdk._local_distribution",
+        "actql_sdk._local_image_recipe",
+        "argparse",
+        "dataclasses",
+        "email.parser",
+        "hashlib",
+        "importlib.util",
+        "json",
+        "pathlib",
+        "python_interface_inventory",
+        "python_release_cohort",
+        "subprocess",
+        "sys",
+        "typing",
+        "zipfile"
+      ],
+      "module": "scripts/build-python-product-wheels.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "build",
+          "parameters": [
+            "artifact",
+            "destination",
+            "version",
+            "bindings_source",
+            "native_libraries",
+            "target_platform"
+          ]
+        },
+        {
+          "async": false,
+          "name": "copy_source",
+          "parameters": [
+            "source",
+            "original",
+            "target"
+          ]
+        },
+        {
+          "async": false,
+          "name": "host_capacity_original",
+          "parameters": [
+            "source",
+            "components"
+          ]
+        },
+        {
+          "async": false,
+          "name": "runtime_wheel_components",
+          "parameters": [
+            "wheel",
+            "artifact",
+            "stage",
+            "selected_recipe",
+            "release_manifest"
+          ]
+        },
+        {
+          "async": false,
+          "name": "sdk_host_capacity",
+          "parameters": [
+            "wheel",
+            "original"
+          ]
+        },
+        {
+          "async": false,
+          "name": "sdk_runtime_binding",
+          "parameters": [
+            "wheel",
+            "original"
+          ]
+        },
+        {
+          "async": false,
+          "name": "sha256",
+          "parameters": [
+            "path"
+          ]
+        },
+        {
+          "async": false,
+          "name": "wheel_metadata",
+          "parameters": [
+            "path",
+            "name",
+            "version",
+            "target_platform"
+          ]
+        }
+      ],
+      "sha256": "317497e3a3c67220187b106341020c15c7ddcde3db79e24537ea064b5d9a83d2",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Python Local component recipe, original image and release staging owners",
+      "referenceQualification": "Maintainer source recipe references only. Existing native-owned/platform lifetimes retain their original owners; declarations do not establish all compiler/runtime execution or new Linux normal acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "build",
+            "copy_source",
+            "host_capacity_original",
+            "runtime_wheel_components",
+            "sdk_host_capacity",
+            "sdk_runtime_binding",
+            "sha256",
+            "wheel_metadata"
+          ],
+          "exports": [
+            "BytesParser",
+            "Path",
+            "ROOT",
+            "TYPE_CHECKING",
+            "annotations",
+            "argparse",
+            "arguments",
+            "build",
+            "copy_source",
+            "hashlib",
+            "host_capacity_original",
+            "importlib",
+            "json",
+            "parser",
+            "read_cohort",
+            "release_project_metadata",
+            "release_runtime_metadata",
+            "replace",
+            "runtime_wheel_components",
+            "sdk_host_capacity",
+            "sdk_runtime_binding",
+            "select_release_version",
+            "sha256",
+            "subprocess",
+            "sys",
+            "wheel_metadata",
+            "wheel_source_correspondence",
+            "zipfile"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Fixed producer input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Maintainer preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_artifact_producer.py",
+                "anchor": "def test_linux_platform_assembly_and_stage_keep_original_target_and_receipts("
+              },
+              {
+                "path": "scripts/test_python_runtime_wheel_layout.py",
+                "anchor": "def test_linux_package_retains_its_actual_floor_and_same_resource_root("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Any",
+        "CDLL",
+        "CompilerControlInitializationError",
+        "CompilerHoldingAcquisitionError",
+        "CompilerParentAcquisitionError",
+        "CompilerProcessAssemblyError",
+        "ImageCompilerCleanupError",
+        "LOCAL_CORE_ABI",
+        "NamedTuple",
+        "Path",
+        "ROOT",
+        "WASMTIME_VERSION",
+        "annotations",
+        "argparse",
+        "args",
+        "assembly",
+        "bind_memory",
+        "bind_native",
+        "byref",
+        "c_ubyte",
+        "c_void_p",
+        "cast",
+        "checked",
+        "cleanup",
+        "compile_from_original",
+        "compile_image",
+        "compile_platform_image",
+        "compiled",
+        "current_thread",
+        "finish_failed_compilation",
+        "hashlib",
+        "import_module",
+        "importlib",
+        "json",
+        "math",
+        "mode",
+        "os",
+        "parser",
+        "platform",
+        "prepare_compiler_configuration",
+        "prepare_compiler_executable",
+        "prepare_compiler_runtime",
+        "read_cohort",
+        "spec",
+        "stat",
+        "subprocess",
+        "sys",
+        "time",
+        "verify"
+      ],
+      "imports": [
+        "__future__",
+        "actql_sdk._local_core",
+        "actql_sdk._local_distribution",
+        "actql_sdk._local_engine",
+        "actql_sdk._local_image_recipe",
+        "actql_sdk._local_native_backing_custody",
+        "actql_sdk._local_native_control_custody",
+        "actql_sdk._local_native_domain_custody",
+        "actql_sdk._local_native_holding",
+        "actql_sdk._local_native_memory_abi",
+        "actql_sdk._local_native_process_custody",
+        "actql_sdk._local_native_shim_abi",
+        "actql_sdk._local_wasm_abi",
+        "actql_sdk._local_worker_slot",
+        "argparse",
+        "ctypes",
+        "hashlib",
+        "importlib",
+        "importlib.util",
+        "json",
+        "math",
+        "os",
+        "pathlib",
+        "platform",
+        "python_compiler_process",
+        "python_compiler_program",
+        "python_release_cohort",
+        "stat",
+        "subprocess",
+        "sys",
+        "threading",
+        "time",
+        "typing"
+      ],
+      "module": "scripts/compile-python-local-image.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "CompilerControlInitializationError",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "CompilerControlInitializationError/__init__",
+          "parameters": [
+            "self",
+            "runtime"
+          ]
+        },
+        {
+          "async": false,
+          "name": "CompilerHoldingAcquisitionError",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "CompilerHoldingAcquisitionError/__init__",
+          "parameters": [
+            "self",
+            "library",
+            "slot",
+            "original",
+            "code",
+            "attempted",
+            "holding"
+          ]
+        },
+        {
+          "async": false,
+          "name": "CompilerParentAcquisitionError",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "CompilerParentAcquisitionError/__init__",
+          "parameters": [
+            "self",
+            "parent"
+          ]
+        },
+        {
+          "async": false,
+          "name": "CompilerProcessAssemblyError",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "CompilerProcessAssemblyError/__init__",
+          "parameters": [
+            "self",
+            "preparation",
+            "program"
+          ]
+        },
+        {
+          "async": false,
+          "name": "ImageCompilerCleanupError",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "ImageCompilerCleanupError/__init__",
+          "parameters": [
+            "self",
+            "cleanup",
+            "primary"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerControlRuntime",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_CompilerControlRuntime/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerControlRuntime/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerControlRuntime/__init__",
+          "parameters": [
+            "self",
+            "original"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerControlRuntime/__reduce__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerControlRuntime/current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerCustody",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_CompilerCustody/__init__",
+          "parameters": [
+            "self",
+            "holding",
+            "runtime_allocation"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerCustody/_close_handles",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerCustody/close",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerCustody/close_pool",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerCustody/scoped",
+          "parameters": [
+            "self",
+            "operation"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerHoldingOriginal",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_CompilerImage",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_CompilerParent",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_CompilerParent/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerParent/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerParent/__init__",
+          "parameters": [
+            "self",
+            "original",
+            "runtime",
+            "descriptor"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerParent/__reduce__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerParent/close_unstarted",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerParent/prepare_process",
+          "parameters": [
+            "self",
+            "path",
+            "nonce"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_CompilerParentOriginal",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_CompilerRuntime",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_InitialCompilerDomainOriginal",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_PhysicalCoreInputs",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_PhysicalCoreInputs/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PhysicalCoreInputs/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PhysicalCoreInputs/__init__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PhysicalCoreInputs/__reduce__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PhysicalCoreInputs/_require_original_process",
+          "parameters": [
+            "self",
+            "process",
+            "bound"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PhysicalCoreInputs/bind_original_process",
+          "parameters": [
+            "self",
+            "process"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PhysicalCoreInputs/prepare",
+          "parameters": [
+            "cls",
+            "core_receipt",
+            "image_receipt",
+            "expected_source",
+            "scope",
+            "bindings_source",
+            "native_libraries",
+            "destination"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PhysicalCoreInputs/require_bound_original_process",
+          "parameters": [
+            "self",
+            "process"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PhysicalCoreInputs/require_current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_acquire_compiler_holding",
+          "parameters": [
+            "original",
+            "selected"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_acquire_compiler_parent",
+          "parameters": [
+            "original",
+            "selected",
+            "descriptor"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_compiler_configuration_header",
+          "parameters": [
+            "recipe"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_compiler_holding_original",
+          "parameters": [
+            "original"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_compiler_parent_original",
+          "parameters": [
+            "original",
+            "selected"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_compiler_process_report",
+          "parameters": [
+            "raw",
+            "maximum"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_finish_failed_compiler_with_diagnostics",
+          "parameters": [
+            "failure",
+            "seconds"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_import_compiler_runtime",
+          "parameters": [
+            "custody",
+            "original"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_prepare_compiler_control",
+          "parameters": [
+            "original",
+            "selected"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_record_failed_compiler_response",
+          "parameters": [
+            "failure"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_runtime_files",
+          "parameters": [
+            "directory",
+            "recipe"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_runtime_original",
+          "parameters": [
+            "original",
+            "prepared"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_verify_compiler_holding",
+          "parameters": [
+            "original",
+            "holding"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_verify_physical_process_provider",
+          "parameters": [
+            "original",
+            "process"
+          ]
+        },
+        {
+          "async": false,
+          "name": "compile_from_original",
+          "parameters": [
+            "core_receipt",
+            "expected_source",
+            "destination",
+            "bindings_source",
+            "native_libraries",
+            "preparation",
+            "c_api_headers",
+            "clang",
+            "sdk",
+            "seconds"
+          ]
+        },
+        {
+          "async": false,
+          "name": "compile_image",
+          "parameters": [
+            "core_receipt",
+            "expected_source",
+            "destination",
+            "_holding",
+            "_runtime"
+          ]
+        },
+        {
+          "async": false,
+          "name": "compile_image/compile_selected",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "compile_platform_image",
+          "parameters": [
+            "core_receipt",
+            "expected_source",
+            "destination"
+          ]
+        },
+        {
+          "async": false,
+          "name": "finish_failed_compilation",
+          "parameters": [
+            "failure",
+            "seconds"
+          ]
+        },
+        {
+          "async": false,
+          "name": "prepare_compiler_configuration",
+          "parameters": [
+            "core_receipt",
+            "expected_source",
+            "destination"
+          ]
+        },
+        {
+          "async": false,
+          "name": "prepare_compiler_executable",
+          "parameters": [
+            "core_receipt",
+            "expected_source",
+            "destination",
+            "bindings_source",
+            "native_libraries",
+            "preparation",
+            "c_api_headers",
+            "clang",
+            "sdk",
+            "seconds"
+          ]
+        },
+        {
+          "async": false,
+          "name": "prepare_compiler_runtime",
+          "parameters": [
+            "original",
+            "bindings_source",
+            "native_libraries",
+            "destination"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify",
+          "parameters": [
+            "core_receipt",
+            "expected_source",
+            "runtime_allocation"
+          ]
+        }
+      ],
+      "sha256": "2f8e7bb1c496c08d33d0604f24d363286421159037ad8275c98151618b4c3901",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Python Local component recipe, original image and release staging owners",
+      "referenceQualification": "Maintainer source recipe references only. Existing native-owned/platform lifetimes retain their original owners; declarations do not establish all compiler/runtime execution or new Linux normal acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "CompilerControlInitializationError",
+            "CompilerControlInitializationError/__init__",
+            "CompilerHoldingAcquisitionError",
+            "CompilerHoldingAcquisitionError/__init__",
+            "CompilerParentAcquisitionError",
+            "CompilerParentAcquisitionError/__init__",
+            "CompilerProcessAssemblyError",
+            "CompilerProcessAssemblyError/__init__",
+            "ImageCompilerCleanupError",
+            "ImageCompilerCleanupError/__init__",
+            "_CompilerControlRuntime",
+            "_CompilerControlRuntime/__copy__",
+            "_CompilerControlRuntime/__deepcopy__",
+            "_CompilerControlRuntime/__init__",
+            "_CompilerControlRuntime/__reduce__",
+            "_CompilerControlRuntime/current",
+            "_CompilerCustody",
+            "_CompilerCustody/__init__",
+            "_CompilerCustody/_close_handles",
+            "_CompilerCustody/close",
+            "_CompilerCustody/close_pool",
+            "_CompilerCustody/scoped",
+            "_CompilerHoldingOriginal",
+            "_CompilerImage",
+            "_CompilerParent",
+            "_CompilerParent/__copy__",
+            "_CompilerParent/__deepcopy__",
+            "_CompilerParent/__init__",
+            "_CompilerParent/__reduce__",
+            "_CompilerParent/close_unstarted",
+            "_CompilerParent/prepare_process",
+            "_CompilerParentOriginal",
+            "_CompilerRuntime",
+            "_InitialCompilerDomainOriginal",
+            "_PhysicalCoreInputs",
+            "_PhysicalCoreInputs/__copy__",
+            "_PhysicalCoreInputs/__deepcopy__",
+            "_PhysicalCoreInputs/__init__",
+            "_PhysicalCoreInputs/__reduce__",
+            "_PhysicalCoreInputs/_require_original_process",
+            "_PhysicalCoreInputs/bind_original_process",
+            "_PhysicalCoreInputs/prepare",
+            "_PhysicalCoreInputs/require_bound_original_process",
+            "_PhysicalCoreInputs/require_current",
+            "_acquire_compiler_holding",
+            "_acquire_compiler_parent",
+            "_compiler_configuration_header",
+            "_compiler_holding_original",
+            "_compiler_parent_original",
+            "_compiler_process_report",
+            "_finish_failed_compiler_with_diagnostics",
+            "_import_compiler_runtime",
+            "_prepare_compiler_control",
+            "_record_failed_compiler_response",
+            "_runtime_files",
+            "_runtime_original",
+            "_verify_compiler_holding",
+            "_verify_physical_process_provider",
+            "compile_from_original",
+            "compile_image",
+            "compile_image/compile_selected",
+            "compile_platform_image",
+            "finish_failed_compilation",
+            "prepare_compiler_configuration",
+            "prepare_compiler_executable",
+            "prepare_compiler_runtime",
+            "verify"
+          ],
+          "exports": [
+            "Any",
+            "CDLL",
+            "CompilerControlInitializationError",
+            "CompilerHoldingAcquisitionError",
+            "CompilerParentAcquisitionError",
+            "CompilerProcessAssemblyError",
+            "ImageCompilerCleanupError",
+            "LOCAL_CORE_ABI",
+            "NamedTuple",
+            "Path",
+            "ROOT",
+            "WASMTIME_VERSION",
+            "annotations",
+            "argparse",
+            "args",
+            "assembly",
+            "bind_memory",
+            "bind_native",
+            "byref",
+            "c_ubyte",
+            "c_void_p",
+            "cast",
+            "checked",
+            "cleanup",
+            "compile_from_original",
+            "compile_image",
+            "compile_platform_image",
+            "compiled",
+            "current_thread",
+            "finish_failed_compilation",
+            "hashlib",
+            "import_module",
+            "importlib",
+            "json",
+            "math",
+            "mode",
+            "os",
+            "parser",
+            "platform",
+            "prepare_compiler_configuration",
+            "prepare_compiler_executable",
+            "prepare_compiler_runtime",
+            "read_cohort",
+            "spec",
+            "stat",
+            "subprocess",
+            "sys",
+            "time",
+            "verify"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Fixed producer input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Maintainer preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_artifact_producer.py",
+                "anchor": "def test_linux_platform_assembly_and_stage_keep_original_target_and_receipts("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Any",
+        "ExitStack",
+        "LocalComponents",
+        "Path",
+        "ROOT",
+        "TYPE_CHECKING",
+        "WASMTIME_VERSION",
+        "annotations",
+        "argparse",
+        "args",
+        "cast",
+        "defined_table_limits",
+        "hashlib",
+        "image_recipe_original",
+        "importlib",
+        "inspect_local_components",
+        "json",
+        "library_target",
+        "linux_library_target",
+        "module_image_recipe_original",
+        "notice_originals",
+        "os",
+        "parser",
+        "prepare",
+        "prepare_private_bindings",
+        "re",
+        "read_cohort",
+        "shutil",
+        "stage_private_runtime",
+        "stage_selected_private_runtime",
+        "struct",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "verify_artifact"
+      ],
+      "imports": [
+        "__future__",
+        "actql_sdk._local_distribution",
+        "actql_sdk._local_image_recipe",
+        "argparse",
+        "contextlib",
+        "hashlib",
+        "importlib.util",
+        "json",
+        "os",
+        "pathlib",
+        "python_release_cohort",
+        "python_wasm_table_geometry",
+        "re",
+        "shutil",
+        "struct",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "typing"
+      ],
+      "module": "scripts/prepare-python-local-runtime.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "_source_original",
+          "parameters": [
+            "root",
+            "source",
+            "relative",
+            "label"
+          ]
+        },
+        {
+          "async": false,
+          "name": "image_recipe_original",
+          "parameters": [
+            "root",
+            "source",
+            "runtime_allocation",
+            "target_platform"
+          ]
+        },
+        {
+          "async": false,
+          "name": "library_target",
+          "parameters": [
+            "path",
+            "identity",
+            "bundled",
+            "rpaths",
+            "target_platform",
+            "original_sha256",
+            "original_bytes"
+          ]
+        },
+        {
+          "async": false,
+          "name": "linux_library_target",
+          "parameters": [
+            "path",
+            "original_sha256",
+            "original_bytes"
+          ]
+        },
+        {
+          "async": false,
+          "name": "linux_library_target/inspect",
+          "parameters": [
+            "option"
+          ]
+        },
+        {
+          "async": false,
+          "name": "module_image_recipe_original",
+          "parameters": [
+            "root",
+            "source",
+            "module",
+            "module_sha256",
+            "runtime_allocation",
+            "target_platform"
+          ]
+        },
+        {
+          "async": false,
+          "name": "notice_originals",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "prepare",
+          "parameters": [
+            "artifact",
+            "destination",
+            "bindings_source",
+            "native_libraries",
+            "target_platform"
+          ]
+        },
+        {
+          "async": false,
+          "name": "prepare_private_bindings",
+          "parameters": [
+            "bindings_source",
+            "stage"
+          ]
+        },
+        {
+          "async": false,
+          "name": "stage_private_runtime",
+          "parameters": [
+            "components",
+            "bindings_source",
+            "native_libraries",
+            "target"
+          ]
+        },
+        {
+          "async": false,
+          "name": "stage_selected_private_runtime",
+          "parameters": [
+            "selected",
+            "bindings_source",
+            "native_libraries",
+            "target"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_artifact",
+          "parameters": [
+            "artifact",
+            "target_platform"
+          ]
+        }
+      ],
+      "sha256": "84fd7a1e4d38216610079878b5231283f9afd78403cd56c3be7c64a605d69b4b",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Python Local component recipe, original image and release staging owners",
+      "referenceQualification": "Maintainer source recipe references only. Existing native-owned/platform lifetimes retain their original owners; declarations do not establish all compiler/runtime execution or new Linux normal acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "_source_original",
+            "image_recipe_original",
+            "library_target",
+            "linux_library_target",
+            "linux_library_target/inspect",
+            "module_image_recipe_original",
+            "notice_originals",
+            "prepare",
+            "prepare_private_bindings",
+            "stage_private_runtime",
+            "stage_selected_private_runtime",
+            "verify_artifact"
+          ],
+          "exports": [
+            "Any",
+            "ExitStack",
+            "LocalComponents",
+            "Path",
+            "ROOT",
+            "TYPE_CHECKING",
+            "WASMTIME_VERSION",
+            "annotations",
+            "argparse",
+            "args",
+            "cast",
+            "defined_table_limits",
+            "hashlib",
+            "image_recipe_original",
+            "importlib",
+            "inspect_local_components",
+            "json",
+            "library_target",
+            "linux_library_target",
+            "module_image_recipe_original",
+            "notice_originals",
+            "os",
+            "parser",
+            "prepare",
+            "prepare_private_bindings",
+            "re",
+            "read_cohort",
+            "shutil",
+            "stage_private_runtime",
+            "stage_selected_private_runtime",
+            "struct",
+            "subprocess",
+            "sys",
+            "tempfile",
+            "verify_artifact"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Fixed producer input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Maintainer preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_artifact_producer.py",
+                "anchor": "def test_linux_platform_assembly_and_stage_keep_original_target_and_receipts("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Any",
+        "DUCKDB_VERSION",
+        "LOCAL_CORE_ABI",
+        "MODULE_FIELDS",
+        "MODULE_SCOPE",
+        "Path",
+        "ROOT",
+        "WASMTIME_VERSION",
+        "annotations",
+        "argparse",
+        "args",
+        "cast",
+        "clean_source",
+        "component",
+        "copy_original",
+        "hashlib",
+        "importlib",
+        "json",
+        "os",
+        "parser",
+        "physical_core_cohort",
+        "platform",
+        "produce",
+        "produce_platform",
+        "read_receipt",
+        "recipe",
+        "record",
+        "record_original_module",
+        "require",
+        "selected_producer",
+        "shlex",
+        "stat",
+        "subprocess",
+        "sys",
+        "tomllib",
+        "verify_original_core",
+        "verify_original_image",
+        "verify_original_module",
+        "wire"
+      ],
+      "imports": [
+        "__future__",
+        "actql_sdk._local_distribution",
+        "actql_sdk._local_image_recipe",
+        "actql_sdk._local_wasm_abi",
+        "argparse",
+        "hashlib",
+        "importlib.util",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "shlex",
+        "stat",
+        "subprocess",
+        "sys",
+        "tomllib",
+        "typing"
+      ],
+      "module": "scripts/produce-python-local-runtime.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "_compiler_originals",
+          "parameters": [
+            "root",
+            "moon_home",
+            "pin"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_original",
+          "parameters": [
+            "path",
+            "maximum"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_source_inputs",
+          "parameters": [
+            "root",
+            "source"
+          ]
+        },
+        {
+          "async": false,
+          "name": "clean_source",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "component",
+          "parameters": [
+            "path",
+            "digest",
+            "maximum",
+            "filename"
+          ]
+        },
+        {
+          "async": false,
+          "name": "copy_original",
+          "parameters": [
+            "path",
+            "target",
+            "maximum",
+            "digest"
+          ]
+        },
+        {
+          "async": false,
+          "name": "physical_core_cohort",
+          "parameters": [
+            "selected",
+            "image_sha256"
+          ]
+        },
+        {
+          "async": false,
+          "name": "produce",
+          "parameters": [
+            "core_receipt",
+            "duckdb_receipt",
+            "image_receipt",
+            "destination"
+          ]
+        },
+        {
+          "async": false,
+          "name": "produce_platform",
+          "parameters": [
+            "core_receipt",
+            "duckdb_receipt",
+            "image_receipt",
+            "destination"
+          ]
+        },
+        {
+          "async": false,
+          "name": "read_receipt",
+          "parameters": [
+            "path"
+          ]
+        },
+        {
+          "async": false,
+          "name": "record_original_module",
+          "parameters": [
+            "root",
+            "source",
+            "compiled_source",
+            "module",
+            "link_response",
+            "moon_home"
+          ]
+        },
+        {
+          "async": false,
+          "name": "record_original_module/option",
+          "parameters": [
+            "name"
+          ]
+        },
+        {
+          "async": false,
+          "name": "require",
+          "parameters": [
+            "condition",
+            "message"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_original_core",
+          "parameters": [
+            "root",
+            "core",
+            "source"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_original_image",
+          "parameters": [
+            "image",
+            "selected",
+            "source",
+            "digest"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_original_module",
+          "parameters": [
+            "root",
+            "original",
+            "source"
+          ]
+        }
+      ],
+      "sha256": "486ac2071d52c70697a25af883c22c69325af05c9829a5bcce4e4e8f731157b0",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Python Local component recipe, original image and release staging owners",
+      "referenceQualification": "Maintainer source recipe references only. Existing native-owned/platform lifetimes retain their original owners; declarations do not establish all compiler/runtime execution or new Linux normal acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "_compiler_originals",
+            "_original",
+            "_source_inputs",
+            "clean_source",
+            "component",
+            "copy_original",
+            "physical_core_cohort",
+            "produce",
+            "produce_platform",
+            "read_receipt",
+            "record_original_module",
+            "record_original_module/option",
+            "require",
+            "verify_original_core",
+            "verify_original_image",
+            "verify_original_module"
+          ],
+          "exports": [
+            "Any",
+            "DUCKDB_VERSION",
+            "LOCAL_CORE_ABI",
+            "MODULE_FIELDS",
+            "MODULE_SCOPE",
+            "Path",
+            "ROOT",
+            "WASMTIME_VERSION",
+            "annotations",
+            "argparse",
+            "args",
+            "cast",
+            "clean_source",
+            "component",
+            "copy_original",
+            "hashlib",
+            "importlib",
+            "json",
+            "os",
+            "parser",
+            "physical_core_cohort",
+            "platform",
+            "produce",
+            "produce_platform",
+            "read_receipt",
+            "recipe",
+            "record",
+            "record_original_module",
+            "require",
+            "selected_producer",
+            "shlex",
+            "stat",
+            "subprocess",
+            "sys",
+            "tomllib",
+            "verify_original_core",
+            "verify_original_image",
+            "verify_original_module",
+            "wire"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Fixed producer input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Maintainer preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_artifact_producer.py",
+                "anchor": "def test_linux_platform_assembly_and_stage_keep_original_target_and_receipts("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_linux_components.py",
+                "anchor": "def test_linux_binary_profile_refuses_foreign_target_or_unavailable_linkage("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Path",
+        "argparse",
+        "arguments",
+        "evidence",
+        "json",
+        "parser",
+        "read_cohort",
+        "release_project_metadata",
+        "release_runtime_metadata",
+        "select_release_version",
+        "sys",
+        "sysconfig",
+        "tomllib",
+        "verify_built_cohort",
+        "verify_installed_release"
+      ],
+      "imports": [
+        "argparse",
+        "copy",
+        "csv",
+        "hashlib",
+        "importlib",
+        "importlib.util",
+        "io",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "stat",
+        "subprocess",
+        "sys",
+        "sysconfig",
+        "tomllib",
+        "urllib.parse",
+        "zipfile"
+      ],
+      "module": "scripts/python_release_cohort.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "read_cohort",
+          "parameters": [
+            "root"
+          ]
+        },
+        {
+          "async": false,
+          "name": "release_project_metadata",
+          "parameters": [
+            "original",
+            "distribution",
+            "source_version",
+            "version"
+          ]
+        },
+        {
+          "async": false,
+          "name": "release_runtime_metadata",
+          "parameters": [
+            "original",
+            "source",
+            "source_version",
+            "version"
+          ]
+        },
+        {
+          "async": false,
+          "name": "release_runtime_metadata/pairs",
+          "parameters": [
+            "values"
+          ]
+        },
+        {
+          "async": false,
+          "name": "select_release_version",
+          "parameters": [
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_built_cohort",
+          "parameters": [
+            "directory",
+            "source",
+            "version",
+            "frozen_layout"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_installed_release",
+          "parameters": [
+            "plan",
+            "report_path",
+            "entry",
+            "site",
+            "manager",
+            "project_path"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_installed_release/child",
+          "parameters": [
+            "root",
+            "name"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_installed_release/inspect",
+          "parameters": [
+            "source"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_installed_release/normalized",
+          "parameters": [
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_installed_release/public_wheel",
+          "parameters": [
+            "url"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_installed_release/sha_stream",
+          "parameters": [
+            "source"
+          ]
+        },
+        {
+          "async": false,
+          "name": "verify_installed_release/stable_file",
+          "parameters": [
+            "path",
+            "maximum",
+            "visit"
+          ]
+        }
+      ],
+      "sha256": "5d25e2e39d6848c23f5bd73d9b9c0be824c7ea38557366fa94f9ac77fa3cbbbc",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Python Local component recipe, original image and release staging owners",
+      "referenceQualification": "Maintainer source recipe references only. Existing native-owned/platform lifetimes retain their original owners; declarations do not establish all compiler/runtime execution or new Linux normal acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "read_cohort",
+            "release_project_metadata",
+            "release_runtime_metadata",
+            "release_runtime_metadata/pairs",
+            "select_release_version",
+            "verify_built_cohort",
+            "verify_installed_release",
+            "verify_installed_release/child",
+            "verify_installed_release/inspect",
+            "verify_installed_release/normalized",
+            "verify_installed_release/public_wheel",
+            "verify_installed_release/sha_stream",
+            "verify_installed_release/stable_file"
+          ],
+          "exports": [
+            "Path",
+            "argparse",
+            "arguments",
+            "evidence",
+            "json",
+            "parser",
+            "read_cohort",
+            "release_project_metadata",
+            "release_runtime_metadata",
+            "select_release_version",
+            "sys",
+            "sysconfig",
+            "tomllib",
+            "verify_built_cohort",
+            "verify_installed_release"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Fixed producer input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              },
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Maintainer preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-local-runtime/README.md",
+                "anchor": "## Linux component profile"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_artifact_producer.py",
+                "anchor": "def test_linux_platform_assembly_and_stage_keep_original_target_and_receipts("
+              },
+              {
+                "path": "scripts/test_python_runtime_wheel_layout.py",
+                "anchor": "def test_linux_package_retains_its_actual_floor_and_same_resource_root("
               }
             ]
           }

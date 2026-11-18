@@ -16,7 +16,8 @@ import json
 from typing import Any
 
 from ._local_image_recipe import _SelectedImageRecipe, _load_selected_image
-from ._local_distribution import LocalComponents, LocalInstallationError, WASMTIME_VERSION, _OriginalComponentFile, _read_file, _pairs
+from ._local_distribution import (LocalComponents, LocalInstallationError, WASMTIME_VERSION,
+    _OriginalComponentFile, _component_target, _read_file, _pairs)
 
 
 def _selected_engine_settings(recipe: _SelectedImageRecipe) -> tuple[tuple[str, str, bool | int | str], ...]:
@@ -117,7 +118,7 @@ def _platform_runtime_library(recipe: _SelectedImageRecipe) -> Path:
     root = distribution.locate_file('wasmtime')
     if not isinstance(root, Path):
         raise LocalInstallationError('Installed image runtime requires ordinary wheel files')
-    library = root / 'darwin-aarch64/_libwasmtime.dylib'
+    library = root / _component_target(recipe.platform).runtime_file
     _read_file(library, maximum=recipe.runtime_library_bytes,
                expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
     return library

@@ -170,9 +170,9 @@ def verify_built_cohort(directory: Path, source: str, version: str, *,
         raise ValueError('Packaging manifest cannot supply runtime or publication acceptance')
     if cohort.get('source_sha') != source or cohort.get('package_version') != version:
         raise ValueError('Python cohort differs from the selected source/version')
-    # The current producer and its shared wheel checker have one actual
-    # macOS-arm64 layout. Never infer Linux/other-profile readiness from it.
-    if cohort.get('platform') != 'darwin-arm64':
+    # Metadata/byte correspondence does not establish target execution. Each
+    # selected profile still needs its own normal installed acceptance.
+    if cohort.get('platform') not in ('darwin-arm64', 'linux-x64'):
         raise ValueError('Python cohort platform has no selected existing verifier')
     records = cohort.get('wheels')
     if (not isinstance(records, list) or [record.get('distribution') for record in records]
@@ -205,7 +205,8 @@ def verify_built_cohort(directory: Path, source: str, version: str, *,
                 or wheel.stat().st_size != record['bytes']
                 or verifier.sha256(wheel) != record['sha256']):
             raise ValueError('Python release wheel bytes changed')
-        verifier.wheel_metadata(wheel, record['distribution'], version)
+        verifier.wheel_metadata(wheel, record['distribution'], version,
+            target_platform=cohort['platform'])
     if manifest_path.read_bytes() != original:
         raise ValueError('Python cohort manifest changed during verification')
     return {'qualification': 'existing wheel metadata and frozen-byte verification only; '
