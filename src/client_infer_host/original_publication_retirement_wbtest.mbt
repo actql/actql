@@ -77,11 +77,11 @@ test "original publication reservation returns after stopped Model dependency re
   let released = @resources.ledger_usage(ledger)
   assert_eq(
     released.reserved_retention_bytes,
-    before.reserved_retention_bytes - 11L,
+    before.reserved_retention_bytes - 19L,
   )
   assert_eq(
     released.reserved_execution_bytes,
-    before.reserved_execution_bytes - 13L,
+    before.reserved_execution_bytes - 21L,
   )
   assert_eq(released.attempts, before.attempts)
   // The existing retired-handle success is idempotent; it cannot settle or

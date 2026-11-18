@@ -378,6 +378,20 @@ test('Native retained verification builds exactly its checked release module inv
   ]);
 });
 
+test('normal lint executes installed-interface correspondence controls once', () => {
+  const file = 'scripts/installed-interface-correspondence.test.mjs';
+  const owners = Object.entries(jobs).flatMap(([job, value]) => (value.steps ?? [])
+    .filter(step => step.run?.split(/\s+/u).includes(file)).map(step => ({job, step})));
+  assert.equal(owners.length, 1);
+  const [{job, step}] = owners;
+  assert.equal(job, 'lint');
+  const args = step.run.trim().split(/\s+/u);
+  assert.deepEqual(args.slice(0, 2), ['node', '--test']);
+  assert.equal(args.filter(value => value === file).length, 1);
+  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assert.equal(step['continue-on-error'], undefined);
+});
+
 test('normal lint executes behavioral operation performance assessment tests', () => {
   const collectors = jobs.lint.steps.filter(row => row.run === 'npm run test:operation-performance-collectors');
   const policies = jobs.lint.steps.filter(row => row.run === 'npm run test:operation-performance-policy');

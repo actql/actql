@@ -42,11 +42,11 @@ pub fn NativeClientMockModelWork::prepare_observation(
       ).map_err(issue => NativeClientMockModelIssue::Model(issue)),
     )
     self.publication_capacity = Some(capacity)
-    self.publication_retained = @execution.execution_capacity_retained_bytes(
-      complete,
+    self.publication_retained = @model.original_model_publication_retained_bytes(
+      capacity,
     )
-    self.publication_execution = @execution.execution_capacity_execution_bytes(
-      complete,
+    self.publication_execution = @model.original_model_publication_execution_bytes(
+      capacity,
     )
     mock_model_require(self.grow_observation_capacity(issuer_capacity))
     let issued = mock_model_require(
