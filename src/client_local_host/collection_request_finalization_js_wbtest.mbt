@@ -373,14 +373,13 @@ fn collection_request_publication_case(
         assert_true(source_free_max_work is None)
         assert_true(
           local_values_execution_failure_issue(failure)
+          // The original managed diagnostic retains the exact selected policy,
+          // rather than the former nested rows-only failure shape.
           is Driver(
-            @local_driver.Configuration(
-              @connector.Execution(
-                @execution.Rows(
-                  43,
-                  @execution.LogicalRows(@execution.WorkLimit)
-                )
-              )
+            @local_driver.LogicalWorkLimit(
+              43,
+              20000000L,
+              SourceFreeInstallation
             )
           ),
         )
