@@ -9,6 +9,14 @@ const count = Number(countText);
 assert.ok(['produce', 'produce-source', 'restore'].includes(phase));
 assert.ok([1000, 10000, 10001, 100000].includes(count));
 
+// Preserve the explicit finite 100k acceptance profile on both capture and
+// Saved. Smaller controls keep the ordinary installation defaults. This is
+// fixture selection before Host/Request construction, not a product cap change.
+const installation = count === 100000 ? {
+  requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824},
+  sourceFreeMaxWork: 30000000,
+} : undefined;
+
 async function assertAllRows(run) {
   let read = 0, sum = 0n, squares = 0n;
   for await (const row of run.result('answer0').rows()) {
@@ -25,7 +33,8 @@ async function assertAllRows(run) {
 
 let db, primary, failed = false, inputWireBytes;
 try {
-  db = await open({stateDir: directory});
+  db = await open({stateDir: directory,
+    ...(installation === undefined ? {} : {installation})});
   let run;
   if (phase === 'produce' || phase === 'produce-source') {
     const program = {

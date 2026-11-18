@@ -54,16 +54,33 @@ test('the byte-exact numeric actor resolves the installed Node package before an
   t.after(() => rm(consumer, {recursive: true, force: true}));
   const pkg = join(consumer, 'node_modules/@actql/node'); await mkdir(pkg, {recursive: true});
   await writeFile(join(pkg, 'package.json'), JSON.stringify({name: '@actql/node', type: 'module', exports: './index.mjs'}));
-  await writeFile(join(pkg, 'index.mjs'), 'export function open(){throw new Error("InstalledNumericFixtureReachedBeforeHost");}\n');
+  await writeFile(join(pkg, 'index.mjs'), `import {writeFileSync} from 'node:fs';
+export function open(options) {
+  writeFileSync(process.env.ACTQL_NUMERIC_TEST_OPEN, JSON.stringify(options));
+  throw new Error('InstalledNumericFixtureReachedBeforeHost');
+}
+`);
   const repository = fileURLToPath(new URL('../', import.meta.url));
   const actor = await stageNumericScaleActor({repository, consumer});
   assert.deepEqual(await readFile(actor), await readFile(new URL('../adapters/host-node/fixtures/numeric-scale-public-process.mjs', import.meta.url)));
   const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
-  const child = spawnSync(process.execPath, [actor, 'produce', join(consumer, 'unused-state'), join(consumer, 'unused-ref'), '1000'],
-    {cwd: consumer, env, encoding: 'utf8', timeout: 10000});
-  assert.ifError(child.error); assert.equal(child.signal, null); assert.equal(child.status, 1);
-  assert.match(child.stderr, /InstalledNumericFixtureReachedBeforeHost/);
-  assert.doesNotMatch(child.stderr, /ERR_MODULE_NOT_FOUND/);
+  const stateDir = join(consumer, 'unused-state');
+  for (const {phase, count} of [
+    ...[1000, 10000, 10001].map(count => ({phase: 'produce', count})),
+    ...['produce', 'produce-source', 'restore'].map(phase => ({phase, count: 100000})),
+  ]) {
+    const observed = join(consumer, `open-${phase}-${count}.json`);
+    const child = spawnSync(process.execPath, [actor, phase, stateDir, join(consumer, 'unused-ref'), String(count)],
+      {cwd: consumer, env: {...env, ACTQL_NUMERIC_TEST_OPEN: observed}, encoding: 'utf8', timeout: 10000});
+    assert.ifError(child.error); assert.equal(child.signal, null); assert.equal(child.status, 1);
+    assert.match(child.stderr, /InstalledNumericFixtureReachedBeforeHost/);
+    assert.doesNotMatch(child.stderr, /ERR_MODULE_NOT_FOUND/);
+    assert.deepEqual(JSON.parse(await readFile(observed, 'utf8')), count === 100000 ? {
+      stateDir,
+      installation: {requestMemory: {retainedBytes: 1073741824, executionBytes: 1073741824},
+        sourceFreeMaxWork: 30000000},
+    } : {stateDir});
+  }
 });
 
 
