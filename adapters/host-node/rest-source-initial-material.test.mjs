@@ -196,6 +196,7 @@ function demandFixture(authored) {
 
 async function observeDemand(f,{refusal,beforeConfiguration}={}) {
   let implementation, rowSource, siteInput, siteCalls = 0, quantityArgs, retainedTarget;
+  const quantityCalls=[];
   const construction=[];
   const capacity = {}, prepared = {declaration: {}, declared: {catalog_cid: 'authored-catalog',
     views: f.definition.sources.map(source => ({resource: source.resource,
@@ -218,17 +219,17 @@ async function observeDemand(f,{refusal,beforeConfiguration}={}) {
   const moon = Object.fromEntries(['ProjectJsonPage', 'JsonPageRowsWire', 'JsonPageRowCount',
     'JsonPageHasNextCursor', 'JsonPageNextCursor', 'ProjectTypedJsonPage', 'JsonPageOriginal',
     'TypedJsonPageRowCount', 'TypedJsonPageHasNextCursor', 'TypedJsonPageNextCursor',
-    'PrepareCursorProgress', 'CursorRemainingRows', 'AdvanceCursorProgress',
+    'PrepareCursorProgress', 'CursorRemainingRows', 'CursorRequestRows', 'AdvanceCursorProgress',
     'CursorHasNext', 'CursorNext', 'CursorIssueCode'].map(name => ['clientProgramRowSource'+name,
     () => assert.fail('No page/decoder call in a selection-only component')]));
   moon.clientProgramInstalledSourceConstructionCapacity=function(...args) {
-    assert.equal(this,moon);quantityArgs=args;construction.push('quote');return {$tag:1,_0:quantity};
+    assert.equal(this,moon);quantityArgs=args;quantityCalls.push(args);construction.push('quote');return {$tag:1,_0:quantity};
   };
   const create = demandFactory(async options => {rowSource = options;return 'selected-source-port';});
   const run = () => create(f.definition).load(f.profile, {installationServices: services,
     sourceInitialization: initialization, installation: {}, moon, resolveSecret() {},
     configurationReader: {readJson: async () => {beforeConfiguration?.({initialization,moon});return f.selectedSite;}, readText() {assert.fail('No physical read');}}});
-  return {run, observations: () => ({implementation, rowSource, siteInput, siteCalls, prepared,quantityArgs,retainedTarget,construction})};
+  return {run, observations: () => ({implementation, rowSource, siteInput, siteCalls, prepared,quantityArgs,quantityCalls,retainedTarget,construction})};
 }
 
 test('standard REST supplies exact immutable target DATA while approval keeps its complete matcher', async () => {
@@ -310,9 +311,12 @@ test('REST target DATA uses the same Source original quote before construction a
     const selected=restSourceReadConstructionUnits(source.read,source.pagination.parameter);
     selected.forEach((value,index)=>units[index]+=value);
   }
-  const wrapper=4n+BigInt(f.definition.sources.length);
-  units[0]+=slots+wrapper;units[3]+=slots+wrapper;
+  const wrapper=4n+5n*BigInt(f.definition.sources.length);
+  units[0]+=slots+wrapper;units[3]+=slots+wrapper+4n*BigInt(f.definition.sources.length);
   assert.deepEqual(o.quantityArgs,units);
+  // Independent legacy GET request vector plus the new typed call's6 slots.
+  // Both resources share that same one-page maximum, not two added grants.
+  assert.deepEqual(o.quantityCalls[0],[26n,8240n,0n,58n,49228n,0n]);
   assert.deepEqual(o.construction,['quote','quote','reserve','project']);
   assert.equal(o.rowSource.physicalTarget,o.retainedTarget.targets);
   assert.deepEqual(o.retainedTarget.requests,f.definition.sources.map(source=>captureRestSourceRead(source.read,source.pagination.parameter)));

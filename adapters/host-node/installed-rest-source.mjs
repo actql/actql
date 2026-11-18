@@ -43,11 +43,17 @@ function capturePhysicalTargetConstruction(sourceInitialization, moon) {
     // Internal two-field wrapper and request vector. Public target DATA stays
     // byte-for-byte the original eight-field shape. The SAME one initializer
     // retains both outputs before any page constructor can borrow the request.
-    const wrapper = 4n + BigInt(sources.length);
+    // The additional Core request-row projector is captured once per source:
+    // one closure with method+namespace captures and one result-record field
+    // (4 value slots), retained alongside the original request snapshot.
+    const wrapper = 4n + 5n * BigInt(sources.length);
     return Reflect.apply(method.value, sourceInitialization, [Object.freeze({
       capacity() {
         return checked(Reflect.apply(capacity.value, moon, requests.map((units, index) =>
-          units + (index === 0 || index === 3 ? slots + wrapper : 0n))));
+          units + (index === 0 ? slots + wrapper : index === 3
+            // New method-entry pair3 + map result vector entry1 remain in
+            // constructor workspace alongside the retained closure/field.
+            ? slots + wrapper + 4n * BigInt(sources.length) : 0n))));
       },
       project() {
         return Object.freeze({targets: Object.freeze(sources.map(source => physicalTarget(source.resource,
@@ -136,6 +142,10 @@ export function createInstalledRestSource(definition, {decodePage} = {}) {
         if (units[index] > requestUnits[index]) requestUnits[index] = units[index];
       }
     }
+    // Replaces the old three-argument fetch projection, not decode. Two new
+    // primitive args, their call-vector copies, the typed Option and inner
+    // Result overlap add6 workspace slots; all are charged before acquisition.
+    requestUnits[3] += 6n;
     const requestConstruction = Object.freeze({
       capacity: checked(Reflect.apply(requestCapacity, moon, requestUnits)),
       maxRequestBytes: policy.maxTargetBytes});

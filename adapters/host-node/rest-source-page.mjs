@@ -38,7 +38,7 @@ const names = ['clientProgramRowSourceProjectJsonPage', 'clientProgramRowSourceJ
   'clientProgramRowSourceJsonPageOriginal', 'clientProgramRowSourceProjectTypedJsonPage',
   'clientProgramRowSourceTypedJsonPageRowCount', 'clientProgramRowSourceTypedJsonPageHasNextCursor',
   'clientProgramRowSourceTypedJsonPageNextCursor', 'clientProgramRowSourcePrepareCursorProgress',
-  'clientProgramRowSourceCursorRemainingRows', 'clientProgramRowSourceAdvanceCursorProgress',
+  'clientProgramRowSourceCursorRemainingRows', 'clientProgramRowSourceCursorRequestRows', 'clientProgramRowSourceAdvanceCursorProgress',
   'clientProgramRowSourceCursorHasNext', 'clientProgramRowSourceCursorNext',
   'clientProgramRowSourceCursorIssueCode'];
 
@@ -92,11 +92,12 @@ export function restSourcePageReader({moon, source, decodePage, request: capture
       bound.maxPages, bound.maxRows, bound.maxPageRows, bound.maxCursorBytes));
     return Object.freeze({
       fetchPage({pageIndex, rowCount}) {
-        const remaining = cursorResult(original.clientProgramRowSourceCursorRemainingRows(progress, pageIndex, rowCount));
+        const requestRows = cursorResult(original.clientProgramRowSourceCursorRequestRows(progress, pageIndex, rowCount,
+          request.pageSize !== undefined, request.pageSize?.limit ?? 0));
         const hasNext = original.clientProgramRowSourceCursorHasNext(progress);
         if (typeof hasNext !== 'boolean') fail('RestSourceCursorRuntimeBindingMismatch');
         const cursor = hasNext ? cursorResult(original.clientProgramRowSourceCursorNext(progress)) : undefined;
-        return Object.freeze(restSourcePageRequest(request, parameter, remaining, cursor));
+        return Object.freeze(restSourcePageRequest(request, parameter, requestRows, cursor));
       },
       decodePage(response, {pageIndex, rowCount}) {
         if (!response.accepted || response.statusCode !== 200) fail('RestSourceProviderRejected');

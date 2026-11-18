@@ -4232,6 +4232,8 @@ pub fn client_program_row_source_cursor_next(@client_row_source_host.RowSourceCu
 
 pub fn client_program_row_source_cursor_remaining_rows(@client_row_source_host.RowSourceCursorProgress, Int, Int) -> Result[Int, @client_row_source_host.RowSourceCursorIssue]
 
+pub fn client_program_row_source_cursor_request_rows(@client_row_source_host.RowSourceCursorProgress, Int, Int, Bool, Int) -> Result[Int, @client_row_source_host.RowSourceCursorIssue]
+
 pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDeclaration) -> String
 
 pub fn client_program_row_source_ensure_response_transfer_capacity(@client_row_source_host.RowRunResponseBorrow, Int64) -> Result[Unit, @client_row_source_host.RowHostIssue]

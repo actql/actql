@@ -32,6 +32,29 @@ pub fn client_program_row_source_cursor_remaining_rows(
 }
 
 ///|
+/// Primitive presence DATA is converted here to the original typed Option;
+/// the Host never constructs or decodes the compiler's Option representation.
+#export_name("clientProgramRowSourceCursorRequestRows")
+pub fn client_program_row_source_cursor_request_rows(
+  progress : @client_row_source_host.RowSourceCursorProgress,
+  page_index : Int,
+  row_count : Int,
+  page_size_present : Bool,
+  page_size : Int,
+) -> Result[Int, @client_row_source_host.RowSourceCursorIssue] {
+  @client_row_source_host.row_source_cursor_request_rows(
+    progress,
+    page_index,
+    row_count,
+    if page_size_present {
+      Some(page_size)
+    } else {
+      None
+    },
+  )
+}
+
+///|
 #export_name("clientProgramRowSourceAdvanceCursorProgress")
 pub fn client_program_row_source_advance_cursor_progress(
   progress : @client_row_source_host.RowSourceCursorProgress,

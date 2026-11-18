@@ -69218,7 +69218,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_row_json_page_bridge.mbt",
-      "sha256": "a1d13537d08c92c07f061bd454f68581531e769f840ce90d7a627ded8931e3d1",
+      "sha256": "6b1c08cf3277b845b2f89615c2fbc1ad5e597dba4104163763ff7a1e19975821",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -69247,6 +69247,10 @@
         {
           "name": "client_program_row_source_cursor_remaining_rows",
           "declaration": "client_program_row_source_cursor_remaining_rows ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , ) - > Result [ Int , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_cursor_request_rows",
+          "declaration": "client_program_row_source_cursor_request_rows ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , page_size_present : Bool , page_size : Int , ) - > Result [ Int , @ client_row_source_host . RowSourceCursorIssue ]"
         },
         {
           "name": "client_program_row_source_json_page_has_next_cursor",
@@ -69313,7 +69317,8 @@
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
-            "client_program_row_source_typed_json_page_row_count"
+            "client_program_row_source_typed_json_page_row_count",
+            "client_program_row_source_cursor_request_rows"
           ],
           "exports": [],
           "attributes": {
@@ -69427,6 +69432,10 @@
               {
                 "path": "src/client_row_source_host/typed_json_page_wbtest.mbt",
                 "anchor": "typed JSON page namespace provenance refuses a foreign original without wire fallback"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "portable request rows join the same cursor without narrowing response admission"
               }
             ]
           }
@@ -70983,7 +70992,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_row_json_page_bridge.mbt",
-      "sha256": "6ec773cc23147b4dab373454e21566f202095c1de77d472342df62f574889a3e",
+      "sha256": "b037c8aed37e194460298b99476e0e77551aee79487f6bad809787a076739a67",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source envelope and schema admission owners; DATA only, no new physical/current or resource issuer",
@@ -71012,6 +71021,10 @@
         {
           "name": "client_program_row_source_cursor_remaining_rows",
           "declaration": "client_program_row_source_cursor_remaining_rows ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , ) - > Result [ Int , @ client_row_source_host . RowSourceCursorIssue ]"
+        },
+        {
+          "name": "client_program_row_source_cursor_request_rows",
+          "declaration": "client_program_row_source_cursor_request_rows ( progress : @ client_row_source_host . RowSourceCursorProgress , page_index : Int , row_count : Int , page_size_present : Bool , page_size : Int , ) - > Result [ Int , @ client_row_source_host . RowSourceCursorIssue ]"
         },
         {
           "name": "client_program_row_source_json_page_has_next_cursor",
@@ -71078,7 +71091,8 @@
             "client_program_row_source_project_typed_json_page",
             "client_program_row_source_typed_json_page_has_next_cursor",
             "client_program_row_source_typed_json_page_next_cursor",
-            "client_program_row_source_typed_json_page_row_count"
+            "client_program_row_source_typed_json_page_row_count",
+            "client_program_row_source_cursor_request_rows"
           ],
           "exports": [],
           "attributes": {
@@ -71192,6 +71206,10 @@
               {
                 "path": "src/client_row_source_host/typed_json_page_wbtest.mbt",
                 "anchor": "typed JSON page namespace provenance refuses a foreign original without wire fallback"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "portable request rows join the same cursor without narrowing response admission"
               }
             ]
           }
@@ -103045,7 +103063,7 @@
     },
     {
       "module": "src/client_row_source_host/json_page_cursor.mbt",
-      "sha256": "3b9d0a0a4c266448baadd045a55b51f8bed5ad98066049728e76238f0a6dd7f8",
+      "sha256": "ccc96409465a4d84b2d1acab2c56e57260c148dd69094337e1cfeb737277aade",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common row Source pagination DATA; managed RowRun retains I/O, current authority, response charges and physical cleanup",
@@ -103070,6 +103088,10 @@
         {
           "name": "row_source_cursor_remaining_rows",
           "declaration": "row_source_cursor_remaining_rows ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , ) - > Result [ Int , RowSourceCursorIssue ]"
+        },
+        {
+          "name": "row_source_cursor_request_rows",
+          "declaration": "row_source_cursor_request_rows ( progress : RowSourceCursorProgress , page_index : Int , row_count : Int , page_size : Int ? , ) - > Result [ Int , RowSourceCursorIssue ]"
         }
       ],
       "contracts": [
@@ -103080,7 +103102,8 @@
             "prepare_row_source_cursor_progress",
             "row_source_cursor_has_next",
             "row_source_cursor_next",
-            "row_source_cursor_remaining_rows"
+            "row_source_cursor_remaining_rows",
+            "row_source_cursor_request_rows"
           ],
           "exports": [],
           "attributes": {
@@ -103198,6 +103221,10 @@
               {
                 "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
                 "anchor": "portable cursor progress preserves empty and Unicode cursors until exact EOF"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "portable request rows join the same cursor without narrowing response admission"
               }
             ]
           }

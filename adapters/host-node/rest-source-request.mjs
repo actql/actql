@@ -73,10 +73,11 @@ export function captureRestSourceRead(value, cursorParameter) {
 // require their own checked full-page projector before reaching this point.
 export function restSourcePageRequest(read, cursorParameter, remainingRows, cursor) {
   if (!positive(remainingRows) || cursor !== undefined &&
-      (typeof cursor !== 'string' || !cursor.isWellFormed())) fail();
+      (typeof cursor !== 'string' || !cursor.isWellFormed()) ||
+      read.pageSize !== undefined && remainingRows > read.pageSize.limit) fail();
   const query = read.query === undefined ? [] : [...read.query];
   if (read.pageSize !== undefined) query.push([
-    read.pageSize.parameter, String(Math.min(read.pageSize.limit, remainingRows))]);
+    read.pageSize.parameter, String(remainingRows)]);
   if (cursor !== undefined) {
     if (!parameter(cursorParameter)) fail();
     query.push([cursorParameter, cursor]);

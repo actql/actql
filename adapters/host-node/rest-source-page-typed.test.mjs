@@ -102,6 +102,11 @@ function fixture(transform, options = {}) {
       assert.equal(this,moon);assert.equal(value,progress);
       cursorCalls.push(['remaining',index,count]);return {$tag:1,_0:2};
     },
+    clientProgramRowSourceCursorRequestRows(value,index,count,present,limit) {
+      assert.equal(this,moon);assert.equal(value,progress);
+      cursorCalls.push(['requestRows',index,count,present,limit]);
+      return {$tag:1,_0:options.requestRows??2};
+    },
     clientProgramRowSourceAdvanceCursorProgress(value,index,count,envelope,rows) {
       assert.equal(this,moon);assert.equal(value,progress);assert.equal(envelope,first);
       assert([first,changed].includes(rows));cursorCalls.push(['advance',index,count,envelope,rows]);
@@ -138,7 +143,7 @@ function fixture(transform, options = {}) {
       assert.equal(this, moon);assert.equal(value, first);return {$tag: 1, _0: ''};
     },
   };
-  const source = {resource: 'records', fields: [{name: 'id'}], read: {path: '/records'},
+  const source = {resource: 'records', fields: [{name: 'id'}], read: options.read ?? {path: '/records'},
     pagination: {kind: 'cursor', parameter: 'cursor', items: ['items'], next: ['next']},
     limits: {maxPageBytes: options.maxPageBytes ?? 1024, maxNodes: 64, maxDepth: 8, maxPageRows: 2,
       maxRows: 4, maxPages: 3, maxCursorBytes: 32}};
@@ -148,6 +153,20 @@ function fixture(transform, options = {}) {
     reader: prepare(undefined, invoke), response: {accepted: true, statusCode: 200, body: bytes},
     progress: {pageIndex: 0, rowCount: 0}};
 }
+
+test('portable request caller forwards original cursor and hint while response keeps its original ceiling', () => {
+  const f=fixture(undefined,{read:{path:'/records',pageSize:{parameter:'size',limit:1}},requestRows:1});
+  assert.deepEqual(f.reader.fetchPage({pageIndex:0,rowCount:0}).query,[['size','1']]);
+  assert.deepEqual(f.cursorCalls.at(-1),['requestRows',0,0,true,1]);
+  f.reader.decodePage(f.response,f.progress);
+  assert(f.cursorCalls.some(value=>value[0]==='remaining'&&value[1]===0&&value[2]===0));
+  // Explicit Core port above, never a second JS progress/min implementation.
+  // Missing current ABI fails before preparing any progress; no old fallback.
+  const old={...f.moon};delete old.clientProgramRowSourceCursorRequestRows;
+  assert.throws(()=>restSourcePageReader({moon:old,source:f.source}),{code:'RestSourcePageProjectionUnavailable'});
+  assert.throws(()=>restSourcePageRequest(captureRestSourceRead({method:'GET',path:'/records',
+    pageSize:{parameter:'size',limit:1}}),'cursor',2,undefined),{code:'InvalidRestSourceRead'});
+});
 
 test('REST typed page forwards the same opaque original without rows wire encoding', () => {
   const f = fixture(), result = f.reader.decodePage(f.response, f.progress);
@@ -348,6 +367,29 @@ test('REST changed author wire preserves the original Core schema refusal', () =
 // qualify a runtime. Every nominal value below comes from this ONE namespace.
 const selectedCommon = process.env.ACTQL_METADATA_COMMON_RUNTIME;
 const actualCommon = selectedCommon === undefined ? undefined : import(pathToFileURL(selectedCommon));
+
+// A genuinely new caller boundary for the next matching normal Common. It is
+// deliberately outside the old two-case selector; its CI owner can add it to
+// that SAME existing preparation build, never a second Common producer.
+test('REST actual portable request hint keeps original parse and cursor ownership',
+  {skip: selectedCommon === undefined}, async () => {
+    const moon=await actualCommon;
+    const source={resource:'records',fields:[{name:'id'}],read:{method:'GET',path:'/records',
+      pageSize:{parameter:'size',limit:1}},
+      pagination:{kind:'cursor',parameter:'after',items:['items'],next:['next']},
+      limits:{maxPageBytes:1024,maxNodes:64,maxDepth:8,maxPageRows:2,maxRows:3,maxPages:3,maxCursorBytes:32}};
+    const reader=restSourcePageReader({moon,source})();
+    assert.deepEqual(reader.fetchPage({pageIndex:0,rowCount:0}).query,[['size','1']]);
+    const first=reader.decodePage({accepted:true,statusCode:200,
+      body:Buffer.from('{"items":[{"id":"one"},{"id":"two"}],"next":""}')},{pageIndex:0,rowCount:0});
+    assert.equal(first.rowCount,2);assert.equal(first.done,false);
+    assert.deepEqual(reader.fetchPage({pageIndex:1,rowCount:2}).query,[['size','1'],['after','']]);
+    assert.throws(()=>reader.fetchPage({pageIndex:1,rowCount:1}),{code:'RestSourceCursorProgressMismatch'});
+    const last=reader.decodePage({accepted:true,statusCode:200,
+      body:Buffer.from('{"items":[{"id":"last"}]}')},{pageIndex:1,rowCount:2});
+    assert.equal(last.done,true);
+    assert.throws(()=>reader.fetchPage({pageIndex:2,rowCount:3}),{code:'RestSourceCursorCompleted'});
+  });
 
 test('REST actual Common cursor boundary keeps empty Unicode EOF and original progress',
   {skip: selectedCommon === undefined}, async () => {

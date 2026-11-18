@@ -80,6 +80,33 @@ pub fn row_source_cursor_remaining_rows(
 }
 
 ///|
+/// Select only the outgoing request's declared page-size DATA from the SAME
+/// checked progress. The independent response/parse ceiling remains the one
+/// returned by row_source_cursor_remaining_rows; a requested size is not a
+/// new row grant or a stricter response rule. No state advances here.
+pub fn row_source_cursor_request_rows(
+  progress : RowSourceCursorProgress,
+  page_index : Int,
+  row_count : Int,
+  page_size : Int?,
+) -> Result[Int, RowSourceCursorIssue] {
+  let remaining = match
+    row_source_cursor_remaining_rows(progress, page_index, row_count) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match page_size {
+    None => Ok(remaining)
+    Some(limit) =>
+      if limit <= 0 {
+        Err(InvalidLimits)
+      } else {
+        Ok(Int::min(limit, remaining))
+      }
+  }
+}
+
+///|
 /// The original envelope fixes continuation. An optional pure transform may
 /// replace rows, but its separately parsed page supplies only the actual count.
 /// All checks precede mutation; an error does not consume a page or cursor.

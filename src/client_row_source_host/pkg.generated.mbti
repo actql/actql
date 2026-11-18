@@ -469,6 +469,8 @@ pub fn row_source_cursor_next(RowSourceCursorProgress) -> Result[String, RowSour
 
 pub fn row_source_cursor_remaining_rows(RowSourceCursorProgress, Int, Int) -> Result[Int, RowSourceCursorIssue]
 
+pub fn row_source_cursor_request_rows(RowSourceCursorProgress, Int, Int, Int?) -> Result[Int, RowSourceCursorIssue]
+
 pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool
 
 pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]
