@@ -196,13 +196,16 @@ export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt,
     headers: original.headers, redirect: 'error', signal: state.controller.signal});
   // Selected per-call Client/options are fixed in preparation before Entry.
   // Generic/native transports retain their original fetch behavior.
-  const physical = prepareOriginalUndiciFetch(fetch, original.url, init, limits);
+  const physical = prepareOriginalUndiciFetch(fetch, original.url, init, limits, state.controller);
   state.transport = {invoke: physical?.invoke ?? (() => fetch(original.url, init)),
     physicalCleanup: physical?.cleanup, physicalRetired: physical === undefined,
     physicalRetiring: false, limits, observeAt,
     observedAt: undefined, rawObservation: undefined, responseMode,
     started: false, settled: false, raw: undefined, failure: undefined,
     readerRetired: false, retiring: false, unreadResponse: undefined};
+  // Extend the SAME already admitted record only for the selected clock.
+  // No temporary spread/empty record on the legacy NONE path.
+  if (physical?.finishResponse !== undefined) state.transport.finishResponse = physical.finishResponse;
 }
 
 // Original fixed transport start only. The caller must first cross Common's
@@ -265,6 +268,8 @@ export function startSdkTransport(handle) {
     transport.failure ??= 'SdkTransportUnknown';
     state.responseReject?.(issue('SdkTransportUnknown'));
   }).finally(() => {
+    transport.finishResponse?.();
+    if (Object.hasOwn(transport, 'finishResponse')) delete transport.finishResponse;
     transport.settled = true;
     wake();
   });
@@ -409,9 +414,12 @@ export function cleanupSdkPreparation(handle) {
   if (state.retired) return true;
   const transport = state.transport;
   if (transport?.physicalCleanup !== undefined && !transport.physicalRetired) {
-    advanceOriginalPhysicalCleanup(state, transport);
     // Preserve request/Client/body/SDK/raw holdings until actual settlement.
+    // Request the SAME original controller stop before physical cleanup can
+    // disarm its deadline or synchronously report a pending body's failure.
+    // The existing physical AND remains separate; abort is never its ACK.
     state.abort();
+    advanceOriginalPhysicalCleanup(state, transport);
     return false;
   }
   if (transport?.started) {
