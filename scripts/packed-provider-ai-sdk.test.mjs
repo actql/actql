@@ -239,19 +239,19 @@ test('failed timeout original retains primary and cannot start a replacement col
 
 test('optional timeout completion rechecks every independent installed package inventory', async t => {
   const f = await fixture(t), root = join(f.root, 'changed');
+  const packages = [...CLIENT_PACKAGES, 'provider-ai-sdk'], changed = new Set(), consumers = new Set();
   await assert.rejects(withFixtureGitHubSource(f.source.sha, () => runPackedProviderAI(root, {...f, command: async (cmd, args, options) => {
     const result = await f.command(cmd, args, options);
-    if (args[1] === 'cold' && basename(dirname(options.cwd)) === 'timeout-body') {
-      const packages = [...CLIENT_PACKAGES, 'provider-ai-sdk'];
-      const changed = new Set();
-      for (const [index, prepared] of f.preparations.entries()) {
-        const name = packages[index % packages.length];changed.add(name);
-        await writeFile(join(prepared.cwd, 'node_modules/@actql', name, 'index.mjs'), 'changed original package\n');
-      }
-      assert.deepEqual([...changed].sort(), packages.sort(), 'Exercise every original package type across the independent installations');
+    if (args[1] === 'cold' || args[1]?.startsWith('usage-')) {
+      const index = f.preparations.findIndex(prepared => prepared.cwd === options.cwd);
+      assert(index >= 0); assert(!consumers.has(options.cwd)); consumers.add(options.cwd);
+      const name = packages[index % packages.length]; changed.add(name);
+      await writeFile(join(options.cwd, 'node_modules/@actql', name, 'index.mjs'), 'changed original package\n');
     }
     return result;
   }})), /OptionalProviderSoftwareChanged/u);
+  assert.deepEqual([...changed].sort(), packages.sort(), 'Exercise every original package type across the independent installations');
+  assert.deepEqual([...consumers].sort(), f.preparations.map(value => value.cwd).sort());
   const report = JSON.parse(await readFile(join(root, 'summary.json')));
   assert.equal(report.complete, false);assert(report.phases.every(row => row.status === 'passed'));
   assert.equal(report.cleanup.length, f.preparations.length);
