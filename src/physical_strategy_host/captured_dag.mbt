@@ -1484,6 +1484,16 @@ pub fn captured_task_completed(run : CapturedDAG, task : Int) -> Bool {
 
 ///|
 pub fn next_captured_task(run : CapturedDAG) -> Int? {
+  if !captured_task_control_allows_activation(run) {
+    return None
+  }
+  next_captured_task_ungated(run)
+}
+
+///|
+// Observation of the original readiness remains possible while the control
+// gate is paused. Only execution/preparation entrances use the gated selector.
+fn next_captured_task_ungated(run : CapturedDAG) -> Int? {
   if run.stopped || run.running is Some(_) || resident_provision_pending(run) {
     return None
   }

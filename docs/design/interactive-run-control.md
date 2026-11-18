@@ -329,6 +329,41 @@ The fixed lookup holding does not fund capture of the original facts tree,
 variable key encoding, a physical parent, Journal ACK or egress; those actual
 supplier duties remain separate.
 
+## Original task-owner control gate
+
+The finite Core gate reuses the existing captured task activation and output
+commit owner. Explicit pre-work setup installs at most one control state under
+that Run's original graph/strategy hook. It does not add a CapturedDAG field or
+allocate controller state on the default Normal path. The hook's added control
+reference and admission fence are included in its existing construction quote;
+the controller separately reserves its complete fixed binding/state/read peak
+on the same Ledger before construction. The configured Local owner matches the
+actual Account decision to its original Run Definition and execution context.
+A task activation grant does not substitute for this control permission.
+
+A step is the existing resume interval ending at one original logical operation.
+Its before and settled observations consume one credit only when the existing
+owner atomically commits that operation's output. The gate then blocks the next
+activation, or observes genuine final task completion. Pause during work waits
+for that commit; failure and stop cannot spend the credit as success. Fused
+prefixes and unavailable physical boundaries refuse before work rather than
+inventing independent logical stops. No task execution or Sample is replayed.
+
+The interactive revision belongs to this single Run-owned state, independently
+of strategy generations and the legacy cancellation counter. Commands compare
+that revision and actual original authority before mutation, reserve headroom
+for an automatic pause/terminal transition before work, and fence resource
+callback reentry. Stop disposes the admitted binding before token return;
+declined cleanup retains only that same token under the existing owner's retry.
+No second holder can reset revision or acknowledge another owner's return.
+
+This Core state is not a durable command receipt or a public controlled Run.
+The existing journal still needs its separate marked associated-state and
+immutable operation/lookup transaction, original-row CAS/current checks and
+first durable acknowledgement before runtime enablement. Existing public
+pause/resume, interval and receipt schemas stay closed and unchanged; durable
+control and Sample capabilities remain unavailable until their actual supplier.
+
 ## Compiler-original plan capture
 
 Initial plan capture consumes the same nominal compiled Run, checked Program

@@ -136,7 +136,9 @@ pub fn captured_task_activation_granted(run : CapturedDAG, task : Int) -> Bool {
 /// Checked by every task start before any reservation or external work. The
 /// grant is consumed whether or not the start later succeeds.
 fn consume_task_activation(run : CapturedDAG, task : Int) -> Bool {
-  if run.activation is Preparing || run.activation is SetupCleanup(_) {
+  if !captured_task_control_allows_activation(run) ||
+    run.activation is Preparing ||
+    run.activation is SetupCleanup(_) {
     return false
   }
   if !run.activation_required {
