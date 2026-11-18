@@ -17,7 +17,7 @@ import {installedSourceFor as selectInstalledSource} from './installed-source.mj
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {validSubmissionLookup, validCheckOutcome, snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {checkedRequestProgramPreparation, installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -52,8 +52,8 @@ async function fixture(t, callbacks = {}) {
   });
   install();
   const ref = {epoch: await service.issueEpoch({principalId, connection}), nonce: 'original-nonce'};
-  const body = (text = 'SELECT 1 AS value') => {
-    const source = {kind: 'aql', input: {format: 'aql-text', text}, parameters: null};
+  const body = (text = 'SELECT 1 AS value', parameters = null) => {
+    const source = {kind: 'aql', input: {format: 'aql-text', text}, parameters};
     const intent = moon.clientSubmittedIntent(JSON.stringify(source), 1048576, 65536, 64);
     return {principalId, connection, submissionRef: ref, intentCid: moon.clientSubmittedIntentCid(intent),
       attemptRef: {operation: 'submit', attemptId: 'submission-test-invocation'}, ...source};
@@ -1793,4 +1793,83 @@ test('an arbitrary acquired Effect source lookup throw cannot issue original sel
   const candidate = {preparedProgram: p.prepared, requestId: 'original'};
   assert.throws(() => p.callback(candidate), error => error === p.sourceError && error.cause === thrown);
   assert.equal(Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [p.sourceError, candidate]), false);
+});
+
+function compatibleWorkRefusal(category = 'ClientProgramRuntimeFragmentWorkLimit') {
+  const issue={},result={$tag:0,_0:issue};
+  const selected={clientProgramRequestPreparationIssueCode(value) {
+    assert.equal(value,result); return category;
+  }};
+  try {checkedRequestProgramPreparation(selected,result);assert.fail('original refusal');}
+  catch(error) {assert.equal(error.code,category === 'ClientSuppliedParameterUndeclared'
+    ? 'ClientParametersInvalid' : category === 'ClientProgramParameterUndeclared'
+      ? 'ClientProgramInvalidInput' : 'ClientProgramRejected');return error;}
+}
+test('parameter declaration codes stay coarse when original disclosure is unavailable',async t=>{
+  for(const category of ['ClientSuppliedParameterUndeclared','ClientProgramParameterUndeclared']) {
+    const original=compatibleWorkRefusal(category);
+    const f=await fixture(t,{prepare:()=>{throw original;},
+      originalObservation:()=>null,check:()=>{throw new Error('check unavailable');}});
+    const first=await f.service.submitIntent(f.body('SELECT @n AS n',{n:42}));
+    assert.equal(first.kind,'not_accepted');
+    assert.deepEqual(first.problem,{code:'ClientProgramRejected',classification:'operation_failed'});
+    f.restart();
+    const saved=await f.service.lookupSubmission({principalId,connection,submissionRef:f.ref});
+    assertReferenceOnly(saved,first);
+  }
+});
+for(const category of ['ClientSuppliedParameterUndeclared','ClientProgramParameterUndeclared'])
+for(const phase of ['not_accepted','preparation_failed']) {
+  test(`parameter declaration code ${category} preserves invalid-input Journal ${phase} and same saved identity`,async t=>{
+    const original=compatibleWorkRefusal(category);
+    original.code='ClientProgramRejected'; // mutable aliases cannot change the Core category
+    const source={format:'aql-text',text:category==='ClientProgramParameterUndeclared'?'SELECT @n AS n':'SELECT 1 AS n'};
+    const parameters=category==='ClientProgramParameterUndeclared'?{n:42}:{extra:42};
+    // Actual checker output is an explicit disclosure port in this Journal
+    // component. The compiled Request/binder test owns the primary cause proof.
+    const report=await checkValues({principalId,connection,kind:'text',scope:'bound_input',input:source,parameters});
+    const f=await fixture(t,{prepare:()=>{if(phase==='not_accepted')throw original;return {};},
+      submit:()=>{throw original;},originalObservation:()=>report,check:()=>report});
+    const first=await f.service.submitIntent(f.body(source.text,parameters));
+    assert.equal(first.kind,phase);
+    assert.deepEqual(first.problem,{code:category,classification:'invalid_input'});
+    const stored=f.journal.lookupSubmittedIntent(f.ref,fields,moon);
+    assert.equal(stored.phase,phase);assert.deepEqual(stored.outcome.problem,first.problem);
+    const calls={...f.counts};f.restart();
+    const saved=await f.service.lookupSubmission({principalId,connection,submissionRef:f.ref});
+    assertReferenceOnly(saved,first);assert.deepEqual(f.counts,calls);
+    f.authorize(false);
+    await assert.rejects(()=>f.service.lookupSubmission({principalId,connection,submissionRef:f.ref}),{code:'ClientRequestLookupDenied'});
+  });
+}
+for(const phase of ['not_accepted','preparation_failed']) {
+  test(`compatible work code retains actual Journal ${phase} and same saved identity`, async t=>{
+    const original=compatibleWorkRefusal();
+    original.code='ClientProgramInvalidInput'; // mutable properties cannot reinterpret the original cause
+    const f=await fixture(t,{prepare:()=>{if(phase==='not_accepted')throw original;return {};},
+      submit:()=>{throw original;}});
+    const first=await f.service.submitIntent(f.body());
+    assert.equal(first.kind,phase);
+    assert.deepEqual(first.problem,{code:'ClientProgramRuntimeFragmentWorkLimit',classification:'operation_failed'});
+    const stored=f.journal.lookupSubmittedIntent(f.ref,fields,moon);
+    assert.equal(stored.phase,phase);assert.deepEqual(stored.outcome.problem,first.problem);
+    assert.equal(Object.hasOwn(first,'admission'),false);
+    const calls={...f.counts};f.restart();
+    const saved=await f.service.lookupSubmission({principalId,connection,submissionRef:f.ref});
+    assertReferenceOnly(saved,first);assert.deepEqual(f.counts,calls);
+    f.authorize(false);
+    await assert.rejects(()=>f.service.lookupSubmission({principalId,connection,submissionRef:f.ref}),{code:'ClientRequestLookupDenied'});
+  });
+}
+test('compatible work code cannot be issued by copied errors or opaque Host500',async t=>{
+  const copy=Object.assign(new Error('private'),{code:'ClientProgramRejected',
+    problemCode:'ClientProgramRuntimeFragmentWorkLimit'});
+  const f=await fixture(t,{prepare:()=>{throw copy;}});
+  const known=await f.service.submitIntent(f.body());
+  assert.deepEqual(known.problem,{code:'ClientProgramRejected',classification:'operation_failed'});
+  const opaque=Object.assign(new Error('private untyped Host500'),{status:500,
+    problemCode:'ClientProgramRuntimeFragmentWorkLimit'});
+  const foreign=await fixture(t,{prepare:()=>{throw opaque;}});
+  await assert.rejects(()=>foreign.service.submitIntent(foreign.body()),error=>error===opaque);
+  assert.equal(foreign.journal.lookupSubmittedIntent(foreign.ref,fields,moon),undefined);
 });

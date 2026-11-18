@@ -9,10 +9,11 @@ import {gzipSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {inventory, unpack} from './package-release.mjs';
-import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
+import {CLIENT_PACKAGES, packedClientPackage} from './packed-client-packages.mjs';
 import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
+import {multipleTargetMockProjectFiles} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 import {digest, jsonDigest, nodeColdStateKinds, nodeColdPublicPhases} from './health-monitor-report.mjs';
 
 const self = fileURLToPath(import.meta.url);
@@ -23,6 +24,7 @@ export const healthFixtures = Object.freeze({
   status: {status: 'succeeded', revision: 'same original observed revision'},
   workflow: 'adapters/host-node/fixtures/mock-project-effect-public.mjs',
   workObservation: 'adapters/host-node/fixtures/work-observation.fixture.mjs',
+  workflowProtocol: 'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs',
 });
 
 export async function execute(command, args, {cwd, raw, name, timeout = 600_000, env = process.env, observeFirstResult = false} = {}) {
@@ -63,7 +65,8 @@ export async function execute(command, args, {cwd, raw, name, timeout = 600_000,
   return result;
 }
 
-export async function prepareHealthPackages({repository, root, source, retained, command, normalLifecycle = false}) {
+export async function prepareHealthPackages({repository, root, source, retained, command, normalLifecycle = false,
+  optionalProvider}) {
   assert.equal(typeof normalLifecycle, 'boolean');
   const destination = join(root, 'packages'); await mkdir(destination);
   let manifest;
@@ -108,9 +111,33 @@ export async function prepareHealthPackages({repository, root, source, retained,
     await writeFile(retained, JSON.stringify(manifest, null, 2) + '\n', {flag: 'wx'});
   }
   assert.deepEqual(manifest.packages.map(row => row.name).sort(), CLIENT_PACKAGES.map(name => '@actql/' + name).sort());
+  if (optionalProvider !== undefined) {
+    assert(retained && normalLifecycle, 'Optional provider requires original normal packages and lifecycle');
+    const originalBytes = await readFile(join(optionalProvider, 'packed-client-packages.json'));
+    const original = JSON.parse(originalBytes);
+    assert.deepEqual(Object.keys(original).sort(), ['revision', 'tarballs']);
+    assert.equal(original.revision, source.sha, 'Optional provider source differs');
+    assert.deepEqual(Object.keys(original.tarballs), ['provider-ai-sdk']);
+    assert.match(original.tarballs['provider-ai-sdk'], /^[a-f0-9]{64}$/u);
+    await packedClientPackage({repository, name: 'provider-ai-sdk', destination,
+      shared: optionalProvider, pack: () => {throw new Error('No optional provider packing fallback');}});
+    const file = 'actql-provider-ai-sdk-0.0.0-development.tgz';
+    const bytes = await readFile(join(destination, file));
+    const unpacked = await unpack(join(destination, file), join(root, 'unpacked-provider-ai-sdk'));
+    const metadata = JSON.parse(await readFile(join(unpacked, 'package.json')));
+    assert.equal(metadata.name, '@actql/provider-ai-sdk');
+    assert.equal(metadata.version, '0.0.0-development');
+    manifest = {...manifest, optionalManifestSha256: digest(originalBytes), packages: [...manifest.packages,
+      {name: metadata.name, version: metadata.version, file, bytes: bytes.length, sha256: digest(bytes),
+        integrity: 'sha512-' + createHash('sha512').update(bytes).digest('base64'), files: await inventory(unpacked)}]};
+    // The original required-five descriptor remains unchanged beside this selected installation.
+    retained = join(destination, 'optional-provider-packages.json');
+    await writeFile(retained, JSON.stringify(manifest, null, 2) + '\n', {flag: 'wx'});
+  }
   const consumer = join(root, 'consumer'); await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
-  await command('npm', ['install', '--offline', normalLifecycle ? '--ignore-scripts=false' : '--ignore-scripts',
+  await command('npm', ['install', ...(optionalProvider === undefined ? ['--offline'] : []),
+    normalLifecycle ? '--ignore-scripts=false' : '--ignore-scripts',
     '--no-audit', '--no-fund', '--no-save', '--omit=optional',
     ...manifest.packages.map(row => {
       assert.equal(row.file, row.file.split('/').at(-1)); return resolve(dirname(retained), row.file);
@@ -337,14 +364,20 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
 
 export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric,
   template = 'churn-risk-mock', variant = 'readme'}) {
-  assert.ok(variant === 'readme' || ['two-models', 'two-models-whole', 'two-models-joined-inputs', 'two-models-joined-whole'].includes(variant) && template === 'deal-review-mock');
+  const multipleTargets = variant === 'multiple-targets';
+  assert.ok(variant === 'readme' || multipleTargets && template === 'churn-risk-mock' ||
+    ['two-models', 'two-models-whole', 'two-models-joined-inputs', 'two-models-joined-whole'].includes(variant) && template === 'deal-review-mock');
   const fixture = await readFile(join(repository, healthFixtures.workflow));
   const workFixture = await readFile(join(repository, healthFixtures.workObservation));
-  const files = variant === 'two-models-joined-inputs' ? twoModelJoinedInputsDealReviewFiles()
+  const protocolFixture = await readFile(join(repository, healthFixtures.workflowProtocol));
+  const multipleTargetFixture = multipleTargets ? await readFile(join(repository,
+    'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs')) : undefined;
+  const files = multipleTargets ? multipleTargetMockProjectFiles()
+    : variant === 'two-models-joined-inputs' ? twoModelJoinedInputsDealReviewFiles()
     : variant === 'two-models-joined-whole' ? twoModelJoinedWholeDealReviewFiles()
     : variant === 'two-models-whole' ? twoModelWholeDealReviewFiles()
     : variant === 'two-models' ? twoModelDealReviewFiles() : projectTemplateFiles(template);
-  const program = variant !== 'readme' ? 'deal-review.program.json'
+  const program = multipleTargets ? 'multiple-targets.program.json' : variant !== 'readme' ? 'deal-review.program.json'
     : template === 'deal-review-mock' ? 'deal-review.aql' : 'churn-risk.aql';
   const answers = Object.values(JSON.parse(files['actql.config.json']).mock.answers)
     .map(path => path.replace(/^\.\//u, ''));
@@ -353,7 +386,8 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
   assert(recoveryInputs.every(path => Object.hasOwn(files, path)));
   assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
   const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
-    unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), workObservation: digest(workFixture), files}),
+    unit: 'ms', requiredSamples: counts.coldSamples, fixtureSha256: jsonDigest({fixture: digest(fixture), workObservation: digest(workFixture), workflowProtocol: digest(protocolFixture),
+      ...(multipleTargetFixture === undefined ? {} : {multipleTargetFixture: digest(multipleTargetFixture)}), files}),
     template, variant, samples: [], evidence: root};
   for (let iteration = 0; iteration < counts.coldSamples; iteration++) {
     const project = join(root, `mock-project-${template}-${variant}-${iteration}`); await mkdir(project);
@@ -367,12 +401,16 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
     })));
     await writeFile(join(project, 'workflow.mjs'), fixture, {flag: 'wx'});
     await writeFile(join(project, 'work-observation.fixture.mjs'), workFixture, {flag: 'wx'});
+    await writeFile(join(project, 'mock-project-effect-protocol.fixture.mjs'), protocolFixture, {flag: 'wx'});
+    if (multipleTargetFixture !== undefined) {
+      await writeFile(join(project, 'mock-multiple-targets.fixture.mjs'), multipleTargetFixture, {flag: 'wx'});
+    }
     await symlink(join(prepared.consumer, 'node_modules'), join(project, 'node_modules'), 'dir');
     const started = process.hrtime.bigint(), cpu = process.cpuUsage(), phases = [];
     try {
       for (const [phase, expected] of [['capture', 10], ['approve', 11], ['recover', 7]]) {
         const args = [join(project, 'workflow.mjs'), phase, join(project, 'handoff.json'),
-          ...(template === 'churn-risk-mock' ? [] : [template]),
+          ...(template === 'churn-risk-mock' && variant === 'readme' ? [] : [template]),
           ...(variant === 'readme' ? [] : [variant])];
         const record = {phase, command: process.execPath, args, cwd: project,
           expectedAssertions: expected, completed: false, startedAt: new Date().toISOString()};
@@ -409,7 +447,7 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
           assert.equal(work?.complete, true, 'Require actual lossless Source/Model/write observation');
           if (phase === 'capture') {
             assert.equal(work.sourceAcquisitionStarts, 2);
-            assert.equal(work.modelCallStarts, variant === 'readme' ? 2 : 4);
+            assert.equal(work.modelCallStarts, multipleTargets ? 0 : variant === 'readme' ? 2 : 4);
             assert.equal(work.effectReplacementReturns, 0);
             if (['two-models-joined-inputs', 'two-models-joined-whole'].includes(variant)) {
               assert.deepEqual(record.summary.modelInputObservation,

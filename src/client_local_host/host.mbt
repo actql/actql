@@ -585,6 +585,7 @@ fn prepare_client_local_configuration(
   provider_factory : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  work_policy? : @local_driver.LocalWorkPolicy = Unspecified,
 ) -> ClientPreparedLocalConfiguration? {
   let compute_sequences = capacity_plan.sequences
   if !(capacity_plan.graph is Some(original) && physical_equal(original, graph)) ||
@@ -655,6 +656,7 @@ fn prepare_client_local_configuration(
       capacity_plan.execution,
       capacity_plan.measurement,
       100,
+      work_policy~,
       managed_capacity=capacity,
       managed_providers=local_configuration.managed_providers,
       inputs=Some((capacity_plan.imports, Some(0L))),

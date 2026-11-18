@@ -125,8 +125,31 @@ test "analytic lowers navigation frame and aggregate expressions" {
     @lowering_relation.PreparedFollowing(1L),
   )
   assert_eq(@lowering_relation.analytic_call_count(analytic), 3)
+  let original_sequence = @lowering_relation.prepare_sequence(
+    analytic_owner(body),
+    sequence_limits(),
+  ).unwrap()
+  for work in [0, 1, 2] {
+    assert_true(
+      @lowering_relation.prepare_kernel_roots(original_sequence, 0, {
+        ..root_limits(),
+        max_work: work,
+      })
+      is Err(@lowering_relation.RootWorkLimit),
+    )
+  }
+  for
+    limited in [
+      { ..root_limits(), max_roots: 0, },
+      { ..root_limits(), max_pointer_bytes: 0, },
+    ] {
+    assert_true(
+      @lowering_relation.prepare_kernel_roots(original_sequence, 0, limited)
+      is Err(@lowering_relation.RootLimit),
+    )
+  }
   let roots = @lowering_relation.prepare_kernel_roots(
-    @lowering_relation.prepare_sequence(analytic_owner(body), sequence_limits()).unwrap(),
+    original_sequence,
     0,
     root_limits(),
   ).unwrap()

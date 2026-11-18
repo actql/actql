@@ -856,6 +856,7 @@ pub fn[I] begin_request_model_managed_run(
       owner.program_content_request = None
       owner.program_capacity = None
       owner.program_normalization = None
+      owner.program_authoring = None
       owner.compiled_program = None
       owner.program_data = None
       owner.program_plan_quote = None

@@ -40,6 +40,8 @@ async function fixture() {
     clientProgramPrepareRequestNativeComputation: () => ok(),
     clientProgramPrepareRequestSourceComputation: () => ok(),
     clientProgramFinishRequestComputation: () => ok('effect_free'),
+    clientProgramPrepareRequestProgramNormalization: () => ok(),
+    clientProgramPrepareRequestProgramAuthoringContext: () => ok({}),
     clientProgramPrepareRequestPolicySubjects: () => assert.fail('No verifier selected'),
     clientProgramReadRequestPolicySubject: () => assert.fail('No verifier selected'),
     clientProgramBindRequestPolicySubject: () => assert.fail('No verifier selected'),

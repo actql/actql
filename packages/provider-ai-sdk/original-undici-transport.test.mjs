@@ -7,7 +7,7 @@ import net from 'node:net';
 import {setImmediate as turn} from 'node:timers/promises';
 import {gzipSync} from 'node:zlib';
 import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
-import {createOriginalUndiciFetch} from './_internal/original-undici-transport.mjs';
+import {createOriginalUndiciFetch, fixedOriginalTransportTimeouts} from './_internal/original-undici-transport.mjs';
 import {createSdkModelPreflight} from './_internal/model-port.mjs';
 import {interceptSdkRequest, pollSdkPreparation, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
@@ -29,10 +29,12 @@ async function until(read, accepted) {
   }
   assert.fail('Finite original transport observation not reached');
 }
-async function fixture(t, respond) {
+async function fixture(t, respond, {transportTimeouts, stalledTls = false} = {}) {
   const calls = [];
+  const signals = [];
   const sockets = new Set();
-  const server = createServer(async (request, response) => {
+  let connections = 0;
+  const server = stalledTls ? net.createServer(socket => socket.resume()) : createServer(async (request, response) => {
     const chunks = [];
     for await (const chunk of request) chunks.push(chunk);
     calls.push({method: request.method, path: request.url,
@@ -41,13 +43,14 @@ async function fixture(t, respond) {
     respond(request, response, calls.length);
   });
   server.on('connection', socket => {
+    connections++;
     sockets.add(socket);
     socket.once('close', () => sockets.delete(socket));
   });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  const endpoint = `http://127.0.0.1:${server.address().port}/chat/completions`;
-  const fetch = createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits});
+  const endpoint = `${stalledTls ? 'https' : 'http'}://127.0.0.1:${server.address().port}/chat/completions`;
+  const fetch = createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits, transportTimeouts});
   const preparations = [];
   t.after(async () => {
     try {
@@ -56,14 +59,16 @@ async function fixture(t, respond) {
       }
     } finally {
       // Fixture shutdown only; never product retirement evidence.
-      server.closeAllConnections();
+      if (stalledTls) for (const socket of sockets) socket.destroy();
+      else server.closeAllConnections();
       await new Promise(resolve => server.close(resolve));
     }
   });
-  function prepare({transport = true} = {}) {
+  function prepare({transport = true, notify = () => {}} = {}) {
     const handle = interceptSdkRequest({endpoint, maxRequestBytes: requestLimits.maxBytes,
       maxHeaderBytes: requestLimits.maxHeaderBytes, maxHeaders: requestLimits.maxHeaders,
-      notify() {}, async runSdk(intercepted, signal) {
+      notify, async runSdk(intercepted, signal) {
+        signals.push(signal);
         // Deliberately no SDK decode. This finite fixture exercises the actual
         // SDK-owner interceptor/reader/Undici transport; builder is a double.
         await intercepted(endpoint, {method: 'POST', body: originalBody,
@@ -75,7 +80,7 @@ async function fixture(t, respond) {
     preparations.push(handle);
     return handle;
   }
-  return {endpoint, fetch, prepare, calls, sockets};
+  return {endpoint, fetch, prepare, calls, signals, sockets, connections: () => connections};
 }
 
 test('original IO retirement keeps raw backing and SDK holding until independent cleanup', {timeout: 5000}, async t => {
@@ -549,4 +554,202 @@ test('connecting Client destroy cannot retire the original socket before its rea
   assert.equal(connects, 1);
   assert.throws(() => startSdkTransport(handle), {code: 'ForeignSdkPreparation'});
   t.diagnostic('Controlled pending connector/socket; TCP/TLS0, grant0/public0');
+});
+
+
+test('explicit physical timeouts require closed positive DATA and retain a private immutable selection', () => {
+  assert.equal(fixedOriginalTransportTimeouts(undefined), undefined);
+  const source = {connectMs: 100, headersMs: 200, bodyMs: 300};
+  const selected = fixedOriginalTransportTimeouts(source);
+  source.headersMs = 999;
+  assert.deepEqual(selected, {connectMs: 100, headersMs: 200, bodyMs: 300});
+  assert(Object.isFrozen(selected));
+  let gets = 0;
+  for (const value of [null, {}, {connectMs: 1, headersMs: 0, bodyMs: 1},
+    {connectMs: 1, headersMs: 1, bodyMs: 1.5}, {connectMs: 2147483648, headersMs: 1, bodyMs: 1},
+    {connectMs: 1, headersMs: 1, bodyMs: 1, totalMs: 3},
+    {connectMs: 1, get headersMs() {gets++; return 1;}, bodyMs: 1},
+    new Proxy({}, {ownKeys() {throw Error('DoNotInspectProxy');}})]) {
+    assert.throws(() => fixedOriginalTransportTimeouts(value), {code: 'UndiciOriginalTimeoutsUnavailable'});
+  }
+  assert.equal(gets, 0);
+});
+
+for (const phase of ['headers', 'body']) {
+  test(`explicit physical ${phase} timeout retains entered original and cleanup without retry`, {timeout: 5000}, async t => {
+    const settings = {connectMs: 1000, headersMs: phase === 'headers' ? 30 : 1000,
+      bodyMs: phase === 'body' ? 30 : 1000};
+    const f = await fixture(t, (request, response) => {
+      if (phase === 'body') {
+        response.setHeader('content-type', 'application/json');
+        response.write('{'); // Exact partial original; never manufacture EOF.
+      }
+      // Headers case sends no response. Only Undici's selected physical timer
+      // ends this original; there is no fixture abort or response-loss trigger.
+    }, {transportTimeouts: settings});
+    settings.headersMs = settings.bodyMs = 100000; // Cannot retarget the snapshot.
+    const nativeErrors = [];
+    const errors = channel('undici:request:error');
+    const onError = ({request, error}) => {
+      if (String(request.origin) === new URL(f.endpoint).origin) nativeErrors.push(error.code);
+    };
+    errors.subscribe(onError); t.after(() => errors.unsubscribe(onError));
+    let handle, observed;
+    const terminal = new Promise(resolve => {observed = resolve;});
+    handle = f.prepare({notify() {
+      if (handle === undefined) return;
+      const state = pollSdkTransport(handle);
+      if (state.kind !== 'not-started' && state.kind !== 'pending') observed(state);
+    }});
+    startSdkTransport(handle);
+    const outcome = await terminal;
+    assert.equal(f.calls.length, 1);
+    assert(nativeErrors.includes(phase === 'headers' ? 'UND_ERR_HEADERS_TIMEOUT' : 'UND_ERR_BODY_TIMEOUT'));
+    assert.throws(() => startSdkTransport(handle), {code: 'SdkTransportStartRefused'});
+    if (phase === 'headers') {
+      assert.equal(outcome.kind, 'unknown');
+      assert.equal(sdkTransportRawObservation(handle), undefined);
+    } else {
+      assert.equal(outcome.kind, 'response');
+      const raw = sdkTransportRawObservation(handle);
+      assert.equal(raw.status, 200); assert.equal(raw.transportComplete, false);
+      assert.equal(Buffer.from(raw.body).toString(), '{');
+    }
+    // IO retirement and SDK/raw holding cleanup are separately observed on
+    // this SAME preparation. Neither timeout nor process exit is an ACK.
+    await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
+    await until(() => cleanupSdkPreparation(handle), value => value === true);
+    assert.equal(f.calls.length, 1);
+  });
+}
+
+
+test('explicit physical connect timeout settles the same stalled TLS connector without reconnect', {timeout: 5000}, async t => {
+  const f = await fixture(t, () => assert.fail('TLS never completes into HTTP'), {
+    stalledTls: true, transportTimeouts: {connectMs: 30, headersMs: 1000, bodyMs: 1000},
+  });
+  const codes = [], errors = channel('undici:request:error');
+  const onError = ({request, error}) => {
+    if (String(request.origin) === new URL(f.endpoint).origin) codes.push(error.code);
+  };
+  errors.subscribe(onError); t.after(() => errors.unsubscribe(onError));
+  let handle, observed;
+  const terminal = new Promise(resolve => {observed = resolve;});
+  handle = f.prepare({notify() {
+    if (handle === undefined) return;
+    const state = pollSdkTransport(handle);
+    if (state.kind === 'unknown' || state.kind === 'response') observed(state);
+  }});
+  startSdkTransport(handle);
+  assert.equal((await terminal).kind, 'unknown');
+  assert(codes.includes('UND_ERR_CONNECT_TIMEOUT'));
+  assert.equal(f.connections(), 1); assert.equal(f.calls.length, 0);
+  assert.equal(sdkTransportRawObservation(handle), undefined);
+  assert.throws(() => startSdkTransport(handle), {code: 'SdkTransportStartRefused'});
+  await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
+  await until(() => cleanupSdkPreparation(handle), value => value === true);
+  assert.equal(f.connections(), 1);
+  await until(() => f.sockets.size, count => count === 0);
+});
+
+for (const flowing of [false, true]) {
+  test(`whole physical call clock stops ${flowing ? 'continuous body data' : 'missing headers'} on the same SDK controller`, {timeout: 5000}, async t => {
+    let pulse;
+    t.after(() => clearInterval(pulse));
+    const f = await fixture(t, (request, response) => {
+      if (flowing) {
+        response.setHeader('content-type', 'application/json');
+        response.write('{');
+        // At 10ms the unchanged eight-chunk reader cap wins before the
+        // 100ms total clock. Keep that cap intact and deliver continuous
+        // data at 25ms so this case observes the actual deadline instead.
+        pulse = setInterval(() => response.write(' '), 25);
+        response.once('close', () => clearInterval(pulse));
+      }
+    }, {transportTimeouts: {connectMs: 1000, headersMs: 1000, bodyMs: 1000, callMs: 100}});
+    let handle, observed;
+    const terminal = new Promise(resolve => {observed = resolve;});
+    handle = f.prepare({notify() {
+      if (handle === undefined) return;
+      const state = pollSdkTransport(handle);
+      if (state.kind === 'unknown' || state.kind === 'response') observed(state);
+    }});
+    assert.equal(f.signals[0].aborted, false);
+    startSdkTransport(handle);
+    const outcome = await terminal;
+    assert.equal(f.calls.length, 1);
+    assert.equal(f.signals[0].aborted, true, JSON.stringify({kind: outcome.kind,
+      rawIssue: sdkTransportRawObservation(handle)?.issue,
+      observedBytes: sdkTransportRawObservation(handle)?.observedBytes}));
+    assert.equal(f.signals[0].reason.code, 'UndiciOriginalCallTimeout');
+    assert.throws(() => startSdkTransport(handle), {code: 'SdkTransportStartRefused'});
+    if (flowing) {
+      assert.equal(outcome.kind, 'response');
+      const raw = sdkTransportRawObservation(handle);
+      assert.equal(raw.status, 200); assert.equal(raw.transportComplete, false);
+      assert.equal(raw.issue, 'InferResponseReadCancelled');
+      assert(Buffer.from(raw.body).toString().startsWith('{ '), 'Continuous original data precedes total expiry');
+    } else {
+      assert.equal(outcome.kind, 'unknown');
+      assert.equal(sdkTransportRawObservation(handle), undefined);
+    }
+    await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
+    await until(() => cleanupSdkPreparation(handle), value => value === true);
+    assert.equal(f.calls.length, 1);
+  });
+}
+
+test('whole physical call clock retires at original response settlement without late cancellation', {timeout: 5000}, async t => {
+  const f = await fixture(t, (request, response) => {
+    response.setHeader('content-type', 'application/json'); response.end('{}');
+  }, {transportTimeouts: {connectMs: 1000, headersMs: 1000, bodyMs: 1000, callMs: 100}});
+  let handle, observed;
+  const terminal = new Promise(resolve => {observed = resolve;});
+  handle = f.prepare({notify() {
+    if (handle !== undefined && pollSdkTransport(handle).kind === 'response') observed();
+  }});
+  startSdkTransport(handle); await terminal;
+  assert.equal(sdkTransportRawObservation(handle).transportComplete, true);
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.equal(f.signals[0].aborted, false, 'Settled physical read must not become a later Run cancel');
+  assert.equal(f.calls.length, 1);
+  await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
+  await until(() => cleanupSdkPreparation(handle), value => value === true);
+});
+
+test('physical timeout snapshots preserve canonical three and four key order for every permutation', () => {
+  const permute = keys => keys.length === 0 ? [[]] : keys.flatMap((key, index) =>
+    permute(keys.filter((_, position) => position !== index)).map(rest => [key, ...rest]));
+  for (const [values, expected] of [
+    [{bodyMs: 300, connectMs: 100, headersMs: 200}, '{"bodyMs":300,"connectMs":100,"headersMs":200}'],
+    [{bodyMs: 300, callMs: 400, connectMs: 100, headersMs: 200}, '{"bodyMs":300,"callMs":400,"connectMs":100,"headersMs":200}'],
+  ]) for (const keys of permute(Object.keys(values))) {
+    const selected = fixedOriginalTransportTimeouts(Object.fromEntries(keys.map(key => [key, values[key]])));
+    assert.equal(JSON.stringify(selected), expected);
+    assert(Object.isFrozen(selected));
+  }
+});
+
+test('deadline cleanup aborts the original controller before stopping a pending physical body', {timeout: 5000}, async t => {
+  const f = await fixture(t, (request, response) => {
+    response.setHeader('content-type', 'application/json'); response.write('{');
+  }, {transportTimeouts: {connectMs: 1000, headersMs: 1000, bodyMs: 1000, callMs: 1000}});
+  let received = false;
+  const errors = [], incoming = channel('undici:request:bodyChunkReceived'), failures = channel('undici:request:error');
+  const same = request => String(request.origin) === new URL(f.endpoint).origin;
+  const onChunk = ({request}) => {if (same(request)) received = true;};
+  const onFailure = ({request}) => {if (same(request)) errors.push(f.signals[0].aborted);};
+  incoming.subscribe(onChunk); failures.subscribe(onFailure);
+  t.after(() => {incoming.unsubscribe(onChunk); failures.unsubscribe(onFailure);});
+  const handle = f.prepare(); startSdkTransport(handle);
+  await until(() => received, value => value === true); await turn();
+  assert.equal(f.signals[0].aborted, false);
+  assert.equal(pollSdkTransport(handle).kind, 'pending');
+  assert.equal(progressSdkOriginalIoCleanup(handle), false, 'Normal progress cannot abandon an active reader');
+  assert.equal(cleanupSdkPreparation(handle), false, 'A stop request is not a physical acknowledgement');
+  await until(() => errors.length, count => count > 0);
+  assert(errors.every(value => value === true), 'Original controller stop must precede physical request failure');
+  await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
+  await until(() => cleanupSdkPreparation(handle), value => value === true);
+  assert.equal(f.calls.length, 1);
 });

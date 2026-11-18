@@ -110,7 +110,7 @@ fn local_normalization_catalog_cid(
   inventory : ClientLocalNormalizationInventory,
 ) -> String {
   match inventory {
-    Common(_) => local_common_normalization_catalog_cid()
+    Common(inventory) => common_normalization_catalog_cid(inventory)
     CompletionFree(value) => local_completion_free_catalog_cid(value)
     SortCompletion(value) =>
       if @checked.local_sort_normalization_inventory_uses_unary_timestamp(value) {
@@ -321,7 +321,7 @@ fn emit_local_common_normalization_journal(
     @encode.string_value(writer, cid)
   }
   @encode.key(writer, "rule_catalog_cid")
-  @encode.string_value(writer, local_common_normalization_catalog_cid())
+  @encode.string_value(writer, common_normalization_catalog_cid(inventory))
   @encode.key(writer, "version")
   @encode.string_value(writer, "actql-normalization-journal/0.1")
   @encode.end_object(writer)

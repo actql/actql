@@ -77,3 +77,27 @@ pub fn saved_compiled_plan_validation_construction(
     map_entries: 0L,
   })
 }
+
+///|
+/// Closed Run Definition counterpart of the saved Compiled Plan reader.
+/// Nine declared field/rule entries, eleven complete keys and ten preimage
+/// keys come from the SAME run_definition contract, not a second validator.
+pub fn saved_run_definition_validation_construction(
+  nodes : Int,
+) -> @shape.CollectionConstructionExtent? {
+  if nodes < 1 {
+    return None
+  }
+  let n = nodes.to_int64()
+  @shape.collection_construction_extent({
+    records: 9L + 9L + 2L + n + 10L + 2L + 8L,
+    record_references: 3L * 9L + 9L + 5L + 2L * n + 2L * 10L + 2L + 8L,
+    record_words: 9L,
+    reference_arrays: 4L + 1L + 1L,
+    reference_items: 9L + n + 11L + 10L + 13L,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  })
+}

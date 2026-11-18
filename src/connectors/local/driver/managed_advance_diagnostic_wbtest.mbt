@@ -39,20 +39,33 @@ test "managed row cause preserves the original typed branch and step without a q
 }
 
 ///|
-test "managed row cause does not classify success current foreign cleanup or generic input refusal" {
-  for
-    issue in [
-      Execution(@strategy.Stopped),
+test "managed nonrow causes keep missing row step and never classify a quota dimension" {
+  let cases : Array[(LocalDispatchIssue, String?)] = [
+    (Execution(@strategy.Stopped), Some("execution.stopped")),
+    (
       Execution(@strategy.Physical(@resources.ForeignOwner)),
+      Some("resource.foreign_owner"),
+    ),
+    (
       Configuration(@connector.InputUnavailable),
+      Some("compute.input_unavailable"),
+    ),
+    (
       Configuration(@connector.Execution(@execution.InputLimit)),
+      Some("sequence.input_limit"),
+    ),
+    (
       Configuration(
         @connector.Execution(@execution.Rows(-1, @execution.RowLimit)),
       ),
-      ControlWorkLimit(100),
-    ] {
-    assert_eq(local_managed_failure_cause(issue), None)
+      None,
+    ),
+    (ControlWorkLimit(100), Some("local.control_work_limit")),
+  ]
+  for (issue, expected) in cases {
+    assert_eq(local_managed_failure_cause(issue), expected)
     assert_eq(local_managed_failure_row_step(issue), -1)
+    assert_eq(local_managed_failure_resource_dimension(issue), None)
   }
 }
 
@@ -216,4 +229,89 @@ test "original UTF8 work refusal retains remaining and only a proved demand lowe
     ),
     None,
   )
+}
+
+///|
+test "managed closed cause projects original nonrow constructors without payloads or a quota inference" {
+  let cases : Array[(LocalDispatchIssue, String)] = [
+    (Configuration(@connector.InvalidLimits), "compute.invalid_limits"),
+    (Configuration(@connector.ForeignRequest(789)), "compute.foreign_request"),
+    (
+      Configuration(@connector.Execution(@execution.InputLimit)),
+      "sequence.input_limit",
+    ),
+    (
+      Configuration(
+        @connector.Execution(@execution.Capture(42, @execution.CaptureLimit)),
+      ),
+      "capture.capture_limit",
+    ),
+    (
+      Configuration(
+        @connector.Execution(
+          @execution.Capture(42, @execution.MissingParameter("private-payload")),
+        ),
+      ),
+      "capture.missing_parameter",
+    ),
+    (
+      Execution(@strategy.Compute(@connector.InvalidLimits)),
+      "compute.invalid_limits",
+    ),
+    (Execution(@strategy.Stopped), "execution.stopped"),
+    (
+      Execution(@strategy.Physical(@resources.ForeignOwner)),
+      "resource.foreign_owner",
+    ),
+    (
+      Execution(@strategy.Physical(@resources.ResourceParked)),
+      "resource.resource_parked",
+    ),
+    (
+      Execution(@strategy.Implementation(Failure("private exception text"))),
+      "execution.implementation",
+    ),
+    (Preparation(@local.NotSelected), "local.preparation"),
+  ]
+  for (original, expected) in cases {
+    assert_eq(local_managed_failure_cause(original), Some(expected))
+    assert_eq(local_managed_failure_row_step(original), -1)
+    assert_eq(local_managed_failure_resource_dimension(original), None)
+    assert_eq(local_managed_advance_control_work_limit(original), None)
+    assert_eq(local_managed_advance_capture_work(original), None)
+    assert_eq(local_managed_failure_budget(original), None)
+  }
+}
+
+///|
+test "logical work failure keeps actual policy and closed origin without fabricated amounts" {
+  for
+    (origin, limit, setting) in [
+      (SourceFreeInstallation, 20000000L, "installation.sourceFreeMaxWork"),
+      (Unspecified, 10000000L, "unavailable"),
+      (Unspecified, 20000000L, "unavailable"),
+    ] {
+    let issue = LogicalWorkLimit(43, limit, origin)
+    assert_eq(
+      local_managed_advance_logical_work_policy(issue),
+      Some((43, limit, setting)),
+    )
+    assert_eq(local_managed_failure_cause(issue), Some("logical.work_limit"))
+    assert_eq(local_managed_failure_row_step(issue), 43)
+    assert_eq(local_managed_failure_budget(issue), None)
+    assert_eq(local_managed_failure_resource_dimension(issue), None)
+    assert_eq(local_managed_advance_control_work_limit(issue), None)
+  }
+  for
+    issue in [
+      Configuration(
+        @connector.Execution(@execution.Rows(43, @execution.RowLimit)),
+      ),
+      Execution(@strategy.Stopped),
+      Execution(@strategy.Physical(@resources.ForeignOwner)),
+      LogicalWorkLimit(-1, 20000000L, SourceFreeInstallation),
+      LogicalWorkLimit(43, -1L, SourceFreeInstallation),
+    ] {
+    assert_eq(local_managed_advance_logical_work_policy(issue), None)
+  }
 }

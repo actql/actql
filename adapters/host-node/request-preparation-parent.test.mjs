@@ -7,8 +7,16 @@ import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {connectInProcess, getSubmissionInput, getSubmissionOutcome, getSubmissionAttempt}
   from '../../packages/sdk/index.mjs';
+import {sourceFreeValuesPlan, inferTaskRunAdmission, serializationTaskRunAdmission,
+  inferTaskPublicationPlan, serializationTaskPublicationPlan, localOutputLimits, localContractLimits} from './local-values-plan.mjs';
+import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {submissionEpoch} from '../../packages/sdk/submission-fixture.mjs';
+import {mkdtempSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 
 // Actual normal manager/adapter/Resource originals; Core phase/shape results
 // are explicit ports. This does not certify a matching Common or body tariff.
@@ -55,6 +63,8 @@ async function fixture({beginFailure, environment, observe, sourceFreeMaxWork, v
     clientProgramReadRequestPolicySubject(){assert.fail('No policy descriptor selected');},
     clientProgramBindRequestPolicySubject(){assert.fail('No policy binding selected');},
     clientProgramFinishRequestPolicySubjects(){assert.fail('No policy supplement selected');},
+    clientProgramPrepareRequestProgramNormalization(){return ok(undefined);},
+    clientProgramPrepareRequestProgramAuthoringContext(){return ok({});},
     clientProgramPrepareRequestProgramModuleBody(){assert.fail('No module compilation selected');},
     clientProgramReserveRequestEffectOriginalMaterial(){assert.fail('No Effect original projection selected');},
     clientProgramRequestProgramModuleIssueCode(){assert.fail('No module failure projection selected');},
@@ -75,6 +85,61 @@ async function fixture({beginFailure, environment, observe, sourceFreeMaxWork, v
   },false);
   return {view,calls,shapes,context,originals,get parent(){return parent;},get original(){return admission?.original;}};
 }
+
+test('actual manager preserves synchronous Model Graph ports and forwards only the installed admitted Provider role', async () => {
+  // Actual imported manager and Resource owner; explicit Core ports isolate
+  // routing from the separately tested real Core exact/one-short accounting.
+  for (const kind of ['legacy', 'mock', 'async']) for (const keyed of [false, true]) {
+    const f = await fixture(), moon = f.context.runtime;
+    const prepared = {}, inventory = {}, selected = {}, occurrence = {}, execution = {}, graph = {}, admission = {};
+    const admitted = kind === 'async' ? {} : undefined;
+    const declarations = keyed ? Object.freeze([{}]) : undefined;
+    f.originals.installation = {sequenceContractOriginal: {moon, admission}};
+    moon.clientProgramPrepareRequestNativeComputation = () => ok(undefined);
+    moon.clientProgramBorrowRequestProgramPlanInput = () => ok(inventory);
+    moon.clientProgramPreparationBorrowRead = holder => {
+      assert(holder === inventory || holder === selected); return prepared;
+    };
+    moon.clientProgramComposedInferOccurrences = () => ok([occurrence]);
+    moon.clientProgramBorrowRequestModelPlanInput = () => ok(selected);
+    moon.clientProgramPreparationBorrowReturn = holder => {
+      assert(holder === inventory || holder === selected); return ok(holder === selected);
+    };
+    moon.clientProgramPreparationBorrowRetirementStarted = holder => {assert.equal(holder, selected); return true;};
+    const abort = moon.clientProgramAbortRequestPreparation;
+    let aborted = false;
+    moon.clientProgramAbortRequestPreparation = function(parent) {
+      assert.equal(parent, f.parent);
+      if (aborted) return ok(undefined);
+      const result = Reflect.apply(abort, moon, [parent]); aborted = true; return result;
+    };
+    moon.clientProgramRequestParametersOriginal = () => ok(undefined);
+    const routed = [];
+    for (const name of ['clientProgramPrepareRequestModelGraph', 'clientProgramPrepareRequestDeclaredFileModelGraph',
+      'clientProgramPrepareRequestProviderModelGraph']) {
+      moon[name] = function(...args) {
+        assert.equal(this, moon);
+        const expected = [f.parent, receipt, occurrence, execution, admission];
+        if (kind === 'async') expected.push(admitted, declarations);
+        else if (keyed) expected.push(declarations);
+        assert.deepEqual(args, expected);
+        routed.push(name); return ok(graph);
+      };
+    }
+    const original = input(), request = {};
+    const receipt = f.view.beforeSourceSnapshot('program', original, {}, connection);
+    const body = f.view.captureSourceSnapshot(receipt, {kind:'program', input:original, parameters:{}}, snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+    assert.equal((await f.view.fundedPreparation(request)).prepared, prepared);
+    assert.equal(f.view.prepareModelGraph(prepared, request, occurrence, execution, undefined, undefined,
+      declarations, admitted), graph);
+    assert.deepEqual(routed, [kind === 'async' ? 'clientProgramPrepareRequestProviderModelGraph'
+      : keyed ? 'clientProgramPrepareRequestDeclaredFileModelGraph' : 'clientProgramPrepareRequestModelGraph']);
+    f.view.finishSourceProducer(receipt, 'returned');
+    assert.equal((await f.view.close()).pending, false);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  }
+});
 
 test('public Source capture preserves an original snapshot refusal before exchange and emits only its typed quantities', async t => {
   const observed = [], f = await fixture({observe: (event, detail) => observed.push({event, detail})});
@@ -814,6 +879,91 @@ test('normal generic Native cleanup keeps its original holder without the requir
   const state={context:{runtime},parent,holder,prepared};
   assert.throws(()=>cleanupRequestInput(state),{code:'NodeLocalPreparationAdmissionUnavailable'});
   assert.equal(returns,0);assert.equal(state.holder,holder);assert.equal(state.prepared,prepared);
+});
+
+test('managed Facts preserve timed compiler custody and wait for actual Journal close after an unacknowledged offer', async t => {
+  // Actual manager, Resource ports and native SQLite; compiler/loan results
+  // remain explicit component ports, not matching Common/funding acceptance.
+  for(const declined of [false,true]){
+    const directory=mkdtempSync(join(tmpdir(),'actql-original-facts-manager-'));
+    let refuseClose=false;
+    const nativeClose=DatabaseSync.prototype.close;
+    DatabaseSync.prototype.close=function(){
+      if(refuseClose) throw Error('AuthoredNativeJournalClosePending');
+      return Reflect.apply(nativeClose,this,[]);
+    };
+    let journal;
+    try {journal=openClientRequestJournal(directory);}
+    finally {DatabaseSync.prototype.close=nativeClose;}
+    t.after(()=>{refuseClose=false;journal.close();rmSync(directory,{recursive:true,force:true});});
+    const f=await fixture(),moon=f.context.runtime,request={},prepared={},holder={},identity={},value={};
+    const artifact={},preparation={},scope={},invocation={};
+    const receipt=f.view.beforeSourceSnapshot('program',input(),{},connection);
+    const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:input(),parameters:null},snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+    f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};
+    let compilation,compiles=0,modules=0,returns=0,retiring=false,context;
+    moon.clientProgramPrepareRequestNativeComputation=()=>ok(undefined);
+    moon.clientProgramBorrowRequestProgramPlanInput=()=>ok(holder);
+    moon.clientProgramPreparationBorrowRead=actual=>{assert.equal(actual,holder);return prepared;};
+    moon.clientProgramRequestParametersOriginal=()=>ok(undefined);
+    moon.clientProgramRequiresQueryTime=()=>ok(true);
+    moon.clientProgramRequestProgramCompilationOriginal=(parent,original)=>{
+      assert.equal(parent,f.parent);assert.equal(original,receipt);return compilation;
+    };
+    moon.clientProgramPrepareRequestProgramCompilation=()=>{
+      assert.equal(compilation,undefined);compiles++;compilation=artifact;return ok(artifact);
+    };
+    moon.clientProgramReserveRequestQueryTimeInvocation=(parent,original,compiled)=>{
+      assert.equal(compiled,artifact);return ok(undefined);
+    };
+    moon.clientProgramPrepareRequestOriginalExplanation=(parent,original)=>{
+      assert.equal(parent,f.parent);assert.equal(original,receipt);assert.equal(compiles,1);
+      return ok(declined?undefined:preparation);
+    };
+    moon.clientProgramPrepareRequestProgramModuleBody=(parent,original,contracts,retained,timed)=>{
+      assert.equal(timed,invocation);modules++;return ok(undefined);
+    };
+    moon.clientProgramAdoptRequestProgramPreparation=()=>{assert.equal(declined,true);return ok(value);};
+    moon.clientProgramAdoptRequestProgramWithExplanation=(parent,actual,selected)=>{
+      assert.equal(parent,f.parent);assert.equal(actual,identity);assert.equal(selected,preparation);return ok(value);
+    };
+    moon.clientProgramCaptureRequestOriginalExplanation=()=>assert.fail('The fixed compiler control owns capture');
+    moon.clientProgramOriginalExplanationPlanWire=()=>assert.fail('The fixed compiler control owns output');
+    moon.clientProgramOriginalExplanationFactsWire=()=>assert.fail('The fixed compiler control owns output');
+    moon.clientProgramReturnRequestOriginalExplanation=()=>assert.fail('The capture consumed the preparation');
+    moon.clientProgramReturnOriginalExplanationCapture=actual=>{
+      assert.equal(actual,scope);assert.equal(context.factsWire,undefined);assert.equal(context.journal,undefined);
+      returns++;return ok(true);
+    };
+    moon.clientProgramPreparationBorrowRetirementStarted=()=>retiring;
+    moon.clientProgramPreparationBorrowReturn=()=>ok(true);
+    await f.view.fundedPreparation(request,undefined,undefined,undefined,journal);
+    f.view.adoptPreparation(prepared,request,identity,actual=>{assert.equal(actual,artifact);return invocation;});
+    assert.equal(compiles,1);assert.equal(modules,1);
+    context=f.view.originalExplanationPreparation(prepared);
+    if(declined){assert.equal(context,undefined);assert.equal(returns,0);}
+    else{
+      assert.equal(context.preparation,preparation);
+      // The fixed control's independently tested handoff retains this SAME
+      // per-producer scope before any output/current getter can fail.
+      context.preparation=undefined;context.scope=scope;context.factsWire='original-facts';context.offered=true;
+      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),false);
+      refuseClose=true;assert.throws(()=>journal.close(),/AuthoredNativeJournalClosePending/u);
+      assert.equal(observeOriginalClientRequestJournalCustody(journal).journalClosed,true);
+      assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed,false);
+      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),false);assert.equal(returns,0);
+      refuseClose=false;journal.close();
+      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),true);
+      assert.equal(returns,1);assert.equal(context.acknowledged,false);
+    }
+    f.view.finishSourceProducer(receipt,'returned');retiring=true;
+    f.view.severPreparation(prepared,f.original);
+    moon.clientProgramAbortRequestPreparation(f.parent);
+    f.view.retireSeveredPreparation(f.original);
+    assert.equal((await f.view.close()).pending,false);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  }
 });
 
 test('normal generic Native Request retains an undefined foreign failure without another constructor', async () => {
@@ -2447,4 +2597,221 @@ test('Effect retained flags are the exact pre-callback inverse arguments, not a 
     {code:'ForeignInstalledSourceProducer'});
   assert.strictEqual(f.view.admitEffectMaterials(f.prepared,f.sdkRequest,'wire','run',c,f.identity,original),value);
   assert.equal(calls,1);f.markRetiring();f.view.severPreparation(f.prepared,f.original);
+});
+
+
+async function normalizationManagerFixture(t, normalizationFailure, options = {}) {
+  const environment = {}, f = await fixture({environment, ...options}), moon = f.context.runtime;
+  const holder = {}, prepared = {}, normalization = {}, events = [], admission = {};
+  f.originals.installation = {sequenceContractOriginal: {moon, admission}};
+  moon.clientProgramPrepareRequestNativeComputation = () => ok(undefined);
+  moon.clientProgramRequestParametersOriginal = () => ok(undefined);
+  const finish = moon.clientProgramFinishRequestComputation;
+  moon.clientProgramFinishRequestComputation = function(...args) {
+    events.push('compiled'); return Reflect.apply(finish, this, args);
+  };
+  let receipt;
+  moon.clientProgramPrepareRequestProgramNormalization = function(parent, input) {
+    assert.strictEqual(this, moon); assert.strictEqual(parent, f.parent); assert.strictEqual(input, receipt);
+    events.push('normalization');
+    if (normalizationFailure !== undefined) throw normalizationFailure;
+    return ok(normalization);
+  };
+  moon.clientProgramBorrowRequestProgramPlanInput = function(parent, input) {
+    assert.strictEqual(parent, f.parent); assert.strictEqual(input, receipt);
+    events.push('plan-borrow'); return ok(holder);
+  };
+  moon.clientProgramPreparationBorrowRead = actual => {assert.strictEqual(actual, holder); return prepared;};
+  moon.clientProgramPreparationBorrowReturn = actual => {assert.strictEqual(actual, holder); return ok(false);};
+  moon.clientProgramPreparationBorrowRetirementStarted = actual => {assert.strictEqual(actual, holder); return true;};
+  const abort = moon.clientProgramAbortRequestPreparation;
+  let aborted = false;
+  moon.clientProgramAbortRequestPreparation = function(parent) {
+    assert.strictEqual(parent, f.parent);
+    if (aborted) return ok(undefined); // Core abort is idempotent after its original return.
+    const result = Reflect.apply(abort, moon, [parent]); aborted = true; return result;
+  };
+  moon.clientProgramPrepareRequestProgramModuleBody = function(parent, input) {
+    assert.strictEqual(parent, f.parent); assert.strictEqual(input, receipt);
+    events.push('module'); return ok(undefined);
+  };
+  const request = {}, original = input();
+  receipt = f.view.beforeSourceSnapshot('program', original, {}, connection);
+  const body = f.view.captureSourceSnapshot(receipt,
+    {kind: 'program', input: original, parameters: {}}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+  t.after(async () => {
+    f.view.finishSourceProducer(receipt, 'returned');
+    assert.equal((await f.view.close()).pending, false);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  });
+  return {f, request, prepared, events, environment};
+}
+
+test('normalization original manager runs once after Program compilation and before Plan borrow or Module', async t => {
+  const {f, request, prepared, events, environment} = await normalizationManagerFixture(t);
+  assert.strictEqual((await f.view.fundedPreparation(request, environment)).prepared, prepared);
+  assert.deepEqual(events, ['compiled', 'normalization', 'plan-borrow', 'module']);
+  assert.strictEqual((await f.view.fundedPreparation(request, environment)).prepared, prepared);
+  assert.deepEqual(events, ['compiled', 'normalization', 'plan-borrow', 'module']);
+});
+
+test('normalization original failure remains on the same Request and never reaches a Plan or Module', async t => {
+  const failure = Error('original normalization failure');
+  const {f, request, events, environment} = await normalizationManagerFixture(t, failure);
+  await assert.rejects(f.view.fundedPreparation(request, environment), error => error === failure);
+  await assert.rejects(f.view.fundedPreparation(request, environment), error => error === failure);
+  assert.deepEqual(events, ['compiled', 'normalization']);
+});
+
+function normalizationPublicationFixture(failure) {
+  const cid = digit => 'sha256:' + digit.repeat(64), prepared = {}, compiled = {
+    admission: {}, compiledPlan: {identity: cid('1')}, preparedEvidence: {wire: 'original-preparation'},
+    authorization: {wire: 'original-authorization'},
+  };
+  const journal = Object.freeze({name: 'normalization_journal', identity: cid('2'), wire: 'original journal'});
+  const definition = {identity: cid('3'), wire: '{}'}, events = [], authoring = {};
+  const context = Object.freeze({name:'authoring_context',identity:cid('9'),wire:'original annotations'});
+  const control = {
+    prepareCheckedClientCompiledRun(actual) {assert.strictEqual(actual, prepared); return compiled;},
+    defineCheckedClientCompiledRun(actual) {assert.strictEqual(actual, compiled); return definition;},
+    issueCheckedClientCompiledInvocation(actual, run) {
+      assert.strictEqual(actual, compiled); assert.strictEqual(run, definition);
+      return {observation: {}, invocation: {}};
+    },
+    preparedClientNormalizationEvidence(actual, limits) {
+      assert.strictEqual(actual, prepared); assert.strictEqual(limits, localContractLimits);
+      events.push('original-normalization'); if (failure !== undefined) throw failure; return journal;
+    },
+    preparedClientAuthoringContextEvidence(actual, original) {
+      assert.strictEqual(actual, prepared);assert.strictEqual(original, authoring);return context;
+    },
+    seal(kind, wire) {return {identity: cid('4'), wire};},
+    sealRunEvidence(kind, wire) {
+      assert.notEqual(kind, 'normalization_journal', 'Do not replace the original with an empty journal');
+      return {name: kind, identity: cid('5'), wire};
+    },
+    compiledRunResultTransformation() {return {};}, captureOriginalClientRunPlan() {return {};},
+  };
+  const moon = {clientProgramDefinitionCid(actual) {assert.strictEqual(actual, prepared); return cid('6');},
+    clientProgramResultCount() {return 1;},
+    clientProgramPreparedLocalPublicationLimits() {return resultOutputLimitFields.map(name => localOutputLimits[name]);}};
+  const options = {moon, control, preparedProgram: prepared, namespaceId: 'original',
+    authorityScopeCid: cid('7'), storeAuthorityCid: cid('8'), now: () => '2026-11-18T00:00:00.000Z',
+    publicationOriginal: {kind: 'preparation', value: {}, authoringContext:authoring}, publicationPreparation: {}};
+  return {options, journal, events, authoring, context};
+}
+
+test('normalization late publication consumes the retained original evidence without seal or reparse', () => {
+  const f = normalizationPublicationFixture(), plan = sourceFreeValuesPlan(f.options);
+  assert.strictEqual(plan.normalizationJournal, f.journal);
+  assert.deepEqual(f.events, ['original-normalization']);
+});
+
+test('normalization late publication preserves original refusal and never fabricates an empty journal', () => {
+  const failure = Error('original normalization evidence refused'), f = normalizationPublicationFixture(failure);
+  assert.throws(() => sourceFreeValuesPlan(f.options), error => error === failure);
+  assert.deepEqual(f.events, ['original-normalization']);
+});
+
+
+test('authoring original is retained once on the same Request before Plan and survives current refusal', async t => {
+  let currentFailure;
+  const originalFailure = Error('original authoring current');
+  const {f, request, prepared, events, environment} = await normalizationManagerFixture(t, undefined,
+    {validate() {if (currentFailure) throw originalFailure;}});
+  const proof = {}, moon = f.context.runtime;
+  let calls = 0;
+  moon.clientProgramPrepareRequestProgramAuthoringContext = function(parent, input) {
+    assert.strictEqual(this, moon);assert.strictEqual(parent, f.parent);assert.ok(input);
+    calls++;events.push('authoring');return ok(proof);
+  };
+  await f.view.fundedPreparation(request, environment);
+  assert.deepEqual(events, ['compiled', 'normalization', 'authoring', 'plan-borrow', 'module']);
+  assert.strictEqual(f.view.authoringContextOriginal(prepared, request), proof);
+  assert.throws(() => f.view.authoringContextOriginal({}, request), {code:'ForeignInstalledSourceProducer'});
+  assert.throws(() => f.view.authoringContextOriginal(prepared, {}), {code:'ForeignInstalledSourceProducer'});
+  currentFailure = true;
+  try {assert.throws(() => f.view.authoringContextOriginal(prepared, request), error => error === originalFailure);}
+  finally {currentFailure = false;}
+  await f.view.fundedPreparation(request, environment);
+  assert.strictEqual(f.view.authoringContextOriginal(prepared, request), proof);
+  assert.equal(calls, 1);
+});
+
+test('authoring constructor failure is latched before Plan and never replaced on retry', async t => {
+  const {f, request, events, environment} = await normalizationManagerFixture(t);
+  const failure = Error('original authoring constructor');let calls = 0;
+  f.context.runtime.clientProgramPrepareRequestProgramAuthoringContext = () => {
+    calls++;events.push('authoring');throw failure;
+  };
+  await assert.rejects(f.view.fundedPreparation(request, environment), error => error === failure);
+  await assert.rejects(f.view.fundedPreparation(request, environment), error => error === failure);
+  assert.deepEqual(events, ['compiled', 'normalization', 'authoring']);assert.equal(calls, 1);
+});
+
+test('authoring publication reads the original opaque proof and preserves its refusal without an empty seal', () => {
+  const f = normalizationPublicationFixture();let calls = 0;
+  f.options.control.preparedClientAuthoringContextEvidence = (prepared, proof, limits) => {
+    assert.strictEqual(prepared, f.options.preparedProgram);assert.strictEqual(proof, f.authoring);
+    assert.strictEqual(limits, localContractLimits);calls++;return f.context;
+  };
+  f.options.control.sealRunEvidence = () => assert.fail('Original evidence cannot be replaced');
+  assert.strictEqual(sourceFreeValuesPlan(f.options).authoringContext, f.context);
+  const original = Error('original authoring evidence refusal');
+  f.options.control.preparedClientAuthoringContextEvidence = () => {throw original;};
+  assert.throws(() => sourceFreeValuesPlan(f.options), error => error === original);
+  assert.equal(calls, 1);
+});
+
+test('authoring alias is cut before a consumed holder settlement fails and same-parent cleanup retries once', () => {
+  const parent = {}, holder = {}, prepared = {}, proof = {}, failure = Error('original consumed settlement');
+  let returns = 0, aborts = 0;
+  const state = {parent, holder, prepared, authoringContextOriginal: proof, context:{runtime:{
+    clientProgramAbortRequestPreparation(actual) {assert.strictEqual(actual,parent);aborts++;return ok(undefined);},
+    clientProgramPreparationBorrowRetirementStarted(actual) {assert.strictEqual(actual,holder);return true;},
+    clientProgramPreparationBorrowReturn(actual) {
+      assert.strictEqual(actual,holder);assert.equal(state.holder,undefined);
+      assert.equal(state.authoringContextOriginal,undefined);returns++;throw failure;
+    },
+  }}};
+  assert.throws(() => cleanupRequestInput(state, actual => assert.strictEqual(actual,prepared)), error => error === failure);
+  assert.strictEqual(state.parent,parent);assert.equal(state.holder,undefined);
+  cleanupRequestInput(state);
+  assert.equal(returns,1);assert.equal(aborts,2);assert.equal(state.parent,undefined);
+});
+
+
+test('authoring original Task admission retains the same proof for Model and Content publication', () => {
+  for (const kind of ['infer', 'serialization']) {
+    const f = normalizationPublicationFixture(), graph = {};
+    const compiled = {kind,admission:{},compiledPlan:{identity:'compiled'}};
+    f.options.control.prepareCheckedClientCompiledRun = actual => {
+      assert.strictEqual(actual,f.options.preparedProgram);return compiled;
+    };
+    f.options.control.defineCheckedClientCompiledRun = actual => {
+      assert.strictEqual(actual,compiled);return {identity:'original-definition',wire:'{}'};
+    };
+    f.options.control.checkClientCompiledRunOwner = (actual, owner) => {
+      assert.strictEqual(actual,compiled);assert.strictEqual(owner,f.options.preparedProgram);
+    };
+    const admit = kind === 'infer' ? inferTaskRunAdmission : serializationTaskRunAdmission;
+    const admitted = admit({...f.options,inferGraph:graph,serializationGraph:graph});
+    assert.strictEqual(admitted.authoringContextOriginal,f.authoring);
+    f.options.publicationOriginal.authoringContext = {};
+    f.options.control.sealRunEvidence = () => assert.fail('Task-held original cannot be replaced');
+    let published;
+    if (kind === 'infer') {
+      const operation = {bindIssuedInvocation(){return {observation:{wire:JSON.stringify({
+        data_policy_cid:'policy',captured_input_artifact_cids:[]})},invocation:{}};}};
+      published = inferTaskPublicationPlan({...f.options,admitted,operation,modelEvidence:[]}).plan;
+    } else {
+      f.options.control.issueCheckedClientSerializationInvocation = () => ({
+        observation:{wire:JSON.stringify({data_policy_cid:'policy'})},invocation:{}});
+      f.options.control.checkedClientSerializationRecoveryBindings = () => [{
+        name:'content_input_artifact',wire:JSON.stringify({logical_relation_cid:'original-input'})}];
+      published = serializationTaskPublicationPlan({...f.options,admitted,generation:{}});
+    }
+    assert.strictEqual(published.authoringContext,f.context);
+  }
 });

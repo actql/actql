@@ -26,11 +26,19 @@ const dispatchFailureFields = Object.freeze(['primaryFailure', 'closeFailure',
   'cleanupFailure', 'finishFailure', 'releaseFailure', 'preparationRetirementFailure']);
 
 
-// Resolve only the engine's own lazy Error stack. An observer receives code
-// locations, never the original exception, its message, or its cause/owners.
+// Resolve only the engine's own lazy Error stack. The managed cleanup wrapper
+// retains its original failure in one inert own slot; prefer that original
+// site without walking a cause chain or changing the cleanup owner. An
+// observer receives locations, never the exception, message or capabilities.
 function dispatchFailureCodeSite(error, errorType, formatter) {
   try {
     if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
+    const primary = Object.getOwnPropertyDescriptor(error, 'primaryFailure');
+    if (primary !== undefined) {
+      if (!Object.hasOwn(primary, 'value') || primary.value === error) return undefined;
+      error = primary.value;
+      if (nodeTypes.isProxy(error) || !nodeTypes.isNativeError(error)) return undefined;
+    }
     if (Object.getPrototypeOf(error) !== errorType.prototype) return undefined;
     const currentFormatter = Object.getOwnPropertyDescriptor(errorType, 'prepareStackTrace');
     if (currentFormatter !== undefined && !Object.hasOwn(currentFormatter, 'value') ||
@@ -1374,6 +1382,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const issueTag = runtimeTag(issue);
         const nestedIssue = runtimeOptionalField(issue, 0);
         const nestedTag = runtimeTag(nestedIssue);
+        const leafIssue = runtimeOptionalField(nestedIssue, 0);
+        const leafTag = runtimeTag(leafIssue);
         diagnostic('dispatch_failed', {ref: accepted.ref,
           code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
@@ -1383,7 +1393,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           issueTag: issueTag === undefined && Number.isSafeInteger(issue) &&
             issue >= 0 && issue <= 65535 ? issue : issueTag,
           nestedIssueTag: nestedTag === undefined && Number.isSafeInteger(nestedIssue) &&
-            nestedIssue >= 0 && nestedIssue <= 65535 ? nestedIssue : nestedTag});
+            nestedIssue >= 0 && nestedIssue <= 65535 ? nestedIssue : nestedTag,
+          leafIssueTag: leafTag === undefined && Number.isSafeInteger(leafIssue) &&
+            leafIssue >= 0 && leafIssue <= 65535 ? leafIssue
+            : Number.isSafeInteger(leafTag) && leafTag >= 0 && leafTag <= 65535 ? leafTag : undefined});
       } catch { /* Optional diagnostics cannot interrupt cleanup. */ }
       const failedExecution = cause instanceof CapturedRunPublicationError
         ? cause.execution : undefined;
@@ -1499,6 +1512,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const issueTag = runtimeTag(issue);
         const nestedIssue = runtimeOptionalField(issue, 0);
         const nestedTag = runtimeTag(nestedIssue);
+        const leafIssue = runtimeOptionalField(nestedIssue, 0);
+        const leafTag = runtimeTag(leafIssue);
         diagnostic('dispatch_failed', {ref: entry.ref,
           code: cause?.code ?? 'ClientDispatchFailed',
           primaryCode: primaryFailure?.code,
@@ -1507,7 +1522,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           issueTag: issueTag === undefined && Number.isSafeInteger(issue) &&
             issue >= 0 && issue <= 65535 ? issue : issueTag,
           nestedIssueTag: nestedTag === undefined && Number.isSafeInteger(nestedIssue) &&
-            nestedIssue >= 0 && nestedIssue <= 65535 ? nestedIssue : nestedTag});
+            nestedIssue >= 0 && nestedIssue <= 65535 ? nestedIssue : nestedTag,
+          leafIssueTag: leafTag === undefined && Number.isSafeInteger(leafIssue) &&
+            leafIssue >= 0 && leafIssue <= 65535 ? leafIssue
+            : Number.isSafeInteger(leafTag) && leafTag >= 0 && leafTag <= 65535 ? leafTag : undefined});
       } catch { /* Optional diagnostics cannot interrupt original cleanup. */ }
       if (!entry.runInvoked) {
         // A refused execution barrier ran no Site callback. This is a

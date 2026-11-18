@@ -2886,6 +2886,35 @@ introduced. Portable Resource tests and the actual Pure/Effect constructors
 exercise this boundary; ordinary Host activation and backend supply remain
 separate obligations.
 
+### Original text-bound views before sequence lowering
+
+The same Request's checked Program retains the complete Envelope count, and its
+original checked graph retains the actual Task count. Before any installed
+sequence lowers expressions, the Pure, Effect and static Native Plan quotes add
+their product to the existing construction reservation. Each Envelope can add
+one view record with two original references and a Timestamp Option with one
+original pattern reference: the existing representation tariff charges two
+headers, three reference slots and one scalar tag per Envelope per Task.
+Non-Timestamp views are included; the zero-Envelope case adds nothing. No text,
+pattern, source tree
+or policy inventory is copied to measure this increment.
+
+The retained increment covers each Task's cached sequence. Execution includes
+twice that increment because a replacement with different original limits can
+coexist with its old sequence, including a failed child's constructed prefix.
+The same Request keeps that reservation until its existing retirement; failed
+replacement preserves the original cached sequence. The increment does not
+replace the previous compiler, sequence, output or provider quotes.
+
+The lowerer still binds the same checked closure, stage, step, expression,
+Envelope output/policy resolution and optional original Timestamp pattern.
+Foreign inputs, arithmetic overflow and one-short reservations refuse before
+sequence construction. Existing current, cancellation, cached quote, borrowed
+input and consumed-return cleanup rules remain; no view count issues permission
+or acknowledges physical cleanup. Focused tests exercise exact and one-short
+retained/execution admission, original identities, zero demand and failed
+replacement with its old sequence still live.
+
 ## Publication continuation retains the original body
 
 After construction, `ClientProgramPublication` retains the same original body
@@ -5938,6 +5967,41 @@ imported child's stopping state. A consuming callback cannot admit a new
 reservation after that stop by waiting for a later current observation.
 The separate physical acknowledgment is never inferred from this restriction.
 
+Native Work's Journal entry keeps the canonical original-body reservation
+resize. When actual window acquisition requires an entered business Read,
+`prepare_prepared_run_native_work_backing` first acquires backing for the same
+absolute retained/execution targets under that Read. It uses the original
+prepared admission, body borrower, isolated reservation and Ledger. This
+preflight shares the canonical simultaneous-demand calculation, including
+held bytes and other reservations, but changes no logical usage, token,
+attempt, work counter or peak. The later Journal resize commits the sole
+logical debit; it cannot acquire another window when the original backing
+already covers the same demand. The existing transition latch and post-current
+borrower/isolation fences reject reentry or changed custody. Any acquired
+physical peak remains the same owner's cleanup duty after failure; preflight
+success is neither an execution grant nor a physical retirement acknowledgment.
+
+The installed Native File caller encapsulates this ordering inside its existing
+`prepare_file_work_entry` operation. After backing the original Whole Read
+constructor envelope, it derives the exact Work quote and enters the same
+business child through `with_business_request`. The installed adapter borrows
+only that entered child's original Ledger, checks that no Work entry has been
+selected, and adds the Work quote to the original prepared-body extent using
+checked arithmetic. After the same business/Journal return, the unchanged
+Journal entry performs its canonical current/isolation check and sole resize.
+No outer File caller must remember a separate backing operation.
+
+An actual backing refusal is retained in the existing command primary before
+either scope return can fail. The same pending physical owner remains cleanup
+duty; a later return failure cannot overwrite the primary or reset the Native
+window issue. This ordering never retries a failed entry. The new fixed Read
+capture/Option/return frontier adds H8/R11/S10 (296 logical bytes at the existing
+tariff) to the same Whole Read recipe; it changes no facility limit, reservation
+owner or measured heap/RSS claim. The selected Native regression requires an
+actual demand above the initial window and observes unchanged logical usage
+before the later Journal debit. Source/types alone do not establish that
+physical regression or ordinary installed File acceptance.
+
 The physical issuer must reserve the complete original region, provisioning
 attempts, admission/frame/controller captures, output and failed-constructor
 coexistence before creating them. Shared region bytes remain suballocations of
@@ -6713,6 +6777,74 @@ independent; these projections do not grant Resource capacity or compile a body.
 
 ### Original normalization on the same Request
 
+The original Source resolver's `SoleView` selection is a real completion. Its
+same `ResolvedInput`, declaration stage/input name, selected view and complete
+requirements remain with this inventory and Prepared owner. A Source entry uses
+the existing JSONPath quoted-member form, the absent-member marker `null`, and
+the exact selected view String. The scalar Common writer escapes only the path
+member; it does not re-resolve or reinterpret the Source. Repeated visits to the
+same original occurrence retain one entry; foreign equal declarations do not.
+The Source successor catalogue extends the existing three rules. Only an audit
+with an actual Source completion selects it; explicit-view/source-free journals
+and all saved prior catalogue preimages keep their exact original identities.
+Restoration compares the same Prepared/original journal/catalogue and complete
+wire, rejecting an empty, substituted or foreign journal.
+
+Common occurrence records retain their typed Relation/Source original. The
+same Request quotes the record/tag controls before the audit using its cached
+original parsed-check counts and Source inventory length. Two Source frames
+cover retained/current failure overlap; seven bounded String intermediates and
+the existing one-scalar TextWriter inventory cover path construction. The
+original text extent bounds quoted member spelling, not a guessed node count
+or a raised codec policy. After the audit returns, actual retained entries,
+String units and Sort views replace disposed constructor scratch. Currentness,
+work charging, rejected growth, cancellation and cleanup keep the same Request
+owner and original borrowed input; none of this DATA grants Source authority.
+
+The short-lived Source helper carriers do not accumulate with occurrence
+count. The quoted-String extent returns `Some((bytes, units))` (2H/1R/3W),
+whereas the completed entry returns `Some((entry, remaining))` (2H/2R/2W).
+Unboxing the former precedes Writer construction; unboxing the latter precedes
+entry retention and duplicate comparison. One scalar work Option is live at
+a time. Their componentwise control peak is 2H/2R/3W (72 logical bytes),
+inside the original exclusive 4096-byte driver group. It is not another
+per-Source allowance and is not added to every retained entry. Entry/tag/path
+storage remains with the variable quote; the actual TextWriter inventory
+already includes its returned key String, finish tuple and failure controls.
+
+That driver group is admitted by
+`client_request_preparation_control_capacity` before Request construction,
+not by a later audit resize. Before the first grow, the working-baseline tuple
+(1H/0R/2W) coexists with at most the constant scalar/Map/collection/Writer
+inventory DATA quote chain (3H/1R/14W): 200 bytes together. Those functions
+construct no Writer, buffer or copied input text. The normalization controller,
+its own Some, limits record and two extent tuples total 5H/12R/12W (272 bytes).
+During growth the existing Resource entry quote is 10H/10R/16W (368 bytes),
+including its rejected reentrant entry: together 640 bytes. During the audit,
+the controller plus work-slot Some is 304 bytes; its one scalar audit-budget
+record is 24 bytes and the Source carrier peak is 72 bytes: together 400 bytes.
+These are exclusive phases under the existing `Selecting`/currentness fence.
+The work receipt and variable audit/writer bodies keep their separately backed
+Resource owners. No future quotation value, unused unrelated body budget or
+new control margin funds these pre-call objects.
+
+The cached `reference_arrays` count used for Relation wrappers is
+`operations + 4 * stages + 1`. The structural owner increments `operations`
+from each original Stage's authored step views. Only an actual checked
+Sort/Rename/Drop occurrence can add a Relation entry. Its original unique
+source path permits at most one retained entry per step; a repeated visit
+constructs at most one additional current wrapper before physical-original
+deduplication. Thus `operations + 1` bounds those simultaneously retained/current
+wrappers, without treating row count or provider enumeration as an operation.
+
+Source execution construction creates one subject with the selected
+`ResolvedInput`, then reuses it in the five Host/authorization/egress/resource/
+response bindings. The same execution array is created before the Stage loop
+and borrowed by every built Unit. The three-Stage original Source journal
+control therefore visits the same resolver fifteen times yet emits exactly
+one independently pinned entry. Deduplication compares that original resolver
+and complete path/values; a foreign equal-looking resolver is not a match.
+
 The Native submitted-request handoff runs its selected original constructor
 inside the caller's already-active business Request, before borrowing the Plan
 input. Its optional `before_program_borrow` callback does not replace the
@@ -6789,3 +6921,141 @@ continuation and final alias retirement. Compiler type/interface checks establis
 only the selected source boundaries. Actual Native execution, retained Saved
 reads, target ABI and physical cleanup require their own matching artifacts and
 original callers; pure component success does not establish them.
+
+
+### Original Local Compute finalization diagnostics
+
+The same bounded Local Compute owner consumes finalization preparation,
+finalization advance, settlement and completion Results through its existing
+typed failure projection. These operations share `LocalDispatchIssue`; their
+different successful payloads are never inspected by a failure getter. Common
+alone chooses the closed cause and any original quantity. Node only formats
+that DATA through the existing `local_managed_advance` Compute-phase message;
+this is not an assertion of a finer internal finalization step. Unknown causes
+remain unclassified, rather than being inferred from an unpublished Result.
+
+The existing exported Moon declarations retain their advance Result type.
+At the already existing Node FFI boundary, their error-only projection also
+accepts the same compiler's original `Err(LocalDispatchIssue)` from Unit,
+managed Relation completion and Carrier completion Results. Actual compiled
+values and original getter functions qualify this closed interoperability;
+Node neither decodes error tags nor constructs a replacement Result. Successful
+payloads are checked by their original consumer and never sent to a failure
+getter. The generated `runtimeIsError` check precedes every projection; a
+foreign checker exception on Ok or malformed DATA cannot reach the getters.
+This pinned JS-backend contract is not a Native/Wasm interoperability claim,
+a static generic-export claim or permission to reinterpret another
+error family, copied DATA, or an arbitrary successful payload.
+
+The existing finalization async frame additionally retains one original module
+reference and one selected task ordinal. Its dedicated one-reference/one-word
+inventory is 16 bytes, added to the same Task's constructor allowance before
+the adapter or a finalization callback can be entered. It adds no callback,
+error carrier, reservation, issuer or cleanup Owner. The original diagnostic
+shape is shared with ordinary advance, not duplicated after each phase.
+
+Failure retains the same primary and cleanup continuation. A failed attempt
+does not release its pending physical duty or execute Compute again. The
+existing dispatch owner writes only recognized diagnostic DATA after confirmed
+failed stop to the same original Journal frame; Saved observation uses that
+retained message and its original current/revision gates. If no original cause
+was retained, later Source inspection or preparation diagnostics cannot
+reconstruct it.
+
+### Original preparation work problem code
+
+A reached `RuntimeFragmentWorkLimit` retains the original typed step and selected
+work ceiling on the same Request. Common projects only the stable code
+`ClientProgramRuntimeFragmentWorkLimit` through the existing open Problem code
+field. Its classification is `operation_failed`; a runtime work refusal is not
+language invalidity. The public `/0.1` Problem remains exactly code and
+classification. No step, selected amount, demand, remaining quantity or freeform
+Host message is encoded in the code or added to the wire.
+
+The existing module issue projection returns the same fixed-code Option. The
+same Request's preconstructor control inventory funds that Option and the two
+references of the existing nominal error association: one header, three
+references and one scalar word, 48 bytes under the common representation tariff.
+The code borrows an immutable Common constant, with no owned text. This is in
+addition to the original typed work issue's 40 bytes, not a new Request owner,
+reservation or policy grant.
+
+The same nominal association retains a frozen code/refusal-category pair
+(one header and two borrowed references, 32 bytes). The original query diagnostic
+getter also returns its pipeline-issue Some and parameter-name Some; their two
+headers, two references and two tag words add 64 bytes, conservatively coheld.
+The same Request reserves these additional 96 bytes before any domain current
+or resize callback. Both independent bootstrap oracles include the original
+roles; no later domain packet, policy headroom or second reservation supplies
+them. The parameter name remains internal and is not copied into the outcome.
+
+Node retains the original typed error in its existing private association and
+preserves the existing outer `ClientProgramRejected` refusal. Copied errors or
+mutable properties cannot issue the more specific code. Opaque Host failures
+remain uncertain. Only the actual original Journal acceptance state selects
+`not_accepted` versus `preparation_failed`; neither code nor presentation infers
+admission, nonexecution, retry permission or physical cleanup.
+
+SDK and Python display the already-admitted code and phase when no original
+Check observation is attached. Existing Check presentation takes precedence.
+Reference lookup retains the same durable two-field outcome without preparation
+or resubmission. This code uses the existing bounded open-string contract, so
+strict published decoders continue to accept it. Rich diagnostic text would need
+its own explicitly compatible or negotiated contract and is not part of this
+wire or this construction inventory.
+
+### Original authoring collection and publication on the same Request
+
+The existing Request enters `prepare_request_program_authoring_context` at
+ProgramCompiled, after normalization and before Plan construction. It keeps the
+same input/Prepared/compiler and baseline working extents. Its first fixed grow
+precedes the controller, work continuation and indexed geometry walk. Actual
+annotations, paths, quoted keys, metadata shape, Array/sort scratch and emitter
+frames then reserve on the same capacity before the retained collector. Two
+bounded measuring writers observe that same collected material; the complete
+measured body/evidence shape uses the existing evidence publication construction
+quote before canonical/sealer/parser/hash allocation. The original empty Writer
+uses its actual zero-node live-key inventory, not the complete-evidence inventory
+whose minimum is one node. Neither a wire maximum nor business `meta` is treated
+as an annotation count or funding original.
+
+Successful finish reconciles scratch only after construction and original work
+return, clearing the heavy vector/Writer while preserving the cached issued
+proof. A failed grow/current/work/emitter retains its same known prefix and
+material for original cleanup; retry returns the same failure. The phase variant
+is appended, while the private order fence places this work after normalization
+and before Plan/publication. Existing direct Effect issuance keeps its previous
+standalone lifetime and does not acquire this retained Request carrier.
+
+The fixed control shape includes the bounded Node pre-Run view and exact same
+proof reference slots. Core adoption clears its temporary continuation alias;
+Node publication borrows the issued original on the existing Task/Run lifetime.
+No second owner, automatic retry, replacement hash, empty evidence fallback or
+physical cleanup acknowledgement follows from successful DATA construction.
+See the Node authoring-context boundary in `check-sdk.md` for current, callback,
+caller-limit and consumed-return fences.
+
+### Original parameter declaration problem codes
+
+The existing Common diagnostic distinguishes an actual query
+`UnknownParameter` from the supplied-map binder rejecting a top-level key outside
+its original declared names. They select `ClientProgramParameterUndeclared` and
+`ClientSuppliedParameterUndeclared`, respectively, with the existing
+`invalid_input` classification. A nested unknown field in a declared value,
+default value, generic decoder failure or foreign Request does not establish
+the supplied-map cause. No query reference or authored source range is inferred
+from a supplied key, and no input is checked again to explain the refusal.
+
+The same nominal error association retains the original trusted refusal category
+alongside that fixed Common code. Mutable error properties and copied errors
+cannot reclassify the original failure as runtime work or issue either specific
+code. Existing current-audience disclosure and original check-observation gates
+remain in force; an unavailable or protected report keeps the existing coarse
+refusal rather than revealing a private distinction.
+
+The original Journal phase alone selects `not_accepted` or
+`preparation_failed`. Reopening and looking up the same reference preserves the
+two-field outcome without preparing or submitting another Run. SDK/Python can
+display these already admitted open code values through their existing public
+presentation. This adds no Problem field, reason-schema variant, message text,
+owner, resource grant, cancellation rule or cleanup acknowledgment.

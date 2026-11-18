@@ -114,6 +114,7 @@ export type WireClientBodyByOperation = Readonly<{
     unresolvedHistory: WireSubmissionRestart}>;
   'lookup-submission': WireBodyBase & Readonly<{submissionRef: WireSubmissionRef}>;
   'run-plan': WireClientBodyByOperation['inspect-run'];
+  'run-explanation': WireClientBodyByOperation['inspect-run'];
   'inspect-run': WireRefBody & Readonly<{
     maxWireBytes: number;
     maxNodes: number;

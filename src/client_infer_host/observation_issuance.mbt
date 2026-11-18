@@ -441,8 +441,15 @@ fn start_observation_issuance_owned(
       if !complete_original_observation_funding_current(owners, capacity) {
         return Err(Model(@model.OutputIdentity))
       }
+      // The issuer quote is metadata payload. The carrier's added reference
+      // remains live alongside it and cannot become spare metadata capacity.
+      guard @model.original_model_publication_payload_extent(workspace)
+        is Some(retained) &&
+        @model.original_model_publication_payload_extent(0L) is Some(execution) else {
+        return Err(Model(@model.InvalidLimits))
+      }
       if !@model.original_model_publication_capacity_covers(
-          capacity, workspace, 0L,
+          capacity, retained, execution,
         ) {
         return Err(Model(@model.Ledger(@resources.RetentionLimit)))
       }

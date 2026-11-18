@@ -9,7 +9,7 @@ import {existsSync, realpathSync} from 'node:fs';
 import {build} from 'esbuild';
 import {isConnectorTestFixture} from './check-connector-dispatch-boundary.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
-import {projectOwnerSources} from './interface-owner-source-projection.mjs';
+import {ownerSourcePath, projectOwnerSources} from './interface-owner-source-projection.mjs';
 import {interfaceOwnerCoverage} from './interface-owner-coverage.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 import {checkedOriginalInterface} from './check-interface-owners.mjs';
@@ -37,15 +37,22 @@ export function installedInterfaceCorrespondence({repository, directory, source,
     assert(binding, `Unbound installed authored interface: ${module.module}`);
     return binding.source;
   });
-  const original = selected.length ? projectOwnerSources(repository,
+  const commands = selected.filter(path => !/\.[^/]+$/u.test(path));
+  // The same checker already retains the original parsed model. Keep the
+  // existing source eligibility and compare its hash with actual Git bytes
+  // below before using it for installed correspondence.
+  const original = checkedSource ? selected.filter(path => ownerSourcePath(path, commands))
+    .map(path => checkedOriginalInterface(repository, path, checkedSource)) : selected.length ? projectOwnerSources(repository,
     {source, base: source, paths: selected, all: true,
-      commands: selected.filter(path => !/\.[^/]+$/u.test(path))}).modules : [];
+      commands}).modules : [];
   const bySource = new Map(original.map(module => [module.module, module]));
   const actual = installed.modules.map(module => {
     const binding = byMember.get(module.module), input = bySource.get(binding.source);
     assert(input, `Missing original authored interface: ${binding.source}`);
     const bytes = execFileSync('git', ['show', `${source}:${binding.source}`],
       {cwd: repository, maxBuffer: 16 * 1024 * 1024});
+    if (checkedSource) assert.equal(input.sha256, digest(bytes),
+      `Changed checked original source interface: ${binding.source}`);
     const expected = binding.transform === 'local-node-public-imports'
       ? Buffer.from(rewriteLocalNodePackageImports(bytes.toString('utf8'), binding.source)) : bytes;
     assert.equal(module.sha256, digest(expected), `Changed installed interface bytes: ${module.module}`);
@@ -53,13 +60,6 @@ export function installedInterfaceCorrespondence({repository, directory, source,
     assert.deepEqual(module.operations, input.operations, `Changed installed interface operations: ${module.module}`);
     assert.deepEqual(module.compilerFields ?? [], input.compilerFields ?? [],
       `Changed installed compiler representation: ${module.module}`);
-    if (checkedSource) {
-      const checked = checkedOriginalInterface(repository, binding.source, checkedSource);
-      for (const field of ['sha256', 'exports', 'operations', 'compilerFields']) {
-        assert.deepEqual(checked[field] ?? [], input[field] ?? [], `Changed checked source interface: ${binding.source}:${field}`);
-      }
-      return checked;
-    }
     return input;
   });
   const coverage = interfaceOwnerCoverage({root: repository, modules: actual, owners, generated});
@@ -110,4 +110,26 @@ export async function assertInstalledDependencyClosure({directory, modules, arti
   }
   return {modules: Object.keys(graph.metafile.inputs).length,
     qualification: 'actual installed dependency closure; not product execution'};
+}
+
+// Validate the actual bundled graph, not the SDK's private module inventory.
+// Generated pure codecs may grow inside these two lightweight packages.
+export function assertRemoteBrowserDependencyBoundary(metadata) {
+  const inputs = Object.entries(metadata.inputs), outputs = Object.values(metadata.outputs);
+  assert(inputs.length && outputs.length, 'Remote browser bundle graph must be nonempty');
+  assert(inputs.some(([path]) => path.replaceAll('\\', '/') ===
+    'node_modules/@actql/sdk/index.mjs'), 'Remote browser SDK entry is missing');
+  for (const [path, input] of inputs) {
+    const normalized = path.replaceAll('\\', '/');
+    const match = /^node_modules\/@actql\/(?:sdk|client-wire)\/(.+)$/u.exec(normalized);
+    assert(match, `Remote browser dependency outside SDK/client-wire: ${path}`);
+    const parts = match[1].split('/');
+    assert(parts.every(part => part && !['.', '..', 'node_modules', '_build', 'native'].includes(part)) &&
+      !/(?:^|\/)Core\.[cm]?js$|\.(?:node|wasm|core|mi|rsp|dylib|so|dll)$/iu.test(match[1]),
+    `Remote browser compiled/runtime dependency: ${path}`);
+    assert(Array.isArray(input.imports) && input.imports.every(value => !value.external),
+      `Remote browser external input import: ${path}`);
+  }
+  assert(outputs.every(output => Array.isArray(output.imports) && output.imports.length === 0),
+    'Remote browser bundle must have no remaining imports');
 }

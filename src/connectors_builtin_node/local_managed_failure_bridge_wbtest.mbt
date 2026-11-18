@@ -1,5 +1,106 @@
 ///|
 #cfg(target="js")
+extern "js" fn original_unit_finalization_node_diagnostic(
+  original : Result[Unit, @local_driver.LocalDispatchIssue],
+  completed : Result[
+    @execution.ManagedCompletedOutput[Int],
+    @local_driver.LocalDispatchIssue,
+  ],
+  carrier : Result[
+    @execution.CarrierManagedCompletedOutput,
+    @local_driver.LocalDispatchIssue,
+  ],
+  success : Result[String, @local_driver.LocalDispatchIssue],
+  foreign : Result[Unit, @resources.LedgerIssue],
+  resource : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> String?,
+  budget : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> (String, Bool, Int64, Int64, Int64)?,
+  control : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> Int?,
+  capture : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> Array[Int]?,
+  cause : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> String?,
+  step : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> Int,
+) -> Bool =
+  #|(original, completed, carrier, success, foreign, resource, budget, control, capture, cause, step) => {
+  #|  const require = process.getBuiltinModule('module').createRequire(process.cwd() + '/package.json');
+  #|  const {checkedLocalManagedAdvance} = require('./adapters/local-node/managed-advance-diagnostic.mjs');
+  #|  const {checked} = require('./adapters/host-common/runtime-result.mjs');
+  #|  const {publicBudgetFailureMessage} = require('./adapters/host-node/client-dispatch-diagnostic.mjs');
+  #|  for (const result of [original, completed, carrier]) {
+  #|    let primary;
+  #|    const moon = {
+  #|      strategyModule_local_ManagedAdvanceResourceDimension(value) {
+  #|        if (value !== result) throw new Error('ForeignOriginalResult');
+  #|        return resource(value);
+  #|      },
+  #|      strategyModule_local_ManagedAdvanceBudget: budget,
+  #|    };
+  #|    try {
+  #|      checkedLocalManagedAdvance(moon, result, value => {
+  #|        try { return checked(value); } catch (error) { primary = error; throw error; }
+  #|      }, 7);
+  #|      return false;
+  #|    } catch (error) {
+  #|      if (!(error === primary && error.code === 'MoonBitHostFailure' &&
+  #|        error.primaryDiagnostic?.task === 7 && error.primaryDiagnostic?.dimension === 'execution_bytes' &&
+  #|        publicBudgetFailureMessage(error).includes('requested_delta=unavailable; remaining=unavailable; policy=unavailable; unit=logical_bytes; setting=installation.requestMemory.executionBytes'))) return false;
+  #|    }
+  #|  }
+  #|  try {
+  #|    checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceResourceDimension: resource,
+  #|      strategyModule_local_ManagedAdvanceBudget: budget,
+  #|      strategyModule_local_ManagedAdvanceControlWorkLimit: control,
+  #|      strategyModule_local_ManagedAdvanceCaptureWork: capture,
+  #|      strategyModule_local_ManagedAdvanceCause: cause,
+  #|      strategyModule_local_ManagedAdvanceRowStep: step}, foreign, checked, 7);
+  #|    return false;
+  #|  } catch (error) {
+  #|    if (error.code !== 'MoonBitHostFailure' || error.primaryDiagnostic !== undefined) return false;
+  #|  }
+  #|  return checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceResourceDimension() {
+  #|    throw new Error('SuccessCannotProjectFailure');
+  #|  }}, success, checked, 7) === 'original';
+  #|}
+
+///|
+#cfg(target="js")
+test "original typed Unit finalization Result reaches the imported Node diagnostic unchanged" {
+  let original : Result[Unit, @local_driver.LocalDispatchIssue] = Err(
+    @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit)),
+  )
+  assert_true(
+    original_unit_finalization_node_diagnostic(
+      original,
+      Err(
+        @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit)),
+      ),
+      Err(
+        @local_driver.Execution(@strategy.Physical(@resources.ExecutionLimit)),
+      ),
+      Ok("original"),
+      Err(@resources.ForeignOwner),
+      local_managed_advance_resource_dimension,
+      local_managed_advance_budget,
+      local_managed_advance_control_work_limit,
+      local_managed_advance_capture_work,
+      local_managed_advance_cause,
+      local_managed_advance_row_step,
+    ),
+  )
+}
+
+///|
+#cfg(target="js")
 extern "js" fn original_row_failure_option_abi(
   value : String?,
   step : Int,
@@ -203,4 +304,185 @@ test "original budget bridge returns the actual compiler Option tuple unchanged 
     )
     is None,
   )
+}
+
+///|
+#cfg(target="js")
+extern "js" fn original_nonrow_failure_node_diagnostic(
+  original : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+  cause : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> String?,
+  step : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> Int,
+) -> Bool =
+  #|(original, cause, step) => {
+  #|  const require = process.getBuiltinModule('module').createRequire(process.cwd() + '/package.json');
+  #|  const {checkedLocalManagedAdvance} = require('./adapters/local-node/managed-advance-diagnostic.mjs');
+  #|  const {checked} = require('./adapters/host-common/runtime-result.mjs');
+  #|  const {dispatchFailureSnapshot, publicBudgetFailureMessage, retainedBudgetFailureMessage} = require('./adapters/host-node/client-dispatch-diagnostic.mjs');
+  #|  let primary, reads = 0;
+  #|  const moon = {strategyModule_local_ManagedAdvanceCause(value) {
+  #|    if (this !== moon || value !== original) throw new Error('ForeignOriginal');
+  #|    reads++; return cause(value);
+  #|  }, strategyModule_local_ManagedAdvanceRowStep: step};
+  #|  try { checkedLocalManagedAdvance(moon, original, value => {
+  #|    try { return checked(value); } catch (error) { primary = error; throw error; }
+  #|  }, 42); return false; } catch (error) {
+  #|    const expected = 'Execution failed: phase=local_managed_advance; task=42; cause=capture.capture_limit. Original execution failure; resource quantities were not retained.';
+  #|    if (error !== primary || reads !== 1 || error.primaryDiagnostic?.kind !== 'local_issue' ||
+  #|        error.primaryDiagnostic?.cause !== 'capture.capture_limit' || Object.hasOwn(error.primaryDiagnostic, 'step') ||
+  #|        publicBudgetFailureMessage(error) !== expected || dispatchFailureSnapshot({primaryFailure:error}).primaryDiagnostic?.cause !== 'capture.capture_limit') return false;
+  #|    const control = {physical_stop:'confirmed',revision:1};
+  #|    const state = {run_id:'original-fixture',status:'failed',result_available:false,next_action:{kind:'none'},
+  #|      terminal_error:{code:'ACTQL_E_UNPUBLISHED_RUN',message:expected},control};
+  #|    return retainedBudgetFailureMessage(JSON.stringify(state),state,'original-fixture',control) === expected &&
+  #|      retainedBudgetFailureMessage(JSON.stringify(state),state,'foreign',control) === undefined &&
+  #|      retainedBudgetFailureMessage(JSON.stringify(state),state,'original-fixture',{...control,physical_stop:'unknown'}) === undefined;
+  #|  }
+  #|}
+
+///|
+#cfg(target="js")
+test "original nonrow cause ABI reaches imported Node and same failed Journal renderer without a fabricated row step" {
+  assert_true(
+    original_nonrow_failure_node_diagnostic(
+      Err(
+        @local_driver.Configuration(
+          @connector.Execution(@execution.Capture(42, @execution.CaptureLimit)),
+        ),
+      ),
+      local_managed_advance_cause,
+      local_managed_advance_row_step,
+    ),
+  )
+}
+
+///|
+#cfg(target="js")
+extern "js" fn original_remaining_row_cause_node_abi(
+  original : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+  cause : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> String?,
+  step : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> Int,
+  expected : String,
+) -> Bool =
+  #|(original, cause, step, expected) => {
+  #|  const require = process.getBuiltinModule('module').createRequire(process.cwd() + '/package.json');
+  #|  const {checkedLocalManagedAdvance} = require('./adapters/local-node/managed-advance-diagnostic.mjs');
+  #|  const {checked} = require('./adapters/host-common/runtime-result.mjs');
+  #|  const {dispatchFailureSnapshot,publicBudgetFailureMessage} = require('./adapters/host-node/client-dispatch-diagnostic.mjs');
+  #|  let primary, calls = 0;
+  #|  const moon = {strategyModule_local_ManagedAdvanceCause(value) {
+  #|    if (this !== moon || value !== original) throw new Error('ForeignOriginalResult');
+  #|    calls++; return cause(value);
+  #|  }, strategyModule_local_ManagedAdvanceRowStep:step};
+  #|  try { checkedLocalManagedAdvance(moon,original,value => {
+  #|    try { return checked(value); } catch(error) {primary=error;throw error;}
+  #|  },43);return false; } catch(error) {
+  #|    const data=dispatchFailureSnapshot(error)?.primaryDiagnostic;
+  #|    return error===primary && calls===1 && data?.kind==='row_failure' && data?.task===43 && data?.step===43 &&
+  #|      data?.cause===expected && !Object.hasOwn(data,'dimension') && !Object.hasOwn(data,'budget') &&
+  #|      publicBudgetFailureMessage(error)===`Execution failed: phase=local_managed_advance; task=43; step=43; cause=${expected}. Original execution failure; resource quantities were not retained.`;
+  #|  }
+  #|}
+
+///|
+#cfg(target="js")
+test "remaining original typed row causes reach the actual imported Node ABI with the same original failure and step" {
+  for
+    (issue, expected) in [
+      (
+        @execution.LogicalRows(@execution.LiveValueLimit),
+        "logical.live_value_limit",
+      ),
+      (@execution.LogicalRows(@execution.WorkLimit), "logical.work_limit"),
+      (@execution.OwnerMismatch, "rows.owner_mismatch"),
+      (
+        @execution.MissingOrderedResourceContext,
+        "rows.missing_ordered_resource_context",
+      ),
+      (
+        @execution.AnalyticEnvelope(@execution.Measurement),
+        "analytic.measurement",
+      ),
+    ] {
+    assert_true(
+      original_remaining_row_cause_node_abi(
+        Err(
+          @local_driver.Configuration(
+            @connector.Execution(@execution.Rows(43, issue)),
+          ),
+        ),
+        local_managed_advance_cause,
+        local_managed_advance_row_step,
+        expected,
+      ),
+    )
+  }
+}
+
+///|
+#cfg(target="js")
+extern "js" fn original_logical_work_node_abi(
+  original : Result[
+    @local_driver.LocalManagedAdvance,
+    @local_driver.LocalDispatchIssue,
+  ],
+  project : (
+    Result[@local_driver.LocalManagedAdvance, @local_driver.LocalDispatchIssue],
+  ) -> (Int, Int64, String)?,
+  policy : String,
+  setting : String,
+) -> Bool =
+  #|(original, project, policy, setting) => {
+  #| const require = process.getBuiltinModule('module').createRequire(process.cwd()+'/package.json');
+  #| const {checkedLocalManagedAdvance} = require('./adapters/local-node/managed-advance-diagnostic.mjs');
+  #| const {checked} = require('./adapters/host-common/runtime-result.mjs');
+  #| const {publicBudgetFailureMessage} = require('./adapters/host-node/client-dispatch-diagnostic.mjs');
+  #| let primary, calls=0;
+  #| const moon={strategyModule_local_ManagedAdvanceLogicalWorkPolicy(value) {
+  #|   if(this!==moon || value!==original)throw new Error('ForeignOriginalResult');
+  #|   calls++;return project(value);
+  #| }};
+  #| try { checkedLocalManagedAdvance(moon,original,value=> {
+  #|   try{return checked(value);}catch(error){primary=error;throw error;}
+  #| },43);return false;}catch(error) {
+  #|   return error===primary && calls===1 && error.code==='MoonBitHostFailure' &&
+  #|     error.primaryDiagnostic?.workLimit===policy && error.primaryDiagnostic?.setting===setting &&
+  #|     publicBudgetFailureMessage(error).includes('policy='+policy+'; unit=work_units; setting='+setting+'.');
+  #| }
+  #|}
+
+///|
+#cfg(target="js")
+test "original logical work Option tuple reaches the imported Node helper without an ABI reconstruction" {
+  for
+    (limit, origin, setting) in [
+      (
+        20000000L,
+        @local_driver.SourceFreeInstallation,
+        "installation.sourceFreeMaxWork",
+      ),
+      (10000000L, @local_driver.Unspecified, "unavailable"),
+    ] {
+    assert_true(
+      original_logical_work_node_abi(
+        Err(@local_driver.LogicalWorkLimit(43, limit, origin)),
+        local_managed_advance_logical_work_policy,
+        limit.to_string(),
+        setting,
+      ),
+    )
+  }
 }

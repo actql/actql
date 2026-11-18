@@ -307,6 +307,28 @@ The same finite member/work and complete read/emit bounds apply. Host current
 readonly authorization and public installed acceptance remain independent
 requirements; a Core projection or schema registration alone installs no support.
 
+## Original logical boundary borrow lifetime
+
+The logical-key wrapper owns an independent borrow of the same original fact,
+issued by the existing task owner only after that Run's Ledger reserves the
+complete fixed fork, wrapper and bounded lookup constructor peak. A caller
+cannot replace that admission with a Boolean, a numerical quote or a different
+Ledger. No new logical identity is minted. The source observation stays with
+its caller and can be returned independently after the fork is issued. During
+admission it is pinned against a reentrant return; the same current fences and
+nominal record are checked again before delivery.
+
+Each wrapper has an explicit return. It disposes its heavy original context
+before requesting token return, so autonomous Owner retry cannot refund a live
+facts/Run/step context. Only the same token remains for declined cleanup, under
+the existing Owner retry path. A completed scalar token tombstone makes repeated
+logical close idempotent. Failed construction and
+unprojected boundaries return only their unused fork. Stopping, losing a plain
+wrapper reference or returning another consumer cannot acknowledge that debt.
+The fixed lookup holding does not fund capture of the original facts tree,
+variable key encoding, a physical parent, Journal ACK or egress; those actual
+supplier duties remain separate.
+
 ## Compiler-original plan capture
 
 Initial plan capture consumes the same nominal compiled Run, checked Program
@@ -356,3 +378,125 @@ An approved or uncertain Effect remains subject to its existing pending and
 reconciliation duties. The writer neither removes historical Checkpoint
 artifacts nor acknowledges physical cleanup. Existing pre-Checkpoint and
 Effect-free writers retain their original physical-fact validation.
+
+### Retained structural explanation read
+
+`Execution.explain(options)` uses the Client–Host `run-explanation` command,
+parallel to the existing execution `plan` and `inspect` reads. Its only options
+are `maxWireBytes`, `maxNodes`, `maxDepth` and `signal`. Aborting the signal cancels
+this read, never the Run. `Client.plan` remains a pre-execution read; this cut
+adds no `Client.explain` alias.
+
+The closed `WireRunExplanationView` retains the full original `run_ref` and
+structural facts, or the existing explicit `not_projected` reason. The Host
+checks current Run/Plan read and egress before acquiring retained evidence and
+again before disclosure. Missing old/Normal evidence is not a reason to compile,
+acquire Source or infer again. Read-budget and encoding failures are named
+refusals, never truncated facts or `not_projected` substitutions.
+
+The retained-facts service requires a specific associated-original lookup in
+addition to the existing Run lookup. Omitting that connection refuses service
+installation; it cannot fabricate old/Normal absence. Both current Run/Plan read
+and egress checks surround the retained read. The same original Definition,
+program and Facts bytes are checked again after awaited authorization.
+
+The structural read uses its own existing READ Request admission, independently
+of the producing Run's retired capacity. Its fixed entry is backed before
+Account callbacks or Journal access. A native scalar-only extent probe precedes
+the full original-row projection; that projection rechecks every wire/binding
+bound inside SQLite. Growth or corrupt text refuses before an oversized String
+crosses into the Host. The complete cold codecs and original map/key binding
+construction use the same Request, not Result metadata slots or another Ledger.
+The selected bounds live in that Request's existing phase slot and cannot be
+substituted at the final constructor.
+
+Structural metadata uses the installed Account's exact `run/read` permission,
+separately from connection/current checks and from each named Result permission.
+One owned read operation carries the before/after Account memo; an application
+callback reobserves changed Account/current facts without reusing an outcome
+across public reads or across resources. Identity equality is not an Allow.
+The actual transport must keep the read backing through output consumption and
+dispose its original semantic aliases before refunding it. Pending physical
+output/cleanup is not an acknowledgement. Read construction or Source checks
+alone do not enable an installed public capability.
+
+The private HTTP ingress consumes the view under that same read: its native
+end callback confirms output consumption, and an output error retains backing
+until the response actually closes. InProcess instead completes an independent
+caller-value copy before returning the Host read. Both paths pre-admit the
+parsed-value, escape expansion and output-buffer overlap; neither returns a
+Host-owned parsed alias or treats starting a send as completion. The installed
+connection check does not pre-evaluate the Explanation Account gate outside
+this admitted read.
+
+### First structural facts admission
+
+New ordinary Runs select finite structural metadata at the existing first
+original-Plan admission, without a new public caller flag or Debug switch. Its
+meaning comes from that same compiled Plan, logical map and checked owner.
+This is static compiler metadata, not execution Samples, history or tracking.
+The actual installed constructor must reserve measure/writer/hold/parse/hash
+construction on the same Request/Plan capacity before allocation and retain
+that backing through the same first durable acknowledgement. A Journal codec
+or currentness callback alone supplies no such backing.
+
+The request Journal stores the closed Explanation Facts body as an associated
+facet, bound to the full original Run reference, in that existing first
+admission transaction. The old Run Definition, Plan and admission-evidence JSON
+remain byte-identical. No second Store, network operation or semantic transaction
+is added. Exact additive table DDL remains under the existing schema/SQL support
+boundary; unknown format or unsupported selected facilities are not guessed.
+Insertion and the original Run admission commit or roll back together. Physical
+Store/COMMIT uncertainty keeps its original failure and cleanup custody.
+
+Only the original compiler-control selection can supply those first bytes.
+Equal caller wires cannot mint it. Found legacy Runs bypass the issuer, and a
+later call cannot attach absent facts. Saved reads use the associated immutable
+original; absent old/Normal facts remain authorized `not_retained`, with no
+compilation, acquisition or inference repair. Corrupt original bindings and
+read/encoding failures are named refusals, not missing-evidence success.
+The explicit cold-facet query compares original-reference scalars inside
+SQLite and conditionally returns the complete Facts bytes only within the
+selected byte bound. Corrupt oversized rows never cross into JavaScript as
+full or truncated evidence; row absence remains distinct. Native file and
+statement construction still requires its existing physical-owner backing.
+
+If the optional projection is unsupported or its own quote refuses before
+construction/IO, the ordinary Run may retain its old Plan without Facts. This
+cannot hide cancellation, stale/current loss, primary errors or unknown physical
+Store/ACK outcomes. The initial capture supplier and actual read/egress backing
+remain separate implementation duties. Capability advertisement waits for that
+supplier and uses only an existing extensible discovery surface, never an extra
+field in an old closed capability or Run/Plan body.
+
+The optional quote is selected while the original Request capacity is still
+working, after its one compiler artifact exists and before module completion.
+Structural geometry reads that artifact without issuing a speculative Run,
+authorization or Definition. A known optional quote refusal first disposes the
+measurement frame, then reconciles the same original working debit under
+currentness; it does not leave a partial metadata charge on the old Plan path.
+Current loss and cleanup failure remain failures. A successful typed loan keeps
+the complete projection peak, adopts only through that same Request owner,
+and moves its original borrower once into the capture continuation. Later
+module/adoption costs remain charged alongside it, rather than being reused
+as metadata funding. Explicit return retains only original cleanup identity.
+
+The installed first-capture continuation verifies the adopted Run's original
+preparation, retained compiler artifact and Definition before selecting that
+same preparation's body holder. It reserves quotation controls, bounded IR
+measurement and complete Plan/Facts construction before their constructors.
+The portable recipes are shared with the existing Native static-Plan reader;
+Native raw allocation endpoints stay with that adapter. The retained parsed
+view/map, old Plan wire, identity-free Facts body and sealed Facts overlap are
+separate costs. Measurement never supplies its own funding or another Ledger.
+
+The same Run's existing synchronous preparation-writer fence covers both
+capture and sibling-borrow current callbacks. Normal retains the same fields,
+and static-only projection selects no additional capture holder or output
+tuple. Borrowed first-admission wires reobserve original currentness before
+exposing semantic aliases; a stale failure is typed, never missing evidence.
+Explicit return cuts compiler/map/wire references before lower cleanup can
+settle, retaining only the original token responsibility on a pending return.
+That return is not a Journal or physical-stop acknowledgement. The actual
+Journal adapter must retain this loan through its first durable ACK or unknown
+commit reconciliation; a Core component alone cannot advertise the read.

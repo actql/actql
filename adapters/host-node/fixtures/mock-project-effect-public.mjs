@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {readFile, writeFile, stat} from 'node:fs/promises';
 import {connect} from '@actql/node';
 import {getSubmissionCheckObservation} from '@actql/sdk';
+import {mockProjectWorkflowChecks, startMockProjectSource} from './mock-project-effect-protocol.fixture.mjs';
 import {workflowWorkObservation, readWholeResults, checkJoinedSourceRows, readJoinedWholeResults} from './work-observation.fixture.mjs';
 
 const [phase, handoffPath, template = 'churn-risk-mock', variant = 'readme', workPurpose = 'workflow'] = process.argv.slice(2);
@@ -13,23 +14,15 @@ assert.ok(['capture', 'approve', 'recover'].includes(phase));
 assert.equal(typeof handoffPath, 'string');
 assert.ok(['churn-risk-mock', 'deal-review-mock'].includes(template));
 const dealReview = template === 'deal-review-mock';
-assert.ok(variant === 'readme' || ['two-models', 'two-models-whole', 'two-models-joined-whole', 'two-models-joined-inputs'].includes(variant) && dealReview);
+const multipleTargets = variant === 'multiple-targets';
+const {multipleTargetMockWriteCount} = multipleTargets
+  ? await import('./mock-multiple-targets.fixture.mjs') : {};
+assert.ok(variant === 'readme' || multipleTargets && !dealReview || ['two-models', 'two-models-whole', 'two-models-joined-whole', 'two-models-joined-inputs'].includes(variant) && dealReview);
 assert.ok(workPurpose === 'workflow' || workPurpose === 'original-run-control' && phase === 'capture');
-const twoModels = variant !== 'readme', joinedWholeProducer = variant === 'two-models-joined-whole' || variant === 'two-models-joined-inputs';
+const twoModels = variant !== 'readme' && !multipleTargets, joinedWholeProducer = variant === 'two-models-joined-whole' || variant === 'two-models-joined-inputs';
 const wholeProducer = variant === 'two-models-whole' || joinedWholeProducer;
 const C = /^sha256:[0-9a-f]{64}$/u;
-const expected = Object.freeze(dealReview ? {
-  '006Acme': {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'},
-  '006Globex': {changed: true, stage: 'Closed Lost', next_step: 'Revisit next fiscal year'},
-} : {
-  '001Acme': {level: 'high', reason: 'falling usage and a competitor evaluation'},
-  '001Globex': {level: 'high', reason: 'support tickets about pricing'},
-});
-const originalRisk = Object.freeze({'001Acme': 'low', '001Globex': 'medium'});
-const originalDeal = Object.freeze({
-  '006Acme': {StageName: 'Proposal', NextStep: null},
-  '006Globex': {StageName: 'Negotiation', NextStep: 'Legal review'},
-});
+const {expected, checkRows, checkReview, expectedBytes} = await mockProjectWorkflowChecks({template, variant});
 // A bounded typed-input consumer of the existing optional Evidence handoff. It neither
 // invokes a Model nor reads the Journal. Raw input stays inside this fixture;
 // only the completed comparison/count is reported after the first public close.
@@ -287,106 +280,6 @@ const targetState = async () => ({bytes: await readFile(dataPath, 'utf8'),
 const save = (path, value) => writeFile(path, JSON.stringify(value) + '\n',
   {encoding: 'utf8', mode: 0o600, flag: 'wx'});
 
-function checkRows(rows) {
-  assert.equal(rows.length, 2);
-  assert.deepEqual(rows.map(row => row.id).sort(), Object.keys(expected).sort());
-  for (const row of rows) {
-    if (dealReview) {
-      assert.equal(row.review.outcome, 'ok');
-      assert.deepEqual(row.review.value, expected[row.id]);
-      assert.equal(row.StageName, originalDeal[row.id].StageName);
-      assert.equal(row.NextStep, originalDeal[row.id].NextStep);
-      if (twoModels) {
-        assert.equal(row.confirmation.outcome, 'ok');
-        assert.deepEqual(row.confirmation.value, {confirmed: true,
-          stage: expected[row.id].stage, next_step: expected[row.id].next_step});
-      }
-    } else {
-      assert.equal(row.risk.outcome, 'ok');
-      assert.deepEqual(row.risk.value, expected[row.id]);
-      assert.equal(row.active_users, row.id === '001Acme' ? '4' : '12');
-    }
-  }
-}
-
-// Independent authored oracle for the separately named joined-Unit fixture.
-// Version goldens bind the literal physical row and its declared revision.
-// Opaque authority CIDs are checked as nominal DATA, never recreated as grants.
-
-function checkReview(review, summary, ref) {
-  assert.deepEqual(Object.keys(review).sort(), ['version', 'review_projection_cid',
-    'effect_preview_cid', 'authority_scope_cid', 'approval_claims', 'authoring_context_cid',
-    'redaction_policy_cid', 'sensitivity', 'retention_class', 'encryption_required',
-    'displayed_scope', 'displayed_permissions', 'displayed_rows',
-    'displayed_authoring_context'].sort());
-  assert.equal(review.version, 'actql-review-projection/0.1');
-  assert.equal(review.review_projection_cid, summary.reviewProjectionCid);
-  assert.equal(review.effect_preview_cid, summary.requiredArtifact.cid);
-  assert.equal(review.authority_scope_cid, ref.authorityScopeCid);
-  assert.deepEqual(review.approval_claims, summary.requirements);
-  assert.equal(review.sensitivity, 'restricted');
-  assert.equal(review.retention_class, 'approval-evidence');
-  assert.equal(review.encryption_required, true);
-  assert.deepEqual(review.displayed_scope.effects.map(({kind, target, count}) =>
-    ({kind, target, count})), [{kind: 'update', target: dealReview
-      ? 'connector://salesforce/Opportunity' : 'connector://salesforce/Account', count: 2}]);
-  assert.equal(review.displayed_rows.length, 2);
-  assert.deepEqual(review.displayed_rows.map(row => row.target_row_identity).sort(),
-    Object.keys(expected).sort());
-  for (const row of review.displayed_rows) {
-    const id = row.target_row_identity, answer = expected[id];
-    assert.match(row.row_preview_cid, C);
-    assert.equal(row.preview_strength, 'full_diff');
-    assert.equal(row.target_guard.state, 'version');
-    assert.match(row.target_guard.version_cid, C);
-    assert.equal(row.before.state, 'present');
-    assert.equal(row.before.value.id, id);
-    if (dealReview) {
-      assert.equal(row.before.value.StageName, originalDeal[id].StageName);
-      assert.equal(row.before.value.NextStep, originalDeal[id].NextStep);
-      const changes = {StageName: answer.stage, NextStep: answer.next_step};
-      assert.deepEqual(row.intended_changes, {state: 'present', value: changes});
-      assert.deepEqual(row.after, {state: 'present', value: changes});
-    } else {
-      assert.equal(row.before.value.Churn_Risk__c, originalRisk[id]);
-      assert.equal(row.before.value.Risk_Reason__c, null);
-      assert.deepEqual(row.intended_changes, {state: 'present', value: {
-        Churn_Risk__c: answer.level, Risk_Reason__c: answer.reason}});
-      // The original full-diff after/change omits unchanged fields. The sealed
-      // review preserves that original value rather than expanding the row.
-      assert.deepEqual(row.after, {state: 'present', value: {
-        Churn_Risk__c: answer.level, Risk_Reason__c: answer.reason}});
-    }
-  }
-}
-function expectedBytes(before) {
-  if (dealReview) {
-    // Select each edit in the original authored bytes. Acme's new stage is
-    // Globex's old stage; a sequential search in changed bytes would edit it twice.
-    const edits = [];
-    for (const id of Object.keys(expected)) {
-      for (const [field, value] of Object.entries({StageName: expected[id].stage,
-        NextStep: expected[id].next_step})) {
-        const prior = JSON.stringify(field) + ': ' + JSON.stringify(originalDeal[id][field]);
-        assert.equal(before.split(prior).length, 2);
-        edits.push({start: before.indexOf(prior), length: prior.length,
-          next: JSON.stringify(field) + ': ' + JSON.stringify(value)});
-      }
-    }
-    return edits.sort((a, b) => b.start - a.start).reduce((bytes, edit) =>
-      bytes.slice(0, edit.start) + edit.next + bytes.slice(edit.start + edit.length), before);
-  }
-  let result = before;
-  for (const id of Object.keys(expected)) {
-    const prior = `"Churn_Risk__c": "${originalRisk[id]}"`;
-    assert.equal(result.split(prior).length, 2);
-    result = result.replace(prior, '"Churn_Risk__c": "high"');
-    const reason = '"Risk_Reason__c": null';
-    assert.ok(result.includes(reason));
-    result = result.replace(reason, '"Risk_Reason__c": ' + JSON.stringify(expected[id].reason));
-  }
-  return result;
-}
 
 try {
   client = await step('connect', () => connect({mode: 'local',
@@ -394,14 +287,8 @@ try {
       ...(modelInputs === undefined ? {} : {inferEvidence: modelInputs.configuration})}, profile: 'mock'}));
   if (phase === 'capture') {
     const before = await step('read authored target before submission', targetState);
-    const source = await step('read original README program', () =>
-      readFile(twoModels ? 'deal-review.program.json' : dealReview ? 'deal-review.aql' : 'churn-risk.aql', 'utf8'));
-    const execution = await step('README startSource', () =>
-      client.startSource(source, {format: twoModels ? 'json' : 'aql', stopBefore: 'commit'}));
-    // This accepted reference must survive a failed wait/review/first close.
-    // The complete Checkpoint/review handoff below remains a separate file.
-    await step('retain original accepted reference before wait', () =>
-      save(handoffPath + '.started', {ref: execution.ref, template, variant}));
+    const execution = await startMockProjectSource({client, template, variant, handoffPath, step,
+      readProgram: readFile, save});
     const state = await step('wait for original Checkpoint', async () => {
       const state = await execution.wait();
       runObservation = publicRunObservation(state);
@@ -427,7 +314,7 @@ try {
       {ref: execution.ref, runId: state.run_id,
       checkpointId: state.checkpoint.id, summary,
       reviewBase64: Buffer.from(review.bytes).toString('base64'), before,
-      expectedBytes: expectedBytes(before.bytes), ...(dealReview ? {template} : {}), ...(twoModels ? {variant} : {})}));
+      expectedBytes: expectedBytes(before.bytes), ...(dealReview ? {template} : {}), ...(twoModels || variant === 'multiple-targets' ? {variant} : {})}));
   } else {
     const captured = await step('read original public recovery reference', async () => {
       const captured = JSON.parse(await readFile(handoffPath, 'utf8'));
@@ -486,7 +373,7 @@ try {
       await step('retain approved recovery reference', () => save(handoffPath + '.approved.json',
         {ref: execution.ref, runId: terminal.run_id, rows, after,
           ...(wholeProducer ? {allResults} : {}),
-          ...(dealReview ? {template} : {}), ...(twoModels ? {variant} : {})}));
+          ...(dealReview ? {template} : {}), ...(twoModels || variant === 'multiple-targets' ? {variant} : {})}));
     } else {
       const approved = await step('read approved public recovery reference', async () => {
         const approved = JSON.parse(await readFile(handoffPath + '.approved.json', 'utf8'));
@@ -549,7 +436,8 @@ pending.cleanupCode = closeFailure?.code;
 pending.workObservation = workObservation.snapshot();
 let workFailure, modelInputObservation;
 if (!failed && closeReturned) try {
-  checkWorkflowWork(pending.workObservation, phase, Object.keys(expected).length, twoModels ? 2 : 1);
+  checkWorkflowWork(pending.workObservation, phase, multipleTargets ? multipleTargetMockWriteCount : Object.keys(expected).length,
+    multipleTargets ? 0 : twoModels ? 2 : 1);
   if (modelInputs !== undefined) {
     const original = JSON.parse(await readFile(handoffPath + '.started', 'utf8'));
     modelInputObservation = modelInputs.verify(original.ref);

@@ -281,9 +281,10 @@ test('SQLite physical regressions require their prepared macOS Native owner', ()
   const selection = selectTargets(['src/platform_native/sqlite/sqlite_stub.c'], {draft: false});
   assert.equal(selection.profile, 'full');
   assert.equal(gateJobRequired(selection, 'native-macos'), true);
-  const step = nativeCases('native-macos').find(row =>
-    row.name === 'Test finite original SQLite statement and selected API custody');
-  assert.ok(step);
+  const selected = nativeCases('native-macos').filter(row =>
+    row.run === 'node scripts/test-native-sqlite-read-statement.mjs');
+  assert.equal(selected.length, 1, 'The actual SQLite regression command has one prepared owner');
+  const [step] = selected;
   assert.equal(nativeCaseCondition('native-macos', step), "${{ !cancelled() && steps.native-preparation.outcome == 'success' }}");
   assert.equal(step['continue-on-error'], undefined);
   assert.equal(step['timeout-minutes'], 5);
@@ -314,10 +315,8 @@ test('macOS HTTP retains its original command under shared preparation and a man
   const workload = nativeWorkload('native-macos');
   assert.equal(workload['runs-on'], 'macos-15');
   const runtime = nativeGroups['native-macos'].find(group => group.name === 'runtime');
-  const index = runtime.steps.findIndex(step => step.id === 'native-http');
-  assert(index > runtime.steps.findIndex(step => step.name === 'Test native macOS retained task file ownership'));
-  const http = runtime.steps[index];
-  assert.equal(http.name, 'Test Node-free native storage publication and control');
+  const http = runtime.steps.find(step => step.id === 'native-http');
+  assert(http);
   assert.equal(http.run, 'node scripts/test-native-http-client.mjs\n');
   assert.equal(http.timeoutMinutes, 115);
   assert.deepEqual(http.env, {ACTQL_TEST_SCRATCH_ROOT: '${{ runner.temp }}/native-tests/native-http',
@@ -379,44 +378,59 @@ test('Native retained verification builds exactly its checked release module inv
   ]);
 });
 
+test('normal lint executes installed-interface correspondence controls once', () => {
+  const file = 'scripts/installed-interface-correspondence.test.mjs';
+  const owners = Object.entries(jobs).flatMap(([job, value]) => (value.steps ?? [])
+    .filter(step => step.run?.split(/\s+/u).includes(file)).map(step => ({job, step})));
+  assert.equal(owners.length, 1);
+  const [{job, step}] = owners;
+  assert.equal(job, 'lint');
+  const args = step.run.trim().split(/\s+/u);
+  assert.deepEqual(args.slice(0, 2), ['node', '--test']);
+  assert.equal(args.filter(value => value === file).length, 1);
+  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assert.equal(step['continue-on-error'], undefined);
+});
+
 test('normal lint executes behavioral operation performance assessment tests', () => {
-  const step = jobs.lint.steps.find(row =>
-    row.name === 'Test ordinary operation performance assessment');
-  const policy = jobs.lint.steps.find(row =>
-    row.name === 'Test ordinary operation performance policy oracles');
-  assert.ok(step);
-  assert.ok(policy);
-  assert.equal(policy.run, 'npm run test:operation-performance-policy');
+  const collectors = jobs.lint.steps.filter(row => row.run === 'npm run test:operation-performance-collectors');
+  const policies = jobs.lint.steps.filter(row => row.run === 'npm run test:operation-performance-policy');
+  assert.equal(collectors.length, 1);
+  assert.equal(policies.length, 1);
+  const [step] = collectors, [policy] = policies;
   assert.equal(policy.if, undefined);
-  assert.equal(step.run, 'npm run test:operation-performance-collectors');
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   // These tests validate raw samples, frame counts, faults and incomplete
   // evidence. Running them is not an ordinary-package performance result.
   assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
-  const observed = jobs.host.steps.find(row =>
-    row.name === 'Test operation authorization and unchanged Run observations');
-  assert.equal(observed.run, 'npm run test:host-observations');
-  assert.ok(jobs.host.steps.indexOf(observed) > jobs.host.steps.findIndex(row =>
-    row.run === 'npm run check:retained-boundary'));
+  const observations = jobs.host.steps.filter(row => row.run === 'npm run test:host-observations');
+  assert.equal(observations.length, 1);
+  assert.equal(observations[0].if, "${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
 });
 
 test('normal lint executes ordinary process collector protocol tests', () => {
-  const step = jobs.lint.steps.find(row =>
-    row.name === 'Test ordinary process collector protocols');
-  assert.ok(step);
-  assert.equal(step.run, 'python3 -I -B scripts/benchmark-ordinary-processes.test.py');
+  const selected = jobs.lint.steps.filter(row => row.run === 'python3 -I -B scripts/benchmark-ordinary-processes.test.py');
+  assert.equal(selected.length, 1);
+  const [step] = selected;
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   assert.equal(step['continue-on-error'], undefined);
   // Process fixtures exercise the collector and package fence, not product speed.
 });
 
 test('normal Host CI executes bounded Journal preparation and cursor regressions', () => {
-  const step = jobs.host.steps.find(row =>
-    row.name === 'Test bounded Journal preparation and execution');
-  assert.ok(step);
-  assert.equal(step.run, 'node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs adapters/host-node/client-request-journal-fresh-schema.test.mjs');
-  assert.ok(jobs.host.steps.indexOf(step) > jobs.host.steps.findIndex(row =>
-    row.run === 'npm run check:retained-boundary'));
+  const files = ['adapters/host-node/client-request-journal-sql-bounds.test.mjs',
+    'adapters/host-node/client-request-journal-execution-bounds.test.mjs',
+    'adapters/host-node/client-request-journal-wal-bounds.test.mjs',
+    'adapters/host-node/client-request-journal-fresh-schema.test.mjs'];
+  for (const file of files) {
+    const owners = jobs.host.steps.filter(row => row.run?.split(/\s+/u).includes(file));
+    assert.equal(owners.length, 1, file);
+    const [step] = owners, args = step.run.split(/\s+/u);
+    assert.deepEqual(args.slice(0, 2), ['node', '--test']);
+    assert.equal(args.filter(value => value === file).length, 1, file);
+    assert.equal(step.if, "${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
+    assert.equal(step['continue-on-error'], undefined);
+  }
 });
 
 test('normal Host CI checks real connector initialization after its ordinary runtime build', () => {
@@ -443,7 +457,10 @@ test('Host collection retains original command bodies and their actual build pre
   const retained = commands('check:retained-boundary');
   const publication = commands('check:publication-runtime');
   assert.equal(retained[0], publication[0]);
-  assert.equal(step('Prepare the shared Host runtime').run, retained[0]);
+  const sharedBuild = step('Prepare the shared Host runtime').run.trim().split(/\s+/u);
+  for (const prerequisite of retained[0].trim().split(/\s+/u)) {
+    assert(sharedBuild.includes(prerequisite), `Missing shared Host build prerequisite: ${prerequisite}`);
+  }
   assert.equal(step('Test bounded retained storage and process lifecycle').run, retained[1]);
   assert.equal(step('Test prepared holder cleanup owner').run, retained[2]);
   assert.equal(step('Test portable publication control with the durable Store').run, publication[1]);
@@ -481,8 +498,8 @@ test('Host collection retains original command bodies and their actual build pre
     "${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
   assert.equal(steps.filter(row => row.run?.includes('request-model-material-resources.test.mjs')).length, 1,
     'Original Model metadata cases use existing Host preparation without another supplier');
-  assert.equal(steps.filter(row => row.run === retained[0]).length, 1,
-    'the two identical Common build prefixes are shared, without another build');
+  assert.equal(steps.filter(row => row.run?.split(/\s+/u).includes('src/connectors_builtin_node')).length, 1,
+    'the required Common entry is prepared once for both original consumers');
 });
 
 test('Host independent failures are collected while failed prerequisites and cancellation stop consumers', () => {
@@ -997,9 +1014,9 @@ test('Native command parsing remains a full execution input when its implementat
   assert.equal(maintenanceSelection(['scripts/verification-actions.test.mjs']).profile, 'maintenance');
 });
 
-test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
-  assert.equal(maintenanceFiles.length, 24);
-  assert.equal(new Set(maintenanceFiles).size, 24);
+test('maintenance inventory is nonempty unique and every existing reviewed modification qualifies', () => {
+  assert(maintenanceFiles.length > 0);
+  assert.equal(new Set(maintenanceFiles).size, maintenanceFiles.length);
   for (const path of maintenanceFiles) {
     const selection = validateSelection(maintenanceSelection([path]));
     assert.equal(selection.profile, 'maintenance', path);

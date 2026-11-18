@@ -614,6 +614,13 @@ pub fn parse_sga_call(
     Ok(call)
   } catch {
     QueryExpression(error) => Err(error)
+    QueryAggregateOrderRequired(at) =>
+      Err({
+        issue: AggregateOrderRequired,
+        span: Some(
+          @origin.span(@origin.range(source.document, at, at).unwrap()),
+        ),
+      })
     QueryAbort(message, at) =>
       Err({
         issue: Syntax(message),

@@ -326,6 +326,32 @@ pub fn diagnostic_undeclared_parameter(value : CheckDiagnostic) -> String? {
 }
 
 ///|
+/// The original closed supplied map rejected a root name outside its declared
+/// names. A nested field rejection, default value, or generic decode failure
+/// is not this cause. This projection neither checks the query nor supplies
+/// an authored query-reference location.
+pub fn diagnostic_supplied_parameter_undeclared(
+  value : CheckDiagnostic,
+) -> Bool {
+  guard value.category == InvalidInput &&
+    value.cause is Source(SourceView(Binding(Binding(issue)))) else {
+    return false
+  }
+  supplied_parameter_undeclared_issue(issue)
+}
+
+///|
+fn supplied_parameter_undeclared_issue(value : @parameters.Issue) -> Bool {
+  guard value is BindingInput(Supplied, Decode(issue)) &&
+    issue.kind == @decode.UnknownField &&
+    issue.path.length() == 1 &&
+    issue.path[0] is @source.Key(_) else {
+    return false
+  }
+  true
+}
+
+///|
 /// Resolve the failed predicate through the submitted Program's original
 /// construction owner. A matching span/path is not evidence of cursor identity.
 /// Generated and unavailable origins remain unavailable to authored diagnostics.

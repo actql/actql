@@ -9,6 +9,11 @@
   Typed sources retain their existing target, source-field and null-behavior
   roles. The output is the existing `RowMapping` and unchanged Node metadata
   projection with reference, CID, canonical body, written and omittable fields.
+  The pure `row_update_mapping_construction_capacity` observer takes the SAME
+  declaration, writes wire, resource and source-map wire before that constructor.
+  It returns optional retained/execution demand DATA. The Node/RelA bridge
+  forwards the existing capacity or `InvalidExtent` through an ordinary Result;
+  neither it nor its amounts creates a reservation or admits the tuple.
 - Identity: the original declaration supplies resource kind, complete nested
   target contracts, connector manifest and resource identity. Write facts cannot
   replace its schema. The existing constructor owns canonical Mapping identity.
@@ -28,6 +33,17 @@
   The existing initialization owner must fund constructor and retained-output
   overlap before invoking it; a Mapping or input byte size is not a capacity
   quotation or physical backing proof.
+  The observer reuses the preserving parser/index, schema, canonical writer and
+  shared representation inventories. Every possible sibling original and the
+  selected relation check stay counted. Complete persistent Mapping trees,
+  schema/body strings and returned Host metadata coexist with one worst bounded
+  synchronous canonical/hash writer: each preceding call returns only its digest
+  before the next writer starts. UTF8 extents and UTF16 storage remain distinct.
+  The same Source material admits every member before construction and keeps
+  its retained quantity after successful return/current fences. Failed prefixes
+  keep full peaks. The later Environment constructor overlaps those retained
+  results, not a repeated Declaration restore or Environment per Mapping.
+  This is logical preparation accounting, not engine heap/RSS or cleanup ACK.
 - Extension: the existing CREATE port, wire and semantic constructor remain
   unchanged. The new UPDATE port shares its metadata/source-map adapter and
   delegates to the original typed Relation Mapping owner, preserving Decimal,
@@ -37,3 +53,7 @@
   `client_relation_update_mapping_wbtest.mbt` checks actual bridge metadata and
   bounded source-map refusal. Neither establishes installed current grants,
   approval, execution claims, physical mutation or whole-workflow acceptance.
+  `update_mapping_construction_wbtest.mbt` uses the real Ledger and Mapping
+  constructor for exact/retention-one-short/execution-one-short admission,
+  equal-UTF16/different-UTF8 names and distinct retained sibling identities.
+  These component cases do not establish installed default-profile funding.

@@ -125,21 +125,21 @@ const runManagedExecution = async (
 };
 
 const runManagedFinalization = async (
-  operations, checked, signal, payload, storageBytes, available,
+  operations, checked, signal, payload, storageBytes, available, moon, task,
 ) => {
   signal?.throwIfAborted();
-  checked(operations.prepare_finalization(
+  checkedLocalManagedAdvance(moon, operations.prepare_finalization(
     payload,
     storageBytes,
     available,
-  ));
+  ), checked, task);
   while (true) {
     if (signal?.aborted) {
       stopBoundedExecution(operations, checked);
       signal.throwIfAborted();
     }
     const observation = validateManagedAdvance(
-      checked(operations.advance_finalization(managedFinalizationQuantum)),
+      checkedLocalManagedAdvance(moon, operations.advance_finalization(managedFinalizationQuantum), checked, task),
       managedFinalizationQuantum,
       'InvalidLocalManagedFinalizationAdvance',
     );
@@ -444,17 +444,19 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
                 payload,
                 operations.storage_bytes,
                 () => available,
+                moon,
+                prepared.task,
               );
             }
-            checked(operations.settle());
+            checkedLocalManagedAdvance(moon, operations.settle(), checked, prepared.task);
             recordManagedFailureExecutionSettled(failureProgress);
             completed = carrierMaterial == null
-              ? checked(operations.complete(
+              ? checkedLocalManagedAdvance(moon, operations.complete(
                 payload,
                 operations.storage_bytes,
                 () => available,
-              ))
-              : checked(operations.complete_carrier());
+              ), checked, prepared.task)
+              : checkedLocalManagedAdvance(moon, operations.complete_carrier(), checked, prepared.task);
           },
           resolvedRowPlan,
         );

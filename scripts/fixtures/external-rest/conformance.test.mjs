@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {captureStandardRestRead, observeOwnScopedStateFds, scopedStateFdCommand} from './conformance.mjs';
 import {cancelStandardRestAtPageBarrier} from './cancel-conformance.mjs';
+import {assertTimedValuesExplanation} from './timed-inputs.fixture.mjs';
 
 test('scoped FD observations select the existing Linux and Darwin lsof locations', () => {
   assert.equal(scopedStateFdCommand('linux'), '/usr/bin/lsof');
@@ -256,4 +257,43 @@ test('REST cancel keeps malformed published page markers as failure without pars
     cancellationReturnedPath: join(f.root, 'must-not-exist.json')}), SyntaxError);
   assert.deepEqual(events, ['start', 'close']);
   await assert.rejects(readFile(join(f.root, 'must-not-exist.json')), {code: 'ENOENT'});
+});
+
+// These are caller-oracle DATA controls, not a compiler issuance or a closed
+// envelope admission. The real normal caller receives the SDK-validated view.
+function authoredValuesExplanation() {
+  const ref = {namespaceId: 'synthetic-oracle', authorityScopeCid: 'sha256:' + 'a'.repeat(64),
+    runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
+  const plan = 'sha256:' + 'c'.repeat(64), step = 'sha256:' + 'd'.repeat(64);
+  return {version: 'actql-run-explanation-view/0.1', run_ref: ref,
+    explanation: {state: 'projected', facts: {disclosure: 'structural', compiled_plan_cid: plan,
+      steps: [{step_id: step, key: {self_cid: step, compiled_plan_cid: plan}, operator: 'values',
+        meaning: {kind: 'values', schema: {fields: [
+          {name: 'id', presence: 'required', type: {projection: 'shape_and_nullability', kind: 'number', nullable: false}},
+          {name: 'label', presence: 'required', type: {projection: 'shape_and_nullability', kind: 'string', nullable: false}},
+        ]}}}]}}};
+}
+
+test('timed Values Facts oracle requires its authored schema and complete same-Saved original', () => {
+  const original = authoredValuesExplanation(), saved = structuredClone(original);
+  assert.deepEqual(assertTimedValuesExplanation(original, original.run_ref), {
+    originalRefExact: true, authoredValuesSchemaExact: true, savedWholeOriginalExact: false});
+  assert.equal(assertTimedValuesExplanation(saved, original.run_ref, original).savedWholeOriginalExact, true);
+  saved.explanation.facts.disclosure = 'changed';
+  assert.throws(() => assertTimedValuesExplanation(saved, original.run_ref, original));
+});
+
+test('timed Values Facts oracle refuses absence, foreign originals and literal/cardinality leakage', () => {
+  for (const mutate of [
+    view => {view.explanation = {state: 'not_projected', reason: 'not_retained'};},
+    view => {view.run_ref.namespaceId = 'foreign';},
+    view => {view.explanation.facts.steps[0].key.compiled_plan_cid = 'foreign';},
+    view => {view.explanation.facts.steps[0].meaning.schema.fields[0].name = 'changed';},
+    view => {view.explanation.facts.steps[0].meaning.row_count = 2;},
+    view => {view.explanation.facts.steps[0].meaning.schema.fields[1].type.value = '東京';},
+  ]) {
+    const original = authoredValuesExplanation(), changed = structuredClone(original);
+    mutate(changed);
+    assert.throws(() => assertTimedValuesExplanation(changed, original.run_ref));
+  }
 });

@@ -70,7 +70,7 @@ test "empty expression kernel keeps scope and nonexpression operations stay outs
         max_pointer_bytes: 0,
         max_work: 0,
       })
-      is Err(@lowering_relation.RootLimit),
+      is Err(@lowering_relation.RootWorkLimit),
     )
   }
   for step in [0, 3] {

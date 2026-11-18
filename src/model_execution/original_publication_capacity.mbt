@@ -8,6 +8,45 @@ struct OriginalModelPublicationCapacity {
   mut capacity : @resources.CapacityReservation?
   mut retained_bytes : Int64
   mut execution_bytes : Int64
+  mut usage : ModelUsagePublication?
+}
+
+///|
+// The old carrier's 1H/2R/2W is already included in the caller's complete
+// publication envelope. Charge the new optional reference even when None,
+// before constructing that carrier. Grow receives absolute admitted extents;
+// it must not add this structural delta a second time.
+fn original_model_publication_carrier_delta() -> Int64? {
+  guard @relation.preparation_representation_cost({
+      record_headers: 1L,
+      reference_slots: 2L,
+      scalar_words: 2L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(before) &&
+    @relation.preparation_representation_cost({
+      record_headers: 1L,
+      reference_slots: 3L,
+      scalar_words: 2L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(after) else {
+    return None
+  }
+  Some(after - before)
+}
+
+///|
+/// Convert a legacy complete publication-payload quote to the actual extent
+/// of this carrier. This is DATA, not a reservation. Do not apply it to an
+/// extent already returned by the reservation or a usage writer.
+pub fn original_model_publication_payload_extent(bytes : Int64) -> Int64? {
+  guard bytes >= 0L && original_model_publication_carrier_delta() is Some(delta) else {
+    return None
+  }
+  @relation.checked_preparation_add_product(bytes, delta, 1L)
 }
 
 ///|
@@ -83,6 +122,12 @@ pub fn reserve_original_model_publication_capacity(
   if retained_bytes <= 0L || execution_bytes < 0L {
     return Err(InvalidLimits)
   }
+  guard original_model_publication_payload_extent(retained_bytes)
+    is Some(retained_bytes) &&
+    original_model_publication_payload_extent(execution_bytes)
+    is Some(execution_bytes) else {
+    return Err(InvalidLimits)
+  }
   if !original_model_publication_owner_current(execution, scope) ||
     execution.state.stop_requested ||
     execution.state.output_uses == 2147483647 {
@@ -129,6 +174,7 @@ pub fn reserve_original_model_publication_capacity(
     capacity: Some(capacity),
     retained_bytes,
     execution_bytes,
+    usage: None,
   })
 }
 
@@ -224,6 +270,11 @@ pub fn release_original_model_publication_capacity(
   guard value.owner is Some(execution) else {
     return if value.capacity is None { Ok(true) } else { Err(OutputIdentity) }
   }
+  // Optional publication callbacks are children of this SAME borrow. A
+  // cancellation or a returned Model Result cannot retire an awaited Sink.
+  if value.usage is Some(_) {
+    return Ok(false)
+  }
   guard value.capacity is Some(capacity) &&
     execution.state.call_scope is Some(scope) &&
     original_model_publication_release_owner_matches(execution, scope) &&
@@ -277,6 +328,22 @@ pub fn release_original_model_publication_capacity(
     execution.advancing = false
   }
   Ok(true)
+}
+
+///|
+/// Actual admitted extent, including the optional carrier in the None case.
+/// Scalar accessors add no independently retained tuple or authority.
+pub fn original_model_publication_retained_bytes(
+  value : OriginalModelPublicationCapacity,
+) -> Int64 {
+  value.retained_bytes
+}
+
+///|
+pub fn original_model_publication_execution_bytes(
+  value : OriginalModelPublicationCapacity,
+) -> Int64 {
+  value.execution_bytes
 }
 
 ///|

@@ -40,7 +40,11 @@ export function createLocalReadAuthorizations({moon, authorization,
     const callbackState = observeCallbacks?.();
     const sinkCallbackCount = facts.delivery?.sinkCallbackCount ?? 0;
     if (!Number.isSafeInteger(sinkCallbackCount) || sinkCallbackCount < 0) return false;
-    const retained = sameOperation ? operations.get(operation) : undefined;
+    // A metadata read and a Result read can share an original Run tuple,
+    // but never the permission's outcome. Keep the selected resource in the
+    // owned operation memo even when a caller presents the same operation.
+    const candidate = sameOperation ? operations.get(operation) : undefined;
+    const retained = candidate?.resource === resource ? candidate : undefined;
     if (retained !== undefined && retained.account === retainedAccount &&
         callbackState?.active !== true && retained.callbackState === callbackState &&
         retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;
@@ -62,7 +66,7 @@ export function createLocalReadAuthorizations({moon, authorization,
     const outcome = JSON.parse(moon.executionAuthorizationEvaluationJson(evaluation));
     if (outcome.outcome !== 'delegate') {
       const allowed = outcome.outcome === 'allow';
-      if (sameOperation) operations.set(operation, {allowed, account, sinkCallbackCount, callbackState});
+      if (sameOperation) operations.set(operation, {allowed, account, resource, sinkCallbackCount, callbackState});
       return allowed;
     }
     // An immediate configured answer still belongs to the existing gate.
@@ -76,7 +80,7 @@ export function createLocalReadAuthorizations({moon, authorization,
       const allowed = decision.action === 'dispatch';
       // The application's answer and its post-callback current check have
       // completed. Internal consumption does not call that application again.
-      if (sameOperation) operations.set(operation, {allowed, account, sinkCallbackCount, callbackState});
+      if (sameOperation) operations.set(operation, {allowed, account, resource, sinkCallbackCount, callbackState});
       return allowed;
     } finally { gate.close(); }
   };
@@ -86,6 +90,6 @@ export function createLocalReadAuthorizations({moon, authorization,
         ? `result/${facts.resultName}` : undefined;
       return authorize(facts, operation, resource);
     },
-    run(facts) {return authorize(facts, undefined, 'run');},
+    run(facts, operation) {return authorize(facts, operation, 'run');},
   });
 }

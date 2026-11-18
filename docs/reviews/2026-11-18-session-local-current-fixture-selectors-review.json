@@ -1,0 +1,47 @@
+{
+  "source": "9c7c171223e59d73c11da9b5a2ad7f620a7a293c",
+  "qualification": "Finite current JS package-configuration review only. Five literal JS whitebox selectors extend the actual previously reviewed configuration. Imports, aliases, supported targets, prior selectors, linker options, hooks and external resolvers remain byte-exact. Every immediate source byte/mode/membership and transitive literal import remains an input. No compiler/test execution or reuse authority is issued by this descriptor.",
+  "path": "src/client_local_host/moon.pkg",
+  "mode": "100644",
+  "sha256": "b66436cc7f406ada75dc1349518a55ca4ab94334f06c9e99686548677620da9a",
+  "bytes": 12507,
+  "previousRevision": "8385cf48bbffd611f7fa62e872a21c764aa7787f",
+  "previousSha256": "497f93c3defd265ba83791d7a8c3290302f368406e1d348f04a5d5f1c472fefd",
+  "previousBytes": 12192,
+  "previousReview": "docs/reviews/2026-11-18-session-local-resource-lifecycle-selector-review.json",
+  "rule": "literal-target-selectors-with-bound-source-membership",
+  "addedSelectors": [
+    {
+      "file": "preparation_text_bound_views_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "model_async_host_control_inventory_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "preparation_request_authoring_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "preparation_explanation_capture_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    },
+    {
+      "file": "preparation_request_explanation_read_js_wbtest.mbt",
+      "targets": [
+        "js"
+      ]
+    }
+  ],
+  "meaning": "The TextBound view and async Model control-inventory fixtures retain their original JS-selected helpers. The Request authoring, original Explanation capture and Explanation read fixtures also use existing JS-selected Request/preparation helpers. All five stay in the exact same original package source cohort; their explicit JS selection prevents Native/Wasm adoption of unbound test-only symbols without changing product or other backend choices.",
+  "refusalPolicy": "Only this exact descriptor, JS target and reviewed toolchain qualify. Earlier preimages/reviews remain unchanged and historical. Missing/changed selectors, imported dependencies, aliases, options, source membership, path, target or toolchain retain refusal/full-source fallback and unresolved reuse. Identity is not runtime execution or proof acceptance."
+}

@@ -506,13 +506,15 @@ test "Model construction input preserves grown Program backing and funds its act
   let before = calls.val
   let model = borrow_request_model_plan_input(parent, input).unwrap()
   assert_eq(calls.val, before + 1)
-  // Independent record inventory: header16 + eleven references88 + three words24.
+  // Independent record inventory: header16 + twelve references96 + three words24.
   // Prepared, Request, compiled Run, definition, Graph, selected Model partitions,
-  // occurrence, Source-free/Captured alternatives, Content prefix and Limits.
+  // occurrence, Source-free/Captured alternatives, Content prefix, original Model
+  // Limits and whole-Run Limits. The original Model Limits are a borrowed reference.
   // No Model Plan, compilation, Scope, provider or IO is constructed here.
+  let record_bytes = 16L + 12L * 8L + 3L * 8L
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((r + 129L + 128L, e + 257L + 128L)),
+    Ok((r + 129L + record_bytes, e + 257L + record_bytes)),
   )
   assert_true(parent.phase == ModelPlanReserved)
   assert_true(parent.program_model is None)
@@ -549,9 +551,17 @@ test "Model construction input foreign and one-byte-short refusal preserves the 
   let program = borrow_request_program_plan_input(parent, input).unwrap()
   let capacity = parent.program_capacity.unwrap()
   let (_, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  // This same record needs128 bytes; preserve exactly one byte of deficit.
-  let r = @resources.ledger_limits(parent.ledger).retained_bytes - 127L
+  // The same independent 1H/12R/3W inventory is 136 bytes. Leave exactly
+  // one byte of deficit; do not turn the old 128-byte oracle into nine-short.
+  let record_bytes = 16L + 12L * 8L + 3L * 8L
+  let limits = @resources.ledger_limits(parent.ledger)
+  let r = limits.retained_bytes - (record_bytes - 1L)
   @resources.reserve_working_preparation_phase(capacity, input, r, e).unwrap()
+  let usage = @resources.ledger_usage(parent.ledger)
+  assert_eq(
+    limits.retained_bytes - usage.held_bytes - usage.reserved_retention_bytes,
+    record_bytes - 1L,
+  )
   let charged = request_preparation_accounting(parent)
   let observed = calls.val
   assert_true(

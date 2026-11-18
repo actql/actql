@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {test} from 'node:test';
 import {interfaceAttributes, javascriptInterface} from './interface-inventory.mjs';
-import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from './installed-interface-correspondence.mjs';
+import {installedInterfaceCorrespondence, assertInstalledDependencyClosure, assertRemoteBrowserDependencyBoundary} from './installed-interface-correspondence.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {typescriptInterface} from './typescript-interface-inventory.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
@@ -111,6 +111,73 @@ test('foreign compiled Source is refused before parsing or self-reported verific
   const {options} = fixture(t);
   options.artifacts = [{module: 'runtime.js', sourceSha: '0'.repeat(40), verification: true}];
   assert.throws(() => installedInterfaceCorrespondence(options), /Foreign installed interface artifact source/u);
+});
+
+async function checkedFixture(t) {
+  const f = fixture(t);
+  f.put(f.options.repository, 'package.json', JSON.stringify({name: '@example/original', exports: './outside/owner.mjs'}));
+  f.put(f.options.repository, 'interface-boundaries.json', JSON.stringify([f.declaration]));
+  f.commit();
+  f.options.checkedSource = await checkInterfaceOwners(f.options.repository);
+  return f;
+}
+
+test('same original checked source retains its Git byte read without rebuilding the source projection', async t => {
+  const {options} = await checkedFixture(t);
+  const trace = join(dirname(options.repository), 'git-trace.json');
+  const previous = process.env.GIT_TRACE2_EVENT;
+  let result;
+  try {
+    process.env.GIT_TRACE2_EVENT = trace;
+    result = installedInterfaceCorrespondence(options);
+  } finally {
+    if (previous === undefined) delete process.env.GIT_TRACE2_EVENT;
+    else process.env.GIT_TRACE2_EVENT = previous;
+  }
+  assert.equal(result.coverage.covered, 1);
+  const commands = readFileSync(trace, 'utf8').trim().split('\n').map(line => JSON.parse(line))
+    .filter(event => event.event === 'start').map(event => event.argv);
+  assert.deepEqual({
+    sourceProjections: commands.filter(args => args.includes('ls-tree')).length,
+    originalByteReads: commands.filter(args => args.includes('show') &&
+      args.includes(`${options.source}:${options.bindings[0].source}`)).length,
+  }, {sourceProjections: 0, originalByteReads: 1});
+});
+
+test('original checked correspondence refuses copied foreign and changed originals', async t => {
+  const {options, put, commit} = await checkedFixture(t);
+  const foreign = await checkedFixture(t);
+  for (const checkedSource of [structuredClone(options.checkedSource), foreign.options.checkedSource]) {
+    assert.throws(() => installedInterfaceCorrespondence({...options, checkedSource}), /Untrusted checked interface source/u);
+  }
+  const changed = 'export function read(original) {return !original;}';
+  put(options.repository, 'outside/owner.mjs', changed);
+  put(options.directory, 'entry.mjs', changed);
+  commit();
+  assert.throws(() => installedInterfaceCorrespondence(options), /Changed checked (?:original )?source interface/u);
+});
+
+test('original checked correspondence still reads staged bytes and current Owner references', async t => {
+  const {options, put} = await checkedFixture(t);
+  const original = readFileSync(join(options.directory, 'entry.mjs'), 'utf8');
+  // Returned report DATA cannot replace the checker's private original model.
+  options.checkedSource.modules[0].sha256 = 'f'.repeat(64);
+  assert.equal(installedInterfaceCorrespondence(options).coverage.covered, 1);
+  put(options.directory, 'entry.mjs', 'export function read(original) {return !original;}');
+  assert.throws(() => installedInterfaceCorrespondence(options), /Changed installed interface bytes/u);
+  put(options.directory, 'entry.mjs', original);
+  put(options.repository, 'owner.md', 'Missing original semantic reference');
+  assert.throws(() => installedInterfaceCorrespondence(options), /Missing interface reference/u);
+});
+
+test('a bound module outside the original checked closure cannot acquire a checked model', async t => {
+  const {options, put, commit} = await checkedFixture(t);
+  const source = 'export const later = 1;';
+  put(options.repository, 'outside/later.mjs', source);
+  put(options.directory, 'later.mjs', source);
+  options.bindings.push({member: 'later.mjs', source: 'outside/later.mjs'});
+  commit();
+  assert.throws(() => installedInterfaceCorrespondence(options), /Missing checked original interface: outside\/later.mjs/u);
 });
 
 
@@ -233,4 +300,43 @@ test('a runtime import of a declaration still reaches the real runtime resolver'
     modules: installedInterfaceInventory(options.directory).modules,
     runtimeBindings: [{module: 'entry.mjs', targets: ['./contract.d.ts']}]}), failure =>
     failure.errors?.some(value => /must be initialized/u.test(value.text)));
+});
+
+function browserGraph(extra = {}) {
+  return {inputs: {
+    'node_modules/@actql/sdk/index.mjs': {imports: []},
+    'node_modules/@actql/client-wire/index.mjs': {imports: []},
+    ...extra,
+  }, outputs: {'browser.mjs': {imports: []}}};
+}
+
+test('remote browser boundary allows additional pure generated SDK modules', () => {
+  assert.doesNotThrow(() => assertRemoteBrowserDependencyBoundary(browserGraph({
+    'node_modules/@actql/sdk/internal/checkpoint-answer-construction.generated.mjs': {imports: []},
+  })));
+});
+
+test('remote browser boundary refuses Local Node Core native and escaped runtime dependencies', () => {
+  for (const path of [
+    'node_modules/@actql/local-node/index.mjs', 'node_modules/@actql/node/index.mjs',
+    'node_modules/@actql/run-host-core/index.mjs', '_build/js/release/build/Core.js',
+    'node_modules/@actql/sdk/internal/Core.js',
+    'node_modules/@actql/sdk/../local-node/index.mjs',
+    'node_modules/@actql/sdk/node_modules/@actql/local-node/index.mjs',
+    'node_modules/@actql/sdk/_build/runtime.js', 'node_modules/@actql/sdk/native/runtime.mjs',
+    'node_modules/@actql/sdk/internal/engine.wasm', 'node_modules/@actql/sdk/internal/addon.node',
+  ]) assert.throws(() => assertRemoteBrowserDependencyBoundary(browserGraph({[path]: {imports: []}})),
+    /Remote browser/u, path);
+});
+
+test('remote browser boundary refuses external imports and empty or missing entry graphs', () => {
+  const external = browserGraph();
+  external.inputs['node_modules/@actql/sdk/index.mjs'].imports.push({path: 'node:fs', external: true});
+  assert.throws(() => assertRemoteBrowserDependencyBoundary(external), /external input import/u);
+  const outputImport = browserGraph();
+  outputImport.outputs['browser.mjs'].imports.push({path: 'runtime.mjs', external: true});
+  assert.throws(() => assertRemoteBrowserDependencyBoundary(outputImport), /remaining imports/u);
+  assert.throws(() => assertRemoteBrowserDependencyBoundary({inputs: {}, outputs: {}}), /nonempty/u);
+  const missingEntry = browserGraph(); delete missingEntry.inputs['node_modules/@actql/sdk/index.mjs'];
+  assert.throws(() => assertRemoteBrowserDependencyBoundary(missingEntry), /entry is missing/u);
 });

@@ -868,6 +868,7 @@ pub fn captured_task_allocation_matches(
 /// Already disposed executions retain their original reservation until their
 /// installed scratch and retention facts arrive; observe those facts too.
 pub fn refresh_captured_retention(run : CapturedDAG) -> Unit {
+  refresh_captured_task_boundary_cleanup(run)
   collect_captured_retention(run)
   for execution in run.executions {
     if execution is Some(execution) && execution.disposed {

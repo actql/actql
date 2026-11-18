@@ -247,3 +247,18 @@ test('owned scanner visits line and URL prefixes once per immutable input instea
       `prefix inspection exceeded the linear fixture bound: ${inspected} for ${text.length} source units`);
   }
 });
+
+test('usage observation reader admits only the reviewed existing reported-format context', () => {
+  const path = 'src/run_publication/model_capture_usage.mbt';
+  const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const found = occurrences(text, path);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].token, 'actql-model-invocation-evidence/' + future);
+  const selected = inventory.entries.filter(entry => entry.path === path);
+  assert.equal(selected.length, 1); assert.equal(selected[0].count, 1);
+  assert.deepEqual(violations(found, inventory), []);
+  assert.equal(violations([...found, ...found], inventory).length, 1);
+  assert.equal(violations(occurrences(text, 'src/run_publication/other_invocation_writer.mbt'), inventory).length, 1);
+  assert.equal(violations(occurrences(text.replace('=> Reported', '=> HistoricalAdmitted'), path), inventory).length, 1);
+});

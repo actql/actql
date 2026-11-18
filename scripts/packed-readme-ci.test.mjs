@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
-import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm, glob} from 'node:fs/promises';
+import {readFile, writeFile, copyFile, symlink, unlink, readlink, mkdir, mkdtemp, readdir, rm, glob, lstat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -62,13 +62,12 @@ test('required packed dependency boundaries keep cold approval, locked physical 
   for (const suffix of ['*.observation.json', '*.pending.json', '*.source-progress.json']) {
     assert(upload.with.path.split('\n').includes('${{ runner.temp }}/client-readme-packed/dependency-boundary/*/' + suffix));
   }
-  assert(!upload.with.path.includes('original.json'), 'Private signing originals are not public diagnostics');
   const source = await readFile(new URL('./test-packed-readme-workflows.mjs', import.meta.url), 'utf8');
   assert.match(source, /await runPackedDependencyBoundaries\(\{prepared,/u);
   assert.match(source, /report\.complete = failures\.length === 0 && report\.account\.completed &&\s*report\.dependencyBoundaries\.complete &&/u);
 });
 
-test('README artifact retains File STORE partial and final observations without private application state', async t => {
+test('README artifact retains bounded observations and usage receipts without signing originals or application state', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-readme-upload-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const upload = job.steps.find(step => step.name === 'Preserve actual functional outcomes and failures');
@@ -90,6 +89,19 @@ test('README artifact retains File STORE partial and final observations without 
       'state/service-private.pem', 'source-data/input.pending.json',
       'destination-data/output.observation.json'].map(path => `${directory}/${path}`));
   }
+  for (const selected of packedDependencyBoundaryCases) {
+    const directory = `dependency-boundary/${selected.case}`;
+    for (const suffix of ['pending', 'observation', 'source-progress'])
+      expected.push(`${directory}/capture.${suffix}.json`);
+    privateFiles.push(...['original.json', 'approval.json', 'state/ledger.sqlite', 'operator-private.fixture']
+      .map(path => `${directory}/${path}`));
+  }
+  for (const mode of ['reported', 'zero', 'absent']) {
+    const directory = `optional-provider/cases/usage-${mode}/consumer`;
+    expected.push(`${directory}/usage-original.json`, `${directory}/usage-receipt.json`);
+    privateFiles.push(...['original.json', 'operator-private.fixture', 'api-key.fixture', 'provider.key',
+      '.state/private.db', '.state/private.db-wal'].map(path => `${directory}/${path}`));
+  }
   // These are path-selection fixtures, not runtime outcomes or credentials.
   // The real fixture writes only its bounded report to these diagnostic names.
   for (const path of [...expected, ...privateFiles]) {
@@ -99,7 +111,7 @@ test('README artifact retains File STORE partial and final observations without 
   const selected = [];
   for await (const path of glob(patterns, {cwd: root})) selected.push(path);
   assert.deepEqual(selected.sort(), expected.sort(),
-    'Keep both sides of FIRST-close, including a failed approval, without uploading signing originals or Store state');
+    'Keep bounded original usage DATA and both sides of FIRST-close without uploading signing originals, keys or Store state');
 });
 
 test('README call bounds come from authored joined rows and declared per-row Tasks rather than prior observations', () => {
@@ -1600,6 +1612,8 @@ test('normal Effect driver selects each fresh two-Model capture and public contr
       const capture = args[1] === 'capture', publication = mode === 'publication-io-failure';
       calls.push([mode, publication ? 'publication-failure' : capture ? 'capture' : 'control']);
       assert.equal((await readFile(join(options.cwd, 'capture-original.mjs'), 'utf8')), workflowSource);
+      assert.equal(await readFile(join(options.cwd, 'mock-project-effect-protocol.fixture.mjs'), 'utf8'),
+        await readFile(join(repository, 'adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs'), 'utf8'));
       if (capture) {
         assert.deepEqual(args.slice(1), ['capture', join(options.cwd, 'handoff.json'), 'deal-review-mock', 'two-models', 'original-run-control']);
         assert.equal(JSON.parse(await readFile(join(options.cwd, 'model-tasks.json'), 'utf8')).tasks['model-task:deal-review-confirm.v1'],
@@ -3144,4 +3158,55 @@ test('File inventory uses independent per-key bytes across shuffled inputs and m
   assert.equal((await checkTargets(expected, destination)).length, 2);
   await writeFile(join(destination, expected[0].path), expected[1].body);
   await assert.rejects(checkTargets(expected, destination));
+});
+
+// Explicit command-port receipts only. These cases qualify fixture selection
+// and failure retention, never a normal Host, physical write or Saved result.
+test('plural Mock collector selects the existing three-phase shared-file fixture without a Model', async t => {
+  const {root, consumer} = await scratch(t), phases = [];
+  const metric = await mockWorkflowMetrics({prepared: {consumer}, root, repository,
+    counts: {coldSamples: 1}, template: 'churn-risk-mock', variant: 'multiple-targets', onMetric() {},
+    async command(executable, args, options) {
+      const phase = args[1];phases.push(phase);
+      assert.deepEqual(args.slice(3), ['churn-risk-mock', 'multiple-targets']);
+      assert.equal(options.timeout, 30_000);
+      const project = options.cwd, program = join(project, 'multiple-targets.program.json');
+      assert.equal(await readFile(join(project, 'mock-multiple-targets.fixture.mjs'), 'utf8'),
+        await readFile(join(repository, 'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs'), 'utf8'));
+      if (phase === 'capture') {
+        const input = JSON.parse(await readFile(program, 'utf8'));
+        assert.equal(input.stages.length, 1);assert.equal(Object.keys(input.stages[0].effects).length, 2);
+        assert.deepEqual(JSON.parse(await readFile(join(project, 'model-tasks.json'), 'utf8')).tasks, {});
+        assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'), 'utf8')).mock.data, './mock/data.json');
+      } else await assert.rejects(readFile(program), {code: 'ENOENT'});
+      const count = {capture: 10, approve: 11, recover: 7}[phase];
+      return {pid: 31000 + phases.length, code: 0, signal: null, wallNs: 100,
+        stdout: [...Array.from({length: count}, (_, index) => explicitStep(phase, `explicit-plural-${index}`)),
+          {phase, status: 'passed', firstFailedStep: null, firstClose: {attempted: true, returned: true},
+            workObservation: {complete: true, sourceAcquisitionStarts: phase === 'capture' ? 2 : 0,
+              modelCallStarts: 0, effectReplacementReturns: phase === 'approve' ? 2 : 0}}]
+          .map(value => JSON.stringify(value)).join('\n')};
+    }});
+  assert.deepEqual(phases, ['capture', 'approve', 'recover']);
+  assert.equal(metric.variant, 'multiple-targets');assert.equal(metric.samples.length, 1);
+  assert.equal(metric.samples[0].verified, true);
+  await assert.rejects(lstat(join(metric.samples[0].stateId, 'node_modules')), {code: 'ENOENT'});
+});
+
+test('plural Mock collector keeps the first original failed child and never starts approval or recovery', async t => {
+  const {root, consumer} = await scratch(t), calls = [], observations = [];
+  const original = Object.assign(new Error('original plural child timeout'), {code: 'ETIMEDOUT'});
+  await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, repository,
+    counts: {coldSamples: 1}, template: 'churn-risk-mock', variant: 'multiple-targets',
+    onMetric(metric) {observations.push(metric);}, async command(executable, args, options) {
+      calls.push(args[1]);assert.equal(options.timeout, 30_000);
+      assert.deepEqual(args.slice(3), ['churn-risk-mock', 'multiple-targets']);
+      throw original;
+    }}), cause => cause === original);
+  assert.deepEqual(calls, ['capture']);assert.equal(observations.length, 1);
+  const sample = observations[0].samples[0];
+  assert.equal(sample.completed, false);assert.equal(sample.verified, false);
+  assert.equal(sample.phases.length, 1);assert.equal(sample.phases[0].phase, 'capture');
+  assert.equal(sample.phases[0].error.code, 'ETIMEDOUT');
+  await assert.rejects(lstat(join(sample.stateId, 'node_modules')), {code: 'ENOENT'});
 });

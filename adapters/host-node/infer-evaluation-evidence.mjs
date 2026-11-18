@@ -2,8 +2,10 @@
 // adapter never dispatches, restores, authorizes a call or changes Run state.
 import {runtimeField, runtimeIsOkRequired} from '../host-common/compiler-binding.generated.mjs';
 import {createHash} from 'node:crypto';
+import {types} from 'node:util';
 import {canonicalJson as sdkCanonicalJson} from '../../packages/sdk/host-port.mjs';
 import {inferCopyFundingOriginal, inferEvidenceCopyFunded} from './infer-operation.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 // Evidence contains opaque data keys, not configuration member names.
 const canonicalJson = value => sdkCanonicalJson(value, {dataKeys: true});
@@ -42,7 +44,7 @@ export function configureInferEvidence(configuration) {
   if (configuration === null || typeof configuration !== 'object' ||
     !['authorize,destination,maxBytes,sink,target', 'authorize,destination,kind,maxBytes,sink,target']
       .includes(Object.keys(configuration).sort().join(',')) ||
-    configuration.kind !== undefined && configuration.kind !== 'typed-input' ||
+    configuration.kind !== undefined && !['typed-input', 'usage'].includes(configuration.kind) ||
     !(typeof configuration.target === 'string' || Array.isArray(configuration.target)) ||
     typeof configuration.destination !== 'string' ||
     !configuration.destination || configuration.destination.length > 1024 ||
@@ -72,7 +74,7 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
   const configured = configurations.get(configuration);
   const target = selected.occurrence === undefined ? undefined
     : moon.clientProgramInferOccurrenceTargetName(selected.occurrence);
-  if (configured === undefined || configured.kind === 'typed-input' ||
+  if (configured === undefined || ['typed-input', 'usage'].includes(configured.kind) ||
       !configured.targets.includes(target) || configured.pending ||
       typeof retainCopy !== 'function') return consume(undefined);
   let copy, copying = true, inputs;
@@ -123,10 +125,42 @@ export async function withPreparedInferEvidence({configuration, moon, control, p
 
 export async function projectInferEvidence({configuration, moon, control, preparedProgram,
   plan, selected, operation, captureOwner, continuation, authorityScopeCid, retainCopy, partial = false,
-  copyFunding, current, programDefinitionCid}) {
+  copyFunding, current, programDefinitionCid, usageCurrent}) {
   if (configuration === undefined) return;
   const configured = configurations.get(configuration);
   if (configured === undefined) throw new TypeError('ForeignInferEvidenceConfiguration');
+  if (configured.kind === 'usage') {
+    // Claim the existing flight before trusted current/admission callbacks can
+    // reenter. Fund its fixed window before constructing the async copy input,
+    // subject, items, authorization binding or retained cleanup child.
+    if (configured.pending) return Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});
+    configured.pending = true;
+    try {
+      const actualCurrent = usageCurrent ?? current;
+      if (typeof actualCurrent !== 'function' || partial ||
+          typeof captureOwner?.usageInventory !== 'function' ||
+          typeof captureOwner?.beginUsage !== 'function' || typeof retainCopy !== 'function') {
+        return Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});
+      }
+      actualCurrent();
+      const target = selected.occurrence === undefined
+        ? moon.clientProgramInferTargetName(preparedProgram, selected.step)
+        : moon.clientProgramInferOccurrenceTargetName(selected.occurrence);
+      if (!configured.targets.includes(target)) return;
+      const policy = control.compiledInferEvaluationPolicy(plan.compiled);
+      actualCurrent();
+      if (policy === undefined) return Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});
+      const inventory = captureOwner.usageInventory(actualCurrent);
+      actualCurrent();
+      if (inventory === undefined || !Number.isSafeInteger(inventory.count) || inventory.count < 1 ||
+          !Array.isArray(inventory.calls) || inventory.calls.length !== inventory.count) {
+        return Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});
+      }
+      return await projectInferUsage({configured, moon, plan, captureOwner, continuation, authorityScopeCid,
+        retainCopy, current: actualCurrent, target, policy, inventory});
+    } catch {return Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});}
+    finally {configured.pending = false;}
+  }
   const typedInputOnly = configured.kind === 'typed-input';
   const subject = Object.freeze({runDefinitionCid: plan.runDefinition.identity, authorityScopeCid});
   let manifest, copy, copying = true, target;
@@ -349,4 +383,146 @@ export async function projectInferEvidence({configuration, moon, control, prepar
   if (typedInputOnly) manifest = Object.freeze({...manifest, kind: 'typed-input'});
   try {await configured.sink.record({subject, target, manifest});}
   catch { /* The sink remains responsible for reporting its own unavailable receipt. */ }
+}
+
+// Select one own DATA field without enumerating or retaining callback-owned
+// payloads. The emitted completion is closed; extra input fields are ignored.
+function usagePhysicalCompletion(value) {
+  if (value === null || typeof value !== 'object' || types.isProxy(value) || Array.isArray(value)) {
+    return 'incomplete';
+  }
+  const status = Object.getOwnPropertyDescriptor(value, 'status');
+  return status?.enumerable && Object.hasOwn(status, 'value') && status.value === 'complete'
+    ? 'captured' : 'incomplete';
+}
+
+async function projectInferUsage({configured, moon, plan, captureOwner, continuation, authorityScopeCid,
+  retainCopy, current, target, policy, inventory}) {
+  let usage, action, retirement, copying = true, manifest, subject, binding;
+  let currentUnavailable = false, finished = false;
+  const observe = (original, outcome) => checked(moon.clientProgramObserveOriginalInferUsageAction(usage, original, outcome));
+  const check = () => {
+    if (currentUnavailable) throw new Error('RequiredEvidenceUnavailable');
+    try {
+      if (typeof current !== 'function') throw new Error('RequiredEvidenceUnavailable');
+      current();
+    } catch (cause) {
+      currentUnavailable = true;
+      if (usage !== undefined) moon.clientProgramStopOriginalInferUsagePublication(usage);
+      throw cause;
+    }
+  };
+  const snapshot = () => {
+    const completion = moon.clientProgramOriginalInferUsageCompletion(usage);
+    const items = [];
+    const count = moon.clientProgramOriginalInferUsageItemCount(usage);
+    for (let index = 0; index < count; index++) {
+      const item = moon.clientProgramOriginalInferUsageItem(usage, index);
+      const slot = runtimeField(item, 0), outcome = runtimeField(item, 1);
+      const call = inventory.calls[slot];
+      const attemptCid = moon.clientProgramOriginalInferUsageItemAttempt(usage, index);
+      items.push(Object.freeze({modelCallSlotCid: call.slotCid,
+        ...(attemptCid === undefined ? {} : {attemptCid}),
+        ...(outcome === 'complete' ? {status: 'complete'} : missing(outcome))}));
+    }
+    return Object.freeze({kind: 'usage',
+      ...(completion === 'complete' ? {status: 'complete'} : missing(completion)),
+      subject, target, items: Object.freeze(items)});
+  };
+  // This exact retained child reports only its own settled local work. A
+  // parent cleanup during an await returns pending, never an inferred ACK.
+  const cleanup = async () => {
+    if (copying || usage === undefined) return false;
+    try {
+      if (retirement === undefined) {
+        moon.clientProgramStopOriginalInferUsagePublication(usage);
+        retirement = checked(moon.clientProgramNextOriginalInferUsageAction(usage));
+      }
+      if (retirement === undefined) {finished = true; return true;}
+      if (moon.clientProgramOriginalInferUsageActionKind(retirement) !== 'retire') return false;
+      observe(retirement, 'cleaned'); retirement = undefined;
+      finished = true;
+      return true;
+    } catch {return false;}
+  };
+  try {
+    check();
+    usage = captureOwner.beginUsage(configured.maxBytes, check);
+    subject = Object.freeze({runDefinitionCid: plan.runDefinition.identity, authorityScopeCid});
+    const child = {cleanupPending: () => copying || !finished,
+      cleanup, close: cleanup};
+    for (;;) {
+      action = checked(moon.clientProgramNextOriginalInferUsageAction(usage));
+      if (action === undefined) return manifest;
+      const kind = moon.clientProgramOriginalInferUsageActionKind(action);
+      if (kind === 'retire') {
+        if (manifest === undefined) manifest = snapshot();
+        else {
+          const completion = moon.clientProgramOriginalInferUsageCompletion(usage);
+          if ((manifest.reason ?? manifest.status) !== completion) {
+            // Common completion can only move from complete to incomplete.
+            // Keep the recorded items/subject, without rebuilding another
+            // inventory or touching an original after current loss. This
+            // outer carrier and getter alias were prefunded with the child.
+            manifest = Object.freeze({kind: 'usage', status: 'incomplete',
+              reason: completion, subject, target, items: manifest.items});
+          }
+        }
+        retirement = action; action = undefined;
+        copying = false;
+        if (!await cleanup()) return Object.freeze({...manifest, cleanupPending: true});
+        return manifest;
+      }
+      try {
+        check();
+        if (kind === 'retain') {
+          try {retainCopy(child);} catch {
+            observe(action, 'refused'); action = undefined; continue;
+          }
+          observe(action, 'retained');
+        } else if (kind === 'authorize') {
+          const slot = moon.clientProgramOriginalInferUsageActionSlot(action);
+          const entry = continuation?.entry(slot);
+          check();
+          if (typeof entry?.slotCid !== 'string' || typeof entry?.attemptCid !== 'string' ||
+              !moon.clientProgramOriginalInferUsageBindingMatches(usage, action, entry.slotCid, entry.attemptCid)) {
+            observe(action, 'unavailable'); action = undefined; continue;
+          }
+          binding = Object.freeze({subject, attemptCid: entry.attemptCid,
+            original: Object.freeze({captureBundleCid: inventory.cid, modelCallSlotCid: entry.slotCid}),
+            policy, target, destination: configured.destination, purpose: 'capture', kind: 'usage'});
+          const authorized = await configured.authorize(binding);
+          observe(action, authorized === true ? 'authorized' : 'denied');
+        } else if (kind === 'capture') {
+          const wire = moon.clientProgramOriginalInferUsageActionWire(action);
+          const captured = await configured.sink.capture({...binding, wires: Object.freeze({usage: wire})});
+          observe(action, usagePhysicalCompletion(captured));
+        } else if (kind === 'record') {
+          manifest = snapshot();
+          check();
+          await configured.sink.record({subject, target, manifest});
+          observe(action, 'recorded');
+        } else {
+          throw Error('RequiredEvidenceUnavailable');
+        }
+        action = undefined;
+        check();
+      } catch {
+        if (action !== undefined) {
+          observe(action, kind === 'retain' ? 'refused' : 'failed');
+          action = undefined;
+        }
+      }
+    }
+  } catch { /* Optional disclosure failure cannot replace or resend the Model. */ }
+  finally {
+    // Local await settlement is observed separately from Common retirement.
+    // A refused cleanup remains attached to the actual retained child.
+    copying = false;
+    if (usage !== undefined) {
+      if (manifest === undefined) {try {manifest = snapshot();} catch { /* no forged manifest */ }}
+      await cleanup();
+    }
+  }
+  return manifest ?? Object.freeze({kind: 'usage', ...missing('RequiredEvidenceUnavailable')});
 }

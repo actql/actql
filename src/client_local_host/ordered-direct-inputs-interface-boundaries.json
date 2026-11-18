@@ -273,7 +273,7 @@
         },
         {
           "name": "configure_installed_source_free_preparation",
-          "declaration": "configure_installed_source_free_preparation ( prepared : @ publication_host . PreparedClientProgram , original : ClientInstalledManagedSourceFreePreparation , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedSourceFreePreparation , ClientInstalledManagedRunIssue , ]"
+          "declaration": "configure_installed_source_free_preparation ( prepared : @ publication_host . PreparedClientProgram , original : ClientInstalledManagedSourceFreePreparation , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , work_policy ? : @ local_driver . LocalWorkPolicy"
         },
         {
           "name": "installed_managed_capture_run_requirements",
@@ -400,7 +400,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "f0b2e820dee09f1beb2a1cf61be7a6490126583358c9eedd98d648e52c3c80a4"
+      "sha256": "a65cbbe304cdace87583fa1f6affbcc387c8afd38e92e2e6a247011a93363c0c"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
@@ -1734,7 +1734,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "3e7910c29dbdd332a1852fab76f65bebba8b9c9c4bd54c1de828cc56ddd3f756",
+      "sha256": "1fb978c2bf3512052077a666da9bfd11edc6c687adbaa53871a7dc054f44398e",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1820,6 +1820,10 @@
           "declaration": "request_program_plan_issue_is_sequence_limit ( issue : ClientRequestProgramPlanIssue , ) - > Bool"
         },
         {
+          "name": "request_program_plan_work_refusal_code",
+          "declaration": "request_program_plan_work_refusal_code ( issue : ClientRequestProgramPlanIssue , ) - > String ?"
+        },
+        {
           "name": "request_query_time_invocation_extent",
           "declaration": "request_query_time_invocation_extent ( original : @ publication_host . ClientPureCompilationConstruction , ) - > ( Int64 , Int64 ) ?"
         }
@@ -1848,7 +1852,8 @@
             "[I]retain_request_program_module_inputs",
             "request_query_time_invocation_extent",
             "[I]request_program_compilation_limits",
-            "request_program_plan_issue_is_sequence_limit"
+            "request_program_plan_issue_is_sequence_limit",
+            "request_program_plan_work_refusal_code"
           ],
           "exports": [],
           "attributes": {
@@ -1958,6 +1963,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "The logical-work extension has its own explicit delta"
               }
             ],
             "extension": [
@@ -2002,6 +2011,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
+                "anchor": "logical work failure keeps actual policy"
               }
             ]
           }

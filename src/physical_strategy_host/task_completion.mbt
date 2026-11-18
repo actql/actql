@@ -70,6 +70,7 @@ fn commit_task_output(
   run.done[task] = true
   clear_captured_inputs(run, task)
   run.generation += 1
+  record_captured_task_boundary_commit(run, task)
   Ok(())
 }
 

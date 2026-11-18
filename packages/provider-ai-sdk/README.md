@@ -1,7 +1,158 @@
 # Optional AI SDK Host installer (development)
 
-This unfinished development package exports the existing Host registration
-assemblers `createInstalledOpenAIChatRegistration` and the explicit selected
+This private development package provides `createOpenAIChatProvider` for the
+configured Node Host and the lower-level original-registration assemblers below.
+Registry publication and live OpenAI acceptance remain separate work.
+
+For development-package acceptance, install the optional provider tar alongside
+the five matching normal Client/Host tars. The provider is not bundled into
+`@actql/node`; the five normal tars alone do not supply this import. Use the
+original same-source producer artifacts and normal npm lifecycle installation:
+
+```sh
+npm install ./actql-client-wire-0.0.0-development.tgz \
+  ./actql-sdk-0.0.0-development.tgz \
+  ./actql-run-host-core-0.0.0-development.tgz \
+  ./actql-local-node-0.0.0-development.tgz \
+  ./actql-node-0.0.0-development.tgz \
+  ./actql-provider-ai-sdk-0.0.0-development.tgz
+```
+
+This is a local tar installation, not a registry release. Do not substitute a
+checkout import, private runtime path, or a differently built Host artifact.
+
+## Configure a Host from project Tasks
+
+`createOpenAIChatProvider` returns one asynchronous `registerModelProviders`
+callback for one Host. The Host loads the project's actual model Tasks and
+provider defaults through Common, reads the key file through its existing
+bounded configuration reader, and constructs each Task's profile and execution
+originals under the original initial Resource. Applications supply no runtime,
+Task CID, Program CID, physical fetch, response-profile JSON or Resource token.
+
+```js
+import {connect} from '@actql/node';
+import {createOpenAIChatProvider} from '@actql/provider-ai-sdk';
+
+const registerModelProviders = createOpenAIChatProvider({
+  providerId: 'models/openai', // Matches the project's model_tasks provider.
+  modelId: configuredModelId,
+  apiKeyFile: './secrets/openai-api-key',
+  generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
+  budget: {
+    maxCalls: 2n, maxRows: 2, maxTokens: 1000n,
+    maxCostUnits: 100000n, maxDurationMs: 1000n,
+  },
+  observeEgress: () => currentInstalledEgressFacts(),
+});
+const client = await connect({mode: 'local', installation: {
+  directory: './.actql', registerModelProviders,
+  authorization: configuredAuthorization,
+}});
+try {
+  // Submit the original Program through the ordinary Client API.
+} finally {
+  await client.close();
+}
+```
+
+The account, signer and current egress facts come from trusted Host
+configuration. The callback does not authorize its own calls. Egress facts have
+`classification`, `region`, `providerRetention` and `trainingUse` fields; Common
+checks the actual input policy against them at the original boundary. This
+finite text profile accepts public input and forbids training. It selects the
+existing serial, non-streaming SDK/Undici transport with no implicit retry,
+redirect, tools, media or workflow restoration. Unknown usage remains Unknown.
+Explicit positive cost/duration ceilings do not establish observed usage or
+invent a provider price.
+
+Different Tasks on the same Provider retain their own exact prompt, output
+schema, response profile and read recipe. Selection uses the actual Core
+execution Task and checks the same installed base and view after callbacks.
+Missing or foreign Task views refuse. Logical occurrences remain independently
+charged; metadata sharing does not transfer authority or capacity. Each Run
+still requires the original Request/Plan/Scope admission. A missing or too-small
+Resource refuses rather than increasing the top-level budget.
+
+Create a fresh callback for a new Host, including a later process reading the
+same Saved Result. The existing Saved reader consumes its original persisted
+result before any new execution; restoring configuration must not resend a
+provider request. Keep the same configured endpoint, model, Task files and
+software originals. Credential bytes are never Program input and must not be
+printed in logs or committed.
+
+## Explicit physical timeouts (development)
+
+The normal factory accepts optional `transportTimeouts` with positive finite
+`connectMs`, `headersMs`, and `bodyMs`, plus optional `callMs`, in milliseconds (integers up to
+2,147,483,647). It freezes the values
+under the initial construction Resource, includes them in the same original
+configuration/contract bodies through Common's canonical constructor, and
+passes that selection to the fixed physical transport. Each value must fit
+the declared `budget.maxDurationMs`; that validation does not turn a quantity
+reservation into an observed duration or a timer.
+
+The existing Undici connector applies `connectMs` through TCP/TLS setup;
+`headersMs` waits for complete HTTP headers and `bodyMs` bounds the idle time
+between body data. These three phase settings alone are **not** an absolute
+whole-Call or total-body deadline. Optional `callMs` starts immediately after
+the actual original physical request begins and stops the same SDK controller
+if bounded response reading has not settled, including continuous body data.
+It does not time Core decoding, Store publication, Result, or Saved restoration.
+Omission preserves the existing transport selection and adds no deadline wrapper
+or Model demand. Selecting `callMs` adds Common's logical control quote to the
+same per-Task physical profile/Read/Model demand before the original Plan/Scope
+admission, without increasing the top-level budget. This is not a full engine,
+shared timer-heap, async-hooks or native allocation adequacy certificate.
+Timer granularity and event-loop scheduling can delay observation. The original public
+low-level registration contract does not accept an unbound timeout override;
+the new normal configuration continuation carries the same admitted inputs.
+
+A physical timeout is distinct from a caller's wait timeout and Run cancellation.
+It proves neither provider nonacceptance nor remote stop. Entered Unknown and
+partial raw originals keep their original attempt, Store and cleanup duties;
+there is no automatic retry, fresh Run or fabricated EOF/Result. Connection,
+IO and SDK/raw retirement remain separate observations. This does not establish
+normal-installed or live acceptance, or close the separate whole-Call deadline
+boundary.
+
+## Optional usage-only disclosure (development)
+
+`installation.inferEvidence.kind: 'usage'` is a **new explicit opt-in** to a
+usage-aware Sink contract. The parent implementation accepted omitted kind or
+`'typed-input'`; adding `'usage'` does not change either existing path. This is
+local callback DATA for the matching development cohort, not a new artifact
+format version, Model evidence protocol, authority or self-CID.
+
+After the original capture is Store-confirmed and its existing publication
+Resource admits the copy, `sink.capture` receives the original binding and
+`wires: {usage: string}`. That canonical string has exactly these seven keys:
+`input_tokens`, `invocation_evidence_cid`, `model_call_slot_cid`,
+`model_task_contract_cid`, `observation_origin`, `output_tokens`, and
+`raw_response_artifact_cid`. Token and raw-artifact absence is `null`, distinct
+from known zero; origin is `reported` or `historical_admitted`. No prompt,
+context, rendered input, structured answer or provider metadata is included.
+
+Use a Sink that explicitly understands this new shape. The existing five-part
+full-evidence Sink is incompatible and must report incomplete/unsupported;
+the Host never fabricates its missing parts or turns that failure into success.
+The usage string is **not** a full `model-invocation-evidence/0.1` or `/0.2`
+record. Omitted kind retains the full-evidence contract; `'typed-input'` retains
+its own input-only contract.
+
+A usage-aware `capture` callback returns an own enumerable DATA
+`status: 'complete'` only after its selected copy work settles. The Host selects
+that field without enumerating or retaining other callback payloads. Missing,
+accessor, proxy or unsuccessful status remains incomplete. `sink.record`
+receives the corresponding usage availability manifest. This optional outcome
+cannot replace the Model's success/Unknown state, authorize a call or cause a
+retry. Current/identity checks, destination authorization, byte ceilings and
+copy-child cleanup still apply across both callback awaits. These Source and
+component contracts do not establish installed-package or live acceptance.
+
+## Original-registration integration
+
+The lower-level Host registration assemblers are `createInstalledOpenAIChatRegistration` and the explicit selected
 `createInstalledUndiciOpenAIChatRegistration`. Its internal send, receipt, raw-response and native Decision
 preparation functions are not package exports. The package remains private;
 the entry is not a published provider, installed profile, capacity or permission
@@ -115,7 +266,8 @@ actual checked Graph before the original Plan/Scope constructor. Supplying
 prebound identities in recipe DATA refuses. Applications must not manufacture
 those identities or reuse a previous Program's bound installation. This
 connection supplies neither a normal physical profile nor secret resolution;
-normal configuration, complete funding and live acceptance remain unfinished.
+this low-level overload does not perform the configured Host setup above.
+Complete physical funding and live acceptance remain separate obligations.
 
 This entry selects the fixed private Undici transport after the same existing
 Host snapshots/profile/original-selection checks. It reuses the existing

@@ -1,6 +1,6 @@
 // Optional DATA on the SAME failed advance; never a new error, execution or
 // cleanup owner. Only the original Core getter can select the closed reason.
-import {runtimeIsBoxedSome, runtimeField, runtimeOptionalField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeIsError, runtimeIsBoxedSome, runtimeField, runtimeOptionalField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 
 function originalBudget(moon, result, diagnostic) {
   try {
@@ -31,6 +31,14 @@ export function checkedLocalManagedAdvance(moon, result, checked, task) {
   try {return checked(result);}
   catch (error) {
     try {
+      // Only the original compiler's closed Err family reaches these getters.
+      // A foreign checker exception cannot turn an Ok or malformed value into
+      // a typed failure, regardless of the exception's copied code property.
+      // Every LocalDispatchIssue carries an original payload. A payload-free
+      // foreign enum must not be reinterpreted as this result family. This is
+      // only a representation guard, never a nominal issuer or admission.
+      if (!runtimeIsError(result) || runtimeField(result, 0) === null ||
+          typeof runtimeField(result, 0) !== 'object') throw error;
       const resource = moon.strategyModule_local_ManagedAdvanceResourceDimension;
       if (typeof resource === 'function' && Number.isSafeInteger(task) && task >= 0 && task <= 2147483647 &&
           Object.getOwnPropertyDescriptor(error, 'code')?.value === 'MoonBitHostFailure') {
@@ -79,17 +87,33 @@ export function checkedLocalManagedAdvance(moon, result, checked, task) {
       }
       if (!Object.hasOwn(error, 'primaryDiagnostic') && Number.isSafeInteger(task) && task >= 0 && task <= 2147483647 &&
           Object.getOwnPropertyDescriptor(error, 'code')?.value === 'MoonBitHostFailure') {
+        const projectLogical = moon.strategyModule_local_ManagedAdvanceLogicalWorkPolicy;
+        if (typeof projectLogical === 'function') {
+          const logical = runtimeUnboxedReferenceOption(Reflect.apply(projectLogical, moon, [result]));
+          if (logical != null && typeof logical === 'object' && !Array.isArray(logical)) {
+            const step = runtimeField(logical, 0), limit = runtimeField(logical, 1), setting = runtimeField(logical, 2);
+            if (Number.isSafeInteger(step) && step >= 0 && step <= 2147483647 &&
+                typeof limit === 'bigint' && limit >= 0n && limit <= 9223372036854775807n &&
+                (setting === 'installation.sourceFreeMaxWork' || setting === 'unavailable')) {
+              Object.defineProperty(error, 'primaryDiagnostic', {value: Object.freeze({
+                code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'logical_work',
+                task, step, workLimit: limit.toString(), setting,
+              })});
+            }
+          }
+        }
         const projectCause = moon.strategyModule_local_ManagedAdvanceCause;
         const projectStep = moon.strategyModule_local_ManagedAdvanceRowStep;
-        if (typeof projectCause === 'function' && typeof projectStep === 'function') {
+        if (!Object.hasOwn(error, 'primaryDiagnostic') && typeof projectCause === 'function' && typeof projectStep === 'function') {
           const cause = Reflect.apply(projectCause, moon, [result]);
           const step = Reflect.apply(projectStep, moon, [result]);
           if (typeof cause === 'string' && cause.length <= 96 &&
               /^[a-z_]+(?:\.[a-z_]+)*$/u.test(cause) &&
-              Number.isSafeInteger(step) && step >= 0 && step <= 2147483647) {
-            Object.defineProperty(error, 'primaryDiagnostic', {value: Object.freeze({
-              code: 'MoonBitHostFailure', phase: 'local_managed_advance',
-              kind: 'row_failure', task, step, cause,
+              Number.isSafeInteger(step) && step >= -1 && step <= 2147483647) {
+            Object.defineProperty(error, 'primaryDiagnostic', {value: Object.freeze(step === -1 ? {
+              code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'local_issue', task, cause,
+            } : {
+              code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'row_failure', task, step, cause,
             })});
           }
         }

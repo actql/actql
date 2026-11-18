@@ -11,13 +11,46 @@ import {snapshotClientRequest, snapshotCheckRequest, prepareClientHostRequest,
   resourceLimits, validResourceInspection, validResourceListing,
   validResourcePeek,
   validRunState, validSubmitPreparationError,
-  validSubmitReply} from './index.mjs';
+  validSubmitReply, validWireRunExplanationViewShape} from './index.mjs';
+import {runExplanation, unprojectedRunExplanation, explanationLeakageVectors}
+  from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 
 const connection = Object.freeze({mode: 'remote', owner: 'remote',
   consentRefs: [], runners: []});
 const ref = Object.freeze({namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
+
+test('registered Explanation read captures the original ref and rejects malformed bounds', () => {
+  const request = {connection, ref, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
+  assert.equal(clientHostOperations.includes('run-explanation'), true);
+  assert.equal(validClientBody('run-explanation', request), true);
+  const prepared = prepareClientHostRequest('run-explanation', request);
+  assert.ok(prepared);
+  assert.deepEqual(prepared.body.ref, ref);
+  assert.notStrictEqual(prepared.body.ref, ref);
+  assert.equal(Object.isFrozen(prepared.body.ref), true);
+  for (const key of ['maxWireBytes', 'maxNodes', 'maxDepth']) {
+    assert.equal(validClientBody('run-explanation', {...request, [key]: 0}), false);
+    assert.equal(prepareClientHostRequest('run-explanation', {...request, [key]: 1.5}), undefined);
+  }
+  assert.equal(validClientBody('run-explanation', {...request, ref: {runDefinitionCid: ref.runDefinitionCid}}), false);
+  assert.equal(validClientBody('run-explanation', {...request, capabilities: {explain: true}}), false);
+  // Existing admitted Plan requests retain their independent surface.
+  assert.ok(prepareClientHostRequest('run-plan', request));
+});
+
+test('standalone Explanation DTO stays closed without advertising an operation or disclosure authority', () => {
+  assert.equal(validWireRunExplanationViewShape(runExplanation), true);
+  assert.equal(validWireRunExplanationViewShape(unprojectedRunExplanation), true);
+  assert.equal(validWireRunExplanationViewShape({...runExplanation, capabilities: {explain: true}}), false);
+  assert.equal(validWireRunExplanationViewShape({...unprojectedRunExplanation,
+    explanation: {state: 'not_projected', reason: 'budget_refused'}}), false);
+  for (const {value} of explanationLeakageVectors) {
+    assert.equal(validWireRunExplanationViewShape({...runExplanation,
+      explanation: {state: 'projected', facts: value}}), false);
+  }
+});
 
 test('Host request preparation observes the original check serializer once and owns its target', () => {
   const selected = {...connection, workspaceId:'workspace-A',

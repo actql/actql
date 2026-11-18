@@ -1481,12 +1481,29 @@ test('complete Model group forwards one original installed quantity scope before
 // Model consumers must use the same manager selected by requestPreparation /
 // fundedPreparation, never another manager merely because it also exists.
 test('Model consumers retain the original funded Request manager when both installations exist', () => {
-  const names = ['prepareManagedModelMaterials', 'prepareManagedModelBinding',
-    'prepareManagedModelGraph', 'prepareManagedModelCompilation'];
+  // These callbacks are private to openPreparedInstalledHost. Check their
+  // original-manager/Request forwarding contract without evaluating sliced
+  // product functions or adding a public port solely for this fixture.
+  // Runtime execution/currentness has separate imported/normal consumer cases.
+  const contracts = new Map([
+    ['prepareManagedModelMaterials', ['prepareModelMaterials', ['prepared',
+      'originalSourceManagedHostRequest(originals, prepared)', 'count', 'wireAt', 'containers']]],
+    ['prepareManagedModelBinding', ['prepareModelBinding', ['prepared',
+      'originalSourceManagedHostRequest(originals, prepared)', 'providerId', 'installation', 'contract', 'configuration']]],
+    ['prepareManagedModelGraph', ['prepareModelGraph', ['prepared',
+      'originalSourceManagedHostRequest(originals, prepared)', 'occurrence', 'execution', 'serializationGraph',
+      `serializationGraph === undefined ? undefined :
+        (parent, input, originalOccurrence, selected, originalExecution, contracts) =>
+          control.prepareClientRequestSerializedInferGraph(parent, input, originalOccurrence,
+            selected, originalExecution, contracts)`,
+      'record.managedSourceProfile?.fileReadDeclarations', 'admittedProvider']]],
+    ['prepareManagedModelCompilation', ['prepareModelCompilation', ['prepared',
+      'originalSourceManagedHostRequest(originals, prepared)', 'graph']]],
+  ]);
   const methods = new Map();
   const visit = node => {
     if (!node || typeof node !== 'object') return;
-    if (node.type === 'Property' && node.method && names.includes(node.key.name)) {
+    if (node.type === 'Property' && node.method && contracts.has(node.key.name)) {
       assert(!methods.has(node.key.name)); methods.set(node.key.name, node);
     }
     for (const value of Object.values(node)) {
@@ -1495,44 +1512,28 @@ test('Model consumers retain the original funded Request manager when both insta
     }
   };
   visit(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}));
-  assert.equal(methods.size, names.length);
-  const moon = {}, prepared = {}, request = {}, originals = {};
-  const fileReadDeclarations = Object.freeze([]);
-  const record = {managedSourceProfile: {fileReadDeclarations}};
-  const selected = {}, currentFailure = new Error('original manager is no longer current');
-  const implementations = names.map(name => hostSource.slice(methods.get(name).start, methods.get(name).end));
-  for (const sourcePresent of [true, false]) {
-    const calls = [];
-    const source = {}, compute = {};
-    const original = sourcePresent ? source : compute;
-    for (const method of ['prepareModelMaterials', 'prepareModelBinding',
-      'prepareModelGraph', 'prepareModelCompilation']) {
-      original[method] = (actual, parent, ...args) => {
-        assert.strictEqual(actual, prepared); assert.strictEqual(parent, request);
-        if (method === 'prepareModelGraph') assert.strictEqual(args.at(-1), fileReadDeclarations);
-        calls.push(method); return selected;
-      };
-      if (sourcePresent) compute[method] = () => assert.fail('Foreign manager cannot borrow this Request');
-    }
-    let refuseCurrent = false;
-    const current = value => {
-      assert.strictEqual(value, original);
-      if (refuseCurrent) throw currentFailure;
-    };
-    const host = Function('moon', 'sourceManaged', 'computeManaged', 'originals',
-      'clientOperationError', 'assertSourceManagedInstallationCurrent',
-      'assertManagedComputeInstallationCurrent', 'originalSourceManagedHostRequest', 'runtimeCore', 'record',
-      'return ({' + implementations.join(',') + '});')(
-      moon, sourcePresent ? source : undefined, compute, originals,
-      code => Object.assign(new Error(code), {code}), current, current,
-      (actual, value) => {assert.strictEqual(actual, originals); assert.strictEqual(value, prepared); return request;},
-      () => ({publicationControl: {}}), record);
-    for (const name of names) assert.strictEqual(host[name](moon, prepared), selected);
-    assert.equal(calls.length, names.length);
-    refuseCurrent = true;
-    for (const name of names) assert.throws(() => host[name](moon, prepared), error => error === currentFailure);
-    for (const name of names) assert.throws(() => host[name]({}, prepared), {code: 'NodeManagedRunCompilationUnavailable'});
-    assert.equal(calls.length, names.length, 'No foreign fallback or construction after the original current failure');
+  assert.equal(methods.size, contracts.size);
+  const semantic = node => JSON.parse(JSON.stringify(node, (key, value) =>
+    ['start', 'end', 'raw'].includes(key) ? undefined : value));
+  const expression = text => semantic(parse('(' + text + ')',
+    {ecmaVersion: 'latest', sourceType: 'module'}).body[0].expression);
+  for (const [name, [method, inputs]] of contracts) {
+    const statements = methods.get(name).value.body.body;
+    const manager = statements[0].declarations[0];
+    assert.equal(manager.id.name, 'manager');
+    assert.deepEqual(semantic(manager.init), expression('sourceManaged ?? computeManaged'),
+      'Existing foreign Compute installation cannot replace the original Source manager');
+    const guard = statements[1];
+    assert.deepEqual(semantic(guard.test), expression(`runtime !== moon || manager === undefined || typeof manager.${method} !== 'function'`));
+    assert.deepEqual(semantic(guard.consequent.body[0].argument),
+      expression("clientOperationError('NodeManagedRunCompilationUnavailable')"));
+    assert.deepEqual(semantic(statements[2].expression), expression(`
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals)`));
+    const call = statements.at(-1).argument;
+    assert.deepEqual(semantic(call.callee), expression('manager.' + method));
+    assert.deepEqual(call.arguments.map(semantic), inputs.map(expression),
+      'Forward the same original Request, complete inputs and actual provider options');
   }
 });
 

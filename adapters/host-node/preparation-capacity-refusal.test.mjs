@@ -235,3 +235,54 @@ for (const installedContract of [false, true]) test(installedContract
     await fixture.close();
   }
 });
+
+import {requestProgramPreparationProblemCode, requestProgramPreparationRefusalCode} from './client-program-preparation.mjs';
+test('supplied declaration code retains original invalid-input category without mutable aliases', () => {
+  for(const [category,outer] of [['ClientSuppliedParameterUndeclared','ClientParametersInvalid'],
+      ['ClientProgramParameterUndeclared','ClientProgramInvalidInput']]) {
+  const issue={},result={$tag:0,_0:issue};let calls=0;
+  const moon={clientProgramRequestPreparationIssueCode(value) {
+    assert.equal(this,moon);assert.equal(value,result);calls++;
+    return category;
+  }};
+  let original;
+  assert.throws(()=>checkedRequestProgramPreparation(moon,result),error=>{
+    original=error;assert.equal(error.code,outer);
+    assert.equal(error.cause,issue);return true;
+  });
+  assert.equal(calls,1);
+  assert.equal(requestProgramPreparationProblemCode(original),category);
+  assert.equal(requestProgramPreparationRefusalCode(original),outer);
+  assert.equal(requestProgramCapacityRefusal(original),undefined);
+  original.code='ClientProgramRejected';original.problemCode='foreign work';
+  assert.equal(requestProgramPreparationRefusalCode(original),outer);
+  for(const foreign of [{...original},structuredClone(original),
+      new Error('ClientSuppliedParameterUndeclared'),null]) {
+    assert.equal(requestProgramPreparationProblemCode(foreign),undefined);
+    assert.equal(requestProgramPreparationRefusalCode(foreign),undefined);
+  }
+  }
+});
+test('compatible work code is nominal and never changes the outer trusted refusal', () => {
+  const issue={}, result={$tag:0,_0:issue}; let calls=0;
+  const moon={clientProgramRequestPreparationIssueCode(original) {
+    assert.equal(this,moon); assert.equal(original,result); calls++;
+    return 'ClientProgramRuntimeFragmentWorkLimit';
+  }};
+  let original;
+  assert.throws(()=>checkedRequestProgramPreparation(moon,result),error=>{
+    original=error; assert.equal(error.code,'ClientProgramRejected');
+    assert.equal(error.cause,issue); return true;
+  });
+  assert.equal(calls,1);
+  assert.equal(requestProgramPreparationProblemCode(original),'ClientProgramRuntimeFragmentWorkLimit');
+  assert.equal(requestProgramCapacityRefusal(original),undefined);
+  original.code='ClientProgramInvalidInput'; original.message='private replacement';
+  assert.equal(requestProgramPreparationProblemCode(original),'ClientProgramRuntimeFragmentWorkLimit');
+  for(const foreign of [{...original},structuredClone(original),
+      {code:'ClientProgramRuntimeFragmentWorkLimit'},new Error('ClientProgramRuntimeFragmentWorkLimit'),null]) {
+    assert.equal(requestProgramPreparationProblemCode(foreign),undefined);
+  }
+  const body={}; assert.equal(checkedRequestProgramPreparation(moon,{$tag:1,_0:body}),body);
+  assert.equal(calls,1);
+});

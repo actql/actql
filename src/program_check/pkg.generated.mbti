@@ -223,6 +223,8 @@ pub fn diagnostic_predicate_origin(CheckDiagnostic, @stage_syntax.Program, @prog
 
 pub fn diagnostic_predicate_origin_from_source(CheckDiagnostic, @program_source_builder.Source) -> @frontend_source_map.Origin?
 
+pub fn diagnostic_supplied_parameter_undeclared(CheckDiagnostic) -> Bool
+
 pub fn diagnostic_take_count_parameter(CheckDiagnostic, @stage_syntax.Program) -> String?
 
 pub fn diagnostic_undeclared_parameter(CheckDiagnostic) -> String?
@@ -430,6 +432,8 @@ pub fn local_common_normalization_inventory_requirements(LocalCommonNormalizatio
 pub fn local_common_normalization_inventory_work(LocalCommonNormalizationInventory) -> Int
 
 pub fn local_common_normalization_retained_extent(LocalCommonNormalizationInventory) -> (@decode_shape.CollectionConstructionExtent, Int64, Int64)?
+
+pub fn local_common_normalization_uses_source_completion(LocalCommonNormalizationInventory) -> Bool
 
 pub fn local_common_update_completion_free_inventory_matches(LocalCommonUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
 

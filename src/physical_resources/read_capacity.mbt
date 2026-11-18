@@ -266,6 +266,61 @@ fn resize_capacity_reservation_current(
   retained : Int64,
   execution : Int64,
 ) -> Result[Unit, LedgerIssue] {
+  match
+    check_capacity_reservation_resize_current(
+      ledger, capacity, retained, execution,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  resize_reservation_bytes_current(
+    ledger,
+    capacity.reservation,
+    retained,
+    execution,
+  )
+}
+
+///|
+// Acquire the SAME absolute backing before entering the Journal, without
+// reserving bytes, issuing a token or changing any logical usage/history.
+fn prepare_capacity_reservation_backing(
+  ledger : Ledger,
+  capacity : CapacityReservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  if retained < 0L || execution < 0L {
+    return Err(InvalidCharge)
+  }
+  match reservation_check(ledger, capacity.reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match
+    check_capacity_reservation_resize_current(
+      ledger, capacity, retained, execution,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  back_reservation_bytes_current(
+    ledger,
+    capacity.reservation,
+    retained,
+    execution,
+  )
+}
+
+///|
+// Shared byte-only validation after one original current observation. No
+// reusable authority or additional callback is introduced by this helper.
+fn check_capacity_reservation_resize_current(
+  ledger : Ledger,
+  capacity : CapacityReservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
   if retained < 0L || execution < 0L {
     return Err(InvalidCharge)
   }
@@ -289,7 +344,7 @@ fn resize_capacity_reservation_current(
     inventory.closing {
     return Err(ClosedReservation)
   }
-  resize_reservation_bytes_current(ledger, token, retained, execution)
+  Ok(())
 }
 
 ///|
@@ -297,6 +352,37 @@ fn resize_capacity_reservation_current(
 // arithmetic between byte-only preparation and the existing physical attempt;
 // neither caller changes transfer, attempts, quantities or reservation slots.
 fn resize_reservation_bytes_current(
+  ledger : Ledger,
+  token : Reservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  let usage = ledger.usage
+  let retained_delta = retained - token.retention
+  let execution_delta = execution - token.execution
+  match back_reservation_bytes_current(ledger, token, retained, execution) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  ledger.usage = {
+    ..usage,
+    reserved_retention_bytes: usage.reserved_retention_bytes + retained_delta,
+    reserved_execution_bytes: usage.reserved_execution_bytes + execution_delta,
+    peak_retention_bytes: Int64::max(
+      usage.peak_retention_bytes,
+      usage.held_bytes + usage.reserved_retention_bytes + retained_delta,
+    ),
+  }
+  token.retention = retained
+  token.execution = execution
+  Ok(())
+}
+
+///|
+// One simultaneous-demand calculation serves preflight and the canonical
+// resize, including every held byte and other reservation. Only the latter
+// commits logical usage after this same original physical acquisition.
+fn back_reservation_bytes_current(
   ledger : Ledger,
   token : Reservation,
   retained : Int64,
@@ -331,16 +417,5 @@ fn resize_reservation_bytes_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  ledger.usage = {
-    ..usage,
-    reserved_retention_bytes: usage.reserved_retention_bytes + retained_delta,
-    reserved_execution_bytes: usage.reserved_execution_bytes + execution_delta,
-    peak_retention_bytes: Int64::max(
-      usage.peak_retention_bytes,
-      usage.held_bytes + usage.reserved_retention_bytes + retained_delta,
-    ),
-  }
-  token.retention = retained
-  token.execution = execution
   Ok(())
 }

@@ -1948,7 +1948,7 @@
     {
       "module": "packages/local-node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b63a90937070ea8665a0ba30599797dc6c8d585f05fe31d3676ed8221145d8f4",
+      "sha256": "73d5a3e6a63f9640616ce7c5623bcb006b36072f59b411f8c91943f16af44e07",
       "exports": [
         "CalendarArtifactInstallation",
         "EffectProfilePaths",
@@ -4645,11 +4645,12 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1548bde2896d3456323cda85d818df04358fed087cf5aa93624c188ac69cc935",
+      "sha256": "15e31dfda636cdfd72af9830d64b847390aee284e5d7953b559978959ef51901",
       "exports": [
         "bytesCid",
         "canonicalJson",
         "checkedSigner",
+        "checkpointAnswerMatches",
         "contentCid",
         "reviewBytesMatchCid",
         "signedAnswer",
@@ -4724,11 +4725,13 @@
           "async": false
         },
         {
-          "name": "constructSignedAnswer/constructSignedAnswer",
+          "name": "checkpointAnswerMatches",
           "parameters": [
-            "claim"
+            "answer",
+            "summary",
+            "decision"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "contentCid/contentCid",
@@ -4789,7 +4792,8 @@
         }
       ],
       "imports": [
-        "@actql/client-wire"
+        "./internal/checkpoint-answer-construction.generated.mjs",
+        "./internal/checkpoint-answer-contract.generated.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -4809,7 +4813,7 @@
             "canonicalJson/entries/entries",
             "canonicalJson/entries/entries#2",
             "checkedSigner",
-            "constructSignedAnswer/constructSignedAnswer",
+            "checkpointAnswerMatches",
             "contentCid/contentCid",
             "hex/hex/hex",
             "reviewBytesMatchCid",
@@ -4822,6 +4826,7 @@
             "bytesCid",
             "canonicalJson",
             "checkedSigner",
+            "checkpointAnswerMatches",
             "contentCid",
             "reviewBytesMatchCid",
             "signedAnswer",
@@ -4840,6 +4845,14 @@
               {
                 "path": "src/run_publication/effect_review_projection.mbt",
                 "anchor": "pub fn project_effect_review_projection("
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## SDK consumers"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "inputsOutputs": [
@@ -4854,6 +4867,14 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const originalReview = (subjectCid, claims) =>"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "identity": [
@@ -4874,8 +4895,16 @@
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
+              },
+              {
                 "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value.review_projection_cid !== artifactCid"
+                "anchor": "expected.resolutionWire === answer.resolutionWire"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "ownership": [
@@ -4894,6 +4923,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "synchronization": [
@@ -4912,6 +4945,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.mjs",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "failure": [
@@ -4930,6 +4967,10 @@
               {
                 "path": "adapters/host-node/local-continuation-evidence.mjs",
                 "anchor": "fail('ContinuationEvidenceRetired')"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "cancellation": [
@@ -4948,6 +4989,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "and cleanup custody remain with their existing Owners."
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "resources": [
@@ -4970,6 +5015,14 @@
               {
                 "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
                 "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "const candidateLimits = Object.freeze({maxWireBytes: 16384,"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "extension": [
@@ -4986,8 +5039,12 @@
                 "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
               },
               {
-                "path": "packages/sdk/checkpoints.mjs",
-                "anchor": "value?.version === 'actql-review-projection/0.1'"
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
               }
             ],
             "verification": [
@@ -5006,6 +5063,26 @@
               {
                 "path": "packages/sdk/effect-review-checkpoints.test.mjs",
                 "anchor": "test('Effect semantic review verification rejects"
+              },
+              {
+                "path": "packages/sdk/checkpoint-candidate-boundary.test.mjs",
+                "anchor": "test('fabricated noncanonical original identities refuse before application signing'"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "src/checkpoint_document/review_identity_test.mbt",
+                "anchor": "test \"pure review integrity preserves existing Model and opaque Effect preimages\""
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Common review preimages keep root-only self exclusion and exact Unicode DATA'"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
+                "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
               }
             ]
           }
@@ -5670,7 +5747,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "9041dd7cef0b0adbedf14554f910379787d8590962d43e49c27f488a8fd59a9d",
+      "sha256": "271f4cb0f2e35488c4122d3d84581d4b9b9165537426112f66a7b06e3a76f304",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -6098,6 +6175,13 @@
             "options?: {signal?: AbortSignal; cancelId?: string;\n    expectedRevision?: number; attemptId?: string}"
           ],
           "result": "Promise<WireCancellationAttempt>"
+        },
+        {
+          "name": "Execution/explain",
+          "parameters": [
+            "options?: {signal?: AbortSignal; maxWireBytes?: number;\n    maxNodes?: number; maxDepth?: number}"
+          ],
+          "result": "Promise<WireRunExplanationView>"
         },
         {
           "name": "Execution/inspect",
@@ -7264,6 +7348,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "Execution/explain"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+              }
+            ]
+          }
         }
       ]
     },
@@ -8214,8 +8366,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerMatches = async (answer, summary, decision, signer) =>"
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "export async function checkpointAnswerMatches(answer, summary, decision)"
               },
               {
                 "path": "scripts/generate-client-host-wire.mjs",
@@ -8224,16 +8376,16 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "resolution.decision !== decision"
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "answerCodec.prepareAnswerCandidate(summary, decision,"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "resolution.run_definition_cid !== summary.subject.runDefinitionCid"
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "expected.resolutionWire === answer.resolutionWire"
               },
               {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "contentCid(without(resolution, 'resolution_cid'))"
+                "path": "packages/sdk/checkpoints.mjs",
+                "anchor": "answerCodec.finishAnswerCandidate(stage, resolution.proof.signature)"
               }
             ],
             "ownership": [
@@ -8253,7 +8405,7 @@
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "selectedSigner === undefined && !await answerMatches(answer, summary, decision)"
+                "anchor": "selectedSigner === undefined && !await checkpointAnswerMatches(answer, summary, decision)"
               }
             ],
             "failure": [
@@ -8313,7 +8465,7 @@
     {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7b7de0e2fe9580e423d98607374d4f8cd1eec1b4e1a4a5af9b6fc84e91644727",
+      "sha256": "210b82767b1ce7e6b8941709107f8df2fd47e2db4683628b16fd350c70306ff4",
       "exports": [
         "createCheckpointOperations"
       ],
@@ -8326,14 +8478,6 @@
             "responseValue",
             "answerOriginal",
             "isClosed"
-          ],
-          "async": false
-        },
-        {
-          "name": "createCheckpointOperations/answerMatches/answerMatches/answerMatches",
-          "parameters": [
-            "claim",
-            "index"
           ],
           "async": false
         },
@@ -8406,18 +8550,10 @@
             "options"
           ],
           "async": false
-        },
-        {
-          "name": "createCheckpointOperations/without/without/without",
-          "parameters": [
-            "key"
-          ],
-          "async": false
         }
       ],
       "imports": [
         "../checkpoints.mjs",
-        "./checkpoint-answer-contract.generated.mjs",
         "./data.mjs",
         "./errors.mjs",
         "./transport-response.mjs",
@@ -8461,6 +8597,10 @@
               {
                 "path": "packages/sdk/host-port.d.ts",
                 "anchor": "answerCheckpoint?(summary: CheckpointSummary"
+              },
+              {
+                "path": "packages/sdk/internal/checkpoint-operations.mjs",
+                "anchor": "!await checkpointAnswerMatches(answer, summary, decision)"
               }
             ],
             "identity": [
@@ -8720,115 +8860,6 @@
               {
                 "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
                 "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "createCheckpointOperations/answerMatches/answerMatches/answerMatches",
-            "createCheckpointOperations/without/without/without"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "An original-answer callback remains responsible for key custody and current"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "const answerMatches = async (answer, summary, decision, signer) =>"
-              },
-              {
-                "path": "scripts/generate-client-host-wire.mjs",
-                "anchor": "const answerSchemas = {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "resolution.decision !== decision"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "resolution.run_definition_cid !== summary.subject.runDefinitionCid"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "contentCid(without(resolution, 'resolution_cid'))"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "Self-addressed identities are checked without changing the signed"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])})"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "current(signal);"
-              },
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "selectedSigner === undefined && !await answerMatches(answer, summary, decision)"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "throw new ClientError('InvalidCheckpointAnswer'"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "resolution; it neither signs again nor treats the bytes as a retry permission."
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "signal?.throwIfAborted();"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "and neither cancellation nor Promise completion proves physical key retirement."
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "exact response-loss items overlap within the original Client/Host inventory."
-              }
-            ],
-            "extension": [
-              {
-                "path": "scripts/generate-client-host-wire.mjs",
-                "anchor": "protocol.artifact_schemas.checkpoint_resolution"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "Wire bytes, canonical preimages, signed"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/sdk/checkpoint-actions.test.mjs",
-                "anchor": "refuses an original-port answer for the opposite decision"
-              },
-              {
-                "path": "packages/sdk/checkpoint-actions.test.mjs",
-                "anchor": "valid signatures for another original Summary refuse"
-              },
-              {
-                "path": "scripts/generate-client-host-wire.test.mjs",
-                "anchor": "SDK answer grammar projects existing Resolution and Evidence"
               }
             ]
           }
@@ -11551,7 +11582,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "94e98e2b5c45f8d21311dd2af45b17490f3c8b953d3629344fbad21b64290025",
+      "sha256": "2557211ad27fcfffb663aee301de59800117f2bb490599e2ecaeeae0b6848541",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -11634,12 +11665,22 @@
         {
           "name": "createExecutionFactory/createExecutionFactory/handle/handle#4",
           "parameters": [
-            "signal"
+            "signal",
+            "maxWireBytes",
+            "maxNodes",
+            "maxDepth"
           ],
           "async": true
         },
         {
           "name": "createExecutionFactory/createExecutionFactory/handle/handle#5",
+          "parameters": [
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#6",
           "parameters": [
             "until",
             "since",
@@ -11648,7 +11689,7 @@
           "async": true
         },
         {
-          "name": "createExecutionFactory/createExecutionFactory/handle/handle#6",
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#7",
           "parameters": [
             "signal",
             "cancelId",
@@ -11658,7 +11699,7 @@
           "async": true
         },
         {
-          "name": "createExecutionFactory/createExecutionFactory/handle/handle#7",
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#8",
           "parameters": [
             "reference",
             "signal"
@@ -11666,7 +11707,7 @@
           "async": true
         },
         {
-          "name": "createExecutionFactory/createExecutionFactory/handle/handle#8",
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#9",
           "parameters": [
             "signal"
           ],
@@ -12043,13 +12084,81 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createExecutionFactory/createExecutionFactory/handle/handle#9"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a62955507ee19e11cb19613dd910a321df7f5d44aeeaad0b5d2512c9da8a4942",
+      "sha256": "9a505d8640f144253db4dfffe16c15f035dac82b7b585d502e1b9ea65079e808",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -15229,6 +15338,404 @@
               {
                 "path": "scripts/runtime-package-inputs.test.mjs",
                 "anchor": "test('public Result facade"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
+      "sha256": "81ced88517b5078c1d36616beda88211f435c3e4119cb21364aaab2694ab3c96",
+      "exports": [
+        "createCheckpointAnswerCodec"
+      ],
+      "operations": [
+        {
+          "name": "capture/add/add",
+          "parameters": [
+            "count"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec",
+          "parameters": [
+            "primitives"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
+          "parameters": [
+            "stage"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/answerResolutionPreimage",
+          "parameters": [
+            "stage"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/finishAnswerCandidate",
+          "parameters": [
+            "stage",
+            "resolutionSignature"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate",
+          "parameters": [
+            "summary",
+            "decision",
+            "actor",
+            "decidedAt",
+            "selectedLimits"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate/prepareAnswerCandidate",
+          "parameters": [
+            "items"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate/prepareAnswerCandidate/prepareAnswerCandidate",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerCandidate/profile/profile",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/prepareAnswerResolution",
+          "parameters": [
+            "stage",
+            "approvalSignature"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid",
+          "parameters": [
+            "raw",
+            "expected",
+            "selectedLimits"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid/body/body",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAnswerCodec/reviewBytesMatchCid/profile/profile",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "document/document",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "document/document/document",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "document/document#2",
+          "parameters": [
+            "key",
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape/shape",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape/shape#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "signature",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "source",
+          "parameters": [
+            "context",
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#3",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#4",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#5",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#6",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#7",
+          "parameters": [
+            "key",
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "valid/valid#8",
+          "parameters": [
+            "key",
+            "field"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "Generated bounded candidate DATA and original wire projection; no signing authority, Local engine, Host permission or second Checkpoint state machine.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capture/add/add",
+            "createCheckpointAnswerCodec",
+            "createCheckpointAnswerCodec/answerCandidateApprovalPreimage",
+            "createCheckpointAnswerCodec/answerResolutionPreimage",
+            "createCheckpointAnswerCodec/finishAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerCandidate/prepareAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerCandidate/prepareAnswerCandidate/prepareAnswerCandidate",
+            "createCheckpointAnswerCodec/prepareAnswerCandidate/profile/profile",
+            "createCheckpointAnswerCodec/prepareAnswerResolution",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid/body/body",
+            "createCheckpointAnswerCodec/reviewBytesMatchCid/profile/profile",
+            "document/document",
+            "document/document/document",
+            "document/document#2",
+            "sameConstant/sameConstant",
+            "sameConstant/sameConstant#2",
+            "shape/shape",
+            "shape/shape#2",
+            "signature",
+            "source",
+            "valid/valid",
+            "valid/valid#2",
+            "valid/valid#3",
+            "valid/valid#4",
+            "valid/valid#5",
+            "valid/valid#6",
+            "valid/valid#7",
+            "valid/valid#8"
+          ],
+          "exports": [
+            "createCheckpointAnswerCodec"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate captures data, key and primitive receivers before first asynchronous digest'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "src/checkpoint_document/review_identity_test.mbt",
+                "anchor": "test \"pure review integrity preserves existing Model and opaque Effect preimages\""
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Common review preimages keep root-only self exclusion and exact Unicode DATA'"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
+                "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
               }
             ]
           }

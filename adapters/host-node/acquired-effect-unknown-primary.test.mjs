@@ -3,6 +3,7 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import {dispatchFailureSnapshot} from './client-dispatch-diagnostic.mjs';
 
 // Execute the original coordination branches with explicit ports. No physical
 // Model, Journal, Source or cleanup acknowledgement is supplied by this test.
@@ -13,11 +14,6 @@ const dispatchTree = parse(dispatch, {ecmaVersion: 'latest', sourceType: 'module
 const retainDeclaration = dispatchTree.body.find(node => node.type === 'FunctionDeclaration' &&
   node.id.name === 'retainDispatchPrimaryFailure');
 assert(retainDeclaration);
-const diagnosticDeclaration = dispatchTree.body.find(node => node.type === 'FunctionDeclaration' &&
-  node.id.name === 'dispatchFailureSnapshot');
-assert(diagnosticDeclaration);
-const dispatchFailureSnapshot = new Function(
-  `${dispatch.slice(diagnosticDeclaration.start, diagnosticDeclaration.end)};return dispatchFailureSnapshot;`)();
 const retainDispatchPrimaryFailure = new Function(
   `${dispatch.slice(retainDeclaration.start, retainDeclaration.end)};return retainDispatchPrimaryFailure;`)();
 function selectedBranch(text, marker, bodyMarker = '') {

@@ -383,6 +383,7 @@ pub(all) struct InsertEffectClause {
 pub(all) enum Issue {
   InvalidLimits
   Syntax(String)
+  AggregateOrderRequired
   Source(@frontend_source_map.Issue)
   Lexical(LexicalIssue)
   Limit(Resource)

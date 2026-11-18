@@ -18,6 +18,7 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {nativeFileSourceQueries} from './fixtures/native-file-source-queries.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
@@ -945,6 +946,12 @@ export async function preserveOrdinaryFailureWithDiagnostic(primary, diagnose) {
   }
 }
 
+export function nativeInstalledIngressSelection() {
+  return {files: ['./test-native-local-cli.test.mjs', './test-native-file-source-queries.test.mjs']
+    .map(path => fileURLToPath(new URL(path, import.meta.url))),
+  expectedTests: 13 + nativeFileSourceQueries.length};
+}
+
 async function observeInstalledSourceFree(input, observationPath) {
   const directory = resolve(input), manifest = await verifyNativeCliRelease(directory);
   const source = checkoutState(repository);
@@ -1016,9 +1023,9 @@ async function observeInstalledSourceFree(input, observationPath) {
         env[key]=join(platformRoot,library.path);
       }
       const focused=new URL('./test-execution.mjs',import.meta.url).href;
-      const fixture=fileURLToPath(new URL('./test-native-local-cli.test.mjs',import.meta.url));
+      const {files,expectedTests}=nativeInstalledIngressSelection();
       await run(process.execPath,['--input-type=module','-e',
-        `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',[${JSON.stringify(fixture)}],{cwd:process.cwd(),expectedTests:13});`]);
+        `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',${JSON.stringify(files)},{cwd:process.cwd(),expectedTests:${expectedTests}});`]);
     };
     // Node launches only the installed npm entry. Neither it nor the Native child
     // can discover a compiler, a repository executable, a provider or a Node Host.

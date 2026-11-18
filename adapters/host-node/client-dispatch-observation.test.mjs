@@ -8,6 +8,7 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
 import {fileURLToPath} from 'node:url';
 import {installNodeClientDispatchOwner as installActualDispatchOwner} from './client-dispatch-owner.mjs';
+import {dispatchFailureSnapshot} from './client-dispatch-diagnostic.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {types as nodeTypes} from 'node:util';
 import {CapturedRunPublicationError} from './entry.mjs';
@@ -288,9 +289,9 @@ const declarations = ast.body.flatMap(node => {
 });
 const installNodeClientDispatchOwner = compileFunction(
   declarations.join('\n') + '\nreturn installNodeClientDispatchOwner;',
-  ['diagnosticObserver', 'CapturedRunPublicationError', 'runtimeTag', 'runPublishedCapturedStrategy', 'nodeTypes'])(
+  ['diagnosticObserver', 'CapturedRunPublicationError', 'runtimeTag', 'runPublishedCapturedStrategy', 'nodeTypes', 'dispatchFailureSnapshot'])(
   diagnosticObserver, class ExplicitPublicationError extends Error {}, () => undefined,
-  () => assert.fail('No fixture Relation execution'), nodeTypes);
+  () => assert.fail('No fixture Relation execution'), nodeTypes, dispatchFailureSnapshot);
 const observation = retained => ({emit() {}, retainOperation(promise) {retained.push(promise);}});
 
 // This distinct component uses the selected original Common namespace and real
@@ -967,4 +968,24 @@ test('dispatch final usage observes the same ledger only after original preparat
     assert.equal(retained.size, 0, 'optional diagnostic failure cannot resurrect original custody');
     assert.doesNotThrow(() => observeRetirement(selected));
   }
+});
+
+
+test('dispatch leaf issue observes only bounded enum DATA and preserves original cleanup', async () => {
+  for (const leaf of [0, 5, 6, 65535, {$tag: 6}]) {
+    const failure = fieldlessFailure({$tag: 2, _0: {$tag: 11, _0: leaf}});
+    const detail = await observeActualDispatchFailure(failure, {observerThrows: true});
+    assert.equal(detail.issueTag, 2);
+    assert.equal(detail.nestedIssueTag, 11);
+    assert.equal(detail.leafIssueTag, typeof leaf === 'number' ? leaf : 6);
+    assert.equal(Object.hasOwn(detail, 'cause'), false);
+  }
+  for (const leaf of [-1, 65536, 1.5, '6', null, undefined, {}, {$tag: '6'}]) {
+    const detail = await observeActualStartDispatchFailure(
+      fieldlessFailure({$tag: 2, _0: {$tag: 11, _0: leaf}}));
+    assert.equal(detail.leafIssueTag, undefined);
+  }
+  const detail = await observeActualStartDispatchFailure(
+    fieldlessFailure({$tag: 2, _0: {$tag: 11, _0: 5}}));
+  assert.equal(detail.leafIssueTag, 5);
 });

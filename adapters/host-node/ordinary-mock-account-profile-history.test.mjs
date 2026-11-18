@@ -4,6 +4,7 @@ import {mkdtemp,mkdir,readFile,writeFile,rename,stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
+import {createAccountConstruction} from './account-construction.mjs';
 import {canonicalJson,contentCid} from './local-account-config.mjs';
 
 const previous=Object.freeze({id:'actql-local-mock',version:'0.1',
@@ -12,6 +13,53 @@ const answerOnly=Object.freeze({...previous,
   cid:'sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f'});
 const current=Object.freeze({...previous,
   cid:'sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01'});
+
+test('plural Mock pre-signing refusal retains the original Read before keys or Account creation',async()=>{
+  const f=await fixture({signingMetadata:false});
+  const original=Object.freeze({kind:'explicit resource-port refusal'}),reads=[],closed=[];
+  let refusing=false,release=false,inventory=0,preSigning=0;
+  // Fault injection at the numeric port of the actual nominal construction
+  // facet. These ports do not issue a real Ledger, policy, grant or physical ACK.
+  f.moon.clientProgramAccountReadControlBytes=()=>64n;
+  f.moon.clientProgramPrepareAccountReadConstruction=(read,retained,execution)=>{
+    assert.ok(reads.includes(read));assert.ok(retained>=64n&&execution>=retained);
+    return refusing?{$tag:0,_0:original}:{$tag:1,_0:undefined};
+  };
+  f.moon.clientProgramCloseAccountRead=(read,ended)=>{
+    assert.equal(ended,true);assert.ok(reads.includes(read));closed.push(read);
+    return {$tag:1,_0:release};
+  };
+  f.moon.clientProgramCompleteAccountReadConstruction=()=>assert.fail('failed constructor cannot complete');
+  f.moon.clientProgramLocalMockAccountInventoryPrepared=(connection,sources,tasks,request,targets,prepare)=>{
+    inventory++;assert.equal(connection,'local-mock');assert.equal(sources.length,2);
+    assert.equal(targets.length,2);assert.deepEqual(tasks,[]);assert.equal(request,undefined);
+    assert.equal(prepare(0n,128n),true);
+    return {$tag:1,_0:undefined};
+  };
+  f.moon.clientProgramLocalMockAccountBeforeSigningPrepared=(account,principal,connection,sources,tasks,request,targets,units,prepare)=>{
+    preSigning++;assert.match(account,/^local-mock-/);assert.equal(units,71);
+    assert.equal(sources.length,2);assert.equal(targets.length,2);
+    refusing=true;return prepare(0n,256n);
+  };
+  f.moon.clientProgramLocalMockAccountConfigurationPrepared=()=>assert.fail('no configuration after refusal');
+  const construction=createAccountConstruction({moon:f.moon,current(){},prepareRead(){
+    const read=Object.freeze({id:reads.length});reads.push(read);return {$tag:1,_0:read};
+  }});
+  const sources=[['mock','first'],['mock','second']];
+  await assert.rejects(initializeOrdinaryMockAccount({...f.options,accountConstruction:construction,
+    sources,updateTargets:sources}),cause=>cause.code==='MoonBitHostFailure'&&cause.cause===original);
+  assert.equal(inventory,1);assert.equal(preSigning,1);assert.equal(f.calls.configuration,0);
+  await assert.rejects(stat(join(f.root,'mock-account')),{code:'ENOENT'});
+  assert.equal(reads.length,2);assert.equal(construction.pending(),true);
+  assert.equal(await construction.close(),false);
+  assert.deepEqual(closed,[reads[1]],'pending frame keeps the fixed original Read held');
+  assert.equal(construction.pending(),true);
+  release=true;
+  assert.equal(await construction.close(),true);
+  assert.deepEqual(closed,[reads[1],reads[1],reads[0]],'retry closes the SAME frame before the SAME fixed Read');
+  assert.equal(reads.length,2,'cleanup cannot replace the refused originals');
+  assert.equal(construction.pending(),false);
+});
 
 // Real exclusive filesystem/key initialization, with explicit Common and Store
 // ports. These doubles issue no actual Account, Run, Result or Store authority;

@@ -71,8 +71,12 @@ def canonical_bytes(value, *, data_keys=False):
     return rfc8785.dumps(keys(captured))
 
 
+def bytes_cid(value):
+    return 'sha256:' + hashlib.sha256(value).hexdigest()
+
+
 def content_cid(value, *, data_keys=False):
-    return 'sha256:' + hashlib.sha256(canonical_bytes(value, data_keys=data_keys)).hexdigest()
+    return bytes_cid(canonical_bytes(value, data_keys=data_keys))
 
 
 def wire_bytes(value):

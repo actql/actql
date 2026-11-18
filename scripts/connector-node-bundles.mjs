@@ -322,6 +322,11 @@ if (existsSync(join(sourceRoot, bridgePackage, 'client_infer_bridge.mbt'))) {
   dependencies.set('actql/actql/client_infer_host', 'infer_host');
   dependencies.set('actql/actql/value_admission', 'admitted');
 }
+// The Request Graph bridge reads the actual admitted Provider role even in
+// RelA's assembly, which has no direct Infer runtime bridge.
+if (existsSync(join(sourceRoot, bridgePackage, 'client_preparation_root_bridge.mbt'))) {
+  dependencies.set('actql/actql/model_execution', 'model');
+}
 if (existsSync(join(sourceRoot, bridgePackage,
   'client_program_bridge.mbt'))) {
   dependencies.set('actql/actql/client_local_host', 'client_local_host');

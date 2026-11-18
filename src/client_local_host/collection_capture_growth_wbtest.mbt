@@ -465,6 +465,70 @@ test "ordinary FILTER entry demand uses checked scalar structures and finite ove
 }
 
 ///|
+test "ordinary Append entry demand funds row roots and preserves unknown-shape fallback" {
+  let assets = @publication_host.client_local_product_assets()
+  let contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  for
+    (sql, scalar) in [
+      ("SELECT 1 AS n UNION ALL SELECT 2 AS n", true),
+      ("SELECT TRUE AS n UNION ALL SELECT FALSE AS n", true),
+      ("SELECT 'one' AS n UNION ALL SELECT 'two' AS n", false),
+    ] {
+    let prepared = collection_capacity_selected_prepared(sql, 10001)
+    let sequences = prepare_client_local_sequences_owned(
+      Pure(prepared),
+      contracts,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap()
+    let mut found = false
+    for sequence in sequences {
+      for index in 0..<@execution.generated_sequence_step_count(sequence) {
+        guard @execution.generated_sequence_step_at(sequence, index)
+          is Some(@lower.AppendStep(kernel)) else {
+          continue
+        }
+        let selected = @execution.select_generated_sequence_step(
+          sequence,
+          @lower.append_kernel_step(kernel),
+        ).unwrap()
+        // 20002 row slots, three alignment slots, one checked cell and two
+        // scan/measurement slots; not a new public or explicit managed cap.
+        assert_eq(
+          client_local_request_operation_entries([selected], 10001, 10000, 100),
+          if scalar {
+            20008
+          } else {
+            10000
+          },
+        )
+        assert_eq(
+          client_local_request_operation_entries([selected], 10001, 10000, 0),
+          10000,
+        )
+        assert_eq(
+          client_local_request_operation_entries(
+            [selected],
+            2147483647,
+            10000,
+            100,
+          ),
+          10000,
+        )
+        found = true
+      }
+    }
+    assert_true(found)
+  }
+}
+
+///|
 test "ordinary literal Array entry demand funds the original constructor and preserves explicit caps" {
   let sql = "SELECT [" + Array::make(4000, "0").join(",") + "] AS cells"
   let prepared = collection_capacity_selected_prepared(sql, 100000)

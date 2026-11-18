@@ -227,6 +227,12 @@
           "pointer": "",
           "cid": "sha256:f93d91b468d850cbc63a8c8350578af8431a2256eb2b1ef3f60586fdc640561d",
           "version": "actql-normalization-rule-catalog/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-effect-free-local-source-normalization-catalog.json",
+          "pointer": "",
+          "cid": "sha256:6ce13b0a83618ec8ccadb33c3ee5bf4ae12214a0ac16c1e0394b75e1eea78153",
+          "version": "actql-normalization-rule-catalog/0.1"
         }
       ],
       "normative_imports": []
@@ -476,7 +482,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:32a988ef3f365955c0efea5c65c12f209ee26aa27ec56a856dbeb992787f0756"
+          "document_cid": "sha256:c108d1c9afd139079e32b44a59007a08d423ed2e4e00c69e20f3475cc766703e"
         }
       ]
     },
@@ -1073,7 +1079,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:32a988ef3f365955c0efea5c65c12f209ee26aa27ec56a856dbeb992787f0756"
+          "document_cid": "sha256:c108d1c9afd139079e32b44a59007a08d423ed2e4e00c69e20f3475cc766703e"
         }
       ]
     },
@@ -1501,7 +1507,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:32a988ef3f365955c0efea5c65c12f209ee26aa27ec56a856dbeb992787f0756"
+          "document_cid": "sha256:c108d1c9afd139079e32b44a59007a08d423ed2e4e00c69e20f3475cc766703e"
         },
         {
           "owner": "actql.execution",
@@ -2536,7 +2542,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:32a988ef3f365955c0efea5c65c12f209ee26aa27ec56a856dbeb992787f0756"
+          "document_cid": "sha256:c108d1c9afd139079e32b44a59007a08d423ed2e4e00c69e20f3475cc766703e"
         },
         {
           "owner": "actql.execution",

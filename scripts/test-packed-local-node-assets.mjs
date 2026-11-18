@@ -316,7 +316,7 @@ assert.equal(runFocusedTests('node', [
   'adapters/host-node/installed-project-mock.actual.test.mjs',
 ], {cwd: repository, env: {...environment,
   ACTQL_TEST_PROJECT_COMMON_RUNTIME: installedCommon},
-  timeout: 30000, expectedTests: 9}), 0,
+  timeout: 30000, requireAllPassed: true}), 0,
   'packed installed Mock declaration tests failed');
 // The smoke closed its Hosts and ran to completion through spawnSync.
 scratch.passed();

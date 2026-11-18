@@ -12,14 +12,26 @@ pub fn local_common_normalization_retained_extent(
     is Some(array) else {
     return None
   }
-  let count = original.entries.length().to_int64()
+  let mut relations = 0L
+  let mut sources = 0L
   let mut units = 0L
   let mut orders = 0L
   for entry in original.entries {
-    if entry.order is Some(_) {
-      orders += 1L
+    let texts = match entry.original {
+      Relation(value) => {
+        relations += 1L
+        if value.order is Some(_) {
+          orders += 1L
+        }
+        [entry.path, entry.authored, entry.canonical]
+      }
+      Source(_) => {
+        sources += 1L
+        // The actual selected view name and absent marker are borrowed.
+        [entry.path]
+      }
     }
-    for text in [entry.path, entry.authored, entry.canonical] {
+    for text in texts {
       guard @counts.checked_nonnegative_add_product(
           units,
           text.length().to_int64(),
@@ -31,17 +43,31 @@ pub fn local_common_normalization_retained_extent(
       units = next
     }
   }
-  // Inventory 1H/4R/1W. Each entry borrows five references, owns three final
-  // Strings plus SortOrder/strategy/Some views (3H/5R/1W) when selected. Spare array slots remain.
+  // Inventory 1H/4R/1W. Relation adds its original entry plus the common
+  // record (1H/4R) and tagged original (1H/1R/1W). Source owns only its
+  // pointer String beside that common record/tag; resolver/name are borrowed.
+  // SortOrder/strategy/Some and spare array slots retain their existing cost.
   Some(
     (
       {
-        record_headers: array.record_headers + 1L + count * 4L + orders * 3L,
-        reference_slots: array.reference_slots + 4L + count * 5L + orders * 5L,
-        scalar_words: array.scalar_words + 1L + count * 3L + orders,
+        record_headers: array.record_headers +
+        1L +
+        relations * 6L +
+        sources * 3L +
+        orders * 3L,
+        reference_slots: array.reference_slots +
+        4L +
+        relations * 10L +
+        sources * 5L +
+        orders * 5L,
+        scalar_words: array.scalar_words +
+        1L +
+        relations * 4L +
+        sources * 2L +
+        orders,
       },
       units,
-      1L + count * 4L,
+      1L + relations * 4L + sources * 2L,
     ),
   )
 }

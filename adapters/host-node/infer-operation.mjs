@@ -222,13 +222,15 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (typeof control?.checkClientCompiledRunOwner !== 'function' ||
         serializedInput !== undefined ||
         !restoringOriginal && (!Array.isArray(composedInput.inputs) ||
-          composedInput.inputs.length !== 0 || composedInput.sources === undefined)) {
+          composedInput.inputs.length !== 0)) {
       throw new TypeError('InvalidInferOriginalComposedRun');
     }
     control.checkClientCompiledRunOwner(originalPreparation.compiled, preparedProgram);
     const sourceCount = moon.clientProgramAcquisitionCount(preparedProgram);
     if (moon.clientProgramTaskCount(preparedProgram) !== 1 ||
-        (restoringOriginal ? sourceCount !== 0 && sourceCount !== 1 : sourceCount !== 1)) {
+        (sourceCount !== 0 && sourceCount !== 1) ||
+        !restoringOriginal && (sourceCount === 1 ? composedInput.sources === undefined
+          : composedInput.sources !== undefined)) {
       throw new TypeError('InvalidInferOriginalComposedRun');
     }
   }
@@ -1184,8 +1186,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // original Run Ledger. Missing/refused selection never falls back.
       originalPublicationCapacity = checked(moon.clientProgramReserveOriginalInferPublicationCapacity(
         active, retained.value, workspace.value));
-      publicationBaseRetained = publicationHeldRetained = retained.value;
-      publicationBaseExecution = publicationHeldExecution = workspace.value;
+      // Common reserves the carrier's structural delta before constructing
+      // even its None case. Subsequent absolute grows start at that actual
+      // extent, never the supplier's payload-only input or a repeated delta.
+      publicationBaseRetained = publicationHeldRetained =
+        moon.clientProgramOriginalInferPublicationRetainedBytes(originalPublicationCapacity);
+      publicationBaseExecution = publicationHeldExecution =
+        moon.clientProgramOriginalInferPublicationExecutionBytes(originalPublicationCapacity);
     },
     // Actual next scan/writer construction, in addition to this same original
     // publication's retained controls. Covered phases make no extra Resource
@@ -1250,6 +1257,42 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       materializationReceipts.set(receipt, {kind, bundle, count: bundle.count,
         operation: new WeakRef(source), funding: new WeakRef(operation)});
       return receipt;
+    },
+    prepareOriginalUsage(source, capture, count) {
+      if (closing || reclaimed || originalPublicationCapacity === undefined ||
+          !originalOperations.has(source) || !operation.originalMaterializationCurrent(source, count) ||
+          typeof moon.clientProgramPrepareOriginalInferUsage !== 'function') {
+        throw new Error('RequiredEvidenceUnavailable');
+      }
+      assertRuntimeCurrent?.();
+      const prepared = checked(moon.clientProgramPrepareOriginalInferUsage(activeOperations.get(source),
+        originalPublicationCapacity, capture,
+        publicationBaseRetained + publicationMaterializationRetained,
+        publicationBaseExecution + publicationMaterializationRetained));
+      const retained = runtimeField(prepared, 0), execution = runtimeField(prepared, 1);
+      publicationHeldRetained = retained > publicationHeldRetained ? retained : publicationHeldRetained;
+      publicationHeldExecution = execution > publicationHeldExecution ? execution : publicationHeldExecution;
+      if (closing || reclaimed || !operation.originalMaterializationCurrent(source, count)) {
+        throw new Error('RequiredEvidenceUnavailable');
+      }
+      assertRuntimeCurrent?.();
+    },
+    beginOriginalUsage(source, capture, count, maxBytes) {
+      if (closing || reclaimed || originalPublicationCapacity === undefined ||
+          !originalOperations.has(source) || !operation.originalMaterializationCurrent(source, count) ||
+          typeof moon.clientProgramBeginOriginalInferUsagePublication !== 'function') {
+        throw new Error('RequiredEvidenceUnavailable');
+      }
+      assertRuntimeCurrent?.();
+      const usage = checked(moon.clientProgramBeginOriginalInferUsagePublication(activeOperations.get(source),
+        originalPublicationCapacity, capture,
+        publicationBaseRetained + publicationMaterializationRetained,
+        publicationBaseExecution + publicationMaterializationRetained, maxBytes));
+      // The actual same-owner continuation now pins this capacity even when
+      // a later Host current callback refuses. Its matching child owns cleanup.
+      publicationHeldRetained = moon.clientProgramOriginalInferPublicationRetainedBytes(originalPublicationCapacity);
+      publicationHeldExecution = moon.clientProgramOriginalInferPublicationExecutionBytes(originalPublicationCapacity);
+      return usage;
     },
     publicationCapacityPending: () => originalPublicationCapacity !== undefined,
     releaseOriginalPublicationCapacity() {
@@ -1425,7 +1468,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let deferredRead = prepareRead !== undefined;
   let readAttempted = false;
   let operation;
-  let prepareOriginalResults, prepareSourceContext;
+  let prepareOriginalResults, prepareSourceContext, singleUnitPrepared;
   let failure;
   let failureRecorded = false;
   const recordFailure = cause => {
@@ -1485,6 +1528,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
         }
         const resultArtifacts = restoredInput === undefined ? prepareOriginalResults?.(inputs) : undefined;
         operation = openNodeInferOperation({moon, graph: selected.graph,
+          preparedProgram: singleUnitPrepared,
           composedInput: generated ? undefined : {occurrence: selected.occurrence,
             prefix: computePrefix, inputs, sources,
             capturedRecovery: capturedInput?.recovery, capturedBinding: capturedInput?.binding},
@@ -1562,7 +1606,24 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       if (operation === undefined) throw new Error('RestoredComposedInferOriginalUnavailable');
       return operation;
     },
-    ...(deferred ? {bindOriginal(context) {
+    ...(deferred ? {startSourceFreeSingleUnit(preparedProgram) {
+      if (failureRecorded) throw failure;
+      if (!bound || attempted || generated || restoredInput !== undefined ||
+          !deferredRead || sources !== undefined || inputPrefix === undefined ||
+          typeof bindComputeSuffix !== 'function' || originalPreparation === undefined ||
+          moon.clientProgramTaskCount(preparedProgram) !== 1 ||
+          moon.clientProgramAcquisitionCount(preparedProgram) !== 0) {
+        throw new TypeError('ComposedInferOriginalSingleUnitUnavailable');
+      }
+      // The original operation verifies the SAME compiled Program and full
+      // prefix/Scope tuple before it claims, binds or starts physical work.
+      singleUnitPrepared = preparedProgram;
+      openOriginal([], selected.entryPersistence === 'async' ? createInferIoNotification() : undefined);
+      singleUnitPrepared = undefined;
+      if (failureRecorded) throw failure;
+      if (operation === undefined) throw new TypeError('ComposedInferOriginalSingleUnitUnavailable');
+      return operation;
+    }, bindOriginal(context) {
       if (bound || attempted) throw new Error('ComposedInferAlreadyBound');
       const read = name => Object.getOwnPropertyDescriptor(context ?? {}, name)?.value;
       if (read('selected') !== selected || typeof read('retainOperation') !== 'function') {

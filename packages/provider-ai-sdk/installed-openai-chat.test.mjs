@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {setImmediate as turn} from 'node:timers/promises';
-import {createInstalledOpenAIChatRegistration} from './_internal/installed-openai-chat.mjs';
+import {createInstalledOpenAIChatRegistration, createConfiguredUndiciOpenAIChatRegistration} from './_internal/installed-openai-chat.mjs';
 import {installFixtureModelProviders as installModelProviders} from './original-materials.fixture.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {createInferIoNotification} from '../../adapters/host-node/infer-io-notification.mjs';
@@ -478,4 +478,21 @@ test('facade refuses a combined request key before registration',()=>{
   assert.throws(()=>createInstalledOpenAIChatRegistration(config),
     {code:'InvalidInstalledOpenAIChatRequestLimits'});
   assert.equal(f.counts.installs,0);assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
+});
+
+
+test('configured physical timeout continuation keeps legacy public registrations closed and constructs no IO', () => {
+  const config = configuration(), f = runtime(config);
+  delete config.fetch; config.physicalAcquisitionLimits = physicalAcquisitionLimits;
+  const settings = {connectMs: 100, headersMs: 200, bodyMs: 300};
+  // Normal factory's actual canonical binding is separately exercised by its
+  // funded Core/Host acceptance. These original/runtime ports are doubles.
+  const [entry] = createConfiguredUndiciOpenAIChatRegistration(config, settings)(f.moon);
+  assert.equal(entry.providerId, config.providerId);
+  assert.strictEqual(entry.bindingOriginals, config.bindingOriginals);
+  assert.equal(f.counts.starts, 0); assert.equal(f.counts.generation, 0); assert.equal(f.counts.fetch, 0);
+  assert.throws(() => createInstalledUndiciOpenAIChatRegistration({...config, transportTimeouts: settings}),
+    {code: 'InvalidInstalledOpenAIChatConfiguration'});
+  assert.throws(() => createConfiguredUndiciOpenAIChatRegistration(config, {...settings, bodyMs: 0}),
+    {code: 'UndiciOriginalTimeoutsUnavailable'});
 });

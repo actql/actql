@@ -75,16 +75,19 @@ fn[I] request_effect_plan_quote(
   }
   if owner.phase == EffectCompiled {
     guard owner.compiled_effect is Some(effect) else { return Err(WrongPhase) }
+    let graph = @strategy.checked_effect_computation_graph(
+      @publication_host.prepared_client_effect_computation_graph(effect),
+    )
+    guard installed_text_bound_views_layout(graph) is Some(text_bound_views) else {
+      return Err(Policy)
+    }
     let (r, e) = match
       original_request_plan_construction_quote(
         capacity,
         input,
         data,
-        tasks=@strategy.graph_task_count(
-          @strategy.checked_effect_computation_graph(
-            @publication_host.prepared_client_effect_computation_graph(effect),
-          ),
-        ),
+        tasks=@strategy.graph_task_count(graph),
+        text_bound_views~,
       ) {
       Err(issue) => return Err(issue)
       Ok(value) => value

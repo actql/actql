@@ -1,4 +1,32 @@
 ///|
+test "finalization diagnostic retains original module and task slots before the adapter call" {
+  // Existing async frame, one borrowed namespace reference and one Int task
+  // ordinal: no new header, callback, UTF16 body, wire or resource identity.
+  let expected : @execution.PreparationRepresentationUnits = {
+    record_headers: 0L,
+    reference_slots: 1L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  let actual = local_managed_finalization_diagnostic_controls
+  assert_eq(actual.record_headers, expected.record_headers)
+  assert_eq(actual.reference_slots, expected.reference_slots)
+  assert_eq(actual.scalar_words, expected.scalar_words)
+  assert_eq(actual.owned_utf16_units, expected.owned_utf16_units)
+  assert_eq(actual.owned_wire_bytes, expected.owned_wire_bytes)
+  assert_eq(local_managed_finalization_diagnostic_control_capacity(), Some(16L))
+  assert_eq(
+    @execution.checked_preparation_add_product(
+      local_managed_scalar_overlap_control_capacity().unwrap(),
+      local_managed_finalization_diagnostic_control_capacity().unwrap(),
+      1L,
+    ),
+    Some(264L),
+  )
+}
+
+///|
 test "closed scalar parser overlap composes observed prefixes without raising the original one GiB quota" {
   let base = 15054224L
   let previous = 169656320L

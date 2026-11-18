@@ -150,3 +150,140 @@ test "original Effect evidence validator profiles cover timestamp and path-prefi
   assert_false(unique)
   assert_false(timestamp)
 }
+
+///|
+// Independent authored structural vectors; these literals do not come from
+// the product issuer. The real generated validator still owns acceptance.
+let validator_explanation_body : String =
+  #|{"version":"actql-explanation-facts/0.1","disclosure":"structural","program_definition_cid":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","parameter_values_cid":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","logical_map_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","steps":[{"step_id":"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8","key":{"version":"actql-logical-step-key/0.1","compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","stage_ordinal":0,"occurrence":{"kind":"operation","operation_ordinal":0},"self_cid":"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8"},"operator":"filter","input_ports":["sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"],"output_ports":["sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"],"meaning":{"kind":"filter","predicate":{"state":"projected","root":0,"nodes":[{"form":"operation","operator":"gt","children":[1,2],"type":{"projection":"shape_and_nullability","kind":"boolean","nullable":false}},{"form":"field","scope":"fields","name":"id","type":{"projection":"shape_and_nullability","kind":"number","nullable":false}},{"form":"literal_redacted","type":{"projection":"shape_and_nullability","kind":"number","nullable":false}}]}}}]}
+
+///|
+let validator_explanation_facts : String =
+  #|{"version":"actql-explanation-facts/0.1","disclosure":"structural","program_definition_cid":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","parameter_values_cid":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","logical_map_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","steps":[{"step_id":"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8","key":{"version":"actql-logical-step-key/0.1","compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","stage_ordinal":0,"occurrence":{"kind":"operation","operation_ordinal":0},"self_cid":"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8"},"operator":"filter","input_ports":["sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"],"output_ports":["sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"],"meaning":{"kind":"filter","predicate":{"state":"projected","root":0,"nodes":[{"form":"operation","operator":"gt","children":[1,2],"type":{"projection":"shape_and_nullability","kind":"boolean","nullable":false}},{"form":"field","scope":"fields","name":"id","type":{"projection":"shape_and_nullability","kind":"number","nullable":false}},{"form":"literal_redacted","type":{"projection":"shape_and_nullability","kind":"number","nullable":false}}]}}}],"self_cid":"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682"}
+
+///|
+let validator_explanation_projected : String =
+  #|{"version":"actql-run-explanation-view/0.1","run_ref":{"namespaceId":"original-namespace","authorityScopeCid":"sha256:0000000000000000000000000000000000000000000000000000000000000000","runDefinitionCid":"sha256:1111111111111111111111111111111111111111111111111111111111111111"},"explanation":{"state":"projected","facts":{"version":"actql-explanation-facts/0.1","disclosure":"structural","program_definition_cid":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","parameter_values_cid":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","logical_map_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","steps":[{"step_id":"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8","key":{"version":"actql-logical-step-key/0.1","compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","stage_ordinal":0,"occurrence":{"kind":"operation","operation_ordinal":0},"self_cid":"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8"},"operator":"filter","input_ports":["sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"],"output_ports":["sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"],"meaning":{"kind":"filter","predicate":{"state":"projected","root":0,"nodes":[{"form":"operation","operator":"gt","children":[1,2],"type":{"projection":"shape_and_nullability","kind":"boolean","nullable":false}},{"form":"field","scope":"fields","name":"id","type":{"projection":"shape_and_nullability","kind":"number","nullable":false}},{"form":"literal_redacted","type":{"projection":"shape_and_nullability","kind":"number","nullable":false}}]}}}],"self_cid":"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682"}}}
+
+///|
+let validator_explanation_not_projected : String =
+  #|{"version":"actql-run-explanation-view/0.1","run_ref":{"namespaceId":"original-namespace","authorityScopeCid":"sha256:0000000000000000000000000000000000000000000000000000000000000000","runDefinitionCid":"sha256:1111111111111111111111111111111111111111111111111111111111111111"},"explanation":{"state":"not_projected","reason":"not_retained"}}
+
+///|
+test "explanation validator construction covers body sealed facts and both read branches" {
+  for
+    (name, complete, wire) in [
+      ("explanation_facts", false, validator_explanation_body),
+      ("explanation_facts", true, validator_explanation_facts),
+      ("run_explanation_view", true, validator_explanation_projected),
+      ("run_explanation_view", true, validator_explanation_not_projected),
+    ] {
+    let value = parse_contract_wire(wire, 1000000, 100000, 100).unwrap()
+    let quote = cold_static_plan_validation_construction(
+      name, complete, 100000, 1000000L, 1000000, 100000, 100,
+    ).unwrap()
+    let (peak, accepted) = validator_observed_pending(name, complete, value)
+    assert_true(accepted, msg=name)
+    assert_true(peak.to_int64() <= quote.pending_reference_items, msg=name)
+    // The structural schemas have no unique-array constructor. Neither large
+    // cardinality allowances nor user spelling invent owned text or seen sets.
+    assert_eq(quote.unique_reference_items, 0L)
+    assert_eq(quote.owned_utf16_units, 0L)
+    assert_eq(quote.owned_wire_bytes, 0L)
+  }
+  assert_true(
+    cold_static_plan_validation_construction(
+      "run_explanation_view", false, 0, 0L, 0, 0, 0,
+    )
+    is None,
+  )
+}
+
+///|
+let validator_explanation_private_literal : String =
+  #|{"version":"actql-explanation-facts/0.1","disclosure":"structural","program_definition_cid":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","parameter_values_cid":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","logical_map_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","steps":[{"step_id":"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8","key":{"version":"actql-logical-step-key/0.1","compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","stage_ordinal":0,"occurrence":{"kind":"operation","operation_ordinal":0},"self_cid":"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8"},"operator":"filter","input_ports":["sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"],"output_ports":["sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"],"meaning":{"kind":"filter","predicate":{"state":"projected","root":0,"nodes":[{"form":"operation","operator":"gt","children":[1,2],"type":{"projection":"shape_and_nullability","kind":"boolean","nullable":false}},{"form":"field","scope":"fields","name":"id","type":{"projection":"shape_and_nullability","kind":"number","nullable":false}},{"form":"literal_redacted","type":{"projection":"shape_and_nullability","kind":"number","nullable":false},"value":"private"}]}}}],"self_cid":"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682"}
+
+///|
+test "explanation validator construction stays bounded on wide facts and refuses raw disclosure" {
+  let narrow = cold_static_plan_validation_construction(
+    "explanation_facts", true, 1, 1L, 1, 1, 1,
+  ).unwrap()
+  let wide = cold_static_plan_validation_construction(
+    "explanation_facts", true, 100000, 1000000L, 1000000, 100000, 100,
+  ).unwrap()
+  assert_eq(narrow.owner, wide.owner)
+  let value = parse_contract_wire(
+    validator_explanation_facts, 1000000, 100000, 100,
+  ).unwrap()
+  guard @json.object_field(value, "steps") is Some(@json.Array(steps)) else {
+    fail("original steps")
+  }
+  let step = @json.array_at(steps, 0).unwrap()
+  let step_wire = @json.stringify_value(step, 1000000, 100000, 100) catch {
+    _ => fail("fixture encoding")
+  }
+  let repeated_steps = parse_contract_wire(
+    "[" + Array::make(64, step_wire).join(",") + "]",
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  let repeated = @json.object_with_replaced_fields(value, [
+    ("steps", repeated_steps),
+  ]).unwrap()
+  let (peak, accepted) = validator_observed_pending(
+    "explanation_facts", true, repeated,
+  )
+  assert_true(accepted)
+  assert_true(peak.to_int64() <= wide.pending_reference_items)
+  let bad = parse_contract_wire(
+    validator_explanation_private_literal, 1000000, 100000, 100,
+  ).unwrap()
+  let (peak, accepted) = validator_observed_pending(
+    "explanation_facts", true, bad,
+  )
+  assert_false(accepted)
+  assert_true(peak.to_int64() <= wide.pending_reference_items)
+}
+
+///|
+test "explanation namespace validation preserves ASCII exclusions and Unicode scalar limits" {
+  for code in 0..<128 {
+    let text = String::from_array([code.to_char().unwrap()])
+    let allowed = code >= 32 && code != 127
+    assert_eq(protocol_string_pattern(text, 9), allowed)
+    assert_eq(protocol_string_pattern("😀" + text + "日本語", 9), allowed)
+  }
+  assert_false(protocol_string_pattern("", 9))
+  let original = parse_contract_wire(
+    validator_explanation_not_projected, 1000000, 100000, 100,
+  ).unwrap()
+  let original_ref = @json.object_field(original, "run_ref").unwrap()
+  let quote = cold_static_plan_validation_construction(
+    "run_explanation_view", true, 100000, 1000000L, 1000000, 100000, 100,
+  ).unwrap()
+  for
+    (name, allowed) in [
+      ("😀".repeat(256), true),
+      ("😀".repeat(257), false),
+      ("日本語 é", true),
+      ("line\nfeed", false),
+      ("delete\u{7f}", false),
+      ("", false),
+    ] {
+    let without_namespace = @json.object_without_field(
+      original_ref, "namespaceId",
+    ).unwrap()
+    let changed_ref = @json.object_with_string_field(
+      without_namespace, "namespaceId", name,
+    ).unwrap()
+    let changed = @json.object_with_replaced_fields(original, [
+      ("run_ref", changed_ref),
+    ]).unwrap()
+    let (peak, accepted) = validator_observed_pending(
+      "run_explanation_view", true, changed,
+    )
+    assert_eq(accepted, allowed)
+    assert_true(peak.to_int64() <= quote.pending_reference_items)
+  }
+}

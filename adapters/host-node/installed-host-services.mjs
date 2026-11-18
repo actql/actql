@@ -1484,6 +1484,57 @@ function createInstalledSourceContext(original, material, installation, connecto
           }
         }
       }
+      if (writes.every(write => write.operation === 'update')) {
+        const capacity = original.prepareUpdateMappingCapacity;
+        if (typeof capacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
+        scope.mappingsAttempted = true;
+        const validate = () => {
+          if (!scope.active || material.phase !== 'working' || scope.prepared !== originalPrepared ||
+              scope.source !== undefined) fail('ForeignInstalledSourceInitialization');
+        };
+        // Returned Mapping vector, one argument/closure cohort per constructor,
+        // and the later body-reference vector. Payloads have their OWN native
+        // quantities below; borrowed declaration/Environment are not restored.
+        const containerNodes = 16n + 8n * BigInt(writes.length);
+        reserveSource(original, material, containerNodes);
+        validate();
+        const mappings = [];
+        material.inputs.push(mappings);material.nodes += containerNodes;
+        for (const write of writes) {
+          const geometry = installedEnvironmentDataWriterConstructionGeometry(write.sources);
+          const sourceWire = prepareSourceNativeInput(original, material, Object.freeze({
+            capacity() {
+              const {retained: r, workspace: w} = geometry;
+              return checked(Reflect.apply(material.methods.InstalledSourceConstructionCapacity,
+                original.moon, [r.nodes, r.text, r.wire, w.nodes, w.text, w.wire]));
+            },
+            project: () => Object.freeze({wire: JSON.stringify(write.sources)}),
+          }), inputProjections, validate, retainNativeInput);
+          const mapping = prepareSourceNativeInput(original, material, Object.freeze({
+            capacity: () => checked(Reflect.apply(capacity, original.moon,
+              [originalPrepared.declaration, writesJson, write.resource, sourceWire.wire])),
+            project() {
+              const runtime = Object.freeze({clientProgramRowSourcePrepareUpdateMapping: (...args) =>
+                Reflect.apply(original.prepareUpdateMapping, original.moon, args)});
+              return Object.freeze({resource: write.resource,
+                ...rowSourceMapping(runtime, originalPrepared.declaration,
+                  writesJson, write.resource, write.sources, 'update', sourceWire.wire)});
+            },
+          }), inputProjections, validate, retainNativeInput);
+          mappings.push(mapping);
+        }
+        Object.freeze(mappings);
+        // Every native constructor returned before this existing staged
+        // Environment producer. Successful retained-only cuts keep all Mapping
+        // outputs; any failed constructor/current fence keeps its FULL debt.
+        const environment = prepareSourceEnvironment(originalPrepared.declared,
+          mappings.map(mapping => mapping.body));
+        validate();
+        scope.prepared = Object.freeze({...originalPrepared, mappings, environment});
+        material.inputs.push(scope.prepared);
+        reconcileSource(original, material);
+        return scope.prepared;
+      }
       // Each retained Mapping can expand the original declaration/writes.
       // The final Environment overlaps those bodies. The SAME proportional
       // material recipe covers the failed prefix, without a second Resource.
@@ -2686,9 +2737,11 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const acquisitionContractsCapacity = moon.clientProgramRowSourceAcquisitionContractsConstructionCapacity;
   const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
   const prepareUpdateMapping = moon.clientProgramRowSourcePrepareUpdateMapping;
+  const prepareUpdateMappingCapacity = moon.clientProgramRowSourceUpdateMappingConstructionCapacity;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
     sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, accountCurrent, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
-    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping});
+    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping,
+    prepareUpdateMappingCapacity});
   return services;
 }
 

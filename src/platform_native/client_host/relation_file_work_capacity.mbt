@@ -182,7 +182,9 @@ pub fn native_relation_file_work_control_capacity(
 /// Native wrapper/source/task-loop overlap for the existing whole-input Plan.
 /// Common module/DAG construction remains held by that same original Plan;
 /// this adds no replacement controller, maximum startup or new allowance.
-fn native_relation_whole_file_work_control_capacity(
+/// Exposing this original quote as DATA does not reserve its extent or issue
+/// an entry, prepared-body original, current proof or physical acknowledgement.
+pub fn native_relation_whole_file_work_control_capacity(
   selection : @row_file.NativeRelationFileSelection,
   limits : @row_file.NativeRelationFileLimits,
   provider : @row_file.NativeRelationFilePreparedProvider,

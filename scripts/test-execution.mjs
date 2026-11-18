@@ -161,9 +161,12 @@ export function runFocusedTests(kind, args, options = {}) {
   const selected = kind === 'node' ? nodeTestArguments(args)
     : kind === 'cargo' ? cargoTestArguments(args) : ['test', ...args];
   const {evidenceScratch = join(options.cwd ?? process.cwd(), '_build', 'focused-evidence'), expectedTests,
-    ...spawnOptions} = options;
+    requireAllPassed = false, ...spawnOptions} = options;
   if (expectedTests !== undefined && (!Number.isSafeInteger(expectedTests) || expectedTests < 1)) {
     throw new Error('Expected test count must be a positive safe integer');
+  }
+  if (typeof requireAllPassed !== 'boolean' || (requireAllPassed && kind !== 'node')) {
+    throw new Error('Complete discovered-case execution requires Node tests');
   }
   const env = options.env ?? process.env;
   let evidence, evidenceError, result, checked;
@@ -176,6 +179,11 @@ export function runFocusedTests(kind, args, options = {}) {
     if (expectedTests !== undefined && checked.counts?.tests !== expectedTests) {
       return {...checked, status: checked.status || 1,
         diagnostic: checked.diagnostic + `; expected tests=${expectedTests}`};
+    }
+    if (requireAllPassed && checked.status === 0 &&
+        checked.counts.tests !== checked.counts.passed) {
+      return {...checked, status: 1,
+        diagnostic: checked.diagnostic + '; not every discovered case passed'};
     }
     return checked;
   };

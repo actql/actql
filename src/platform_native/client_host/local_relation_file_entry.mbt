@@ -256,7 +256,7 @@ pub fn NativeLocalHostConnection::prepare_original_whole_relation_file_work_entr
       acquisition, declaration, source,
     )
     is Ok(_)) {
-    return Some(Err(relation_file_work_failure(Configuration)))
+    return Some(Err(relation_file_work_failure(FileWorkSourceBinding)))
   }
   guard @local.installed_managed_preparation_admission_original(
       managed, prepared, request,
@@ -275,7 +275,7 @@ pub fn NativeLocalHostConnection::prepare_original_whole_relation_file_work_entr
       selection, limits, provider, physical_graph,
     ) {
     Some(value) => value
-    None => return Some(Err(relation_file_work_failure(Configuration)))
+    None => return Some(Err(relation_file_work_failure(FileWorkControlQuote)))
   }
   let acquired_entry = match
     original.host.prepare_domain_nonmodel_prepared_work_entry(
@@ -288,7 +288,8 @@ pub fn NativeLocalHostConnection::prepare_original_whole_relation_file_work_entr
       @execution.execution_capacity_execution_bytes(capacity),
     ) {
     None => return None
-    Some(Err(_)) => return Some(Err(relation_file_work_failure(Configuration)))
+    Some(Err(original)) =>
+      return Some(Err(relation_file_work_failure(FileWorkEntry(original))))
     Some(Ok(value)) => value
   }
   let arena = match acquired_entry {
@@ -354,7 +355,11 @@ pub fn NativeLocalHostConnection::prepare_original_whole_relation_file_work_entr
   if ready {
     Some(Ok(entry))
   } else {
-    Some(Err(relation_file_work_failure(Configuration, entry=Some(entry))))
+    let issue = match arena.prepared_capacity_failure() {
+      Some(original) => FileWorkPreparedCapacity(original)
+      None => Configuration
+    }
+    Some(Err(relation_file_work_failure(issue, entry=Some(entry))))
   }
 }
 

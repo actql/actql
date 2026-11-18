@@ -122,14 +122,17 @@ fn[I] request_program_plan_quote(
     guard owner.compiled_program is Some(program) else {
       return Err(WrongPhase)
     }
+    let graph = @publication_host.prepared_client_graph(program)
+    guard installed_text_bound_views_layout(graph) is Some(text_bound_views) else {
+      return Err(Policy)
+    }
     let (r, e) = match
       original_request_plan_construction_quote(
         capacity,
         input,
         data,
-        tasks=@strategy.graph_task_count(
-          @publication_host.prepared_client_graph(program),
-        ),
+        tasks=@strategy.graph_task_count(graph),
+        text_bound_views~,
       ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
@@ -457,6 +460,21 @@ pub fn request_program_plan_issue_is_sequence_limit(
 }
 
 ///|
+/// Fixed original cause DATA within the existing open Problem.code contract.
+/// The reached owner selects it; no caller infers work from RootLimit or Host
+/// errors. Step and selected work remain on the internal typed issue only.
+pub fn request_program_plan_work_refusal_code(
+  issue : ClientRequestProgramPlanIssue,
+) -> String? {
+  guard issue is Installed(RuntimeFragmentWorkLimit(step, selected)) &&
+    step >= 0 &&
+    selected > 0 else {
+    return None
+  }
+  Some("ClientProgramRuntimeFragmentWorkLimit")
+}
+
+///|
 /// Emit and retain the original execution compilation before its module when
 /// the invocation must bind QueryTime to an admitted Run first. The same input,
 /// contracts, factory identity and existing measured writer receipt are retained.
@@ -521,6 +539,22 @@ pub fn[I] prepare_request_program_compilation(
       }
     },
   )
+}
+
+///|
+/// Borrow only the SAME still-working Request's already retained compiler.
+/// This does not recompile, complete a module, issue a Run or check current;
+/// the original caller retains those separate admission responsibilities.
+pub fn[I] request_program_compilation_original(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> @publication_host.ClientRunCompilation? {
+  guard owner.phase == ProgramPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) else {
+    return None
+  }
+  owner.program_compilation
 }
 
 ///|
@@ -1402,6 +1436,7 @@ pub fn[I] begin_request_program_managed_run(
       // No callback occurs while cutting this consumed parent's heavy aliases.
       owner.program_capacity = None
       owner.program_normalization = None
+      owner.program_authoring = None
       owner.compiled_program = None
       owner.program_data = None
       owner.program_plan_quote = None
@@ -1440,6 +1475,7 @@ fn[I, P] original_request_plan_construction_quote(
   input : I,
   data : @checked.ParsedCheckDataEstimate,
   tasks? : Int = 0,
+  text_bound_views? : (Int64, Int64) = (0L, 0L),
 ) -> Result[(Int64, Int64), ClientRequestPreparationIssue] {
   guard program_check_data_extent_cost(data) is Some(bytes) &&
     client_local_value_node_proof_retained_bytes() is Some(proof_retained) &&
@@ -1447,14 +1483,37 @@ fn[I, P] original_request_plan_construction_quote(
     @local.local_module_provider_field_inventory(tasks) is Some(providers) else {
     return Err(Policy)
   }
+  let policy = @local_driver.local_dispatch_preparation_work_policy_capacity()
   let (r, e) = match
     @resources.preparation_capacity_working_extents(capacity, input) {
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
   }
-  guard @execution.checked_preparation_add_product(bytes, proof_retained, 1L)
+  guard @execution.checked_preparation_add_product(
+      bytes,
+      if tasks > 0 {
+        policy.retained_bytes
+      } else {
+        0L
+      },
+      1L,
+    )
     is Some(retained) &&
-    @execution.checked_preparation_add_product(retained, proof_scratch, 1L)
+    @execution.checked_preparation_add_product(retained, proof_retained, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      bytes,
+      if tasks > 0 {
+        policy.execution_bytes
+      } else {
+        0L
+      },
+      1L,
+    )
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(execution, proof_retained, 1L)
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(execution, proof_scratch, 1L)
     is Some(execution) &&
     @execution.checked_preparation_add_product(
       retained,
@@ -1465,6 +1524,14 @@ fn[I, P] original_request_plan_construction_quote(
     @execution.checked_preparation_add_product(
       execution,
       providers.execution_bytes,
+      1L,
+    )
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(retained, text_bound_views.0, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      execution,
+      text_bound_views.1,
       1L,
     )
     is Some(execution) &&

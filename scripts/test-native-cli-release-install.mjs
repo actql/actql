@@ -2,17 +2,18 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {copyFile, mkdir, readFile, writeFile, rename} from 'node:fs/promises';
-import {join, resolve} from 'node:path';
+import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {verifyNativeCliRelease, sharedRuntimeSourceDelta} from './native-cli-release.mjs';
 import {verifyPackageRelease} from './package-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
+import {nativeCliReleaseInstallSelection} from './release-native-install.mjs';
+import {runNativeInstallCommand} from './test-native-standalone-install.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const [cliInput, sdkInput] = process.argv.slice(2); assert(cliInput && sdkInput, 'usage: test-native-cli-release-install.mjs <CLI-RC> <SDK-RC>');
-const cliDirectory = resolve(cliInput), sdkDirectory = resolve(sdkInput);
+const {cliDirectory, sdkDirectory, sharedClients} = nativeCliReleaseInstallSelection(process.argv.slice(2));
 const cli = await verifyNativeCliRelease(cliDirectory), sdk = await verifyPackageRelease(sdkDirectory);
 const runtimeSourceDelta = sharedRuntimeSourceDelta(repository, sdk.sourceSha, cli.sourceSha);
 assert.equal(runtimeSourceDelta, '', 'This combined acceptance requires unchanged Host/protocol runtime inputs between its distinct fixed sources');
@@ -48,19 +49,21 @@ try {
   const installed = join(prefix, 'lib/node_modules'), executable = join(prefix, 'bin/actql');
   const {readdir} = await import('node:fs/promises');
   assert.deepEqual((await readdir(join(installed, 'actql/node_modules/@actql'))).sort(), [`cli-${key}`]);
-  await run(executable, ['--help']); await run(executable, ['--version']);
   const installedPlatform = join(installed, 'actql/node_modules/@actql', `cli-${key}`);
   const installedBinary = join(installedPlatform, 'bin/actql-native-client');
   const artifact = JSON.parse(await readFile(join(installedPlatform, 'artifact.json'), 'utf8'));
   assert.equal(artifact.binarySha256, cli.platforms[key].binarySha256);
-  // Prove that the installed wrapper detects missing and corrupted binaries.
-  await rename(installedPlatform, `${installedPlatform}.held`);
-  try {assert.match((await run(executable, ['--help'], root, 69)).stderr, /Missing @actql\/cli-/u);}
-  finally {await rename(`${installedPlatform}.held`, installedPlatform);}
-  const original = await readFile(installedBinary);
-  try {await writeFile(installedBinary, Buffer.from('wrong artifact'));
-    assert.match((await run(executable, ['--help'], root, 65)).stderr, /identity mismatch/u);
-  } finally {await writeFile(installedBinary, original);}
+  if (!sharedClients) {
+    await run(executable, ['--help']); await run(executable, ['--version']);
+    // Prove that the installed wrapper detects missing and corrupted binaries.
+    await rename(installedPlatform, `${installedPlatform}.held`);
+    try {assert.match((await run(executable, ['--help'], root, 69)).stderr, /Missing @actql\/cli-/u);}
+    finally {await rename(`${installedPlatform}.held`, installedPlatform);}
+    const original = await readFile(installedBinary);
+    try {await writeFile(installedBinary, Buffer.from('wrong artifact'));
+      assert.match((await run(executable, ['--help'], root, 65)).stderr, /identity mismatch/u);
+    } finally {await writeFile(installedBinary, original);}
+  }
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
   await run('npm', ['install', '--no-audit', '--no-fund', `@actql/node@${sdk.cohort.packageVersion}`], consumer);
   await copyFile(join(repository, 'scripts/fixtures/release-native-host.mjs'), join(consumer, 'host-acceptance.mjs'));
@@ -70,19 +73,40 @@ try {
   env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER = executable;
   env.ACTQL_TEST_NATIVE_CLIENT_BINARY = installedBinary;
   env.NODE_EXTRA_CA_CERTS = join(consumer, 'remote.crt');
-  await run(process.execPath, ['host-acceptance.mjs', executable], consumer);
-  // The same installed launcher/executable must preserve all existing mTLS
-  // auth, response-loss, identity and no-resend regressions. Mock Host evidence
-  // is separate from the actual Host acceptance above.
-  // Hundreds of independently checked wire cases also run under x64 emulation.
-  // Keep a finite budget without truncating that required refusal coverage.
-  await run(process.execPath, [join(repository, 'scripts/test-native-client.mjs')], root, 0, 420_000);
+  if (sharedClients) {
+    // The existing fixture keeps the SAME Host alive after its first close
+    // while this existing observer checks its scoped FDs and acknowledges.
+    // An exited CLI or transport disconnect cannot supply that observation.
+    let record;
+    try {
+      record = await runNativeInstallCommand(process.execPath,
+        ['host-acceptance.mjs', executable, '--shared-clients'],
+        {cwd: consumer, env, state: join(consumer, 'host-state')});
+    } catch (failure) {
+      if (failure.commandRecord) await writeFile(join(root, 'shared-host-command.json'),
+        JSON.stringify(failure.commandRecord, null, 2) + '\n', {flag: 'wx'});
+      throw failure;
+    }
+    records.push(record);
+    await writeFile(join(root, 'shared-host-command.json'), JSON.stringify(record, null, 2) + '\n', {flag: 'wx'});
+    console.log(record.stdout.trimEnd());
+  } else {
+    await run(process.execPath, ['host-acceptance.mjs', executable], consumer);
+    // The same installed launcher/executable must preserve all existing mTLS
+    // auth, response-loss, identity and no-resend regressions. Mock Host evidence
+    // is separate from the actual Host acceptance above.
+    // Hundreds of independently checked wire cases also run under x64 emulation.
+    // Keep a finite budget without truncating that required refusal coverage.
+    await run(process.execPath, [join(repository, 'scripts/test-native-client.mjs')], root, 0, 420_000);
+  }
   const receipt = {version: 'actql-native-cli-install-acceptance/0.1', cliSourceSha: cli.sourceSha, hostSourceSha: sdk.sourceSha,
     runtimeSourceDelta: [],
     platform: key, node: process.version, glibc: process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : null,
     artifact, cliPackages: cli.packages.map(({name, version, sha256}) => ({name, version, sha256})),
     hostPackages: sdk.packages.map(({name, version, sha256}) => ({name, version, sha256})),
-    registry: 'private-loopback-fixed-RC', publicRegistryPublication: 'not-tested', records};
+    registry: 'private-loopback-fixed-RC', publicRegistryPublication: 'not-tested',
+    ...(sharedClients ? {acceptedScope: 'parallel-new-and-saved-client-detach',
+      unexecuted: ['active-cancel-isolation', 'named-conflict', 'client-crash', 'owner-crash-restart', 'wire-fault-matrix']} : {}), records};
   await writeFile(join(cliDirectory, `install-${key}-${Date.now()}.json`), `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
-  scratch.passed(); console.log(`Native Remote CLI global installation passed: ${key}`);
+  scratch.passed(); console.log(`Native Remote CLI ${sharedClients ? 'parallel shared-Host' : 'global installation'} passed: ${key}`);
 } finally {await registry.close();}

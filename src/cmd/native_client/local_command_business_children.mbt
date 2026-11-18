@@ -562,6 +562,7 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
 ) -> @local_host.NativeClientRelationFileWorkEntry raise ClientStop {
   guard self.original.business is Some(business) &&
     business.operation is Some(operation) &&
+    business.execution is Some(execution) &&
     business.request_run is Some(managed) &&
     business.file_capacity is Some(capacity) &&
     self.file_source is Some((declaration, row)) &&
@@ -594,6 +595,38 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
     .map_err(issue => CommandRead(issue)),
     stage=Some("file-entry-read"),
   )
+  // Cover this exact Work on the same business child BEFORE the first
+  // Journal-side canonical resize can request physical growth. The quote
+  // and callback end before entry construction; no logical debit or Work
+  // permission is issued by backing alone.
+  {
+    let work_capacity = @local_host.native_relation_whole_file_work_control_capacity(
+      row._retained_selection,
+      row.limits,
+      row.provider,
+      graph,
+    ).unwrap_or_else(() => stop("LocalSourceWorkCapacityUnavailable"))
+    let admission = @local_values.installed_managed_preparation_admission_original(
+      managed, prepared, request,
+    ).unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+    let retained = @execution.execution_capacity_retained_bytes(work_capacity)
+    let working = @execution.execution_capacity_execution_bytes(work_capacity)
+    let backed = self.original.with_business_request(self.capture, () => {
+      let result = physical.prepare_domain_nonmodel_prepared_work_backing(
+        execution, admission, prepared, retained, working,
+      )
+      if result is Err(primary) {
+        // Retain the actual refusal before either original scope return can
+        // fail. Cleanup may retain a secondary issue, never replace this one.
+        self.original.retain_primary(CommandRetainedExecution(primary))
+      }
+      result
+    })
+    command_preparation_result(
+      backed.map_err(issue => CommandRetainedExecution(issue)),
+      stage=Some("file-work-backing"),
+    )
+  }
   let outcome = self.host
     .prepare_original_whole_relation_file_work_entry(
       operation,
@@ -617,13 +650,15 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
       entry
     }
     Err(failure) => {
+      // Retain the actual typed primary before cleanup can clear its entry.
+      let primary = failure.issue()
       business.file_failure = Some(failure)
       // A never-entered partial entry owns only Read-side construction.
       // Failure is retained if its original cancellation cannot finish here.
       if failure.close() {
         business.file_failure = None
       }
-      stop("LocalSourceWorkEntryUnavailable")
+      stop(local_file_work_preparation_message(primary))
     }
   }
 }

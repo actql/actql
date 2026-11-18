@@ -2,6 +2,11 @@
 priv enum ClientRequestPreparationPhase {
   Open
   ResultRead
+  ExplanationRead
+  // Selected read-only bounds live in this existing phase slot, not a new
+  // unconditional parent field. Other phases remain their inline unit tags.
+  ExplanationReadReady(Int, Int, Int, Int)
+  ExplanationReadComplete
   Selecting
   QuerySyntaxQuoted
   QuerySyntaxParsed
@@ -176,6 +181,7 @@ struct ClientRequestPreparation[I] {
   mut compiled_effect : @publication_host.PreparedClientEffectComputation?
   mut effect_plan : ClientInstalledEffectManagedPlan?
   mut program_normalization : ClientRequestProgramNormalization?
+  mut program_authoring : ClientRequestProgramAuthoring?
   mut program_data : @checked.ParsedCheckDataEstimate?
   mut program_plan_quote : (Int64, Int64)?
   mut program_measurement_quote : (Int64, Int64)?
@@ -299,9 +305,24 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   // Events adds Some(quote) (1H/1R) and a closure borrowing its retained
   // record policy and capturing storage_bytes (1H/1R/1W).
   // These fixed controls are backed before the installed factory is entered.
-  record_headers: 257L,
-  reference_slots: 472L,
-  scalar_words: 523L,
+  // The actual Fragment-root work refusal retains one original error variant
+  // (1H/3W: tag, step, selected work). Reserve it before entering construction;
+  // no new Request field, callback or policy is introduced on the failure path.
+  // One returned fixed-code Some (1H/1R/1W) and the existing nominal
+  // error WeakMap's key/value2R. The code is a borrowed Core constant;
+  // no owned text or new Request field is constructed.
+  // The same nominal association now retains one frozen code/refusal-category
+  // record (1H/2R) beside that Some and original error on either failure path.
+  // It borrows both closed literals; no name, value or second registry is held.
+  // The existing query diagnostic getter returns its original pipeline issue
+  // Some and parameter-name Some (2H/2R/2W), conservatively coheld during
+  // projection before the outer code returns. The original name stays internal.
+  // Authoring adds one bounded pre-Run Model/Content view1H and four same
+  // proof references: Core Request, manager, borrowed view and Task admission.
+  // This is independent of the existing Fragment refusal quote above.
+  record_headers: 263L,
+  reference_slots: 483L,
+  scalar_words: 529L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -457,6 +478,7 @@ fn[I] begin_request_preparation_original(
     compiled_effect: None,
     effect_plan: None,
     program_normalization: None,
+    program_authoring: None,
     program_data: None,
     program_plan_quote: None,
     program_measurement_quote: None,
@@ -801,6 +823,10 @@ pub fn[I] abort_request_preparation_after_cleanup(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  match finish_request_program_authoring_work(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   match finish_request_effect_capture_work(owner) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -842,6 +868,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   // Its cached normalization custody is severed only after logical retirement.
   owner.effect_plan = None
   owner.program_normalization = None
+  owner.program_authoring = None
   owner.program_data = None
   owner.program_plan_quote = None
   owner.program_measurement_quote = None

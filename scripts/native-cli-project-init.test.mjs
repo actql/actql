@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {projectInitArguments, projectInitialAdoptionArguments, requireProjectInitSupport, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
+import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 
 test('init forwards one explicit operator Host path unchanged to the original Native adoption', () => {
@@ -81,6 +82,7 @@ async function installedFixture(t, {runtime = false} = {}) {
     '  process.stdout.write(process.env.ACTQL_INIT_FIXTURE_SUPPORT ?? JSON.stringify({version:"actql-project-init-support/0.1",sourceFree:true,mock:false}));\n' +
     '  process.exit(0);\n' +
     '}\n' +
+    'if (process.env.ACTQL_INIT_FIXTURE_OBSERVE_TIMINGS === "1") process.stderr.write("original adoption diagnostics\\n");\n' +
     'process.stdout.write(JSON.stringify({args:process.argv.slice(2),runtime:process.env.ACTQL_NATIVE_LOCAL_RUNTIME ?? null,...(process.env.ACTQL_INIT_FIXTURE_OBSERVE_TIMINGS === "1" ? {timings:process.env.ACTQL_NATIVE_TIMINGS} : {})}) + "\\n");\n' +
     'process.exitCode=Number(process.env.ACTQL_INIT_FIXTURE_EXIT ?? 0);\n');
   await writeFile(executable, binary, {mode: 0o755});
@@ -453,7 +455,12 @@ test('installed init silences only private query timings and preserves adoption 
   const canonicalProject = await realpath(join(f.cwd, 'project'));
   assert.deepEqual(observed.args, ['--mode', 'local', '--config', join(canonicalProject, 'actql.config.json'),
     '--state-dir', join(canonicalProject, '.actql'), 'adopt', '--initialize-signing']);
-  assert.match(result.stderr, /^ACTQL_NATIVE_LAUNCHER_TIMINGS /u);
+  const envelope = nativeLauncherEnvelope(result.stderr, 'required');
+  assert.equal(envelope.native, 'original adoption diagnostics\n');
+  assert.equal(envelope.timing.units, 'nanoseconds');
+  assert(Number.isSafeInteger(envelope.timing.preparation) && envelope.timing.preparation >= 0);
+  assert(Number.isSafeInteger(envelope.timing.child) && envelope.timing.child >= 0);
+  assert.equal(envelope.timing.total, envelope.timing.preparation + envelope.timing.child);
   assert.doesNotMatch(result.stderr, /query timing diagnostics/u);
   assert.deepEqual(await readdir(join(f.cwd, 'project')), ['actql.config.json', 'connectors.json', 'model-tasks.json']);
 });

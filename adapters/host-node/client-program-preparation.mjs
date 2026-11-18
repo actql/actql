@@ -15,6 +15,11 @@ const issueCodes = Object.freeze({
   values_profile_unsupported: 'ClientProgramUnsupported',
   needs_inputs: 'ClientProgramNeedsInputs',
   check_invalid_input: 'ClientProgramInvalidInput',
+  ClientProgramParameterUndeclared: 'ClientProgramInvalidInput',
+  ClientProgramTimestampPatternInvalid: 'ClientProgramInvalidInput',
+  ClientProgramAggregateOrderRequired: 'ClientProgramInvalidInput',
+  ClientProgramOrderUnresolved: 'ClientProgramRejected',
+  ClientSuppliedParameterUndeclared: 'ClientParametersInvalid',
   // A typed checker configuration refusal precedes submission and Run admission.
   check_invalid_configuration: 'ClientProgramRejected',
   check_unsupported: 'ClientProgramImplementationLimit',
@@ -63,9 +68,20 @@ if ([...Object.values(issueCodes), ...Object.values(effectIssueCodes)]
 // Only this projection owns these immutable facts. A copied/mutable error
 // property or a lookalike Host exception cannot issue a capacity diagnostic.
 const capacityRefusals = new WeakMap();
-export function requestProgramCapacityRefusal(error) {
+function originalPreparationRefusal(error) {
   return error !== null && (typeof error === 'object' || typeof error === 'function')
     ? capacityRefusals.get(error) : undefined;
+}
+export function requestProgramCapacityRefusal(error) {
+  const original = originalPreparationRefusal(error);
+  return original?.problemCode === undefined ? original : undefined;
+}
+export function requestProgramPreparationProblemCode(error) {
+  const original = originalPreparationRefusal(error);
+  return original?.problemCode;
+}
+export function requestProgramPreparationRefusalCode(error) {
+  return originalPreparationRefusal(error)?.refusalCode;
 }
 function projectCapacityRefusal(moon, result) {
   const project = moon.clientProgramRequestProgramModuleCapacityRefusal;
@@ -109,6 +125,15 @@ export function checkedRequestProgramPreparation(moon, result,
   projectIssue = moon.clientProgramRequestPreparationIssueCode) {
   if (runtimeIsError(result)) {
     const category = projectIssue.call(moon, result);
+    if (category === 'ClientProgramRuntimeFragmentWorkLimit') {
+      // Keep the existing trusted submit-refusal code. Only the same typed
+      // result may supply its reached Core cause on the open Problem surface.
+      const error = Object.assign(new Error('ClientProgramRejected', {cause: runtimeField(result, 0)}),
+        {code: 'ClientProgramRejected'});
+      capacityRefusals.set(error, Object.freeze({problemCode: category,
+        refusalCode: 'ClientProgramRejected'}));
+      throw error;
+    }
     if (category === 'source_free_capacity_exceeded') {
       const capacity = projectCapacityRefusal(moon, result);
       // Existing operation_failed refusal: no claim that the Program is
@@ -120,7 +145,18 @@ export function checkedRequestProgramPreparation(moon, result,
     }
     const code = issueCodes[category] ?? effectIssueCodes[category];
     if (code !== undefined) {
-      throw Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
+      const error = Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
+      if (category === 'ClientSuppliedParameterUndeclared' ||
+          category === 'ClientProgramParameterUndeclared' ||
+          category === 'ClientProgramTimestampPatternInvalid' ||
+          category === 'ClientProgramAggregateOrderRequired' ||
+          category === 'ClientProgramOrderUnresolved') {
+        // Core has proved the original fixed cause and its refusal category.
+        // Preserve both facts, including operation_failed for unresolved order;
+        // mutable error properties cannot change either original fact.
+        capacityRefusals.set(error, Object.freeze({problemCode: category, refusalCode: code}));
+      }
+      throw error;
     }
   }
   return checked(result);
