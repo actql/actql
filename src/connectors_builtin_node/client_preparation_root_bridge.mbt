@@ -6,6 +6,21 @@
 type ClientLocalPreparationInputOriginal
 
 ///|
+/// Pure Node constructor DATA, not a reservation, limit or permission. Only an
+/// explicit physical deadline adds it to the same original Model/read demand.
+#export_name("clientProgramInstalledNodeModelDeadlineCapacity")
+pub fn client_program_installed_node_model_deadline_capacity() -> Array[Int64] {
+  match @client_local_host.installed_node_model_deadline_capacity() {
+    None => []
+    Some(value) =>
+      [
+        @execution.execution_capacity_retained_bytes(value),
+        @execution.execution_capacity_execution_bytes(value),
+      ]
+  }
+}
+
+///|
 #export_name("clientProgramPrepareInstalledEffectCaptureRecovery")
 pub fn client_program_prepare_installed_effect_capture_recovery(
   parent : @client_local_host.ClientInstalledManagedRun,
