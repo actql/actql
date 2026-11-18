@@ -1016,7 +1016,7 @@ fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise 
     ).unwrap()
     let child = @local.managed_provider_capacity(provider, selected).unwrap()
     let original_configuration = original_plan.configuration.unwrap()
-    let selected_capacity = @local_driver.local_dispatch_preparation_task_capacity(
+    let selected_capacity = @local_driver.local_dispatch_preparation_managed_task_capacity(
       original_configuration.dispatch,
       0,
     ).unwrap()

@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/local/driver/preparation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0f52283455ecbddd2de21e520b69c571f4004679237ff96b296b85bd17c58894",
+      "sha256": "784df1c1af1ec310f2a6c4688996aa6e755af5e33eec716f47e7b3a76a1caefd",
       "role": "physical-io",
       "owner": "Existing Local dispatch preparation and original Run binding; pure quotations do not grant physical resources",
       "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
@@ -33,6 +33,10 @@
         {
           "name": "local_dispatch_preparation_input_scan_work",
           "declaration": "local_dispatch_preparation_input_scan_work ( original : LocalDispatchPreparation , task : Int , ) - > Int ?"
+        },
+        {
+          "name": "local_dispatch_preparation_managed_task_capacity",
+          "declaration": "local_dispatch_preparation_managed_task_capacity ( original : LocalDispatchPreparation , task : Int , ) - > @ strategy . PhysicalEnvelope ?"
         },
         {
           "name": "local_dispatch_preparation_policies",
@@ -89,7 +93,8 @@
             "prepare_local_dispatch_plan",
             "local_dispatch_preparation_input_scan_work",
             "local_dispatch_preparation_work_policy",
-            "local_dispatch_preparation_work_policy_capacity"
+            "local_dispatch_preparation_work_policy_capacity",
+            "local_dispatch_preparation_managed_task_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -211,6 +216,10 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "The logical-work extension has its own explicit delta"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_task_capacity("
               }
             ],
             "extension": [
@@ -247,6 +256,10 @@
               {
                 "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
                 "anchor": "logical work diagnostic quote retains"
+              },
+              {
+                "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
+                "anchor": "managed task projection adds only its complete diagnostic frame"
               }
             ]
           }

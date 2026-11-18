@@ -13,7 +13,8 @@ from pathlib import Path
 from typing import Any
 
 from ._local_wasm_abi import LOCAL_CORE_ABI
-from ._local_distribution import LocalInstallationError, WASMTIME_VERSION, _closed, _hex, _pairs, _read_file
+from ._local_distribution import (LocalInstallationError, WASMTIME_VERSION, _closed,
+    _component_engine_target, _hex, _pairs, _read_file)
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +29,12 @@ class _SelectedImageRecipe:
     provider_library_sha256: str | None
     provider_library_bytes: int | None
     runtime_allocation: str = 'native-owned'
+
+    @property
+    def platform(self) -> str:
+        self.validate()
+        body = json.loads(self.engine_body, object_pairs_hook=_pairs)
+        return _component_engine_target(body['target'], body['cpu_features']).name
 
     def owned_provider(self) -> tuple[str, int]:
         """Only the explicit arena-backed selection has a Native provider."""
@@ -61,9 +68,10 @@ class _SelectedImageRecipe:
                 'memory_guard_size', 'memory_reservation_for_growth', 'max_wasm_stack'))
             # An explicit baseline target avoids compilation for the producer's
             # detected CPU. Actual pinned compiler/config validation is separate.
-            if (body['target'] != 'aarch64-apple-darwin'
-                    or body['cpu_features'] != ['aarch64-baseline']
-                    or body['consume_fuel'] is not True
+            target = _component_engine_target(body['target'], body['cpu_features'])
+            if target.name == 'linux-x64' and self.runtime_allocation != 'platform':
+                raise LocalInstallationError('Linux owned-Native supplier is unavailable')
+            if (body['consume_fuel'] is not True
                     or body['strategy'] != 'cranelift'
                     or body['parallel_compilation'] is not False
                     or body['allocation'] != 'pooling'
@@ -116,7 +124,7 @@ def _image_descriptor(body: Any, recipe: _SelectedImageRecipe) -> dict[str, Any]
             or item['runtime_library_sha256'] != recipe.runtime_library_sha256
             or item['provider_library_sha256'] != recipe.provider_library_sha256
             or item.get('runtime_allocation', 'native-owned') != recipe.runtime_allocation
-            or item['platform'] != 'darwin-arm64' or encoded != original
+            or item['platform'] != recipe.platform or encoded != original
             or item['engine_sha256'] != hashlib.sha256(original).hexdigest()
             or item['file'] != 'client_host_wasm.cwasm'
             or type(item['bytes']) is not int

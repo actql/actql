@@ -382,27 +382,28 @@ class InstalledLocalHost:
                 for key in ('stopBefore', 'readOnly'):
                     if key in body:
                         intent[key] = body[key]
-                identity = content_cid({'version': 'actql-submitted-intent/0.1',
-                    'intent': intent}, data_keys=True)  # type: ignore[no-untyped-call]
-                if body['intentCid'] != identity:
-                    raise ValueError('Invalid original Local submitted intent identity')
-                observed = _object(self._lookup_original_submission(body['submissionRef']), 1048576)
-                if observed.get('kind') in ('ready', 'preparing', 'preparation_failed') and observed.get('intentCid') != identity:
+                observation = _object(self._read_original_reference(
+                    body['submissionRef'], kind=4, intent=wire_bytes(intent),
+                    intent_cid=body['intentCid']), 1048576)  # type: ignore[no-untyped-call]
+                identity = observation['intentCid']
+                observed = observation['outcome']
+                action = observation['action']
+                if action == 'conflict':
                     value = {'kind': 'conflict', 'attemptRef': body['attemptRef'],
                         'submissionRef': body['submissionRef'], 'intentCid': identity, 'reason': 'intent'}
                     if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
                         raise ValueError('Invalid original Local Submission conflict')
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
-                elif observed.get('kind') in ('ready', 'preparing', 'preparation_failed'):
+                elif action in ('recorded', 'already_satisfied'):
                     # The saved admission is DATA, not a restored executable
                     # Run. Never prepare, dispatch or issue another Run here.
-                    value = {'kind': 'recorded' if observed['kind'] == 'preparing' else 'already_satisfied',
+                    value = {'kind': action,
                         'attemptRef': body['attemptRef'],
                         'outcome': observed}
                     if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
                         raise ValueError('Invalid original saved Local Submission response')
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
-                else:
+                elif action == 'missing':
                     run, admission = self._accept_original(body['submissionRef'],
                         wire_bytes(intent), run_id='python-' + secrets.token_hex(16))  # type: ignore[no-untyped-call]
                     saved = _object(admission, 1048576)
@@ -429,6 +430,8 @@ class InstalledLocalHost:
                     if run is not None:
                         self._register_original_run_reference(run, admission)
                         work = OriginalLocalWork(partial(self._execute_original_admitted_run, run))
+                else:
+                    raise ValueError('Invalid original Local Submission action')
             elif operation in ('status', 'wait'):
                 if operation == 'wait' and (body['until'] not in (None, 'terminal')
                         or body['since'] is not None):
@@ -1091,17 +1094,23 @@ class InstalledLocalHost:
         """Select one saved admission; never recreate an executable Run plan."""
         return self._read_original_reference(reference, kind=5)
 
-    def _read_original_reference(self, reference: object, *, kind: int) -> bytes:
+    def _read_original_reference(self, reference: object, *, kind: int,
+                                 intent: bytes | None = None, intent_cid: str | None = None) -> bytes:
         installation = self._active()
         configuration = self._configuration
         if (installation._epoch is None or installation._store is None
                 or configuration is None):
             raise ValueError('Original Local submission suppliers are unavailable')
         captured_reference = _object(wire_bytes(reference), 8192)  # type: ignore[no-untyped-call]
+        if (intent is None) != (intent_cid is None) or intent is not None and kind != 4:
+            raise ValueError('Invalid original Local Submission observation')
         with self._core._lock:
             if kind == 4:
                 installation._epoch.identity(captured_reference)
                 body = {'reference': wire_bytes(captured_reference).decode('utf-8')}  # type: ignore[no-untyped-call]
+                if intent is not None and intent_cid is not None:
+                    body['intent'] = intent.decode('utf-8')
+                    body['intentCid'] = intent_cid
             elif kind in (5, 7) and wire.valid(captured_reference, 'run_ref'):  # type: ignore[no-untyped-call]
                 body = captured_reference
             else:
@@ -1116,6 +1125,14 @@ class InstalledLocalHost:
                 captured.append(_object(self._core.produce_and_read_submission_lookup(output, current), 1048576))
             installation.binding.inspect(observe)
             original = captured[0]
+            action = None
+            expected_identity = None
+            if intent is not None:
+                action = original.pop('observation', None)
+                expected_identity = original.pop('expectedIntentCid', None)
+                if (action not in ('missing', 'conflict', 'recorded', 'already_satisfied')
+                        or expected_identity != intent_cid):
+                    raise ValueError('Invalid original Local Submission observation')
             if kind == 7:
                 # Core selects the same saved original state, observation key
                 # and revision under the full current snapshot. This branch
@@ -1160,7 +1177,8 @@ class InstalledLocalHost:
                                          'classification': original['problemClassification']}
             if not wire.submission_outcome(result, _LOCAL_SELECTION, captured_reference, lookup=True):  # type: ignore[no-untyped-call]
                 raise ValueError('Invalid original Local submission lookup response')
-            raw: bytes = wire_bytes(result)  # type: ignore[no-untyped-call]
+            raw: bytes = wire_bytes(result if intent is None else {
+                'action': action, 'intentCid': expected_identity, 'outcome': result})  # type: ignore[no-untyped-call]
             if not self._close_projection(output):
                 raise LocalProductCleanupPending(self)
             return raw

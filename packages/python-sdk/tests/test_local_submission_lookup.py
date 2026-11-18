@@ -38,6 +38,7 @@ class LocalSubmissionLookupTests(unittest.TestCase):
         with TemporaryDirectory(prefix='actql-ready-submit-') as directory:
             host, _, calls, counters, reference = self.fixture(directory, {
                 'kind': 'ready', 'intentCid': identity,
+                'observation': 'already_satisfied', 'expectedIntentCid': identity,
                 'admission': json.dumps(admission, separators=(',', ':'))})
             body = self.submit_body(reference)
             async def submit():
@@ -70,7 +71,8 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             'durability': 'durable', 'revision': 7}
         for kind in ('ready', 'preparing'):
             with self.subTest(kind=kind), TemporaryDirectory(prefix='actql-intent-conflict-') as directory:
-                observed = {'kind': kind, 'intentCid': 'sha256:' + 'e' * 64}
+                observed = {'kind': kind, 'intentCid': 'sha256:' + 'e' * 64,
+                    'observation': 'conflict', 'expectedIntentCid': self.submit_body({})['intentCid']}
                 if kind == 'ready':
                     observed['admission'] = json.dumps(admission)
                 host, _, _, counters, reference = self.fixture(directory, observed)
@@ -239,6 +241,13 @@ class LocalSubmissionLookupTests(unittest.TestCase):
                 expected = ({'reference': json.dumps(reference, ensure_ascii=False, separators=(',', ':'))}
                             if run_reference is None else run_reference if result_name is None else
                             {**run_reference, "resultName": result_name})
+                if 'expectedIntentCid' in observed:
+                    submitted = self.submit_body(reference)
+                    transported = json.loads(source)
+                    expected['intent'] = transported['intent']
+                    expected['intentCid'] = submitted['intentCid']
+                    self.assertEqual(json.loads(transported['intent']),
+                        {key: submitted[key] for key in ('kind', 'input', 'parameters')})
                 self.assertEqual(json.loads(source), expected)
                 outputs[args[0]] = json.dumps(observed, separators=(',', ':')).encode()
                 return 0
@@ -355,6 +364,30 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             source = host._append_sources[output.ticket]
             self.assertIs(core._loans[output.ticket], output)
             self.assertIs(core._loans[source.ticket], source)
+            with patch.object(core, 'close_submission_lookup', wraps=original) as close:
+                self.assertTrue(host.close())
+                close.assert_called_once_with(output)
+
+    def test_attempt_observation_pending_close_keeps_original_intent_and_output(self):
+        identity = self.submit_body({})['intentCid']
+        with TemporaryDirectory(prefix='actql-attempt-observation-') as directory:
+            host, core, _, counters, reference = self.fixture(directory, {
+                'kind': 'missing', 'observation': 'missing', 'expectedIntentCid': identity})
+            body = self.submit_body(reference)
+            intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
+            original = core.close_submission_lookup
+            with patch.object(core, 'close_submission_lookup', return_value=False):
+                with self.assertRaises(LocalProductCleanupPending):
+                    host._read_original_reference(reference, kind=4,
+                        intent=json.dumps(intent, ensure_ascii=False, separators=(',', ':')).encode(),
+                        intent_cid=identity)
+            output = host._projections[-1]
+            source = host._append_sources[output.ticket]
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertIs(core._loans[source.ticket], source)
+            self.assertEqual(counters['produce'], 1)
+            self.assertFalse(host._run_loans)
+            self.assertFalse(host._prepared_inputs)
             with patch.object(core, 'close_submission_lookup', wraps=original) as close:
                 self.assertTrue(host.close())
                 close.assert_called_once_with(output)

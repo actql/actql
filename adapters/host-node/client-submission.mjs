@@ -325,10 +325,13 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       unresolvedHistory: value.unresolvedHistory});
     if (attempt === undefined) journal.checkSubmittedIntent(value.submissionRef, input, restartFields(fields), moon);
     else attempt.check(value.submissionRef, input, restartFields(fields));
-    let retained = journal.lookupSubmittedIntent(value.submissionRef, fields, moon);
+    let retained = journal.lookupSubmittedIntent(value.submissionRef, fields, moon, input);
     attempt?.observe(retained);
     if (retained !== undefined) {
-      if (retained.intentCid !== value.intentCid) fail('ClientSubmittedIntentConflict');
+      if (!['conflict', 'recorded', 'already_satisfied'].includes(retained.observation)) {
+        fail('ClientSubmittedIntentCorrupt');
+      }
+      if (retained.observation === 'conflict') fail('ClientSubmittedIntentConflict');
       const result = await refresh(value, retained, fields);
       if (result.kind === 'unresolvable') fail('ClientSubmissionUnresolvable');
       if (result.kind === 'ready') return await replayReady(value, retained, fields, result, input);
@@ -475,7 +478,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       undefined, {attemptRef: value.attemptRef, currentAuthorization: false}, moon);
     const fields = scopeFields(selected);
     const rejections = new WeakMap();
-    let originalSatisfied = false;
+    let attemptKind = 'recorded';
     const project = result => {
       if (['refused', 'conflict'].includes(result.kind)) {
         const interruption = new Error('SubmissionAttemptRejected');
@@ -486,7 +489,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     };
     try {
       const outcome = await submitIntent(value, {fields,
-        observe(retained) {if (retained !== undefined && retained.phase !== 'preparing') originalSatisfied = true;},
+        observe(retained) {
+          if (retained?.observation === 'already_satisfied') attemptKind = retained.observation;
+        },
         check(ref, input, options) {
           project(journal.checkSubmissionAttempt(ref, input,
             {...options, attemptRef: value.attemptRef}, moon));
@@ -494,11 +499,14 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         record(ref, input, options) {
           const result = project(journal.recordSubmissionAttempt(ref, input,
             {...options, attemptRef: value.attemptRef}, moon));
-          if (!result.submission.inserted && result.submission.phase !== 'preparing') originalSatisfied = true;
+          if (!['recorded', 'already_satisfied'].includes(result.attemptKind)) {
+            fail('ClientSubmittedIntentCorrupt');
+          }
+          if (result.attemptKind === 'already_satisfied') attemptKind = result.attemptKind;
           return result.submission;
         },
       });
-      return immutable({kind: originalSatisfied ? 'already_satisfied' : 'recorded',
+      return immutable({kind: attemptKind,
         attemptRef: value.attemptRef, outcome});
     } catch (error) {
       // Only the exact private Owner projection can terminate this invocation

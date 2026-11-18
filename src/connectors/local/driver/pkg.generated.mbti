@@ -46,6 +46,8 @@ pub fn local_dispatch_predecessor_is_carrier(LocalDispatchModule, Int) -> Bool
 
 pub fn local_dispatch_preparation_input_scan_work(LocalDispatchPreparation, Int) -> Int?
 
+pub fn local_dispatch_preparation_managed_task_capacity(LocalDispatchPreparation, Int) -> @physical_strategy_host.PhysicalEnvelope?
+
 pub fn local_dispatch_preparation_retained_bytes(LocalDispatchPreparation) -> Int64?
 
 pub fn local_dispatch_preparation_task_capacity(LocalDispatchPreparation, Int) -> @physical_strategy_host.PhysicalEnvelope?

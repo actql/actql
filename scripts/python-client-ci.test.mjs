@@ -28,6 +28,8 @@ test('reviewed Local-source callers keep their explicit Source facade and no phy
   const remote = new Set(remotePythonClientTests), local = new Set(sourceLocalPythonClientTests);
   assert.equal([...remote].some(name => local.has(name)), false);
   const expected = [...remotePythonClientTests, ...sourceLocalPythonClientTests];
+  assert.equal(steps.filter(step => step.args.at(-1) === 'test_local_linux_components.py').length, 1,
+    'The reviewed Linux component fixtures run in the existing source-only selection');
   assert.equal(steps.length, expected.length);
   assert.deepEqual([...new Set(steps.map(step => step.args.at(-1)))].sort(), [...expected].sort());
   for (const step of steps) {

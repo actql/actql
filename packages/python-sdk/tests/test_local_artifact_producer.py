@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
-from image_fixture import IMAGE, ORIGINAL, RUNTIME_HASH, descriptor, table_module
+from image_fixture import IMAGE, ORIGINAL, RUNTIME_HASH, descriptor, table_module, linux_version_library
 import hashlib
+import errno
 import importlib.util
 import json
 from pathlib import Path
@@ -90,7 +91,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
                        'public_local_acceptance': False, 'wheel_acceptance': False}
         self.image_path = self.root / 'original.cwasm'
         self.image_path.write_bytes(IMAGE)
-        self.image = {'source_sha': self.head, 'module_sha256': digest, 'core_abi': 74,
+        self.image = {'source_sha': self.head, 'module_sha256': digest, 'core_abi': 87,
             'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
             'provider_library_sha256': json.loads(ORIGINAL)['provider_library_sha256'],
             'engine_sha256': descriptor(self.head, '0.0.0.dev0', digest)['engine_sha256'],
@@ -220,6 +221,58 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.assertIsNone(result['artifact']['compiled_image']['provider_library_sha256'])
         self.assertFalse(result['runtime_executed'])
         self.assertFalse(result['wheel_built'])
+
+    def test_linux_platform_assembly_and_stage_keep_original_target_and_receipts(self):
+        original = json.loads(ORIGINAL)
+        original.update(runtime_allocation='platform', provider_library_sha256=None,
+                        provider_library_bytes=None)
+        original['engine_body'].update(target='x86_64-unknown-linux-gnu',
+                                      cpu_features=['x86_64-baseline'])
+        selected = self.source / 'packages/python-local-runtime/selected-platform-image-recipe.linux-x64.json'
+        selected.write_text(json.dumps(original))
+        shutil.copyfile(ROOT / 'packages/python-local-runtime/WASMTIME-LICENSE',
+                        self.source / 'packages/python-local-runtime/WASMTIME-LICENSE')
+        self.commit()
+        self.library.write_bytes(linux_version_library())
+        image = IMAGE[:18] + b'\x3e\x00' + IMAGE[20:]
+        self.image_path.write_bytes(image)
+        self.duckdb.update(source_sha=self.head, library_sha256=hash_bytes(self.library.read_bytes()),
+                           machine='x86_64', platform='Linux-synthetic-metadata-only')
+        self.image.update(source_sha=self.head, core_abi=producer.LOCAL_CORE_ABI,
+            runtime_allocation='platform', provider_library_sha256=None, image_sha256=hash_bytes(image),
+            engine_sha256=hash_bytes(json.dumps(original['engine_body'], sort_keys=True,
+                separators=(',', ':')).encode('ascii')))
+        self.core['source_sha'] = self.head
+        self.write_receipts()
+        real_run = subprocess.run
+        inspected = []
+        def execute(args, **options):
+            if args[0] != 'readelf':
+                return real_run(args, **options)
+            inspected.append(args[1])
+            text = ('(NEEDED) Shared library: [libc.so.6]\n'
+                    '(NEEDED) Shared library: [libstdc++.so.6]\n'
+                    if args[1] == '--dynamic' else 'Name: GLIBC_2.25\nName: GLIBCXX_3.4.22\n')
+            options['stdout'].write(text.encode())
+            return subprocess.CompletedProcess(args, 0)
+        with patch.object(producer.sys, 'platform', 'linux'), \
+             patch.object(producer.platform, 'machine', return_value='x86_64'), \
+             patch('actql_sdk._local_distribution.os.confstr', return_value='glibc 2.28'), \
+             patch.object(subprocess, 'run', side_effect=execute):
+            result = producer.produce_platform(self.module_file, self.duckdb_file, self.image_file, self.output)
+            stage = self.root / 'stage'
+            staged = producer.recipe.prepare(self.output, stage, target_platform='linux-x64')
+        self.assertEqual(result['artifact']['platform'], 'linux-x64')
+        self.assertEqual(result['artifact']['duckdb']['file'], 'libduckdb.so')
+        self.assertEqual((self.output / 'libduckdb.so').read_bytes(), self.library.read_bytes())
+        self.assertEqual((stage / 'src/actql_local_runtime/libduckdb.so').read_bytes(), self.library.read_bytes())
+        self.assertFalse((stage / 'src/actql_local_runtime/libduckdb.dylib').exists())
+        self.assertEqual(json.loads((self.output / 'engine-recipe.json').read_bytes()), original)
+        self.assertIs(result['runtime_executed'], False)
+        self.assertIs(result['public_local_accepted'], False)
+        self.assertIs(staged['runtime_executed'], False)
+        self.assertGreaterEqual(inspected.count('--dynamic'), 1)
+        self.assertNotIn('--version-info', inspected)
 
     def test_fixed_originals_copy_and_stage_through_existing_recipe_without_engine_loading(self):
         result = self.run_producer()
@@ -374,8 +427,9 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
         self.module.unlink()
         self.module.symlink_to(self.library)
-        with self.assertRaisesRegex(ValueError, 'regular file'):
+        with self.assertRaises(OSError) as refused:
             self.run_producer()
+        self.assertEqual(refused.exception.errno, errno.ELOOP)
         self.assertFalse(self.output.exists())
 
     def test_unconfirmed_standalone_version_or_profile_is_refused(self):

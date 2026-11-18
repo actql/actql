@@ -264,6 +264,45 @@ installation fields match the Embedded Local profile above. Attach
 the embedding application. Clients use `@actql/node` or `@actql/sdk` with
 `{mode: 'remote', endpoint, token, durability: 'durable'}`.
 
+One operator-owned listener can serve independent CLI and SDK processes. Start
+it once with the actual installation, bearer-principal authentication callback,
+and TLS options (including the required client trust policy):
+
+```js
+import {createServer} from 'node:https';
+import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
+
+const host = await openInstalledRemoteHttpHost({...installation, authenticate});
+const server = createServer(tlsOptions, host.handler);
+await new Promise((resolve, reject) => {
+  server.once('error', reject);
+  server.listen({host: '127.0.0.1', port: 8443}, resolve);
+});
+
+// The operator calls this after the shared service should stop accepting work.
+async function stop() {
+  await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  return await host.close();
+}
+```
+
+Keep the process alive between startup and its explicit shutdown. Each client
+connects to the listener using its own normal connection and retains its original
+submission and Run references. See the [Native Remote command example](../native-cli/README.md#local-projects-and-remote-hosts)
+for explicit connection, token and TLS file inputs. Closing one Client detaches
+that client; it does not call the shared Host's `close()` or cancel another Run.
+Authentication identifies the principal; the normal Account still authorizes
+each execution, Run read, Result and control separately.
+
+A crashed Host provides no close acknowledgement. A replacement operator opens
+the same state through this same public entry and its ordinary exclusive-owner
+and recovery admission; do not delete locks or resubmit an uncertain operation.
+Read completed Saved results by their original references. An interrupted Run
+may require reconciliation with physical stop still unknown. A listener close,
+client exit or equal result does not settle that obligation. Inspect the actual
+`await stop()` pending/retention fields and preserve cleanup failures before treating
+an orderly owner close as complete.
+
 To admit `actql://host:port/workspace-id` clients, also supply the Host's
 stable `workspaceId` installation option. It is a service identifier, not a
 directory path or a replacement for the existing Local namespace. The Host

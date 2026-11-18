@@ -2101,11 +2101,11 @@ test "explicit retained output keeps its original exporter beside the default ma
   let retained_configuration = retained.configuration.unwrap()
   assert_false(managed_configuration.retained_output)
   assert_true(retained_configuration.retained_output)
-  let ordinary = @local_driver.local_dispatch_preparation_task_capacity(
+  let ordinary = @local_driver.local_dispatch_preparation_managed_task_capacity(
     managed_configuration.dispatch,
     0,
   ).unwrap()
-  let explicit = @local_driver.local_dispatch_preparation_task_capacity(
+  let explicit = @local_driver.local_dispatch_preparation_managed_task_capacity(
     retained_configuration.dispatch,
     0,
   ).unwrap()

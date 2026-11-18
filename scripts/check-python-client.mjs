@@ -30,6 +30,7 @@ export const remotePythonClientTests = Object.freeze([
 // SQLite state. These do not execute an installed Core or Native component.
 export const sourceLocalPythonClientTests = Object.freeze([
   'test_local_import.py',
+  'test_local_linux_components.py',
   'test_local_public_factory.py',
   'test_local_client_transport.py',
   'test_local_submission_failure_custody.py',

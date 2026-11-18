@@ -1583,11 +1583,15 @@ pub fn client_submission_reference_record_request_id(ClientSubmissionReferenceRe
 
 pub fn client_submission_reference_record_wire(ClientSubmissionReferenceRecord) -> String
 
+pub fn client_submitted_intent_attempt_kind(ClientSubmittedIntentObservation, Bool) -> String?
+
 pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
 pub fn client_submitted_intent_effect_compatible(ClientSubmittedIntent, PreparedClientEffectComputation) -> Bool
 
 pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?, run_state_observation? : (Int64, String?)?, preparation_problem? : (String, String)?, before_construction? : ((Int, Int, Int) -> Result[Unit, ClientJournalEncodingIssue])?) -> Result[Bytes, ClientJournalEncodingIssue]
+
+pub fn client_submitted_intent_observation_action(ClientSubmittedIntentObservation, Bool) -> String
 
 pub fn client_submitted_intent_requests_commit_stop(ClientSubmittedIntent) -> Bool
 
@@ -2206,6 +2210,8 @@ pub fn observe_client_keyed_request_attempt(ClientKeyedRequest, Int64, Int64) ->
 pub fn observe_client_keyed_response(ClientKeyedRequest, Int64, Int64, Int64) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn observe_client_source_input_query(ClientSourceInput, source_path? : String, calls_out? : @ref.Ref[Int64]?, limits? : @query_syntax.QueryLimits?) -> Result[(Result[@query_syntax.Query, @source_frontend.Issue], Int64, Bool), ClientSourcePreparationIssue]
+
+pub fn observe_client_submitted_intent(ClientSubmittedIntent, (ClientSubmittedIntent, String)?) -> Result[ClientSubmittedIntentObservation, ClientSubmittedIntentIssue]
 
 pub fn observe_prepare_checked_client_effect_computation(@program_check.EffectComputationCandidate, ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> (Result[PreparedClientEffectComputation, ClientEffectComputationIssue], Int64)
 
@@ -5416,6 +5422,13 @@ pub(all) enum ClientSubmittedIntentIssue {
   Limit
   InvalidEnvelope
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientSubmittedIntentObservation {
+  SubmissionMissing
+  SubmissionConflict
+  SubmissionPending
+  SubmissionSatisfied
 } derive(Eq, @debug.Debug)
 
 pub struct ClientSubmittedJournalAppend {

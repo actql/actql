@@ -51864,7 +51864,7 @@
     },
     {
       "module": "src/client_local_host/prepared_local_capacity.mbt",
-      "sha256": "141d82ec25d3db21ac12df3676237cb57e7cdc12333eb1b7a7ba538a796cb456",
+      "sha256": "bdc151ec950f70cfeeb05d39f56a233182d86f726b904f6cb96bcd51effc7b78",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -57467,7 +57467,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "e48696c04755ae8d70f48a630488b54bf477d8b2ca1a88f74db3cee963bbd04c",
+      "sha256": "109dcc2d4c401f375bb486b5edcb4c9bf9d1147db825cfc19e9677af16b0c7f8",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -57555,6 +57555,10 @@
         {
           "name": "local_managed_snapshot_reload_extent",
           "declaration": "local_managed_snapshot_reload_extent ( imported : Int64 , transport : Int64 , transport_prefix : Int64 , next : Int64 , ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "local_managed_task_capacity",
+          "declaration": "local_managed_task_capacity ( capacity : @ strategy . PhysicalEnvelope , ) - > @ strategy . PhysicalEnvelope ?"
         },
         {
           "name": "local_relation_snapshot_reload_capacity",
@@ -58200,7 +58204,8 @@
           "operations": [
             "local_managed_import_working_overlap",
             "local_managed_scalar_overlap_control_capacity",
-            "local_managed_logical_work_diagnostic_capacity"
+            "local_managed_logical_work_diagnostic_capacity",
+            "local_managed_task_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -58286,6 +58291,10 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "The logical-work extension has its own explicit delta"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "fn local_managed_task_capacity("
               }
             ],
             "extension": [
@@ -58310,6 +58319,10 @@
               {
                 "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
                 "anchor": "logical work complete frame admits exact backing"
+              },
+              {
+                "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
+                "anchor": "managed task projection adds only its complete diagnostic frame"
               }
             ]
           }
