@@ -36,6 +36,7 @@ pub(all) enum EvalIssueKind {
   QueryEvaluationTimeUnavailable
   TextBounds(@text_bounds.Issue)
   NumberConversion(@source.ParseIssue)
+  TimestampCanonicalRequired
 } derive(Eq, Debug)
 
 ///|

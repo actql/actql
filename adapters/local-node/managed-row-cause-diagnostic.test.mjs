@@ -1,3 +1,4 @@
+import {runtimeFailure} from '../host-common/compiler-binding.generated.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {checkedLocalManagedAdvance} from './managed-advance-diagnostic.mjs';
@@ -5,7 +6,7 @@ import {dispatchFailureSnapshot, publicBudgetFailureMessage, retainedBudgetFailu
   from '../host-node/client-dispatch-diagnostic.mjs';
 
 test('original typed row cause reaches the same failure without reading private data or replacing cleanup', () => {
-  const result = {}, owner = {}, secret = 'PRIVATE_QUERY_AND_PROVIDER_VALUE';
+  const result = runtimeFailure({}), owner = {}, secret = 'PRIVATE_QUERY_AND_PROVIDER_VALUE';
   const original = Object.assign(new Error(secret), {code: 'MoonBitHostFailure', cleanupOwner: owner});
   let checks = 0, causes = 0, steps = 0;
   const moon = {
@@ -36,7 +37,7 @@ test('unavailable or malformed row diagnosis never replaces the original error o
     assert.throws(() => checkedLocalManagedAdvance({
       strategyModule_local_ManagedAdvanceCause: () => cause,
       strategyModule_local_ManagedAdvanceRowStep: () => step,
-    }, {}, () => {throw original;}, 7), error => error === original);
+    }, runtimeFailure({}), () => {throw original;}, 7), error => error === original);
     assert.equal(original.primaryDiagnostic, undefined);
   }
   const fields = {code: 'MoonBitHostFailure', phase: 'local_managed_advance',
@@ -52,7 +53,7 @@ test('unavailable or malformed row diagnosis never replaces the original error o
   assert.throws(() => checkedLocalManagedAdvance({
     strategyModule_local_ManagedAdvanceCause() {throw new Error('optional inspection');},
     strategyModule_local_ManagedAdvanceRowStep() {assert.fail('no call after throw');},
-  }, {}, () => {throw original;}, 7), error => error === original);
+  }, runtimeFailure({}), () => {throw original;}, 7), error => error === original);
 });
 
 test('only the same failed cold Run control frame retains its bounded original row cause', () => {

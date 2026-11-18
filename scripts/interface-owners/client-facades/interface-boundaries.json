@@ -5695,7 +5695,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "9041dd7cef0b0adbedf14554f910379787d8590962d43e49c27f488a8fd59a9d",
+      "sha256": "271f4cb0f2e35488c4122d3d84581d4b9b9165537426112f66a7b06e3a76f304",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -6123,6 +6123,13 @@
             "options?: {signal?: AbortSignal; cancelId?: string;\n    expectedRevision?: number; attemptId?: string}"
           ],
           "result": "Promise<WireCancellationAttempt>"
+        },
+        {
+          "name": "Execution/explain",
+          "parameters": [
+            "options?: {signal?: AbortSignal; maxWireBytes?: number;\n    maxNodes?: number; maxDepth?: number}"
+          ],
+          "result": "Promise<WireRunExplanationView>"
         },
         {
           "name": "Execution/inspect",
@@ -7286,6 +7293,74 @@
               {
                 "path": "packages/sdk/named-submission.test.mjs",
                 "anchor": "test("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "Execution/explain"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
               }
             ]
           }
@@ -11455,7 +11530,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "94e98e2b5c45f8d21311dd2af45b17490f3c8b953d3629344fbad21b64290025",
+      "sha256": "2557211ad27fcfffb663aee301de59800117f2bb490599e2ecaeeae0b6848541",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -11538,12 +11613,22 @@
         {
           "name": "createExecutionFactory/createExecutionFactory/handle/handle#4",
           "parameters": [
-            "signal"
+            "signal",
+            "maxWireBytes",
+            "maxNodes",
+            "maxDepth"
           ],
           "async": true
         },
         {
           "name": "createExecutionFactory/createExecutionFactory/handle/handle#5",
+          "parameters": [
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#6",
           "parameters": [
             "until",
             "since",
@@ -11552,7 +11637,7 @@
           "async": true
         },
         {
-          "name": "createExecutionFactory/createExecutionFactory/handle/handle#6",
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#7",
           "parameters": [
             "signal",
             "cancelId",
@@ -11562,7 +11647,7 @@
           "async": true
         },
         {
-          "name": "createExecutionFactory/createExecutionFactory/handle/handle#7",
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#8",
           "parameters": [
             "reference",
             "signal"
@@ -11570,7 +11655,7 @@
           "async": true
         },
         {
-          "name": "createExecutionFactory/createExecutionFactory/handle/handle#8",
+          "name": "createExecutionFactory/createExecutionFactory/handle/handle#9",
           "parameters": [
             "signal"
           ],
@@ -11944,6 +12029,74 @@
               {
                 "path": "packages/sdk/original-result-intake.test.mjs",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createExecutionFactory/createExecutionFactory/handle/handle#9"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
               }
             ]
           }

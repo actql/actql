@@ -255,3 +255,28 @@ The private Object record still holds three references and one depth scalar;
 it retains the original Contract instead of only its fields. Append frames
 carry a field index instead of a second name reference. No resource policy,
 tariff, grant, physical start or cleanup acknowledgement is derived here.
+
+### Canonical Timestamp conversion and the original contract
+
+Text-to-Timestamp CAST selects the original checked Timestamp target before
+calling the existing Value owner's canonical UTC/calendar parser. Its checked
+conversion retains that same contract and original text. A non-null Timestamp
+can inhabit a nullable target; the separate strict `checked_timestamp_value`
+constructor continues to require a non-null contract for its existing callers.
+Neither path normalizes spelling or introduces a second pattern grammar.
+
+The conversion uses the existing expression operand/control preflight and root
+leases. It creates the same checked-value/optional-result carriers as the old
+conversion, without a new contract copy, parse pass, retained input, or writer.
+The payload-free canonical-required issue replaces the old scalar issue at the
+failed original conversion; no additional error-detail or wire buffer is built.
+Failed earlier child, control, workspace and cancellation operations retain their
+original issue and cleanup. TRY_TIMESTAMP retains its invalid-value-to-NULL law.
+
+Only this original Text-to-Timestamp conversion yields
+`evaluation.timestamp_canonical_required`. Its original lowered expression
+continues through RowIssue and the existing managed-advance diagnostic projector.
+The existing two-field public Problem and terminal/Journal phase are unchanged;
+a Host must not classify generic or copied errors by SQL, text, or exception
+message. PARSE_TIMESTAMP and FORMAT_TIMESTAMP retain their independent checked
+pattern grammar and profile admission.

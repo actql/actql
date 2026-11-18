@@ -83,7 +83,11 @@ pub fn[I] prepare_request_program_normalization(
       Err(issue) => return Err(Preparation(Capacity(issue)))
       Ok(value) => value
     }
-    guard program_check_data_extent_cost(data) is Some(bytes) &&
+    guard request_normalization_audit_extent_cost(
+        data,
+        @publication_host.prepared_client_normalization_source_count(prepared),
+      )
+      is Some(bytes) &&
       @execution.checked_preparation_add_product(base.0, bytes, 1L) is Some(r) &&
       @execution.checked_preparation_add_product(base.1, bytes, 1L) is Some(e) else {
       return Err(Preparation(Policy))
@@ -133,6 +137,82 @@ pub fn[I] prepare_request_program_normalization(
   )
   owner.phase = ProgramCompiled
   result
+}
+
+///|
+// The original parsed-check count bounds the operation wrappers. Source has
+// one typed entry and at most seven path/replacement Strings per constructor;
+// a second Source frame covers the retained/current failed-child overlap.
+// JSON quoting emits at most six units per original unit; seven live String
+// intermediates are bounded by the SAME admitted text and fixed path spelling.
+// The one actual scalar Writer has its own existing constructor inventory.
+fn request_normalization_audit_extent_cost(
+  data : @checked.ParsedCheckDataEstimate,
+  sources : Int64,
+) -> Int64? {
+  guard sources >= 0 &&
+    program_check_data_extent_cost(data) is Some(base) &&
+    @execution.checked_preparation_add_product(0L, sources, 2L) is Some(frames) &&
+    @execution.checked_preparation_add_product(
+      data.collections.reference_arrays,
+      frames,
+      1L,
+    )
+    is Some(wrappers) &&
+    @execution.checked_preparation_add_product(0L, wrappers, 2L)
+    is Some(headers) &&
+    @execution.checked_preparation_add_product(headers, frames, 7L)
+    is Some(headers) &&
+    @execution.checked_preparation_add_product(0L, wrappers, 5L)
+    is Some(references) &&
+    @execution.checked_preparation_add_product(wrappers, frames, 7L)
+    is Some(words) &&
+    @execution.checked_preparation_add_product(0L, frames, 350L) is Some(text) &&
+    @execution.checked_preparation_add_product(
+      text,
+      if sources == 0L {
+        0L
+      } else {
+        data.utf16_units
+      },
+      72L,
+    )
+    is Some(text) &&
+    @execution.preparation_representation_cost({
+      record_headers: headers,
+      reference_slots: references,
+      scalar_words: words,
+      owned_utf16_units: text,
+      owned_wire_bytes: 0L,
+    })
+    is Some(extra) else {
+    return None
+  }
+  let writer = if sources == 0L {
+    0L
+  } else {
+    guard @execution.checked_preparation_add_product(2L, data.utf16_units, 6L)
+      is Some(bytes) &&
+      bytes <= 2147483647L &&
+      @encode.text_writer_construction_inventory(bytes.to_int(), 1, 1)
+      is Some(writer) &&
+      @execution.preparation_representation_cost({
+        record_headers: writer.record_headers,
+        reference_slots: writer.reference_slots,
+        scalar_words: writer.scalar_words,
+        owned_utf16_units: writer.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      })
+      is Some(cost) else {
+      return None
+    }
+    cost
+  }
+  guard @execution.checked_preparation_add_product(base, extra, 1L)
+    is Some(total) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(total, writer, 1L)
 }
 
 ///|

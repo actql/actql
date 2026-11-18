@@ -2148,6 +2148,7 @@ pub(all) enum EvalIssueKind {
   QueryEvaluationTimeUnavailable
   TextBounds(@text_time_bounds.Issue)
   NumberConversion(@source_value.ParseIssue)
+  TimestampCanonicalRequired
 } derive(Eq, @debug.Debug)
 
 pub struct ExecutionCapacity {

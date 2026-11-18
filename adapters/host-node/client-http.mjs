@@ -16,7 +16,7 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validCheckOutcome,
   validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
-import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
+import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape, validWireRunExplanationViewShape} from '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
 
@@ -141,6 +141,11 @@ function responseCode(error) {
       error?.code === 'ResourceConnectionNotFound') return 404;
   if (error?.code === 'ResourceCatalogUnavailable') return 503;
   if (error?.code === 'HeldRequestEvidenceUnavailable') return 503;
+  if (error?.code === 'RunExplanationReadLimit') return 413;
+  if (error?.code === 'RunExplanationReadCapacity' ||
+      error?.code === 'RunExplanationReadUnavailable' ||
+      error?.code === 'RunExplanationReadCapacityUnavailable') return 503;
+  if (error?.code === 'RunExplanationEncodingRejected') return 422;
   if (error?.code === 'CheckpointReviewTooLarge') return 413;
   if (error?.code === 'ClientRequestIntentConflict' ||
       error?.code === 'ClientSubmittedIntentConflict' ||
@@ -239,7 +244,7 @@ export function createClientHttpHandler({
   negotiate, submit, submitIntent, submitNamedIntent, lookupSubmission, attach, lookupRequest, observeRun, observeOwners, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
-  check, plan, inspectRun, runPlan, maxRequestBytes = 65536, observe, loopbackHttp = false,
+  check, plan, inspectRun, runPlan, runExplanation, maxRequestBytes = 65536, observe, loopbackHttp = false,
   prepareRequest,
 }) {
   if (typeof authenticate !== 'function' ||
@@ -344,14 +349,14 @@ export function createClientHttpHandler({
           typeof requestLifetime.bindRequest !== 'function' ||
           typeof requestLifetime.finish !== 'function') invalid('InvalidClientHostPreparation');
       const admittedRequest = requestLifetime.body;
-      const invoke = async (handler, signal, preparedProgram) => {
+      const invoke = async (handler, signal, preparedProgram, consume) => {
         if (typeof handler !== 'function') invalid('ClientOperationUnavailable');
         const original = Object.freeze({...admittedRequest,
           ...(signal === undefined ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
         });
         requestLifetime.bindRequest(original);
-        return handler(original);
+        return consume === undefined ? handler(original) : handler(original, consume);
       };
       if (operation === 'connect') {
         const profile = await invoke(negotiate);
@@ -440,6 +445,52 @@ export function createClientHttpHandler({
           if (!validWireRunPlanViewShape(view) ||
               Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunPlanView');
           sendJson(view);
+        } finally { observer.release(); }
+      } else if (operation === 'run-explanation') {
+        const observer = observationAttempt(response);
+        try {
+          await invoke(runExplanation, observer.signal, undefined, async view => {
+            if (!validWireRunExplanationViewShape(view) ||
+                Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunExplanationView');
+            const wire = JSON.stringify(view);
+            if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) invalid('RunExplanationReadLimit');
+            const bytes = Buffer.from(wire);
+            requestLifetime.beforeReply();
+            // The SAME read owns wire/buffer/view until the native end callback
+            // confirms consumption. On error, retain it through actual close;
+            // neither starting end nor a failed callback is a physical ACK.
+            await new Promise((resolve, reject) => {
+              let settled = false, primary;
+              const complete = () => {
+                if (settled) return;
+                settled = true;
+                response.off('close', closed);
+                response.off('error', failed);
+                if (primary !== undefined) reject(primary);
+                else resolve();
+              };
+              const closed = () => {
+                primary ??= new Error('ClientDisconnected');
+                complete();
+              };
+              const failed = error => {
+                primary ??= error;
+                if (response.closed) complete();
+                else response.destroy();
+              };
+              response.once('close', closed);
+              response.once('error', failed);
+              if (response.closed) {closed(); return;}
+              if (response.destroyed) return;
+              try {
+                response.writeHead(200, {'content-type': 'application/json'});
+                response.end(bytes, error => {
+                  if (error) failed(error);
+                  else if (primary === undefined) complete();
+                });
+              } catch (error) {failed(error);}
+            });
+          });
         } finally { observer.release(); }
       } else if (operation === 'inspect-run') {
         const observer = observationAttempt(response);

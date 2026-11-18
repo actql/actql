@@ -131,6 +131,13 @@ fn QueryParser::window_expression(
       Ok(Some((name, parser.index, parser.work, parser.expression_nodes)))
     } catch {
       QueryExpression(error) => Err(error)
+      QueryAggregateOrderRequired(at) =>
+        Err({
+          issue: AggregateOrderRequired,
+          span: Some(
+            @origin.span(@origin.range(self.source.document, at, at).unwrap()),
+          ),
+        })
       QueryAbort(message, at) =>
         Err({
           issue: Syntax(message),

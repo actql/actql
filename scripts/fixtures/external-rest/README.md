@@ -151,3 +151,14 @@ that source/preflight coverage cannot establish these ordinary lifetimes.
 Publishing caller sources does not supply matching runtime artifacts, qualify
 current-main ordinary execution, or make the fixture's diagnostic tag a new
 stable public error contract.
+
+The current timed Values caller additionally reads `Execution.explain` on that
+same original Run after the existing full Result and status assertions. It
+requires projected structural Facts and the independently authored `id`/`label`
+schema, without row literals or cardinality, then compares the complete original
+view in the existing separate-process Saved child. The original Program,
+Account, invocation/row oracles, ref-before-wait capture, first-all-before-status,
+first close and scoped descriptor checks remain the same. The Source branch does
+not acquire this additional expectation. This caller revision must not run on an
+older normal artifact lacking the actual funded first-capture/read supplier;
+preparing or testing its DATA oracles establishes no installed acceptance.

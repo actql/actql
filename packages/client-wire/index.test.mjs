@@ -21,12 +21,22 @@ const ref = Object.freeze({namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 
-test('uninstalled Explanation operation is not a public request or synthetic NotProjected result', () => {
+test('registered Explanation read captures the original ref and rejects malformed bounds', () => {
   const request = {connection, ref, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
-  assert.equal(clientHostOperations.includes('run-explanation'), false);
-  assert.equal(validClientBody('run-explanation', request), false);
-  assert.equal(prepareClientHostRequest('run-explanation', request), undefined);
-  // Existing admitted Plan requests keep their own original surface.
+  assert.equal(clientHostOperations.includes('run-explanation'), true);
+  assert.equal(validClientBody('run-explanation', request), true);
+  const prepared = prepareClientHostRequest('run-explanation', request);
+  assert.ok(prepared);
+  assert.deepEqual(prepared.body.ref, ref);
+  assert.notStrictEqual(prepared.body.ref, ref);
+  assert.equal(Object.isFrozen(prepared.body.ref), true);
+  for (const key of ['maxWireBytes', 'maxNodes', 'maxDepth']) {
+    assert.equal(validClientBody('run-explanation', {...request, [key]: 0}), false);
+    assert.equal(prepareClientHostRequest('run-explanation', {...request, [key]: 1.5}), undefined);
+  }
+  assert.equal(validClientBody('run-explanation', {...request, ref: {runDefinitionCid: ref.runDefinitionCid}}), false);
+  assert.equal(validClientBody('run-explanation', {...request, capabilities: {explain: true}}), false);
+  // Existing admitted Plan requests retain their independent surface.
   assert.ok(prepareClientHostRequest('run-plan', request));
 });
 

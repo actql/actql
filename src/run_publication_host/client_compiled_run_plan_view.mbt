@@ -6,6 +6,31 @@ pub(all) enum ClientCompiledRunPlanIssue {
 } derive(Eq, Debug)
 
 ///|
+// The Request already retains this compiler artifact before Run admission.
+// Inspect its original owner/Plan without issuing authorization, a Run binding
+// or a replacement compilation merely to measure optional static metadata.
+fn client_pure_compilation_original_plan(
+  original : PreparedClientProgram,
+  compilation : ClientRunCompilation,
+) -> Result[@publication.PublicationContract, ClientCompiledRunPlanIssue] {
+  match compilation {
+    Values(value) => {
+      if !physical_equal(value.owner, original) {
+        return Err(ForeignCompilation)
+      }
+      Ok(value.compiled_plan)
+    }
+    Tasks(value) => {
+      if !physical_equal(value.owner, original) {
+        return Err(ForeignCompilation)
+      }
+      Ok(value.compiled_plan)
+    }
+    Effects(_) => Err(UnsupportedCompilation)
+  }
+}
+
+///|
 /// Capture the original logical map while its compiler-issued Run owner is
 /// still retained. This never compiles or executes another Program. Save the
 /// returned original with admission; historical lookup must read those bytes,
@@ -44,4 +69,49 @@ pub fn client_compiled_run_static_plan_view(
     Effects(_) => return Err(UnsupportedCompilation)
   }
   view.map_err(issue => Projection(issue))
+}
+
+///|
+fn capture_client_compiled_static_plan_original(
+  compiled : ClientCompiledRun,
+  original : PreparedClientProgram,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  inspect_installed : Bool,
+) -> Result[(String, @canonical.CanonicalValue), ClientCompiledRunPlanIssue] {
+  if !client_compiled_run_matches(compiled, original) {
+    return Err(ForeignCompilation)
+  }
+  let plan = match compiled.compilation {
+    Values(compilation) => {
+      if !physical_equal(compilation.owner, original) {
+        return Err(Projection(ForeignCompilation))
+      }
+      compilation.compiled_plan
+    }
+    Tasks(compilation) => {
+      if !physical_equal(compilation.owner, original) {
+        return Err(Projection(ForeignCompilation))
+      }
+      compilation.compiled_plan
+    }
+    Effects(_) => return Err(UnsupportedCompilation)
+  }
+  let retained : Ref[@canonical.CanonicalValue?] = Ref(None)
+  let wire = match
+    issue_client_static_plan_view(
+      original,
+      plan,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      inspect_installed,
+      retained_original=Some(retained),
+    ) {
+    Err(issue) => return Err(Projection(issue))
+    Ok(value) => value
+  }
+  guard retained.val is Some(view) else { return Err(Projection(Encoding)) }
+  Ok((wire, view))
 }

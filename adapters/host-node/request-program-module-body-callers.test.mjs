@@ -22,6 +22,8 @@ const ports = () => ({
   clientProgramPrepareRequestNativeComputation() {},
   clientProgramPrepareRequestSourceComputation() {},
   clientProgramFinishRequestComputation() {},
+  clientProgramPrepareRequestProgramNormalization() {},
+  clientProgramPrepareRequestProgramAuthoringContext() {return {};},
   clientProgramPrepareRequestPolicySubjects() {},
   clientProgramReadRequestPolicySubject() {},
   clientProgramBindRequestPolicySubject() {},
@@ -44,6 +46,15 @@ test('ModuleBody capability requires the new port and an own Boolean mode withou
   old.clientProgramPrepareClosedValuesModuleBody = old.clientProgramPrepareRequestProgramModuleBody;
   delete old.clientProgramPrepareRequestProgramModuleBody;
   assert.equal(requestPreparationAvailable(context(old, false)), false);
+  const unnormalized = ports();
+  delete unnormalized.clientProgramPrepareRequestProgramNormalization;
+  assert.equal(requestPreparationAvailable(context(unnormalized, false)), false);
+  let normalizationReads = 0;
+  Object.defineProperty(unnormalized, 'clientProgramPrepareRequestProgramNormalization', {
+    get() {normalizationReads++; return () => {};},
+  });
+  assert.equal(requestPreparationAvailable(context(unnormalized, false)), false);
+  assert.equal(normalizationReads, 0);
   for (const mode of [undefined, null, 0, 'false', {}]) {
     assert.equal(requestPreparationAvailable(context(ports(), mode)), false);
   }
@@ -53,6 +64,13 @@ test('ModuleBody capability requires the new port and an own Boolean mode withou
   assert.equal(requestPreparationAvailable(accessor), false);
   const proxy = new Proxy(context(ports(), false), {getOwnPropertyDescriptor() {callbacks++; return undefined;}});
   assert.equal(requestPreparationAvailable(proxy), false);
+  const unauthored = ports();
+  delete unauthored.clientProgramPrepareRequestProgramAuthoringContext;
+  assert.equal(requestPreparationAvailable(context(unauthored, false)), false);
+  Object.defineProperty(unauthored, 'clientProgramPrepareRequestProgramAuthoringContext', {
+    get() {callbacks++; return () => ({});},
+  });
+  assert.equal(requestPreparationAvailable(context(unauthored, false)), false);
   assert.equal(callbacks, 0);
 });
 

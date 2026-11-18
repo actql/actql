@@ -332,6 +332,9 @@ test('full corpus pins every authored occurrence independently of worker selecti
   // finite standard planning budget, with independent full rows and schema.
   // The singleton Graph equality keeps ORDER/LIMIT and its independent
   // complete Boolean result; this is not an unresolved-order refusal.
+  // Five undeclared-parameter refusals retain their complete authored inputs
+  // and own-key order. Only their exact expected code changes; the full and
+  // portable-1 digests include those five preimages, not unrelated fixtures.
   assert.equal(pin.totalCases, 4240);
   assert.deepEqual(pin.counts, {"successes":2658,"executionFailures":53,"refusals":1529});
   assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2604,"executionFailures":51,"refusals":1490}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);

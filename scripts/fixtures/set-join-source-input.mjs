@@ -48,7 +48,8 @@ export const setJoinSuccesses = [
 export const setJoinRefusals = [
   {name: 'operand-range-after-set', text: left + ' UNION ALL ' + right + ' ORDER BY r.amount'},
   {name: 'right-alias-after-set', text: left + ' UNION ALL ' + right.replace('AS amount', 'AS right_amount') + ' ORDER BY right_amount'},
-  {name: 'undeclared-final-limit', text: sql + ' LIMIT @missing'},
+  {name: 'undeclared-final-limit', text: sql + ' LIMIT @missing',
+    expectedCode: 'ClientProgramParameterUndeclared'},
   {name: 'unsupported-join-key', expectedCode: 'ClientProgramImplementationLimit',
     text: left.replace('l.id = r.id', 'l.id > r.id') + ' UNION ALL ' + right + order},
 ].map(item => ({format: 'sql', expectedCode: 'ClientProgramInvalidInput', ...item, name: 'set-join-refuse-' + item.name}));

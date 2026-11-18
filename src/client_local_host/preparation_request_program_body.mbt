@@ -542,6 +542,22 @@ pub fn[I] prepare_request_program_compilation(
 }
 
 ///|
+/// Borrow only the SAME still-working Request's already retained compiler.
+/// This does not recompile, complete a module, issue a Run or check current;
+/// the original caller retains those separate admission responsibilities.
+pub fn[I] request_program_compilation_original(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> @publication_host.ClientRunCompilation? {
+  guard owner.phase == ProgramPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) else {
+    return None
+  }
+  owner.program_compilation
+}
+
+///|
 /// Construct the selected installed Plan/module from the SAME completed
 /// compiler output. Variable sequence/Plan data uses the existing retained
 /// estimate once, before construction. Fixed provider/control wrappers remain
@@ -1420,6 +1436,7 @@ pub fn[I] begin_request_program_managed_run(
       // No callback occurs while cutting this consumed parent's heavy aliases.
       owner.program_capacity = None
       owner.program_normalization = None
+      owner.program_authoring = None
       owner.compiled_program = None
       owner.program_data = None
       owner.program_plan_quote = None

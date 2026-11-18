@@ -2202,3 +2202,143 @@ The retained publication array, callback, receiver, selected references and
 context/canonical-encoding workspace overlap with the installed check lifetime.
 These references and their bounds are not capacity reservations or physical
 cleanup acknowledgements.
+
+## Original Request normalization in the Node publication path
+
+The ordinary effect-free Request enters the existing
+`prepare_request_program_normalization` at `ProgramCompiled`, before its first
+Program Plan input borrow. This is the same parent/input and compiled original;
+it precedes optional Plan Facts, Module completion and Run adoption. Its
+existing continuation admits the audit, actual retained journal shape and
+publication writer before construction, retains failed work and reconciles
+returned scratch. The subsequent Plan quote starts from the **current** working
+extents, preserving the normalization audit/output through Module/Plan overlap.
+No compiler, budget, normalization policy, Owner or permission is reissued.
+
+Node retains no additional normalization object, wire cache or Request field:
+Core already retains that original result and proof. A repeated funded caller
+reuses its actual holder; a failed normalization remains the original Request's
+failure and cleanup duty. The capability check requires the fixed synchronous
+normalization port without invoking an accessor.
+
+Late publication reads the cached normalization evidence from that same
+PreparedClientProgram. The existing identity checks bind the audit's original
+CheckedProgram, requirements and parameters; the reader checks caller bounds
+against the evidence's cached byte/node/depth usage. It neither parses the wire
+nor emits another journal. The existing Runtime wrapper borrows the original
+name, identity and wire, replacing the old empty-journal wrapper at the same
+publication point. Missing/unissued/foreign evidence or a tighter bound refuses
+without falling back to an empty journal.
+
+Existing unselected Effect/legacy material retains its separate path and
+original bytes. This unit does not migrate authoring annotations, invent a
+normalization for Saved material or change current authorization, execution,
+publication, cancellation or physical cleanup authority. Actual normal Host
+acceptance remains separate from the scoped Core and explicit-port caller
+checks.
+
+## Original Request authoring context in the Node publication path
+
+The same effect-free Request prepares authoring evidence immediately after its
+normalization and before its first Program Plan borrow. Common alone visits
+registered grammar annotation locations. It preserves annotation JSON DATA,
+including decomposed text and line breaks, while excluding business `meta`
+values. The Program definition identity excludes annotations; the authoring
+context has its own existing independently specified canonical preimage.
+
+The original Request capacity reserves fixed controls before the collector or
+path construction. An indexed, work-bounded observation borrows the original
+Source and measures annotation count, path UTF16, quoted-key demand, actual
+metadata nodes/fields and depth without constructing the output vector or wire.
+The next reservation covers the retained annotation/path vector, actual pinned
+Array/sort growth, transient path and quoted-key writers, and the two measurement
+writers. Only then may the original collector and output Writer be created.
+The measured body/complete evidence shape admits simultaneous canonical, wire,
+parser/sealer/hash and failed-child material before the original emitter/sealer.
+These are same-owner construction demands, not caller policy or permission.
+
+Success clears heavy collection/writer aliases and retains the exact issued
+result on its opaque original proof. Failure retains the original partial work,
+writer and throwable until the same Request's existing retirement. Reentry is
+fenced at the same preparation phase. Work is charged on that original phase
+continuation across resize boundaries; no second Ledger, Root or grant appears.
+
+Node retains this proof on its existing Request record before the next fallible
+current check. A borrowed publication view and the original Task admission carry
+that same proof to Pure, Model and Content publication. The pre-Run domain view
+has no fabricated Run or Plan. The fixed Request control inventory counts its
+one bounded record header and the four original reference slots (Core Request,
+manager, borrowed view, Task admission). Variable annotation/output demand remains
+separate from this fixed control demand. No Prepared cache or wire registry is
+added. The manager and Host bag both recheck their exact original membership
+after callbackful current observation.
+
+The late Core getter requires the same Prepared and issued proof, checks cached
+complete byte/node/depth usage against the caller's limits, and returns the
+original evidence. Runtime wraps its original name/CID/wire once; it neither
+parses nor issues an empty authoring context. Missing, foreign, unissued or
+out-of-bounds originals refuse. Core adoption transfers the same original
+lifetime to the Run; the Node alias is cut before consuming the original holder
+return. A settlement error retries the same parent, never the consumed token.
+An unadopted failed constructor remains Core-owned while the redundant Node alias
+is cut before parent abort can settle. Pending physical cleanup is not an ACK.
+
+The unselected Effect/legacy branch retains its separate existing path. This
+connection does not reconstruct authoring evidence for cold Saved material,
+change current/Account/Source authority, or establish ordinary ABI/normal
+acceptance. Independent preimages, Common exact/one-short/foreign/current controls,
+actual Node bridge/Runtime consumption and imported manager/publication/retirement
+controls qualify their respective boundaries separately.
+
+## Original timestamp-pattern rejection
+
+The existing Timestamp parser owns the pattern grammar and Parse/Format mode
+checks. Its original empty-pattern, invalid-component, duplicate-token,
+missing-date and time-dependency failures are invalid input. They project through
+the existing `query_expression_invalid` / `invalid_arguments` fact, without a
+new Reason schema, CID, message field or Host-side inspection of SQL/error text.
+The original diagnostic is retained; its validation-site ordinal does not prove
+an authored range, so this projection omits a location. The same typed Request
+cause also selects the open Problem code `ClientProgramTimestampPatternInvalid`,
+carried by the existing `ClientProgramInvalidInput` refusal and its nominal
+`{problemCode, refusalCode}` association. No additional getter, registry or
+wire field is introduced. A copied error cannot issue this cause; unavailable
+or no-longer-authorized disclosure cannot reveal it.
+
+The bridge borrows the same existing diagnostic cause once and returns its
+existing Option/String result. The Node adapter uses the already admitted
+original refusal record, and the same Journal's nonacceptance/failure and
+current-audience boundaries remain responsible for recording and disclosure.
+This adds no retained diagnostic copy or new allocation carrier.
+
+Missing policy/bindings, configured work or byte limits and foreign/internal
+correspondence retain their existing distinct handling. The same report writer
+and existing finding frame are used; this adds no Source read, recheck, Graph,
+Run or execution authority. Canonical Timestamp value conversion remains a
+separate boundary from these pattern arguments.
+
+
+## Original collection-order causes
+
+The ordinary collection parser rejects missing local order with its closed
+`AggregateOrderRequired` issue at the same authored token span and work point.
+Its private exception retains only the existing offset; compared with the old
+message/offset exception it drops the borrowed message reference. The resulting
+payload-free issue replaces `Syntax(message)` in the same Diagnostic and span
+construction after unwinding, without adding a failure carrier or earlier
+Diagnostic lifetime. The existing parser's before-call/failure envelope remains
+a bound; no limit, phase, allocation margin or new Owner is introduced.
+
+The Source bridge projects only that typed issue as
+`ClientProgramAggregateOrderRequired`. Separately, its original
+`LocalProgram(Order(_, PipelineOrder(UnresolvedOrder)))`, including the
+existing SourceProgram/retained-Source wrappers of that same cause, selects the
+correctly general `ClientProgramOrderUnresolved`, preserving the existing
+`ClientProgramRejected` / `operation_failed` category. It does not infer an
+aggregate site, a missing key name, a row-order witness or an implicit key.
+
+Both use the already funded fixed-code result and nominal code/refusal record.
+Original Request identity, current audience, original refusal phase and retained
+lookup remain unchanged. Check facts stay on the existing schema and reason
+CID; syntax messages are not classification evidence. No public message field,
+reason family, recheck, Source read, implicit order or execution grant is added.

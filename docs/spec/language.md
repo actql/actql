@@ -9657,6 +9657,20 @@ journal and recipe; current defaults do not recompile or relabel a saved Run.
 ../../spec/contracts/actql-effect-free-local-common-normalization-catalog.json# sha256:f93d91b468d850cbc63a8c8350578af8431a2256eb2b1ef3f60586fdc640561d
 ```
 
+<!-- requirement-block: normalization-journal.common-local-source-catalog-law -->
+An actual original sole-view Source completion selects the following successor
+catalogue, retaining the original resolver declaration and selected view. Its
+entry identifies the omitted `view` through the existing JSONPath quoted-member
+form, records `null` for that absent member, and retains the exact selected view
+String as its canonical value. Explicit-view and Source-free preparations keep
+the preceding catalogue; saved journals retain their original catalogue and
+bytes rather than switching to a current default.
+
+<!-- normative-code: law -->
+```text
+../../spec/contracts/actql-effect-free-local-source-normalization-catalog.json# sha256:6ce13b0a83618ec8ccadb33c3ee5bf4ae12214a0ac16c1e0394b75e1eea78153
+```
+
 <!-- requirement-block: normalization-journal.two-implementations-claiming-the-same-normalization-rule-catalog-and-check-evidence -->
 Compiler-specific notes or prose may accompany a journal only as non-semantic
 presentation and are excluded from its CID. Two implementations claiming the

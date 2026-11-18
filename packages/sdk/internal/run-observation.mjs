@@ -10,7 +10,7 @@ import {createResultFactory} from './result-read.mjs';
 import {ownerObservationLimits, runStateProtocol, snapshotClientRequest, validCancellationAttempt,
   validCancellationLookup, validCancellationRef, validClientBody,
   validOperationAttemptRef, validOwnerObservations, validRunState, validRunWaitContract, validWireRunPlanViewShape,
-  validWireRunViewShape} from '@actql/client-wire';
+  validWireRunViewShape, validWireRunExplanationViewShape, withinResultDescriptionLimits} from '@actql/client-wire';
 
 const runObservationFailures = new WeakMap();
 
@@ -209,6 +209,32 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
         const {self_cid: observed, ...preimage} = map;
         if (map.compiled_plan_cid !== plan.compiled_plan_cid ||
             await contentCid(preimage) !== observed) fail('InvalidClientHostRunPlanView');
+        return freezeInput(view);
+      },
+      explain: async ({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref, maxWireBytes, maxNodes, maxDepth}));
+        if (!validClientBody('run-explanation', {connection: selected.wire, ...input})) {
+          fail('InvalidRunExplanationRequest');
+        }
+        const response = await runRequest('run-explanation', input, signal);
+        const view = captureResponse(await responseValue(response, maxWireBytes));
+        // The shared structural bounds count keys, nested nodes and UTF-8 bytes;
+        // they do not infer provenance, permission, execution or Sample access.
+        if (!withinResultDescriptionLimits(view, input) ||
+            !validWireRunExplanationViewShape(view) || structuralKey(view.run_ref) !== structuralKey(ref)) {
+          fail('InvalidClientHostRunExplanationView');
+        }
+        if (view.explanation.state === 'projected') {
+          const facts = view.explanation.facts;
+          const {self_cid: observed, ...body} = facts;
+          if (await contentCid(body) !== observed) fail('InvalidClientHostRunExplanationView');
+          for (const step of facts.steps) {
+            const {self_cid: keyCid, ...key} = step.key;
+            if (step.step_id !== keyCid || key.compiled_plan_cid !== facts.compiled_plan_cid ||
+                await contentCid(key) !== keyCid) fail('InvalidClientHostRunExplanationView');
+          }
+        }
+        signal?.throwIfAborted();
         return freezeInput(view);
       },
       inspect: async ({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) => {

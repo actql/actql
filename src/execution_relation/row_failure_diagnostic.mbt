@@ -14,6 +14,13 @@ pub fn row_failure_diagnostic_cause(issue : RowIssue) -> String? {
         QueryEvaluationTimeUnavailable =>
           Some("evaluation.query_evaluation_time_unavailable")
         NumberConversion(_) => Some("evaluation.number_conversion_failure")
+        TimestampCanonicalRequired =>
+          Some("evaluation.timestamp_canonical_required")
+        InvalidControlLimits => Some("evaluation.invalid_control_limits")
+        ControlLimit => Some("evaluation.control_limit")
+        WorkspaceLimit => Some("evaluation.workspace_limit")
+        LogicalEntry(original) | LogicalValue(original) =>
+          Some(row_logical_failure_diagnostic_cause(original))
         TextBounds(cause) =>
           match cause {
             @text_bounds.InvalidLimits =>
@@ -31,9 +38,6 @@ pub fn row_failure_diagnostic_cause(issue : RowIssue) -> String? {
             @text_bounds.InvalidPatternMode =>
               Some("evaluation.text_bounds.invalid_pattern_mode")
           }
-        // These carry a different resource/lifetime domain. Do not infer a
-        // memory setting or treat them as a scalar semantic failure.
-        _ => None
       }
     Comparison(InvalidOperand) => Some("comparison.invalid_operand")
     Comparison(ArithmeticFailure) => Some("comparison.arithmetic_failure")
@@ -54,6 +58,58 @@ pub fn row_failure_diagnostic_cause(issue : RowIssue) -> String? {
     DedupeIdentityCollision => Some("dedupe.identity_collision")
     AsOfTopTie(_, _, _) => Some("asof.top_tie")
     TemporalPrecisionUnavailable => Some("rows.temporal_precision_unavailable")
-    _ => None
+    OwnerMismatch => Some("rows.owner_mismatch")
+    InputMismatch => Some("rows.input_mismatch")
+    InvalidRows => Some("rows.invalid_rows")
+    MissingOrderedResourceContext =>
+      Some("rows.missing_ordered_resource_context")
+    LogicalRows(original) =>
+      Some(row_logical_failure_diagnostic_cause(original))
+    WindowTime(_) => Some("window.time")
+    WindowArithmetic(_) => Some("window.arithmetic")
+    AnalyticEnvelope(original) =>
+      Some(
+        match original {
+          InputWireBytes => "analytic.input_wire_bytes"
+          OutputWireBytes => "analytic.output_wire_bytes"
+          PartitionWireBytes => "analytic.partition_wire_bytes"
+          FrameMemberships => "analytic.frame_memberships"
+          OutputRows => "analytic.output_rows"
+          Measurement => "analytic.measurement"
+        },
+      )
+    NestItemLimitRequired => Some("nest.item_limit_required")
+    NestItemLimit(_) => Some("nest.item_limit")
+    NestEnvelope(original) =>
+      Some(
+        match original {
+          GroupedBytes => "nest.grouped_bytes"
+          AttachedBytes => "nest.attached_bytes"
+          Measurement => "nest.measurement"
+        },
+      )
+  }
+}
+
+///|
+// The same LogicalBudget owner supplies these constructors in row and scalar
+// contexts. Preserve its original reason without formatting payloads, adding
+// a second decision table in Node, or guessing a physical dimension/setting.
+fn row_logical_failure_diagnostic_cause(issue : LogicalBudgetIssue) -> String {
+  match issue {
+    InvalidLogicalLimits => "logical.invalid_limits"
+    FailedLogicalBudget => "logical.failed_budget"
+    InputRowLimit => "logical.input_row_limit"
+    WorkLimit => "logical.work_limit"
+    LiveValueLimit => "logical.live_value_limit"
+    InvalidRootLifetime => "logical.invalid_root_lifetime"
+    ValueMeasure(original) =>
+      match original {
+        InvalidMeasureLimits => "logical.measure.invalid_limits"
+        LogicalWorkLimit => "logical.measure.work_limit"
+        HostMeasureLimit => "logical.measure.host_limit"
+        WireMeasureFailure => "logical.measure.wire_failure"
+        ReferenceUnavailable => "logical.measure.reference_unavailable"
+      }
   }
 }

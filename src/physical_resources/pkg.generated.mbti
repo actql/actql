@@ -1251,6 +1251,7 @@ pub(all) enum PreparationWorkPhase {
   RequestPolicySubjectPreparation
   HttpInputPreflight
   NormalizationAudit
+  AuthoringContext
 } derive(Eq, @debug.Debug)
 
 type PreparedRunAdmission[P]

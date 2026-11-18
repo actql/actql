@@ -372,6 +372,22 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
     | SourceView(Context(Stages(Values(_, BudgetExceeded))))
     | SourceView(Context(Inputs(BudgetExceeded)))
     | SourceView(Context(Selection(BudgetExceeded))) => CompileLimit
+    // Only the original pattern parser's authored grammar/mode failures prove
+    // invalid input. Missing policy/bindings, budgets and internal sites do not.
+    Checks(
+      Patterns(
+        Timestamp(
+          Pattern(
+            _,
+            EmptyPattern
+            | InvalidComponent(_)
+            | DuplicateToken(_)
+            | MissingDate
+            | InvalidTimeDependencies
+          )
+        )
+      )
+    ) => InvalidInput
     SourceView(Program(Program(UnsupportedReceipt(_, _))))
     | Checks(
       OperationProfiles(UnsupportedProfile(_, _, _, _))
