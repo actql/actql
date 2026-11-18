@@ -133,7 +133,7 @@ test "handed off standalone bootstrap growth cannot borrow preparation publicati
   resize_capacity_reservation(ledger, claim.descriptor.bootstrap, 4L, 3L).unwrap()
   let usage = ledger_usage(ledger)
   assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
-  assert_eq(claim.descriptor.bootstrap_state, before)
+  assert_true(claim.descriptor.bootstrap_state == before)
   assert_eq(ledger_usage(ledger), usage)
 }
 
