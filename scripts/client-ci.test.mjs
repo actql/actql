@@ -193,8 +193,21 @@ for (const status of [0, 73]) test(`REST compiled-boundary runner preserves ${st
   const [{kind, args, options}] = calls;
   assert.equal(kind, 'node');
   assert.equal(args.filter(arg => arg === 'adapters/host-node/rest-source-page-typed.test.mjs').length, 1);
-  assert.equal(args[args.indexOf('--test-name-pattern') + 1], '^REST actual Common');
-  assert.equal(options.expectedTests, 2);
+  const pattern = args[args.indexOf('--test-name-pattern') + 1];
+  assert.equal(pattern, '^REST actual (?:Common|checked GET capacity preserves original reference Options$)');
+  const source = parseJavaScript(readFileSync(join(root, 'adapters/host-node/rest-source-page-typed.test.mjs'), 'utf8'),
+    {ecmaVersion: 'latest', sourceType: 'module'});
+  const selected = source.body.flatMap(node => {
+    const call = node.type === 'ExpressionStatement' ? node.expression : undefined;
+    return call?.type === 'CallExpression' && call.callee.type === 'Identifier' && call.callee.name === 'test' &&
+      typeof call.arguments[0]?.value === 'string' ? [call.arguments[0].value] : [];
+  }).filter(name => new RegExp(pattern, 'u').test(name));
+  assert.deepEqual(selected, [
+    'REST actual checked GET capacity preserves original reference Options',
+    'REST actual Common cursor boundary keeps empty Unicode EOF and original progress',
+    'REST actual Common cursor capacity uses the original domain representation',
+  ]);
+  assert.equal(options.expectedTests, selected.length);
   assert(options.timeout > 0 && options.timeout <= 120000);
   assert.equal(options.cwd, root);assert.equal(options.env, env);
 });
