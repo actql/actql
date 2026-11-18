@@ -22,7 +22,11 @@ fn submission_lookup_current(
     principal: configuration.tuple.principal,
     connection: configuration.tuple.connection,
     resource: "run",
-    operation: "read",
+    operation: if record.kind == 11 {
+      "cancel"
+    } else {
+      "read"
+    },
   }
   if @authorization.evaluate_account(configuration.account, tuple)
     is @authorization.Allow(_) {
@@ -88,11 +92,16 @@ fn observe_submission_lookup(
   if record.kind == 5 ||
     record.kind == 6 ||
     record.kind == 7 ||
-    record.kind == 8 {
+    record.kind == 8 ||
+    record.kind == 11 {
     guard @decode.closed_object(
         cursor,
         if record.kind == 6 {
           ["namespaceId", "authorityScopeCid", "runDefinitionCid", "resultName"]
+        } else if record.kind == 11 {
+          [
+            "namespaceId", "authorityScopeCid", "runDefinitionCid", "cancelId", "expectedRevision",
+          ]
         } else {
           ["namespaceId", "authorityScopeCid", "runDefinitionCid"]
         },
@@ -517,7 +526,9 @@ fn produce_submission_lookup(
     Ok(value) => value
     Err(code) => return code
   }
-  let projected = if record.kind == 7 {
+  let projected = if record.kind == 11 {
+    submission_cancellation_lookup_wire(value, record, configuration, snapshot)
+  } else if record.kind == 7 {
     saved_sdk_run_state_wire(snapshot)
   } else if record.kind == 8 {
     saved_sdk_original_descriptor_wire(snapshot)
@@ -532,7 +543,7 @@ fn produce_submission_lookup(
     Ok(_) => ()
     Err(code) => return code
   }
-  if record.kind == 7 || record.kind == 8 {
+  if record.kind == 7 || record.kind == 8 || record.kind == 11 {
     // Retain the actual admitted rows before transferring their saved facts.
     // Later validation must reobserve this exact original, not an equal reply.
     record.saved_snapshot = snapshot
@@ -554,7 +565,7 @@ fn validate_submission_lookup(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
-    (record.kind >= 4 && record.kind <= 8) &&
+    ((record.kind >= 4 && record.kind <= 8) || record.kind == 11) &&
     record.produced &&
     !record.output_closed &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
@@ -567,7 +578,8 @@ fn validate_submission_lookup(
       Err(code) => code
     }
   }
-  if (record.kind == 7 || record.kind == 8) && record.saved_snapshot is None {
+  if (record.kind == 7 || record.kind == 8 || record.kind == 11) &&
+    record.saved_snapshot is None {
     return -42
   }
   let expected = match submission_lookup_expected_intent(value, record) {
@@ -584,7 +596,9 @@ fn validate_submission_lookup(
     Ok(value) => value
     Err(code) => return code
   }
-  let projected = if record.kind == 7 {
+  let projected = if record.kind == 11 {
+    submission_cancellation_lookup_wire(value, record, configuration, snapshot)
+  } else if record.kind == 7 {
     saved_sdk_run_state_wire(snapshot)
   } else if record.kind == 8 {
     saved_sdk_original_descriptor_wire(snapshot)

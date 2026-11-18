@@ -375,6 +375,8 @@ class InstalledLocalHost:
                 raw = self._client_check.report(body)
             elif operation == 'lookup-submission':
                 raw = self._lookup_original_submission(body['submissionRef'])
+            elif operation == 'lookup-cancellation':
+                raw = self._lookup_original_cancellation(body['ref'], body['cancelId'], body['expectedRevision'])
             elif operation == 'attach':
                 raw = self._attach_original_run(body['ref'])
             elif operation == 'submit-intent':
@@ -1093,6 +1095,40 @@ class InstalledLocalHost:
     def _attach_original_run(self, reference: object) -> bytes:
         """Select one saved admission; never recreate an executable Run plan."""
         return self._read_original_reference(reference, kind=5)
+
+    def _lookup_original_cancellation(self, reference: object, cancel_id: str,
+                                      expected_revision: int) -> bytes:
+        """Observe the original cancellation under the same current SQL reader.
+
+        Core owns the complete Run/cancellation inventories and immutable
+        operation result. Python transports that checked view only. Unknown
+        history never requests another cancellation or acknowledges a stop.
+        Keep both original loans reachable across query, transfer and close
+        failure, as for the existing original Submission lookup.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        selected = {**_object(wire_bytes(reference), 8192),  # type: ignore[no-untyped-call]
+                    'cancelId': cancel_id, 'expectedRevision': expected_revision}
+        if (configuration is None or installation._store is None
+                or installation._epoch is None
+                or not wire.valid(selected, 'cancellation_ref')):  # type: ignore[no-untyped-call]
+            raise ValueError('Invalid original Local cancellation reference')
+        with self._core._lock:
+            source = self._copy(wire_bytes(selected))  # type: ignore[no-untyped-call]
+            output = self._reserve(lambda: self._core.reserve_submission_projection(
+                configuration.handle, source, 11, cleanup=lambda: True))
+            self._projections.append(output)
+            self._append_sources[output.ticket] = source
+            packets: list[bytes] = []
+            installation.binding.inspect(lambda current: packets.append(
+                self._core.produce_and_read_submission_lookup(output, current)))
+            raw = packets[0]
+            if not wire.cancellation_lookup(_object(raw, 8192), selected):  # type: ignore[no-untyped-call]
+                raise ValueError('Invalid original Local cancellation lookup response')
+            if not self._close_projection(output):
+                raise LocalProductCleanupPending(self)
+            return raw
 
     def _read_original_reference(self, reference: object, *, kind: int,
                                  intent: bytes | None = None, intent_cid: str | None = None) -> bytes:

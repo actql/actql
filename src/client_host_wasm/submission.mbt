@@ -50,7 +50,8 @@ pub fn reserve_submission_projection(
       kind != 6 &&
       kind != 7 &&
       kind != 8 &&
-      kind != 9
+      kind != 9 &&
+      kind != 11
     ) ||
     physical_ticket <= 0 ||
     value.next_handle == 2147483647 ||
@@ -68,7 +69,7 @@ pub fn reserve_submission_projection(
   let slot = match
     @buffers.reserve_output_buffer(
       value.pool,
-      if kind >= 3 && kind <= 9 {
+      if (kind >= 3 && kind <= 9) || kind == 11 {
         1048576
       } else {
         4096
@@ -116,7 +117,7 @@ pub fn produce_submission_projection(nonce : Int64, handle : Int) -> Int {
   if record.kind == 3 {
     return produce_submission_append(value, record, configuration)
   }
-  if record.kind >= 4 && record.kind <= 8 {
+  if (record.kind >= 4 && record.kind <= 8) || record.kind == 11 {
     return produce_submission_lookup(value, record, configuration)
   }
   if record.produced {
@@ -229,7 +230,8 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
     record.kind == 5 ||
     record.kind == 6 ||
     record.kind == 7 ||
-    record.kind == 8 {
+    record.kind == 8 ||
+    record.kind == 11 {
     guard value.run_configurations.get(record.configuration)
       is Some(configuration) else {
       return -2
@@ -238,7 +240,8 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
       record.kind == 5 ||
       record.kind == 6 ||
       record.kind == 7 ||
-      record.kind == 8 {
+      record.kind == 8 ||
+      record.kind == 11 {
       submission_lookup_current(value, record, configuration)
     } else {
       submission_append_current(value, record, configuration)
