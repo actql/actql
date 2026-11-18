@@ -71,6 +71,7 @@ fn local_publication_preparation_owner_cause(
     PublicationInvocation(_) => 12L
     PublicationCapture(_) => 13L
     PublicationSnapshot(_) => 14L
+    PublicationRetention(_) => 15L
   }
 }
 
