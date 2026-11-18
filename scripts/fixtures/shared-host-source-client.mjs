@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {publishStandardRestBarrier} from './external-rest/cancel-conformance.mjs';
 
 const [configurationPath, phase] = process.argv.slice(2);
-assert(process.argv.length === 4 && ['first', 'second'].includes(phase));
+assert(process.argv.length === 4 && ['first', 'second', 'first-submit', 'recover-first'].includes(phase));
 const configuration = JSON.parse(await readFile(configurationPath, 'utf8'));
 const require = createRequire(join(configuration.consumerRoot, 'package.json'));
 const nodePath = require.resolve('@actql/node');
@@ -21,31 +21,43 @@ let client, primary, failed = false;
 try {
   client = await connect({mode: 'remote', endpoint: configuration.endpoint,
     token: 'fixture-token', durability: 'durable'});
-  const program = JSON.parse(await readFile(configuration.programPath, 'utf8'));
-  const pending = client.startSource(JSON.stringify(program), {format: 'json',
-    attemptId: `shared-source-${phase}`});
-  const settled = pending.then(value => ({value}), cause => ({failed: true, cause}));
-  const input = sdk.getSubmissionInput(pending); assert(input);
-  await save(`source-${phase}-original-input.json`, input);
-  const submission = await settled;
-  if (submission.failed) throw submission.cause;
-  const execution = submission.value;
-  await publishStandardRestBarrier(join(configuration.outputRoot, `source-${phase}-run.json`),
-    JSON.stringify(execution.ref) + '\n');
-  report.originalRefBeforeWait = true;
-  const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
-  await save(`source-${phase}-terminal.json`, state);
-  if (phase === 'first') {
-    assert.equal(state.status, 'cancelled'); assert.equal(state.result_available, false);
-    assert.equal(state.control.cancellation_requested, true);
-    assert.equal(state.control.physical_stop, 'confirmed');
+  let execution;
+  if (phase === 'recover-first') {
+    const ref = JSON.parse(await readFile(join(configuration.outputRoot, 'source-first-run.json'), 'utf8'));
+    execution = await client.attach(ref);
+    assert.deepEqual(execution.ref, ref);
+    report.publicAttach = 1; report.publicStartSource = 0;
   } else {
-    assert.equal(state.status, 'succeeded'); assert.equal(state.result_available, true);
-    assert.equal(state.control.cancellation_requested, false);
-    const rows = await execution.result('rows').all();
-    await save('source-second-rows.json', rows);
-    assert.deepEqual(rows, [{id: 'alpha', amount: 7, note: 'e\u0301'},
-      {id: 'beta', amount: 2, note: '東京'}, {id: 'gamma', amount: 11, note: ''}]);
+    const program = JSON.parse(await readFile(configuration.programPath, 'utf8'));
+    const pending = client.startSource(JSON.stringify(program), {format: 'json',
+      attemptId: `shared-source-${phase}`});
+    const settled = pending.then(value => ({value}), cause => ({failed: true, cause}));
+    const input = sdk.getSubmissionInput(pending); assert(input);
+    await save(`source-${phase}-original-input.json`, input);
+    const submission = await settled;
+    if (submission.failed) throw submission.cause;
+    execution = submission.value;
+    const refPhase = phase === 'first-submit' ? 'first' : phase;
+    await publishStandardRestBarrier(join(configuration.outputRoot, `source-${refPhase}-run.json`),
+      JSON.stringify(execution.ref) + '\n');
+    report.publicStartSource = 1; report.publicAttach = 0;
+    report.originalRefBeforeWait = true;
+  }
+  if (phase !== 'first-submit') {
+    const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
+    await save(`source-${phase}-terminal.json`, state);
+    if (phase === 'first') {
+      assert.equal(state.status, 'cancelled'); assert.equal(state.result_available, false);
+      assert.equal(state.control.cancellation_requested, true);
+      assert.equal(state.control.physical_stop, 'confirmed');
+    } else {
+      assert.equal(state.status, 'succeeded'); assert.equal(state.result_available, true);
+      assert.equal(state.control.cancellation_requested, false);
+      const rows = await execution.result('rows').all();
+      await save(`source-${phase}-rows.json`, rows);
+      assert.deepEqual(rows, [{id: 'alpha', amount: 7, note: 'e\u0301'},
+        {id: 'beta', amount: 2, note: '東京'}, {id: 'gamma', amount: 11, note: ''}]);
+    }
   }
   report.passed = true;
 } catch (error) {

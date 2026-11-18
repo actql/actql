@@ -13,6 +13,9 @@ import {setTimeout as delay} from 'node:timers/promises';
 const [configurationPath] = process.argv.slice(2); assert(process.argv.length === 3);
 const configuration = JSON.parse(await readFile(configurationPath, 'utf8'));
 const root = configuration.outputRoot, records = [], flights = [];
+const clientCrash = configuration.scenario === 'client-crash';
+assert(configuration.scenario === undefined || clientCrash, 'Unknown shared Source acceptance scenario');
+const nativeWaitEntered = Promise.withResolvers();
 const save = (name, value) => writeFile(join(root, name), JSON.stringify(value, null, 2) + '\n', {flag: 'wx'});
 const read = async name => JSON.parse(await readFile(join(root, name), 'utf8'));
 const require = createRequire(join(configuration.consumerRoot, 'package.json'));
@@ -27,7 +30,10 @@ const host = await openInstalledRemoteHttpHost({...configuration.installation,
   async resolveSourceSecret() {secretResolutions++; return readFile(configuration.fixtureSecretPath, 'utf8');},
 });
 const certificate = await readFile(configuration.certificate), key = await readFile(configuration.privateKey);
-const server = createServer({key, cert: certificate, ca: certificate, requestCert: true, rejectUnauthorized: true}, host.handler);
+const server = createServer({key, cert: certificate, ca: certificate, requestCert: true, rejectUnauthorized: true}, (request, response) => {
+  if (clientCrash && request.url === '/actql/client/0.1/wait') nativeWaitEntered.resolve();
+  return host.handler(request, response);
+});
 const sdkServer = createServer({key, cert: certificate}, host.handler);
 await Promise.all([server, sdkServer].map(value => new Promise(resolve => value.listen(0, '127.0.0.1', resolve))));
 await save('connection.json', {mode: 'remote', owner: 'remote', durability: 'durable', consentRefs: [], runners: []});
@@ -59,6 +65,35 @@ async function command(executable, argv, label) {
   assert.equal(record.terminationReason, null); return record.stdout;
 }
 const native = async (...args) => JSON.parse(await command(configuration.executable, [...common, ...args], args[0]));
+async function crashOriginalNativeWait() {
+  const startedAt = new Date().toISOString();
+  const child = spawn(configuration.executable, [...common, 'wait', '--ref-file', 'source-first-run.json'],
+    {cwd: root, env: process.env, stdio: ['ignore', 'pipe', 'pipe']});
+  let stdout = '', stderr = '', bytes = 0, terminationReason = null;
+  const timer = setTimeout(() => {terminationReason = 'original-child-timeout'; child.kill('SIGTERM');}, 30_000);
+  for (const [stream, isError] of [[child.stdout, false], [child.stderr, true]]) stream.on('data', chunk => {
+    bytes += chunk.length;
+    if (bytes > 8 * 1024 * 1024) {terminationReason = 'output-limit'; child.kill('SIGTERM');}
+    else if (isError) stderr += chunk; else stdout += chunk;
+  });
+  const terminal = new Promise((resolve, reject) => {
+    child.once('error', reject);
+    child.once('close', (code, signal) => resolve({code, signal}));
+  });
+  terminal.catch(() => undefined);
+  try {
+    await Promise.race([nativeWaitEntered.promise, terminal.then(() => {throw new Error('Native wait exited before its HTTP request');})]);
+    assert(child.kill('SIGKILL'), 'Only this own spawned Native child is targeted');
+    const result = await terminal;
+    const record = {label: 'expected-native-client-crash', pid: child.pid, startedAt,
+      endedAt: new Date().toISOString(), ...result, stdout, stderr, terminationReason,
+      actualTlsWaitRequestObserved: true, internalWaitAdmission: 'UNOBSERVED',
+      publicCloseAttempted: false, publicOperationReturned: false};
+    await save('native-client-crash.json', record);
+    assert.equal(result.code, null); assert.equal(result.signal, 'SIGKILL'); assert.equal(terminationReason, null);
+  } finally {clearTimeout(timer);}
+}
+
 async function marker(path) {
   const signal = AbortSignal.timeout(30_000);
   while (true) {
@@ -75,12 +110,22 @@ try {
   const childInput = join(root, 'source-client-input.json');
   await writeFile(childInput, JSON.stringify({consumerRoot: configuration.consumerRoot, outputRoot: root,
     endpoint: `https://127.0.0.1:${sdkServer.address().port}/`, programPath: configuration.programPath}), {flag: 'wx'});
-  for (const phase of ['first', 'second']) {
-    const flight = command(process.execPath, [configuration.clientScript, childInput, phase], `source-${phase}`);
-    // Observe rejection immediately while preserving the original promise/cause.
-    flight.catch(() => undefined); flights.push(flight);
-    await Promise.race([marker(configuration.pageEntered[phase]), ...flights.map(originalFailure)]);
-    await Promise.race([marker(join(root, `source-${phase}-run.json`)), ...flights.map(originalFailure)]);
+  if (clientCrash) {
+    await command(process.execPath, [configuration.clientScript, childInput, 'first-submit'], 'source-first-submit');
+    const firstClose = await read('source-first-submit-report.json');
+    assert.equal(firstClose.clientCloseReturned, true);
+    await marker(configuration.pageEntered.first);
+    const second = command(process.execPath, [configuration.clientScript, childInput, 'second'], 'source-second');
+    second.catch(() => undefined); flights.push(second);
+    await Promise.race([marker(configuration.pageEntered.second), originalFailure(second)]);
+    await Promise.race([marker(join(root, 'source-second-run.json')), originalFailure(second)]);
+  } else {
+    for (const phase of ['first', 'second']) {
+      const flight = command(process.execPath, [configuration.clientScript, childInput, phase], `source-${phase}`);
+      flight.catch(() => undefined); flights.push(flight);
+      await Promise.race([marker(configuration.pageEntered[phase]), ...flights.map(originalFailure)]);
+      await Promise.race([marker(join(root, `source-${phase}-run.json`)), ...flights.map(originalFailure)]);
+    }
   }
   const firstRef = await read('source-first-run.json'), secondRef = await read('source-second-run.json');
   assert.notDeepEqual(firstRef, secondRef);
@@ -91,34 +136,58 @@ try {
     assert.equal(state.status, 'running'); assert.equal(state.result_available, false);
     assert.equal(state.control.cancellation_requested, false); assert.equal(state.control.physical_stop, 'unknown');
   }
-  const cancelId = 'shared-source-first-cancel', revision = String(before.control.revision);
-  await save('original-cancellation-input.json', {ref: firstRef, cancelId, expectedRevision: before.control.revision});
-  const answer = await native('cancel', '--ref-file', 'source-first-run.json', '--cancel-id', cancelId,
-    '--expected-revision', revision, '--operation-attempt-id', 'shared-source-first-cancel-invocation');
-  await save('original-cancellation-answer.json', answer);
-  assert.equal(answer.kind, 'accepted'); assert.equal(answer.cancellation.kind, 'accepted');
-  assert.deepEqual(answer.cancellation.ref, firstRef);
-  const otherAfter = await native('status', '--ref-file', 'source-second-run.json');
-  await save('other-run-after-cancel.json', otherAfter);
-  assert.equal(otherAfter.status, 'running'); assert.equal(otherAfter.control.cancellation_requested, false);
-  // Release only the physical fixture reply after the real public cancellation
-  // returned. This marker is not a stop/cleanup receipt or Owner instruction.
-  await save('release-first.json', {publicCancelReturned: true});
-  await flights[0];
-  const lookup = await native('lookup-cancellation', '--ref-file', 'source-first-run.json', '--cancel-id', cancelId,
-    '--expected-revision', revision);
-  assert.equal(lookup.kind, 'found'); assert.deepEqual(lookup.cancellation, answer.cancellation);
-  await save('original-cancellation-lookup.json', lookup);
-  const stillRunning = await native('status', '--ref-file', 'source-second-run.json');
-  assert.equal(stillRunning.status, 'running'); assert.equal(stillRunning.control.cancellation_requested, false);
-  await save('other-run-after-first-stop.json', stillRunning);
-  await save('release-second.json', {firstOriginalCancelledAndPhysicalStopObserved: true});
-  await flights[1];
-  const first = await read('source-first-terminal.json'), second = await read('source-second-terminal.json');
-  assert.equal(first.control.physical_stop, 'confirmed'); assert.equal(first.status, 'cancelled');
-  assert.equal(second.status, 'succeeded'); assert.equal(second.control.cancellation_requested, false);
+  if (clientCrash) {
+    await crashOriginalNativeWait();
+    const firstAfter = await native('status', '--ref-file', 'source-first-run.json');
+    const secondAfter = await native('status', '--ref-file', 'source-second-run.json');
+    await save('states-after-client-crash.json', {first: firstAfter, second: secondAfter});
+    for (const state of [firstAfter, secondAfter]) {
+      assert.equal(state.status, 'running'); assert.equal(state.result_available, false);
+      assert.equal(state.control.cancellation_requested, false);
+    }
+    const recovered = command(process.execPath, [configuration.clientScript, childInput, 'recover-first'], 'source-recover-first');
+    recovered.catch(() => undefined); flights.push(recovered);
+    await save('release-first.json', {afterOwnNativeClientCrashAndUnchangedOriginalStates: true});
+    await recovered;
+    const stillRunning = await native('status', '--ref-file', 'source-second-run.json');
+    assert.equal(stillRunning.status, 'running'); assert.equal(stillRunning.control.cancellation_requested, false);
+    await save('other-run-after-first-recovery.json', stillRunning);
+    await save('release-second.json', {firstOriginalRecoveredWithoutSubmit: true});
+    await flights[0];
+    const recovery = await read('source-recover-first-report.json');
+    assert.equal(recovery.publicStartSource, 0); assert.equal(recovery.publicAttach, 1);
+    report.scope = 'client detach/exit and own Native wait SIGKILL with two original held Reads';
+    report.firstSourceSurvivedClientCrash = true; report.otherRunUnaffected = true;
+  } else {
+    const cancelId = 'shared-source-first-cancel', revision = String(before.control.revision);
+    await save('original-cancellation-input.json', {ref: firstRef, cancelId, expectedRevision: before.control.revision});
+    const answer = await native('cancel', '--ref-file', 'source-first-run.json', '--cancel-id', cancelId,
+      '--expected-revision', revision, '--operation-attempt-id', 'shared-source-first-cancel-invocation');
+    await save('original-cancellation-answer.json', answer);
+    assert.equal(answer.kind, 'accepted'); assert.equal(answer.cancellation.kind, 'accepted');
+    assert.deepEqual(answer.cancellation.ref, firstRef);
+    const otherAfter = await native('status', '--ref-file', 'source-second-run.json');
+    await save('other-run-after-cancel.json', otherAfter);
+    assert.equal(otherAfter.status, 'running'); assert.equal(otherAfter.control.cancellation_requested, false);
+    // Release only the physical fixture reply after the real public cancellation
+    // returned. This marker is not a stop/cleanup receipt or Owner instruction.
+    await save('release-first.json', {publicCancelReturned: true});
+    await flights[0];
+    const lookup = await native('lookup-cancellation', '--ref-file', 'source-first-run.json', '--cancel-id', cancelId,
+      '--expected-revision', revision);
+    assert.equal(lookup.kind, 'found'); assert.deepEqual(lookup.cancellation, answer.cancellation);
+    await save('original-cancellation-lookup.json', lookup);
+    const stillRunning = await native('status', '--ref-file', 'source-second-run.json');
+    assert.equal(stillRunning.status, 'running'); assert.equal(stillRunning.control.cancellation_requested, false);
+    await save('other-run-after-first-stop.json', stillRunning);
+    await save('release-second.json', {firstOriginalCancelledAndPhysicalStopObserved: true});
+    await flights[1];
+    const first = await read('source-first-terminal.json'), second = await read('source-second-terminal.json');
+    assert.equal(first.control.physical_stop, 'confirmed'); assert.equal(first.status, 'cancelled');
+    assert.equal(second.status, 'succeeded'); assert.equal(second.control.cancellation_requested, false);
+    report.firstCancellationAndPhysicalStop = true; report.otherRunUnaffected = true;
+  }
   report.passed = true; report.dispatchObservations = dispatches; report.secretResolutions = secretResolutions;
-  report.firstCancellationAndPhysicalStop = true; report.otherRunUnaffected = true;
 } catch (error) {
   failed = true; primary = error; report.failure = {name: error?.name, code: error?.code, message: error?.message};
 } finally {
@@ -148,7 +217,7 @@ try {
     assert.equal(report.hostCloseReturn.authorizationCleanupPending, false);
     assert.equal(report.hostCloseReturn.diagnosticDeliveryPending, false);
   } catch (error) {
-    report.hostCloseReturned = false; primary = failed ? new AggregateError([primary, error]) : error; failed = true;
+    report.hostCloseReturned ??= false; primary = failed ? new AggregateError([primary, error]) : error; failed = true;
     report.closeFailure = {name: error?.name, code: error?.code, message: error?.message};
   }
   report.passed = report.passed && !failed;
