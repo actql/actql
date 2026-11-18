@@ -129,3 +129,25 @@ test('actual finite keyed lifecycle inventory uses its owned construction bounda
   const root = fileURLToPath(new URL('../', import.meta.url));
   assert.deepEqual(checkResourceLifecycle(root).problems, []);
 });
+
+test('managed scan guard keeps private phase and builder references inside the original wrapper', () => {
+  for (const body of [
+    'let grow = grow_keyed_body_construction',
+    'grow_keyed_body_construction(foreign, capacity)',
+    'keyed_body_construction_controls()',
+  ]) assert(problems(guardedConstruction(body)).some(issue => issue.rule === 'manual-scan-phase'));
+  for (const body of [
+    'scan_keyed_lookup_identity_bodies(lookup, output, read, grow)',
+    'let scan = scan_client_keyed_native_page',
+  ]) assert(problems(guardedConstruction(body)).some(issue => issue.rule === 'unsettled-scan-builder'));
+  assert(problems(guardedConstruction('let forged : KeyedBodyConstruction = foreign'))
+    .some(issue => issue.rule === 'private-construction-forgery'));
+  const source = 'fn construct(lookup : ClientKeyedLookupInput) -> Unit { () }';
+  assert(resourceLifecycleProblems(new Map([[constructionModule, source]]), {
+    inventory: [], scanInventory: constructionInventory,
+  }).some(issue => issue.rule === 'missing-managed-scan'));
+  for (const call of ['grow_keyed_body_construction', 'scan_client_keyed_native_whole_source']) {
+    assert(problems(guardedConstruction(`let data = "\\{${call}(lookup)}"`))
+      .some(issue => issue.rule === 'unclassified-interpolation'));
+  }
+});

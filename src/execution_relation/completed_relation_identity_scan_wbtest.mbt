@@ -388,3 +388,62 @@ test "retained identity body cancellation cuts unfinished chunks without retirin
   assert_true(finish_completed_relation_identity_scan(scan) is Err(Closed))
   assert_true(completed_output_available(source))
 }
+
+///|
+test "completed export retained extent measures original receipt arrays without current or writer scratch" {
+  let calls = Ref(0)
+  let source = restrict_completed_output(
+    export_fixture(result_export_owner()),
+    () => {
+      calls.val += 1
+      true
+    },
+  )
+  let scan = retained_identity_body_fixture(source)
+  let mut done = false
+  for _ in 0..<10000 {
+    let next = completed_relation_identity_scan_next_construction_capacity(scan).unwrap()
+    done = advance_completed_relation_identity_scan(
+        scan,
+        31,
+        construction_capacity=Some(next),
+      ).unwrap().0
+    if done {
+      break
+    }
+  }
+  assert_true(done)
+  let receipt = finish_completed_relation_identity_scan(scan).unwrap()
+  cancel_completed_relation_identity_scan(scan) |> ignore
+  let before = calls.val
+  let quoted = completed_relation_export_retained_capacity(receipt).unwrap()
+  assert_eq(calls.val, before)
+  assert_eq(
+    execution_capacity_retained_bytes(quoted),
+    execution_capacity_execution_bytes(quoted),
+  )
+  // Independent final representation: 8 receipt/identity/summary records,
+  // one original-source Some and four owned Texts; two name and six scalar
+  // arrays retain wrapper/current backing only, with their actual capacities.
+  let scalar_slots = receipt.measurement.column_rows.capacity().to_int64() +
+    receipt.measurement.column_bytes.capacity().to_int64() +
+    receipt.measurement.column_nodes.capacity().to_int64() +
+    receipt.measurement.column_max_value_bytes.capacity().to_int64() +
+    receipt.measurement.column_null_rows.capacity().to_int64() +
+    receipt.measurement.column_admitted_depths.capacity().to_int64()
+  let names = receipt.fields.capacity().to_int64() +
+    receipt.schema.field_names.capacity().to_int64()
+  let text = receipt.rows.content.cid.length().to_int64() +
+    receipt.logical.cid.length().to_int64() +
+    receipt.schema.cid.length().to_int64() +
+    receipt.schema.wire.length().to_int64()
+  assert_true(receipt.rows.references is None)
+  let expected = (13L + 16L) * 16L +
+    (28L + 8L + names) * 8L +
+    (20L + 16L + scalar_slots) * 8L +
+    text * 2L
+  assert_eq(execution_capacity_retained_bytes(quoted), expected)
+  cancel_completed_relation_export_receipt(receipt)
+  assert_true(completed_relation_export_retained_capacity(receipt) is None)
+  assert_eq(calls.val, before)
+}

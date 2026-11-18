@@ -202,6 +202,32 @@ through the existing imported child Ledger; clearing a slot, reporting success
 or observing GC is not a refund witness. Publication then grows the same owner
 for its own constructors rather than retaining the previous scratch peak forever.
 
+### Completed keyed identity scans
+
+Dynamic keyed scans use a construction-only grow port on their original lookup
+Reservation. Its fixed control/state and the first actual scan extent are backed
+before the port is created. Each subsequent quote is an absolute actual extent
+against the same original baseline; it is not an extra debit on the last peak.
+
+The builder returns before adoption or surviving-extent measurement. It cuts
+its scan/writer aliases and transfers the exact completed receipt/body into the
+original lookup or immutable return frame. The common wrapper then adopts that
+original, measures only bounded retained records/array capacities/Text lengths,
+and reconciles the same Reservation once. Callers receive no finish/reduce port.
+The grow port is retired before adoption and on every failure exit. Typed build,
+adoption, extent/current or Resource refusal retains the owned peak for cleanup.
+The callback contract is no-raise Result; invalid foreign panics do not establish
+portable cleanup or a physical acknowledgement.
+
+Lookup identity, Native left identity, captured-page identity and Whole Source
+cell identity use this scan boundary. Their preceding Source, RowRun, raw Store,
+capture and output duties remain with their existing owners and baselines.
+Completed receipts keep their real summary/name arrays and original reference
+index; returned Source identities keep their exact preimages and dependency
+facts. No graph is reparsed, no Reference is reissued, and no consumed work or
+attempt is refunded. Reconciliation establishes logical representation capacity,
+not physical cleanup, RSS reclamation or an execution grant.
+
 ## JS representation
 
 The existing generated binding readers decode the actual MoonBit ABI, including

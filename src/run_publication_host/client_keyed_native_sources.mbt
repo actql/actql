@@ -134,6 +134,60 @@ pub fn prepare_client_keyed_native_whole_source_evidence(
 }
 
 ///|
+fn scan_client_keyed_native_whole_source(
+  lookup : ClientKeyedLookupInput,
+  state : ClientKeyedNativeSourceState,
+  source : @query.CapturedInputSource,
+  max_rows : Int,
+  values : @execution.ValueLimits,
+  payload_wire : @execution.RowWireLimits,
+  logical_wire : @execution.RowWireLimits,
+  schema : @execution.RelationSchemaIdentityLimits,
+  max_work : Int,
+  workspace : Int,
+  grow : (@execution.ExecutionCapacity) -> Result[Unit, ClientKeyedRequestIssue],
+) -> Result[@query.CapturedSourceRelationIdentity, ClientKeyedRequestIssue] {
+  let scan = match
+    @query.start_captured_source_cell_identity(
+      source, max_rows, values, payload_wire, logical_wire, schema, max_work, workspace,
+      16777216,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Capture(issue))
+  }
+  state.source_scan = Some(scan)
+  let mut previous_work = 0L
+  while true {
+    guard @query.captured_source_cell_identity_next_capacity(scan) is Some(next) else {
+      return Err(Assembly("native_source_next_capacity"))
+    }
+    match grow(next) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    let advanced = @query.advance_captured_source_cell_identity(scan, 31, next)
+    let actual = @query.captured_source_cell_identity_work(scan)
+    let delta = actual - previous_work
+    if delta < 0L || delta > 9223372036854775807L - lookup.native_left_work {
+      return Err(Assembly("native_source_work_overflow"))
+    }
+    lookup.native_left_work += delta
+    previous_work = actual
+    match advanced {
+      Err(issue) => return Err(Capture(issue))
+      Ok((false, _)) => ()
+      Ok((true, _)) => break
+    }
+  }
+  let identity = match @query.finish_captured_source_cell_identity(scan) {
+    Ok(value) => value
+    Err(issue) => return Err(Capture(issue))
+  }
+  state.source_scan = None
+  Ok(identity)
+}
+
+///|
 fn build_client_keyed_native_whole_source_evidence(
   lookup : ClientKeyedLookupInput,
   left : ClientKeyedNativeLeftIdentity,
@@ -173,57 +227,31 @@ fn build_client_keyed_native_whole_source_evidence(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
-  let basis_r = lookup.retained_bytes
-  let basis_e = lookup.execution_bytes
   guard @query.captured_source_cell_identity_start_capacity(source)
     is Some(start) else {
     return Err(Assembly("native_source_start_capacity"))
   }
-  match
-    keyed_lookup_body_grow(lookup, basis_r, basis_e, controls, Some(start)) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  let scan = match
-    @query.start_captured_source_cell_identity(
-      source, max_rows, values, payload_wire, logical_wire, schema, max_work, workspace,
-      16777216,
+  let identity = match
+    with_keyed_body_construction(
+      lookup,
+      start,
+      controls,
+      grow => {
+        scan_client_keyed_native_whole_source(
+          lookup, state, source, max_rows, values, payload_wire, logical_wire, schema,
+          max_work, workspace, grow,
+        )
+      },
+      identity => {
+        state.source_identity_custody = ScannedHere
+        state.source_identity = Some(identity)
+        Ok(())
+      },
+      @query.captured_source_relation_identity_retained_capacity,
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(Capture(issue))
+    Ok(settled) => settled.value
+    Err(issue) => return Err(issue)
   }
-  state.source_scan = Some(scan)
-  let mut previous_work = 0L
-  while true {
-    guard @query.captured_source_cell_identity_next_capacity(scan) is Some(next) else {
-      return Err(Assembly("native_source_next_capacity"))
-    }
-    match
-      keyed_lookup_body_grow(lookup, basis_r, basis_e, controls, Some(next)) {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-    let advanced = @query.advance_captured_source_cell_identity(scan, 31, next)
-    let actual = @query.captured_source_cell_identity_work(scan)
-    let delta = actual - previous_work
-    if delta < 0L || delta > 9223372036854775807L - lookup.native_left_work {
-      return Err(Assembly("native_source_work_overflow"))
-    }
-    lookup.native_left_work += delta
-    previous_work = actual
-    match advanced {
-      Err(issue) => return Err(Capture(issue))
-      Ok((false, _)) => ()
-      Ok((true, _)) => break
-    }
-  }
-  let identity = match @query.finish_captured_source_cell_identity(scan) {
-    Ok(value) => value
-    Err(issue) => return Err(Capture(issue))
-  }
-  state.source_identity_custody = ScannedHere
-  state.source_identity = Some(identity)
-  state.source_scan = None
   // Existing metadata codec grows the same reservation before any body is
   // encoded. Keep completed identity/body backing alive beside these outputs.
   let order_fields = @acquisition.parameterized_request_field_count(
