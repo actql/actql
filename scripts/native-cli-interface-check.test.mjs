@@ -411,3 +411,18 @@ test('Native Mock final currentness refusal permanently ends the original campai
     await assert.rejects(admission.verify(), /Closed/u);
   }, f.options);
 });
+
+
+test('Native Mock retired callback cannot publish an already-started verification', async t => {
+  const f = await campaignFixture(t), originalCheck = f.options.checkSource;
+  let enter, release, pending;
+  const entered = new Promise(resolve => {enter = resolve;});
+  const finish = new Promise(resolve => {release = resolve;});
+  f.options.checkSource = async (...args) => {enter(); await finish; return originalCheck(...args);};
+  await withNativeMockReleaseAdmission(f.output, async admission => {
+    pending = admission.verify();
+    await entered;
+  }, f.options);
+  release();
+  await assert.rejects(pending, /Closed Native Mock release admission/u);
+});
