@@ -319,3 +319,92 @@ test "usage observation rejects a foreign original INFER child without retiring 
   assert_true(cleanup(first).unwrap())
   assert_true(cleanup(second).unwrap())
 }
+
+///|
+test "usage stop during actual writer growth cannot expose its wire through the retirement action" {
+  let original : Ref[OriginalInferUsagePublication?] = Ref(None)
+  let backing : Ref[@model.OriginalModelPublicationCapacity?] = Ref(None)
+  let control = Ref(0L)
+  let stopped = Ref(false)
+  let calls = Ref(0)
+  let (active, _, _) = original_observation_test_start(
+    provider=original_funded_start_provider(calls),
+    restored_input=true,
+    restored_custody=() => {
+      if original.val is Some(value) &&
+        backing.val is Some(capacity) &&
+        @model.original_model_publication_retained_bytes(capacity) > control.val {
+        // Trigger from the existing original physical-current port only
+        // AFTER actual writer backing grew beyond the admitted control frame.
+        // No callback count, arbitrary delay or forged capacity is selected.
+        stopped.val = true
+        stop_original_infer_usage_publication(value)
+      }
+      true
+    },
+  )
+  let (same, prepared, admission, prefix_work) = entry_gate_fixture(
+    calls,
+    Ref(evidence_account(@authorization.Allow)),
+    Ref("2026-10-12T00:00:00.000Z"),
+    Ref(Some(egress_fixture_observation())),
+    start_original=Some(() => active),
+    slots=1,
+  )
+  assert_true(physical_equal(same, active))
+  bind_model_entry_persistence(active, prepared, admission, entry => {
+    @model.model_call_entry_persistence(entry, prepared, () => {
+      @model.Saved(
+        @model.acknowledge_saved_model_call_entry(entry, prepared).unwrap(),
+      )
+    })
+  }).unwrap()
+  let mut poll = fixture_finish(active, initial_work=prefix_work)
+  for _ in 0..<4 {
+    if poll is AwaitIo(work~) {
+      poll = fixture_finish(active, initial_work=work)
+    }
+  }
+  let work = match poll {
+    Settling(_, work~) => work
+    _ => abort("same original settlement required")
+  }
+  assert_true(
+    @model.acknowledge_model_call_settlement(call_settlement(active).unwrap()),
+  )
+  assert_true(fixture_finish(active, initial_work=work) is Complete(_, ..))
+  let capture = acquire_capture(active).unwrap()
+  let capacity = reserve_original_infer_publication_capacity(active, 1L, 1L).unwrap()
+  let value = begin_original_infer_usage_publication(
+    active, capacity, capture, 9L, 9L, 4096,
+  ).unwrap()
+  let retain = next_original_infer_usage_action(value).unwrap().unwrap()
+  observe_original_infer_usage_action(value, retain, @model.CopyRetained).unwrap()
+  let authorize = next_original_infer_usage_action(value).unwrap().unwrap()
+  let slot = @publication.run_evidence_value_identity(
+    @model.verified_model_capture_call_at(capture, 0).unwrap(),
+  )
+  let attempt = @publication.run_evidence_value_identity(
+    @model.model_attempt_identity(
+      @model.model_execution_attempt_evidence(active.model.unwrap(), 0).unwrap(),
+    ),
+  )
+  assert_true(
+    original_infer_usage_binding_matches(value, authorize, slot, attempt),
+  )
+  observe_original_infer_usage_action(value, authorize, @model.Authorized).unwrap()
+  control.val = @model.original_model_publication_retained_bytes(capacity)
+  backing.val = Some(capacity)
+  original.val = Some(value)
+  let retire = next_original_infer_usage_action(value).unwrap().unwrap()
+  assert_true(stopped.val)
+  assert_eq(@model.original_model_usage_action_kind(retire), Some("retire"))
+  assert_eq(@model.original_model_usage_action_wire(retire), None)
+  assert_false(release_original_infer_publication_capacity(capacity).unwrap())
+  observe_original_infer_usage_action(value, retire, @model.CleanupComplete).unwrap()
+  original.val = None
+  backing.val = None
+  assert_true(@model.release_verified_model_capture(capture))
+  assert_true(release_original_infer_publication_capacity(capacity).unwrap())
+  assert_true(cleanup(active).unwrap())
+}
