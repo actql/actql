@@ -178,14 +178,14 @@ test "usage None carrier reserves its structural reference before construction e
 ///|
 test "usage continuation admission exact and one short precedes its action construction" {
   // Independent one-call census: original Host window 28H/136R/28W;
-  // continuation/action/array/items/selection frames yield 41H/174R/56W.
+  // continuation/action/array/items/selection frames yield 42H/181R/56W.
   // Measuring retains its three scalars and one tuple. Use the existing
   // measuring-writer recipe, never a measured product return as the oracle.
   let writer = @encode.measuring_writer_construction_extent(7, 1).unwrap()
   let required = @relation.preparation_execution_capacity({
     retained: {
-      record_headers: 42L,
-      reference_slots: 174L,
+      record_headers: 43L,
+      reference_slots: 181L,
       scalar_words: 59L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,

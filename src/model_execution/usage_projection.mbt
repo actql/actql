@@ -122,15 +122,17 @@ fn model_usage_host_extent(calls : Int) -> @shape.CollectionConstructionExtent? 
     // SAME-owner continuation: 1H/5R/10W; one live action 1H/2R/3W;
     // completed item tuples 1H/1R/2W each, plus the retained array backing.
     // Original INFER facade adds 1H/2R/1W for its same Execution/child/reentry.
+    // After record, a current-loss replacement outer manifest and getter alias
+    // coexist with the recorded one: 1H/7R. Items remain the SAME borrowed array.
     // Six bounded Option/Result/selection carriers and their original aliases
     // cover next/observe/current getter frames, not a numerical spare budget.
     record_headers: host.record_headers +
     items.record_headers +
-    9L +
+    10L +
     calls.to_int64(),
     reference_slots: host.reference_slots +
     items.reference_slots +
-    21L +
+    28L +
     calls.to_int64(),
     scalar_words: host.scalar_words +
     items.scalar_words +

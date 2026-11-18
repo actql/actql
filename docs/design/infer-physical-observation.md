@@ -188,7 +188,11 @@ and the original Request ceiling.
 
 The continuation and action/item backing are funded before construction, then
 the existing bounded seven-field usage writer grows the same capacity for its
-actual output. The adopted call/attempt references used in completion items are
+actual output. Normal retirement reuses the exact manifest/items passed to
+record. If a later current loss changes Common completion, only one closed outer
+manifest and its getter alias coexist with the recorded one (1H/7R); that overlap
+is included in the original window and borrows the same items. The adopted
+call/attempt references used in completion items are
 retained before awaiting a callback; a current loss does not trigger another
 original read while building an incomplete receipt. A stop request leaves an
 outstanding callback owned. Publication release remains pending until its

@@ -9,7 +9,7 @@ import {runtimePair} from '../host-common/compiler-binding.generated.mjs';
 function fixture({actions = ['retain', 'authorize', 'capture', 'record', 'retire'],
   observations = ['retained', 'authorized', 'captured', 'recorded', 'cleaned'],
   completion = 'complete', items = [[0, 'complete']], wire = '{"input_tokens":0,"output_tokens":null}',
-  authorize, capture, record, current} = {}) {
+  authorize, capture, record, current, keepItemsOnStop = false} = {}) {
   const children = [], captured = [], recorded = [], trace = [], observed = [];
   const usage = {}, tokens = actions.map((kind, index) => ({kind, index}));
   let cursor = 0, active, stopped = false, finished = false;
@@ -41,8 +41,10 @@ function fixture({actions = ['retain', 'authorize', 'capture', 'record', 'retire
     },
     clientProgramStopOriginalInferUsagePublication(value) {assert.strictEqual(value, usage); stopped = true;},
     clientProgramOriginalInferUsageCompletion: () => stopped ? 'RequiredEvidenceUnavailable' : completion,
-    clientProgramOriginalInferUsageItemCount: () => stopped ? 0 : items.length,
-    clientProgramOriginalInferUsageItem: (_, index) => runtimePair(...items[index]),
+    clientProgramOriginalInferUsageItemCount: () => stopped && !keepItemsOnStop ? 0 : items.length,
+    clientProgramOriginalInferUsageItem: (_, index) => {
+      trace.push('retained item read'); return runtimePair(...items[index]);
+    },
     clientProgramOriginalInferUsageItemAttempt: () => 'original-attempt',
   };
   const facts = {moon,
@@ -88,7 +90,7 @@ test('usage physical binding executes issued original actions without deciding c
     assert.equal(f.captured[0].attemptCid, 'original-attempt');
     assert.deepEqual(f.observed, ['retained', 'authorized', 'captured', 'recorded', 'cleaned']);
     assert.equal(f.children[0].cleanupPending(), false); assert.equal(await f.children[0].close(), true);
-    assert.deepEqual(f.recorded[0].manifest, manifest);
+    assert.strictEqual(f.recorded[0].manifest, manifest);
   }
 });
 
@@ -169,4 +171,21 @@ test('usage claims its existing flight before a current callback can reenter', a
   assert.equal((await projectInferEvidence(f.facts)).status, 'complete');
   assert.equal((await nested).status, 'incomplete');
   assert.equal(f.trace.filter(item => item === 'same Common continuation').length, 1);
+});
+
+test('usage current loss after record reuses its retained items without another original snapshot', async () => {
+  let lost = false;
+  const f = fixture({current() {if (lost) throw Error('OriginalRetired');},
+    record() {lost = true;}, keepItemsOnStop: true});
+  const result = await projectInferEvidence(f.facts);
+  assert.equal(result.status, 'incomplete');
+  assert.equal(result.reason, 'RequiredEvidenceUnavailable');
+  assert.equal(f.recorded.length, 1); assert.equal(f.captured.length, 1);
+  assert.equal(f.recorded[0].manifest.status, 'complete');
+  assert.notStrictEqual(result, f.recorded[0].manifest);
+  assert.strictEqual(result.items, f.recorded[0].manifest.items);
+  assert.strictEqual(result.subject, f.recorded[0].manifest.subject);
+  assert.equal(f.trace.filter(value => value === 'retained item read').length, 1);
+  assert.equal(f.children[0].cleanupPending(), false);
+  assert.equal(f.observed.at(-1), 'cleaned');
 });

@@ -456,7 +456,18 @@ async function projectInferUsage({configured, moon, plan, captureOwner, continua
       if (action === undefined) return manifest;
       const kind = moon.clientProgramOriginalInferUsageActionKind(action);
       if (kind === 'retire') {
-        manifest = snapshot();
+        if (manifest === undefined) manifest = snapshot();
+        else {
+          const completion = moon.clientProgramOriginalInferUsageCompletion(usage);
+          if ((manifest.reason ?? manifest.status) !== completion) {
+            // Common completion can only move from complete to incomplete.
+            // Keep the recorded items/subject, without rebuilding another
+            // inventory or touching an original after current loss. This
+            // outer carrier and getter alias were prefunded with the child.
+            manifest = Object.freeze({kind: 'usage', status: 'incomplete',
+              reason: completion, subject, target, items: manifest.items});
+          }
+        }
         retirement = action; action = undefined;
         copying = false;
         if (!await cleanup()) return Object.freeze({...manifest, cleanupPending: true});
