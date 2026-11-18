@@ -441,6 +441,7 @@ test "original issued binding retains current after same bootstrap publication g
     ).to_string(),
   )
   assert_true(bound_output_live)
+  assert_false(result_refused)
   assert_true(release_invocation_binding(binding))
   assert_true(cleanup_observation_issuance(issued).unwrap())
   assert_true(release_original_infer_publication_capacity(capacity).unwrap())
