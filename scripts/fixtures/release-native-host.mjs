@@ -250,7 +250,9 @@ async function singleClientCase() {
 try {
   if (sharedNames) {
     await sharedNamesCase();
-    console.log('Installed shared Host: named duplicate/conflict and lost-reply original lookup passed');
+    console.log(lostReplyOnly
+      ? 'Installed shared Host: lost-reply original recovery target lookup passed; duplicate/conflict not repeated'
+      : 'Installed shared Host: named duplicate/conflict and lost-reply original lookup passed');
   } else if (sharedSavedRestart) {
     await sharedSavedRestartCase();
     console.log('Installed Native shared Host: explicit owner restart and SAME original Saved reads passed');
