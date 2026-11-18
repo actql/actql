@@ -94,24 +94,50 @@ fn model_usage_measure_capacity(calls : Int) -> @relation.ExecutionCapacity? {
 
 ///|
 fn model_usage_host_extent(calls : Int) -> @shape.CollectionConstructionExtent? {
-  @shape.collection_construction_extent({
-    // Fixed window: inventory, subject, child, binding, original, wires,
-    // capture argument, manifest and record argument (9); async input (1),
-    // child callbacks/check/shared control (5), own status descriptor plus
-    // selected completion/failed-item temporaries (3), async result and
-    // suspended callback carrier (2). No callback-owned payload is enumerated.
-    // Per slot: original call and final completion, each <=4 references.
-    records: 20L + 2L * calls.to_int64(),
-    // Fixed fields above, captured original/control aliases and handoff
-    // aliases fit 96 references/24 scalar words; strings remain borrowed.
-    record_references: 96L + 8L * calls.to_int64(),
-    record_words: 24L,
-    reference_arrays: 2L,
-    reference_items: 2L * calls.to_int64(),
-    scalar_arrays: 0L,
-    scalar_items: 0L,
-    maps: 0L,
-    map_entries: 0L,
+  guard @shape.collection_construction_extent({
+      // Fixed window: inventory, subject, child, binding, original, wires,
+      // capture argument, manifest and record argument (9); async input (1),
+      // child callbacks/check/shared control (5), own status descriptor plus
+      // selected completion/failed-item temporaries (3), async result and
+      // suspended callback carrier (2). No callback-owned payload is enumerated.
+      // Per slot: original call and final completion, each <=4 references.
+      records: 20L + 2L * calls.to_int64(),
+      // Fixed fields above, captured original/control aliases and handoff
+      // aliases fit 96 references/24 scalar words; strings remain borrowed.
+      record_references: 96L + 8L * calls.to_int64(),
+      record_words: 24L,
+      reference_arrays: 2L,
+      reference_items: 2L * calls.to_int64(),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(host) &&
+    @relation.preparation_array_representation(1L, calls.to_int64(), true)
+    is Some(items) else {
+    return None
+  }
+  Some({
+    // SAME-owner continuation: 1H/5R/10W; one live action 1H/2R/3W;
+    // completed item tuples 1H/1R/2W each, plus the retained array backing.
+    // Original INFER facade adds 1H/2R/1W for its same Execution/child/reentry.
+    // After record, a current-loss replacement outer manifest and getter alias
+    // coexist with the recorded one: 1H/7R. Items remain the SAME borrowed array.
+    // Six bounded Option/Result/selection carriers and their original aliases
+    // cover next/observe/current getter frames, not a numerical spare budget.
+    record_headers: host.record_headers +
+    items.record_headers +
+    10L +
+    calls.to_int64(),
+    reference_slots: host.reference_slots +
+    items.reference_slots +
+    28L +
+    calls.to_int64(),
+    scalar_words: host.scalar_words +
+    items.scalar_words +
+    24L +
+    2L * calls.to_int64(),
   })
 }
 

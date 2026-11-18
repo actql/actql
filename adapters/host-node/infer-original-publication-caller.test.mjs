@@ -34,6 +34,8 @@ function fixture({missing=false,reserveIssue,releaseIssue}={}) {
     },
   };
   const moon={
+    clientProgramOriginalInferPublicationRetainedBytes: () => 131n,
+    clientProgramOriginalInferPublicationExecutionBytes: () => 464n,
     clientProgramReserveOriginalInferPublicationCapacity(owner,r,w) {
       assert.equal(owner,active);assert.equal(r,123n);assert.equal(w,456n);
       calls.push('reserve');return reserveIssue===undefined?ok(borrow):{$tag:0,_0:reserveIssue};
@@ -77,7 +79,7 @@ test('original publication grows same borrower only for new simultaneous constru
   f.operation.growOriginalPublicationCapacity(10n,20n);
   f.operation.growOriginalPublicationCapacity(10n,20n);
   f.operation.growOriginalPublicationCapacity(4n,8n);
-  assert.deepEqual(grows,[[133n,476n]],'covered bounded steps make no Resource call');
+  assert.deepEqual(grows,[[141n,484n]],'covered bounded steps make no Resource call');
   const issue={kind:'OriginalPublicationExhausted'};
   f.moon.clientProgramGrowOriginalInferPublicationCapacity=()=>({$tag:0,_0:issue});
   assert.throws(()=>f.operation.growOriginalPublicationCapacity(30n,40n),error=>error.cause===issue);
@@ -87,7 +89,7 @@ test('original publication grows same borrower only for new simultaneous constru
     assert.strictEqual(borrow,f.borrow);grows.push([r,e]);return {$tag:1,_0:undefined};
   };
   f.operation.growOriginalPublicationCapacity(30n,40n);
-  assert.deepEqual(grows,[[133n,476n],[153n,496n]],'refusal cannot record unfunded coverage');
+  assert.deepEqual(grows,[[141n,484n],[161n,504n]],'refusal cannot record unfunded coverage');
   assert.equal(f.calls.filter(x=>x==='reserve').length,1);
   assert.equal(f.operation.releaseOriginalPublicationCapacity(),true);
   assert.throws(()=>f.operation.growOriginalPublicationCapacity(1n,2n),
@@ -212,6 +214,8 @@ function ordinaryFixture({select, reserveIssue, inputBody=false}={}) {
   if(inputBody)preparation.inputBodyRead=preparation.read;
   const composedInput={occurrence:{},prefix:{},inputs:[],sources:[]};
   const moon={
+    clientProgramOriginalInferPublicationRetainedBytes: () => 131n,
+    clientProgramOriginalInferPublicationExecutionBytes: () => 464n,
     clientProgramReserveOriginalInferPublicationCapacity(owner,r,w) {
       assert.strictEqual(owner,active);assert.deepEqual([r,w],[123n,456n]);calls.push('reserve');
       return reserveIssue===undefined?ok(borrow):{$tag:0,_0:reserveIssue};
@@ -469,6 +473,8 @@ function generatedOriginalFixture() {
       assert.strictEqual(originalConsumer, consumer);
       const original = {}; active.push(original); return ok(original);
     },
+    clientProgramOriginalInferPublicationRetainedBytes: () => 131n,
+    clientProgramOriginalInferPublicationExecutionBytes: () => 464n,
     clientProgramReserveOriginalInferPublicationCapacity(owner) {
       assert.ok(active.includes(owner)); calls.push('reserve'); return ok(borrow);
     },
@@ -578,10 +584,10 @@ test('actual original129 inventory grows before a receipt and retains each cohel
   assert.equal(fundedInferCaptureInventoryCount({},f.operation),undefined);
   const foreign=fixture();
   assert.equal(fundedInferCaptureInventoryCount(receipt,foreign.operation),undefined);
-  assert.deepEqual(f.grows,[[223n,606n]]);
+  assert.deepEqual(f.grows,[[231n,614n]]);
   const second=fundInferCaptureInventory(f.operation);
   assert.equal(fundedInferCaptureInventoryCount(second,f.operation),129);
-  assert.deepEqual(f.grows,[[223n,606n],[323n,706n]],'first retained wrappers remain charged');
+  assert.deepEqual(f.grows,[[231n,614n],[331n,714n]],'first retained wrappers remain charged');
   Object.assign(f.moon,{
     clientProgramInferEvaluationRequest:()=>({_0:{},_1:'',_2:''}),
     clientProgramModelRequestInputFrameGeometry:()=>({$tag:1,_0:{}}),
@@ -595,7 +601,7 @@ test('actual original129 inventory grows before a receipt and retains each cohel
   assert.equal(inferEvidenceCopyFunded(copy,bundle,undefined),true);
   assert.equal(inferEvidenceCopyFunded(copy,{count:129},'typed-input'),false);
   assert.equal(inferEvidenceCopyFunded(copy,bundle,'typed-input'),false);
-  assert.deepEqual(f.grows.at(-1),[348n,706n]);
+  assert.deepEqual(f.grows.at(-1),[356n,714n]);
   assert.equal(f.operation.cleanup(),false);
   assert.equal(f.operation.releaseOriginalPublicationCapacity(),true);
   assert.equal(fundedInferCaptureInventoryCount(receipt,f.operation),undefined);
