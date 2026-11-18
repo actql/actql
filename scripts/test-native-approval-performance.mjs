@@ -98,7 +98,11 @@ try {
 }
 finally {
   try {await campaign.close();}
-  catch (error) {report.failures.push({stage: 'original fixture process close', error: error.message}); persist();}
+  catch (error) {
+    report.failures.push({stage: 'original fixture process close', error: error.message,
+      code: error.status ?? null, signal: error.signal ?? null, stdout: error.stdout ?? '', stderr: error.stderr ?? ''});
+    persist();
+  }
 }
 for (const selected of series) selected.assessment = assessNativeApproval(selected);
 report.status = report.failures.length || series.some(value => value.assessment.status === 'failed')

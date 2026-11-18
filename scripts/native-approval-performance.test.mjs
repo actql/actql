@@ -635,3 +635,18 @@ process.exit(0);
   await assertObservedProcessAbsent(join(f.root, 'worker-pid'));
   assert(!existsSync(join(f.root, 'receipt-0.json')));
 });
+
+
+test('Native Mock final process failure retains its original stderr after the last completion', async t => {
+  const f = campaignProcessFixture(t, `return join(root, 'component-receipt.json');`);
+  writeFileSync(f.script, readFileSync(f.script, 'utf8') + '\nthrow new Error("original final fixture cause");\n');
+  const campaign = openNativeMockCampaign({...f, directory: f.root, count: 1, cwd: f.root, timeoutMs: 5000, killGraceMs: 500});
+  const completed = await campaign.run(0);
+  assert.equal(completed.status, 0, completed.stderr);
+  await assert.rejects(campaign.close(), error => {
+    assert.equal(error.status, 1);
+    assert.match(error.stderr, /original final fixture cause/u);
+    return true;
+  });
+  await assertObservedProcessAbsent(join(f.root, 'worker-pid'));
+});
