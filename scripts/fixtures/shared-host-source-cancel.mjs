@@ -14,7 +14,10 @@ const [configurationPath] = process.argv.slice(2); assert(process.argv.length ==
 const configuration = JSON.parse(await readFile(configurationPath, 'utf8'));
 const root = configuration.outputRoot, records = [], flights = [];
 const clientCrash = configuration.scenario === 'client-crash';
-assert(configuration.scenario === undefined || clientCrash, 'Unknown shared Source acceptance scenario');
+const ownerCrash = configuration.scenario === 'owner-crash';
+const ownerRecover = configuration.scenario === 'owner-recover';
+assert(configuration.scenario === undefined || clientCrash || ownerCrash || ownerRecover,
+  'Unknown shared Source acceptance scenario');
 const nativeWaitEntered = Promise.withResolvers();
 const save = (name, value) => writeFile(join(root, name), JSON.stringify(value, null, 2) + '\n', {flag: 'wx'});
 const read = async name => JSON.parse(await readFile(join(root, name), 'utf8'));
@@ -121,12 +124,38 @@ const report = {passed: false, scope: 'same-Host cancellation with another origi
 try {
   const childInput = join(root, 'source-client-input.json');
   await writeFile(childInput, JSON.stringify({consumerRoot: configuration.consumerRoot, outputRoot: root,
+    originalRefRoot: configuration.originalRefRoot,
     endpoint: `https://127.0.0.1:${sdkServer.address().port}/`, programPath: configuration.programPath}), {flag: 'wx'});
-  if (clientCrash) {
+  if (ownerRecover) {
+    await command(process.execPath, [configuration.clientScript, childInput, 'recover-first'], 'source-recover-first');
+    await command(process.execPath, [configuration.clientScript, childInput, 'observe-second'], 'source-observe-second');
+    report.scope = 'explicit owner restart: completed SAME original Saved and interrupted original status only';
+    report.completedOriginalSaved = true;
+    report.interruptedOriginalStatusObserved = true;
+    assert.equal(dispatches, 0, 'Restart/Saved/status must not dispatch another original Source');
+  } else {
+  if (clientCrash || ownerCrash) {
     await command(process.execPath, [configuration.clientScript, childInput, 'first-submit'], 'source-first-submit');
     const firstClose = await read('source-first-submit-report.json');
     assert.equal(firstClose.clientCloseReturned, true);
     await marker(configuration.pageEntered.first);
+    if (ownerCrash) {
+      const completed = command(process.execPath, [configuration.clientScript, childInput, 'recover-first'], 'source-recover-first');
+      completed.catch(() => undefined); flights.push(completed);
+      await save('release-first.json', {completeOriginalBeforeOwnerCrash: true});
+      await completed;
+      await command(process.execPath, [configuration.clientScript, childInput, 'second-submit'], 'source-second-submit');
+      await marker(configuration.pageEntered.second);
+      const completedState = await native('status', '--ref-file', 'source-first-run.json');
+      const interruptedState = await native('status', '--ref-file', 'source-second-run.json');
+      assert.equal(completedState.status, 'succeeded'); assert.equal(completedState.result_available, true);
+      assert.equal(interruptedState.status, 'running'); assert.equal(interruptedState.result_available, false);
+      await save('states-before-owner-crash.json', {completed: completedState, interrupted: interruptedState});
+      // The parent retains this actual Host child handle and kills it only
+      // after this observed boundary. No shutdown ACK is emitted here.
+      console.log(JSON.stringify({stage: 'owner-crash-ready', pid: process.pid, at: new Date().toISOString()}));
+      await new Promise(() => {});
+    }
     const second = command(process.execPath, [configuration.clientScript, childInput, 'second'], 'source-second');
     second.catch(() => undefined); flights.push(second);
     await Promise.race([marker(configuration.pageEntered.second), originalFailure(second)]);
@@ -198,6 +227,7 @@ try {
     assert.equal(first.control.physical_stop, 'confirmed'); assert.equal(first.status, 'cancelled');
     assert.equal(second.status, 'succeeded'); assert.equal(second.control.cancellation_requested, false);
     report.firstCancellationAndPhysicalStop = true; report.otherRunUnaffected = true;
+  }
   }
   report.passed = true; report.dispatchObservations = dispatches; report.secretResolutions = secretResolutions;
 } catch (error) {

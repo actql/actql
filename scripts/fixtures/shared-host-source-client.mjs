@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {publishStandardRestBarrier} from './external-rest/cancel-conformance.mjs';
 
 const [configurationPath, phase] = process.argv.slice(2);
-assert(process.argv.length === 4 && ['first', 'second', 'first-submit', 'recover-first'].includes(phase));
+assert(process.argv.length === 4 && ['first', 'second', 'first-submit', 'second-submit', 'recover-first', 'observe-second'].includes(phase));
 const configuration = JSON.parse(await readFile(configurationPath, 'utf8'));
 const require = createRequire(join(configuration.consumerRoot, 'package.json'));
 const nodePath = require.resolve('@actql/node');
@@ -22,8 +22,10 @@ try {
   client = await connect({mode: 'remote', endpoint: configuration.endpoint,
     token: 'fixture-token', durability: 'durable'});
   let execution;
-  if (phase === 'recover-first') {
-    const ref = JSON.parse(await readFile(join(configuration.outputRoot, 'source-first-run.json'), 'utf8'));
+  if (phase === 'recover-first' || phase === 'observe-second') {
+    const refPhase = phase === 'recover-first' ? 'first' : 'second';
+    const ref = JSON.parse(await readFile(join(configuration.originalRefRoot ?? configuration.outputRoot,
+      `source-${refPhase}-run.json`), 'utf8'));
     execution = await client.attach(ref);
     assert.deepEqual(execution.ref, ref);
     report.publicAttach = 1; report.publicStartSource = 0;
@@ -37,13 +39,18 @@ try {
     const submission = await settled;
     if (submission.failed) throw submission.cause;
     execution = submission.value;
-    const refPhase = phase === 'first-submit' ? 'first' : phase;
+    const refPhase = phase.endsWith('-submit') ? phase.slice(0, -7) : phase;
     await publishStandardRestBarrier(join(configuration.outputRoot, `source-${refPhase}-run.json`),
       JSON.stringify(execution.ref) + '\n');
     report.publicStartSource = 1; report.publicAttach = 0;
     report.originalRefBeforeWait = true;
   }
-  if (phase !== 'first-submit') {
+  if (phase === 'observe-second') {
+    // Observe the SAME interrupted original only. Its existing recovery profile
+    // owns this outcome; no wait, submit, cancellation or replay is requested.
+    await save('source-observe-second-status.json', await execution.status());
+    report.publicStatus = 1;
+  } else if (phase !== 'first-submit' && phase !== 'second-submit') {
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     await save(`source-${phase}-terminal.json`, state);
     if (phase === 'first') {
