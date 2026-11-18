@@ -9,6 +9,119 @@ import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {workflowWorkObservation, workflowObservationComplete} from './fixtures/work-observation.fixture.mjs';
 import {mockProjectWorkflowChecks, startMockProjectSource} from './fixtures/mock-project-effect-protocol.fixture.mjs';
 import {multipleTargetMockProjectFiles, multipleTargetMockExpectedBytes, multipleTargetMockWriteCount} from './fixtures/mock-multiple-targets.fixture.mjs';
+import {terminalMockScenario, checkTerminalMockRows, checkTerminalMockSavedRows, assertTerminalMockObservation,
+  runTerminalMockWorkflow} from './fixtures/mock-project-terminal-public.mjs';
+import * as terminalFs from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createHash} from 'node:crypto';
+
+const terminalRiskRows = [
+  {id: '001Acme', risk: {outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
+  {id: '001Globex', risk: {outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
+];
+
+test('terminal Mock declarations and independent rows cannot substitute an Effect or another output', () => {
+  const infer = terminalMockScenario('terminal-infer');
+  assert.equal(infer.format, 'aql');assert.match(infer.source, /RESULT updates;/u);
+  assert(!infer.source.includes('EFFECT'));assert.deepEqual([infer.sourceStarts, infer.modelStarts], [2, 2]);
+  const program = JSON.parse(terminalMockScenario('terminal-content').source), stage = program.stages[0];
+  assert.deepEqual(stage.inputs, {});assert.equal(stage.effects, undefined);
+  assert.deepEqual(stage.steps[0].values.rows, [{id: 1}, {id: 2}]);
+  assert.deepEqual(stage.steps[1].serialize, {format: 'jsonl', fields: ['id'], name: 'two.jsonl',
+    preserve_order: true, bounds: {max_rows: 2, max_bytes: 64}});
+  checkTerminalMockRows('terminal-infer', terminalRiskRows);
+  assert.throws(() => checkTerminalMockRows('terminal-infer', terminalRiskRows.slice(1)));
+  const foreign = structuredClone(terminalRiskRows);foreign[1].risk.value.reason = 'other original';
+  assert.throws(() => checkTerminalMockRows('terminal-infer', foreign));
+  assert.throws(() => terminalMockScenario('unknown'));
+});
+
+test('terminal Content oracle checks byte-derived metadata and full original Saved equality separately', () => {
+  // A synthetic response DTO for checking the oracle, NOT an issued reference,
+  // permission, Store fixture or real product completion.
+  const contentCid = 'sha256:' + createHash('sha256').update('{"id":1}\n{"id":2}\n').digest('hex');
+  const row = {name: 'two.jsonl', media_type: 'application/x-ndjson', size_bytes: 18, row_count: 2,
+    content: {$actql_ref: 'content', version: 'actql-content-ref/0.1', content_ref_cid: 'sha256:' + 'a'.repeat(64),
+      media_type: 'application/x-ndjson', metadata: {content_cid: contentCid, size_bytes: 18,
+        media_type: 'application/x-ndjson', truncated: false,
+        issuer_evidence: {version: 'actql-content-issuer-evidence/0.1', issuer_kind: 'content_derivation', content_cid: contentCid}}}};
+  checkTerminalMockRows('terminal-content', [row]);
+  checkTerminalMockSavedRows('terminal-content', [structuredClone(row)], [row]);
+  const otherEnvelope = structuredClone(row);otherEnvelope.content.content_ref_cid = 'sha256:' + 'b'.repeat(64);
+  checkTerminalMockRows('terminal-content', [otherEnvelope]);
+  assert.throws(() => checkTerminalMockSavedRows('terminal-content', [otherEnvelope], [row]));
+  for (const mutate of [r => {r.size_bytes++;}, r => {r.row_count++;},
+    r => {r.content.metadata.content_cid = 'sha256:' + 'b'.repeat(64);},
+    r => {r.content.metadata.truncated = true;}, r => {delete r.content.content_ref_cid;}]) {
+    const changed = structuredClone(row);mutate(changed);
+    assert.throws(() => checkTerminalMockRows('terminal-content', [changed]));
+  }
+});
+
+test('terminal original observation refuses repeats, unknown, same process and incomplete close', () => {
+  const actual = {phase: 'recover', variant: 'terminal-infer', pid: 202,
+    status: 'passed', complete: true, submits: 0, resultReads: 1, lookupOriginal: true,
+    savedFirst: true, originalRefBeforeWait: false, originalInputsAbsent: true,
+    firstClose: {attempted: true, returned: true, calls: 1}, aliveScopedFD: {before: 0, after: 0, pid: 202},
+    workObservation: {complete: true, sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0}};
+  const expected = {phase: 'recover', variant: 'terminal-infer', pid: 202, capturedPid: 101};
+  assertTerminalMockObservation(actual, expected);
+  assert.throws(() => assertTerminalMockObservation(actual, {...expected, capturedPid: 202}));
+  for (const mutate of [v => {v.savedFirst = false;}, v => {v.submits++;}, v => {v.status = 'needs_reconciliation';},
+    v => {v.workObservation.sourceAcquisitionStarts++;}, v => {v.workObservation.modelCallStarts++;},
+    v => {v.workObservation.complete = false;}, v => {v.firstClose.returned = false;},
+    v => {v.firstClose.calls++;}, v => {v.aliveScopedFD.after++;}]) {
+    const changed = structuredClone(actual);mutate(changed);
+    assert.throws(() => assertTerminalMockObservation(changed, expected));
+  }
+});
+
+async function terminalScratch(t) {
+  const root = await terminalFs.mkdtemp(join(tmpdir(), 'actql-terminal-consumer-component-'));
+  // Only authored files and explicit public-port observations, no product DB,
+  // key, runtime, pending business state or installed normal software is made.
+  t.after(() => terminalFs.rm(root, {recursive: true, force: true}));
+  await terminalFs.mkdir(join(root, 'mock'));
+  return root;
+}
+
+test('terminal imported consumer preserves ref before wait, Saved first and thrown undefined at first close', async t => {
+  for (const phase of ['capture', 'recover', 'failure']) {
+    const root = await terminalScratch(t), path = join(root, 'handoff.json'), events = [];
+    const ref = {runDefinitionCid: 'sha256:' + 'a'.repeat(64)}, submissionRef = {request: 'authored-port'};
+    if (phase !== 'recover') await terminalFs.writeFile(join(root, 'terminal.aql'), terminalMockScenario('terminal-infer').source);
+    else await terminalFs.writeFile(path, JSON.stringify({variant: 'terminal-infer', ref, submissionRef,
+      rows: terminalRiskRows, pid: process.pid + 1}));
+    const run = {ref, async wait() {
+      events.push('wait');const saved = JSON.parse(await terminalFs.readFile(path + '.started', 'utf8'));
+      assert.deepEqual(saved.ref, ref);
+      if (phase === 'failure') throw undefined;
+      return {status: 'succeeded'};
+    }, result() {events.push('result');return {all: async () => terminalRiskRows};},
+    async status() {events.push('status');return {status: 'succeeded'};}};
+    let closes = 0;
+    const ports = {phase: phase === 'recover' ? 'recover' : 'capture', variant: 'terminal-infer', directory: root, handoffPath: path,
+      observeDescriptors: async () => ({pid: process.pid, openPaths: []}),
+      createWorkObservation: () => ({connection: {}, snapshot: () => ({complete: true,
+        sourceAcquisitionStarts: phase === 'recover' ? 0 : 2, modelCallStarts: phase === 'recover' ? 0 : 2, effectReplacementReturns: 0})}),
+      connect: async () => ({newSubmission() {events.push('new');return submissionRef;},
+        async startSource() {events.push('start');assert.notEqual(phase, 'recover');return run;},
+        async attach(actual) {events.push('attach');assert.deepEqual(actual, ref);return run;},
+        async lookupSubmission(actual) {events.push('lookup');assert.deepEqual(actual, submissionRef);return {kind: 'ready', admission: {ref}};},
+        async close() {closes++;events.push('close');if (phase === 'failure') throw Error('LaterCloseFailure');}})};
+    if (phase === 'failure') {
+      await assert.rejects(runTerminalMockWorkflow(ports), error => error.cause === undefined &&
+        error.observation.status === 'failed' && error.observation.firstClose.returned === false);
+      assert.deepEqual(events, ['new', 'start', 'wait', 'close']);
+    } else {
+      const observation = await runTerminalMockWorkflow(ports);assert.equal(observation.complete, true);
+      assert.deepEqual(events, phase === 'capture' ? ['new', 'start', 'wait', 'result', 'lookup', 'close']
+        : ['attach', 'result', 'status', 'lookup', 'close']);
+    }
+    assert.equal(closes, 1);
+  }
+});
 
 test('plural Mock fixture authors one document and two exact same-Run UPDATE members without a Model',()=>{
   const files=multipleTargetMockProjectFiles(),config=JSON.parse(files['actql.config.json']);

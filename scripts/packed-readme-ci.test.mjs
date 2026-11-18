@@ -1078,7 +1078,7 @@ test('independent normal consumers continue after collection and variant failure
   const runReadmeCases = load('runReadmeCases', {verifyNodeBenchmarkPackages, assert, writeFile, join,
     nodeBenchmarkFailure, async mockWorkflowMetrics({template, variant, onMetric}) {
       calls.push({template, variant});
-      const failed = template === 'churn-risk-mock';
+      const failed = template === 'churn-risk-mock' && variant === 'readme';
       await onMetric({samples: [{completed: !failed, verified: !failed}]});
       if (failed) throw variantFailure;
     }});
@@ -1108,7 +1108,7 @@ test('independent normal consumers continue after collection and variant failure
   const report = JSON.parse(await readFile(join(output, 'summary.json'), 'utf8'));
   assert.equal(report.complete, false);
   assert.deepEqual(report.cases.map(value => value.status), ['failed', 'passed', 'passed']);
-  assert.deepEqual(report.compositions.map(value => value.status), ['passed', 'passed', 'passed']);
+  assert.deepEqual(report.compositions.map(value => value.status), packedCompositionCases.map(() => 'passed'));
   const saved = report.collection.find(value => value.phase === 'saved');
   assert.equal(saved.status, 'unexecuted');
   assert.match(saved.unexecutedReason, /completed original 100000 Result/u);
@@ -1121,6 +1121,8 @@ test('each required Model composition is distinct from README three and cannot p
     {template: 'deal-review-mock', variant: 'two-models-whole'},
     {template: 'deal-review-mock', variant: 'two-models-joined-inputs'},
     {template: 'deal-review-mock', variant: 'two-models-joined-whole'},
+    {template: 'churn-risk-mock', variant: 'terminal-infer'},
+    {template: 'churn-risk-mock', variant: 'terminal-content'},
   ]);
   assert(packedCompositionCases.every(selected => !packedReadmeCases.some(value => value.variant === selected.variant)));
   const scenarios = [{mode: 'passed'}, ...packedCompositionCases.flatMap(({variant}) =>

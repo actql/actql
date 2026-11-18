@@ -19,12 +19,14 @@ export const packedReadmeCases = Object.freeze([
   Object.freeze({template: 'deal-review-mock', variant: 'readme'}),
   Object.freeze({template: 'deal-review-mock', variant: 'two-models'}),
 ]);
-// Genuine completed Unit/Model compositions are separate required regressions,
-// not extra README labels or manual-only performance selections.
+// Genuine Unit/Model compositions and terminal Program ownership are separate
+// required functional consumers, not extra README or performance labels.
 export const packedCompositionCases = Object.freeze([
   Object.freeze({template: 'deal-review-mock', variant: 'two-models-whole'}),
   Object.freeze({template: 'deal-review-mock', variant: 'two-models-joined-inputs'}),
   Object.freeze({template: 'deal-review-mock', variant: 'two-models-joined-whole'}),
+  Object.freeze({template: 'churn-risk-mock', variant: 'terminal-infer'}),
+  Object.freeze({template: 'churn-risk-mock', variant: 'terminal-content'}),
 ]);
 
 // The existing phase and its complete oracles, independently invocable for the

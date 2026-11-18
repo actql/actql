@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp, readFile, writeFile, mkdir, readdir, symlink} from 'node:fs/promises';
+import {mkdtemp, readFile, writeFile, mkdir, readdir, symlink, unlink, readlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {createRequire} from 'node:module';
@@ -24,6 +24,92 @@ import {nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import * as releaseAdapters from './health-monitor-release.mjs';
 import {nativeOperationsData} from './fixtures/health-native-operations.mjs';
 import {mockProjectWorkflowChecks, startMockProjectSource} from '../adapters/host-node/fixtures/mock-project-effect-protocol.fixture.mjs';
+import {terminalMockScenario} from '../adapters/host-node/fixtures/mock-project-terminal-public.mjs';
+
+test('terminal Mock normal harness stages both public cases and refuses repeated cold work or close', async t => {
+  // Explicit child-command outcomes test orchestration only. No installed
+  // product, runtime, Resource, provider or business state is executed here.
+  for (const variant of ['terminal-infer', 'terminal-content']) for (const fault of [undefined, 'model', 'close', 'same-pid']) {
+    const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-terminal-harness-', label: 'terminal command-port component'});
+    t.after(() => scratch.passed());
+    const root = join(scratch.path, 'run'), consumer = join(scratch.path, 'consumer');
+    await mkdir(root);await mkdir(join(consumer, 'node_modules'), {recursive: true});
+    const phases = [], selected = terminalMockScenario(variant);let metric;
+    const operation = mockWorkflowMetrics({prepared: {consumer}, root,
+      repository: new URL('../', import.meta.url).pathname, variant, counts: {coldSamples: 1},
+      onMetric: async value => {metric = value;},
+      async command(_node, args, options) {
+        const phase = args[1];phases.push(phase);assert.equal(options.timeout, 30000);
+        const available = await readdir(join(options.cwd, 'mock'));
+        if (phase === 'capture') {
+          assert(available.includes('churn-risk.v1.answers.yaml'));
+          assert.equal(await readFile(join(options.cwd, selected.path), 'utf8'), selected.source);
+          assert.equal(await readFile(join(options.cwd, 'scripts/fixtures/external-rest/timed-installed-context.fixture.mjs'), 'utf8'),
+            await readFile(new URL('./fixtures/external-rest/timed-installed-context.fixture.mjs', import.meta.url), 'utf8'));
+        } else {
+          assert(!available.includes('churn-risk.v1.answers.yaml'));
+          await assert.rejects(readFile(join(options.cwd, selected.path)), {code: 'ENOENT'});
+        }
+        const pid = phase === 'capture' || fault === 'same-pid' ? 101 : 202;
+        const value = {phase, variant, pid, status: 'passed', complete: true, submits: phase === 'capture' ? 1 : 0,
+          resultReads: 1, lookupOriginal: true, savedFirst: phase === 'recover', originalRefBeforeWait: phase === 'capture',
+          originalInputsAbsent: phase === 'recover', firstClose: {attempted: true, returned: true, calls: 1},
+          aliveScopedFD: {before: 0, after: 0, pid}, workObservation: {complete: true,
+            sourceAcquisitionStarts: phase === 'capture' ? selected.sourceStarts : 0,
+            modelCallStarts: phase === 'capture' ? selected.modelStarts : 0, effectReplacementReturns: 0}};
+        if (phase === 'recover' && fault === 'model') value.workObservation.modelCallStarts++;
+        if (phase === 'recover' && fault === 'close') value.firstClose.returned = false;
+        return {pid, code: 0, signal: null, stdout: JSON.stringify(value)};
+      }});
+    if (fault === undefined) assert.equal((await operation).samples[0].completed, true);
+    else await assert.rejects(operation, {code: 'ERR_ASSERTION'});
+    assert.deepEqual(phases, ['capture', 'recover']);
+    assert.equal(metric.samples[0].verified, fault === undefined);
+    const project = metric.samples[0].stateId;
+    assert(!(await readdir(project)).includes('node_modules'), 'Return only our temporary consumer alias');
+    const first = metric.samples[0].phases[0];
+    assert.deepEqual(first.originalInputsRemovedAfterFirstClose, [selected.path, 'mock/churn-risk.v1.answers.yaml']);
+    assert.equal(first.completed, true);
+  }
+});
+
+test('terminal Mock harness stops first failed child and keeps original authored inputs', async t => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-terminal-first-failure-', label: 'terminal failure command-port component'});
+  t.after(() => scratch.passed());
+  const root = join(scratch.path, 'run'), consumer = join(scratch.path, 'consumer');
+  await mkdir(root);await mkdir(join(consumer, 'node_modules'), {recursive: true});
+  const primary = Error('OriginalChildUnknown');let calls = 0, metric;
+  await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, variant: 'terminal-infer',
+    repository: new URL('../', import.meta.url).pathname, counts: {coldSamples: 1},
+    onMetric: async value => {metric = value;},
+    async command() {calls++;throw primary;}}), error => error === primary);
+  assert.equal(calls, 1);assert.equal(metric.samples[0].completed, false);
+  const project = metric.samples[0].stateId;
+  assert.equal(await readFile(join(project, 'terminal.aql'), 'utf8'), terminalMockScenario('terminal-infer').source);
+  assert((await readdir(join(project, 'mock'))).includes('churn-risk.v1.answers.yaml'));
+  assert(!(await readdir(project)).includes('node_modules'));
+});
+
+test('terminal Mock harness protects a changed consumer alias before the cold child', async t => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-terminal-alias-', label: 'terminal alias component'});
+  t.after(() => scratch.passed());
+  const root = join(scratch.path, 'run'), consumer = join(scratch.path, 'consumer');
+  await mkdir(root);await mkdir(join(consumer, 'node_modules'), {recursive: true});
+  let calls = 0, project;
+  await assert.rejects(mockWorkflowMetrics({prepared: {consumer}, root, variant: 'terminal-content',
+    repository: new URL('../', import.meta.url).pathname, counts: {coldSamples: 1}, onMetric: async () => {},
+    async command(_node, _args, options) {
+      calls++;project = options.cwd;
+      await unlink(join(project, 'node_modules'));await symlink('/unselected/component-only', join(project, 'node_modules'));
+      return {pid: 101, code: 0, stdout: JSON.stringify({phase: 'capture', variant: 'terminal-content', pid: 101,
+        status: 'passed', complete: true, submits: 1, resultReads: 1, lookupOriginal: true,
+        savedFirst: false, originalRefBeforeWait: true, firstClose: {attempted: true, returned: true, calls: 1},
+        aliveScopedFD: {before: 0, after: 0, pid: 101},
+        workObservation: {complete: true, sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0}})};
+    }}), error => error instanceof AggregateError && error.cause.code === 'ERR_ASSERTION');
+  assert.equal(calls, 1);
+  assert.equal(await readlink(join(project, 'node_modules')), '/unselected/component-only');
+});
 
 const policy = JSON.parse(await readFile(new URL('../benchmarks/health/config.json', import.meta.url)));
 const samples = (ms, count = 10) => Array.from({length: count}, (_, iteration) => ({iteration,

@@ -2,7 +2,7 @@
 // workflow consumer. No alternate Executor or performance acceptance policy.
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {mkdir, readFile, writeFile, readdir, lstat, symlink, unlink, copyFile} from 'node:fs/promises';
+import {mkdir, readFile, writeFile, readdir, lstat, symlink, readlink, unlink, copyFile} from 'node:fs/promises';
 import {dirname, join, resolve, relative} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {gzipSync} from 'node:zlib';
@@ -14,6 +14,8 @@ import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFa
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {multipleTargetMockProjectFiles} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {terminalMockScenario, assertTerminalMockObservation}
+  from '../adapters/host-node/fixtures/mock-project-terminal-public.mjs';
 import {digest, jsonDigest, nodeColdStateKinds, nodeColdPublicPhases} from './health-monitor-report.mjs';
 
 const self = fileURLToPath(import.meta.url);
@@ -364,6 +366,10 @@ export async function quickNodeMetrics({prepared, root, repository, command, cou
 
 export async function mockWorkflowMetrics({prepared, root, repository, command, counts, onMetric,
   template = 'churn-risk-mock', variant = 'readme'}) {
+  if (['terminal-infer', 'terminal-content'].includes(variant)) {
+    assert.equal(template, 'churn-risk-mock');
+    return terminalMockWorkflowMetrics({prepared, root, repository, command, counts, onMetric, template, variant});
+  }
   const multipleTargets = variant === 'multiple-targets';
   assert.ok(variant === 'readme' || multipleTargets && template === 'churn-risk-mock' ||
     ['two-models', 'two-models-whole', 'two-models-joined-inputs', 'two-models-joined-whole'].includes(variant) && template === 'deal-review-mock');
@@ -525,6 +531,103 @@ export async function mockWorkflowMetrics({prepared, root, repository, command, 
         completed: false, verified: false, phases, error: nodeBenchmarkFailure(error)});
       await onMetric(metric); throw error;
     } finally {await unlink(join(project, 'node_modules'));}
+    await onMetric(metric);
+  }
+  return metric;
+}
+
+// Same normal installation, command supervisor and functional report as the
+// existing workflow. These terminal Programs have no approval phase; they do
+// not weaken any Effect fixture's original phase/count/cleanup assertions.
+async function terminalMockWorkflowMetrics({prepared, root, repository, command, counts, onMetric, template, variant}) {
+  const selected = terminalMockScenario(variant), files = {...projectTemplateFiles(template), [selected.path]: selected.source};
+  const members = ['adapters/host-node/fixtures/mock-project-terminal-public.mjs',
+    'adapters/host-node/fixtures/work-observation.fixture.mjs',
+    'adapters/host-node/fixtures/installed-family-content.fixture.mjs',
+    'scripts/fixtures/record-approval/scoped-fds.fixture.mjs',
+    'scripts/fixtures/external-rest/timed-installed-context.fixture.mjs'];
+  const fixtures = new Map(await Promise.all(members.map(async path => [path, await readFile(join(repository, path))])));
+  const metric = {id: 'mock-workflow', kind: 'latency', target: 'node-local', temperature: 'cold', required: true,
+    unit: 'ms', requiredSamples: counts.coldSamples, template, variant, samples: [], evidence: root,
+    performanceAcceptance: false,
+    qualification: 'Functional terminal public Result/Saved only; Content byte-derived envelope, not Store payload read',
+    fixtureSha256: jsonDigest({files, fixtures: [...fixtures].map(([path, bytes]) => [path, digest(bytes)])})};
+  for (let iteration = 0; iteration < counts.coldSamples; iteration++) {
+    const project = join(root, `mock-project-${template}-${variant}-${iteration}`);await mkdir(project);
+    for (const [path, bytes] of [...Object.entries(files), ...fixtures]) {
+      await mkdir(dirname(join(project, path)), {recursive: true});
+      await writeFile(join(project, path), bytes, {flag: 'wx', mode: 0o600});
+    }
+    const inputs = [selected.path, 'mock/churn-risk.v1.answers.yaml'];
+    const originals = new Map(await Promise.all(inputs.map(async path => {
+      const info = await lstat(join(project, path));assert(info.isFile() && info.nlink === 1);
+      return [path, {dev: info.dev, ino: info.ino}];
+    })));
+    await symlink(join(prepared.consumer, 'node_modules'), join(project, 'node_modules'), 'dir');
+    const started = process.hrtime.bigint(), phases = [];
+    let capturedPid, failed = false, primary;
+    try {
+      for (const phase of ['capture', 'recover']) {
+        const args = [join(project, members[0]), phase, variant, join(project, 'handoff.json')];
+        const record = {phase, command: process.execPath, args, cwd: project, status: 'running', completed: false};
+        phases.push(record);
+        const path = join(project, `${phase}.observation.json`);
+        await writeFile(path, JSON.stringify(record, null, 2) + '\n', {flag: 'wx', mode: 0o600});
+        let observed, failed = false;
+        try {
+          assert.equal(await readlink(join(project, 'node_modules')), join(prepared.consumer, 'node_modules'));
+          if (phase === 'recover') for (const input of inputs) {
+            await assert.rejects(lstat(join(project, input)), {code: 'ENOENT'});
+          }
+          observed = await command(process.execPath, args,
+            {cwd: project, name: `workflow-${template}-${variant}-${iteration}-${phase}`, timeout: 30_000});
+          record.pid = observed.pid;record.summary = JSON.parse(observed.stdout.trim());
+          assertTerminalMockObservation(record.summary, {variant, phase, pid: observed.pid, capturedPid});
+          if (phase === 'capture') {
+            capturedPid = observed.pid;
+            // Only these fresh authored inputs, after actual FIRST close/FD
+            // checks. Their original Run/DB/key/Store and fixture config stay.
+            for (const input of inputs) {
+              const info = await lstat(join(project, input));assert(info.isFile() && info.nlink === 1);
+              assert.equal(info.dev, originals.get(input).dev);assert.equal(info.ino, originals.get(input).ino);
+              assert.equal(await readFile(join(project, input), 'utf8'), files[input]);
+            }
+            for (const input of inputs) await unlink(join(project, input));
+            record.originalInputsRemovedAfterFirstClose = [...inputs];
+          }
+          record.status = 'passed';record.completed = true;
+        } catch (cause) {
+          failed = true;record.status = 'failed';record.error = nodeBenchmarkFailure(cause);
+          observed ??= cause?.commandResult;
+          try {record.summary = JSON.parse(observed.stdout.trim());} catch {}
+          try {record.partialObservation = JSON.parse(await readFile(join(project, `${phase}.pending.json`), 'utf8'));}
+          catch (error) {record.partialObservationUnavailable = nodeBenchmarkFailure(error);}
+          throw cause;
+        } finally {
+          Object.assign(record, {pid: observed?.pid ?? null, exitCode: observed?.code ?? null,
+            signal: observed?.signal ?? null, wallNs: observed?.wallNs ?? null});
+          try {await writeFile(path, JSON.stringify(record, null, 2) + '\n');}
+          catch (cause) {if (!failed) throw cause;}
+        }
+      }
+      metric.samples.push({iteration, stateId: project, completed: true, verified: true, phases,
+        wallNs: Number(process.hrtime.bigint() - started)});
+    } catch (cause) {
+      failed = true;primary = cause;
+      metric.samples.push({iteration, stateId: project, completed: false, verified: false, phases,
+        wallNs: Number(process.hrtime.bigint() - started), error: nodeBenchmarkFailure(cause)});
+      try {await onMetric(metric);} catch { /* Preserve the original consumer failure. */ }
+      throw cause;
+    } finally {
+      try {
+        assert.equal(await readlink(join(project, 'node_modules')), join(prepared.consumer, 'node_modules'));
+        await unlink(join(project, 'node_modules'));
+      }
+      catch (cause) {
+        if (failed) throw new AggregateError([primary, cause], 'TerminalMockAliasCleanupFailed', {cause: primary});
+        throw cause;
+      }
+    }
     await onMetric(metric);
   }
   return metric;
