@@ -129,11 +129,13 @@ class _OriginalRunReference:
 class _RunStateCustody:
     # Same-Host pending input/output custody; counters always come from Store.
     run: _Run
-    projection: OriginalCommitProjection
+    projection: OriginalCommitProjection | None
     source: _Input
     output: _Output | None = None
     prepared: bool = False
     write_attempted: bool = False
+    first_failure: BaseException | None = None
+    metadata_confirmed: bool = False
 
 
 class LocalProductCleanupPending(RuntimeError):
@@ -471,10 +473,19 @@ class InstalledLocalHost:
                         'content-encoding': 'identity'}, stream=stream)
                     stream._attached = True
                     return response
-                # Submission waits for its original physical work. Both forms
-                # reobserve the same completed publication; the SDK's existing
-                # wait validator still requires an actual stable Owner state.
                 run, _ = self._select_original_run(body['ref'])
+                live = any(work._owner is run and not work.stopped for work in self._physical_work)
+                publications = [publication for original, publication in self._run_publications if original is run]
+                projections = [projection for projection in self._commit_projections
+                    if any(projection._publication is publication for publication in publications)]
+                if live or not projections:
+                    try:
+                        return self._unpublished_run_response(run, body['ref'])
+                    except LocalCoreError as error:
+                        # Only a real observed publication may select the
+                        # existing complete succeeded-observation path.
+                        if error.code != -42 or not projections or run.handle in self._run_state_custody:
+                            raise
                 projection = self._original_run_projection(run)
                 return self._original_run_response(run, projection)
             elif operation == 'read':
@@ -680,6 +691,115 @@ class InstalledLocalHost:
             'content-encoding': 'identity'}, stream=stream)
         stream._attached = True
         return response
+
+    def _unpublished_run_response(self, run: _Run, reference: object) -> httpx.Response:
+        """Expose only Common's exact same-Run, durably observed state."""
+        installation = self._active()
+        configuration, store = self._configuration, installation._store
+        if configuration is None or store is None or not configuration.sdk:
+            raise ValueError('Original SDK state installation is unavailable')
+        self._runs._run(run)
+        with self._core._lock, ExitStack() as active:
+            if self._state_observing:
+                raise ValueError('Original SDK state observation is already active')
+            held = self._run_state_custody.get(run.handle)
+            if (held is not None and held.projection is None and held.output is not None
+                    and self._core._loans.get(held.output.ticket) is None):
+                # Only known same-row confirmation can leave this transport
+                # retired while its original input still awaits physical close.
+                # Finish that exact cleanup before observing any newer fact.
+                if not held.metadata_confirmed or not self._close_projection(held.output):
+                    raise LocalProductCleanupPending(self)
+                held.output = None
+                del self._run_state_custody[run.handle]
+                held = None
+            self._state_observing = True
+            active.callback(setattr, self, '_state_observing', False)
+            try:
+                if held is None:
+                    now = self._now()
+                    if type(now) is not int or not 0 <= now <= 253402300799999:
+                        raise ValueError('Invalid Local physical observation time')
+                    seconds, milliseconds = divmod(now, 1000)
+                    at = datetime.fromtimestamp(seconds, timezone.utc).replace(
+                        microsecond=milliseconds * 1000).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                    selected = {**_object(wire_bytes(reference), 4096),  # type: ignore[no-untyped-call]
+                                'run': run.handle, 'observed_at': at}
+                    source = self._copy(wire_bytes(selected))  # type: ignore[no-untyped-call]
+                    held = _RunStateCustody(run, None, source)
+                    self._run_state_custody[run.handle] = held
+                    output = self._reserve(lambda: self._core.reserve_submission_projection(
+                        configuration.handle, source, 12, cleanup=lambda: True))
+                    held.output = output
+                    self._projections.append(output)
+                    self._append_sources[output.ticket] = source
+                    installation.binding.inspect(lambda current:
+                        self._core.produce_unpublished_state(output, current))
+                    held.prepared = True
+                if held.run is not run or held.projection is not None or not held.prepared or held.output is None:
+                    raise LocalProductCleanupPending(self)
+                output = held.output
+                packets: list[bytes] = []
+                if held.write_attempted:
+                    # The candidate transport remains original after COMMIT;
+                    # a readback never invokes its producer again as preparation.
+                    installation.binding.inspect(lambda current: packets.append(
+                        self._core.read_unpublished_state_candidate(output, current)))
+                    packet = _object(packets[0], 1048576)
+                else:
+                    installation.binding.inspect(lambda current: packets.append(
+                        self._core.read_unpublished_state(output, current)))
+                    packet = _object(packets[0], 1048576)
+                fields = {'kind', 'key', 'revision', 'body', 'state'}
+                if (set(packet) != fields or any(type(packet[key]) is not str for key in fields)
+                        or packet['kind'] not in ('retained', 'replace')):
+                    raise ValueError('Invalid original unpublished SDK state transport')
+                revision = packet['revision']
+                if (not revision.isascii() or not revision.isdecimal() or len(revision) > 19
+                        or len(revision) > 1 and revision.startswith('0') or int(revision) > 2**63 - 1
+                        or packet['kind'] == 'replace' and int(revision) == 2**63 - 1):
+                    raise ValueError('Invalid original SDK state metadata generation')
+                if packet['kind'] == 'replace' and not held.write_attempted:
+                    writes = (ByteWrite(store.namespaced_key('client_submitted_intents', packet['key']),
+                        int(revision), packet['body'].encode('utf-8')),)
+                    with installation.binding.fenced() as fences:
+                        def inspect(reader: Any) -> None:
+                            installation.binding.inspect_reader(reader, lambda current:
+                                self._core.validate_unpublished_state(output, current))
+                        held.write_attempted = True
+                        result = store.compare_exchange_many_inspected(writes, fences,
+                            inspect=inspect, current=installation.binding._current_observer)
+                    if result is None:
+                        raise LocalStorageError('Original SDK state metadata conflict; lookup required')
+                raw = packet['state'].encode('utf-8')
+                streams: list[OriginalLocalResponseStream] = []
+                def confirm(current: _Output) -> None:
+                    self._core.confirm_unpublished_state(output, current)
+                    held.metadata_confirmed = True
+                    streams.append(OriginalLocalResponseStream(self, raw))
+                installation.binding.inspect(confirm)
+                if not self._close_projection(output):
+                    for stream in streams:
+                        stream._close()
+                    raise LocalProductCleanupPending(self)
+                held.output = None
+                del self._run_state_custody[run.handle]
+                response = httpx.Response(200, headers={'content-type': 'application/json',
+                    'content-encoding': 'identity'}, stream=streams[0])
+                streams[0]._attached = True
+                return response
+            except BaseException as error:
+                if held is not None:
+                    if held.first_failure is None:
+                        held.first_failure = error
+                    if not held.write_attempted and held.output is not None:
+                        try:
+                            if self._close_projection(held.output):
+                                held.output = None
+                                self._run_state_custody.pop(run.handle, None)
+                        except BaseException:
+                            pass  # Same original carrier retains primary/cleanup custody.
+                raise
 
     def _project_original_sdk_run_state(self, run: _Run,
                                          projection: OriginalCommitProjection,
@@ -1376,13 +1496,18 @@ class InstalledLocalHost:
 
     def _close_projection(self, output: _Output) -> bool:
         """Release only original transport loans after successful cleanup."""
-        closed = (self._core.close_submission_append(output) if output.family == 'submission_append'
+        if not any(original is output for original in self._projections):
+            raise ValueError('Foreign original Local projection cleanup')
+        original = self._core._loans.get(output.ticket)
+        if original is not None and original is not output:
+            raise ValueError('Original Local projection loan changed')
+        closed = original is None or (self._core.close_submission_append(output) if output.family == 'submission_append'
                   else self._core.close_cancellation_append(output) if output.family == 'cancellation_append'
+                  else self._core.close_unpublished_state(output) if output.family == 'run_state_append'
                   else self._core.close_submission_lookup(output) if output.family == 'submission_lookup'
                   else self._core.close_submission_projection(output))
         if not closed:
             return False
-        self._projections.remove(output)
         source = self._append_sources.get(output.ticket)
         if source is not None:
             if not self._core.close_input(source):
@@ -1391,6 +1516,7 @@ class InstalledLocalHost:
                 return False
             del self._append_sources[output.ticket]
             self._inputs.remove(source)
+        self._projections.remove(output)
         return True
 
     def _prepare_original(self, reference: object, intent: bytes) -> _Preparation:
@@ -2046,6 +2172,11 @@ class InstalledLocalHost:
             # Same-original physical retirement never replaces the initiating
             # failure or interprets the request/worker Future as a stop ACK.
             try:
+                # Existing Compute close seals this SAME DAG before child
+                # retirement. Its invocation/preflight loan keeps the owner
+                # present for actual stop/state observation and later cleanup.
+                if self._core.close_native_compute(compute.core):
+                    raise ValueError('Original Compute observation custody disappeared before its child')
                 self._retire_original_tasks(tuple(reversed(owned)))
             except BaseException as cleanup:
                 work = next((work for work in self._physical_work
@@ -3333,6 +3464,12 @@ class InstalledLocalHost:
                 self._saved_result_reads.remove(saved_read)
             for key, state_custody in tuple(self._run_state_custody.items()):
                 if state_custody.output is not None:
+                    if state_custody.output.family == 'run_state_append':
+                        if not self._close_projection(state_custody.output):
+                            return False
+                        state_custody.output = None
+                        del self._run_state_custody[key]
+                        continue
                     if not self._core.close_publication_commit_export(state_custody.output):
                         return False
                     state_custody.output = None
@@ -3469,10 +3606,9 @@ class InstalledLocalHost:
                 if not self._core.close_result_export(result):
                     return False
                 self._result_exports.remove(result)
-            for task in tuple(reversed(self._tasks)):
-                if not self._core.close_task(task):
-                    return False
-                self._tasks.remove(task)
+            self._retire_original_tasks(tuple(reversed(self._tasks)))
+            if self._tasks:
+                return False
             for publisher in tuple(reversed(self._publishers)):
                 if not self._core.close_publisher(publisher):
                     return False

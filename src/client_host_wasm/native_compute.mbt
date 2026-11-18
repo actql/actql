@@ -226,6 +226,11 @@ pub fn close_native_compute(nonce : Int64, handle : Int) -> Int {
   if record.pending {
     return -33
   }
+  // Seal the original execution before waiting for child retirement. Stop is
+  // not cleanup ACK; retained Result/input/publication children remain owned.
+  if record.host is Some(host) {
+    @strategy.stop_captured_dag(@local_run.local_compute_run(host))
+  }
   if value.run_invocations.values().any(source => source.compute == handle) {
     return -9
   }

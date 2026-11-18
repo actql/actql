@@ -609,6 +609,11 @@ pub fn close_run(nonce : Int64, handle : Int) -> Int {
   }
   if value.materials.values().any(material => material.run == handle) ||
     value.physical_starts.values().any(start => start.run == handle) ||
+    value.submissions
+    .values()
+    .any(observation => {
+      observation.unpublished_state is Some(state) && state.run == handle
+    }) ||
     value.native_sources.values().any(source => source.run == handle) {
     return -9
   }

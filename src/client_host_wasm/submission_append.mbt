@@ -318,6 +318,13 @@ pub fn validate_submission_append(
 ) -> Int {
   if selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
+    record.kind == 12 &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    configuration.host_current == Some(current) {
+    return sdk_unpublished_state_current(value, record, configuration, false)
+  }
+  if selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
     record.kind == 10 &&
     value.run_configurations.get(record.configuration) is Some(configuration) &&
     configuration.host_current == Some(current) {

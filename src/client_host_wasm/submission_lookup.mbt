@@ -94,7 +94,8 @@ fn observe_submission_lookup(
     record.kind == 7 ||
     record.kind == 8 ||
     record.kind == 10 ||
-    record.kind == 11 {
+    record.kind == 11 ||
+    record.kind == 12 {
     guard @decode.closed_object(
         cursor,
         if record.kind == 6 {
@@ -103,6 +104,10 @@ fn observe_submission_lookup(
           [
             "namespaceId", "authorityScopeCid", "runDefinitionCid", "cancelId", "expectedRevision",
             "attemptId",
+          ]
+        } else if record.kind == 12 {
+          [
+            "namespaceId", "authorityScopeCid", "runDefinitionCid", "run", "observed_at",
           ]
         } else if record.kind == 11 {
           [

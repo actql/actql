@@ -18,6 +18,7 @@ priv struct StoredManagedTask {
   live : Ref[Bool]
   mut completed : @execution.ManagedCompletedOutput[Int]?
   mut finalization_invoked : Bool
+  mut execution_settled : Bool
 }
 
 ///|
@@ -108,6 +109,7 @@ pub fn reserve_managed_task(
     live: Ref(true),
     completed: None,
     finalization_invoked: false,
+    execution_settled: false,
   }
   value.next_handle += 1
   handle
@@ -341,11 +343,16 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
     }
     // Supply the observed stop only to the original execution reservation.
     // Cleanup can remain pending after this; neither step is a Run terminal.
-    if (operations.settle)() is Err(issue) {
-      if record.cleanup_issue is None {
-        record.cleanup_issue = Some(issue)
+    if !record.execution_settled {
+      match (operations.settle)() {
+        Err(issue) => {
+          if record.cleanup_issue is None {
+            record.cleanup_issue = Some(issue)
+          }
+          return -9
+        }
+        Ok(_) => record.execution_settled = true
       }
-      return -9
     }
     if !(operations.cleanup_refresh)() {
       return -9
@@ -547,6 +554,7 @@ pub fn complete_managed_task(nonce : Int64, handle : Int) -> Int {
   let result = match (operations.settle)() {
     Err(issue) => Err(issue)
     Ok(_) => {
+      record.execution_settled = true
       let live = record.live
       (operations.complete)(handle, operations.storage_bytes, () => live.val)
     }

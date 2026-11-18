@@ -43,6 +43,7 @@ test "managed task issue projects memory refusal without replacing its original 
     live: Ref(true),
     completed: None,
     finalization_invoked: false,
+    execution_settled: false,
   }
   value.tasks[4] = record
   assert_eq(managed_task_issue(nonce + 1L, 4), -2)

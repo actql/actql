@@ -2192,14 +2192,14 @@ class LocalCore:
         with self._lock:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
-                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6, 7, 8, 10, 11)):
+                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1048576 if kind in (3, 4, 5, 6, 7, 8, 10, 11) else 4096
-            family = ('cancellation_append' if kind == 10 else 'submission_append' if kind == 3 else
+            limit = 1048576 if kind in (3, 4, 5, 6, 7, 8, 10, 11, 12) else 4096
+            family = ('run_state_append' if kind == 12 else 'cancellation_append' if kind == 10 else 'submission_append' if kind == 3 else
                       'submission_lookup' if kind in (4, 5, 6, 7, 8, 11) else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
@@ -2469,6 +2469,54 @@ class LocalCore:
 
     def close_cancellation_append(self, value: _Output) -> bool:
         return self._close_output(value, 'cancellation_append', 'close', abi_family='submission')
+
+    def produce_unpublished_state(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'run_state_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('produce_unpublished_state', code)
+            self.validate_unpublished_state(value, current)
+
+    def validate_unpublished_state(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'run_state_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_unpublished_state', code)
+
+    def read_unpublished_state(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self.validate_unpublished_state(value, current)
+            raw = self._read_output(value, 'run_state_append', 'length', abi_family='submission')
+            self.validate_unpublished_state(value, current)
+            return raw
+
+    def confirm_unpublished_state(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'run_state_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('confirm_unpublished_state', code)
+
+    def read_unpublished_state_candidate(self, value: _Output, current: _Output) -> bytes:
+        """Original bounded transport only; saved-row confirmation is separate."""
+        with self._lock:
+            self._owned_output(value, 'run_state_append')
+            callbacks = self._host_current_ready(current)
+            raw = self._read_output(value, 'run_state_append', 'length', abi_family='submission')
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            return raw
+
+    def close_unpublished_state(self, value: _Output) -> bool:
+        return self._close_output(value, 'run_state_append', 'close', abi_family='submission')
 
     def produce_submission_lookup(self, value: _Output, current: _Output) -> None:
         """Read only the original history in the same current Store snapshot."""

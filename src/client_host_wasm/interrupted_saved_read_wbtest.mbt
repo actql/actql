@@ -63,6 +63,7 @@ test "saved interruption cleanup spends normal entry but retains original loans 
     failure_preparation: None,
     failure_plan: None,
     cancellation_append: None,
+    unpublished_state: None,
     invoked: true,
     produced: false,
     output_closed: false,

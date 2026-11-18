@@ -3285,6 +3285,38 @@ acknowledgments. Explicit diagnostic factory limits remain independent.
 
 ### Ordinary Host operation fuel
 
+#### Original cancellation and unpublished state observations
+
+Cancellation append and lookup share the existing Common journal encoding,
+complete census and original Run controller with Native. Python supplies the
+actual SQLite snapshot and atomic write observations. It does not select a
+cancellation outcome, reinterpret an uncertain commit as failure, or issue a
+replacement Run. A lost commit reply retains the same candidate and original
+cause for exact successor readback; lookup never repeats that write.
+
+An unpublished RunState uses the existing Common observation Owner with no
+Manifest. Its observation revision and saved control revision are independent.
+The physical publication observation retains both present rows and confirmed
+absence through the same current snapshot. Actual execution retirement comes
+from the original CapturedDAG and its child cleanup, never an empty Python
+worker list. A saved cancellation may become terminal only after those actual
+stop and retirement observations. The completed publication path retains its
+original Manifest, bytes and permissions.
+
+The state candidate remains retained until the original metadata CAS has been
+read back and both its projection and input have retired. Metadata confirmation
+is not physical execution or business acknowledgment. A partial input close
+keeps the same original input after its output has retired; a copied output
+cannot complete that cleanup. An uncertain write cannot be replaced by a fresh
+state preparation. Cold status reads only the saved originals, with no prepare,
+lowering, dispatch or authorization renewal.
+
+Managed task custody records successful settlement only after the original
+operation returns success. Later close still observes actual physical stop and
+the original cleanup port, but does not repeat settlement after that execution
+has already retired. Failed settlement retains its original task and first
+cleanup issue; completed DATA alone is neither stop nor cleanup acknowledgment.
+
 An admitted background invocation retains its original operation allowance and
 observation generation after the submitting coroutine returns or is cancelled.
 Same-Run control calls borrow that exact allowance under the same Core lock;
