@@ -153,7 +153,9 @@ test('metadata-only Mock inspection cannot enter Source or Effect factories', as
     authorizationFor: forbidden, assertCurrent() {}, principalId: 'diagnostic',
     runtimeBundleCid: 'sha256:' + '0'.repeat(64), bindingCid: 'sha256:' + '0'.repeat(64),
     effectResources: {bindRunOriginal: forbidden, assertCurrent: forbidden, limits: forbidden}}),
-    {code: 'InstalledSourceInitializationUnavailable'});
+    // The funded writable-runtime boundary now refuses this metadata-only
+    // view before a file owner, authorization callback or Effect factory exists.
+    {code: 'InstalledMockImplementationConstructionUnavailable'});
   assert.equal(calls, 0);inspected.retire(moon);
 });
 
