@@ -129,10 +129,15 @@ pub fn[R, E] prepare_client_cancellation_journal_append(
   read_original : (String) -> Result[ClientCancellationJournalEncoding?, E],
   observe_terminal : (R) -> Result[Bool, E],
   current : () -> Bool,
-) -> Result[ClientCancellationJournalAppendPlan[R], ClientCancellationJournalOperationIssue[E]] {
+) -> Result[
+  ClientCancellationJournalAppendPlan[R],
+  ClientCancellationJournalOperationIssue[E],
+] {
   let (run, original_run, identity, key, original, issued, issued_revision) = match
-    cancellation_journal_operation_originals(request, namespace_id, cancel_id,
-      expected_revision, census, retained, facts, read_original) {
+    cancellation_journal_operation_originals(
+      request, namespace_id, cancel_id, expected_revision, census, retained, facts,
+      read_original,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -152,10 +157,16 @@ pub fn[R, E] prepare_client_cancellation_journal_append(
   if original_run.revision > 2147483647L {
     return Err(CapacityExceeded)
   }
-  let action = match prepare_client_cancellation_operation(
-    identity, original.map(value => value.identity), original_run.definition,
-    original_run.revision.to_int(), true, terminal, original_run.cancellation_requested,
-  ) {
+  let action = match
+    prepare_client_cancellation_operation(
+      identity,
+      original.map(value => value.identity),
+      original_run.definition,
+      original_run.revision.to_int(),
+      true,
+      terminal,
+      original_run.cancellation_requested,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Operation(issue))
   }
@@ -169,9 +180,15 @@ pub fn[R, E] prepare_client_cancellation_journal_append(
         return Err(CapacityExceeded)
       }
       let record : ClientCancellationJournalEncoding = {
-        namespace_id, cancel_id, expected_revision, request,
-        definition: original_run.definition, identity, action,
-        observed_revision: original_run.revision + (if action == AcceptCancellation { 1L } else { 0L }),
+        namespace_id,
+        cancel_id,
+        expected_revision,
+        request,
+        definition: original_run.definition,
+        identity,
+        action,
+        observed_revision: original_run.revision +
+        (if action == AcceptCancellation { 1L } else { 0L }),
       }
       Ok(AppendCancellation({ run, record, key, issued, issued_revision, }))
     }

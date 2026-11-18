@@ -34,11 +34,6 @@ fn cancellation_index(
 }
 
 ///|
-fn cancellation_body(value : NativeClientCancellationRecord) -> Bytes? {
-  @host.client_cancellation_journal_row_body(value)
-}
-
-///|
 fn read_cancellation(
   row : @sqlite.NativeJournalValue,
 ) -> Result[NativeClientCancellationRecord, NativeClientRunJournalIssue] {

@@ -558,7 +558,11 @@ test "Native original cancellation refuses a structurally valid immutable outcom
     observed_revision: 1L,
   }
   database
-  .insert("client_cancellations", key, cancellation_body(changed).unwrap())
+  .insert(
+    "client_cancellations",
+    key,
+    @host.client_cancellation_journal_row_body(changed).unwrap(),
+  )
   .unwrap()
   |> ignore
   assert_true(
