@@ -401,3 +401,73 @@ test('Relation snapshot errors use the same failed-result budget projector and p
   assert.match(publicBudgetMessage(primary),/requested_delta=268840096; remaining=268840095; policy=1073741824;/u);
   assert.match(publicBudgetMessage(primary),/setting=installation.requestMemory.executionBytes/u);
 });
+
+
+test('managed original nonrow cause copies only Core DATA and preserves the original checked failure', () => {
+  const result = runtimeFailure({}), cleanup = {}, primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure', cleanup});
+  let checks = 0, causes = 0, steps = 0;
+  const moon = {
+    strategyModule_local_ManagedAdvanceCause(value) {assert.strictEqual(this, moon); assert.strictEqual(value, result); causes++; return 'sequence.input_limit';},
+    strategyModule_local_ManagedAdvanceRowStep(value) {assert.strictEqual(this, moon); assert.strictEqual(value, result); steps++; return -1;},
+  };
+  assert.throws(() => checkedLocalManagedAdvance(moon, result, value => {assert.strictEqual(value, result); checks++; throw primary;}, 42), error => error === primary);
+  assert.equal(checks, 1); assert.equal(causes, 1); assert.equal(steps, 1); assert.strictEqual(primary.cleanup, cleanup);
+  assert.deepEqual(snapshot(primary).primaryDiagnostic, {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'local_issue', task: 42, cause: 'sequence.input_limit'});
+  assert.equal(publicBudgetMessage(primary), 'Execution failed: phase=local_managed_advance; task=42; cause=sequence.input_limit. Original execution failure; resource quantities were not retained.');
+});
+
+test('managed original nonrow cause never overrides preferred row resource or work DATA', () => {
+  for (const [project, expected] of [
+    [{strategyModule_local_ManagedAdvanceResourceDimension: () => 'execution_bytes'}, 'resource'],
+    [{strategyModule_local_ManagedAdvanceControlWorkLimit: () => 100}, 'control_work'],
+  ]) {
+    const primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
+    assert.throws(() => checkedLocalManagedAdvance({...project,
+      strategyModule_local_ManagedAdvanceCause() {assert.fail('preferred original diagnostic');},
+      strategyModule_local_ManagedAdvanceRowStep: () => -1}, runtimeFailure({}), () => {throw primary;}, 42), error => error === primary);
+    assert.equal(snapshot(primary).primaryDiagnostic.kind, expected);
+  }
+  const primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
+  assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCause: () => 'rows.row_limit',
+    strategyModule_local_ManagedAdvanceRowStep: () => 9}, runtimeFailure({}), () => {throw primary;}, 42), error => error === primary);
+  assert.equal(snapshot(primary).primaryDiagnostic.kind, 'row_failure');
+  assert.equal(snapshot(primary).primaryDiagnostic.step, 9);
+});
+
+test('managed nonrow optional projections preserve malformed foreign frozen and absent originals', () => {
+  for (const [cause, step] of [[undefined, -1], ['private input', -1], ['x'.repeat(97), -1], ['compute.invalid_limits', -2], ['compute.invalid_limits', undefined]]) {
+    const primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
+    assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCause: () => cause,
+      strategyModule_local_ManagedAdvanceRowStep: () => step}, runtimeFailure({}), () => {throw primary;}, 42), error => error === primary);
+    assert.equal(snapshot(primary).primaryDiagnostic, undefined);
+  }
+  for (const primary of [undefined, new Error('foreign'), Object.freeze(Object.assign(new Error('frozen'), {code: 'MoonBitHostFailure'}))]) {
+    for (const project of [() => 'compute.invalid_limits', () => {throw new Error('optional');}]) {
+      let threw = false;
+      try {checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCause: project,
+        strategyModule_local_ManagedAdvanceRowStep: () => -1}, runtimeFailure({}), () => {throw primary;}, 42);}
+      catch (error) {threw = true; assert.strictEqual(error, primary);}
+      assert.equal(threw, true);
+    }
+  }
+});
+
+test('managed nonrow retained message stays bound to the original failed confirmed-stop Journal frame', () => {
+  const message = 'Execution failed: phase=local_managed_advance; task=42; cause=capture.capture_limit. Original execution failure; resource quantities were not retained.';
+  const control = {physical_stop: 'confirmed', revision: 1};
+  const state = {run_id: 'original', status: 'failed', result_available: false, next_action: {kind: 'none'},
+    terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message}, control};
+  const key = JSON.stringify(state);
+  assert.equal(retainedBudgetMessage(key, state, 'original', control), message);
+  for (const changed of [{...control, physical_stop: 'unknown'}, {...control, revision: 2}]) assert.equal(retainedBudgetMessage(key, state, 'original', changed), undefined);
+  assert.equal(retainedBudgetMessage(key, {...state, status: 'running'}, 'original', control), undefined);
+  assert.equal(retainedBudgetMessage(key, state, 'foreign', control), undefined);
+  for (const bad of [message + ' private', message.replace('task=42', 'task=2147483648'), message.replace('capture.capture_limit', 'private input')]) {
+    assert.equal(retainedBudgetMessage(JSON.stringify({...state, terminal_error: {...state.terminal_error, message: bad}}), state, 'original', control), undefined);
+  }
+  const data = {code: 'MoonBitHostFailure', phase: 'local_managed_advance', kind: 'local_issue', task: 42, cause: 'sequence.input_limit'};
+  for (const extra of [{step: -1}, {dimension: 'execution_bytes'}, {budget: {}}, {get cause() {assert.fail('no getter');}}]) {
+    const invalid = Object.defineProperties({...data}, Object.getOwnPropertyDescriptors(extra));
+    assert.equal(snapshot({primaryDiagnostic: invalid}).primaryDiagnostic, undefined);
+  }
+});

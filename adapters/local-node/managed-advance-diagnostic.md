@@ -13,7 +13,8 @@ The same failed advance can separately identify the original physical
 retained-byte or execution-byte quota constructor. Generic capacity failures
 are not evidence of either dimension.
 The original row failure can also expose a bounded semantic category and its
-actual sequence step. The Core `RowIssue`/`EvalIssueKind` remains the sole cause
+actual sequence step. Other original Local constructors expose a fixed path
+code selected in Common, including nested Compute/Sequence/Capture causes. The Core `RowIssue`/`EvalIssueKind` remains the sole cause
 selector; no adapter reinterprets operation names, exception text or Source.
 
 ## Inputs and outputs
@@ -23,7 +24,7 @@ Result once. Only its typed Core getter may project `control_work` from the
 closed `ControlWorkLimit(initialWorkLimit)` constructor. The already-retained
 immutable execution limit supplies that scalar only when the provider reports
 its original `ControlWorkLimit`; no new state counter or allowance is added. Successful yields and
-completions, missing getters and unclassified causes produce no diagnosis.
+completions and missing getters produce no diagnosis.
 The separate Capture getter accepts only the SAME failed advance's
 `Configuration(Execution(Capture(step, CaptureWorkLimit(limit))))` and returns
 the fixed `[step, limit]` DATA vector. It does not classify `CaptureLimit`.
@@ -39,6 +40,13 @@ The row-cause getters inspect the SAME failed Result and return a constant
 category String and original nonnegative step, or no cause / step `-1`.
 `row_failure` carries only Task, step and that category. It never exposes an
 expression, field name, row index/value, Program text or provider response.
+A non-row cause uses `local_issue` and omits `step`; it does not invent a row
+occurrence. The same existing cause export returns static bounded literals.
+Composite `capture.capture_limit` and `sequence.input_limit` are reasons, not
+work/memory dimensions. More specific resource/work getters remain preferred.
+All Local issue constructors carry payloads; the adapter rejects a payload-free
+foreign enum before invoking a projector. This structural fence is not a
+nominal issuer and does not admit arbitrary foreign JavaScript values.
 
 ## Identity
 
@@ -118,7 +126,22 @@ The row diagnostic uses six fields on the same optional primary slot. This is
 within the existing resource diagnostic's six fields plus four budget fields,
 without a second retained error or nested budget record. Core returns shared
 constant category Strings rather than constructing a message from an input.
-The cause/step getters use no additional retained holder or tuple. This bound
+The cause/step getters use no additional retained holder or tuple. A non-row
+alternative has five fields instead of six, borrows the same static literals,
+and uses the same single optional slot. It returns the existing row Some
+unchanged rather than coholding a second carrier. The cold renderer uses the
+same one regex/match frame with an optional step capture; it keeps the existing
+512-character boundary and has no additional retained message or collection.
+
+The original task reserve in `managed_dispatch.mbt` composes the 16-byte
+`local_managed_finalization_diagnostic_controls` (one borrowed namespace
+reference and task word) before the adapter call. Those aliases are unchanged.
+The pre-existing row/resource diagnostic envelope and its same-parent cleanup
+lifetime are not enlarged: the non-row record, snapshot and rendered text are
+strictly bounded by their existing row alternatives. No Store/Model spare
+allowance is used to fund this extension. This is a dominance argument for
+the existing route, not a new certificate pricing all Host/error allocations.
+This bound
 does not price arbitrary exception chains, provider text or allocator backing.
 
 ## Extension
@@ -168,3 +191,8 @@ spelling and calendar validation; the Host does not reinterpret the authored SQL
 or parse an exception message. A generic operand failure stays generic, and
 foreign or copied Host errors do not become an original typed cause. This adds
 no public Problem field, phase transition, value text, or resource quantity.
+
+The non-row cases pass actual typed Core results through the compiled getter
+and imported Node helper, including the same failed confirmed-stop Journal
+message. Optional/frozen/malformed/foreign controls preserve the primary and
+never turn a generic constructor into a quota or stop acknowledgement.
