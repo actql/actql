@@ -996,7 +996,8 @@ test('ordinary Local assets reuse tarballs while cold and external builds stay s
   assert(assets.includes(".resolve('@actql/local-node/runtime')"));
   assert(assets.includes("'adapters/host-node/installed-project-mock.actual.test.mjs'"));
   assert(assets.includes('ACTQL_TEST_PROJECT_COMMON_RUNTIME: installedCommon'));
-  assert(assets.includes('expectedTests: 9'));
+  assert(assets.includes('requireAllPassed: true'));
+  assert(!assets.includes('--test-name-pattern'), 'the installed Mock consumer selects the whole file');
   assert(assets.indexOf("run(process.execPath, ['smoke.mjs'], root)") <
     assets.indexOf('const installedCommon'));
   assert(assets.indexOf('const installedCommon') < assets.indexOf('scratch.passed()'));

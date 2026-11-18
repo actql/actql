@@ -263,6 +263,21 @@ test('required execution count rejects a passing subset and is recorded as failu
   }
 });
 
+test('whole-file execution requires every discovered case without a historical count', t => {
+  const root = fixture(t), file = join(root, 'selected.mjs');
+  const check = (body, status) => {
+    writeFileSync(file, "import {test} from 'node:test';\n" + body);
+    const result = runRecorded(root, file, {requireAllPassed: true});
+    assert.equal(result.status, status, result.stderr);
+  };
+  check("test('first', () => {}); test('second', () => {});", 0);
+  check("test('first', () => {}); test('second', () => {}); test('new case', () => {});", 0);
+  check('', 1);
+  check("test('pass', () => {}); test.skip('missing regression', () => {});", 1);
+  check("test('pass', () => {}); test.todo('unfinished regression');", 1);
+  check("test('failed regression', () => { throw new Error('original failure'); });", 1);
+});
+
 test('focused assertion failure survives an explicitly requested successful rerun', t => {
   const root = fixture(t), file = join(root, 'selected.mjs');
   writeFileSync(file, "import {test} from 'node:test'; import assert from 'node:assert/strict'; test('selected', () => assert.equal(1, 2));");
