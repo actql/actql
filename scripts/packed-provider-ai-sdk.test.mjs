@@ -9,6 +9,16 @@ import {CLIENT_PACKAGES, packClientPackages} from './packed-client-packages.mjs'
 import {prepareHealthPackages} from './health-monitor-adapters.mjs';
 import {runPackedProviderAI} from './test-packed-provider-ai-sdk.mjs';
 
+async function withFixtureGitHubSource(source, action) {
+  const original = process.env.GITHUB_SHA;
+  process.env.GITHUB_SHA = source;
+  try {return await action();}
+  finally {
+    if (original === undefined) delete process.env.GITHUB_SHA;
+    else process.env.GITHUB_SHA = original;
+  }
+}
+
 // Real Git/tar/inventory acquisition; installs and business processes below are
 // explicit command ports, not a Common, normal Host or provider acceptance run.
 async function fixture(t) {
@@ -84,8 +94,10 @@ test('optional normal pack reuses lifecycle producer without changing required f
 });
 
 test('optional usage consumers retain separate fresh installations and warm shares only its cold original', async t => {
-  const f = await fixture(t);
-  const result = await runPackedProviderAI(join(f.root, 'consumer-case'), f);
+  const f = await fixture(t), original = process.env.GITHUB_SHA;
+  const result = await withFixtureGitHubSource(f.source.sha,
+    () => runPackedProviderAI(join(f.root, 'consumer-case'), f));
+  assert.equal(process.env.GITHUB_SHA, original);
   assert.equal(result.complete, true); assert(result.phases.every(row => row.status === 'passed'));
   const [warm, cold, ...usage] = f.phaseCalls;
   assert.equal(warm.cwd, cold.cwd); assert.notEqual(warm.pid, cold.pid);
@@ -128,13 +140,25 @@ test('optional source, selection and changed archive refuse before any install',
   }
 });
 
+test('optional consumer refuses a foreign hosted SHA before output or installation and restores the caller environment', async t => {
+  const f = await fixture(t), original = process.env.GITHUB_SHA, destination = join(f.root, 'foreign-source');
+  const foreign = (f.source.sha[0] === '0' ? '1' : '0') + f.source.sha.slice(1);
+  await withFixtureGitHubSource(foreign, () => assert.rejects(runPackedProviderAI(destination, f),
+    error => error.code === 'ERR_ASSERTION' && error.actual === f.source.sha && error.expected === foreign));
+  assert.equal(process.env.GITHUB_SHA, original);
+  assert.deepEqual(f.installs, []); assert.deepEqual(f.phases, []);
+  await assert.rejects(access(destination), {code: 'ENOENT'});
+});
+
 test('warm failure preserves primary and cannot start a cold replacement port', async t => {
   const f = await fixture(t), primary = new Error('OriginalWarmFailure');
-  await assert.rejects(runPackedProviderAI(join(f.root, 'failed'), {...f,
+  const original = process.env.GITHUB_SHA;
+  await assert.rejects(withFixtureGitHubSource(f.source.sha, () => runPackedProviderAI(join(f.root, 'failed'), {...f,
     command: async (cmd, args, options) => {
       if (cmd !== 'npm' && args[1] === 'warm') {f.phases.push(args[1]); throw primary;}
       return f.command(cmd, args, options);
-    }}), actual => actual === primary);
+    }})), actual => actual === primary);
+  assert.equal(process.env.GITHUB_SHA, original);
   assert.equal(f.phases.includes('cold'), false);
   const report = JSON.parse(await readFile(join(f.root, 'failed/summary.json')));
   assert.equal(report.complete, false);
@@ -147,10 +171,10 @@ test('optional usage completion refuses mismatched evidence and retained close o
   for (const change of [{usageCaptures: 0}, {calls: 0}, {usageMode: 'reported'}, {aliveScopedFD0: false}]) {
     const f = await fixture(t);
     const root = join(f.root, 'invalid');
-    await assert.rejects(runPackedProviderAI(root, {...f, command: async (cmd, args, options) => {
+    await assert.rejects(withFixtureGitHubSource(f.source.sha, () => runPackedProviderAI(root, {...f, command: async (cmd, args, options) => {
       const result = await f.command(cmd, args, options);
       return args[1] === 'usage-zero' ? {...result, stdout: JSON.stringify({...JSON.parse(result.stdout), ...change})} : result;
-    }}));
+    }})));
     const report = JSON.parse(await readFile(join(root, 'summary.json')));
     assert.equal(report.complete, false);
     assert.equal(report.phases.find(row => row.phase === 'usage-zero').status, 'failed');
