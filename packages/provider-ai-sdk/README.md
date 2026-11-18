@@ -74,6 +74,20 @@ charged; metadata sharing does not transfer authority or capacity. Each Run
 still requires the original Request/Plan/Scope admission. A missing or too-small
 Resource refuses rather than increasing the top-level budget.
 
+The expected SDK-v4 request envelope comes from the same Common writer as the
+initial direct HTTP profile. The named SDK profile preserves its omission of
+`n` and `stream`; the direct HTTP profile keeps its explicit fields. Node invokes
+the SDK and compares the complete resulting JSON with that original wire. It
+does not reconstruct generation, message or schema rules in JavaScript.
+
+Before Plan construction, the normal factory adds Common's checked demand for
+all prepared rows' expected wires and the serial writer/verification workspace
+to the same original Read and Model inputs. Workspace does not become retained
+output. The existing actual-body parse, full comparison and SDK base stay
+funded without refund. The original budget remains unchanged; these construction
+quotes are not an engine/GC heap measurement. Explicit low-level recipes must
+also fund this construction under their original Owner.
+
 Create a fresh callback for a new Host, including a later process reading the
 same Saved Result. The existing Saved reader consumes its original persisted
 result before any new execution; restoring configuration must not resend a

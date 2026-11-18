@@ -32,9 +32,11 @@ const generation = {_0: 'fixture-chat', _1: 0.25, _2: 0.875,
 const projection = {maxBytes: 10000, maxNodes: 1000, maxDepth: 40,
   maxFrames: 100, maxWork: 10000};
 const baseMoon = {
-  clientProgramProjectOpenAIChatRequest(p, r) {
+  clientProgramProjectOpenAIChatSdkV4Request(p, r, model) {
     assert.equal(p, provider); assert.equal(r, original);
-    return {$tag: 1, _0: projected};
+    return {$tag: 1, _0: {...projected, _7: JSON.stringify({model,temperature:0.25,top_p:0.875,
+      max_tokens:16,messages:[{role:'system',content:instructions},{role:'user',content:inputWire}],
+      response_format:{type:'json_schema',json_schema:{schema,strict:true,name:'actql_output'}}})}};
   },
   clientProgramModelRequestGeneration(r) {
     assert.equal(r, original); return generation;
@@ -77,10 +79,10 @@ test('actual SDK schema normalization and verification retain distinct trees wit
     t.after(() => release(handle));
     await until(() => pollSdkPreparation(handle), x => x.kind === 'ready');
   } finally { JSON.parse = parse; }
-  assert.equal(schemas.length, 2);
-  assert.equal(envelopes.length, 1);
-  assert.notEqual(schemas[0], schemas[1]);
-  assert.notEqual(envelopes[0].response_format.json_schema.schema, schemas[1]);
+  assert.equal(schemas.length, 1);
+  assert.equal(envelopes.length, 2);
+  assert.notEqual(schemas[0], envelopes[1].response_format.json_schema.schema);
+  assert.notEqual(envelopes[0].response_format.json_schema.schema, envelopes[1].response_format.json_schema.schema);
   const request = sdkPreparedRequest(handle);
   assert.equal(JSON.parse(request.body).messages[1].content, inputWire);
   let sends = 0;
@@ -101,7 +103,7 @@ test('actual SDK schema normalization and verification retain distinct trees wit
   assert.notEqual(normalized.properties.answer.items.anyOf,
     schemas[0].properties.answer.items.anyOf);
   assert.equal(normalized.required, schemas[0].required);
-  assert.notEqual(normalized, schemas[1]);
+  assert.notEqual(normalized, envelopes[1].response_format.json_schema.schema);
   assert.notEqual(normalized, envelopes[0].response_format.json_schema.schema);
   await release(handle);
   assert.equal(decoded.request.body.response_format.json_schema.schema, normalized);

@@ -8,11 +8,11 @@ const corpus=JSON.parse(readFileSync(new URL('../../portability/corpus/openai-ch
 
 // Actual pinned SDK and fixed transport; Core/persistence ports are doubles.
 // This exercises the consuming preparation shape, not public funding/admission.
-function fixture({abort,issueAt,retireFailure=false,foreignBinding=false,deferredRaw=false,
+function fixture({abort,issueAt,retireFailure=false,finishFailure=false,foreignBinding=false,deferredRaw=false,
   rawCleanup=()=>true,saveRaw,
   projectionLimits={maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000}}={}) {
   const request={},provider={},cursor={},entry={};
-  const counts={starts:0,advances:0,retire:0,fetch:0,plans:0,generation:0,saves:0};
+  const counts={starts:0,advances:0,retire:0,finishes:0,fetch:0,plans:0,generation:0,saves:0};
   let bindRaw;
   const persist=async(call,raw)=>{counts.saves++;return saveRaw===undefined?
     {response:{call,raw}}:saveRaw(call,raw);};
@@ -27,6 +27,14 @@ function fixture({abort,issueAt,retireFailure=false,foreignBinding=false,deferre
       assert.deepEqual(bounds,[10000,1000,40,100,10000]);counts.starts++;return {$tag:1,_0:cursor};},
     clientProgramAdvanceOpenAIChatProjection(c){assert.equal(c,cursor);counts.advances++;
       return counts.advances===issueAt?{$tag:0,_0:'limit'}:{$tag:1,_0:counts.advances<3?undefined:projected};},
+    clientProgramFinishOpenAIChatSdkV4Projection(c,model,bytes){
+      assert.equal(c,cursor);assert.equal(model,'gpt-4.1-nano');assert.equal(bytes,4096);
+      counts.finishes++;
+      if(finishFailure)return {$tag:0,_0:'limit'};
+      return {$tag:1,_0:{...projected,_7:JSON.stringify({model,temperature:0.25,top_p:0.875,
+        max_tokens:16,seed:-7,messages:[{role:'system',content:projected._0},{role:'user',content:projected._1}],
+        response_format:{type:'json_schema',json_schema:{schema:corpus.schema,strict:true,name:'actql_output'}}})}};
+    },
     clientProgramRetireOpenAIChatProjection(c){assert.equal(c,cursor);counts.retire++;
       if(retireFailure&&counts.retire===1)throw Error('RetirementPending');},
     clientProgramModelRequestGeneration(r){assert.equal(r,request);counts.generation++;
@@ -117,6 +125,7 @@ test('invalid physical installation refuses before allocating a Common child',()
   let starts=0;
   const moon={clientProgramStartOpenAIChatProjection(){starts++;return {$tag:1,_0:{}};},
     clientProgramAdvanceOpenAIChatProjection(){assert.fail('Invalid installation advanced');},
+    clientProgramFinishOpenAIChatSdkV4Projection(){assert.fail('No child exists');},
     clientProgramRetireOpenAIChatProjection(){assert.fail('No child exists');}};
   assert.throws(()=>createAdmittedOpenAIChatPreflight({moon,admittedProvider:{},request:{},
     projectionLimits:{maxBytes:100,maxNodes:10,maxDepth:4,maxFrames:10,maxWork:100}}),
@@ -183,4 +192,14 @@ test('unresolved raw save keeps the original SDK port pending through cancellati
   await eventually(()=>call.poll(),v=>v.kind==='saved');
   await eventually(()=>f.port.preflight.cleanup(),Boolean);
   assert.equal(f.counts.fetch,1);
+});
+
+test('expected-body writer refusal keeps the original child for cleanup and creates no SDK promise or plan',()=>{
+  const f=fixture({finishFailure:true});
+  for(let i=0;i<4;i++)f.port.preflight.advance();
+  assert.equal(f.counts.finishes,1);assert.equal(f.counts.generation,0);
+  assert.equal(f.counts.fetch,0);assert.equal(f.counts.plans,0);
+  assert.equal(f.counts.retire,0);
+  assert.equal(f.port.preflight.cleanup(),true);assert.equal(f.counts.retire,1);
+  assert.equal(f.port.preflight.cleanup(),true);assert.equal(f.counts.retire,1);
 });

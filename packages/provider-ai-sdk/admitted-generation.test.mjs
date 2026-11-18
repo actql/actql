@@ -19,10 +19,13 @@ const options={admittedProvider:provider,request:original,
   outputSchemaCid:corpus.task.output_schema_cid,modelSelector:'fixture-chat',
   projectionLimits:limits,modelId:'gpt-4.1-nano',baseURL:'https://fixture.invalid/v1',
   apiKey:'fixture-only',maxRequestBytes:4000,maxHeaderBytes:4096,maxHeaders:16,notify(){}};
-const moonFor=value=>({clientProgramProjectOpenAIChatRequest(p,r,...bounds){
+const moonFor=value=>({clientProgramProjectOpenAIChatSdkV4Request(p,r,model,bytes,...bounds){
   assert.equal(p,provider);assert.equal(r,original);
+  assert.equal(typeof model,'string');assert.equal(bytes,4000);
   assert.deepEqual(bounds,Object.values(limits));
-  return {$tag:1,_0:value};
+  return {$tag:1,_0:{...value,_7:JSON.stringify({model,temperature:0.25,top_p:0.875,
+    max_tokens:16,seed:-7,messages:[{role:'system',content:value._0},{role:'user',content:value._1}],
+    response_format:{type:'json_schema',json_schema:{schema:JSON.parse(value._2),strict:true,name:'actql_output'}}})}};
 },clientProgramModelRequestGeneration(r){assert.equal(r,original);
   return {_0:'fixture-chat',_1:0.25,_2:0.875,_3:16n,_4:-7n};}});
 async function poll(handle){for(let i=0;i<30;i++){const p=pollSdkPreparation(handle);if(p.kind!=='pending')return p;await turn();}assert.fail('SDK did not settle');}
@@ -54,7 +57,7 @@ test('copied Task prompt output schema or selector mismatch refuses before SDK p
 
 test('Common typed unsupported never builds SDK or sends a request',()=>{
   let generationReads=0;
-  const moon={clientProgramProjectOpenAIChatRequest(){return {$tag:0,_0:'unsupported'};},
+  const moon={clientProgramProjectOpenAIChatSdkV4Request(){return {$tag:0,_0:'unsupported'};},
     clientProgramOpenAIChatProjectionIssueKind(x){return x;},
     clientProgramModelRequestGeneration(){generationReads++;assert.fail('Rejected projection read generation');}};
   assert.throws(()=>prepareAdmittedOpenAIChatRequest({...options,moon}),{message:'OpenAIProjection:unsupported'});

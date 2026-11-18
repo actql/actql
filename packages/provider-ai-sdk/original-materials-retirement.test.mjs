@@ -6,7 +6,7 @@ import {originalMaterialsConfiguration as configuration} from './original-materi
 
 const functions = [
   'clientProgramStartOpenAIChatProjection', 'clientProgramAdvanceOpenAIChatProjection',
-  'clientProgramRetireOpenAIChatProjection', 'clientProgramInstallAsyncModelProvider',
+  'clientProgramRetireOpenAIChatProjection','clientProgramFinishOpenAIChatSdkV4Projection', 'clientProgramInstallAsyncModelProvider',
   'clientProgramModelRequestGeneration', 'clientProgramModelRequestPreflight',
   'clientProgramModelAsyncPhysicalRequestPlan', 'clientProgramModelPhysicalCallForRequest',
   'clientProgramModelPhysicalPending', 'clientProgramModelPhysicalUnknown',

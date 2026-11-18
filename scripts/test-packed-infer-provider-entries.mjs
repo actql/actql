@@ -252,7 +252,7 @@ test('installed DATA callback preserves Common refusal without physical work or 
   const register=entry.createInstalledUndiciOpenAIChatRegistration(materialsConfiguration());let admissions=0;
   // Explicit Common-port double: actual Common/Host evidence is separate.
   const runtime=Object.fromEntries(['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
-    'clientProgramRetireOpenAIChatProjection','clientProgramInstallAsyncModelProvider','clientProgramModelRequestGeneration',
+    'clientProgramRetireOpenAIChatProjection','clientProgramFinishOpenAIChatSdkV4Projection','clientProgramInstallAsyncModelProvider','clientProgramModelRequestGeneration',
     'clientProgramModelRequestPreflight','clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat',
     'clientProgramAdmitEffectDependencyBody','clientProgramModelResponseProfileTransportMatches']

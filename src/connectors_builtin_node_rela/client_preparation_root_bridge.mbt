@@ -23,6 +23,28 @@ pub fn client_program_installed_node_model_deadline_capacity() -> Array[Int64] {
 }
 
 ///|
+/// Additional expected-wire and serial verification demand on the SAME Read.
+#export_name("clientProgramInstalledNodeModelSdkV4RequestCapacity")
+pub fn client_program_installed_node_model_sdk_v4_request_capacity(
+  max_rows : Int,
+  max_request_bytes : Int,
+  projection_nodes : Int,
+  projection_depth : Int,
+) -> Array[Int64] {
+  match
+    @client_local_host.installed_node_model_sdk_v4_request_capacity(
+      max_rows, max_request_bytes, projection_nodes, projection_depth,
+    ) {
+    None => []
+    Some(value) =>
+      [
+        @execution.execution_capacity_retained_bytes(value),
+        @execution.execution_capacity_execution_bytes(value),
+      ]
+  }
+}
+
+///|
 #export_name("clientProgramPrepareInstalledEffectCaptureRecovery")
 pub fn client_program_prepare_installed_effect_capture_recovery(
   parent : @client_local_host.ClientInstalledManagedRun,

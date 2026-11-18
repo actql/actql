@@ -3359,7 +3359,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "02670d27b54443a72a2012d21f17b0cf991c87709b178a43798dc5b4d7f96804",
+      "sha256": "f8daa036704fd7622f54acd0b96f99c2d1db74ed86b9f40adc3a1656861bdecc",
       "exports": [
         "createOpenAIChatProvider"
       ],
@@ -3404,7 +3404,7 @@
           "async": false
         },
         {
-          "name": "createOpenAIChatProvider/createOpenAIChatProvider/config/config/config",
+          "name": "createOpenAIChatProvider/createOpenAIChatProvider/config/config/validQuote/validQuote/validQuote",
           "parameters": [
             "value"
           ],
@@ -3536,14 +3536,14 @@
             "createOpenAIChatProvider/createOpenAIChatProvider",
             "createOpenAIChatProvider/createOpenAIChatProvider/bindings/bindings",
             "createOpenAIChatProvider/createOpenAIChatProvider/config/config",
-            "createOpenAIChatProvider/createOpenAIChatProvider/config/config/config",
+            "createOpenAIChatProvider/createOpenAIChatProvider/config/config/validQuote/validQuote/validQuote",
             "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
+            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider#2",
             "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
             "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider",
             "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries",
             "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries/rawCaptureSelection/rawCaptureSelection",
             "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider/entries/entries/register/register",
-            "createOpenAIChatProvider/createOpenAIChatProvider/createOpenAIChatProvider#2",
             "createOpenAIChatProvider/createOpenAIChatProvider/owned/owned",
             "createOpenAIChatProvider/createOpenAIChatProvider/profile/profile",
             "data/data",
@@ -3609,6 +3609,10 @@
               {
                 "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
                 "anchor": "clientProgramInstalledNodeModelDeadlineCapacity"
+              },
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "installed_node_model_sdk_v4_request_capacity"
               }
             ],
             "extension": [
@@ -3625,11 +3629,27 @@
               {
                 "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
                 "anchor": "normal deadline missing invalid overflow or over-budget quote refuses before IO"
+              },
+              {
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "anchor": "normal binding profile and original Read recipe"
+              },
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity_wbtest.mbt",
+                "anchor": "SDK expected wires remain per row"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./installed-openai-chat.mjs",
+        "./original-undici-transport.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ],
   "actualRuntimeQualification": "Earlier F Credential147, Provider759 and durablea15 receipts remain source-specific. This additional metadata pass runs no OTel/Provider/Native product or public acceptance tests."

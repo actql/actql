@@ -9,7 +9,7 @@ import {bindInferOriginalReadRecipe} from '../../adapters/host-node/infer-origin
 
 const cid = c => `sha256:${c.repeat(64)}`;
 const names=['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
-  'clientProgramRetireOpenAIChatProjection','clientProgramModelRequestGeneration',
+  'clientProgramRetireOpenAIChatProjection','clientProgramFinishOpenAIChatSdkV4Projection','clientProgramModelRequestGeneration',
   'clientProgramModelRequestPreflight','clientProgramModelAsyncPhysicalRequestPlan',
   'clientProgramModelPhysicalCallForRequest','clientProgramModelPhysicalPending',
   'clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat'];

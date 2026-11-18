@@ -1448,6 +1448,8 @@ pub fn client_program_finish_installed_source_io_after_cleanup(@physical_resourc
 
 pub fn client_program_finish_model_content_bytes(@model_execution.ModelContentByteCheck) -> Result[@model_execution.ModelContentAdmission, @model_execution.ModelContentIssue]
 
+pub fn client_program_finish_openai_chat_sdk_v4_projection(@model_execution.OpenAIChatProjection, String, Int) -> Result[(String, String, String, String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
+
 pub fn client_program_finish_program_json_preparation(@client_local_host.ClientProgramJsonPreparation[ClientLocalPreparationInputOriginal, Unit]) -> Result[Unit, @client_local_host.ClientProgramJsonPreparationIssue]
 
 pub fn client_program_finish_request_computation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment) -> Result[String, @client_local_host.ClientRequestTerminalIssue]
@@ -2175,6 +2177,8 @@ pub fn client_program_installed_native_source_reader_capacity(Array[Int], Int, I
 pub fn client_program_installed_node_effect_model_demand_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @client_infer_host.Limits, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int64, Int64, Int, Int, Int, Int64, Int64) -> Result[@client_local_host.ClientInstalledEffectModelDemand, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_node_model_deadline_capacity() -> Array[Int64]
+
+pub fn client_program_installed_node_model_sdk_v4_request_capacity(Int, Int, Int, Int) -> Array[Int64]
 
 pub fn client_program_installed_opaque_boundary_footprint_capacity(String, String, Int) -> @execution_relation.ExecutionCapacity?
 
@@ -3739,6 +3743,8 @@ pub fn client_program_project_model_task_selection_retained_capacity() -> @execu
 pub fn client_program_project_native_decision_answers(@model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, @model_execution.ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), @model_execution.NativeDecisionAnswerIssue]
 
 pub fn client_program_project_openai_chat_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
+
+pub fn client_program_project_openai_chat_sdk_v4_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, String, Int, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
 
 pub fn client_program_project_public_model_task_environment(String, String, Array[@check_environment.NormalizedPublicModelTask], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, String, Int), @check_environment.ModelTaskIssue]
 

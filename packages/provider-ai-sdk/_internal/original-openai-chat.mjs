@@ -3,6 +3,15 @@ import {prepareOpenAIChatRequest} from './openai-chat.mjs';
 import {isDeepStrictEqual} from 'node:util';
 import {createSdkModelPreflight} from './model-port.mjs';
 
+// Isolate this callback context from the original seven-material handoff.
+// The original Read keeps this same expected wire until SDK/Read retirement.
+function originalExpectedBodyVerifier(expectedWire) {
+  if (typeof expectedWire !== 'string' || expectedWire.length === 0) {
+    throw new TypeError('OpenAIExpectedRequestUnavailable');
+  }
+  return body => isDeepStrictEqual(JSON.parse(body), JSON.parse(expectedWire));
+}
+
 // Private original-request consumer. The trusted installation supplies its
 // selector-to-model binding, endpoint, secret and admitted prompt/schema.
 // Reading Task values does not authorize I/O or establish that installation.
@@ -37,13 +46,7 @@ export function prepareOriginalOpenAIChatRequest({moon, request, modelSelector,
       topP, maxOutputTokens,
       ...(seed === undefined ? {} : {seed: Number(seed)})},
     maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify,
-    ...(verifyRequest === undefined ? {} : {
-      verifyRequest: body => verifyRequest(body, {
-        model: modelId, temperature, top_p: topP,
-        max_tokens: maxOutputTokens,
-        ...(seed === undefined ? {} : {seed: Number(seed)}),
-      }),
-    })});
+    ...(verifyRequest === undefined ? {} : {verifyRequest})});
 }
 
 // Private installer consumer, not a public startup grant or schema factory.
@@ -51,8 +54,8 @@ export function prepareOriginalOpenAIChatRequest({moon, request, modelSelector,
 export function prepareAdmittedOpenAIChatRequest({moon, admittedProvider,
   request, taskCid, promptCid, outputSchemaCid, modelSelector, projectionLimits,
   ...installation}) {
-  const projected = moon.clientProgramProjectOpenAIChatRequest(admittedProvider,
-    request, projectionLimits.maxBytes, projectionLimits.maxNodes,
+  const projected = moon.clientProgramProjectOpenAIChatSdkV4Request(admittedProvider,
+    request, installation.modelId, installation.maxRequestBytes, projectionLimits.maxBytes, projectionLimits.maxNodes,
     projectionLimits.maxDepth, projectionLimits.maxFrames, projectionLimits.maxWork);
   if (runtimeIsError(projected)) {
     throw new TypeError('OpenAIProjection:' +
@@ -70,25 +73,15 @@ function prepareProjectedOriginal({moon,request,taskCid,promptCid,
     throw new TypeError('OpenAIOriginalSchemaBindingMismatch');
   }
   const instructions = runtimeField(value, 0), inputWire = runtimeField(value, 1), schemaWire = runtimeField(value, 2);
+  const verifyRequest = originalExpectedBodyVerifier(runtimeField(value, 7));
   const schema = JSON.parse(schemaWire);
   const prompt = [{role: 'system', content: instructions},
     {role: 'user', content: [{type: 'text', text: inputWire}]}];
   const responseFormat = {type: 'json', name: 'actql_output', schema};
   return prepareOriginalOpenAIChatRequest({...installation, moon, request,
     modelSelector, prompt, responseFormat,
-    verifyRequest(body, generation) {
-      // Do not parse/rebuild mapped data-text or normalize instructions. Only
-      // the SDK request envelope and projected schema are compared as JSON.
-      return isDeepStrictEqual(JSON.parse(body), {...generation,
-        messages: [{role: 'system', content: instructions},
-          {role: 'user', content: inputWire}],
-        response_format: {type: 'json_schema', json_schema: {
-          // Compare against original wire, not the tree handed to SDK code.
-          // A normalizer mutating its argument cannot rewrite our expectation.
-          schema: JSON.parse(schemaWire), strict: true, name: 'actql_output',
-        }},
-      });
-    },
+    // Common owns every expected envelope rule. Mapped data text stays text.
+    verifyRequest,
   });
 }
 
@@ -111,7 +104,8 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
   const bounds=Object.freeze({...projectionLimits});
   if (typeof moon.clientProgramStartOpenAIChatProjection !== 'function' ||
       typeof moon.clientProgramAdvanceOpenAIChatProjection !== 'function' ||
-      typeof moon.clientProgramRetireOpenAIChatProjection !== 'function') {
+      typeof moon.clientProgramRetireOpenAIChatProjection !== 'function' ||
+      typeof moon.clientProgramFinishOpenAIChatSdkV4Projection !== 'function') {
     throw new TypeError('OpenAIProjectionRuntimeUnavailable');
   }
   let cursor;
@@ -130,6 +124,8 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
       }
       const value=port.checked(moon.clientProgramAdvanceOpenAIChatProjection(cursor));
       if (value===undefined) return {kind:'pending'};
+      const sdkValue=port.checked(moon.clientProgramFinishOpenAIChatSdkV4Projection(
+        cursor,modelId,maxRequestBytes));
       terminal=true;
       // The immutable result escapes separately. Retire before creating any
       // SDK Promise so a retirement failure cannot orphan that new handle.
@@ -137,7 +133,7 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
       cursor=undefined;
       const preparation=prepareProjectedOriginal({moon,request,taskCid,promptCid,
         outputSchemaCid,modelSelector,modelId,baseURL,apiKey,maxRequestBytes,
-        maxHeaderBytes,maxHeaders,signal,notify},value);
+        maxHeaderBytes,maxHeaders,signal,notify},sdkValue);
       return {kind:'ready',preparation};
     },
     cleanup() {
