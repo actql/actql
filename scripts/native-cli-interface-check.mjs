@@ -8,9 +8,8 @@ import {checkInterfaceOwners, checkedOriginalInterface} from './check-interface-
 import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
 import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from './installed-interface-correspondence.mjs';
-import {admitInstalledNativeArtifact} from './native-cli-artifact-reader.mjs';
+import {admitInstalledNativeArtifactMaterial} from './native-cli-artifact-reader.mjs';
 import {nativeCliPackageInputs} from './native-cli-package-inputs.mjs';
-import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 
 export async function checkStagedNativeCliInterfaces({repository, directory, source, checkedSource, artifact}) {
   assert.match(source, /^[a-f0-9]{40}$/u);
@@ -21,12 +20,13 @@ export async function checkStagedNativeCliInterfaces({repository, directory, sou
   // DATA or a foreign-root report cannot request a replacement qualification.
   checkedOriginalInterface(repository, 'packages/native-cli/bin/actql.mjs', checkedSource);
   const artifacts = [];
-  let bindings;
+  let bindings, artifactMaterial;
   if (artifact === undefined) {
     assert.equal(metadata.name, 'actql');
     bindings = nativeCliPackageInputs(repository).copies;
   } else {
-    const original = await admitInstalledNativeArtifact(directory, source);
+    artifactMaterial = await admitInstalledNativeArtifactMaterial(directory, source);
+    const {artifact: original, localRuntime: local} = artifactMaterial;
     assert.deepEqual(original, artifact, 'Changed original CLI artifact admission');
     assert.equal(metadata.name, `@actql/cli-${original.platform}`);
     const proof = {sourceSha: source, target: 'native', verification: {
@@ -34,11 +34,8 @@ export async function checkStagedNativeCliInterfaces({repository, directory, sou
       toolchainPinSha256: original.toolchainPinSha256}};
     artifacts.push({...proof, module: 'bin/actql-native-client', sha256: original.binarySha256});
     if (original.localRuntime !== undefined) {
-      // The artifact contains a bounded manifest reference, not inline library
-      // records. Reuse the original reader before selecting any runtime member.
-      const local = admitInstalledLocalRuntime({root: directory,
-        expected: {sourceSha: source, platform: original.platform,
-          localRuntimeSha256: original.localRuntime.sha256}, metadata: original.localRuntime});
+      // These are the same-call original runtime records, not inline candidate
+      // libraries or a replacement admission supplied by this caller.
       const runtimeVerification = {reader: 'packages/native-cli/lib/local-runtime.mjs#admitInstalledLocalRuntime',
         manifest: original.localRuntime,
         qualification: 'Original selected runtime material; not compiled by the MoonBit CLI build or runtime ABI acceptance'};
@@ -83,5 +80,6 @@ export async function checkStagedNativeCliInterfaces({repository, directory, sou
     modules: installed.modules, artifacts});
   assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim(), checkedHead);
   return {qualification: 'ordinary CLI member/source/reference correspondence; not Native execution or compiler provenance',
-    artifactSource: source, checkedSource: checkedHead, correspondence, dependencies};
+    artifactSource: source, checkedSource: checkedHead, correspondence, dependencies,
+    ...(artifactMaterial === undefined ? {} : {artifactMaterial})};
 }

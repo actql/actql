@@ -1,6 +1,7 @@
 // A scratch directory owned by one test process: created here with
 // mkdtemp, removed only by this handle, and only after the test said it
-// passed. The decision is taken when the process exits:
+// passed. The same close can run explicitly before the process exits; older
+// callers retain the original process-exit fallback:
 //
 // - a failing exit keeps the directory for diagnosis and prints how to
 //   remove it, without adding to or replacing the original failure;
@@ -61,43 +62,58 @@ export async function createOwnedScratch({parent, prefix, label,
     if (!preserve) console.error(`${label}: remove it after inspection with: rm -rf -- ${
       quote(path)}`);
   };
-  process.once('exit', code => {
-    if (code !== 0) {
-      keep('test failed');
-      return;
+  let closed, closeFailure;
+  const close = () => {
+    if (closed) return closed;
+    if (closeFailure) throw closeFailure;
+    try {
+      if (!passed) throw new Error('the test did not confirm that its processes ended');
+      if (preserve || process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+        keep('test passed, preservation requested');
+        closed = Object.freeze({path, state: 'preserved'});
+      } else {
+        for (const name of digests()) {
+          const digest = createHash('sha256').update(readFileSync(join(path, name))).digest('hex');
+          console.log(`${label}: ${name} sha256:${digest}`);
+        }
+        const measured = volume(path);
+        rmSync(path, {recursive: true});
+        if (existsSync(path)) throw new Error('directory still present');
+        console.log(`${label}: removed ${path} (${measured.files} files, ${
+          megabytes(measured.bytes)} before removal)`);
+        closed = Object.freeze({path, state: 'removed'});
+      }
+      process.removeListener('exit', onExit);
+      return closed;
+    } catch (error) {
+      closeFailure = error;
+      keep('cleanup not confirmed');
+      throw error;
     }
+  };
+  const onExit = code => {
+    if (closed) return;
+    if (code !== 0) {keep('test failed'); return;}
     if (!passed) {
       keep('the test did not confirm that its processes ended');
       process.exitCode = UNCONFIRMED_EXIT;
       return;
     }
-    if (preserve || process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
-      keep('test passed, preservation requested');
-      return;
-    }
-    let measured;
-    try {
-      for (const name of digests()) {
-        const digest = createHash('sha256').update(readFileSync(join(path,
-          name))).digest('hex');
-        console.log(`${label}: ${name} sha256:${digest}`);
-      }
-      measured = volume(path);
-      rmSync(path, {recursive: true});
-      if (existsSync(path)) throw new Error('directory still present');
-    } catch (error) {
+    try {close();}
+    catch (error) {
       console.error(`${label}: test passed; cleanup failed: ${error.message}`);
       keep('cleanup failed');
       process.exitCode = CLEANUP_FAILED_EXIT;
-      return;
     }
-    console.log(`${label}: removed ${path} (${measured.files} files, ${
-      megabytes(measured.bytes)} before removal)`);
-  });
+  };
+  process.once('exit', onExit);
   return Object.freeze({
     path,
     // Call when the test passed and every process, Host and Store it
     // started in the directory has ended.
     passed() { passed = true; },
+    // Same original cleanup, available before the retained process exits.
+    // Only a confirmed terminal close is idempotent; failed cleanup never retries.
+    close,
   });
 }
