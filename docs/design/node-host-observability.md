@@ -134,6 +134,26 @@ Unavailable measurements stay unavailable; no exporter derives logical work or
 usage from spans. Duration selection controls optional metric instruments, not
 the truthful timestamps of the finite span being represented.
 
+The compute-and-task selection may also receive bounded read-only logical
+boundary metadata. `logical_boundary_observed` carries
+`actql.logical_step.key`, the canonical original Core `logical_step_key` JSON
+String, and `actql.logical_boundary.phase` (`before`, `settled`, or
+`output_emitted`). The adapter preserves that String; it does not parse,
+recanonicalize or derive a logical key from `actql.task.ordinal`. The physical
+task ordinal remains separate. Actual `NotProjected` produces
+`logical_boundary_unavailable` with
+`actql.logical_boundary.reason=not_projected`, without a logical key or invented
+Done state. Attribute exclusion cannot turn a partial key into an observed
+boundary; it suppresses that record instead.
+
+The supplier first reserves construction/retention through the same Request
+and Plan parent and checks current Run/Plan-read and egress authorization before
+and after reading retained originals. Selection, copied-shape admission, equal
+identities and record delivery do not provide those grants or backing. The
+existing event-record shape remains unchanged. This observation does not split
+a fused graph, retain rows, admit Debug/control/Sample or pause execution;
+unsupported fused boundaries stay explicitly unprojected.
+
 At the original Model acquired-evidence boundary, MoonBit may project a
 technical failure kind from the same returned Result. The JS bridge forwards
 that DATA with the already-read task, Unit and step through `dispatch_failed`;

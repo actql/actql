@@ -9,6 +9,60 @@ const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const turn = () => new Promise(resolve => setImmediate(resolve));
 
+const originalLogicalKey = '{"version":"actql-logical-step-key/0.1","compiled_plan_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","stage_ordinal":2,"occurrence":{"kind":"operation","operation_ordinal":3},"self_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}';
+
+test('logical boundary metadata preserves the original key separately from physical task ordinal', async () => {
+  const records = [], observer = installHostObservation(createHostObservationConnection({
+    include: ['compute'], correlation: {include: ['task']}, deliver: record => records.push(record),
+  }));
+  observer.logicalBoundary({task: 19}, {state: 'projected', keyWire: originalLogicalKey, phase: 'settled'});
+  await observer.close();
+  assert.equal(records.length, 1);
+  assert.equal(records[0].event, 'logical_boundary_observed');
+  assert.equal(records[0].attributes['actql.logical_step.key'], originalLogicalKey);
+  assert.equal(records[0].attributes['actql.logical_boundary.phase'], 'settled');
+  assert.equal(records[0].attributes['actql.task.ordinal'], 19);
+  assert.equal(records[0].attributes['actql.step.ordinal'], undefined);
+  assert.equal(records[0].attributes['actql.unit.ordinal'], undefined);
+});
+
+test('logical boundary metadata reports explicit unavailable and rejects fabricated completion or reserved-event bypass', async () => {
+  const records = [], observer = installHostObservation(createHostObservationConnection({
+    include: ['compute'], correlation: {include: ['task']}, deliver: record => records.push(record),
+  }));
+  observer.logicalBoundary({task: 0}, {state: 'not_projected', reason: 'not_projected'});
+  for (const boundary of [
+    {state: 'not_projected', reason: 'not_projected', keyWire: originalLogicalKey},
+    {state: 'not_projected', reason: 'done'},
+    {state: 'projected', phase: 'settled'},
+    {state: 'projected', keyWire: originalLogicalKey, phase: 'stopped'},
+    {state: 'projected', keyWire: originalLogicalKey, phase: 'settled', done: true},
+    {state: 'projected', get keyWire() {assert.fail('Do not invoke a metadata accessor');}, phase: 'settled'},
+  ]) observer.logicalBoundary({task: 0}, boundary);
+  observer.emit('compute', 'logical_boundary_observed', {task: 0, keyWire: originalLogicalKey});
+  await observer.close();
+  assert.equal(records.length, 1);
+  assert.equal(records[0].event, 'logical_boundary_unavailable');
+  assert.equal(records[0].attributes['actql.logical_boundary.reason'], 'not_projected');
+  assert.equal(records[0].attributes['actql.logical_step.key'], undefined);
+  assert.equal(records[0].attributes['actql.logical_boundary.phase'], undefined);
+});
+
+test('logical boundary metadata retains operation correlation attribute and record-size refusals', async () => {
+  for (const selected of ['operation', 'correlation', 'key-excluded', 'size']) {
+    const records = [], observer = installHostObservation(createHostObservationConnection({
+      include: selected === 'operation' ? ['run'] : ['compute'],
+      correlation: selected === 'correlation' ? false : {include: ['task']},
+      attributes: {exclude: selected === 'key-excluded' ? ['actql.logical_step.key'] : []},
+      deliver: record => records.push(record),
+    }));
+    observer.logicalBoundary({task: 0}, {state: 'projected',
+      keyWire: selected === 'size' ? 'x'.repeat(4097) : originalLogicalKey, phase: 'before'});
+    await observer.close();
+    assert.deepEqual(records, []);
+  }
+});
+
 test('dispatch failure observation forwards typed primary DATA and original occurrence without private bodies', async () => {
   const records = [], failure = Object.freeze({code: 'MoonBitHostFailure',
     phase: 'original_model_acquired_effect_evidence', kind: 'invocation.foreign_captured_input',

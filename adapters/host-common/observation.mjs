@@ -3,6 +3,7 @@
 // event-loop turn and can overlap an active public operation.
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {randomUUID, createHash} from 'node:crypto';
+import {types as nodeTypes} from 'node:util';
 import {ledgerLimitsFields, ledgerUsageFields} from './ledger-contract.generated.mjs';
 
 export const observationVersion = 'actql-observation/0.1';
@@ -30,7 +31,9 @@ const attributeNames = ['actql.operation', 'actql.event', 'actql.observation.ver
   'actql.model.attempt_cid', 'http.request.method', 'http.route',
   'http.response.status_code', 'error.type', 'service.name', 'service.version',
   'deployment.environment.name', 'actql.failure.phase', 'actql.failure.kind',
-  'actql.unit.ordinal', 'actql.step.ordinal'];
+  'actql.unit.ordinal', 'actql.step.ordinal', 'actql.logical_step.key',
+  'actql.logical_boundary.phase', 'actql.logical_boundary.reason'];
+const logicalBoundaryMarker = Symbol('installed logical observation shape');
 const mandatoryAttributes = ['actql.operation', 'actql.event', 'actql.observation.version'];
 // These are presentation-only public spellings. Field membership, primitive
 // width and private snapshot order belong to the actual Core declaration.
@@ -188,6 +191,7 @@ const events = Object.freeze({
 const recordEvents = new Set(['segment_started', 'segment_ended', 'check_completed',
   'owner_observed', 'cancellation_requested', 'task_started', 'task_completed',
   'transport_completed', 'acquisition_interval', 'resources_observed', 'selected_rows_observed',
+  'logical_boundary_observed', 'logical_boundary_unavailable',
   ...Object.values(events).map(value => value[1])]);
 
 export function validObservationContext(value) {
@@ -396,6 +400,12 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     try {
       if (closed || !config.allowed.has(operation)) return;
       if (!recordEvents.has(event)) { drop('limited'); return; }
+      const logical = event === 'logical_boundary_observed' || event === 'logical_boundary_unavailable';
+      if (logical && (operation !== 'compute' || !config.correlations.has('task') ||
+          options.logicalBoundaryMarker !== logicalBoundaryMarker)) { drop('limited'); return; }
+      if (logical && Object.keys(options.logicalAttributes).some(key => config.attributeExclusions.has(key))) {
+        drop('requiredAttributeExcluded'); return;
+      }
       if (event === 'selected_rows_observed' && !selectedRowSnapshots.has(options.selectedRows)) {
         drop('rowsUnavailable'); return;
       }
@@ -438,6 +448,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       if (outcomes.has(facts.physicalStop)) attributes['actql.physical_stop'] = facts.physicalStop;
       if (managedResourceSnapshots.has(options.resources)) Object.assign(attributes, options.resources);
       if (selectedRowSnapshots.has(options.selectedRows)) Object.assign(attributes, options.selectedRows);
+      if (logical) Object.assign(attributes, options.logicalAttributes);
       const record = {version: observationVersion, operation, event,
         sequence: sequence++, observedAt: Date.now(),
         monotonicAt: performance.now(), attributes,
@@ -642,6 +653,40 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     }); } finally {context.ingressSettled = true; finishContext(context);}
   };
   const projection = Object.freeze({run, accepted, emit, retainOperation, captureCurrentOperation,
+    canObserveLogicalBoundaries: () => !closed && config.allowed.has('compute') && config.correlations.has('task'),
+    // The Boolean reports copied-shape admission only, never delivery,
+    // authorization, Resource return or physical cleanup acknowledgement.
+    logicalBoundary(detail, boundary) {
+      if (closed || !config.allowed.has('compute') || !config.correlations.has('task')) return false;
+      if (boundary === null || typeof boundary !== 'object' || nodeTypes.isProxy(boundary) ||
+          ![Object.prototype, null].includes(Object.getPrototypeOf(boundary))) {drop('limited'); return false;}
+      // Fixed DATA fields only. No accessor, parser, recanonicalization or
+      // physical-task-to-logical-identity inference is performed here.
+      const own = name => {
+        const property = Object.getOwnPropertyDescriptor(boundary, name);
+        return property && Object.hasOwn(property, 'value') ? property.value : undefined;
+      };
+      let count = 0;
+      for (const name in boundary) if (Object.hasOwn(boundary, name) && ++count > 3) {drop('limited'); return false;}
+      const state = own('state');
+      let event, logicalAttributes;
+      if (state === 'projected' && count === 3 && typeof own('keyWire') === 'string' &&
+          ['before', 'settled', 'output_emitted'].includes(own('phase'))) {
+        const wire = own('keyWire');
+        // Admit the complete borrowed string before any record/string copy.
+        // Its original canonical meaning and same-Run/permission/backing checks
+        // belong to the Core/Host read supplier, never this shape marker.
+        if (wire.length === 0 || wire.length > config.selected.recordBytes ||
+            Buffer.byteLength(wire) > config.selected.recordBytes) {drop('limited'); return false;}
+        event = 'logical_boundary_observed';
+        logicalAttributes = {'actql.logical_step.key': wire, 'actql.logical_boundary.phase': own('phase')};
+      } else if (state === 'not_projected' && count === 2 && own('reason') === 'not_projected') {
+        event = 'logical_boundary_unavailable';
+        logicalAttributes = {'actql.logical_boundary.reason': 'not_projected'};
+      } else {drop('limited'); return false;}
+      emit('compute', event, detail, {logicalBoundaryMarker, logicalAttributes});
+      return true;
+    },
     // Identity changes only at actual application callback boundaries. This
     // copied state is not authorization or an observation-delivery ACK.
     applicationCallbackState: () => callbackState,
