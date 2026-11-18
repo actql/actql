@@ -29715,7 +29715,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "cc0753e07ce66de5d241f04d2ec39c1b0f801743df8cfeb07f5b7bd0f85d7f3a",
+      "sha256": "3e51e7dc8979b315516e5afe225b51bd1101beb50a0433a69d046dc1246a0303",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -30145,7 +30145,9 @@
             "authorityScopeCid",
             "namespaceId",
             "storeAuthorityCid",
-            "now"
+            "now",
+            "managedPublication",
+            "assertCurrent"
           ],
           "async": false
         },
@@ -30295,7 +30297,9 @@
             "storeAuthorityCid",
             "now",
             "sourceEvidence",
-            "outputLimits"
+            "outputLimits",
+            "managedPublication",
+            "assertCurrent"
           ],
           "async": false
         },

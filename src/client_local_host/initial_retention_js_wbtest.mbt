@@ -1,6 +1,115 @@
 ///|
+test "successor terminal Serialization retention uses its exact retained compilation Content original" {
+  let (parent, input, prepared, selected, request) = request_serialization_preparation_fixture()
+  complete_request_serialization_preparation(parent, input, selected).unwrap()
+  let run = begin_request_content_managed_run(parent, request).unwrap()
+  assert_true(
+    run.content is SerializationContent(original) &&
+    physical_equal(original, selected),
+  )
+  assert_true(run.preparation is Some(PreparationContentManaged(_, _)))
+  assert_true(
+    managed_run_publication_body(run, prepared) is Err(ForeignOriginal),
+  )
+  let holder = initial_program_retention_body(run, prepared).unwrap()
+  let value = issue_program_initial_retention(
+    run,
+    prepared,
+    request,
+    "sha256:" + "1".repeat(64),
+    "sha256:" + "5".repeat(64),
+    "2026-11-18T01:00:00.000Z",
+    "2026-11-18T02:00:00.000Z",
+    "2026-11-25T00:00:00.000Z",
+    "sha256:" + "2".repeat(64),
+    "2026-11-25T00:00:00.000Z",
+    "sha256:" + "3".repeat(64),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  check_original_retention_test_result(value, "sha256:" + "5".repeat(64))
+  assert_true(
+    physical_equal(
+      initial_program_retention_body(run, prepared).unwrap(),
+      holder,
+    ),
+  )
+  assert_true(
+    run.content is SerializationContent(original) &&
+    physical_equal(original, selected),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
 
 ///|
+test "successor Content retention keeps its genuine Content variant and original body holder" {
+  let (parent, input, prepared, selected, request) = request_content_fixture()
+  complete_request_content_preparation(parent, input, request, selected).unwrap()
+  let run = begin_request_content_managed_run(parent, request).unwrap()
+  assert_true(run.preparation is Some(PreparationContentManaged(_, _)))
+  assert_true(
+    managed_run_publication_body(run, prepared) is Err(ForeignOriginal),
+  )
+  let holder = initial_program_retention_body(run, prepared).unwrap()
+  let value = issue_program_initial_retention(
+    run,
+    prepared,
+    request,
+    "sha256:" + "1".repeat(64),
+    "sha256:" + "5".repeat(64),
+    "2026-11-18T01:00:00.000Z",
+    "2026-11-18T02:00:00.000Z",
+    "2026-11-25T00:00:00.000Z",
+    "sha256:" + "2".repeat(64),
+    "2026-11-25T00:00:00.000Z",
+    "sha256:" + "3".repeat(64),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  check_original_retention_test_result(value, "sha256:" + "5".repeat(64))
+  assert_true(
+    physical_equal(
+      initial_program_retention_body(run, prepared).unwrap(),
+      holder,
+    ),
+  )
+  assert_true(run.preparation is Some(PreparationContentManaged(_, _)))
+  assert_true(
+    managed_run_publication_body(run, prepared) is Err(ForeignOriginal),
+  )
+  let content = run.content
+  run.content = NoContent
+  let held = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    issue_program_initial_retention(
+      run,
+      prepared,
+      request,
+      "sha256:" + "1".repeat(64),
+      "sha256:" + "5".repeat(64),
+      "2026-11-18T01:00:00.000Z",
+      "2026-11-18T02:00:00.000Z",
+      "2026-11-25T00:00:00.000Z",
+      "sha256:" + "2".repeat(64),
+      "2026-11-25T00:00:00.000Z",
+      "sha256:" + "3".repeat(64),
+      10000,
+      1000,
+      32,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), held)
+  run.content = content
+  retire_installed_managed_run(run).unwrap()
+  assert_true(
+    initial_program_retention_body(run, prepared) is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
 
 ///|
 test "successor acquired Source retention borrows its actual captured Program body beside the live Source child" {

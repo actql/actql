@@ -337,7 +337,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       }
       publication = serializationTaskPublicationPlan({moon, control: publications,
         preparedProgram, admitted: plan, generation, authorityScopeCid,
-        namespaceId, storeAuthorityCid, now,
+        namespaceId, storeAuthorityCid, now, managedPublication: managed, assertCurrent: assertRunCurrent,
         sourceEvidence: acquiredContent === undefined ? [] :
           [acquiredContent.sourceEvidence, acquiredContent.keyedSourceEvidence].filter(Boolean)});
       const execution = serializationPublicationExecution({moon, core, compiled: plan.compiled,

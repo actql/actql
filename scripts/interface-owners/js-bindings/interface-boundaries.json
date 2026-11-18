@@ -75671,7 +75671,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4ba3d644206ddf5337fe1029b9b2376c89360ab3b0c338c4ec9f06135207dd2b",
+      "sha256": "056e752938421ec678451114b205ed09f11f775e9b0ce740bb4cf8dd831769f9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -75714,7 +75714,8 @@
             "fragment",
             "ordered",
             "computeConfigurations",
-            "originalPreparation"
+            "originalPreparation",
+            "managedPublication"
           ],
           "async": true
         },
@@ -75790,6 +75791,11 @@
           "parameters": [
             "child"
           ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -76057,6 +76063,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -76131,6 +76141,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -76175,6 +76189,10 @@
               {
                 "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
                 "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -76227,6 +76245,10 @@
               {
                 "path": "src/run_publication_host/client_model_read_preparation.mbt",
                 "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
@@ -77051,6 +77073,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "runInstalledComposedInfers/init:assertCurrent/init:assertCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -77074,7 +77164,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7ea91a69c321aa7a14620d8e28deaf183d566a158238d9465a0cf982561ad6a8",
+      "sha256": "88c8264dc0fc2c69cfb4b1ee51283e7894e998c087da021a2a5262782d65d9d9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -77376,6 +77466,11 @@
         },
         {
           "name": "installNodeInferRun/run/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/run/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -77692,6 +77787,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -77766,6 +77865,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -77814,6 +77917,10 @@
               {
                 "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
                 "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -77866,6 +77973,10 @@
               {
                 "path": "src/run_publication_host/client_model_read_preparation.mbt",
                 "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
@@ -78157,6 +78268,74 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "configured source-free Model uses its original Run and defers its one read until the component consumes it"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeInferRun/run/run/run/init:assertCurrent/init:assertCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ]
           }
@@ -100569,7 +100748,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "cc0753e07ce66de5d241f04d2ec39c1b0f801743df8cfeb07f5b7bd0f85d7f3a",
+      "sha256": "3e51e7dc8979b315516e5afe225b51bd1101beb50a0433a69d046dc1246a0303",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -101001,7 +101180,9 @@
             "authorityScopeCid",
             "namespaceId",
             "storeAuthorityCid",
-            "now"
+            "now",
+            "managedPublication",
+            "assertCurrent"
           ],
           "async": false
         },
@@ -101151,7 +101332,9 @@
             "storeAuthorityCid",
             "now",
             "sourceEvidence",
-            "outputLimits"
+            "outputLimits",
+            "managedPublication",
+            "assertCurrent"
           ],
           "async": false
         },

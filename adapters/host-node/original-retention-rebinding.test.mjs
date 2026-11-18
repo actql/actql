@@ -2,6 +2,58 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan} from './local-values-plan.mjs';
 import {runtimePair} from '../host-common/compiler-binding.generated.mjs';
+test('actual terminal Content and INFER publication borrow the same managed record and preserve current after growth', async () => {
+  const {serializationTaskPublicationPlan, inferTaskPublicationPlan} = await import('./local-values-plan.mjs');
+  for (const kind of ['serialization', 'infer']) {
+    const prepared = {}, request = {}, owner = {}, compiled = {}, binding = {}, retention = {}, events = [];
+    let mutate, lost, releases = 0;
+    const currentFailure = Error('OriginalRuntimeRetiredDuringRetention');
+    const moon = {clientProgramDefinitionCid: () => cid('3'), clientProgramResultCount: () => 1,
+      clientProgramReleaseInferInvocationBinding(actual) {assert.strictEqual(actual, binding); releases++; return true;}};
+    const managed = {runtime: moon, prepared, request, value: owner, closed: false};
+    const admitted = {kind, compiled, requestIdentity: request, admission: {}, compiledPlan: {identity: cid('4')},
+      runDefinition: {identity: cid('5')}, createdAt: '2026-11-19T00:00:00.000Z'};
+    const issued = {observation: {wire: JSON.stringify({data_policy_cid: cid('6'), captured_input_artifact_cids: []})},
+      invocation: {}, binding};
+    const control = {
+      checkClientCompiledRunOwner(value, program) {assert.strictEqual(value, compiled); assert.strictEqual(program, prepared);},
+      issueCheckedClientSerializationInvocation: () => issued,
+      checkedClientSerializationRecoveryBindings: () => [{name: 'content_input_artifact', wire: '{"logical_relation_cid":"original-input"}'}],
+      issueProgramInitialRetention(value, program, originalRequest, policy) {
+        assert.strictEqual(value, owner); assert.strictEqual(program, prepared); assert.strictEqual(originalRequest, request);
+        assert.equal(policy, cid('6')); events.push('grow'); mutate?.(); return retention;
+      },
+      seal() {assert.fail('selected managed publication cannot use JS retention assembly');},
+      preparedClientNormalizationEvidence: () => ({}), preparedClientAuthoringContextEvidence: () => ({}),
+      compiledRunResultTransformation: () => undefined,
+    };
+    const options = {moon, control, preparedProgram: prepared, admitted, generation: {},
+      operation: {bindIssuedInvocation: () => issued}, issuance: {}, modelEvidence: [], managedPublication: managed,
+      assertCurrent() {events.push('current'); if (lost) throw currentFailure;},
+      now: () => '2026-11-19T00:00:00.000Z'};
+    const invoke = changed => (kind === 'serialization' ? serializationTaskPublicationPlan : inferTaskPublicationPlan)({...options, ...changed});
+    const value = invoke();
+    assert.strictEqual((kind === 'infer' ? value.plan : value).results[0].retention, retention);
+    assert.deepEqual(events, ['current', 'grow', 'current']);
+    events.length = 0; mutate = () => {managed.value = {};};
+    assert.throws(() => invoke(), /OriginalProgramRetentionOwnerRequired/);
+    assert.deepEqual(events, ['current', 'grow']);
+    managed.value = owner; events.length = 0; mutate = () => {lost = true;};
+    assert.throws(() => invoke(), error => error === currentFailure);
+    assert.deepEqual(events, ['current', 'grow', 'current']);
+    lost = false; events.length = 0; mutate = () => {managed.failure = undefined;};
+    let caught = false;
+    try { invoke(); } catch (cause) {caught = true; assert.strictEqual(cause, undefined);}
+    assert.equal(caught, true); assert.deepEqual(events, ['current', 'grow']);
+    delete managed.failure; mutate = undefined; events.length = 0;
+    managed.closed = true;
+    assert.throws(() => invoke(), /OriginalProgramRetentionOwnerRequired/);
+    assert.deepEqual(events, []); managed.closed = false;
+    assert.throws(() => invoke({assertCurrent: undefined}), /OriginalProgramRetentionCurrentRequired/);
+    assert.deepEqual(events, []);
+    if (kind === 'infer') assert.equal(releases, 3, 'each failed original binding follows its existing release path');
+  }
+});
 test('actual Values and Tasks initial-retention callers forward only their same managed original', async () => {
   const {sourceFreeValuesPlan, sourceFreeTaskPlan, localOutputLimits} = await import('./local-values-plan.mjs');
   const {resultOutputLimitFields} = await import('../host-common/result-output-limits.mjs');

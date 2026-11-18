@@ -22618,7 +22618,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "4ba3d644206ddf5337fe1029b9b2376c89360ab3b0c338c4ec9f06135207dd2b",
+      "sha256": "056e752938421ec678451114b205ed09f11f775e9b0ce740bb4cf8dd831769f9",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -22660,7 +22660,8 @@
             "fragment",
             "ordered",
             "computeConfigurations",
-            "originalPreparation"
+            "originalPreparation",
+            "managedPublication"
           ],
           "async": true
         },
@@ -22736,6 +22737,11 @@
           "parameters": [
             "child"
           ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -23009,6 +23015,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -23083,6 +23093,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -23127,6 +23141,10 @@
               {
                 "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
                 "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -23179,6 +23197,10 @@
               {
                 "path": "src/run_publication_host/client_model_read_preparation.mbt",
                 "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
@@ -24027,6 +24049,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "runInstalledComposedInfers/init:assertCurrent/init:assertCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -24049,7 +24139,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "7ea91a69c321aa7a14620d8e28deaf183d566a158238d9465a0cf982561ad6a8",
+      "sha256": "88c8264dc0fc2c69cfb4b1ee51283e7894e998c087da021a2a5262782d65d9d9",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -24350,6 +24440,11 @@
         },
         {
           "name": "installNodeInferRun/run/run/run",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/run/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -24672,6 +24767,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "inputsOutputs": [
@@ -24746,6 +24845,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "synchronization": [
@@ -24794,6 +24897,10 @@
               {
                 "path": "src/client_infer_host/original_retained_input_129_wbtest.mbt",
                 "anchor": "materialization witness refuses Ref0 tinyRead foreign completion and unquoted binding"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "cancellation": [
@@ -24846,6 +24953,10 @@
               {
                 "path": "src/run_publication_host/client_model_read_preparation.mbt",
                 "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ],
             "extension": [
@@ -25145,6 +25256,74 @@
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
                 "anchor": "ordinary published Model captured caller forwards its same required input body read"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeInferRun/run/run/run/init:assertCurrent/init:assertCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
               }
             ]
           }
@@ -107500,8 +107679,12 @@
     },
     {
       "module": "src/client_local_host/initial_retention.mbt",
-      "sha256": "d46b513b5715f3bfa38ee051ab78bb9e43a2ff6b11649a5a4ffce7cebe2b8050",
+      "sha256": "428b345973602013f7692babe22f732c2344d2b03fd0ba51af06ca6ad7ad6daa",
       "operations": [
+        {
+          "name": "initial_program_retention_body",
+          "declaration": "initial_program_retention_body ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , ClientClosedValuesPreparationIssue , ]"
+        },
         {
           "name": "initial_retention_control_capacity",
           "declaration": "initial_retention_control_capacity ( ) - > @ execution . ExecutionCapacity ?"
@@ -107532,6 +107715,74 @@
             "issue_installed_effect_initial_retention",
             "issue_program_initial_retention",
             "reserve_program_retention_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "initial_program_retention_body"
           ],
           "exports": [],
           "attributes": {

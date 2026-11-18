@@ -1,4 +1,46 @@
 ///|
+// Retention alone may borrow either genuine adopted Program constructor.
+// Other publication/snapshot callers keep their existing PureManaged-only
+// guard. A Content owner is never cast to PureManaged or selected by labels.
+fn initial_program_retention_body(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @resources.PreparationBodyBorrow[@publication_host.PreparedClientProgram],
+  ClientClosedValuesPreparationIssue,
+] {
+  if value.preparation is Some(PureManaged(_, _)) {
+    return managed_run_publication_body(value, prepared)
+  }
+  guard value.original is Some(original) &&
+    physical_equal(original, value) &&
+    value.ledger is Some(_) &&
+    value.preparation is Some(PreparationContentManaged(admission, actual)) &&
+    physical_equal(actual, prepared) &&
+    value.preparation_retirement is Some(PurePreparation(custody)) &&
+    physical_equal(custody.admission, admission) &&
+    custody.holder is Some(holder) &&
+    !@resources.preparation_body_retirement_started(holder) &&
+    @resources.preparation_body_borrow_value(holder) is Some(body) &&
+    physical_equal(body, prepared) else {
+    return Err(ForeignOriginal)
+  }
+  let matching = match value.content {
+    SerializationContent(selected) =>
+      physical_equal(selected.prepared, prepared) &&
+      physical_equal(selected.request, value.request)
+    // Keyed Content's original Request was checked by its fixed adoption;
+    // this selected type stores no second Request field to reconstruct.
+    KeyedContent(selected, _) => physical_equal(selected.prepared, prepared)
+    NoContent => false
+  }
+  if !matching {
+    return Err(ForeignOriginal)
+  }
+  Ok(holder)
+}
+
+///|
 // Initial emitter has no field vector. Geometry H1/W9, Some/Ok H2/R2/W2,
 // closed failure H3/R3/W3, one quote tuple+array H3/R5/W2, contract and
 // wire-usage carriers H3/R7/W4, exported view/map entries H2/R7, and eight
@@ -37,7 +79,7 @@ fn reserve_program_retention_capacity(
   prepared : @publication_host.PreparedClientProgram,
   capacity : @execution.ExecutionCapacity,
 ) -> Result[Unit, ClientClosedValuesPreparationIssue] {
-  let holder = match managed_run_publication_body(owner, prepared) {
+  let holder = match initial_program_retention_body(owner, prepared) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -70,7 +112,7 @@ fn reserve_program_retention_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard managed_run_publication_body(owner, prepared) is Ok(actual) &&
+  guard initial_program_retention_body(owner, prepared) is Ok(actual) &&
     physical_equal(actual, holder) else {
     return Err(ForeignOriginal)
   }
@@ -78,7 +120,7 @@ fn reserve_program_retention_capacity(
 }
 
 ///|
-/// Initial retention DATA on the SAME PureManaged Program body. No clock/profile,
+/// Initial retention DATA on the SAME adopted Program body. No clock/profile,
 /// replacement admission, new owner or custody extension is selected here.
 pub fn issue_program_initial_retention(
   owner : ClientInstalledManagedRun,
@@ -105,7 +147,7 @@ pub fn issue_program_initial_retention(
   guard physical_equal(owner.request, request) else {
     return Err(ForeignOriginal)
   }
-  let holder = match managed_run_publication_body(owner, prepared) {
+  let holder = match initial_program_retention_body(owner, prepared) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
@@ -148,7 +190,7 @@ pub fn issue_program_initial_retention(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard managed_run_publication_body(owner, prepared) is Ok(current) &&
+  guard initial_program_retention_body(owner, prepared) is Ok(current) &&
     physical_equal(current, holder) else {
     return Err(ForeignOriginal)
   }
@@ -157,7 +199,7 @@ pub fn issue_program_initial_retention(
     extension_ceiling_at, metadata_retention_policy_cid, metadata_delete_by, clock_contract_cid,
     max_bytes, max_nodes, max_depth,
   )
-  guard managed_run_publication_body(owner, prepared) is Ok(current) &&
+  guard initial_program_retention_body(owner, prepared) is Ok(current) &&
     physical_equal(current, holder) else {
     return Err(ForeignOriginal)
   }

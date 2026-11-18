@@ -216,6 +216,37 @@ function issueLocalResultRetention(control, dataPolicyCid, selection) {
   }), limits);
 }
 
+// The Host already owns this mutable managed record. Borrow its current
+// original fields only at the terminal publication call, so retirement can
+// sever heavy aliases in the existing record. This is not another registry,
+// Model publication purpose, preparation or retained owner.
+function managedProgramPublicationCurrent(moon, prepared, admitted, managed, owner, request) {
+  if (managed === null || typeof managed !== 'object') throw new TypeError('OriginalProgramRetentionOwnerRequired');
+  if (Object.hasOwn(managed, 'failure')) throw managed.failure;
+  if (owner === undefined || request === undefined || managed.value !== owner || managed.request !== request ||
+      managed.runtime !== moon || managed.prepared !== prepared || managed.closed ||
+      managed.retiringContent || managed.retiringModel ||
+      admitted.requestIdentity !== undefined && admitted.requestIdentity !== request) {
+    throw new TypeError('OriginalProgramRetentionOwnerRequired');
+  }
+}
+
+function managedProgramInitialRetention(moon, control, prepared, admitted, managed, policy, now, current) {
+  const owner = managed?.value, request = managed?.request;
+  managedProgramPublicationCurrent(moon, prepared, admitted, managed, owner, request);
+  if (typeof current !== 'function') throw new TypeError('OriginalProgramRetentionCurrentRequired');
+  current();
+  managedProgramPublicationCurrent(moon, prepared, admitted, managed, owner, request);
+  const retention = control.issueProgramInitialRetention(owner, prepared, request, policy,
+    localRetentionTimes(now), retentionDependencies, limits);
+  // Callback-free failure/retirement guards precede any further current hook.
+  // A retired record must not touch its old runtime or hide a primary cause.
+  managedProgramPublicationCurrent(moon, prepared, admitted, managed, owner, request);
+  current();
+  managedProgramPublicationCurrent(moon, prepared, admitted, managed, owner, request);
+  return retention;
+}
+
 // Keep the retained input policy available to Effect evidence issuance
 // without extending the closed publication-plan JS bridge used by ordinary Runs.
 function buildLocalPublicationPlan({control, admission, runDefinition, invocation,
@@ -1086,7 +1117,12 @@ export function selectInstalledSerializationGraph(options, component = false) {
 // typed Content proofs. No caller-composed observation or second Run is used.
 export function serializationTaskPublicationPlan({moon, control, preparedProgram,
   admitted, generation, authorityScopeCid, namespaceId, storeAuthorityCid, now,
-  sourceEvidence = [], outputLimits = localOutputLimits}) {
+  sourceEvidence = [], outputLimits = localOutputLimits, managedPublication, assertCurrent}) {
+  if (managedPublication !== undefined) {
+    managedProgramPublicationCurrent(moon, preparedProgram, admitted, managedPublication,
+      managedPublication.value, managedPublication.request);
+    if (typeof assertCurrent !== 'function') throw new TypeError('OriginalProgramRetentionCurrentRequired');
+  }
   control.checkClientCompiledRunOwner(admitted.compiled, preparedProgram);
   if (admitted.kind !== 'serialization') {
     throw new TypeError('InvalidContentPublicationAdmission');
@@ -1098,7 +1134,10 @@ export function serializationTaskPublicationPlan({moon, control, preparedProgram
   const input = bindings.find(binding => binding.name === 'content_input_artifact');
   if (input === undefined) throw new TypeError('ContentPublicationInputMissing');
   const observation = JSON.parse(issued.observation.wire);
-  const plan = localPublicationPlan({control, admission: admitted.admission,
+  const originalRetention = managedPublication === undefined ? undefined :
+    managedProgramInitialRetention(moon, control, preparedProgram, admitted, managedPublication,
+      observation.data_policy_cid, now, assertCurrent);
+  const plan = localPublicationPlan({control, originalRetention, admission: admitted.admission,
     runDefinition: admitted.runDefinition, invocation: issued.invocation,
     observation: issued.observation, compiledPlanCid: admitted.compiledPlan.identity,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
@@ -1118,7 +1157,12 @@ export function serializationTaskPublicationPlan({moon, control, preparedProgram
 // caller owns the returned binding until all Store users have settled.
 export function inferTaskPublicationPlan({moon, control, preparedProgram,
   admitted, operation, issuance, modelEvidence, sourceEvidence = [], authorityScopeCid, namespaceId,
-  storeAuthorityCid, now}) {
+  storeAuthorityCid, now, managedPublication, assertCurrent}) {
+  if (managedPublication !== undefined) {
+    managedProgramPublicationCurrent(moon, preparedProgram, admitted, managedPublication,
+      managedPublication.value, managedPublication.request);
+    if (typeof assertCurrent !== 'function') throw new TypeError('OriginalProgramRetentionCurrentRequired');
+  }
   control.checkClientCompiledRunOwner(admitted.compiled, preparedProgram);
   if (admitted.kind !== 'infer' || !Array.isArray(modelEvidence)) {
     throw new TypeError('InvalidInferPublicationAdmission');
@@ -1128,7 +1172,10 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
     issued: issuance});
   try {
     const observation = JSON.parse(issued.observation.wire);
-    const plan = localPublicationPlan({control,
+    const originalRetention = managedPublication === undefined ? undefined :
+      managedProgramInitialRetention(moon, control, preparedProgram, admitted, managedPublication,
+        observation.data_policy_cid, now, assertCurrent);
+    const plan = localPublicationPlan({control, originalRetention,
       admission: admitted.admission, runDefinition: admitted.runDefinition,
       invocation: issued.invocation, observation: issued.observation,
       compiledPlanCid: admitted.compiledPlan.identity,

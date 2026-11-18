@@ -4197,10 +4197,34 @@ checks, so a current callback cannot invalidate an earlier Source check
 without the original validator refusing. Live evidence is passed by original
 reference, without another wire admission. The original Source child remains
 owned until its own cleanup; publication does not acknowledge or retire it.
-Content/INFER staged-to-live Program ownership is
-a separate connection; its complete existing path is retained. The already
-Common keyed lookup reservations and the distinct Wasm 24-hour profile are
-unchanged.
+Terminal Content retains its actual `PreparationContentManaged` variant.
+Only the retention-specific body reader accepts that fixed constructor and
+its same admission/body custody; the existing PureManaged-only snapshot and
+publication reader is unchanged. Serialization checks its exact selected
+Prepared/Request. Keyed Content relies on its original Request adoption and
+same selected Prepared, not an invented Request field.
+
+Fresh configured managed INFER passes the existing mutable Host record into
+terminal publication rather than copying its raw Run into another owner. Every actual
+component keeps its original Scope/current checks around the new grow.
+Same-token byte-only growth is permitted for an already handed-off Read;
+initial snapshots remain exact, and the original body must still be in Run
+with a live borrow and no active work except its returned PublicationProof.
+OriginalModelPublicationCapacity children keep their own purpose and funding.
+Fixed terminal argument records use existing Host overhead; body payload and
+codec overlap still require the real constructor's reservation.
+
+Failure presence, including a thrown `undefined`, and closed/retiring records
+refuse before invoking retained current callbacks. The same record's raw
+fields must remain exact before and after currentness and construction.
+Existing unmanaged/legacy and recovery paths remain separate. The Mock profile
+wrapper does not yet forward its underlying Host record/current predicate to
+this terminal entry; that connection is distinct from the configured path. A
+route holding only a Source Ledger cannot manufacture a managed Run or select
+this handoff.
+The already Common keyed lookup reservations and distinct Wasm 24-hour
+profile are unchanged. No new Model/Source grant or physical acknowledgement
+is supplied by the returned retention DATA.
 
 ## Retained evidence keeps exact bounded-writer facts
 

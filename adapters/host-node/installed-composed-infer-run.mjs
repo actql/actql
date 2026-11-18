@@ -20,7 +20,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   submission, existingModel, modelClaim, assertCurrent = () => {},
   modelController, inferEvidence, checkpoints, prepareAcquisition, prepareRetainedCaptureAcquisition, sourceAccessFor, sourceAdapterFor, namespaceId, authorityScopeCid,
   storeAuthorityCid, now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
-  originalPreparation}) {
+  originalPreparation, managedPublication}) {
   if (modelController === undefined) {
     throw new Error('InstalledComposedInferInputUnavailable');
   }
@@ -511,6 +511,20 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     throw new Error('InstalledComposedInferOriginalObservationUnavailable');
   }
   publication = inferTaskPublicationPlan({moon, control, preparedProgram, admitted: plan,
+    managedPublication,
+    assertCurrent() {
+      assertCurrent();
+      // Every actual component keeps its own Scope. Equal profile or Graph
+      // CIDs do not coalesce the original per-Task lifetime checks.
+      const count = originalComponents === undefined ? 1 : originalComponents.length;
+      for (let index = 0; index < count; index++) {
+        const original = originalComponents === undefined ? originalPreparation : originalComponents[index];
+        if (typeof original?.assertRuntimeCurrent !== 'function') throw new TypeError('InferTrustedRuntimeScopeUnavailable');
+        original.assertRuntimeCurrent();
+        if (!control.checkedClientInferOriginalReadScopeLive(original.compiled, original.runDefinition,
+            original.selection.graph, original.scope)) throw new TypeError('InferTrustedRuntimeScopeUnavailable');
+      }
+    },
     operation: children[0].operation, issuance,
     modelEvidence: children.flatMap(child => child.capture.modelEvidence()), sourceEvidence,
     authorityScopeCid, namespaceId, storeAuthorityCid, now});
