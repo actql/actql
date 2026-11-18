@@ -28,6 +28,7 @@ pub enum ClientLogicalTaskBoundaryProjection {
 
 ///|
 pub(all) enum ClientLogicalTaskBoundaryIssue {
+  NoCurrentBoundary
   ForeignOriginal
   StaleBoundary
   InvalidReadLimits
@@ -35,6 +36,55 @@ pub(all) enum ClientLogicalTaskBoundaryIssue {
   Encoding(@encode.EncodeFailure)
   Boundary(@strategy.CapturedTaskBoundaryIssue)
 } derive(Eq, Debug)
+
+///|
+/// Read the installed hook on this SAME Run, then transfer only an independent
+/// logical fork to the consumer. The temporary lower read has its own existing
+/// reservation and is returned here; a declined return stays on that Owner's
+/// cleanup list. This issues no read/control permission or physical backing.
+pub fn read_client_logical_task_boundary(
+  original : ClientStructuralExplanationOriginal,
+  compiled : ClientCompiledRun,
+  prepared : PreparedClientProgram,
+  run : @strategy.CapturedDAG,
+  phase : @strategy.CapturedTaskBoundaryPhase,
+  max_nodes : Int,
+) -> Result[ClientLogicalTaskBoundaryProjection, ClientLogicalTaskBoundaryIssue] {
+  if !explanation_original_matches(original, compiled, prepared) ||
+    !physical_equal(@strategy.captured_dag_graph(run), prepared.graph) {
+    return Err(ForeignOriginal)
+  }
+  if max_nodes <= 0 {
+    return Err(InvalidReadLimits)
+  }
+  guard @strategy.captured_task_boundary_hooks(run) is Some(hooks) else {
+    return Err(NoCurrentBoundary)
+  }
+  let observed = match
+    @strategy.read_captured_task_boundary(run, hooks, phase) {
+    Err(issue) => return Err(Boundary(issue))
+    Ok(None) => return Err(NoCurrentBoundary)
+    Ok(Some(value)) => value
+  }
+  let projected = bind_client_logical_task_boundary(
+    original, compiled, prepared, run, observed, max_nodes,
+  )
+  match @strategy.return_captured_task_boundary(observed) {
+    Ok(_) => projected
+    Err(issue) => {
+      // Do not leak the successfully issued higher context if returning this
+      // method's separate temporary read declined. Dispose it before its own
+      // lower token may settle; either pending token remains with the SAME Run.
+      if projected is Ok(Projected(value)) {
+        return_client_logical_task_boundary(value) |> ignore
+      }
+      match projected {
+        Err(original_issue) => Err(original_issue)
+        _ => Err(Boundary(issue))
+      }
+    }
+  }
+}
 
 ///|
 /// Only a separately owned selected operation, or a genuinely single-operation

@@ -80,3 +80,16 @@ let captured_boundary_logical_projection_bytes : Int64 = captured_boundary_read_
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
+
+///|
+// One observer's actual setup and simultaneous temporary base read plus owned
+// logical fork. This is sizing DATA for the existing parent, never a reserve,
+// child Ledger or claim that these constructors have physical backing.
+let logical_boundary_observation_bytes : Int64 = captured_boundary_setup_bytes +
+  captured_boundary_read_bytes +
+  captured_boundary_logical_projection_bytes
+
+///|
+pub fn captured_logical_observation_construction_bytes() -> Int64 {
+  logical_boundary_observation_bytes
+}

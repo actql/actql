@@ -4,6 +4,7 @@
 // packed ordinary Host or Journal/Store ACK acceptance fixture.
 fn original_explanation_capture_fixture(
   current? : () -> Bool = () => true,
+  text? : String = request_check_wire,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   ClientInstalledManagedRun,
@@ -11,7 +12,7 @@ fn original_explanation_capture_fixture(
   @publication_host.ClientCompiledRun,
   @publication.PublicationContract,
 ) raise {
-  let (parent, input, prepared) = request_program_body_fixture(current~)
+  let (parent, input, prepared) = request_program_body_fixture(current~, text~)
   prepare_request_program_module_body(
     parent,
     input,

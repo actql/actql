@@ -14,6 +14,7 @@ import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installTaskObservation} from '../host-common/task-observation.mjs';
+import {prepareInstalledLogicalObservation} from './logical-task-observation.mjs';
 import {bindClientSourceOperation} from './client-source-operation.mjs';
 import {ledgerUsageDiagnostic, ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observation.mjs';
@@ -271,11 +272,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, runContent, computeConfigurations = {},
-  observation, preparationCustody, beforePublication,
+  observation, preparationCustody, beforePublication, authorizeLogicalObservation,
   managedComputeRequired = false,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
+  const capturedRun = moon?.strategyHostRun;
   const diagnostic = diagnosticObserver(observed);
   const diagnosticErrorType = Error;
   const diagnosticStackFormatter = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace')?.value;
@@ -683,6 +685,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       unresolvedCleanup: false, sourceCapture: undefined};
     if (preparationLease !== undefined) {
       entry.retirePreparation = () => {
+        // A settled Run is not an observation-delivery ACK. The same original
+        // Request stays owned while any queue/callback still holds its loan.
+        if (entry.logicalObservation !== undefined) {
+          entry.logicalObservation.close();
+          entry.logicalObservation = undefined;
+        }
         // The complete retirement predicate has settled callbacks, physical
         // custody and acquisition release. No later drain needs these raw
         // aliases; discard them before the private owner returns its charge.
@@ -1017,6 +1025,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           if (typeof moon.clientProgramOpenInstalledManagedSourceFreeHost !== 'function') {
             throw new Error('InstalledManagedComputeHostUnavailable');
           }
+          if (!generatingContent && preparationLease !== undefined &&
+              typeof capturedRun === 'function' && typeof authorizeLogicalObservation === 'function') {
+            const logical = prepareInstalledLogicalObservation(moon, control,
+              held.managedRun, sourceFreePlanExecutionOwner(held.plan), held.plan.runDefinition, observation);
+            if (logical !== undefined) entry.logicalObservation = logical;
+          }
           // This opaque Run already owns the original operational Ledger.
           // Missing/foreign/parked originals cannot fall back to accounting.
           setup = checked(moon.clientProgramOpenInstalledManagedSourceFreeHost(
@@ -1034,6 +1048,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         // Retain before the reservation/fault boundary: cancellation can
         // arrive there before runPublished transfers execution custody.
         entry.pendingSetup = setup;
+        if (entry.logicalObservation !== undefined) {
+          entry.logicalObservation.attach(Reflect.apply(capturedRun, moon, [setup]),
+            accepted.ref, actual, operation => authorizeLogicalObservation(operation, connection));
+        }
       }
       // The resumed admission and physical start reservation are adjacent.
       if (gate !== undefined) {
@@ -1353,7 +1371,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           entry.cleanupOwner = owner;
           entry.pendingSetup = undefined;
         }, observation === undefined ? undefined : installTaskObservation(({event, task, durationMs}) =>
-          observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs})), entry.preparationHostBorrow,
+          observation.emit('compute', event, {ref: accepted.ref, task}, {durationMs}),
+          entry.logicalObservation === undefined ? undefined
+            : (phase, task) => entry.logicalObservation.project(phase, task)), entry.preparationHostBorrow,
         entry.preparationHostBorrow === undefined ? undefined : () => {
           if (typeof beforePublication !== 'function') throw new Error('PreparationPublicationUnavailable');
           return beforePublication(preparedProgram);

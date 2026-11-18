@@ -47,7 +47,7 @@ import {prepareCompletedEffectFreeRunPublication} from
   './run-publication-preflight.mjs';
 import {ExecutionAuthorizationError, missingAuthorizationGate} from
   './authorization-gate.mjs';
-import {projectTaskObservation} from './task-observation.mjs';
+import {projectTaskObservation, projectTaskLogicalObservation} from './task-observation.mjs';
 import {ledgerUsageSnapshotHasPendingResources} from './runtime-core.mjs';
 
 export class StrategyHostError extends Error {
@@ -870,6 +870,7 @@ export async function runInstalledStrategy({
       await authorizeActivation(siteCandidate.site, entry, index);
       // Activation has returned; no callback occurs inside its commit.
       projectTaskObservation(taskObservation, 'task_started', index);
+      projectTaskLogicalObservation(taskObservation, 'before', index);
       let plannerObserverMilliseconds;
       if (observeTaskStart) {
         const observationStarted = performance.now();
@@ -1100,6 +1101,7 @@ export async function runInstalledStrategy({
       }));
       projectTaskObservation(taskObservation, 'task_completed', index,
         completed.at(-1).taskElapsedMilliseconds);
+      projectTaskLogicalObservation(taskObservation, 'settled', index);
       if (observeCompletion) {
         const output = result?.completed ?? core.output(setup, index);
         if (output == null) throw new StrategyHostError('MissingCompletedOutput');

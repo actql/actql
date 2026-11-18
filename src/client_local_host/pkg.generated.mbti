@@ -91,6 +91,8 @@ pub fn advance_program_validation(ClientProgramValidation, Int) -> Result[(Bool,
 
 pub fn[I] advance_request_result_read_wire_row(ClientRequestPreparation[I], I, Int) -> Result[(Bool, Int, Int), ClientRequestPreparationIssue]
 
+pub fn attach_installed_logical_observation(ClientLogicalObservation, @physical_strategy_host.CapturedDAG) -> Result[Unit, ClientLogicalObservationIssue]
+
 pub fn attach_installed_source_read_acquisition(ClientInstalledSourceRead, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, Int, Int) -> Result[Unit, ClientInstalledSourceReadIssue]
 
 pub fn[I] begin_backed_host_initialization_preparation(@physical_resources.BackedInitializationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientHostInitializationPreparation[I], ClientHostInitializationIssue]
@@ -144,6 +146,8 @@ pub fn begin_installed_effect_operation_member_receipt_construction(ClientInstal
 pub fn begin_installed_effect_operation_receipt_codec(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, String, Int, Int, Bool) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn begin_installed_effect_operation_request_projection(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, Int, Int, Int) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn begin_installed_logical_observation(ClientLogicalObservation, @physical_strategy_host.CapturedTaskBoundaryPhase) -> Result[ClientLogicalObservationRecord, ClientLogicalObservationIssue]
 
 pub fn begin_installed_managed_capture_read(ClientInstalledManagedRun, Int) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue]
 
@@ -256,6 +260,8 @@ pub fn cancel_program_capture(ClientProgramCapture) -> Unit
 pub fn cancel_program_snapshot(ClientProgramSnapshot) -> Unit
 
 pub fn cancel_program_validation(ClientProgramValidation) -> Unit
+
+pub fn capture_installed_logical_observation_record(ClientLogicalObservationRecord) -> Result[Unit, ClientLogicalObservationIssue]
 
 pub fn capture_installed_managed_run_explanation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientOriginalExplanationCapture, ClientOriginalExplanationCaptureIssue]
 
@@ -520,6 +526,8 @@ pub fn export_client_source_capture(@execution_query.CapturedInputSource, @query
 pub fn export_client_whole_source_capture(@execution_query.CapturedInputSource, ClientInstalledWholeSourceCapacity, String) -> Result[(Array[String], String, String, Array[String]), ClientSourceCaptureIssue]
 
 pub fn export_original_client_infer_retained_input(@execution_relation.CompletedOutput, String, ClientInferInputMaterialization) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue]
+
+pub fn failed_logical_observation_cleanup(ClientLogicalObservationIssue) -> ClientLogicalObservation?
 
 pub fn[I, P] finish_effect_program_check_preparation(ClientProgramCheckPreparation[I, P]) -> Result[@program_check.EffectComputationCandidate, ClientProgramCheckPreparationIssue]
 
@@ -815,6 +823,12 @@ pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailur
 
 pub fn local_values_execution_failure_issue(LocalValuesExecutionFailure) -> LocalValuesExecutionIssue
 
+pub fn logical_observation_record_key(ClientLogicalObservationRecord) -> Result[String, ClientLogicalObservationIssue]
+
+pub fn logical_observation_record_phase(ClientLogicalObservationRecord) -> Result[String, ClientLogicalObservationIssue]
+
+pub fn logical_observation_record_state(ClientLogicalObservationRecord) -> Result[String, ClientLogicalObservationIssue]
+
 pub fn[I] lower_request_published_query(ClientRequestPreparation[I], I, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String?, public_primary? : Bool, binding_limits? : @value_admission.Limits?) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), ClientRequestQueryLoweringIssue]
 
 pub fn mark_installed_effect_operation_transfer_uncertain(ClientInstalledEffectOperationBorrow, Int64) -> Result[Unit, ClientInstalledManagedRunIssue]
@@ -972,6 +986,8 @@ pub fn prepare_installed_effect_result_publication_work(ClientInstalledManagedRu
 pub fn prepare_installed_effect_row_source_input(@client_row_source_host.RowDeclaration, @execution_relation.ExecutionCapacity?, input_limits? : @client_row_source_host.RowInputLimits?) -> Result[ClientInstalledEffectSourceInput, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_staged_extent(ClientInstalledEffectOperationExtent, ClientInstalledEffectOperationExtent) -> Result[ClientInstalledEffectOperationExtent, ClientInstalledManagedRunIssue]
+
+pub fn prepare_installed_logical_observation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientLogicalObservation, ClientLogicalObservationIssue]
 
 pub fn prepare_installed_managed_capture_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider], query_time? : @run_publication_host.ClientQueryTimePreparation?, runtime_admission? : Bool) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue]
 
@@ -1245,6 +1261,8 @@ pub fn read_client_infer_retained_input_descriptor(String) -> Result[@execution_
 
 pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientSourceCaptureIssue]
 
+pub fn read_installed_logical_observation(ClientLogicalObservation, @physical_strategy_host.CapturedTaskBoundaryPhase) -> Result[ClientLogicalObservationRecord, ClientLogicalObservationIssue]
+
 pub fn[I] read_request_explanation_view(ClientRequestPreparation[I], I, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, ClientRequestExplanationReadIssue]
 
 pub fn[I, S] reconcile_installed_source_construction(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
@@ -1479,7 +1497,11 @@ pub fn retire_installed_source_read(ClientInstalledSourceRead) -> Result[Unit, C
 
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 
+pub fn return_installed_logical_observation(ClientLogicalObservation) -> Result[Bool, ClientLogicalObservationIssue]
+
 pub fn return_installed_original_explanation_capture(ClientOriginalExplanationCapture) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
+
+pub fn return_logical_observation_record(ClientLogicalObservationRecord) -> Unit
 
 pub fn[I] return_request_original_explanation(ClientRequestOriginalExplanation[I]) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
 
@@ -1923,6 +1945,23 @@ pub(all) enum ClientLocalRequirementsIssue {
 }
 
 type ClientLocalResourcePolicy
+
+type ClientLogicalObservation
+
+pub(all) enum ClientLogicalObservationIssue {
+  LogicalObservationForeignOriginal
+  LogicalObservationReturned
+  LogicalObservationWorkActive
+  LogicalObservationCleanupPending
+  LogicalObservationConstructionUnavailable
+  LogicalObservationCapture(ClientOriginalExplanationCaptureIssue)
+  LogicalObservationCapacity(@physical_resources.PreparationCapacityIssue)
+  LogicalObservationBoundary(@physical_strategy_host.CapturedTaskBoundaryIssue)
+  LogicalObservationProjection(@run_publication_host.ClientLogicalTaskBoundaryIssue)
+  LogicalObservationCleanup(ClientLogicalObservationIssue, ClientLogicalObservation)
+}
+
+type ClientLogicalObservationRecord
 
 type ClientOriginalComposedKeyedPrefix
 

@@ -1,5 +1,5 @@
 import type {Client, RunReference} from '@actql/sdk';
-import {createReadEpoch, describeExistingResult, explanationStoryModel, planStoryModel, readExistingRun, readExistingRunPlan, readExistingRunStory, readStaticPlan} from './read-model.js';
+import {createReadEpoch, describeExistingResult, explanationStoryModel, planStoryModel, readExistingRun, readExistingRunPlan, readExistingRunExplanation, readExistingRunPresentation, readExistingRunStory, readStaticPlan} from './read-model.js';
 import type {WirePlanView, WireExplanationFacts, WireRunExplanationView} from '@actql/client-wire';
 declare const structuralFacts: WireExplanationFacts;
 declare const savedExplanation: WireRunExplanationView;
@@ -44,6 +44,18 @@ const run = await readExistingRun(client, ref, ticket);
 const nonAtomic: 'non_atomic' = run.consistency;
 const original = await readExistingRunPlan(client, ref, ticket);
 const originalRef: RunReference = original.runRef;
+const retainedExplanation: WireRunExplanationView = await readExistingRunExplanation(client, ref, ticket);
+const explanationRef: RunReference = retainedExplanation.run_ref;
+// @ts-expect-error Reading absent original Facts does not expose a repair operation.
+await readExistingRunExplanation(client, ref, ticket, {recompile: true});
+void explanationRef;
+const presentation = await readExistingRunPresentation(client, ref, {locale: 'ja'}, ticket);
+if (presentation.explanation.state === 'projected') {
+  const originalText: string = presentation.explanation.story.occurrences[0].explanation.text;
+  void originalText;
+}
+// @ts-expect-error This presentation selector cannot install a Debug or Sample profile.
+await readExistingRunPresentation(client, ref, {locale: 'ja', stopOnEntry: true}, ticket);
 const savedStory = await readExistingRunStory(client, ref, {locale: 'ja'}, ticket);
 const sameStoryRef: RunReference = savedStory.runRef;
 const staticOriginal: 'static' = original.plan.observation;

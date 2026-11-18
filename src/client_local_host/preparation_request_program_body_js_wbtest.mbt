@@ -1,12 +1,13 @@
 ///|
 fn request_program_body_fixture(
   current? : () -> Bool = () => true,
+  text? : String = request_check_wire,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
   @publication_host.PreparedClientProgram,
 ) raise {
-  let (parent, child, _, input) = registration_parent_fixture(current~)
+  let (parent, child, _, input) = registration_parent_fixture(current~, text~)
   guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
     fail("original Request must finish its supported check")
   }

@@ -6,7 +6,9 @@ import {connectInProcess} from '../sdk/host-port.mjs';
 import {startExplorerGateway} from '../explorer/gateway.mjs';
 import {createExplorerBrowserSource} from '../explorer/browser-source.mjs';
 import {createReadEpoch, describeExistingResult, explanationStoryModel, planReadModel, planStoryModel,
-  readExistingRun, readExistingRunPlan, readExistingRunStory, readStaticPlan} from './read-model.mjs';
+  readExistingRun, readExistingRunPlan, readExistingRunExplanation, readExistingRunPresentation, readExistingRunStory, readStaticPlan} from './read-model.mjs';
+import {runExplanation, unprojectedRunExplanation, explanationLeakageVectors}
+  from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 
 // Independent semantic fixture, not compiler output or public acceptance.
 const cid = unit => `sha256:${unit.repeat(64)}`;
@@ -308,6 +310,157 @@ test('saved Run Plan uses only exact original attach and Run.plan with frozen re
   assert.equal(observed.plan.nodes[0].id, view.logical_map.steps[0].step_id);
   assert.deepEqual(calls, [['attach', expected], ['run-plan', {
     maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+});
+
+test('original explanation read uses only same Execution and preserves projected or absent retained Facts', async () => {
+  for (const value of [runExplanation, unprojectedRunExplanation]) {
+    const view = structuredClone(value), original = {...view.run_ref}, expected = {...original}, calls = [];
+    const execution = {explain(options) {
+      assert.equal(this, execution); calls.push(['explain', options]); return view;
+    }, plan() {assert.fail('no replacement Plan');}, inspect() {assert.fail('no permission inference');}};
+    const client = {attach(selected) {
+      assert(Object.isFrozen(selected)); calls.push(['attach', selected]);
+      original.namespaceId = 'changed-after-capture'; return execution;
+    }, start() {assert.fail('no Run');}, plan() {assert.fail('no recompile');}};
+    const result = await readExistingRunExplanation(client, original, ticket());
+    assert.deepEqual(result, value); assert(Object.isFrozen(result.explanation));
+    assert.deepEqual(calls, [['attach', expected], ['explain', {
+      maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+  }
+});
+
+test('original explanation read refuses stale scope and propagates original Owner refusal without repair', async () => {
+  for (const boundary of ['attach', 'explain']) {
+    const epoch = createReadEpoch(); let explained = 0;
+    const client = {async attach() {
+      if (boundary === 'attach') epoch.invalidate();
+      return {async explain() {explained++; epoch.invalidate(); return structuredClone(runExplanation);}};
+    }};
+    await assert.rejects(readExistingRunExplanation(client, runExplanation.run_ref, epoch.capture()),
+      {code: 'ExplorerStaleScope'});
+    assert.equal(explained, boundary === 'attach' ? 0 : 1);
+  }
+  const primary = Object.assign(new Error('original read refusal'), {code: 'RunObservationAccessDenied'});
+  await assert.rejects(readExistingRunExplanation({attach: () => ({explain() {throw primary;},
+    plan() {assert.fail('no fallback');}})}, runExplanation.run_ref, ticket()), cause => cause === primary);
+  await assert.rejects(readExistingRunExplanation({attach: () => ({})}, runExplanation.run_ref, ticket()),
+    {code: 'ExplorerCapabilityUnavailable'});
+});
+
+test('original explanation read rejects foreign bindings, disclosure additions and oversized DTOs', async () => {
+  const foreign = structuredClone(runExplanation); foreign.run_ref.namespaceId = 'foreign';
+  const oversized = structuredClone(runExplanation);
+  oversized.explanation.facts.steps[0].meaning.predicate.nodes[1].name = 'x'.repeat(65536);
+  const leaked = explanationLeakageVectors.map(({value}) => ({...structuredClone(runExplanation),
+    explanation: {state: 'projected', facts: value}}));
+  for (const view of [foreign, oversized, ...leaked]) {
+    await assert.rejects(readExistingRunExplanation({attach: () => ({explain: () => view})},
+      runExplanation.run_ref, ticket()), {code: 'ExplorerInvalidExplanation'});
+  }
+});
+
+test('original presentation derives both models from the same Execution originals and captured locale', async () => {
+  const view = fixture(), facts = explanationFixture(view), original = ref(), expected = {...original};
+  const options = {locale: 'ja'}, calls = [];
+  const execution = {explain(limits) {
+    calls.push(['explain', limits]); assert.equal(this, execution);
+    return {version: 'actql-run-explanation-view/0.1', run_ref: expected,
+      explanation: {state: 'projected', facts}};
+  }, plan(limits) {
+    calls.push(['plan', limits]); assert.equal(this, execution);
+    return {version: 'actql-run-plan-view/0.1', run_ref: expected, plan_view: view};
+  }};
+  const client = {attach(selected) {
+    calls.push(['attach', selected]); original.namespaceId = 'changed'; options.locale = 'en'; return execution;
+  }, start() {assert.fail('no new Run');}};
+  const model = await readExistingRunPresentation(client, original, options, ticket());
+  assert.deepEqual(model.runRef, expected); assert.equal(model.plan.logicalMapCid, view.logical_map.self_cid);
+  assert.equal(model.explanation.story.locale, 'ja');
+  assert.equal(model.explanation.story.occurrences[1].explanation.text,
+    'inner 結合のキー: left."id" = right."id"; NULLキー: 一致させない');
+  assert.equal(model.explanation.story.factsCid, facts.self_cid);
+  assert.deepEqual(model.explanation.story.dependencies, model.plan.edges);
+  assert(Object.isFrozen(model.explanation.story.occurrences));
+  assert.deepEqual(calls, [['attach', expected], ['explain', {maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}],
+    ['plan', {maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+});
+
+test('original presentation keeps absence and Owner failure separate without a Plan repair', async () => {
+  const absent = structuredClone(unprojectedRunExplanation);
+  const model = await readExistingRunPresentation({attach: () => ({explain: () => absent,
+    plan() {assert.fail('absence does not request another original or compile a replacement');}})},
+    absent.run_ref, undefined, ticket());
+  assert.deepEqual(model, {runRef: absent.run_ref, plan: null, explanation: absent.explanation});
+  const primary = Object.assign(new Error('original egress refused'), {code: 'RunObservationAccessDenied'});
+  await assert.rejects(readExistingRunPresentation({attach: () => ({explain() {throw primary;},
+    plan() {assert.fail('denial is not absence');}})}, absent.run_ref, undefined, ticket()), cause => cause === primary);
+});
+
+test('original presentation rejects changed map ports and late scopes across its two reads', async () => {
+  for (const mode of ['map', 'ports', 'scope-after-explain', 'scope-after-plan', 'plan-denied']) {
+    const view = fixture(), facts = explanationFixture(view), original = ref(), epoch = createReadEpoch();
+    if (mode === 'map') facts.logical_map_cid = cid('f');
+    if (mode === 'ports') facts.steps[1].input_ports[0] = cid('f');
+    const primary = Object.assign(new Error('original Plan refused'), {code: 'RunObservationAccessDenied'});
+    let planCalls = 0;
+    const client = {attach: () => ({async explain() {
+      if (mode === 'scope-after-explain') epoch.invalidate();
+      return {version: 'actql-run-explanation-view/0.1', run_ref: original, explanation: {state: 'projected', facts}};
+    }, async plan() {
+      planCalls++;
+      if (mode === 'scope-after-plan') epoch.invalidate();
+      if (mode === 'plan-denied') throw primary;
+      return {version: 'actql-run-plan-view/0.1', run_ref: original, plan_view: view};
+    }})};
+    await assert.rejects(readExistingRunPresentation(client, original, undefined, epoch.capture()),
+      mode === 'plan-denied' ? cause => cause === primary
+        : {code: mode.startsWith('scope') ? 'ExplorerStaleScope' : 'ExplorerInvalidExplanation'});
+    assert.equal(planCalls, mode === 'scope-after-explain' ? 0 : 1);
+  }
+});
+
+test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads', async () => {
+  const original = ref(), view = fixture(), facts = explanationFixture(view), calls = [];
+  let blockPlan = false, entered, release, gatewayClosed = false;
+  const started = new Promise(resolve => {entered = resolve;});
+  const pending = new Promise(resolve => {release = resolve;});
+  const execution = {explain() {
+    calls.push('explain'); return {version: 'actql-run-explanation-view/0.1', run_ref: original,
+      explanation: {state: 'projected', facts}};
+  }, async plan() {
+    calls.push('plan'); if (blockPlan) {entered(); await pending;}
+    return {version: 'actql-run-plan-view/0.1', run_ref: original, plan_view: view};
+  }};
+  const gateway = await startExplorerGateway({client: {attach(selected) {
+    calls.push('attach'); assert.deepEqual(selected, original); return execution;
+  }, close() {assert.fail('borrowed Client is not closed by Gateway');}}});
+  let cookie;
+  const source = createExplorerBrowserSource({origin: gateway.origin, async fetch(url, options) {
+    const reply = await fetch(url, {...options, headers: {...options.headers, Origin: gateway.origin,
+      ...(cookie ? {Cookie: cookie} : {})}});
+    cookie = reply.headers.get('set-cookie')?.split(';')[0] ?? cookie; return reply;
+  }});
+  try {
+    await source.connect(gateway.issueBootstrap().bootstrap);
+    const model = await source.runPresentation(original, {locale: 'en'});
+    assert.equal(model.explanation.story.occurrences[1].explanation.text,
+      'inner join on: left."id" = right."id"; Null keys: do not match');
+    assert.deepEqual(model.plan.edges, model.explanation.story.dependencies);
+    assert.deepEqual(calls, ['attach', 'explain', 'plan']);
+    blockPlan = true;
+    const reading = source.runPresentation(original, {locale: 'ja'})
+      .then(value => ({value}), cause => ({cause}));
+    await started;
+    const closing = gateway.close().then(() => {gatewayClosed = true;});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(gatewayClosed, false);
+    release(); await closing;
+    // Actual server close may terminate its HTTP connection before an error
+    // reply arrives. Assert non-disclosure, not an invented authorization or
+    // Run outcome classification for that transport loss.
+    assert(Object.hasOwn(await reading, 'cause'));
+    assert.deepEqual(calls, ['attach', 'explain', 'plan', 'attach', 'explain', 'plan']);
+  } finally {source.close(); release(); await gateway.close();}
 });
 
 test('saved Story uses the same original Run without recompilation and captures locale once', async () => {

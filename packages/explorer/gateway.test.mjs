@@ -5,6 +5,8 @@ import {createExplorerBrowserSource} from './browser-source.mjs';
 import {gatewayLaunchPlanFixture} from './gateway-launch.fixture.mjs';
 import {observationRef, runObservationFixture, ownerObservationFixture}
   from '../explorer-ui/run-observation.fixture.mjs';
+import {runExplanation, unprojectedRunExplanation}
+  from '../../scripts/fixtures/explanation-facts-vectors.mjs';
 
 test('current observation endpoint reads only the same original Run and one Owner-local page', async () => {
   const calls=[], original=observationRef();
@@ -244,6 +246,103 @@ test('saved Run Plan has a closed read-only body and no static fallback for old 
   assert.deepEqual(h.calls, [['attach', ref]]);
 });
 
+test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O', async () => {
+  const calls = [], original = runExplanation.run_ref;
+  const h = harness({client: {attach(selected) {
+    calls.push(['attach', selected]); return {explain(options) {
+      calls.push(['explain', options]); return structuredClone(runExplanation);
+    }};
+  }, plan() {assert.fail('no static repair');}, start() {assert.fail('no Run');}}});
+  assert.equal((await h.send('/api/read/run-explanation', {ref: original})).status, 401);
+  const session = await h.connect();
+  for (const headers of [{'X-Actql-CSRF': ''}, {Origin: 'https://foreign.example'}]) {
+    assert.equal((await h.read('run-explanation', {ref: original}, session, headers)).status, 403);
+  }
+  for (const body of [{ref: original, options: {sample: true}}, {ref: {runDefinitionCid: original.runDefinitionCid}}]) {
+    assert.equal((await h.read('run-explanation', body, session)).status, 400);
+  }
+  assert.deepEqual(calls, []);
+  const response = await h.read('run-explanation', {ref: original}, session);
+  assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.deepEqual((await response.json()).data, runExplanation);
+  assert.deepEqual(calls, [['attach', original], ['explain', {maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+  await h.gateway.close();
+});
+
+test('Gateway explanation distinguishes authorized NotProjected from missing support or Owner denial', async () => {
+  for (const [kind, status] of [['absent', 200], ['unsupported', 409], ['denied', 403]]) {
+    let calls = 0;
+    const h = harness({client: {attach() {
+      return kind === 'unsupported' ? {} : {explain() {
+        calls++;
+        if (kind === 'denied') throw Object.assign(new Error('private Host diagnostic'), {status: 403});
+        return structuredClone(unprojectedRunExplanation);
+      }, plan() {assert.fail('no legacy repair');}};
+    }}});
+    const session = await h.connect();
+    const response = await h.read('run-explanation', {ref: runExplanation.run_ref}, session);
+    assert.equal(response.status, status);
+    assert.deepEqual(await response.json(), status === 200
+      ? {scopeEpoch: session.body.scopeEpoch, data: unprojectedRunExplanation}
+      : {error: kind === 'unsupported' ? 'ExplorerCapabilityUnavailable' : 'ExplorerReadRefused'});
+    assert.equal(calls, kind === 'unsupported' ? 0 : 1);
+    await h.gateway.close();
+  }
+});
+
+test('browser explanation traverses the actual Gateway read and drops a delayed invalidated scope', async () => {
+  let pending, entered, release;
+  const started = new Promise(resolve => {entered = resolve;});
+  const wait = new Promise(resolve => {release = resolve;});
+  const h = harness({client: {attach: () => ({async explain() {
+    if (pending) {entered(); await wait;}
+    return structuredClone(runExplanation);
+  }})}});
+  let cookie;
+  const source = createExplorerBrowserSource({origin, async fetch(url, options) {
+    const response = await h.gateway.fetch(new Request(url, {...options, headers: {...options.headers,
+      Host: '127.0.0.1:43210', Origin: origin, ...(cookie ? {Cookie: cookie} : {})}}));
+    cookie = response.headers.get('set-cookie')?.split(';')[0] ?? cookie;
+    return response;
+  }});
+  const capabilities = await source.connect(h.gateway.issueBootstrap().bootstrap);
+  assert.equal(capabilities.sample, false); assert.equal(capabilities.control, false);
+  assert.deepEqual(await source.explain(runExplanation.run_ref), runExplanation);
+  pending = true;
+  const reply = source.explain(runExplanation.run_ref);
+  await started; h.gateway.invalidateScope(); release();
+  await assert.rejects(reply, {code: 'ExplorerStaleScope'});
+  await assert.rejects(source.explain(runExplanation.run_ref), {code: 'ExplorerSessionExpired'});
+  source.close(); await h.gateway.close();
+});
+
+test('Gateway explanation close retains the original pending read without closing its borrowed Client', async () => {
+  let entered, release, completed = false;
+  const started = new Promise(resolve => {entered = resolve;});
+  const pending = new Promise(resolve => {release = resolve;});
+  const h = harness({client: {attach: () => ({async explain() {entered(); return pending;}}),
+    close() {assert.fail('Gateway does not own the Client');}}});
+  const response = h.read('run-explanation', {ref: runExplanation.run_ref}, await h.connect());
+  await started;
+  const closing = h.gateway.close().then(() => {completed = true;});
+  await tick(); assert.equal(completed, false, 'Presentation closure is not original read settlement');
+  release(structuredClone(runExplanation));
+  await closing;
+  assert.equal(completed, true);
+  assert.equal((await response).status, 401, 'Closed scope must not disclose the delayed Facts');
+});
+
+test('Gateway original presentation rejects extra execution inputs and unsupported locale before SDK I/O', async () => {
+  const h = harness({client: {attach() {assert.fail('invalid presentation must not attach');}}});
+  const session = await h.connect();
+  for (const body of [{ref, locale: 'fr'}, {ref, captureSamples: true},
+    {ref, input: 'SELECT 1'}, {ref, plan: {}}, {ref: {runDefinitionCid: ref.runDefinitionCid}}]) {
+    assert.equal((await h.read('run-presentation', body, session)).status, 400);
+  }
+  assert.equal((await h.read('run-presentation', {ref}, session, {'X-Actql-CSRF': ''})).status, 403);
+  await h.gateway.close();
+});
+
 test('bootstrap and established session expiry never silently renew', async () => {
   let time = 1000;
   const h = harness({now: () => time, sessionMs: 100, bootstrapMs: 50});
@@ -400,6 +499,69 @@ test('browser holds CSRF only in memory, discards old replies/401 and never retr
     assert.equal(calls, 3);
   }
 });
+
+test('browser original presentation refuses option overrides before sending a read', async () => {
+  let reads = 0, getters = 0;
+  const source = presentationBrowser(async () => {
+    reads++; return {runRef: ref, plan: null, explanation: {state: 'not_projected', reason: 'not_retained'}};
+  });
+  try {
+    await source.connect('bootstrap');
+    for (const options of [{ref: {...ref, namespaceId: 'foreign'}}, {locale: 'ja', ref},
+      null, [], {locale: 'fr'}, {get locale() {getters++; return 'en';}},
+      {[Symbol('ref')]: ref}]) {
+      await assert.rejects(source.runPresentation(ref, options), {code: 'ExplorerInvalidReply'});
+    }
+    assert.equal(reads, 0); assert.equal(getters, 0);
+  } finally {source.close();}
+});
+
+test('browser original presentation captures reference and locale before its pending read', async () => {
+  const original = {...ref}, options = {locale: 'ja'};
+  let release, sent;
+  const pending = new Promise(resolve => {release = resolve;});
+  const source = presentationBrowser(async body => {
+    sent = body; await pending;
+    return {runRef: {...ref}, plan: null, explanation: {state: 'not_projected', reason: 'not_retained'}};
+  });
+  try {
+    await source.connect('bootstrap');
+    const reading = source.runPresentation(original, options);
+    original.namespaceId = 'changed'; options.locale = 'en';
+    assert.deepEqual(sent, {ref, locale: 'ja'});
+    release();
+    assert.deepEqual((await reading).runRef, ref);
+  } finally {release(); source.close();}
+});
+
+test('browser original presentation rejects each foreign reply anchor without retry', async () => {
+  let reads = 0, returned;
+  const source = presentationBrowser(async body => {
+    reads++; assert.deepEqual(body, {ref, locale: 'en'});
+    return {runRef: returned, plan: null, explanation: {state: 'not_projected', reason: 'not_retained'}};
+  });
+  try {
+    await source.connect('bootstrap');
+    for (const key of ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']) {
+      returned = {...ref, [key]: key === 'namespaceId' ? 'foreign' : `sha256:${'c'.repeat(64)}`};
+      await assert.rejects(source.runPresentation(ref, {locale: 'en'}), {code: 'ExplorerInvalidReply'});
+    }
+    returned = undefined;
+    await assert.rejects(source.runPresentation(ref, {locale: 'en'}), {code: 'ExplorerInvalidReply'});
+    assert.equal(reads, 4);
+  } finally {source.close();}
+});
+
+function presentationBrowser(reply) {
+  return createExplorerBrowserSource({origin, now: () => 100, async fetch(url, options) {
+    if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
+      scopeEpoch: 1, expiresAt: 200, capabilities: {plan: false, run: true,
+        resultMetadata: true, resultPayload: false, control: false, sample: false,
+        cancellation: false, checkpointList: false, checkpointReview: false}});
+    assert.equal(url, `${origin}/api/read/run-presentation`);
+    return Response.json({scopeEpoch: 1, data: await reply(JSON.parse(options.body))});
+  }});
+}
 
 test('browser launch metadata validates shape and discards a delayed old-scope response', async () => {
   let release, calls = 0;

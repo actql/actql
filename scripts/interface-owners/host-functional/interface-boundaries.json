@@ -15266,7 +15266,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dc968417b89018513107c8b19b3dc89f40bed4c4c464f8f6f26d423ad0a2eab2",
+      "sha256": "f4ca1129b3ece6c93a10c13c27bdc4e22129e8337348d8c823313feb46e382fb",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -118460,7 +118460,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "192769a5a67cd0d38c39c82c202c6b4334b02aaf9ff1d7712c469051996e3a1e",
+      "sha256": "bd258368cf5d092102ae7faa8be438d56d18064b2fcc23b2242c91b029a966a0",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -118485,9 +118485,10 @@
           "parameters": [
             "facts",
             "operation",
-            "resource"
+            "resource",
+            "interactive"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "createLocalReadAuthorizations/init:result/init:result",
@@ -118499,6 +118500,14 @@
         },
         {
           "name": "createLocalReadAuthorizations/init:run/init:run",
+          "parameters": [
+            "facts",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:runImmediate/init:runImmediate",
           "parameters": [
             "facts",
             "operation"
@@ -118633,7 +118642,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
+                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
               }
             ],
             "ownership": [
@@ -118756,6 +118765,74 @@
               {
                 "path": "adapters/host-node/local-result-authorization.test.mjs",
                 "anchor": "test('Local Result reads evaluate the actual current Account without repeated admission'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalReadAuthorizations/init:runImmediate/init:runImmediate"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/logical-task-observation.test.mjs",
+                "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
               }
             ]
           }

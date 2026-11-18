@@ -2981,3 +2981,111 @@ pub fn client_program_request_explanation_read_issue_code(
 ) -> String {
   @client_local_host.request_explanation_read_issue_code(issue)
 }
+
+///|
+#export_name("clientProgramPrepareLogicalObservation")
+pub fn client_program_prepare_logical_observation(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> Result[
+  @client_local_host.ClientLogicalObservation,
+  @client_local_host.ClientLogicalObservationIssue,
+] {
+  @client_local_host.prepare_installed_logical_observation(
+    run, prepared, compiled, definition, bytes, nodes, depth,
+  )
+}
+
+///|
+#export_name("clientProgramLogicalObservationCleanup")
+pub fn client_program_logical_observation_cleanup(
+  result : Result[
+    @client_local_host.ClientLogicalObservation,
+    @client_local_host.ClientLogicalObservationIssue,
+  ],
+) -> @client_local_host.ClientLogicalObservation? {
+  match result {
+    Err(issue) => @client_local_host.failed_logical_observation_cleanup(issue)
+    Ok(_) => None
+  }
+}
+
+///|
+#export_name("clientProgramAttachLogicalObservation")
+pub fn client_program_attach_logical_observation(
+  value : @client_local_host.ClientLogicalObservation,
+  run : @strategy.CapturedDAG,
+) -> Result[Unit, @client_local_host.ClientLogicalObservationIssue] {
+  @client_local_host.attach_installed_logical_observation(value, run)
+}
+
+///|
+#export_name("clientProgramBeginLogicalObservation")
+pub fn client_program_begin_logical_observation(
+  value : @client_local_host.ClientLogicalObservation,
+  phase : String,
+) -> Result[
+  @client_local_host.ClientLogicalObservationRecord,
+  @client_local_host.ClientLogicalObservationIssue,
+] {
+  let selected : @strategy.CapturedTaskBoundaryPhase = match phase {
+    "before" => Before
+    "settled" => Settled
+    "output_emitted" => OutputEmitted
+    _ => return Err(LogicalObservationConstructionUnavailable)
+  }
+  @client_local_host.begin_installed_logical_observation(value, selected)
+}
+
+///|
+#export_name("clientProgramLogicalObservationRecordState")
+pub fn client_program_logical_observation_record_state(
+  value : @client_local_host.ClientLogicalObservationRecord,
+) -> Result[String, @client_local_host.ClientLogicalObservationIssue] {
+  @client_local_host.logical_observation_record_state(value)
+}
+
+///|
+#export_name("clientProgramLogicalObservationRecordKey")
+pub fn client_program_logical_observation_record_key(
+  value : @client_local_host.ClientLogicalObservationRecord,
+) -> Result[String, @client_local_host.ClientLogicalObservationIssue] {
+  @client_local_host.logical_observation_record_key(value)
+}
+
+///|
+#export_name("clientProgramLogicalObservationRecordPhase")
+pub fn client_program_logical_observation_record_phase(
+  value : @client_local_host.ClientLogicalObservationRecord,
+) -> Result[String, @client_local_host.ClientLogicalObservationIssue] {
+  @client_local_host.logical_observation_record_phase(value)
+}
+
+///|
+#export_name("clientProgramReturnLogicalObservationRecord")
+pub fn client_program_return_logical_observation_record(
+  value : @client_local_host.ClientLogicalObservationRecord,
+) -> Unit {
+  @client_local_host.return_logical_observation_record(value)
+}
+
+///|
+#export_name("clientProgramReturnLogicalObservation")
+pub fn client_program_return_logical_observation(
+  value : @client_local_host.ClientLogicalObservation,
+) -> Result[Bool, @client_local_host.ClientLogicalObservationIssue] {
+  @client_local_host.return_installed_logical_observation(value)
+}
+
+///|
+#export_name("clientProgramCaptureLogicalObservationRecord")
+pub fn client_program_capture_logical_observation_record(
+  value : @client_local_host.ClientLogicalObservationRecord,
+) -> Result[Unit, @client_local_host.ClientLogicalObservationIssue] {
+  @client_local_host.capture_installed_logical_observation_record(value)
+}

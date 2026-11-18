@@ -108,6 +108,7 @@ fn construct_original_explanation_capture(
   bytes : Int,
   nodes : Int,
   depth : Int,
+  retain_original? : Ref[@publication_host.ClientStructuralExplanationOriginal?]? = None,
 ) -> Result[Unit, ClientOriginalExplanationCaptureIssue] {
   guard value.original is Some((_, prepared, compiled)) else {
     return Err(ForeignOriginal)
@@ -220,6 +221,11 @@ fn construct_original_explanation_capture(
   }
   value.plan_view = Some(wire)
   value.facts = Some(facts)
+  // Only a separately prequoted observation consumer supplies this cell.
+  // Normal first-capture callers allocate no cell or extra retained field.
+  if retain_original is Some(cell) {
+    cell.val = Some(original)
+  }
   Ok(())
 }
 
@@ -264,6 +270,7 @@ fn capture_installed_original_explanation(
   bytes : Int,
   nodes : Int,
   depth : Int,
+  retain_original? : Ref[@publication_host.ClientStructuralExplanationOriginal?]? = None,
 ) -> Result[
   ClientOriginalExplanationCapture,
   ClientOriginalExplanationCaptureIssue,
@@ -348,7 +355,14 @@ fn capture_installed_original_explanation(
     facts: None,
   }
   match
-    construct_original_explanation_capture(value, controls, bytes, nodes, depth) {
+    construct_original_explanation_capture(
+      value,
+      controls,
+      bytes,
+      nodes,
+      depth,
+      retain_original~,
+    ) {
     Ok(_) => Ok(value)
     Err(primary) =>
       match return_installed_original_explanation_capture(value) {

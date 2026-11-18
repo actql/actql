@@ -96,6 +96,17 @@ facts must be recorded by the same installed Host conformance caller.
 
 ## Source checks and platform scope
 
+The existing timed Values case may additionally select `logicalObservation: true`
+in its input descriptor. It uses the normal installed
+`@actql/local-node/observation` export and the existing compute/task selection;
+it adds no Debug, Sample or control admission. The authored Program, rows,
+first close, scoped-FD and separate-process original Saved checks are unchanged.
+After first close, the caller records delivered metadata and compares complete
+logical keys with that same Run's retained Facts. An actual unprojected boundary
+stays explicit and is not a logical completion claim. Missing delivery is not
+success. Saved must produce no new Compute event. Without this optional input,
+the previous normal case retains its original selection.
+
 The generic distribution command selects `preparation.test.mjs` only. Its
 preflight cases use synthetic package/digest and provider DATA without importing
 normal software or creating a Host, keys or TLS server. The separate
