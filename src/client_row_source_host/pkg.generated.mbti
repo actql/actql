@@ -269,6 +269,8 @@ pub fn prepare_row_source_cursor_progress(Int, Int, Int, Int) -> Result[RowSourc
 
 pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
 
+pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]
+
 pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]
 
 pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]

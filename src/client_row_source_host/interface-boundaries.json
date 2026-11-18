@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "a4c8389c5110d032f31c74881879c6bd32414c719da73dde11dd019441d7bd96",
+      "sha256": "42f5ab7aaf216d076ba55f4204616e75ff045651f9a26f7fb239b53169a674ac",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -484,6 +484,7 @@
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
         "pub fn prepare_row_source_cursor_progress(Int, Int, Int, Int) -> Result[RowSourceCursorProgress, RowSourceCursorIssue]",
         "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
+        "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]",
         "pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]",
         "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
@@ -1118,6 +1119,10 @@
         {
           "name": "prepare_row_update_mapping",
           "declaration": "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]"
+        },
+        {
+          "name": "project_relation_declaration_input",
+          "declaration": "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]"
         },
         {
           "name": "project_relation_target_document",
@@ -5477,6 +5482,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "project_relation_declaration_input"
+          ],
+          "exports": [
+            "pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection preserves the original canonical schema and existing Relation admission\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection retains strict private field and unknown input refusal\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection keeps exact and one short encoding bounds without granting capacity\""
+              }
+            ]
+          }
         }
       ]
     },
@@ -6580,7 +6663,7 @@
     {
       "module": "src/client_row_source_host/relation_declaration.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a1c012df14b4a5ab63490ba244a179102f6fbc34edb97aed4c2887357afc557c",
+      "sha256": "abb51abefbc4ad52104b605d1dce761ee6e60f145b8ba81ca44dfb745d5bd3cf",
       "role": "common-semantics",
       "owner": "Existing Common original row declaration and SourceView contract Owner; not a ResourceReference or authority issuer",
       "exports": [],
@@ -6592,6 +6675,14 @@
         {
           "name": "generate_relation_row_declaration_with_resource_identities",
           "declaration": "generate_relation_row_declaration_with_resource_identities ( connector_id : String , connector_registration : String , connector_version : String , views : Array [ RowRelationViewSpec ] , limits : RowDeclarationLimits , classifications : Array [ @ environment . DataClassification ] ? , resource_identity_wires : Array [ String ? ] ? , ) - > Result [ RowDeclaration , RowHostIssue ]"
+        },
+        {
+          "name": "project_relation_declaration_input",
+          "declaration": "project_relation_declaration_input ( entry : Json , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RowHostIssue ]"
+        },
+        {
+          "name": "relation_declaration_projection_wire",
+          "declaration": "relation_declaration_projection_wire ( value : Json , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , RowHostIssue ]"
         },
         {
           "name": "restore_relation_row_declaration",
@@ -6702,6 +6793,83 @@
               {
                 "path": "src/check_environment/source_view_shape_wbtest.mbt",
                 "anchor": "test \"Resource identity subtree uses the same generated SourceView rule and work budget\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "project_relation_declaration_input",
+            "relation_declaration_projection_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Public relation catalogue input"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection preserves the original canonical schema and existing Relation admission\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection retains strict private field and unknown input refusal\""
+              },
+              {
+                "path": "src/client_row_source_host/project_relation_declaration_wbtest.mbt",
+                "anchor": "test \"portable public catalogue projection keeps exact and one short encoding bounds without granting capacity\""
               }
             ]
           }

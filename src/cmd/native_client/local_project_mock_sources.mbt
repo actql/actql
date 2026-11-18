@@ -54,46 +54,9 @@ fn local_project_mock_relation_wire(
 fn local_project_mock_relation_input(
   entry : Json,
 ) -> Result[String, @row_host.RowHostIssue] {
-  guard entry is Object(fields) && fields.get("views") is Some(Array(views)) else {
-    return Err(@row_host.RowHostIssue::InvalidSpecification)
-  }
-  let saved = []
-  for view in views {
-    guard view is Object(fields) else {
-      return Err(@row_host.RowHostIssue::InvalidSpecification)
-    }
-    let projected : Map[String, Json] = Map([])
-    for key, value in fields {
-      if key == "schema" {
-        let wire = match local_project_mock_relation_wire(value) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-        projected["schema_wire"] = Json::string(wire)
-        projected["schema_cid"] = Json::string(
-          "sha256:" + @sha.hex(@utf8.encode(wire)),
-        )
-      } else if ["request_schema", "facts", "acquisition", "resource_identity"].contains(
-          key,
-        ) {
-        let wire = match local_project_mock_relation_wire(value) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-        projected[key + "_wire"] = Json::string(wire)
-      } else if key.has_suffix("_wire") || key == "schema_cid" {
-        // A public field cannot inject one of the restore adapter's private
-        // destination names. Preserve the unfamiliar field for strict refusal.
-        projected["public_input_field:" + key] = value
-      } else {
-        // Forward instead of dropping unfamiliar fields. Restore decides.
-        projected[key] = value
-      }
-    }
-    saved.push(Json::object(projected))
-  }
-  local_project_mock_relation_wire(
-    Json::object(Map([("views", Json::array(saved))])),
+  @row_host.project_relation_declaration_input(
+    entry, local_project_mock_relation_wire_bytes, local_project_mock_relation_wire_nodes,
+    local_project_mock_relation_wire_depth,
   )
 }
 

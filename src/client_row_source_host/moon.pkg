@@ -20,6 +20,7 @@ import {
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/decode_core" @decode,
   "actql/actql/encode_core" @encode,
+  "actql/actql/sha256" @sha,
   "actql/actql/check_environment" @environment,
   "actql/actql/run_publication" @publication,
   "actql/actql/physical_resources" @resources,

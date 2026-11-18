@@ -170,6 +170,25 @@ reference; a file name, returned JSON envelope or equal CID cannot stand in for
 that authority. Source reads, Content custody, Plan funding and terminal cleanup
 remain with their existing owners.
 
+### Public relation catalogue input
+
+`project_relation_declaration_input` mechanically projects an original public
+catalogue entry into the existing `restore_relation_row_declaration` input.
+It canonically encodes `schema`, `request_schema`, `facts`, `acquisition` and
+`resource_identity`, and derives the schema CID through the same canonical JSON
+and SHA256 owners. It does not parse a second schema or install an environment.
+Unknown view fields remain in the restore input for its strict refusal; public
+`schema_cid` and `*_wire` fields cannot inject private restore destinations.
+
+The caller retains the original entry and funds the existing construction
+overlap before calling. The supplied positive byte/node/depth ceilings bound
+encoding, not capacity, Source permission or a physical read. Native delegates
+to this same function with its unchanged 4,000,000-byte, 400,000-node and
+64-depth ceilings and existing construction quote. Declaration restoration,
+original connection/current checks, Request funding, RowRun capture and physical
+cleanup remain separate existing duties. The projection issues only wire DATA;
+equal wire does not replace a retained original declaration or acquisition.
+
 ## Original JSON page envelopes
 
 `project_row_source_json_page` validates one complete original UTF-8 document
