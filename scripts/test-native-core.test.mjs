@@ -978,12 +978,26 @@ test('Native Core retains admitted Darwin profiles and selects Linux for common 
 function coreInvocationRoles(records, target) {
   const wasmCases = ['saved_lookup_validation_dispatch_wbtest.mbt',
     'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt'];
+  const requireFullSelection = args => {
+    assert.equal(classifyMoon('test', args).classification, 'full');
+    // The cost classifier deliberately treats case filters as full builds.
+    // These controls additionally require complete execution, without a path.
+    assert(!args.some(value => /^(?:--(?:filter|index|doc-index|limit)|-[fil])(?:=|$)/u.test(value)));
+    for (let index = 0; index < args.length; index++) {
+      if (['--target', '-j', '--jobs'].includes(args[index])) { index++; continue; }
+      assert(args[index].startsWith('-'), 'Full Core cannot add a positional scope');
+    }
+  };
   const roles = records.map(({command, args}) => {
     if (command === 'moon') {
       assert.equal(args[0], 'test');
+      assert.deepEqual(args.filter(value => /^--target(?:=|$)/u.test(value)), ['--target']);
       assert.equal(args[args.indexOf('--target') + 1], target);
       assert(args.includes('--deny-warn'));
-      if (!args.includes('--build-only')) return 'portable-suite';
+      if (!args.includes('--build-only')) {
+        requireFullSelection(args.slice(1));
+        return 'portable-suite';
+      }
       assert.equal(target, 'wasm');
       assert(args.includes('--release') && args.includes('src/client_host_wasm'));
       return 'wasm-counter-build';
@@ -993,13 +1007,18 @@ function coreInvocationRoles(records, target) {
       assert.equal(target, 'native');
       assert(args.includes('--deny-warn'));
       if (!args.includes('--release')) {
+        assert.equal(classifyMoon('test', args.slice(1)).classification, 'focused');
         assert.equal(args[args.indexOf('-p') + 1], 'platform_native/trusted_clock');
+        assert(!args.some(value => /^--target(?:=|$)/u.test(value)));
+        const withoutClock = args.slice(1);
+        withoutClock.splice(args.indexOf('-p') - 1, 2);
+        requireFullSelection(withoutClock);
         assert(!args.includes('--strip'));
         return 'native-prerequisite';
       }
       for (const flag of ['--strip', '--no-parallelize', '--verbose']) assert(args.includes(flag));
       assert.equal(args[args.indexOf('-j') + 1], '2');
-      assert.equal(classifyMoon('test', args.slice(1)).classification, 'full');
+      requireFullSelection(args.slice(1));
       assert(!args.slice(1).some(value => /^(?:--(?:target|filter|index|doc-index)|-[fi])(?:=|$)/u.test(value)),
         'The full Native profile cannot select another target or a case filter');
       return 'native-full';
@@ -1971,7 +1990,16 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
     const records=result.stdout.trim().split('\n').map(line=>JSON.parse(line));
     const calls=records.map(record=>record.args);
     const roles=coreInvocationRoles(records,target);
+    const refuses = (role, mutate) => {
+      const changed=structuredClone(records);
+      mutate(changed[roles.indexOf(role)].args);
+      assert.throws(()=>coreInvocationRoles(changed,target));
+    };
     if(target==='native'){
+      for(const suffix of [['--target','wasm'],['--filter=one'],['src/other'],
+        ['-p','platform_native/trusted_clock']])
+        refuses('native-prerequisite',args=>args.push(...suffix));
+      refuses('native-prerequisite',args=>{args[args.indexOf('-p')+1]='platform_native/other';});
       assert.equal(records[roles.indexOf('native-prerequisite')].native,'1');
       assert.equal(records[roles.indexOf('native-full')].native,'0');
       const failed=spawnSync('bash',['-eo','pipefail','-c',command],{
@@ -1980,6 +2008,9 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
       });
       assert.equal(failed.error,undefined);assert.equal(failed.signal,null);assert.equal(failed.status,7);
     }else{
+      for(const suffix of [['--filter=one'],['--index','0'],['src/other'],['src'],
+        ['--target','native'],['--target=other']])
+        refuses('portable-suite',args=>args.push(...suffix));
       assert(records.every(record=>record.native==='1'));
       assert(calls.every(args=>!args.includes('--strip')));
       const portable=calls[roles.indexOf('portable-suite')];
