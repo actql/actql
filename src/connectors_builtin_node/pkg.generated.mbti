@@ -4870,6 +4870,8 @@ pub fn client_submitted_intent_cid(@run_publication_host.ClientSubmittedIntent) 
 
 pub fn client_submitted_intent_effect_compatible(@run_publication_host.ClientSubmittedIntent, @run_publication_host.PreparedClientEffectComputation) -> Bool
 
+pub fn client_submitted_intent_observation(@run_publication_host.ClientSubmittedIntent, @run_publication_host.ClientSubmittedIntent?, String?, Bool) -> String?
+
 pub fn client_submitted_intent_requests_commit_stop(@run_publication_host.ClientSubmittedIntent) -> Bool
 
 pub fn client_submitted_intent_requests_read_only(@run_publication_host.ClientSubmittedIntent) -> Bool

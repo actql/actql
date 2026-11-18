@@ -129,7 +129,15 @@ fn observe_submission_lookup(
     }
   }
   guard (record.kind == 4 || record.kind == 9) &&
-    @decode.closed_object(cursor, ["reference"]) is Ok(object) &&
+    @decode.closed_object(
+      cursor,
+      if record.kind == 4 {
+        ["reference", "intent", "intentCid"]
+      } else {
+        ["reference"]
+      },
+    )
+    is Ok(object) &&
     required_text(object, "reference") is Some(wire) &&
     @host.admit_client_submission_reference_record(wire) is Ok(reference) else {
     return Err(-31)
@@ -306,10 +314,38 @@ fn submission_run_reference_snapshot(
 /// Private transport of existing Owner facts, not a new admission or state.
 fn submission_lookup_wire(
   snapshot : @host.ClientSavedSubmissionSnapshot?,
+  expected? : @host.ClientSubmittedIntent? = None,
 ) -> Result[Bytes, Int] {
   try {
     let writer = @encode.writer(1048576, 8, 1)
     @encode.begin_object(writer)
+    if expected is Some(expected) {
+      let retained = snapshot.map(snapshot => {
+        let original = @host.client_saved_submission_record(snapshot)
+        (
+          original.intent,
+          if original.run_admission is Some(_) {
+            "ready"
+          } else if original.preparation_problem is Some(_) {
+            "preparation_failed"
+          } else {
+            "preparing"
+          },
+        )
+      })
+      let observation = match
+        @host.observe_client_submitted_intent(expected, retained) {
+        Ok(value) => value
+        Err(_) => return Err(-31)
+      }
+      @encode.key(writer, "observation")
+      @encode.string_value(
+        writer,
+        @host.client_submitted_intent_observation_action(observation, false),
+      )
+      @encode.key(writer, "expectedIntentCid")
+      @encode.string_value(writer, @host.client_submitted_intent_cid(expected))
+    }
     @encode.key(writer, "kind")
     match snapshot {
       None => @encode.string_value(writer, "missing")
@@ -352,6 +388,57 @@ fn submission_lookup_wire(
   } catch {
     _ => Err(-34)
   }
+}
+
+///|
+/// Admit the same bounded original intent before observing retained history.
+/// This extends only the existing read projection: no write, clock, Run
+/// construction, authorization refresh or physical acknowledgement is issued.
+fn submission_lookup_expected_intent(
+  value : Instance,
+  record : StoredSubmissionProjection,
+) -> Result[@host.ClientSubmittedIntent?, Int] {
+  if record.kind != 4 {
+    return Ok(None)
+  }
+  let borrow = match record.borrow {
+    Ok(value) => value
+    Err(issue) => return Err(issue_code(issue))
+  }
+  guard input_cursor(value, borrow.slot) is Some(cursor) &&
+    @decode.closed_object(cursor, ["reference", "intent", "intentCid"])
+    is Ok(object) else {
+    return Err(-31)
+  }
+  if @decode.lookup(object, "intent") is None &&
+    @decode.lookup(object, "intentCid") is None {
+    return Ok(None)
+  }
+  guard required_text(object, "intent") is Some(wire) &&
+    required_text(object, "intentCid") is Some(identity) else {
+    return Err(-31)
+  }
+  admit_submission_lookup_intent(wire, identity).map(intent => Some(intent))
+}
+
+///|
+/// Observation must not impose the fresh-append profile on a valid retained
+/// original. Bound this admission by the actual retained transport, as the
+/// existing Node journal does, without allocating a second UTF8 sizing copy.
+fn admit_submission_lookup_intent(
+  wire : String,
+  identity : String,
+) -> Result[@host.ClientSubmittedIntent, Int] {
+  let units = wire.length()
+  if units <= 0 || units > 715827882 {
+    return Err(-31)
+  }
+  guard @host.prepare_client_submitted_intent(wire, units * 3, units, units)
+    is Ok(intent) &&
+    @host.client_submitted_intent_cid(intent) == identity else {
+    return Err(-31)
+  }
+  Ok(intent)
 }
 
 ///|
@@ -413,6 +500,10 @@ fn produce_submission_lookup(
     return -33
   }
   record.invoked = true
+  let expected = match submission_lookup_expected_intent(value, record) {
+    Ok(value) => value
+    Err(code) => return code
+  }
   if record.kind == 6 {
     let wire = match prepare_saved_result_read(value, record, configuration) {
       Ok(value) => value
@@ -435,7 +526,7 @@ fn produce_submission_lookup(
   } else if record.kind == 8 {
     saved_sdk_original_descriptor_wire(snapshot)
   } else {
-    submission_lookup_wire(snapshot)
+    submission_lookup_wire(snapshot, expected~)
   }
   let wire = match projected {
     Ok(value) => value
@@ -483,6 +574,10 @@ fn validate_submission_lookup(
   if (record.kind == 7 || record.kind == 8) && record.saved_snapshot is None {
     return -42
   }
+  let expected = match submission_lookup_expected_intent(value, record) {
+    Ok(value) => value
+    Err(code) => return code
+  }
   let snapshot = match
     observe_submission_lookup(
       value,
@@ -498,7 +593,7 @@ fn validate_submission_lookup(
   } else if record.kind == 8 {
     saved_sdk_original_descriptor_wire(snapshot)
   } else {
-    submission_lookup_wire(snapshot)
+    submission_lookup_wire(snapshot, expected~)
   }
   let wire = match projected {
     Ok(value) => value

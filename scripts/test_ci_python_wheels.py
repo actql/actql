@@ -56,8 +56,9 @@ class OrchestrationTests(unittest.TestCase):
         self.assertEqual(request.call_count, 3)
         self.assertEqual(sleep.call_args_list, [unittest.mock.call(2), unittest.mock.call(4)])
 
-    def test_linux_is_not_reported_as_local_acceptance(self):
-        with patch.object(ci.sys, 'platform', 'linux'), self.assertRaisesRegex(ValueError, 'darwin-arm64'):
+    def test_unselected_linux_architecture_is_not_reported_as_local_acceptance(self):
+        with patch.object(ci.sys, 'platform', 'linux'), patch.object(ci.platform, 'machine', return_value='aarch64'), \
+                self.assertRaisesRegex(ValueError, 'darwin-arm64'):
             ci.run_acceptance(Path('/unused'))
 
     def test_timeout_keeps_diagnostics_and_never_creates_acceptance(self):
@@ -132,6 +133,221 @@ class OrchestrationTests(unittest.TestCase):
                     ci, 'DUCKDB_SHA256', hashlib.sha256(archive.read_bytes()).hexdigest()):
                 with self.assertRaisesRegex(ValueError, 'unique'):
                     ci.extract_duckdb(archive, Path(tmp) / 'library')
+
+
+class LinuxOrchestrationTests(unittest.TestCase):
+    def test_linux_release_keeps_its_original_url_digest_and_unique_member(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            archive = root / 'original.zip'
+            with zipfile.ZipFile(archive, 'w') as zipped:
+                zipped.writestr('libduckdb.so', b'explicit inert Linux library port')
+                zipped.writestr('libduckdb.dylib', b'foreign profile, never selected')
+            with patch.object(ci, 'LINUX_DUCKDB_BYTES', archive.stat().st_size), patch.object(
+                    ci, 'LINUX_DUCKDB_SHA256', hashlib.sha256(archive.read_bytes()).hexdigest()), patch.object(
+                    ci.urllib.request, 'urlopen', return_value=io.BytesIO(archive.read_bytes())) as request:
+                with ci.open_duckdb_release('linux-x64') as response:
+                    self.assertEqual(response.read(), archive.read_bytes())
+                request.assert_called_once_with(
+                    'https://github.com/duckdb/duckdb/releases/download/v1.4.3/libduckdb-linux-amd64.zip',
+                    timeout=120)
+                library = ci.extract_duckdb(archive, root / 'selected.so', target_platform='linux-x64')
+                self.assertEqual(library.read_bytes(), b'explicit inert Linux library port')
+                archive.write_bytes(archive.read_bytes() + b'changed')
+                with self.assertRaisesRegex(ValueError, 'pinned'):
+                    ci.extract_duckdb(archive, root / 'changed.so', target_platform='linux-x64')
+            self.assertFalse((root / 'changed.so').exists())
+
+    def test_linux_recipe_reaches_same_cohort_after_one_original_core(self):
+        import subprocess
+        class ReachedOriginalCohort(RuntimeError):
+            pass
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = (Path(tmp) / 'acceptance').resolve()
+            commands = []
+            builds = []
+            observed = []
+            source = 'a' * 40
+            def git(args, **options):
+                return b'' if 'status' in args else source + '\n'
+            def extract(archive, target, **options):
+                self.assertEqual(options, {'target_platform': 'linux-x64'})
+                self.assertEqual(target.name, 'libduckdb.so')
+                target.write_bytes(b'explicit physical port; not a native library')
+                return target
+            def command(args, **options):
+                commands.append(args)
+                if args[0] == 'moon':
+                    directory = Path(args[args.index('--target-dir') + 1])
+                    module = directory / 'wasm/release/build/client_host_wasm/client_host_wasm.wasm'
+                    module.parent.mkdir(parents=True)
+                    module.write_bytes(b'explicit compiler port; not executable Wasm')
+                    builds.append(module)
+                if '--record-module-original' in args:
+                    receipt = Path(args[args.index('--destination') + 1])
+                    receipt.write_text(json.dumps({'module': str(builds[0]), 'source_sha': source,
+                        'module_sha256': hashlib.sha256(builds[0].read_bytes()).hexdigest()}))
+                return subprocess.CompletedProcess(args, 0, stdout=b'{}', stderr=b'')
+            def component(run, python, module, receipt, selected):
+                self.assertEqual(builds, [module])
+                self.assertEqual(Path(json.loads(receipt.read_text())['module']), module)
+                observed.append(module)
+            with patch.object(ci.sys, 'platform', 'linux'), patch.object(ci.platform, 'machine', return_value='x86_64'), \
+                    patch.dict(ci.os.environ, {'MOON_HOME': '/explicit/original/moon'}), \
+                    patch.object(ci.subprocess, 'check_output', side_effect=git), \
+                    patch.object(ci.subprocess, 'run', side_effect=command), \
+                    patch.object(ci, 'open_duckdb_release', return_value=io.BytesIO(b'archive port')) as download, \
+                    patch.object(ci, 'extract_duckdb', side_effect=extract), \
+                    patch.object(ci, 'accept_submission_observation', side_effect=component), \
+                    patch.object(ci, 'select_release_version', return_value={'pythonVersion': '0.0.0.dev0'}), \
+                    patch.object(ci, 'verify_built_cohort', side_effect=ReachedOriginalCohort):
+                with self.assertRaises(ReachedOriginalCohort):
+                    ci.run_acceptance(destination)
+            download.assert_called_once_with('linux-x64')
+            self.assertEqual(len(builds), 1)
+            self.assertEqual(observed, builds)
+            image = next(args for args in commands if '--compile-platform' in args)
+            runtime = next(args for args in commands if '--platform-runtime' in args)
+            wheel = next(args for args in commands if 'scripts/build-python-product-wheels.py' in args[1])
+            self.assertEqual(image[image.index('--core-receipt') + 1],
+                             runtime[runtime.index('--core-receipt') + 1])
+            self.assertEqual(wheel[wheel.index('--target-platform') + 1], 'linux-x64')
+            self.assertLess(commands.index(image), commands.index(runtime))
+            self.assertLess(commands.index(runtime), commands.index(wheel))
+            self.assertFalse((destination / 'acceptance.json').exists())
+
+    def test_supported_python_refuses_foreign_wheels_before_creating_consumer(self):
+        supported = load('ci_supported_python_linux_control', SCRIPTS / 'ci-supported-python.py')
+        with tempfile.TemporaryDirectory() as tmp:
+            cohort = Path(tmp) / 'cohort'
+            cohort.mkdir()
+            (cohort / 'cohort.json').write_text(json.dumps({'package_version': '0.0.0.dev0'}))
+            destination = Path(tmp) / 'consumer'
+            def git(args, **options):
+                return b'' if 'status' in args else 'a' * 40 + '\n'
+            with patch.object(supported.platform, 'python_version', return_value='3.11.0'), \
+                    patch.object(supported.EXISTING, 'normal_target', return_value='linux-x64'), \
+                    patch.object(supported.subprocess, 'check_output', side_effect=git), \
+                    patch.object(supported, 'verify_built_cohort', return_value={'cohort': {'platform': 'darwin-arm64'}}), \
+                    patch.object(supported.subprocess, 'run', side_effect=AssertionError('No foreign consumer')):
+                with self.assertRaisesRegex(ValueError, 'same original wheel platform'):
+                    supported.accept(cohort, destination, '3.11.0')
+            self.assertFalse(destination.exists())
+
+
+class SubmissionObservationTests(unittest.TestCase):
+    def test_normal_recipe_reaches_component_with_its_single_original_build(self):
+        import subprocess
+        class ReachedOriginalComponent(RuntimeError):
+            pass
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = (Path(tmp) / 'acceptance').resolve()
+            builds = []
+            reached = []
+            source = 'a' * 40
+            def git(args, **options):
+                return b'' if 'status' in args else source + '\n'
+            def extract(archive, target, **options):
+                target.write_bytes(b'explicit library transport port; not a library')
+                return target
+            def command(args, **options):
+                if args[0] == 'moon':
+                    target = Path(args[args.index('--target-dir') + 1])
+                    module = target / 'wasm/release/build/client_host_wasm/client_host_wasm.wasm'
+                    module.parent.mkdir(parents=True)
+                    module.write_bytes(b'explicit build port; not executable Core')
+                    builds.append(module)
+                if '--record-module-original' in args:
+                    receipt = Path(args[args.index('--destination') + 1])
+                    receipt.write_text(json.dumps({'module': str(builds[0]), 'source_sha': source,
+                        'module_sha256': hashlib.sha256(builds[0].read_bytes()).hexdigest()}))
+                if '--compile-platform' in args:
+                    self.fail('Image construction bypassed the original component')
+                return subprocess.CompletedProcess(args, 0, stdout=b'{}', stderr=b'')
+            def component(run, python, module, receipt, selected):
+                self.assertEqual(builds, [module])
+                self.assertEqual(Path(json.loads(receipt.read_text())['module']), module)
+                self.assertEqual(python, destination / 'builder/bin/python')
+                self.assertEqual(selected, destination)
+                reached.append(module)
+                raise ReachedOriginalComponent()
+            with patch.object(ci.sys, 'platform', 'darwin'), patch.object(ci.platform, 'machine', return_value='arm64'), \
+                    patch.dict(ci.os.environ, {'MOON_HOME': '/explicit/moon-tool-port'}), \
+                    patch.object(ci.subprocess, 'check_output', side_effect=git), \
+                    patch.object(ci.subprocess, 'run', side_effect=command), \
+                    patch.object(ci, 'open_duckdb_release', return_value=io.BytesIO(b'archive port')), \
+                    patch.object(ci, 'extract_duckdb', side_effect=extract), \
+                    patch.object(ci, 'accept_submission_observation', side_effect=component):
+                with self.assertRaises(ReachedOriginalComponent):
+                    ci.run_acceptance(destination)
+            self.assertEqual(len(reached), 1)
+            self.assertFalse((destination / 'acceptance.json').exists())
+
+    def original(self, path):
+        module = path / 'original.wasm'
+        module.write_bytes(b'independent artifact identity fixture; not executable Core')
+        receipt = path / 'module-receipt.json'
+        receipt.write_text(json.dumps({'module': str(module),
+            'module_sha256': hashlib.sha256(module.read_bytes()).hexdigest(),
+            'source_sha': 'a' * 40}))
+        observed = {'success': True, 'module_sha256': hashlib.sha256(module.read_bytes()).hexdigest(),
+            'cases': ['missing', 'retained', 'conflict', 'refusal', 'cleanup', 'fuel'],
+            'initial_diagnostic_fuel': 32_000_000_000, 'fuel_refills': 0}
+        return module, receipt, observed
+
+    def test_consumes_same_original_once_without_second_build_or_normal_claim(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            module, receipt, observed = self.original(path)
+            calls = []
+            def run(name, args, **options):
+                calls.append((name, args, options))
+                return json.dumps(observed).encode()
+            result = ci.accept_submission_observation(run, Path('/selected/python'), module, receipt, path)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0][0], 'submission-observation')
+            self.assertEqual(calls[0][1][0], Path('/selected/python'))
+            self.assertIn(module, calls[0][1])
+            self.assertFalse(result['normal_image_acceptance'])
+            self.assertFalse(result['public_run_acceptance'])
+            self.assertEqual(json.loads((path / 'submission-observation.json').read_text()), result)
+            self.assertFalse((path / 'acceptance.json').exists())
+
+    def test_changed_original_refuses_before_any_consumer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            module, receipt, _ = self.original(path)
+            module.write_bytes(b'changed artifact')
+            with self.assertRaisesRegex(ValueError, 'original Core'), patch.object(
+                    ci.subprocess, 'run', side_effect=AssertionError('Unexpected consumer')):
+                ci.accept_submission_observation(
+                    lambda *args, **kwargs: self.fail('Consumer started'), Path('/python'), module, receipt, path)
+            self.assertFalse((path / 'submission-observation.json').exists())
+
+    def test_incomplete_or_foreign_result_never_issues_component_receipt(self):
+        for fields in ({'success': False}, {'module_sha256': 'b' * 64}, {'cases': []},
+                       {'cases': ['same'] * 6}, {'fuel_refills': 1}, {'fuel_refills': False},
+                       {'initial_diagnostic_fuel': True}):
+            with self.subTest(fields=fields), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp)
+                module, receipt, observed = self.original(path)
+                with self.assertRaisesRegex(ValueError, 'Incomplete original'):
+                    ci.accept_submission_observation(
+                        lambda *args, **kwargs: json.dumps({**observed, **fields}).encode(),
+                        Path('/python'), module, receipt, path)
+                self.assertFalse((path / 'submission-observation.json').exists())
+
+    def test_original_consumer_failure_is_not_replaced_or_accepted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)
+            module, receipt, _ = self.original(path)
+            original = RuntimeError('original fixture failure')
+            def run(*args, **kwargs):
+                raise original
+            with self.assertRaises(RuntimeError) as caught:
+                ci.accept_submission_observation(run, Path('/python'), module, receipt, path)
+            self.assertIs(caught.exception, original)
+            self.assertFalse((path / 'submission-observation.json').exists())
 
 
 class InstalledAuditTests(unittest.TestCase):

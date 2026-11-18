@@ -3252,7 +3252,19 @@ jobs:
   python-wheels:
     needs: [select-targets, lint, core-js]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.lint.result == 'success' && ((needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') && needs.core-js.result == 'success') || ((needs.select-targets.outputs.profile != 'full' || !contains(fromJSON(needs.select-targets.outputs.targets), 'js')) && needs.core-js.result == 'skipped')) && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
-    runs-on: macos-15
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: darwin-arm64
+            runner: macos-15
+            system: Darwin
+            architecture: arm64
+          - platform: linux-x64
+            runner: ubuntu-24.04
+            system: Linux
+            architecture: x86_64
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -3262,9 +3274,12 @@ jobs:
         with:
           python: 'true'
       - name: Require the supported normal wheel platform
+        env:
+          EXPECTED_SYSTEM: ${{ matrix.system }}
+          EXPECTED_ARCHITECTURE: ${{ matrix.architecture }}
         run: |
-          test "$(uname -s)" = Darwin
-          test "$(uname -m)" = arm64
+          test "$(uname -s)" = "$EXPECTED_SYSTEM"
+          test "$(uname -m)" = "$EXPECTED_ARCHITECTURE"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Build normal wheels and accept fresh installed Python consumers
         id: python-normal-cohort
@@ -3291,7 +3306,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: python-wheel-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          name: python-wheel-acceptance-${{ matrix.platform }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/python-wheel-acceptance/*.json
             ${{ runner.temp }}/python-wheel-acceptance/*.stdout
