@@ -2960,7 +2960,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -4044,7 +4044,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -6566,7 +6566,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
@@ -7844,6 +7844,202 @@
               {
                 "path": "src/run_publication_host/client_recovered_source_command_content_wbtest.mbt",
                 "anchor": "recovered Source candidate refuses copied Request foreign Source changed wire policy and lifetime"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:preparedClientAuthoringContextEvidence/init:preparedClientAuthoringContextEvidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring.mbt",
+                "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('authoring original is retained once on the same Request before Plan and survives current refusal'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
+                "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:preparedClientNormalizationEvidence/init:preparedClientNormalizationEvidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_normalization.mbt",
+                "anchor": "pub fn[I] prepare_request_program_normalization("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "fn[I, P] original_request_plan_construction_quote("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normalization original manager runs once after Program compilation and before Plan borrow or Module'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_normalization_wbtest.mbt",
+                "anchor": "test \"Node normalization bridge retains the same Request original before Plan and reads it afterward\""
               }
             ]
           }
@@ -13097,6 +13293,23 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:preparedClientAuthoringContextEvidence/init:preparedClientAuthoringContextEvidence",
+          "parameters": [
+            "prepared",
+            "original",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:preparedClientNormalizationEvidence/init:preparedClientNormalizationEvidence",
+          "parameters": [
+            "prepared",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
           "parameters": [
             "limits"
@@ -16929,7 +17142,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "8b0381acbd19e89f899a2c09b3279bebf7474d295a0bd71796a6f697930c8652"
+      "sha256": "a74b42f60c896720c4433229d17e0baceee59c2186f92cceab64c1fa72886e39"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -34300,7 +34513,7 @@
       "sha256": "0104106d7e4b7a8c0a6e91aa246f13533e0ef3682cf3faff2b2faa754ede0634",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -35894,7 +36107,7 @@
       "sha256": "6d771c8cb5dd88dc1129fac3791af75d2bd72b47d4a8a397f56c8b5956da7dd2",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
         {
@@ -36132,7 +36345,7 @@
       "sha256": "9c6c294e6755db008c53601f66bd914244c63fa58ff7344d1d5421cab1c9817d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect operation borrow and retained same-Run management controls",
+      "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
       "referenceQualification": "Native reservation and stated callback/lifetime components only; no Account permission, physical ACK or complete normal recipe",
       "exports": [],
       "operations": [
@@ -37638,7 +37851,7 @@
       "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -37926,7 +38139,7 @@
       "module": "src/client_local_host/installed_effect_response_buffer.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -40007,7 +40220,7 @@
       "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
@@ -50041,7 +50254,7 @@
       "sha256": "104a4f3adaa04f682b0db6bd22e2f80e8f61efb14678eff789ee09dae0a31362",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -50137,7 +50350,7 @@
       "sha256": "c2b6127bfff44e9c3f59fd0a2a4f75d8ab1ed8960110ed73289a392949016d1e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -50446,7 +50659,7 @@
       "sha256": "af85920af4da377b630cdbd29a6f6596313fe03015e8c366414a42b9a8ab2d3a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "B \u2014 original prepared schema demand and installed Effect composition",
+      "owner": "B — original prepared schema demand and installed Effect composition",
       "referenceQualification": "Private checked source and focused Local component only; ordinary normal artifact and complete range/clear capacity remain unqualified.",
       "exports": [],
       "operations": [
@@ -53885,7 +54098,7 @@
       "sha256": "6e82ea9e18cd18b70960720c7a33251b57615ea56f1e4b1d522a9eb1f3f7734e",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "B \u2014 existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
+      "owner": "B — existing GitHub native comment constructor inventory; common Resource tariff and Host composition remain separate",
       "referenceQualification": "Source and native constructor component only; not complete Host recipe, physical backing, current normal ABI or provider execution",
       "exports": [],
       "operations": [
@@ -54019,7 +54232,7 @@
       "sha256": "9cd772849b9f235b8a2c428552a230bd9f43465dcfceab8b33454c5136f3bcf2",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -54276,7 +54489,7 @@
       "module": "src/connectors/kintone/catalog/record_create_proposal_json.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -54374,7 +54587,7 @@
       "sha256": "5571360e377fe41196d4ec57d575c594bb21524112c0e6eb653a66208b79e316",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -54742,7 +54955,7 @@
       "sha256": "ef7db00d1a9843778ac6482253b79e688a841b6e4cc06eb66d5941f1e5b6c687",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -55003,7 +55216,7 @@
       "sha256": "d6763398e24b0991ca1546c6293b496a8413bd695d042bb5a0b0bf9c87341ddb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone checked native request emission and exact saved-body restoration",
+      "owner": "D — original Kintone checked native request emission and exact saved-body restoration",
       "referenceQualification": "Native protocol DATA and stated components only; no authenticated saved custody, cold parent, authority or ordinary acceptance",
       "exports": [],
       "operations": [
@@ -55176,7 +55389,7 @@
       "module": "src/connectors/kintone/host/record_create_mapping.mbt",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -55289,7 +55502,7 @@
       "sha256": "3febe944ec46f8234908206fe829a3f5abd9761471f1414326b2709f195bd781",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 original Kintone native protocol constructors and same Request Effect composition",
+      "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
@@ -56677,7 +56890,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 original installed Effect Plan and Model demand correspondence",
+      "owner": "D — original installed Effect Plan and Model demand correspondence",
       "contracts": [
         {
           "operations": [
@@ -57393,7 +57606,7 @@
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 selected Effect response buffer constructor and existing physical occurrence backing",
+      "owner": "D — selected Effect response buffer constructor and existing physical occurrence backing",
       "referenceQualification": "Logical managed buffer quantities and same-extent checks only; no full physical/secret/runtime/backing or ordinary acceptance",
       "exports": [],
       "contracts": [
@@ -60212,7 +60425,7 @@
       "module": "src/connectors_builtin_node/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -60694,6 +60907,10 @@
               {
                 "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
                 "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -60708,6 +60925,10 @@
               {
                 "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
                 "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -60722,6 +60943,10 @@
               {
                 "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
                 "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -60736,6 +60961,10 @@
               {
                 "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
                 "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -60750,6 +60979,10 @@
               {
                 "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
                 "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -60764,6 +60997,10 @@
               {
                 "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
                 "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -60778,6 +61015,10 @@
               {
                 "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
                 "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -60792,6 +61033,10 @@
               {
                 "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
                 "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -60806,6 +61051,10 @@
               {
                 "path": "src/client_local_host/installed_effect_capture_recovery.mbt",
                 "anchor": "pub fn begin_installed_effect_capture_publication("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -60836,6 +61085,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "publication metadata is bounded by its original Read before token-array construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -60851,54 +61104,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -60909,6 +61198,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Node Request bridge also accepts original captured Source Plans."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -60923,54 +61216,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -60985,6 +61314,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -60999,60 +61332,100 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "reserve one aggregate invocation extent"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "first raw compilation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "original-identity checks remain required"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "same parent and input"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Current reentry is fenced"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Failure keeps the original"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "does not acknowledge physical stop"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "variable backing follows"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "does not enable Model, Content or Effect"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "timed invocation backing retains its original compiler"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -61113,6 +61486,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -61127,6 +61504,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -61141,6 +61522,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -61155,6 +61540,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -61169,6 +61558,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -61183,6 +61576,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -61197,6 +61594,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -61211,6 +61612,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -61225,6 +61630,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -61259,6 +61668,10 @@
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
                 "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -61281,60 +61694,100 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -61354,6 +61807,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
                 "anchor": "///|"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -61364,6 +61821,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
                 "anchor": "///|"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -61374,6 +61835,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
                 "anchor": "///|"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -61384,6 +61849,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
                 "anchor": "///|"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -61394,6 +61863,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
                 "anchor": "///|"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -61404,6 +61877,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
                 "anchor": "///|"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -61414,6 +61891,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
                 "anchor": "///|"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -61424,6 +61905,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
                 "anchor": "///|"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -61434,6 +61919,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
                 "anchor": "///|"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -61444,6 +61933,690 @@
               {
                 "path": "src/client_local_host/preparation_request_http_input_js_wbtest.mbt",
                 "anchor": "test \"HTTP native tree refuses a smaller original parent before construction and retains cleanup\""
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_prepare_request_program_authoring_context"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring.mbt",
+                "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('authoring original is retained once on the same Request before Plan and survives current refusal'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
+                "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_prepare_request_program_normalization"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_normalization.mbt",
+                "anchor": "pub fn[I] prepare_request_program_normalization("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "fn[I, P] original_request_plan_construction_quote("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normalization original manager runs once after Program compilation and before Plan borrow or Module'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_normalization_wbtest.mbt",
+                "anchor": "test \"Node normalization bridge retains the same Request original before Plan and reads it afterward\""
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_prepare_request_provider_model_graph"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "Request Node Model Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_js_wbtest.mbt",
+                "anchor": "Request Model configures original installed quantities once before the same Run binding"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"Effect Model Graph grows its same Request before measuring and issuing the original component\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"Effect Model Graph transfers its same component to Scope and clears only the adopted Request alias\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_materials_js_wbtest.mbt",
+                "anchor": "test \"Effect Model material reserves original containers before its only body callback\""
+              },
+              {
+                "path": "adapters/host-node/request-model-material-resources.test.mjs",
+                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_prepared_authoring_context_evidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring.mbt",
+                "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('authoring original is retained once on the same Request before Plan and survives current refusal'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
+                "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_prepared_local_normalization_evidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_normalization.mbt",
+                "anchor": "pub fn[I] prepare_request_program_normalization("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "fn[I, P] original_request_plan_construction_quote("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normalization original manager runs once after Program compilation and before Plan borrow or Module'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_normalization_wbtest.mbt",
+                "anchor": "test \"Node normalization bridge retains the same Request original before Plan and reads it afterward\""
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -61788,6 +62961,10 @@
           "declaration": "client_program_prepare_request_policy_subjects ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , ) - > Result [ Int , @ client_local_host . ClientRequestTerminalIssue ]"
         },
         {
+          "name": "client_program_prepare_request_program_authoring_context",
+          "declaration": "client_program_prepare_request_program_authoring_context ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ publication_host . ClientAuthoringContextPreparation , @ client_local_host . ClientRequestAuthoringIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_program_check",
           "declaration": "client_program_prepare_request_program_check ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , environment : @ program_check . CheckEnvironment , supplied : @ decode . Cursor ? , evidence : Array [ @ context . StageCapacityInput ] , limits : @ program_check . CheckLimits , source_catalog : @ program_check . PreparedSourceCatalog ? , source_preparation : @ stage_parameters . Source ? , ) - > Result [ @ client_local_host . ClientProgramCheckPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
@@ -61802,6 +62979,14 @@
         {
           "name": "client_program_prepare_request_program_module_body",
           "declaration": "client_program_prepare_request_program_module_body ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , source_free_max_work : Int ? , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
+        },
+        {
+          "name": "client_program_prepare_request_program_normalization",
+          "declaration": "client_program_prepare_request_program_normalization ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ publication_host . ClientLocalNormalization , @ client_local_host . ClientRequestNormalizationIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_provider_model_graph",
+          "declaration": "client_program_prepare_request_provider_model_graph ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , admitted : @ model . AdmittedModelProvider , declarations : Array [ @ client_row_source_host . RowDeclaration ] ? , ) - > Result [ @ publication_host . ClientInferPlanGraph , ClientRequestProgramModuleBridgeIssue , ]"
         },
         {
           "name": "client_program_prepare_request_serialization_compilation",
@@ -61824,8 +63009,16 @@
           "declaration": "client_program_prepare_request_submitted_intent ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , captured : NativeJsonValue , ) - > Result [ String , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_prepared_authoring_context_evidence",
+          "declaration": "client_program_prepared_authoring_context_evidence ( prepared : @ publication_host . PreparedClientProgram , original : @ publication_host . ClientAuthoringContextPreparation , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientAuthoringContextIssue , ]"
+        },
+        {
           "name": "client_program_prepared_installed_managed_model_requirements",
           "declaration": "client_program_prepared_installed_managed_model_requirements ( original : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "client_program_prepared_local_normalization_evidence",
+          "declaration": "client_program_prepared_local_normalization_evidence ( prepared : @ publication_host . PreparedClientProgram , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . RunEvidenceValue , @ publication_host . ClientLocalNormalizationIssue , ]"
         },
         {
           "name": "client_program_prepared_request_query_lowering",
@@ -61957,7 +63150,7 @@
         },
         {
           "name": "prepare_request_model_graph_with_file_declarations",
-          "declaration": "prepare_request_model_graph_with_file_declarations ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , keyed_file_declarations : Array [ @ client_row_source_host . RowDeclaration ] ? , ) - > Result [ @ publication_host . ClientInferPlanGraph , ClientRequestProgramModuleBridgeIssue , ]"
+          "declaration": "prepare_request_model_graph_with_file_declarations ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , keyed_file_declarations : Array [ @ client_row_source_host . RowDeclaration ] ? , provider ? : @ model . ModelProvider ?"
         },
         {
           "name": "prepare_request_model_recovery_scopes_original",
@@ -61972,7 +63165,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "fe62d252a6b79007261b9fcf82501b09971dee3a700f41dd05741e70b10f8ebd"
+      "sha256": "3d1ced9d287a06522975129af5c85727adcdf9d822c7f7d88d92a3617d2fbaaf"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -66671,7 +67864,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_create_execution_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "D \u2014 original Kintone proposal wire, native request and standard CREATE declaration projection",
+      "owner": "D — original Kintone proposal wire, native request and standard CREATE declaration projection",
       "referenceQualification": "Protocol DATA and selected native/type components only; no runtime ABI, authority, whole initializer/cold parent or normal acceptance",
       "exports": [],
       "contracts": [
@@ -90463,7 +91656,7 @@
       "module": "src/connectors_builtin_node_rela/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -90916,7 +92109,7 @@
       "module": "src/connectors_builtin_node/client_kintone_update_bridge.mbt",
       "responsibilityFacet": "primary",
       "role": "generated-binding",
-      "owner": "E \u2014 same-original kintone UPDATE Mapping installed Host projection",
+      "owner": "E — same-original kintone UPDATE Mapping installed Host projection",
       "referenceQualification": "Same-runtime synchronous Mapping DATA and selected compiler consumers only; no new current authority, normal Effect or provider outcome",
       "exports": [],
       "contracts": [
@@ -96162,9 +97355,13 @@
     },
     {
       "module": "src/client_local_host/preparation_request_normalization_layout.mbt",
-      "sha256": "5402c422cba94a5bc7ec6f4e71e05f1973b8ab36e55a6238ec2473a39de94204",
+      "sha256": "03029b8160ebcf15a17fd1b1a17ff35d11c730e22725e7a6d62f28da1435f65a",
       "exports": [],
       "operations": [
+        {
+          "name": "request_evidence_publication_extents",
+          "declaration": "request_evidence_publication_extents ( shape : @ encode . EncodingConstructionGeometry , ) - > ( Int64 , Int64 ) ?"
+        },
         {
           "name": "request_normalization_publication_extents",
           "declaration": "request_normalization_publication_extents ( value : @ publication_host . ClientLocalNormalizationConstruction , ) - > ( Int64 , Int64 ) ?"
@@ -96185,60 +97382,216 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "request_evidence_publication_extents"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring.mbt",
+                "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('authoring original is retained once on the same Request before Plan and survives current refusal'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
+                "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -100037,6 +101390,620 @@
           "declaration": "installed_text_bound_views_layout ( graph : @ strategy . CheckedDAG , ) - > ( Int64 , Int64 ) ?"
         }
       ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_authoring.mbt",
+      "sha256": "2d7d0f622bb3fa1484ed35be1b67c276548a49eaad8c3af4cbb3f380983d010e",
+      "operations": [
+        {
+          "name": "[I]finish_request_program_authoring_work",
+          "declaration": "[ I ] finish_request_program_authoring_work ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]grow_request_authoring",
+          "declaration": "[ I ] grow_request_authoring ( input : I , state : ClientRequestProgramAuthoring , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ClientRequestAuthoringIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_program_authoring_context",
+          "declaration": "[ I ] prepare_request_program_authoring_context ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientAuthoringContextPreparation , ClientRequestAuthoringIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_program_authoring_owned",
+          "declaration": "[ I ] prepare_request_program_authoring_owned ( owner : ClientRequestPreparation [ I ] , input : I , state : ClientRequestProgramAuthoring , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , ) - > Result [ @ publication_host . ClientAuthoringContextPreparation , ClientRequestAuthoringIssue , ]"
+        },
+        {
+          "name": "authoring_spend",
+          "declaration": "authoring_spend ( state : ClientRequestProgramAuthoring , units : Int64 , ) - > Result [ Unit , ClientRequestAuthoringIssue ]"
+        },
+        {
+          "name": "request_authoring_targets",
+          "declaration": "request_authoring_targets ( original : ClientRequestProgramAuthoring , retained : Int64 , execution : Int64 , ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common authoring and same Request preparation/resource owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]finish_request_program_authoring_work",
+            "[I]grow_request_authoring",
+            "[I]prepare_request_program_authoring_context",
+            "[I]prepare_request_program_authoring_owned",
+            "authoring_spend",
+            "request_authoring_targets"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring.mbt",
+                "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('authoring original is retained once on the same Request before Plan and survives current refusal'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
+                "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-parent authoring source and focused component boundaries; not normal ABI, current Account/physical cleanup, or Saved acceptance."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_authoring_layout.mbt",
+      "sha256": "9f6e82d8ff89c1ead205659d728f207af07a9127a2fb331de24f3d66ad9ce689",
+      "operations": [
+        {
+          "name": "request_authoring_collection_extents",
+          "declaration": "request_authoring_collection_extents ( value : @ publication_host . ClientAuthoringCollectionGeometry , ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "request_authoring_control_bytes",
+          "declaration": "request_authoring_control_bytes ( ) - > Int64"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common authoring and same Request preparation/resource owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "request_authoring_collection_extents",
+            "request_authoring_control_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring.mbt",
+                "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('authoring original is retained once on the same Request before Plan and survives current refusal'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
+                "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-parent authoring source and focused component boundaries; not normal ABI, current Account/physical cleanup, or Saved acceptance."
+    },
+    {
+      "module": "src/run_publication_host/client_authoring_context.mbt",
+      "sha256": "893a57bdddbc91424ea0fa28d8fbab7c735943b05d4fb959f0d493e6b20bee6a",
+      "operations": [
+        {
+          "name": "client_annotation",
+          "declaration": "client_annotation ( items : Array [ ClientAnnotation ] , node : @ decode . Cursor , kind : String , path : String , name : String ? , ) - > Unit"
+        },
+        {
+          "name": "client_annotation_path",
+          "declaration": "client_annotation_path ( parent : String , key : String , max_bytes : Int , ) - > String raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "client_authoring_original_field",
+          "declaration": "client_authoring_original_field ( node : @ decode . Cursor , key : String , ) - > @ decode . Cursor ?"
+        },
+        {
+          "name": "client_declaration_annotations",
+          "declaration": "client_declaration_annotations ( items : Array [ ClientAnnotation ] , node : @ decode . Cursor , parent : String , field : String , kind : String , max_bytes : Int , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "collect_client_authoring_annotations",
+          "declaration": "collect_client_authoring_annotations ( owner : PreparedClientProgram , max_wire_bytes : Int , ) - > Array [ ClientAnnotation ] raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "emit_client_authoring_context",
+          "declaration": "emit_client_authoring_context ( owner : PreparedClientProgram , items : Array [ ClientAnnotation ] , writer : @ encode . Writer , identity ? : String ?"
+        },
+        {
+          "name": "finish_prepared_client_authoring_context",
+          "declaration": "finish_prepared_client_authoring_context ( original : ClientAuthoringContextPreparation , ) - > Result [ @ publication . RunEvidenceValue , ClientAuthoringContextIssue ]"
+        },
+        {
+          "name": "issue_prepared_client_authoring_context",
+          "declaration": "issue_prepared_client_authoring_context ( owner : PreparedClientProgram , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . RunEvidenceValue , ClientAuthoringContextIssue ]"
+        },
+        {
+          "name": "measure_prepared_client_authoring_context",
+          "declaration": "measure_prepared_client_authoring_context ( original : ClientAuthoringContextPreparation , ) - > Result [ ClientAuthoringContextConstruction , ClientAuthoringContextIssue ]"
+        },
+        {
+          "name": "prepare_client_authoring_context",
+          "declaration": "prepare_client_authoring_context ( owner : PreparedClientProgram , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientAuthoringContextPreparation , ClientAuthoringContextIssue ]"
+        },
+        {
+          "name": "prepared_client_authoring_context_evidence",
+          "declaration": "prepared_client_authoring_context_evidence ( owner : PreparedClientProgram , original : ClientAuthoringContextPreparation , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . RunEvidenceValue , ClientAuthoringContextIssue ]"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common authoring and same Request preparation/resource owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_annotation",
+            "client_annotation_path",
+            "client_authoring_original_field",
+            "client_declaration_annotations",
+            "collect_client_authoring_annotations",
+            "emit_client_authoring_context",
+            "finish_prepared_client_authoring_context",
+            "issue_prepared_client_authoring_context",
+            "measure_prepared_client_authoring_context",
+            "prepare_client_authoring_context",
+            "prepared_client_authoring_context_evidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring.mbt",
+                "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('authoring original is retained once on the same Request before Plan and survives current refusal'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
+                "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-parent authoring source and focused component boundaries; not normal ABI, current Account/physical cleanup, or Saved acceptance."
+    },
+    {
+      "module": "src/run_publication_host/client_authoring_context_collection.mbt",
+      "sha256": "5ee2a160e383dd841852dd7971ca31999fb20b208b0c7f0b779c977f1b8b35c1",
+      "operations": [
+        {
+          "name": "authoring_collection_annotation",
+          "declaration": "authoring_collection_annotation ( node : @ decode . Cursor , stage : Int , field : String , index : Int , name : String ? , state : ClientAuthoringCollectionObserver , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "authoring_collection_charge",
+          "declaration": "authoring_collection_charge ( state : ClientAuthoringCollectionObserver , units : Int64 , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "authoring_collection_declarations",
+          "declaration": "authoring_collection_declarations ( node : @ decode . Cursor , stage : Int , field : String , state : ClientAuthoringCollectionObserver , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "authoring_collection_field",
+          "declaration": "authoring_collection_field ( node : @ decode . Cursor , key : String , state : ClientAuthoringCollectionObserver , ) - > @ decode . Cursor ? raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "authoring_collection_key_units",
+          "declaration": "authoring_collection_key_units ( key : String , state : ClientAuthoringCollectionObserver , ) - > Int64 raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "authoring_index_units",
+          "declaration": "authoring_index_units ( index : Int ) - > Int"
+        },
+        {
+          "name": "observe_client_authoring_collection_geometry",
+          "declaration": "observe_client_authoring_collection_geometry ( owner : PreparedClientProgram , max_work : Int64 , ) - > ( Result [ ClientAuthoringCollectionGeometry , ClientAuthoringContextIssue ] , Int64 , )"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common authoring and same Request preparation/resource owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "authoring_collection_annotation",
+            "authoring_collection_charge",
+            "authoring_collection_declarations",
+            "authoring_collection_field",
+            "authoring_collection_key_units",
+            "authoring_index_units",
+            "observe_client_authoring_collection_geometry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring.mbt",
+                "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('authoring original is retained once on the same Request before Plan and survives current refusal'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
+                "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original same-parent authoring source and focused component boundaries; not normal ABI, current Account/physical cleanup, or Saved acceptance."
     }
   ]
 }

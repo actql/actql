@@ -251,7 +251,12 @@ test "fixed Request control envelope preserves original upper bound through the 
     // The original String constant is borrowed without a second text buffer.
     16L +
     8L * 3L +
-    8L
+    8L +
+    // Original authoring view1H plus the four original proof references.
+    // The selected baseline retains Fragment controls but has no separate
+    // frozen diagnostic pair or query-name projection constructors.
+    16L +
+    8L * 4L
   assert_eq(
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,

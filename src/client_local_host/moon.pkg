@@ -168,6 +168,7 @@ options(
     "preparation_request_snapshot_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_input_js_wbtest.mbt": [ "js" ],
     "preparation_request_parent_js_wbtest.mbt": [ "js" ],
+    "preparation_request_authoring_js_wbtest.mbt": [ "js" ],
     "preparation_request_http_input_js_wbtest.mbt": [ "js" ],
     "preparation_request_result_metadata_js_wbtest.mbt": [ "js" ],
     "preparation_request_result_read_js_wbtest.mbt": [ "js" ],

@@ -15,12 +15,15 @@ for (const kind of ['values','source-free-tasks','acquired-tasks']) {
     const control={prepareCheckedClientCompiledRun(actual){assert.equal(actual,prepared);compiles++;return compiled;},
       defineCheckedClientCompiledRun(actual){assert.equal(actual,compiled);return definition;},
       issueCheckedClientCompiledInvocation(){return {observation:{},invocation:{}};},
-      seal(){return {identity:cid};},sealRunEvidence(){return {};},compiledRunResultTransformation(){return undefined;},
+      seal(){return {identity:cid};},sealRunEvidence(){return {};},
+      preparedClientNormalizationEvidence(actual){assert.strictEqual(actual,prepared);return {};},
+      preparedClientAuthoringContextEvidence(actual, original){assert.strictEqual(actual,prepared);assert.ok(original);return {};},
+      compiledRunResultTransformation(){return undefined;},
       captureOriginalClientRunPlan(actual,original,run,limits){captures++;
         assert.equal(actual,compiled);assert.equal(original,prepared);assert.equal(run,definition);
         assert.deepEqual(limits,{maxWireBytes:1000000,maxNodes:100000,maxDepth:64});return ticket;}};
     const moon={clientProgramPreparedLocalPublicationLimits:()=>Array(22).fill(1),clientProgramValuesMaxRows:()=>100,clientProgramResultCount:()=>1,clientProgramDefinitionCid:()=>cid};
-    const options={moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{}},authorityScopeCid:cid,
+    const options={moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{},authoringContext:{}},authorityScopeCid:cid,
       namespaceId:'local',storeAuthorityCid:cid,now:()=> '2026-10-12T00:00:00.000Z'};
     const make=kind==='values'?sourceFreeValuesPlan:kind==='source-free-tasks'?sourceFreeTaskPlan:acquiredTaskRunAdmission;
     const plan=make(options);assert.equal(sourceFreePlanOriginal(plan),ticket);
@@ -54,11 +57,14 @@ for(const kind of ['values','source-free-tasks','acquired-tasks']){
         return {...definition,wire:options.retainedDefinitionWire??JSON.stringify({
           ...JSON.parse(definition.wire),created_at:options.createdAt,valid_until:options.validUntil})};},
       issueCheckedClientCompiledInvocation(){return {observation:{},invocation:{}};},
-      seal(){return {identity:cid};},sealRunEvidence(){return {};},compiledRunResultTransformation(){return undefined;},
+      seal(){return {identity:cid};},sealRunEvidence(){return {};},
+      preparedClientNormalizationEvidence(actual){assert.strictEqual(actual,prepared);return {};},
+      preparedClientAuthoringContextEvidence(actual, original){assert.strictEqual(actual,prepared);assert.ok(original);return {};},
+      compiledRunResultTransformation(){return undefined;},
       captureOriginalClientRunPlan(){return ticket;},
     };
     const moon={clientProgramPreparedLocalPublicationLimits:()=>Array(22).fill(1),clientProgramValuesMaxRows:()=>100,clientProgramResultCount:()=>1,clientProgramDefinitionCid:()=>cid};
-    const options={moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{}},requestIdentity:request,
+    const options={moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{},authoringContext:{}},requestIdentity:request,
       authorityScopeCid:cid,namespaceId:'local',storeAuthorityCid:cid,
       now:()=>new Date().toISOString()};
     const make=kind==='values'?sourceFreeValuesPlan:kind==='source-free-tasks'?sourceFreeTaskPlan:acquiredTaskRunAdmission;

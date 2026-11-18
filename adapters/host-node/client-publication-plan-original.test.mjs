@@ -11,19 +11,24 @@ function originalGetter(record) {
  let selected;
  function walk(node){if(!node||typeof node!=='object')return;if(node.type==='Property'&&node.key?.name==='managedComputePublicationOriginal')selected=node.value;for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);}}
  walk(ast);assert(selected);
- return new Function('record','clientOperationError',`return function(runtime,prepared)${source.slice(selected.body.start,selected.body.end)}`)(record,code=>Object.assign(new Error(code),{code}));
+ const request={};
+ return new Function('record','clientOperationError','moon','sourceManaged','computeManaged','originals','originalSourceManagedHostRequest',`return function(runtime,prepared)${source.slice(selected.body.start,selected.body.end)}`)(record,code=>Object.assign(new Error(code),{code}), [...record.computeRuns.values()][0].runtime,undefined,undefined,{},()=>request);
 }
 
 test('publication reads the same original before admission and after its move to the live Run',()=>{
  const runtime={},prepared={},original={},live={};
- const run={runtime,prepared,closed:false,preparedSequences:original};
+ const proof={};
+ const run={runtime,prepared,closed:false,preparedSequences:original,manager:{authoringContextOriginal(actual){assert.strictEqual(actual,prepared);return proof;}}};
  const record={computeRuns:new Map([[prepared,run]])},get=originalGetter(record);
- const before=get(runtime,prepared);assert.equal(before.kind,'preparation');assert.strictEqual(before.value,original);
+ const before=get(runtime,prepared);assert.equal(before.kind,'preparation');assert.strictEqual(before.value,original);assert.strictEqual(before.authoringContext,proof);
  run.value=live;run.preparedSequences=undefined;
- const after=get(runtime,prepared);assert.equal(after.kind,'installed_run');assert.strictEqual(after.value,live);
+ const after=get(runtime,prepared);assert.equal(after.kind,'installed_run');assert.strictEqual(after.value,live);assert.strictEqual(after.authoringContext,proof);
  assert.equal(record.computeRuns.size,1);assert.equal(run.preparedSequences,undefined);
  run.closed=true;assert.throws(()=>get(runtime,prepared),{code:'NodeManagedRunRuntimeUnavailable'});
  run.closed=false;assert.throws(()=>get({},prepared),{code:'NodeManagedRunRuntimeUnavailable'});
+ const read=run.manager.authoringContextOriginal;run.manager.authoringContextOriginal=()=>{run.closed=true;return proof;};
+ assert.throws(()=>get(runtime,prepared),{code:'NodeManagedRunRuntimeUnavailable'});
+ run.closed=false;run.manager.authoringContextOriginal=read;
  run.value=undefined;assert.throws(()=>get(runtime,prepared),{code:'NodeManagedRunRuntimeUnavailable'});
  assert.equal(get(runtime,{}),undefined); // No original belongs to an unrelated Program.
 });

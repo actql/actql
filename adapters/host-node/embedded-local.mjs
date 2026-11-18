@@ -8276,15 +8276,27 @@ async function openPreparedInstalledHost(options, initialEntry) {
     },
     managedComputePublicationOriginal(runtime, prepared) {
       const run = record.computeRuns?.get(prepared);
-      if (run === undefined) return undefined; // Explicit non-managed compatibility path.
-      if (run.runtime !== runtime || run.prepared !== prepared || run.closed) {
+      const manager = sourceManaged ?? computeManaged;
+      if (run === undefined && manager === undefined) return undefined; // Explicit non-managed path.
+      if (runtime !== moon || run !== undefined &&
+          (run.runtime !== runtime || run.prepared !== prepared || run.closed || Object.hasOwn(run, 'failure'))) {
         throw clientOperationError('NodeManagedRunRuntimeUnavailable');
       }
       // Before admission, borrow the staged pure preparation. After begin, its
       // canonical owner has moved into the live Core Run. Neither path creates
       // a Run, reruns proof, nor retains a second strong plan cache.
-      if (run.value !== undefined) return Object.freeze({kind: 'installed_run', value: run.value});
-      if (run.preparedSequences !== undefined) return Object.freeze({kind: 'preparation', value: run.preparedSequences});
+      const authoringContext = (run?.manager ?? manager).authoringContextOriginal(prepared,
+        originalSourceManagedHostRequest(originals, prepared));
+      if (record.computeRuns?.get(prepared) !== run || runtime !== moon ||
+          run !== undefined && (run.runtime !== runtime || run.prepared !== prepared ||
+            run.closed || Object.hasOwn(run, 'failure'))) {
+        throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+      }
+      // Model/Content admission can precede its Host Run record. Borrow only
+      // the existing Request proof; no unissued module/Run is manufactured.
+      if (run === undefined) return Object.freeze({authoringContext});
+      if (run.value !== undefined) return Object.freeze({kind: 'installed_run', value: run.value, authoringContext});
+      if (run.preparedSequences !== undefined) return Object.freeze({kind: 'preparation', value: run.preparedSequences, authoringContext});
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     },
     bindManagedComputeRunObservation(prepared, ref) {

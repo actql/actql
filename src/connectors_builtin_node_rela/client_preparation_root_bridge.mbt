@@ -1275,6 +1275,90 @@ pub suberror ClientRequestProgramModuleBridgeIssue {
 }
 
 ///|
+/// Normalize the SAME compiled Request before any Plan borrow. The existing
+/// Core continuation owns admission, retained audit/journal and failed work.
+#export_name("clientProgramPrepareRequestProgramNormalization")
+pub fn client_program_prepare_request_program_normalization(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @publication_host.ClientLocalNormalization,
+  @client_local_host.ClientRequestNormalizationIssue,
+] {
+  @client_local_host.prepare_request_program_normalization(parent, input)
+}
+
+///|
+/// The SAME Request funds and retains original annotations before any Plan
+/// borrow. The returned proof is DATA, not another admission or evidence issuer.
+#export_name("clientProgramPrepareRequestProgramAuthoringContext")
+pub fn client_program_prepare_request_program_authoring_context(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  @publication_host.ClientAuthoringContextPreparation,
+  @client_local_host.ClientRequestAuthoringIssue,
+] {
+  @client_local_host.prepare_request_program_authoring_context(parent, input)
+}
+
+///|
+/// Read the SAME already-issued evidence; preserve original identity and the
+/// caller's complete publication bounds without a wire reparse or reissue.
+#export_name("clientProgramPreparedAuthoringContextEvidence")
+pub fn client_program_prepared_authoring_context_evidence(
+  prepared : @publication_host.PreparedClientProgram,
+  original : @publication_host.ClientAuthoringContextPreparation,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.RunEvidenceValue,
+  @publication_host.ClientAuthoringContextIssue,
+] {
+  @publication_host.prepared_client_authoring_context_evidence(
+    prepared, original, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Read only the original already-issued journal and preserve the caller's
+/// publication bounds. Missing/foreign evidence never issues another journal.
+#export_name("clientProgramPreparedLocalNormalizationEvidence")
+pub fn client_program_prepared_local_normalization_evidence(
+  prepared : @publication_host.PreparedClientProgram,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.RunEvidenceValue,
+  @publication_host.ClientLocalNormalizationIssue,
+] {
+  guard @publication_host.prepared_client_local_normalization_original(prepared)
+    is Some(original) else {
+    return Err(ForeignPreparation)
+  }
+  let result = @publication_host.prepared_client_local_normalization_evidence(
+    prepared, original,
+  )
+  match result {
+    Err(_) => result
+    Ok(evidence) =>
+      if @publication.run_evidence_value_fits(
+          evidence, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        result
+      } else {
+        Err(Evidence(RunEvidenceInvalidWire))
+      }
+  }
+}
+
+///|
 /// Same Request artifact before module construction; existing original-sum
 /// Run issuers consume it without a second compiler or a mode classifier.
 #export_name("clientProgramPrepareRequestProgramCompilation")

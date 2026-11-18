@@ -105595,6 +105595,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -105605,6 +105609,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -105615,6 +105623,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -105625,6 +105637,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -105635,6 +105651,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -105645,6 +105665,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -105655,6 +105679,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -105665,6 +105693,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -105675,6 +105707,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -105685,6 +105721,10 @@
               {
                 "path": "adapters/host-node/request-domain-preparation.test.mjs",
                 "anchor": "Model handoff retains the original Scope before completion"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -106454,6 +106494,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -106480,6 +106528,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -106510,6 +106566,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request lookup within the existing producer owner"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -106540,6 +106604,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request lookup within the existing producer owner"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -106566,6 +106638,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -106592,6 +106672,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -106618,6 +106706,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -106644,6 +106740,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -106670,6 +106774,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -106712,6 +106824,14 @@
               {
                 "path": "adapters/host-node/ordinary-source-producer-lifetime.test.mjs",
                 "anchor": "test('producer request index refuses synchronous Host close during the current callback'"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -109030,6 +109150,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -109040,6 +109164,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -109050,6 +109178,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -109060,6 +109192,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -109070,6 +109206,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -109080,6 +109220,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -109090,6 +109234,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -109100,6 +109248,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -109110,6 +109262,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -109124,6 +109280,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('held request reconstruction retains its actual pending original before funded preparation'"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -109167,6 +109327,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -109197,6 +109361,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -109227,6 +109395,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -109253,6 +109425,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -109279,6 +109455,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -109305,6 +109485,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -109331,6 +109515,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -109361,6 +109549,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -109387,6 +109579,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -109413,6 +109609,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -109756,6 +109956,122 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:authoringContextOriginal/init:authoringContextOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring.mbt",
+                "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('authoring original is retained once on the same Request before Plan and survives current refusal'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
+                "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -110051,6 +110367,14 @@
           "name": "prepareOrdinaryManagedInstallation/view/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
           "parameters": [
             "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:authoringContextOriginal/init:authoringContextOriginal",
+          "parameters": [
+            "prepared",
+            "request"
           ],
           "async": false
         },
@@ -111055,7 +111379,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "db1cfb332b2cd5ae37143211c4cf28d489f7531a55a11c15196c25585b67d814"
+      "sha256": "7d51c7bfb145b0dcb6ee5f5756dd4760ddd5b653c1188d1d1d08588f6eb60183"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -115167,7 +115491,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "bb6bc0dc9d340adad44514751cde95614eacdf6768d83087be8674e6739815c5",
+      "sha256": "ca11da82b62851b98120179fe71c905e0f393bcce533d3f218f8e3fa70bffd07",
       "exports": [
         "assertRequestPreparationControl",
         "beginHttpRequestInput",
@@ -115357,6 +115681,14 @@
               {
                 "path": "src/client_local_host/resource_policy.mbt",
                 "anchor": "pub fn client_local_preparation_initial_limits("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -115387,6 +115719,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -115413,6 +115753,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -115439,6 +115787,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -115465,6 +115821,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -115491,6 +115855,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -115517,6 +115889,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -115543,6 +115923,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -115569,6 +115957,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -115603,6 +115999,14 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "an adopted Effect without retained materials cannot run a new inverse and mismatched Run adoption refuses"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -115871,6 +116275,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -115885,6 +116293,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -115899,6 +116311,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -115913,6 +116329,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -115927,6 +116347,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -115941,6 +116365,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -115955,6 +116383,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -115969,6 +116401,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -115983,6 +116419,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -115997,6 +116437,10 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }

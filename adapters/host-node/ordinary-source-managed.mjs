@@ -458,6 +458,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     if (context !== undefined) {
       const state = {context, original: undefined, admission: undefined, parent: undefined,
         prepared: undefined, holder: undefined, adopting: false,
+        authoringContextOriginal: undefined,
         originalCheckResult: undefined,
         projectOriginalCheck: Object.getOwnPropertyDescriptor(context.runtime,
           'clientProgramProjectRequestCheckOutcome')?.value};
@@ -1204,6 +1205,21 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             state.holder = checked(state.effectBorrowMethods.clientProgramBorrowRequestEffectPlanInput(
               state.parent, producer.receipt));
           } else if (state.compilationKind === 'effect_free') {
+            // Core retains the original audit/journal under this SAME Request.
+            // ProgramCompiled precedes the Plan borrow and optional Facts;
+            // publication later reads this original, never seals an empty copy.
+            const normalize = Object.getOwnPropertyDescriptor(moon,
+              'clientProgramPrepareRequestProgramNormalization')?.value;
+            if (typeof normalize !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+            checked(Reflect.apply(normalize, moon, [state.parent, producer.receipt]));
+            assertPreparingOriginal();
+            const authoring = Object.getOwnPropertyDescriptor(moon,
+              'clientProgramPrepareRequestProgramAuthoringContext')?.value;
+            if (typeof authoring !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+            state.authoringContextOriginal = checked(Reflect.apply(authoring, moon,
+              [state.parent, producer.receipt]));
+            if (state.authoringContextOriginal === undefined) fail('InvalidHostRuntimeResult');
+            assertPreparingOriginal();
             // This first borrow exposes only the SAME checked inventory. An
             // effect-free compiler result is not an ordinary Module witness:
             // INFER and Serialization retain their own construction inputs.
@@ -1638,6 +1654,27 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (run.value === undefined) fail('NodeManagedRunAdmissionUnavailable');
       const original = state.context.runtime.clientProgramInstalledManagedRunCompilationOriginal(run.value, prepared);
       if (original === undefined) fail('NodeManagedRunCompilationUnavailable');
+      return original;
+    },
+    authoringContextOriginal(prepared, request) {
+      current();
+      const run = runs.get(prepared), producer = run?.producer ?? producerForRequest(request);
+      const state = producer?.preparation;
+      if (state === undefined || producer.request !== request || state.prepared !== prepared ||
+          state.compilationKind !== 'effect_free' || state.holder === undefined ||
+          state.preparationFailed || state.authoringContextOriginal === undefined) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const original = state.authoringContextOriginal;
+      resourceRuntime.assertOrdinaryManagedRunCurrent(state.original, producer.receipt);
+      // Current may synchronously retire this same Request. Retain no alias
+      // unless its original state and borrow still own the exact proof.
+      if (closed || closing || producer.preparation !== state || producer.request !== request ||
+          state.prepared !== prepared || state.holder === undefined ||
+          state.authoringContextOriginal !== original || state.preparationFailed ||
+          (run === undefined ? producerForRequest(request) !== producer : runs.get(prepared) !== run)) {
+        fail('ForeignInstalledSourceProducer');
+      }
       return original;
     },
     adoptPreparation(prepared, request, identity, constructInvocation) {
@@ -2199,6 +2236,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       state.prepared = state.snapshot = state.snapshotDocument = state.parametersCursor = undefined;
       state.capturePlan = state.effectPlan = run.operationPlan = run.content = undefined;
       state.effectMaterials = undefined;
+      state.authoringContextOriginal = undefined;
       state.modelProviderBinding = state.modelSourceCoordinates = undefined;
       state.preparationFailure = state.originalCheckResult = state.projectOriginalCheck = undefined;
       state.preparationFailed = false;

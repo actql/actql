@@ -6887,3 +6887,34 @@ or resubmission. This code uses the existing bounded open-string contract, so
 strict published decoders continue to accept it. Rich diagnostic text would need
 its own explicitly compatible or negotiated contract and is not part of this
 wire or this construction inventory.
+
+### Original authoring collection and publication on the same Request
+
+The existing Request enters `prepare_request_program_authoring_context` at
+ProgramCompiled, after normalization and before Plan construction. It keeps the
+same input/Prepared/compiler and baseline working extents. Its first fixed grow
+precedes the controller, work continuation and indexed geometry walk. Actual
+annotations, paths, quoted keys, metadata shape, Array/sort scratch and emitter
+frames then reserve on the same capacity before the retained collector. Two
+bounded measuring writers observe that same collected material; the complete
+measured body/evidence shape uses the existing evidence publication construction
+quote before canonical/sealer/parser/hash allocation. The original empty Writer
+uses its actual zero-node live-key inventory, not the complete-evidence inventory
+whose minimum is one node. Neither a wire maximum nor business `meta` is treated
+as an annotation count or funding original.
+
+Successful finish reconciles scratch only after construction and original work
+return, clearing the heavy vector/Writer while preserving the cached issued
+proof. A failed grow/current/work/emitter retains its same known prefix and
+material for original cleanup; retry returns the same failure. The phase variant
+is appended, while the private order fence places this work after normalization
+and before Plan/publication. Existing direct Effect issuance keeps its previous
+standalone lifetime and does not acquire this retained Request carrier.
+
+The fixed control shape includes the bounded Node pre-Run view and exact same
+proof reference slots. Core adoption clears its temporary continuation alias;
+Node publication borrows the issued original on the existing Task/Run lifetime.
+No second owner, automatic retry, replacement hash, empty evidence fallback or
+physical cleanup acknowledgement follows from successful DATA construction.
+See the Node authoring-context boundary in `check-sdk.md` for current, callback,
+caller-limit and consumed-return fences.

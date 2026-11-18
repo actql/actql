@@ -1119,6 +1119,8 @@ pub fn[I] prepare_request_node_model_source_free_plan(ClientRequestPreparation[I
 
 pub fn[I] prepare_request_original_computation_check(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientProgramPreparationLimits, @run_publication_host.ClientEffectComputationLimits) -> Result[Unit, ClientRequestTerminalIssue]
 
+pub fn[I] prepare_request_program_authoring_context(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientAuthoringContextPreparation, ClientRequestAuthoringIssue]
+
 pub fn[I] prepare_request_program_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @program_check.CheckLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
 
 pub fn[I] prepare_request_program_compilation(ClientRequestPreparation[I], I, ClientInstalledSequenceContracts, manifests~ : @run_publication_host.ClientCompilationManifests, compilation_limits~ : @run_publication_host.ClientPureCompilationLimits, retained_output~ : Bool, provider_factory~ : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> Result[@run_publication_host.ClientRunCompilation, ClientRequestProgramPlanIssue]
@@ -1569,6 +1571,11 @@ pub suberror ClientProgramCheckPreparationIssue {
   RequestPolicySubjects(@program_check.UnitBuildFailure)
 }
 pub impl @debug.Debug for ClientProgramCheckPreparationIssue
+
+pub suberror ClientRequestAuthoringIssue {
+  Preparation(ClientRequestPreparationIssue)
+  Authoring(@run_publication_host.ClientAuthoringContextIssue)
+}
 
 pub suberror ClientRequestNormalizationIssue {
   Preparation(ClientRequestPreparationIssue)

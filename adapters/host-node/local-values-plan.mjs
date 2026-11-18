@@ -217,20 +217,25 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
   observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
   sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
   dataPolicyCid, createdAt, now, resultCount, retainUntil,
-  compiled, preparedProgram, effectCompilation, preparedEffect, moon,
+  compiled, preparedProgram, publicationOriginal, authoringContextOriginal, effectCompilation, preparedEffect, moon,
   modelEvidence = [], outputLimits = localOutputLimits, retentionSelection, originalRetention}) {
   const {availableUntil, deleteBy, metadataDeleteBy} = retentionSelection ?? localRetentionTimes(now, retainUntil);
   const retention = originalRetention ?? issueLocalResultRetention(control, dataPolicyCid,
     {availableUntil, deleteBy, metadataDeleteBy});
-  const normalizationJournal = control.sealRunEvidence(
-    'normalization_journal', JSON.stringify({
+  const normalizationJournal = preparedProgram === undefined
+    // Unselected Effect/legacy material retains its existing separate profile.
+    ? control.sealRunEvidence('normalization_journal', JSON.stringify({
       version: 'actql-normalization-journal/0.1',
       rule_catalog_cid: policyCid('local-normalization'), entries: [],
-    }), limits);
-  const authoringContext = control.sealRunEvidence('authoring_context',
+    }), limits)
+    : control.preparedClientNormalizationEvidence(preparedProgram, limits);
+  const authoringContext = preparedProgram === undefined
+    ? control.sealRunEvidence('authoring_context',
     JSON.stringify({version: 'actql-authoring-context/0.1',
       program_definition_cid: programDefinitionCid,
-      annotations: []}), limits);
+      annotations: []}), limits)
+    : control.preparedClientAuthoringContextEvidence(preparedProgram,
+      publicationOriginal?.authoringContext ?? authoringContextOriginal, limits);
   const plan = Object.freeze({admission, runDefinition, invocation, observation,
     normalizationJournal, authoringContext,
     results: Object.freeze(Array.from({length: resultCount}, (_, index) => {
@@ -934,7 +939,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid,
     namespaceId, storeAuthorityCid, dataPolicyCid, createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled, preparedProgram,
+    compiled, preparedProgram, publicationOriginal,
     // The existing Result owner retains one row index per unsorted row.
     // Consume the common checked Result envelope and publication policy;
     // the adapter does not infer workspace or field bounds from output rows.
@@ -1078,7 +1083,7 @@ export function serializationTaskPublicationPlan({moon, control, preparedProgram
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: observation.data_policy_cid, createdAt: admitted.createdAt, now,
     resultCount: moon.clientProgramResultCount(preparedProgram), outputLimits,
-    compiled: admitted.compiled, preparedProgram});
+    compiled: admitted.compiled, preparedProgram, authoringContextOriginal: admitted.authoringContextOriginal});
   const contentGenerations = Object.freeze([generation]);
   return Object.freeze({...plan,
     receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),
@@ -1110,7 +1115,7 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
       storeAuthorityCid, dataPolicyCid: observation.data_policy_cid,
       createdAt: admitted.createdAt, now,
       resultCount: moon.clientProgramResultCount(preparedProgram),
-      compiled: admitted.compiled, preparedProgram});
+      compiled: admitted.compiled, preparedProgram, authoringContextOriginal: admitted.authoringContextOriginal});
     const contentGenerations = operation.contentGenerations?.();
     const completePlan = contentGenerations === undefined ? plan : Object.freeze({...plan,
       receiptEvidence: Object.freeze({...plan.receiptEvidence, contentGenerations}),
@@ -1123,7 +1128,7 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
 }
 
 function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializationGraph,
-  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity, compilationOriginal, publicationPreparation, invocationOriginal}, kind) {
+  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity, compilationOriginal, publicationPreparation, invocationOriginal, publicationOriginal}, kind) {
   const original = invocationOriginal === undefined ? undefined : checkedOriginalQueryInvocation(
     invocationOriginal, control, preparedProgram, requestIdentity, kind, retainedDefinitionWire);
   const at = original === undefined ? Date.parse(now()) : undefined;
@@ -1153,6 +1158,7 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
     ? bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition)
     : {queryTimePreparation:original.queryTimePreparation,queryTime:original.queryTime};
   const admitted = Object.freeze({...compiled, compiled, runDefinition, createdAt, publicationPreparation, requestIdentity,
+    authoringContextOriginal: publicationOriginal?.authoringContext,
     ...queryTime,
     ...(kind === 'infer' ? {inferGraph} : {}),
     ...(kind === 'serialization' ? {serializationGraph} : {})});
@@ -1176,7 +1182,7 @@ export function sourceFreeTaskPlan(options) {
     inputRelationCids: [], sourceEvidence: [], authorityScopeCid, namespaceId,
     storeAuthorityCid, dataPolicyCid, createdAt: acquired.createdAt, now,
     resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram,
+    compiled: acquired.compiled, preparedProgram, publicationOriginal,
     outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)});
   valuesAdmissions.set(plan, Object.freeze({prepared: acquired.preparedEvidence.wire,
     authorization: acquired.authorization.wire}));
@@ -1216,7 +1222,8 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram,
+    compiled: acquired.compiled, preparedProgram, publicationOriginal,
+    authoringContextOriginal: acquired.authoringContextOriginal,
     ...(publicationOriginal === undefined ? {} : {
       outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
     })});
@@ -1260,7 +1267,8 @@ export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram,
+    compiled: acquired.compiled, preparedProgram, publicationOriginal,
+    authoringContextOriginal: acquired.authoringContextOriginal,
     ...(publicationOriginal === undefined ? {} : {
       outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
     })});
@@ -1301,7 +1309,8 @@ export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram,
+    compiled: acquired.compiled, preparedProgram, publicationOriginal,
+    authoringContextOriginal: acquired.authoringContextOriginal,
     ...(publicationOriginal === undefined ? {} : {
       outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
     })});

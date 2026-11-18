@@ -1819,6 +1819,8 @@ pub fn finish_client_model_read_scope(ClientModelReadScope, ClientCompiledRun, @
 
 pub fn finish_client_node_model_read_state(ClientNodeModelStateWriter, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[String, ClientNodeModelStateIssue]
 
+pub fn finish_prepared_client_authoring_context(ClientAuthoringContextPreparation) -> Result[@run_publication.RunEvidenceValue, ClientAuthoringContextIssue]
+
 pub fn finish_prepared_client_local_normalization(ClientLocalNormalizationPreparation) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue]
 
 pub fn grow_client_model_read_preparation_consumer_capacity(ClientModelReadPreparation, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
@@ -2153,6 +2155,8 @@ pub fn measure_client_structural_explanation_facts(ClientStructuralExplanationOr
 
 pub fn measure_installed_client_composed_infer_graph_construction(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int, serialization? : ClientSerializationPlanGraph?, keyed_native_read? : (ClientKeyedAcquisition, @run_publication.PublicationContract)?) -> Result[ClientInferGraphConstruction, ClientInferPlanGraphIssue]
 
+pub fn measure_prepared_client_authoring_context(ClientAuthoringContextPreparation) -> Result[ClientAuthoringContextConstruction, ClientAuthoringContextIssue]
+
 pub fn measure_prepared_client_effect_compilation_construction(ClientEffectCompilationConstructionInput, ClientCompilationManifests, @lowering_relation.SequenceLimits, ClientPureCompilationLimits) -> Result[ClientEffectCompilationConstruction, ClientValuesExecutablePlanIssue]
 
 pub fn measure_prepared_client_execution_material(PreparedClientProgram, ClientCompilationManifests, Int, Int, Int) -> Result[(Int, Int, Int), ClientExecutionMaterialIssue]
@@ -2186,6 +2190,8 @@ pub fn measure_prepared_client_values_fragment(PreparedClientProgram, Int, @lowe
 pub fn measure_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[(Int, Int, Int), ClientValuesPipelineIssue]
 
 pub fn normalize_client_project_model_task(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, ClientModelProviderDefaults, @check_environment.ModelTaskLimits) -> Result[@check_environment.NormalizedPublicModelTask, @check_environment.ModelTaskIssue]
+
+pub fn observe_client_authoring_collection_geometry(PreparedClientProgram, Int64) -> (Result[ClientAuthoringCollectionGeometry, ClientAuthoringContextIssue], Int64)
 
 pub fn observe_client_keyed_request_attempt(ClientKeyedRequest, Int64, Int64) -> Result[Unit, ClientKeyedRequestIssue]
 
@@ -2242,6 +2248,8 @@ pub fn prepare_captured_result_publication_export(@physical_strategy_host.Captur
 pub fn prepare_checked_client_effect_computation(@program_check.EffectComputationCandidate, ClientEffectComputationLimits, update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
 
 pub fn prepare_checked_effect_free_client_program(@program_check.CheckedProgram, @lowering_relation.Limits, max_parameters~ : Int, max_parameter_name_bytes~ : Int, max_tasks~ : Int, max_graph_work~ : Int, values_max_rows? : Int?) -> Result[PreparedClientProgram, ClientProgramPreparationIssue]
+
+pub fn prepare_client_authoring_context(PreparedClientProgram, Int, Int, Int) -> Result[ClientAuthoringContextPreparation, ClientAuthoringContextIssue]
 
 pub fn prepare_client_cancellation_identity(String, String, String, @run_publication.PublicationContract, Int) -> Result[ClientCancellationIdentity, ClientCancellationIdentityIssue]
 
@@ -2484,6 +2492,8 @@ pub fn prepared_client_acquired_infer_step(PreparedClientProgram) -> Int?
 pub fn prepared_client_acquisition_count(PreparedClientProgram) -> Int
 
 pub fn prepared_client_artifact_limits(PreparedClientProgram) -> (Int, Int, Int)
+
+pub fn prepared_client_authoring_context_evidence(PreparedClientProgram, ClientAuthoringContextPreparation, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientAuthoringContextIssue]
 
 pub fn prepared_client_captured_task_source_matches(PreparedClientProgram, @execution_query.CapturedInputSource, Int) -> Bool
 
@@ -2915,10 +2925,29 @@ pub(all) enum ClientAllowedRunEvidenceIssue {
   Authorization(@run_publication.RunEvidenceValueIssue)
 }
 
+pub(all) struct ClientAuthoringCollectionGeometry {
+  items : Int
+  path_utf16 : Int64
+  max_path_utf16 : Int
+  max_quoted_key_bytes : Int
+  meta_nodes : Int
+  meta_fields : Int
+  source_depth : Int
+  work : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientAuthoringContextConstruction {
+  body : @encode_core.EncodingConstructionGeometry
+  complete : @encode_core.EncodingConstructionGeometry
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ClientAuthoringContextIssue {
   Encoding
+  ForeignOriginal
   Evidence(@run_publication.RunEvidenceValueIssue)
 }
+
+type ClientAuthoringContextPreparation
 
 pub(all) enum ClientBoundTemplateIssue {
   ValuesGraph(ClientValuesPlanGraphIssue)

@@ -63,6 +63,7 @@ pub fn[I] begin_request_capture_managed_run(
     Ok(run) => {
       owner.program_capacity = None
       owner.program_normalization = None
+      owner.program_authoring = None
       owner.compiled_program = None
       owner.program_data = None
       owner.program_plan_quote = None

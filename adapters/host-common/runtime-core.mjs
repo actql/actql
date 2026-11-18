@@ -2427,6 +2427,19 @@ function publicationControl(moon) {
         retained.maxNodes <= required.maxNodes &&
         retained.maxDepth <= required.maxDepth ? original : undefined;
     },
+    preparedClientNormalizationEvidence(prepared, limits) {
+      issuanceLimits(limits, 'Run evidence');
+      // The same original already owns its measured journal. No Source read,
+      // wire admission or fresh normalization occurs at publication time.
+      return inspectEvidence(checked(moon.clientProgramPreparedLocalNormalizationEvidence(
+        prepared, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
+    },
+    preparedClientAuthoringContextEvidence(prepared, original, limits) {
+      issuanceLimits(limits, 'Run evidence');
+      if (original === undefined) throw new TypeError('OriginalClientAuthoringContextRequired');
+      return inspectEvidence(checked(moon.clientProgramPreparedAuthoringContextEvidence(
+        prepared, original, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
+    },
     sealRunEvidence(name, bodyWire, limits) {
       issuanceLimits(limits, 'Run evidence');
       return inspectEvidence(checked(moon.strategyRunEvidenceSeal(

@@ -23843,6 +23843,202 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:preparedClientAuthoringContextEvidence/init:preparedClientAuthoringContextEvidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring.mbt",
+                "anchor": "pub fn[I] prepare_request_program_authoring_context("
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original authoring collection and publication on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('authoring original is retained once on the same Request before Plan and survives current refusal'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_authoring_wbtest.mbt",
+                "anchor": "test \"Node authoring bridge and imported Runtime read the same issued Request original without reissue\""
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:preparedClientNormalizationEvidence/init:preparedClientNormalizationEvidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_normalization.mbt",
+                "anchor": "pub fn[I] prepare_request_program_normalization("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "fn[I, P] original_request_plan_construction_quote("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normalization original manager runs once after Program compilation and before Plan borrow or Module'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_normalization_wbtest.mbt",
+                "anchor": "test \"Node normalization bridge retains the same Request original before Plan and reads it afterward\""
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -29093,6 +29289,23 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:preparedClientAuthoringContextEvidence/init:preparedClientAuthoringContextEvidence",
+          "parameters": [
+            "prepared",
+            "original",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:preparedClientNormalizationEvidence/init:preparedClientNormalizationEvidence",
+          "parameters": [
+            "prepared",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
           "parameters": [
             "limits"
@@ -32925,7 +33138,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "8b0381acbd19e89f899a2c09b3279bebf7474d295a0bd71796a6f697930c8652"
+      "sha256": "a74b42f60c896720c4433229d17e0baceee59c2186f92cceab64c1fa72886e39"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -48698,6 +48911,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -48732,6 +48949,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -48766,6 +48987,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -48800,6 +49025,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -48834,6 +49063,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -48868,6 +49101,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -48902,6 +49139,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -48936,6 +49177,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -48970,6 +49215,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -49004,6 +49253,10 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Host unadopted Model Scope cleanup fences"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -64934,7 +65187,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "e3e281008cd675a165c6f0133377a853e4ebf29b235aba6abed246f6fd21f5f7"
+      "sha256": "1b896970164fac91b97f6b0b0b1ba79c13bc8af7f1d89de2c95684b932b25dff"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -97015,7 +97268,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0ca0ab8e0365fae74702ca3d315b030867aa17daf18765969a451d3c31361d09",
+      "sha256": "f448684b0d90634530a653ea75c37612c3e0c69581f0014ad711ae072be53b80",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -98448,6 +98701,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -98458,6 +98715,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -98468,6 +98729,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -98478,6 +98743,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -98488,6 +98757,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -98498,6 +98771,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -98508,6 +98785,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -98518,6 +98799,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -98528,6 +98813,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -98542,6 +98831,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -98821,6 +99114,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -98831,6 +99128,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -98841,6 +99142,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -98851,6 +99156,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -98861,6 +99170,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -98871,6 +99184,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -98881,6 +99198,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -98891,6 +99212,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -98901,6 +99226,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -98915,6 +99244,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -98935,6 +99268,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -98945,6 +99282,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -98955,6 +99296,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -98965,6 +99310,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -98975,6 +99324,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -98985,6 +99338,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -98995,6 +99352,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -99005,6 +99366,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -99015,6 +99380,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -99029,6 +99398,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -99231,6 +99604,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -99241,6 +99622,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -99251,6 +99640,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -99261,6 +99658,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -99271,6 +99676,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -99281,6 +99694,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -99291,6 +99712,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -99301,6 +99730,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -99311,6 +99748,14 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -99325,6 +99770,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization in the Node publication path"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -99835,6 +100288,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -99845,6 +100302,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -99855,6 +100316,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -99865,6 +100330,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -99875,6 +100344,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -99885,6 +100358,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -99895,6 +100372,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -99905,6 +100386,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -99915,6 +100400,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -99929,6 +100418,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -100881,6 +101374,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -100891,6 +101388,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -100901,6 +101402,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -100911,6 +101416,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -100921,6 +101430,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -100931,6 +101444,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -100941,6 +101458,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -100951,6 +101472,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -100961,6 +101486,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -100975,6 +101504,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -101778,6 +102311,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -101788,6 +102325,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -101798,6 +102339,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -101808,6 +102353,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -101818,6 +102367,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -101828,6 +102381,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -101838,6 +102395,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -101848,6 +102409,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -101858,6 +102423,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -101872,6 +102441,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
@@ -102006,6 +102579,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "inputsOutputs": [
@@ -102016,6 +102593,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "identity": [
@@ -102026,6 +102607,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "ownership": [
@@ -102036,6 +102621,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "synchronization": [
@@ -102046,6 +102635,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "failure": [
@@ -102056,6 +102649,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "cancellation": [
@@ -102066,6 +102663,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "resources": [
@@ -102076,6 +102677,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "extension": [
@@ -102086,6 +102691,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ],
             "verification": [
@@ -102100,6 +102709,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
               }
             ]
           }
