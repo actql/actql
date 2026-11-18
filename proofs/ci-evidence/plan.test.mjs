@@ -46,8 +46,10 @@ function fixture() {
     resolveBaseline: async request => {
       assert.equal(request.testedSha, current);
       assert(request.requiredJobs.includes('check'));
+      // Authenticate hosted job names. The first ordinary job also executes
+      // the original Source profile; it does not issue another hosted job.
       assert.deepEqual(request.requiredJobs.filter(name => name.startsWith('core (native ')).sort(),
-        ['core (native 1/2)', 'core (native 2/2)', 'core (native source)',
+        ['core (native 1/2)', 'core (native 2/2)',
           'core (native scoped-runtime)', 'core (native scoped-review)'].sort());
       return state.checkpoint;
     },
