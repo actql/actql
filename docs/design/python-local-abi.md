@@ -4125,7 +4125,7 @@ The unchanged logical bound is 262144 bytes and each physical row is bounded at
 131072 bytes. Raw UTF8 bytes, including decomposed text and line endings, remain
 the SHA256 preimage; neither normalization nor another CID domain is introduced.
 
-Within that one fresh read, the reader encodes the assembled wire once, computes
+For full validation within one fresh read, the reader encodes the assembled wire once, computes
 its CID once and constructs the canonical chunks from that same byte vector.
 Its private result passes those already checked chunks to the enclosing complete
 inventory instead of reconstructing them. A later reader starts again from its
@@ -4142,3 +4142,39 @@ no input limit, fuel, execution quantum or admitted capacity is increased. The
 original before-construction callbacks and physical current fences still run,
 and constructor refusal prevents subsequent material reads. Public signatures,
 wire bodies, error precedence and cleanup obligations are unchanged.
+
+
+### Same Run task-material original
+
+The original material capture keeps exactly one record with its existing five
+fields: Plan, wire, CID, canonical chunks and publication-policy originals.
+The shared codec owns that same generic record; Local Run uses a type alias,
+without a wrapper, new Run field, retained callback or second cache. Its original
+material/Run purposes, constructor backing and cleanup lifetime remain the same.
+The synchronous policy callback runs after the original extent, hash and chunk
+checks and is never retained. This move adds no resident record or reference
+slots to the original shape and increases no capacity, input bound or fuel.
+
+The generic codec records pure wire correspondence only. Its owner parameter
+does not certify arbitrary Plan/wire DATA. The Local Run capture still generates
+the wire from its exact admitted Plan, and every existing Plan/preparation,
+policy, submitted-row and reference relationship check remains mandatory.
+The Wasm caller selects only its same Run's produced, non-closing kind-6 material
+through the existing nominal rows and preparation checks. Closing or missing
+material cannot provide an earlier successful original.
+
+Every valid reobservation still performs all four fresh physical chunk reads,
+including their original current/error callbacks. It checks each key, revision,
+extent and UTF8 body, and compares the full assembled wire, CID and ordered chunk
+layout to that original. Only a complete match skips another hash and canonical
+chunk reconstruction. Changed, foreign or absent originals fall through the
+same full validator; they do not replace or renew the captured value. Complete
+inventories, cancellation inspection, resource constructors and subsequent
+relation checks still execute. An exact match is never cached inventory,
+authorization, currentness or physical cleanup acknowledgement.
+
+The checked chunk array stays private to the Common reader/inventory call.
+Public chunk projection retains its original copy behavior. No borrowed memory
+or original escapes its existing synchronous owner. Existing material child
+checks and Run cleanup still control retirement and input-borrow return; a
+pure material match neither starts execution nor closes a trapped instance.

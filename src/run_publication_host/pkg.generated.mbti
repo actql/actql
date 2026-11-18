@@ -343,6 +343,8 @@ pub fn capture_client_structural_explanation_original(ClientCompiledRun, Prepare
 
 pub fn capture_client_structural_explanation_plan_original(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[(ClientStructuralExplanationOriginal, String), ClientExplanationFactsIssue]
 
+pub fn[Plan, E] capture_client_task_materials_original(Plan, String, String, () -> Result[String, E], (ClientJournalEncodingIssue) -> E) -> Result[ClientTaskMaterialsOriginal[Plan], E]
+
 pub fn captured_client_result_transformation_matches_run(CapturedClientResultTransformation, @physical_strategy_host.CapturedDAG) -> Bool
 
 pub fn captured_client_result_transformation_retained(CapturedClientResultTransformation) -> Bool
@@ -1699,6 +1701,14 @@ pub fn client_task_material_original_chunks(String, String) -> Result[Array[(Str
 
 pub fn client_task_material_original_cid(String) -> Result[String, ClientJournalEncodingIssue]
 
+pub fn[Plan] client_task_materials_original_chunks(ClientTaskMaterialsOriginal[Plan]) -> Array[(String, String)]
+
+pub fn[Plan] client_task_materials_original_cid(ClientTaskMaterialsOriginal[Plan]) -> String
+
+pub fn[Plan] client_task_materials_original_plan(ClientTaskMaterialsOriginal[Plan]) -> Plan
+
+pub fn[Plan] client_task_materials_original_policy(ClientTaskMaterialsOriginal[Plan]) -> String
+
 pub fn client_task_operation_explanation(PreparedClientProgram, ClientTaskCompilation, Int, Int) -> Result[ClientOperationExplanation, ClientInteractivePlanIssue]
 
 pub fn client_task_plan_graph_wire(ClientTaskPlanGraph) -> String
@@ -1884,6 +1894,8 @@ pub fn inspect_client_remote_effect_task_progress(ClientEffectAllowedRun, @run_p
 pub fn inspect_client_remote_task_progress(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue]
 
 pub fn[E] inspect_client_run_journal_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E) -> Result[(Int, Int64), E]
+
+pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E, ClientTaskMaterialsOriginal[Plan]?) -> Result[(Int, Int64), E]
 
 pub fn inspect_client_run_materials_execution_family(String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientProgramPreparationLimits) -> Result[ClientRunExecutionFamily, ClientValuesRunMaterialsIssue]
 
@@ -2703,7 +2715,11 @@ pub fn[E] read_client_saved_run_reference(String, String, String, (String, Strin
 
 pub fn[E] read_client_saved_submission(ClientSubmissionReferenceRecord, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E, before_construction? : ((ClientSubmittedJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[ClientSavedSubmissionSnapshot?, E]
 
+pub fn[Plan, E] read_client_saved_submission_with_task_original(ClientSubmissionReferenceRecord, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E, ClientTaskMaterialsOriginal[Plan]?, before_construction? : ((ClientSubmittedJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[ClientSavedSubmissionSnapshot?, E]
+
 pub fn[E] read_client_task_material_original(String, String, (String, String) -> Result[ClientJournalPhysicalRow?, E], E) -> Result[String, E]
+
+pub fn[Plan, E] read_client_task_material_with_original(String, String, (String, String) -> Result[ClientJournalPhysicalRow?, E], E, ClientTaskMaterialsOriginal[Plan]?) -> Result[String, E]
 
 pub fn read_client_worker_resource_original(Bytes) -> Result[@physical_resources.UnresolvedBackedExecutionOriginal, ClientLocalOriginalCodecIssue]
 
@@ -5709,6 +5725,14 @@ pub struct ClientTaskFragmentNode {
   logical_cid : String
   output_contract_cid : String
   output_carrier : String
+}
+
+pub struct ClientTaskMaterialsOriginal[Plan] {
+  plan : Plan
+  wire : String
+  cid : String
+  chunks : Array[(String, String)]
+  publication_policy_originals : String
 }
 
 pub(all) enum ClientTaskOutputSchemaIssue {

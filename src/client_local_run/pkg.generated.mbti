@@ -30,7 +30,7 @@ pub fn authorize_local_native_source(LocalNativeSourceConfiguration, @execution_
 
 pub fn bind_local_compute_start(LocalComputeHost, LocalRunPhysicalStart) -> Result[LocalComputeStart, LocalComputeIssue]
 
-pub fn capture_local_run_task_materials_original(LocalRunPlan, @program_check.CheckEnvironment, String, String?) -> Result[LocalRunTaskMaterialsOriginal, LocalRunIssue]
+pub fn capture_local_run_task_materials_original(LocalRunPlan, @program_check.CheckEnvironment, String, String?) -> Result[@run_publication_host.ClientTaskMaterialsOriginal[LocalRunPlan], LocalRunIssue]
 
 pub fn check_local_publication_preflight(LocalPublicationIntent, LocalRunInvocation, @execution_authorization.AdmittedAccountConfiguration, Array[@run_publication.PublicationContract]) -> Result[LocalPublicationPreflight, LocalPublicationIntentIssue]
 
@@ -128,11 +128,11 @@ pub fn[Store, E] local_run_publication_binding_rows(LocalRunPublicationBindingSt
 
 pub fn local_run_request(LocalRunPlan) -> @run_publication_host.ClientRequestIdentity
 
-pub fn local_run_task_materials_original_chunks(LocalRunTaskMaterialsOriginal) -> Array[(String, String)]
+pub fn local_run_task_materials_original_chunks(@run_publication_host.ClientTaskMaterialsOriginal[LocalRunPlan]) -> Array[(String, String)]
 
-pub fn local_run_task_materials_original_cid(LocalRunTaskMaterialsOriginal) -> String
+pub fn local_run_task_materials_original_cid(@run_publication_host.ClientTaskMaterialsOriginal[LocalRunPlan]) -> String
 
-pub fn local_run_task_materials_original_policy(LocalRunTaskMaterialsOriginal) -> String
+pub fn local_run_task_materials_original_policy(@run_publication_host.ClientTaskMaterialsOriginal[LocalRunPlan]) -> String
 
 pub fn local_saved_submission_admission_wire(LocalSavedSubmissionObservation, LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[String, @run_publication_host.ClientSavedSubmissionViewIssue]
 
@@ -170,7 +170,7 @@ pub fn local_source_publication_logical(LocalSourcePublication) -> @run_publicat
 
 pub fn local_submitted_run_rows(LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[(String, String, Bytes, Bytes, Bytes), LocalSubmittedRunRowsIssue]
 
-pub fn local_submitted_run_task_materials(LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[LocalRunTaskMaterialsOriginal?, LocalSubmittedRunRowsIssue]
+pub fn local_submitted_run_task_materials(LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[@run_publication_host.ClientTaskMaterialsOriginal[LocalRunPlan]?, LocalSubmittedRunRowsIssue]
 
 pub fn[E] observe_local_sdk_read_delivery_for_source(LocalSDKReadSource, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[LocalSDKReadDeliveryObservation, LocalSDKReadDeliveryObservationIssue[E]]
 
@@ -226,7 +226,7 @@ pub fn[E] prepare_local_sdk_read_payload_codecs(LocalPublicationPreflight, @exec
 
 pub fn[E] prepare_local_sdk_read_payload_codecs_for_source(LocalSDKReadSource, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, LocalSDKReadDeliveryPreparation, String, String, String, String, Int, Int, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[(@run_publication.DurableResultRowFrames, @run_publication.ResultDeliverySerializer), LocalSDKReadPayloadCodecIssue[E]]
 
-pub fn prepare_local_sdk_submitted_run_rows(LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, @run_publication_host.ClientSubmissionReferenceRecord, Bytes, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, Double, @run_publication_host.ClientLocalRunPolicyOriginal, task_materials? : LocalRunTaskMaterialsOriginal?) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue]
+pub fn prepare_local_sdk_submitted_run_rows(LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation, @run_publication_host.ClientSubmissionReferenceRecord, Bytes, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, Double, @run_publication_host.ClientLocalRunPolicyOriginal, task_materials? : @run_publication_host.ClientTaskMaterialsOriginal[LocalRunPlan]?) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue]
 
 pub fn prepare_local_source_publication(LocalNativeSourceConfiguration, LocalComputeHost, @host.NativeHostSourceCapture, @execution_authorization.AdmittedAccountConfiguration, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[LocalSourcePublicationPreparation, LocalSourcePublicationIssue]
 
@@ -512,14 +512,6 @@ pub enum LocalRunPublicationRows {
   Saved(@run_publication_host.ClientSavedSubmissionSnapshot)
 }
 
-pub struct LocalRunTaskMaterialsOriginal {
-  plan : LocalRunPlan
-  wire : String
-  cid : String
-  chunks : Array[(String, String)]
-  publication_policy_originals : String
-}
-
 type LocalSDKDeliveryTerminal
 pub fn[E] LocalSDKDeliveryTerminal::observe_for_source(Self, LocalSDKReadSource, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[Unit, LocalSDKDeliveryTerminalIssue[E]]
 pub fn[E] LocalSDKDeliveryTerminal::observe_from_store(Self, LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[Unit, LocalSDKDeliveryTerminalIssue[E]]
@@ -689,7 +681,7 @@ pub struct LocalSubmittedRunRows {
   submitted : Bytes
   local_policy_original : String?
   observation_originals : String?
-  task_materials : LocalRunTaskMaterialsOriginal?
+  task_materials : @run_publication_host.ClientTaskMaterialsOriginal[LocalRunPlan]?
 }
 
 pub(all) enum LocalSubmittedRunRowsIssue {
@@ -704,5 +696,6 @@ pub(all) enum LocalSubmittedRunRowsIssue {
 }
 
 // Type aliases
+pub type LocalRunTaskMaterialsOriginal = @run_publication_host.ClientTaskMaterialsOriginal[LocalRunPlan]
 
 // Traits
