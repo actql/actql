@@ -2498,6 +2498,7 @@ jobs:
             ${{ runner.temp }}/native-cli-installed/artifact/artifact.json
             ${{ runner.temp }}/native-cli-installed/release/release.json
             ${{ runner.temp }}/native-cli-installed/release/installed-ci.json
+            ${{ runner.temp }}/native-cli-installed/release/actql-*.tgz
           if-no-files-found: warn
           retention-days: 14
   # Separate positive Local cohort; the Remote/no-runtime regression is independent.
