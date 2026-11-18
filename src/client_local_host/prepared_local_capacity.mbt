@@ -1,5 +1,5 @@
 ///|
-/// The same per-task envelopes offered by the retained Local module. Existing
+/// The managed per-task envelopes of the retained original Local module. Existing
 /// predecessor reservations can remain live with accepted borrowers, so these
 /// complete envelopes coexist until their original retirement, not merely
 /// until a task reports a result. No factory or sequence is reconstructed.
@@ -12,7 +12,7 @@ fn client_prepared_local_configuration_capacity(
   let mut retained = 0L
   let mut executing = 0L
   for task in first..<@strategy.graph_task_count(graph) {
-    guard @local_driver.local_dispatch_preparation_task_capacity(
+    guard @local_driver.local_dispatch_preparation_managed_task_capacity(
         original.dispatch,
         task,
       )
