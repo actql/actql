@@ -25083,7 +25083,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "da08eb1a3f44df24927c55d1a822e7a8472264ec8acf0b6a52f9fbcdefa987ce",
+      "sha256": "120193ea3520c00661cf3fbd9466432df1258478146dcd9ebb919ed77ccffa22",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -25672,6 +25672,10 @@
               {
                 "path": "adapters/local-node/carrier-snapshot.test.mjs",
                 "anchor": "retains export custody until the actual seal promise settles"
+              },
+              {
+                "path": "adapters/local-node/finalization-diagnostic.test.mjs",
+                "anchor": "test('finalization diagnostic never projects a foreign checker error from Ok or malformed DATA'"
               }
             ]
           }
@@ -55397,7 +55401,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "12f4862242cc5ff6b4121bc8d37b65a9aa86405253b9c17f8f1f1ce26d143e62",
+      "sha256": "5392250ec9a681c38aa29d8d6e3094f52b26efb153d0930513264194ad2315c2",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -55452,11 +55456,15 @@
         },
         {
           "name": "[T]start_local_managed_dispatch",
-          "declaration": "[ T ] start_local_managed_dispatch ( setup : LocalManagedDispatchConfiguration [ T ] , ) - > Result [ LocalManagedDispatchOperations [ T ] , LocalDispatchIssue ]"
+          "declaration": "[ T ] start_local_managed_dispatch ( setup : LocalManagedDispatchConfiguration [ T ] , retained_relation ? : Bool"
         },
         {
           "name": "bind_physical_operation_input",
           "declaration": "bind_physical_operation_input ( run : @ strategy . CapturedDAG , index : Int , binding : @ execution . ManagedInputBinding , ) - > @ execution . ManagedInputBinding ?"
+        },
+        {
+          "name": "local_managed_finalization_diagnostic_control_capacity",
+          "declaration": "local_managed_finalization_diagnostic_control_capacity ( ) - > Int64 ?"
         },
         {
           "name": "local_managed_import_next_extent",
@@ -55488,7 +55496,7 @@
         },
         {
           "name": "start_local_managed_dispatch_node",
-          "declaration": "start_local_managed_dispatch_node ( setup : LocalManagedDispatchConfiguration [ Int ] , ) - > Result [ LocalManagedDispatchOperations [ Int ] , LocalDispatchIssue ]"
+          "declaration": "start_local_managed_dispatch_node ( setup : LocalManagedDispatchConfiguration [ Int ] , retained_relation ? : Bool"
         }
       ],
       "exports": [],
@@ -55515,7 +55523,8 @@
             "local_managed_snapshot_reload_extent",
             "local_relation_snapshot_reload_capacity",
             "managed_row_transfer_bytes",
-            "start_local_managed_dispatch_node"
+            "start_local_managed_dispatch_node",
+            "local_managed_finalization_diagnostic_control_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -56109,6 +56118,10 @@
               {
                 "path": "adapters/local-node/carrier-snapshot.test.mjs",
                 "anchor": "retains export custody until the actual seal promise settles"
+              },
+              {
+                "path": "src/connectors/local/driver/managed_import_scalar_overlap_wbtest.mbt",
+                "anchor": "test \"finalization diagnostic retains original module and task slots before the adapter call\""
               }
             ]
           }
@@ -92719,7 +92732,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "99294867696772295548d2bf173ce6fa78f33173f001205f264c7a86c714a9fd",
+      "sha256": "bcb236882c2f6ab0a8c48828ee5aced50ca791f9f731900ec64dc64e27445050",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -92851,6 +92864,10 @@
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.test.mjs",
                 "anchor": "test('managed failure snapshot preserves original diagnostic through the existing owned primary wrapper only'"
+              },
+              {
+                "path": "adapters/local-node/finalization-diagnostic.test.mjs",
+                "anchor": "test('finalization diagnostic never projects a foreign checker error from Ok or malformed DATA'"
               }
             ]
           }

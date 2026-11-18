@@ -1,3 +1,4 @@
+import {runtimeFailure} from '../host-common/compiler-binding.generated.mjs';
 import {dispatchFailureSnapshot as snapshot, publicBudgetFailureMessage as publicBudgetMessage, retainedBudgetFailureMessage as retainedBudgetMessage} from '../host-node/client-dispatch-diagnostic.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -11,7 +12,7 @@ const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 
 test('managed advance resource diagnosis comes only from the original typed projector', () => {
   for (const dimension of ['retained_bytes', 'execution_bytes', undefined, 'memory', 5]) {
-    const result = {}, primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
+    const result = runtimeFailure({}), primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
     const moon = {strategyModule_local_ManagedAdvanceResourceDimension(value) {
       assert.equal(this, moon); assert.equal(value, result); return dimension;
     }};
@@ -52,7 +53,7 @@ test('the existing Site failure wrapper preserves original resource DATA without
 });
 
 test('managed advance keeps the exact checked result receiver primary and cleanup while adding closed DATA', () => {
-  const result = {}, cleanupHandle = {};
+  const result = runtimeFailure({}), cleanupHandle = {};
   const primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure', cleanupHandle});
   let projects = 0, checks = 0;
   const moon = {strategyModule_local_ManagedAdvanceControlWorkLimit(value) {
@@ -79,13 +80,13 @@ test('managed advance refuses unclassified physical row workspace and foreign di
   for (const kind of [undefined, -1, 1.5, 2147483648, NaN, 'control_work', 'execution', 'ExecutionLimit', 'retention', 'row', 'workspace', 'control_work.extra']) {
     const primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
     assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceControlWorkLimit() {return kind;}},
-      {}, () => {throw primary;}, 0), error => error === primary);
+      runtimeFailure({}), () => {throw primary;}, 0), error => error === primary);
     assert.equal(primary.primaryDiagnostic, undefined);
   }
   for (const task of [undefined, -1, 1.5, 2147483648]) {
     const primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
     assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceControlWorkLimit() {return 100000;}},
-      {}, () => {throw primary;}, task), error => error === primary);
+      runtimeFailure({}), () => {throw primary;}, task), error => error === primary);
     assert.equal(primary.primaryDiagnostic, undefined);
   }
 });
@@ -96,7 +97,7 @@ test('managed advance optional missing throwing or frozen diagnostics preserve e
     for (const moon of [{}, {strategyModule_local_ManagedAdvanceControlWorkLimit() {throw new Error('optional');}},
       {strategyModule_local_ManagedAdvanceControlWorkLimit() {return 100000;}}]) {
       let threw = false;
-      try {checkedLocalManagedAdvance(moon, {}, () => {throw primary;}, 0);}
+      try {checkedLocalManagedAdvance(moon, runtimeFailure({}), () => {throw primary;}, 0);}
       catch (error) {threw = true; assert.strictEqual(error, primary);}
       assert.equal(threw, true);
     }
@@ -107,7 +108,7 @@ test('managed advance never invokes an original thrown code accessor', () => {
   let reads = 0;
   const original = Object.defineProperty(new Error('original'), 'code', {get() {reads++; return 'MoonBitHostFailure';}});
   assert.throws(() => checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceControlWorkLimit() {return 100000;}},
-    {}, () => {throw original;}, 0), error => error === original);
+    runtimeFailure({}), () => {throw original;}, 0), error => error === original);
   assert.equal(reads, 0); assert.equal(original.primaryDiagnostic, undefined);
 });
 
@@ -126,7 +127,7 @@ test('dispatch snapshot refuses misleading local-work DATA and retains the exist
 
 
 test('managed advance retains exact value capture work cause step limit receiver and original error', () => {
-  const result={},cleanupHandle={},primary=Object.assign(new Error('original'),{code:'MoonBitHostFailure',cleanupHandle});
+  const result=runtimeFailure({}),cleanupHandle={},primary=Object.assign(new Error('original'),{code:'MoonBitHostFailure',cleanupHandle});
   let projects=0,checks=0;
   const moon={strategyModule_local_ManagedAdvanceControlWorkLimit(){return undefined;},
     strategyModule_local_ManagedAdvanceCaptureWork(value){assert.strictEqual(this,moon);assert.strictEqual(value,result);projects++;return Object.assign(Object.create({$tag:1}),{_0:[41,100000]});}};
@@ -141,12 +142,12 @@ test('managed advance retains exact value capture work cause step limit receiver
 test('managed advance capture diagnostic refuses generic malformed and foreign vectors without replacing original failure', () => {
   for(const capture of [undefined,null,[],[41],[41,100000,0],[-1,100000],[41,-1],[41,NaN],[41,'100000'],[2147483648,100000]]){
     const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'});
-    assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return Object.assign(Object.create({$tag:1}),{_0:capture});}},{},()=>{throw original;},41),error=>error===original);
+    assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return Object.assign(Object.create({$tag:1}),{_0:capture});}},runtimeFailure({}),()=>{throw original;},41),error=>error===original);
     assert.equal(original.primaryDiagnostic,undefined);
   }
   const accessor=Object.defineProperty([41,100000],'0',{get(){assert.fail('do not invoke capture vector accessors');}});
   const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'});
-  assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return Object.assign(Object.create({$tag:1}),{_0:accessor});}},{},()=>{throw original;},41),error=>error===original);
+  assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return Object.assign(Object.create({$tag:1}),{_0:accessor});}},runtimeFailure({}),()=>{throw original;},41),error=>error===original);
   assert.equal(original.primaryDiagnostic,undefined);
   const data={code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000};
   for(const changed of [{...data,workLimit:-1},{...data,step:-1},{...data,unit:0},{...data,controlWorkLimit:100000}])assert.equal(snapshot(Object.assign(new Error('original'),{primaryDiagnostic:changed})).primaryDiagnostic,undefined);
@@ -156,11 +157,11 @@ test('managed advance capture diagnostic refuses generic malformed and foreign v
 test('capture work getter uses the actual pinned boxed Option and refuses an unboxed replacement', () => {
   // Exact boxed Some/None layout is witnessed at the original 7d1 export;
   // these are compiler DATA fixtures, not issued request or resource values.
-  const boxed=Object.assign(Object.create({$tag:1}),{_0:[41,100000]});
+  const boxed=Object.assign(Object.create({$tag:1}),{_0:[41,100000]}), result=runtimeFailure({});
   for(const [returned,expected]of [[boxed,true],[Object.create({$tag:0}),false],[[41,100000],false]]){
     const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'});
-    let calls=0;const moon={strategyModule_local_ManagedAdvanceCaptureWork(result){assert.strictEqual(this,moon);assert.strictEqual(result,boxed);calls++;return returned;}};
-    assert.throws(()=>checkedLocalManagedAdvance(moon,boxed,()=>{throw original;},41),error=>error===original);
+    let calls=0;const moon={strategyModule_local_ManagedAdvanceCaptureWork(originalResult){assert.strictEqual(this,moon);assert.strictEqual(originalResult,result);calls++;return returned;}};
+    assert.throws(()=>checkedLocalManagedAdvance(moon,result,()=>{throw original;},41),error=>error===original);
     assert.equal(calls,1);
     if(expected)assert.deepEqual(original.primaryDiagnostic,{code:'MoonBitHostFailure',phase:'local_managed_advance',kind:'value_capture_work',task:41,step:41,workLimit:100000});
     else assert.equal(original.primaryDiagnostic,undefined);
@@ -175,7 +176,7 @@ test('managed failure snapshot preserves original diagnostic through the existin
   const factory=body.find(value=>value.type==='FunctionDeclaration'&&value.id.name==='ownedFailure');
   const member=Function('return ('+source.slice(memberNode.init.start,memberNode.init.end)+');')();
   const owned=Function('member','return ('+source.slice(factory.start,factory.end)+');')(member);
-  const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'}),result={};
+  const original=Object.assign(new Error('original'),{code:'MoonBitHostFailure'}),result=runtimeFailure({});
   assert.throws(()=>checkedLocalManagedAdvance({strategyModule_local_ManagedAdvanceCaptureWork(){return Object.assign(Object.create({$tag:1}),{_0:[41,100000]});}},result,()=>{throw original;},41),error=>error===original);
   const wrapper=owned(original,'ManagedExecutionFailed'),cleanupHandle={original:'same-cleanup'};
   wrapper.cleanupHandle=cleanupHandle;
@@ -201,7 +202,7 @@ const budgetTuple = fields => Object.fromEntries(fields.map((value, index) => [`
 
 test('original managed budget quantities reach the existing public message with the correct setting and units', () => {
   for (const dimension of ['retained_bytes', 'execution_bytes', 'value_capture_work']) {
-    const result = {}, primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
+    const result = runtimeFailure({}), primary = Object.assign(new Error('original'), {code: 'MoonBitHostFailure'});
     const work = dimension === 'value_capture_work';
     const moon = {
       strategyModule_local_ManagedAdvanceResourceDimension: () => work ? undefined : dimension,
@@ -236,7 +237,7 @@ test('missing or malformed budget projection never invents quantities or replace
     assert.throws(() => checkedLocalManagedAdvance({
       strategyModule_local_ManagedAdvanceResourceDimension: () => 'retained_bytes',
       strategyModule_local_ManagedAdvanceBudget: project,
-    }, {}, () => {throw primary;}, 4), error => error === primary);
+    }, runtimeFailure({}), () => {throw primary;}, 4), error => error === primary);
     assert.equal(snapshot(primary).primaryDiagnostic.budget, undefined);
     const message = publicBudgetMessage(primary);
     assert(message.includes('requested_delta=unavailable; remaining=unavailable; policy=unavailable;'));
@@ -386,7 +387,7 @@ test('Relation snapshot errors use the same failed-result budget projector and p
     for(const value of Object.values(node))if(Array.isArray(value))value.forEach(visit);else visit(value);
   };visit(parsed);assert(call);const callback=call.arguments[2];
   assert.equal(callback.type,'ArrowFunctionExpression');
-  const unitFailure=Object.freeze({original:'same failed Unit result'});
+  const unitFailure=Object.freeze(runtimeFailure({original:'same failed Unit result'}));
   const primary=Object.assign(new Error('original reload refusal'),{code:'MoonBitHostFailure'});
   const moon={strategyModule_local_ManagedAdvanceResourceDimension(result){
     assert.strictEqual(result,unitFailure);return 'execution_bytes';

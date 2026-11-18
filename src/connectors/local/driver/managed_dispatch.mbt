@@ -370,6 +370,26 @@ let local_managed_scalar_overlap_controls : @execution.PreparationRepresentation
 }
 
 ///|
+// The existing Node finalization async frame additionally retains one original
+// module reference and one selected task ordinal. Prepay both slots alongside
+// the original task controls before the adapter can enter any finalization
+// callback. No closure, holder, owner or new error record is introduced.
+let local_managed_finalization_diagnostic_controls : @execution.PreparationRepresentationUnits = {
+  record_headers: 0L,
+  reference_slots: 1L,
+  scalar_words: 1L,
+  owned_utf16_units: 0L,
+  owned_wire_bytes: 0L,
+}
+
+///|
+fn local_managed_finalization_diagnostic_control_capacity() -> Int64? {
+  @execution.preparation_representation_cost(
+    local_managed_finalization_diagnostic_controls,
+  )
+}
+
+///|
 fn local_managed_scalar_overlap_control_capacity() -> Int64? {
   @execution.preparation_representation_cost(
     local_managed_scalar_overlap_controls,
@@ -775,6 +795,12 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     return Err(Configuration(InvalidLimits))
   }
   guard local_managed_scalar_overlap_control_capacity() is Some(controls) &&
+    local_managed_finalization_diagnostic_control_capacity()
+    is Some(finalization_controls) &&
+    @execution.checked_preparation_add_product(
+      controls, finalization_controls, 1L,
+    )
+    is Some(controls) &&
     @execution.checked_preparation_add_product(imported, controls, 1L)
     is Some(imported) else {
     return Err(Configuration(InvalidLimits))

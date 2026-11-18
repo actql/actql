@@ -6855,6 +6855,45 @@ reads, target ABI and physical cleanup require their own matching artifacts and
 original callers; pure component success does not establish them.
 
 
+### Original Local Compute finalization diagnostics
+
+The same bounded Local Compute owner consumes finalization preparation,
+finalization advance, settlement and completion Results through its existing
+typed failure projection. These operations share `LocalDispatchIssue`; their
+different successful payloads are never inspected by a failure getter. Common
+alone chooses the closed cause and any original quantity. Node only formats
+that DATA through the existing `local_managed_advance` Compute-phase message;
+this is not an assertion of a finer internal finalization step. Unknown causes
+remain unclassified, rather than being inferred from an unpublished Result.
+
+The existing exported Moon declarations retain their advance Result type.
+At the already existing Node FFI boundary, their error-only projection also
+accepts the same compiler's original `Err(LocalDispatchIssue)` from Unit,
+managed Relation completion and Carrier completion Results. Actual compiled
+values and original getter functions qualify this closed interoperability;
+Node neither decodes error tags nor constructs a replacement Result. Successful
+payloads are checked by their original consumer and never sent to a failure
+getter. The generated `runtimeIsError` check precedes every projection; a
+foreign checker exception on Ok or malformed DATA cannot reach the getters.
+This pinned JS-backend contract is not a Native/Wasm interoperability claim,
+a static generic-export claim or permission to reinterpret another
+error family, copied DATA, or an arbitrary successful payload.
+
+The existing finalization async frame additionally retains one original module
+reference and one selected task ordinal. Its dedicated one-reference/one-word
+inventory is 16 bytes, added to the same Task's constructor allowance before
+the adapter or a finalization callback can be entered. It adds no callback,
+error carrier, reservation, issuer or cleanup Owner. The original diagnostic
+shape is shared with ordinary advance, not duplicated after each phase.
+
+Failure retains the same primary and cleanup continuation. A failed attempt
+does not release its pending physical duty or execute Compute again. The
+existing dispatch owner writes only recognized diagnostic DATA after confirmed
+failed stop to the same original Journal frame; Saved observation uses that
+retained message and its original current/revision gates. If no original cause
+was retained, later Source inspection or preparation diagnostics cannot
+reconstruct it.
+
 ### Original preparation work problem code
 
 A reached `RuntimeFragmentWorkLimit` retains the original typed step and selected

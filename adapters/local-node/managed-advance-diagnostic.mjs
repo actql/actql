@@ -1,6 +1,6 @@
 // Optional DATA on the SAME failed advance; never a new error, execution or
 // cleanup owner. Only the original Core getter can select the closed reason.
-import {runtimeIsBoxedSome, runtimeField, runtimeOptionalField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeIsError, runtimeIsBoxedSome, runtimeField, runtimeOptionalField, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 
 function originalBudget(moon, result, diagnostic) {
   try {
@@ -31,6 +31,10 @@ export function checkedLocalManagedAdvance(moon, result, checked, task) {
   try {return checked(result);}
   catch (error) {
     try {
+      // Only the original compiler's closed Err family reaches these getters.
+      // A foreign checker exception cannot turn an Ok or malformed value into
+      // a typed failure, regardless of the exception's copied code property.
+      if (!runtimeIsError(result)) throw error;
       const resource = moon.strategyModule_local_ManagedAdvanceResourceDimension;
       if (typeof resource === 'function' && Number.isSafeInteger(task) && task >= 0 && task <= 2147483647 &&
           Object.getOwnPropertyDescriptor(error, 'code')?.value === 'MoonBitHostFailure') {
