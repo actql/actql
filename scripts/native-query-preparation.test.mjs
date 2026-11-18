@@ -69,7 +69,9 @@ test('Query parallel preparation binds its one-job command to the original consu
   const bytes=readFileSync(receipt),body=JSON.parse(bytes);
   body.identity.command.splice(body.identity.command.indexOf('-j'),2);
   writeFileSync(receipt,JSON.stringify(body));
-  assert.throws(()=>original.verify());writeFileSync(receipt,bytes);original.verify();
+  assert.throws(()=>preparedNativeQuerySoftware(f.repository,env));
+  original.verify(); // The retained original does not adopt a replacement receipt.
+  writeFileSync(receipt,bytes);original.verify();
   assert.equal(f.calls().length,1,'Mode checks cannot rebuild or execute a case');
 });
 
@@ -167,9 +169,9 @@ test('Query reuse retains the actual selected compiler override bytes and refuse
   assert.equal(f.calls().length,1);
 });
 
-test('the existing Darwin preparation publishes Query software before either original caller can borrow it',()=>{
+test('the serial Query publisher and existing callers retain their prepared software handoff',()=>{
   const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
-  assert(source.includes("if(target==='darwin-arm64'&&selection==='all')timedPreparation('query_software',()=>{"));
+  // Parallel dependency order and failure closure use the imported lane controls.
   const prepare=source.indexOf('queryReceipt=prepareNativeQuerySoftware(repository,destination,');
   assert(prepare>source.indexOf('?await prepareNativeParallel('));
   assert(prepare<source.indexOf("writeFileSync(join(destination,'preparation.json')"));
