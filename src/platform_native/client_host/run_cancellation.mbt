@@ -318,7 +318,7 @@ fn NativeClientRunJournal::cancel_operation_with_operations(
           } else {
             run.revision
           }
-          let record = {
+          let record : NativeClientCancellationRecord = {
             namespace_id,
             cancel_id,
             expected_revision,
