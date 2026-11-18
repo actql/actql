@@ -167,10 +167,10 @@ test('retained Host request facts reuse only the same immutable packet and opera
 });
 
 test('public wire accepts the exact connected request shapes', () => {
-  // Run, request, submission-intent, read-only Plan, check and discovery.
+  // Run, request, submission-intent, read-only Plan/Facts, check and discovery.
   assert.deepEqual([...clientHostOperations].sort(), [
     'connect', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission',
-    'check', 'plan', 'inspect-run', 'run-plan', 'attach', 'lookup-request', 'status', 'wait', 'cancel',
+    'check', 'plan', 'inspect-run', 'run-plan', 'run-explanation', 'attach', 'lookup-request', 'status', 'wait', 'cancel',
     'lookup-cancellation', 'reconcile', 'read', 'result-describe',
     'delivery-attempt', 'checkpoints', 'checkpoint-review', 'resolve',
     'cancel-request', 'resources', 'resource-inspect', 'resource-peek',
@@ -187,7 +187,7 @@ test('public wire accepts the exact connected request shapes', () => {
   assert.equal(validClientBody('plan', staticPlan), true);
   assert.equal(validClientBody('plan', {...staticPlan, requestId: 'not-a-submission'}), false);
   const inspectRun = {connection, ref, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
-  for (const operation of ['inspect-run', 'run-plan']) {
+  for (const operation of ['inspect-run', 'run-plan', 'run-explanation']) {
     assert.equal(validClientBody(operation, inspectRun), true);
     for (const change of [{requestId: 'not-a-submission'}, {maxWireBytes: 0},
       {maxDepth: 65}, {maxNodes: 10001}]) {
