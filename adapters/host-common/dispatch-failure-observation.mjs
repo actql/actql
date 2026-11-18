@@ -13,12 +13,15 @@ export function rememberOriginalDispatchFailure(error, original) {
   const task = runtimeField(view, 2), assessmentCount = runtimeField(view, 3);
   const complete = runtimeField(view, 4), truncated = runtimeField(view, 5);
   const records = runtimeField(view, 6), unavailable = runtimeField(view, 7);
-  if (phase !== 'adaptive_dispatch' || kind !== 'no_strategy' ||
+  if (phase !== 'adaptive_dispatch' || typeof kind !== 'string' ||
+      kind.length === 0 || kind.length > 64 || !codePattern.test(kind) ||
       !Number.isInteger(task) || task < 0 || task > 2147483647 ||
       !Number.isInteger(assessmentCount) || assessmentCount < 0 || assessmentCount > 2147483647 ||
       typeof complete !== 'boolean' || typeof truncated !== 'boolean' ||
       !Array.isArray(records) || records.length !== Math.min(assessmentCount, 8) ||
-      truncated !== (assessmentCount > records.length) || unavailable !== 'unavailable') {
+      truncated !== (assessmentCount > records.length) || unavailable !== 'unavailable' ||
+      // Only the Common-owned NoStrategy branch has a current search report.
+      (kind !== 'no_strategy' && (assessmentCount !== 0 || complete || truncated))) {
     throw new TypeError('InvalidOriginalDispatchFailure');
   }
   // The maximum and closed strings come from the typed Common export. These

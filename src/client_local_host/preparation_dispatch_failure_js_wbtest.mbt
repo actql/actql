@@ -92,6 +92,94 @@ extern "js" fn original_dispatch_imported_consumer(
   #| }
 
 ///|
+// Pass BOTH original compiled values through the imported production Err and
+// facts readers. No JS tuple or typed failure is reconstructed by this test.
+extern "js" fn original_estimate_imported_consumer(
+  loader : OriginalDispatchLoader,
+  host : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  failure : Result[
+    @host_driver.PreparedTaskDispatch?,
+    @host_driver.ComputeHostIssue[@strategy.RunIssue],
+  ],
+  original : (
+    String,
+    String,
+    Int,
+    Int,
+    Bool,
+    Bool,
+    Array[(Int, String?)],
+    String,
+  )?,
+) -> Bool =
+  #|(load, host, failure, original) => {
+  #| const {runtimeCore} = load('../../../../../adapters/host-common/runtime-core.mjs');
+  #| const {runtimeField} = load('../../../../../adapters/host-common/compiler-binding.generated.mjs');
+  #| const {dispatchFailureSnapshot,publicBudgetFailureMessage} = load('../../../../../adapters/host-node/client-dispatch-diagnostic.mjs');
+  #| const core = runtimeCore({strategyRemoteManagedOutputEvidenceKind:()=> 'unused',strategyHostNext:()=>failure});
+  #| let caught, calls=0;
+  #| try { core.next(host, actual=> { if(actual!==host) throw Error('foreign Host');calls++;return original; }); }
+  #| catch(error) {caught=error;}
+  #| const facts=dispatchFailureSnapshot(caught)?.primaryDiagnostic;
+  #| const wrapper=Object.assign(new Error('same original wrapper'),{primaryFailure:caught});
+  #| return calls===1 && caught?.cause===runtimeField(failure,0) && facts?.phase==='adaptive_dispatch' &&
+  #| facts.kind==='resources' && facts.task===0 && facts.assessmentCount===0 &&
+  #| facts.complete===false && facts.truncated===false && facts.assessments.length===0 &&
+  #| facts.decision==='unavailable' && facts.candidateCount==='unavailable' &&
+  #| dispatchFailureSnapshot(wrapper)?.primaryDiagnostic===facts &&
+  #| publicBudgetFailureMessage(caught)===undefined;
+  #| }
+
+///|
+test "original Estimate resource failure keeps its actual kind and excludes an older feasible report" {
+  let (parent, run, capture, host) = original_dispatch_failure_fixture()
+  acknowledge_installed_original_explanation_capture(capture).unwrap()
+  let runtime = @builtin.configured_host_runtime(host)
+  let captured = run.source_free_captured.unwrap()
+  // Create a real prior feasible report, without preparing or executing a Task.
+  @host_driver.refresh_compute_host(runtime).unwrap()
+  assert_eq(@strategy.strategy_report_count(captured), 1)
+  assert_eq(
+    @strategy.strategy_assessment_rejection_code(
+      @strategy.strategy_report_at(captured, 0).unwrap(),
+    ),
+    None,
+  )
+  let usage = @resources.ledger_usage(parent.ledger)
+  let limits = @resources.ledger_limits(parent.ledger)
+  @resources.charge_planning(
+    parent.ledger,
+    limits.planning_work - usage.planning_work,
+  ).unwrap()
+  // Planning usage is deliberately excluded from the adaptive cache key. This
+  // actual one-byte reservation changes that original key before refresh.
+  let pressure = @resources.reserve_capacity(parent.ledger, 0L, 1L).unwrap()
+  let failure = @host_driver.prepare_next_compute_task(runtime, ())
+  assert_true(failure is Err(Estimate(Resources(PlanningLimit))))
+  assert_eq(@strategy.strategy_report_count(captured), 1)
+  let before = @resources.preparation_body_borrow_reserved_extents(
+    capture.holder,
+  ).unwrap()
+  let original = observe_installed_original_dispatch_failure(capture, host).unwrap()
+  let projected = original_estimate_imported_consumer(
+    original_dispatch_loader(original_dispatch_test_url()),
+    host,
+    failure,
+    original,
+  )
+  let after = @resources.preparation_body_borrow_reserved_extents(
+    capture.holder,
+  ).unwrap()
+  @resources.settle_capacity(parent.ledger, pressure).unwrap() |> ignore
+  return_installed_original_explanation_capture(capture).unwrap() |> ignore
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_true(projected)
+  // Independent fixed output census, with ZERO stale assessment entries.
+  assert_eq(after, (before.0 + 424L, before.1 + 424L))
+}
+
+///|
 test "original adaptive refusal projects bounded same-owner DATA after payload ACK and imported JS consumes actual tuple" {
   let (parent, run, capture, host) = original_dispatch_failure_fixture()
   acknowledge_installed_original_explanation_capture(capture).unwrap()

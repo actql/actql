@@ -417,8 +417,13 @@ Effect-free writers retain their original physical-fact validation.
 
 ### Original adaptive failure observation
 
-The fixed Node dispatch can project the original `NoStrategy` task and at most
-eight already-retained search assessments through the existing Request capture.
+The fixed Node dispatch can project the actual retained estimate-failure kind
+and task through the existing Request capture. Only `NoStrategy` also projects
+at most eight already-retained search assessments. Other estimate failures can
+precede search: they return zero assessments, with completeness false, rather
+than attaching a previous feasible report to a new failure. The kind describes
+the original typed estimate variant; it does not invent a nested implementation
+or resource cause that was not projected.
 It never reruns search, implementation estimation, policy or admission. The
 collapsed decision and feasible-candidate count are not retained and remain
 explicitly unavailable. Report completeness and bounded truncation are separate.
@@ -431,7 +436,8 @@ Resource census and pre-constructor quote include both; a ninth unrelated loan i
 still refused. Current, holder identity and captured-DAG/Ledger identity surround
 projection. One attempted read is latched before callbackful current/growth; a
 refused or reentrant observation cannot replace the primary failure or reset debt.
-Fixed controls are prepaid and bounded original/Node DATA coexistence is added to
+Fixed controls, including both original typed task/issue tuples across the
+current recheck, are prepaid. Bounded original/Node DATA coexistence is added to
 the holder's **current** extent before construction. No new Owner or public read
 permission is issued. Old namespaces without this connection retain unavailable
 failure details and their existing early capture return.

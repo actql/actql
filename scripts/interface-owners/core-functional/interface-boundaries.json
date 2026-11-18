@@ -108541,7 +108541,7 @@
     },
     {
       "module": "adapters/host-common/dispatch-failure-observation.mjs",
-      "sha256": "5a8e11a19fad15eb7ade4da5fca803c2ec87fe7b2ed4cbd0f2076b17f6992a4c",
+      "sha256": "49605dd0d0548c1b9be427729b06697bd358f649c5f7f24c3b55ac189ceb6f7b",
       "exports": [
         "originalDispatchFailureSnapshot",
         "rememberOriginalDispatchFailure"

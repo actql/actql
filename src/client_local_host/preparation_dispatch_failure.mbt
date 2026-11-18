@@ -5,11 +5,15 @@
 // rechecks and return/error alternatives (H5/R4/W14), the fixed Node callback
 // plus environment (H2/R3), the scope's attempted-read latch and the
 // existing Node explanation record's acknowledged dispatch-ready bit (W2).
+// Both typed accessor results coexist through the current recheck: two
+// Some+task/issue tuples (4H/4R/4W), four issue/kind reference roots and two
+// report-eligibility/recheck words (4R/2W). These fixed 176 bytes are paid
+// BEFORE either accessor, by the same original capture construction.
 // Sequential alternatives are conservatively co-counted, not refunded.
 let original_dispatch_failure_entry_bytes : Int64 = @execution.preparation_representation_cost({
-    record_headers: 20L,
-    reference_slots: 13L,
-    scalar_words: 28L,
+    record_headers: 24L,
+    reference_slots: 21L,
+    scalar_words: 34L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
@@ -53,16 +57,33 @@ pub fn observe_installed_original_dispatch_failure(
     physical_equal(original, captured) &&
     run.ledger is Some(ledger) &&
     physical_equal(ledger, @strategy.captured_dag_ledger(captured)) &&
-    @host_driver.compute_host_no_strategy_task(runtime) is Some(task) else {
+    @host_driver.compute_host_original_estimate_failure(runtime)
+    is Some((task, failure)) else {
     return Ok(None)
   }
   value.dispatch_failure_observed = true
   guard require_installed_managed_run(run) is Ok(_) else {
     return Err(ForeignOriginal)
   }
-  let total = @strategy.strategy_report_count(captured)
+  let kind = match failure {
+    NoStrategy => "no_strategy"
+    InvalidConfiguration => "invalid_configuration"
+    ForeignSelection => "foreign_selection"
+    EstimateOverflow => "estimate_overflow"
+    Resources(_) => "resources"
+    Search(_) => "search"
+    Implementation(_) => "implementation"
+  }
+  // Only NoStrategy was issued by this search's completed/deferred decision.
+  // Other Estimate variants can precede search and leave an older report.
+  let has_report = failure is NoStrategy
+  let total = if has_report {
+    @strategy.strategy_report_count(captured)
+  } else {
+    0
+  }
   let count = Int::min(8, total)
-  let complete = @strategy.strategy_report_complete(captured)
+  let complete = has_report && @strategy.strategy_report_complete(captured)
   let (retained, execution) = match
     @resources.preparation_body_borrow_reserved_extents(value.holder) {
     Err(issue) => return Err(Capacity(issue))
@@ -95,10 +116,17 @@ pub fn observe_installed_original_dispatch_failure(
     physical_equal(prepared, current) &&
     run.source_free_captured is Some(original) &&
     physical_equal(original, captured) &&
-    @host_driver.compute_host_no_strategy_task(runtime) is Some(current_task) &&
+    @host_driver.compute_host_original_estimate_failure(runtime)
+    is Some((current_task, current_failure)) &&
     current_task == task &&
-    @strategy.strategy_report_count(captured) == total &&
-    @strategy.strategy_report_complete(captured) == complete else {
+    physical_equal(current_failure, failure) &&
+    (
+      !has_report ||
+      (
+        @strategy.strategy_report_count(captured) == total &&
+        @strategy.strategy_report_complete(captured) == complete
+      )
+    ) else {
     return Err(ForeignOriginal)
   }
   value.held_retained = r
@@ -113,7 +141,7 @@ pub fn observe_installed_original_dispatch_failure(
     Some(
       (
         "adaptive_dispatch",
-        "no_strategy",
+        kind,
         task,
         total,
         complete,

@@ -49,6 +49,9 @@ test('absent refused and malformed observation never masks primary or authorizes
   const cause = {}, selected = core(cause);
   for (const observe of [undefined, () => undefined, () => {throw new Error('original current refused');},
     () => view(9)._6, () => ({...view(), _3: 2147483648}),
+    () => ({...view(), _1: 'resources'}),
+    () => ({...view(0), _1: 'resources', _4: true}),
+    () => ({...view(0), _1: 'not a typed kind', _4: false}),
     () => ({...view(), _6: [row(0, 'unknown.bad')]}),
     () => ({...view(), _6: Array(9).fill(row(0, 'execution_limit'))})]) {
     let error;

@@ -9,14 +9,17 @@ pub(all) enum ComputeDiagnosticsIssue {
 ///|
 /// The existing failed policy's original task, retained before its driver
 /// stopped. No task is inferred from a stopped DAG or a caller's error shape.
-/// A policy without that actual NoStrategy/seen pair stays unavailable.
-pub fn[C, E] compute_host_no_strategy_task(host : ComputeHost[C, E]) -> Int? {
+/// Preserve its actual typed issue as well. A failed estimate need not have
+/// reached search, so a previous strategy report is not this failure's report.
+pub fn[C, E] compute_host_original_estimate_failure(
+  host : ComputeHost[C, E],
+) -> (Int, AdaptiveEstimateIssue[E])? {
   guard host.estimates is Some(policy) &&
-    policy.failure is Some(NoStrategy) &&
+    policy.failure is Some(issue) &&
     policy.seen is Some((task, _, _)) else {
     return None
   }
-  Some(task)
+  Some((task, issue))
 }
 
 ///|
