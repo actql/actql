@@ -754,7 +754,10 @@ export const inferRefusals = [
     text: 'FROM records |> INFER score ITEM KEY (id) INPUT (n = amount) '
       + 'KEEP (id AS assessment) AS assessment'},
 ];
+// Preserve the Core-owned parameter cause while recognizing the same public
+// pre-admission input refusal; do not collapse it back to a generic code.
 const inputCodes = new Set(['ClientProgramInvalidInput',
+  'ClientProgramParameterUndeclared', 'ClientSuppliedParameterUndeclared',
   'ClientParametersInvalid', 'ClientParametersTooLarge',
   'ClientProgramUnsupported', 'ClientProgramNeedsInputs',
   'ClientProgramRejected']);
