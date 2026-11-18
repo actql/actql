@@ -26414,7 +26414,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c9999ba33bd6b46edb3cbc41abd8972d490ea40c671099c5324fe0a6f128cb0c",
+      "sha256": "4e02636bb39347cde0bc4930bc7a94c916d42547a870e9798bac6a7c8fa4710f",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -114499,7 +114499,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "0fd2de4ccb4ee9639374d9b6454cce3dc4d0ca2d7f74b958ea1553718661d320"
+      "sha256": "5959866f29c70e351a37c08b191fc267a5e50fe2c95aadc0e23cd9b81b226eaa"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -119083,7 +119083,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "ca11da82b62851b98120179fe71c905e0f393bcce533d3f218f8e3fa70bffd07",
+      "sha256": "a30a6c6ff32c60fe5318408087a23fce389b2d2d8b31b283d97720f485d9cb26",
       "exports": [
         "assertRequestPreparationControl",
         "beginHttpRequestInput",

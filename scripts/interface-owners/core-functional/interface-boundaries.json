@@ -64206,7 +64206,8 @@
         },
         {
           "operations": [
-            "client_program_prepare_request_program_authoring_context"
+            "client_program_prepare_request_program_authoring_context",
+            "client_program_request_program_authoring_context_issue_code"
           ],
           "exports": [],
           "attributes": {
@@ -64322,7 +64323,8 @@
         },
         {
           "operations": [
-            "client_program_prepare_request_program_normalization"
+            "client_program_prepare_request_program_normalization",
+            "client_program_request_program_normalization_issue_code"
           ],
           "exports": [],
           "attributes": {
@@ -65976,6 +65978,10 @@
           "declaration": "client_program_installed_managed_keyed_content_prepare ( prepared : @ publication_host . PreparedClientProgram , direct : @ client_local_host . ClientInstalledCaptureCapacity , keyed : @ publication_host . ClientKeyedAcquisition , declaration : @ client_row_source_host . RowDeclaration , max_page_bytes : Int , max_text_bytes : Int , row_work : Int , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , max_bytes : Int , max_work : Int , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , task : Int , step : Int , prefix_retained_bytes : Int64 , prefix_execution_bytes : Int64 , ) - > Result [ @ client_local_host . ClientInstalledManagedKeyedPreparation , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_node_model_deadline_capacity",
+          "declaration": "client_program_installed_node_model_deadline_capacity ( ) - > Array [ Int64 ]"
+        },
+        {
           "name": "client_program_lower_request_published_query",
           "declaration": "client_program_lower_request_published_query ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , publication : @ source_publication . PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , declarations : String ? , public_primary : Bool , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
         },
@@ -66296,6 +66302,10 @@
           "declaration": "client_program_request_preparation_control ( policy : @ client_local_host . ClientLocalResourcePolicy , ) - > Array [ Int64 ]"
         },
         {
+          "name": "client_program_request_program_authoring_context_issue_code",
+          "declaration": "client_program_request_program_authoring_context_issue_code ( result : Result [ @ publication_host . ClientAuthoringContextPreparation , @ client_local_host . ClientRequestAuthoringIssue , ] , ) - > String ?"
+        },
+        {
           "name": "client_program_request_program_compilation_original",
           "declaration": "client_program_request_program_compilation_original ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > @ publication_host . ClientRunCompilation ?"
         },
@@ -66306,6 +66316,10 @@
         {
           "name": "client_program_request_program_module_issue_code",
           "declaration": "client_program_request_program_module_issue_code ( result : Result [ Unit , ClientRequestProgramModuleBridgeIssue ] , ) - > String ?"
+        },
+        {
+          "name": "client_program_request_program_normalization_issue_code",
+          "declaration": "client_program_request_program_normalization_issue_code ( result : Result [ @ publication_host . ClientLocalNormalization , @ client_local_host . ClientRequestNormalizationIssue , ] , ) - > String ?"
         },
         {
           "name": "client_program_request_snapshot_capacity_refusal",
@@ -66388,7 +66402,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "f8f6dd716c38515f9ed341a1341fbf35fb3fc4eb980d6bdbd3d8622d0743b7af"
+      "sha256": "260681c301733023b1ac51f24955e51cfb6136a035e8742cae4408c1a08d2563"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -105808,6 +105822,104 @@
         }
       ],
       "referenceQualification": "Original Source occurrence/catalogue and same Request construction/failed-child responsibilities only; no artifact, ordinary or physical acceptance."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_original_failure.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request normalization and authoring error owners",
+      "referenceQualification": "Nominal original Result and bounded fixed phase code only; no new policy, authority, workload acceptance or cleanup ACK.",
+      "contracts": [
+        {
+          "operations": [
+            "request_program_authoring_context_issue_code",
+            "request_program_normalization_issue_code"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request normalization and authoring failure projection"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring_js_wbtest.mbt",
+                "anchor": "test \"Request original limit projections preserve six exact phases and exclude unrelated errors\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_authoring_js_wbtest.mbt",
+                "anchor": "test \"Request original normalization and authoring project actual same-parent capacity refusals\""
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [],
+      "operations": [
+        {
+          "name": "request_program_authoring_context_issue_code",
+          "declaration": "request_program_authoring_context_issue_code ( result : Result [ @ publication_host . ClientAuthoringContextPreparation , ClientRequestAuthoringIssue , ] , ) - > String ?"
+        },
+        {
+          "name": "request_program_normalization_issue_code",
+          "declaration": "request_program_normalization_issue_code ( result : Result [ @ publication_host . ClientLocalNormalization , ClientRequestNormalizationIssue , ] , ) - > String ?"
+        }
+      ],
+      "sha256": "49cadf2f1507f058f641436de7e4eca816e5b3eb48bdd2eae19f9a5e1293a704"
     }
   ]
 }
