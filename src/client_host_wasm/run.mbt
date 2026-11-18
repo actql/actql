@@ -33,6 +33,8 @@ priv struct StoredRun {
   mut finite_policy : @host.ClientLocalRunPolicyOriginal?
   mut sdk_submission : Int?
   mut saved_snapshot : @host.ClientSavedSubmissionSnapshot?
+  mut sdk_row_original : StoredSDKRunRowOriginal?
+  mut sdk_row_capacity : @resources.CapacityReservation?
 }
 
 ///|
@@ -255,6 +257,8 @@ pub fn reserve_run(
     finite_policy: None,
     sdk_submission: None,
     saved_snapshot: None,
+    sdk_row_original: None,
+    sdk_row_capacity: None,
   }
   value.next_handle += 1
   handle
@@ -616,6 +620,10 @@ pub fn close_run(nonce : Int64, handle : Int) -> Int {
     }) ||
     value.native_sources.values().any(source => source.run == handle) {
     return -9
+  }
+  let disposed = dispose_sdk_run_row_original(value, record)
+  if disposed != 0 {
+    return disposed
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {

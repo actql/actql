@@ -37,6 +37,7 @@ test('one prepared Query image serves both original selections with independent 
   const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
   const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env});
   assert.equal(f.calls().length,1);assert.equal(f.calls()[0].runtime,null);
+  assert.equal(f.calls()[0].args.includes('-j'),false,'The original serial Query recipe stays unchanged');
   assert.deepEqual(f.calls()[0].args.slice(0,5),['test','src/query_integration','src/native_values_integration','--target','native']);
   const paths=['src/query_integration/first_wbtest.mbt','src/query_integration/second_wbtest.mbt'];
   for(const [index,path] of paths.entries()) {
@@ -51,6 +52,27 @@ test('one prepared Query image serves both original selections with independent 
   assert.deepEqual(calls.slice(1).map(x=>x.runtime),['original-0','original-1']);
   assert.equal(calls[1].args.at(-1),calls[2].args.at(-1));
   assert.equal(calls.slice(1).filter(x=>x.args.includes('--build-only')).length,0);
+});
+
+test('Query parallel preparation binds its one-job command to the original consumer mode',async t=>{
+  const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
+  const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env,jobs:1});
+  const args=f.calls()[0].args;
+  assert.equal(args[args.indexOf('-j')+1],'1');assert(args.includes('--build-only'));
+  const env={...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt,
+    ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'1'};
+  const original=preparedNativeQuerySoftware(f.repository,env);original.verify();
+  const absent={...env};delete absent.ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS;
+  assert.throws(()=>preparedNativeQuerySoftware(f.repository,absent));
+  assert.throws(()=>preparedNativeQuerySoftware(f.repository,
+    {...env,ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'2'}));
+  const bytes=readFileSync(receipt),body=JSON.parse(bytes);
+  body.identity.command.splice(body.identity.command.indexOf('-j'),2);
+  writeFileSync(receipt,JSON.stringify(body));
+  assert.throws(()=>preparedNativeQuerySoftware(f.repository,env));
+  original.verify(); // The retained original does not adopt a replacement receipt.
+  writeFileSync(receipt,bytes);original.verify();
+  assert.equal(f.calls().length,1,'Mode checks cannot rebuild or execute a case');
 });
 
 test('Query reuse refuses changed source, compiler settings, tool and generated image without rebuilding',async t=>{
@@ -147,9 +169,9 @@ test('Query reuse retains the actual selected compiler override bytes and refuse
   assert.equal(f.calls().length,1);
 });
 
-test('the existing Darwin preparation publishes Query software before either original caller can borrow it',()=>{
+test('the serial Query publisher and existing callers retain their prepared software handoff',()=>{
   const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
-  assert(source.includes("if(target==='darwin-arm64'&&selection==='all')timedPreparation('query_software',()=>{"));
+  // Parallel dependency order and failure closure use the imported lane controls.
   const prepare=source.indexOf('queryReceipt=prepareNativeQuerySoftware(repository,destination,');
   assert(prepare>source.indexOf('?await prepareNativeParallel('));
   assert(prepare<source.indexOf("writeFileSync(join(destination,'preparation.json')"));

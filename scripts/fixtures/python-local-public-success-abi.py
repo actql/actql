@@ -13,6 +13,7 @@ from pathlib import Path
 import sys
 from tempfile import mkdtemp
 from unittest.mock import patch
+from python_local_task_drive_trace import MixedTaskDriveTrace
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
@@ -43,12 +44,19 @@ async def main():
         raise ValueError('Expected original module, fresh scratch and optional COMMIT-loss control')
     commit_unknown = len(sys.argv) == 4 and sys.argv[3] == 'commit-unknown'
     task_drive = len(sys.argv) == 4 and sys.argv[3] == 'task-drive-mixed'
+    trace = MixedTaskDriveTrace() if task_drive else None
+    def phase(name):
+        if trace is not None:
+            trace.mark(name)
+    phase('fixture-start')
     expected_n = 2 if task_drive else 41
     raw = Path(sys.argv[1]).read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
     scratch = Path(sys.argv[2]); scratch.mkdir(parents=True, exist_ok=True)
     state = Path(mkdtemp(prefix='succeeded-', dir=scratch))
+    phase('first-core-begin')
     core = new_core(raw, digest)
+    phase('first-core-ready')
     host = client = primary = None
     driver_checks = ExitStack()
     driven = {}
@@ -56,6 +64,7 @@ async def main():
         host = InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
             observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
         client = await AsyncClient._connect_local(host)
+        phase('first-host-ready')
         if task_drive:
             original_drive = core.drive_task
             def scheduled_original_quantum(task, quantum):
@@ -129,10 +138,12 @@ async def main():
                 raise lost_reply  # Actual SQLite COMMIT returned; only its reply is lost.
             return result
         with patch.object(store, 'store_publication_projected_inspected', side_effect=observe_original_transaction) as commit_calls:
+            phase('execution-begin')
             execution = await client.start_source(
                 ('WITH seed AS (SELECT 1 AS n) FROM seed AS l |> JOIN seed AS r ON l.n = r.n '
                  'MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS n |> RESULT answer' if task_drive else
                  'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer'), format='aql')
+            phase('submission-returned')
             if commit_unknown:
                 assert len(host._physical_work) == 1
                 work = host._physical_work[0]
@@ -151,9 +162,11 @@ async def main():
                 assert host._pending_publication_write is None
             else:
                 final = (await execution.wait(until='terminal')).to_dict()
+            phase('terminal-returned')
             assert final['status'] == 'succeeded' and final['result_available']
             assert await execution.result('answer').all(schema=Row, max_rows=2) == [Row(n=expected_n)]
             assert (await execution.status()).to_dict() == final
+            phase('result-checked')
             reference = dict(execution.ref)
             assert len(publication_writes) == 1
         # Result delivery evidence uses this SAME physical primitive too.
@@ -177,6 +190,7 @@ async def main():
         raise
     finally:
         driver_checks.close()
+        phase('first-cleanup-begin')
         try:
             original_close = core.close_task
             def observe_task_close(task):
@@ -205,15 +219,19 @@ async def main():
                 raise
             print('Original succeeded-path failure retained; physical cleanup remains pending', file=sys.stderr)
     assert core._closed
+    phase('first-cleanup-returned')
 
     # The old manifested Saved path remains executable-read free. No cancelled
     # state, absent Manifest or replacement invocation substitutes for success.
+    phase('saved-core-begin')
     reopened = new_core(raw, digest)
+    phase('saved-core-ready')
     saved_host = saved_client = None
     try:
         saved_host = InstalledLocalHost(reopened, state, now=lambda: 1_800_000_000_000,
             observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
         saved_client = await AsyncClient._connect_local(saved_host)
+        phase('saved-host-ready')
         original_call = reopened._call
 
         def only_saved(family, name, *args):
@@ -222,10 +240,13 @@ async def main():
             return original_call(family, name, *args)
 
         with patch.object(reopened, '_call', side_effect=only_saved):
+            phase('saved-read-begin')
             saved = await saved_client.attach(reference)
             assert (await saved.status()).to_dict() == final
             assert await saved.result('answer').all(schema=Row, max_rows=2) == [Row(n=expected_n)]
+            phase('saved-read-checked')
     finally:
+        phase('saved-cleanup-begin')
         if saved_client is not None:
             await saved_client.aclose()
         if saved_host is not None:
@@ -233,6 +254,7 @@ async def main():
         elif not reopened.close():
             raise AssertionError('Saved succeeded Core close remains pending')
     assert reopened._closed
+    phase('saved-cleanup-returned')
     print(json.dumps({'success': True, 'actualCases': 1,
         'case': ('public_core_derived_task_drive_mixed_quanta_joined_result_same_saved' if task_drive else
                  'public_commit_reply_loss_original_lookup_same_result_without_reexecution' if commit_unknown else

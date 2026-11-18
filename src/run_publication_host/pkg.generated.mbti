@@ -1493,6 +1493,8 @@ pub fn client_run_journal_append_rows(ClientRunJournalAppend) -> (String, Bytes,
 
 pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?, run_observation_originals? : String?, before_construction? : ((Int, Int, Int) -> Result[Unit, ClientJournalEncodingIssue])?) -> Result[Bytes, ClientJournalEncodingIssue]
 
+pub fn client_run_journal_row_original_matches(ClientRunJournalRowOriginal, Bytes) -> Bool
+
 pub fn client_saved_run_reference_locator(ClientSubmissionReferenceRecord, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[(String, Bytes), ClientJournalEncodingIssue]
 
 pub fn client_saved_run_state_update_candidate_wire(ClientSavedRunStateUpdate) -> String
@@ -1787,7 +1789,7 @@ pub fn decode_client_run_journal_row(Bytes, before_construction? : ((ClientRunJo
 
 pub fn decode_client_run_journal_row_with_local_policy(Bytes, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[(ClientRunJournalEncoding, String?), ClientJournalDecodingIssue]
 
-pub fn decode_client_run_journal_row_with_observation_originals(Bytes, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
+pub fn decode_client_run_journal_row_with_observation_originals(Bytes, original? : ClientRunJournalRowOriginal?, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
 
 pub fn decode_client_run_journal_row_with_retained_identity(Bytes, ClientRequestIdentity, @run_publication.PublicationContract, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
 
@@ -2798,6 +2800,8 @@ pub fn retain_client_composed_keyed_producer(ClientModelReadScope, ClientCompile
 pub fn retain_client_keyed_lookup_planned_request(ClientKeyedLookupInput, ClientKeyedRequest) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn retain_client_original_composed_keyed_captures(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientKeyedAcquisition, Array[@client_row_source_host.RowSourceCapture]) -> Result[(@physical_resources.Ledger, @client_row_source_host.RowCapturedInputs, Array[@execution_query.CapturedInputSource]), ClientModelReadPreparationIssue]
+
+pub fn retain_client_run_journal_row_original(Bytes, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[ClientRunJournalRowOriginal, ClientJournalDecodingIssue]
 
 pub fn retain_compiled_client_source_effect_input(ClientSourceInput, PreparedClientEffectComputation) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
 
@@ -5180,6 +5184,11 @@ pub(all) struct ClientRunJournalInspection {
   definition : @run_publication.PublicationContract
   checkpoint : Array[@effect_application.EffectLedgerEntry]?
   task_materials_cid : String?
+}
+
+pub struct ClientRunJournalRowOriginal {
+  body : Bytes
+  decoded : (ClientRunJournalEncoding, String?, String?)
 }
 
 pub(all) struct ClientRunMaterials {

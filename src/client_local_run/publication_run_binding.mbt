@@ -100,8 +100,14 @@ pub fn validate_local_saved_snapshot_rows(
   snapshot : @host.ClientSavedSubmissionSnapshot,
   run : @host.ClientJournalPhysicalRow,
   submitted : @host.ClientJournalPhysicalRow,
+  row_original? : @host.ClientRunJournalRowOriginal? = None,
 ) -> Result[Unit, LocalSubmittedRunRowsIssue] {
-  local_saved_snapshot_row_originals(plan, snapshot, run, submitted).map(_ => ())
+  local_saved_snapshot_row_originals(plan, snapshot, run, submitted, decode_run=bytes => {
+    @host.decode_client_run_journal_row_with_observation_originals(
+      bytes,
+      original=row_original,
+    )
+  }).map(_ => ())
 }
 
 ///|
@@ -489,13 +495,19 @@ pub fn[Store, E] validate_local_run_publication_binding_original(
   original : LocalRunPublicationBinding[Store, E],
   run : @host.ClientJournalPhysicalRow,
   submitted : @host.ClientJournalPhysicalRow,
+  row_original? : @host.ClientRunJournalRowOriginal? = None,
 ) -> Result[Unit, LocalRunPublicationBindingIssue[E]] {
   match publication_binding_current(original) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let (encoding, _, _) = match
-    publication_binding_saved_rows(original, run, submitted) {
+    publication_binding_saved_rows(original, run, submitted, decode_run=bytes => {
+      @host.decode_client_run_journal_row_with_observation_originals(
+        bytes,
+        original=row_original,
+      )
+    }) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

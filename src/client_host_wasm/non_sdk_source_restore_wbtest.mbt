@@ -132,6 +132,8 @@ fn non_sdk_source_restore_case(
     finite_policy: None,
     sdk_submission: None,
     saved_snapshot: None,
+    sdk_row_original: None,
+    sdk_row_capacity: None,
   }
   value.runs[5] = record
   if !retain_source_view {

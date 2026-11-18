@@ -508,3 +508,58 @@ test "publication binding candidate preserves existing selector bounds before en
     )
   }
 }
+
+///|
+test "pure retained Run decoder cannot hide changed current or cancellation" {
+  let (plan, preparation, rows, run, submitted, store, material, current) = publication_binding_fixture()
+  let step = match
+    publication_binding_prepare(
+      plan, preparation, rows, run, submitted, store, material,
+    ).unwrap() {
+    Append(value) => value
+    _ => fail("Missing original candidate")
+  }
+  let (_, _, body) = local_run_publication_binding_rows(step)
+  let saved = { ..run, revision: 1L, body, }
+  let original = confirm_local_run_publication_binding(step, saved, submitted).unwrap()
+  let codec = @host.retain_client_run_journal_row_original(
+    saved.body,
+    plan.request,
+    plan.definition,
+  ).unwrap()
+  validate_local_run_publication_binding_original(
+    original,
+    saved,
+    submitted,
+    row_original=Some(codec),
+  ).unwrap()
+  let cancelled = {
+    ..saved,
+    revision: saved.revision + 1L,
+    body: @utf8.encode(
+      @utf8.decode(saved.body).replace(
+        old="\"cancellation_requested\":false",
+        new="\"cancellation_requested\":true",
+      ),
+    ),
+  }
+  assert_true(
+    validate_local_run_publication_binding_original(
+      original,
+      cancelled,
+      submitted,
+      row_original=Some(codec),
+    )
+    is Err(_),
+  )
+  current.val = @host.NotAdopted
+  assert_true(
+    validate_local_run_publication_binding_original(
+      original,
+      saved,
+      submitted,
+      row_original=Some(codec),
+    )
+    is Err(Current(@host.NotAdopted)),
+  )
+}

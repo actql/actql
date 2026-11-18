@@ -55,7 +55,13 @@ fn sdk_saved_original_snapshot(
     is Some({ submitted: Some(preparation), .. }) else {
     return Err(-2)
   }
-  let saved = match observe_submission_append(value, observation, current) {
+  let saved = match
+    observe_submission_append(
+      value,
+      observation,
+      current,
+      original_run=Some(run),
+    ) {
     Ok(@host.Retained(saved)) => saved
     Ok(@host.Append(_)) => return Err(-35)
     Err(code) => return Err(code)
@@ -79,6 +85,7 @@ fn sdk_saved_original_snapshot(
           submission.key,
           submission.revision,
           submission.body,
+          row_original=sdk_run_row_codec_original(value, run),
         )
         is Err(_) {
         return Err(-31)
@@ -137,7 +144,10 @@ fn sdk_start_original_row(
     Err(code) => return Err(code)
   }
   let (encoding, policy, observation_originals) = match
-    @host.decode_client_run_journal_row_with_observation_originals(row.body) {
+    @host.decode_client_run_journal_row_with_observation_originals(
+      row.body,
+      original=sdk_run_row_codec_original(value, run),
+    ) {
     Ok(value) => value
     Err(_) => return Err(-31)
   }
@@ -154,7 +164,10 @@ fn sdk_start_original_row(
       material.sdk_publication is Some({ original: Some(original), .. }) {
       match
         @local_run.validate_local_run_publication_binding_original(
-          original, row, submission,
+          original,
+          row,
+          submission,
+          row_original=sdk_run_row_codec_original(value, run),
         ) {
         Ok(_) =>
           return Ok((row, encoding, policy, observation_originals, handle))
@@ -174,7 +187,10 @@ fn sdk_start_original_row(
         Ok(@local_run.Retained(original)) =>
           match
             @local_run.validate_local_run_publication_binding_original(
-              original, row, submission,
+              original,
+              row,
+              submission,
+              row_original=sdk_run_row_codec_original(value, run),
             ) {
             Ok(_) =>
               Ok((row, encoding, policy, observation_originals, rows_material))

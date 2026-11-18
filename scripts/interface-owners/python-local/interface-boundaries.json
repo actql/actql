@@ -1,6 +1,6 @@
 {
-  "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "e877e27f53082140c3cd966896344aca42350e9a59f62e87e43abd6a140504e7",
+  "source": "ae9fd75e203c4170f73d1aa0bbb4827cc6ebfb0b",
+  "syntaxProjectionSha256": "c903cc4b2a33d459867bbc808e6763d64a4f3ca7778abf945b16ace7ce974e83",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -53,7 +53,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py",
-      "sha256": "eb2fd291e8a52104b0414c3144b3b8d03cc39540c1242e2cc273efafb7bde053",
+      "sha256": "c2b5f0b2465e5cb2676bc11c0102342e673e34364ae9557e19668357ce93b938",
       "generator": {
         "path": "scripts/generate-local-native-shim-bindings.py",
         "anchor": "def render("
@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "94646e307c60860e2a1723ec867e0cc0fcf6264e84b863e12799277d3dc831ad",
+      "sha256": "5c011cac8a4dc18270309cec8b4503a4a96c6532138984a885a3446791a2a644",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -79190,12 +79190,12 @@
     },
     {
       "module": "src/client_host_wasm/submission_append.mbt",
-      "sha256": "f70f7841b064e6f0544fa0746b8c27f8d0cf46df6d45ca284b51ded450a16180",
+      "sha256": "c0d2d0d418b4c949383fa8c328f634ca7ff8ea0375fc61572f6ce6de94bbf8d2",
       "exports": [],
       "operations": [
         {
           "name": "observe_submission_append",
-          "declaration": "observe_submission_append ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ @ host . ClientSubmittedJournalAppendPlan , Int ]"
+          "declaration": "observe_submission_append ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , original_run ? : Int ?"
         },
         {
           "name": "observe_submission_preparation_failure",
@@ -79236,6 +79236,10 @@
         {
           "name": "submission_run_row_original_with_identity",
           "declaration": "submission_run_row_original_with_identity ( row : @ host . ClientJournalPhysicalRow , retained_identity : ( @ host . ClientRequestIdentity , @ publication . PublicationContract , ) ? , ) - > Result [ @ host . ClientRunJournalEncoding , Int ]"
+        },
+        {
+          "name": "validate_sdk_run_row_decoded",
+          "declaration": "validate_sdk_run_row_decoded ( decoded : Result [ ( @ host . ClientRunJournalEncoding , String ? , String ? ) , @ host . ClientJournalDecodingIssue , ] , ) - > Result [ @ host . ClientRunJournalEncoding , Int ]"
         },
         {
           "name": "validate_submission_append",
@@ -79474,6 +79478,110 @@
               {
                 "path": "scripts/fixtures/python-local-public-cancellation-abi.py",
                 "anchor": "assert final['status'] == 'cancelled' and not final['result_available']"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "validate_sdk_run_row_decoded"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Immutable SDK Run row validation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "pub struct ClientRunJournalRowOriginal {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "original.revision == row.revision"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@host.client_run_journal_row_original_matches(original.decoded, row.body)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "mut sdk_row_original : StoredSDKRunRowOriginal?"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_run_journal_inventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "record.sdk_row_capacity = Some(capacity)"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn dispose_sdk_run_row_original("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_cancellation_journal_inventory("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_start.mbt",
+                "anchor": "fn confirm_sdk_start_step("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn sdk_row_original_capacity("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@resources.reserve_capacity(value.root, retention, execution)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Other callers retain the unchanged"
+              },
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "before_construction is None"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original_wbtest.mbt",
+                "anchor": "test \"SDK row exact result reuse retains charged original until same Run cleanup\""
+              },
+              {
+                "path": "src/client_local_run/publication_run_binding_wbtest.mbt",
+                "anchor": "test \"pure retained Run decoder cannot hide changed current or cancellation\""
+              },
+              {
+                "path": ".github/workflows/ci.yml",
+                "anchor": "sdk_row_original_wbtest.mbt"
               }
             ]
           }
@@ -82141,7 +82249,7 @@
     },
     {
       "module": "src/client_host_wasm/run.mbt",
-      "sha256": "7b18c3c525539591aa59a41d1032c0ffe8d0eaa76946fa3d33ec1acb3c1191da",
+      "sha256": "63b0f392c968974464eff020f9eaa52b66652b1fbb48078ef5248823349f5aa1",
       "exports": [],
       "operations": [
         {
@@ -87116,7 +87224,7 @@
           }
         }
       ],
-      "sha256": "02dcfce57919d6e339542bb007bdf62cab55f75d52981765dc841b6d99a3f5a3",
+      "sha256": "a1f79a59f0cc620ab53ba524df81291606f5b9ad2640bcea50053aee388e870f",
       "exports": [],
       "operations": [
         {
@@ -89543,6 +89651,806 @@
         }
       ],
       "exports": []
+    },
+    {
+      "module": "src/client_host_wasm/sdk_start.mbt",
+      "sha256": "6bfa9b41dd3dc87b0d8a9261397dfc8619ae125a3fe970dbd54fcb29febf1c8a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "confirm_sdk_start_material",
+          "declaration": "confirm_sdk_start_material ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "confirm_sdk_start_step",
+          "declaration": "confirm_sdk_start_step ( value : Instance , step_handle : Int , plan : @ local_run . LocalRunPlan , ) - > Int"
+        },
+        {
+          "name": "prepare_sdk_start_step",
+          "declaration": "prepare_sdk_start_step ( value : Instance , material : StoredMaterial , record : StoredRun , plan : @ local_run . LocalRunPlan , ) - > Result [ StoredSDKStartStep , Int ]"
+        },
+        {
+          "name": "reserve_sdk_physical_start",
+          "declaration": "reserve_sdk_physical_start ( nonce : Int64 , run : Int , step_handle : Int , ) - > Int"
+        },
+        {
+          "name": "sdk_saved_original_rows",
+          "declaration": "sdk_saved_original_rows ( value : Instance , run : Int , plan : @ local_run . LocalRunPlan , ) - > Result [ ( @ host . ClientJournalPhysicalRow , @ host . ClientJournalPhysicalRow , StoredSDKOriginalRows , Int , ) , Int , ]"
+        },
+        {
+          "name": "sdk_saved_original_snapshot",
+          "declaration": "sdk_saved_original_snapshot ( value : Instance , run : Int , plan : @ local_run . LocalRunPlan , ) - > Result [ ( @ host . ClientSavedSubmissionSnapshot , StoredSDKOriginalRows , Int ) , Int , ]"
+        },
+        {
+          "name": "sdk_start_material_wire",
+          "declaration": "sdk_start_material_wire ( value : Instance , material : StoredMaterial , record : StoredRun , plan : @ local_run . LocalRunPlan , ) - > Result [ String , Int ]"
+        },
+        {
+          "name": "sdk_start_original_row",
+          "declaration": "sdk_start_original_row ( value : Instance , run : Int , plan : @ local_run . LocalRunPlan , ) - > Result [ ( @ host . ClientJournalPhysicalRow , @ host . ClientRunJournalEncoding , String ? , String ? , Int , ) , Int , ]"
+        },
+        {
+          "name": "validate_sdk_start_claim",
+          "declaration": "validate_sdk_start_claim ( value : Instance , step_handle : Int , plan : @ local_run . LocalRunPlan , ) - > Int"
+        },
+        {
+          "name": "validate_sdk_start_material",
+          "declaration": "validate_sdk_start_material ( nonce : Int64 , handle : Int ) - > Int"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Common journal codec and original Local Run/material/root/cleanup Owners; pure exact-validator DATA only, no current/grant/ACK cache",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "confirm_sdk_start_material",
+            "confirm_sdk_start_step",
+            "prepare_sdk_start_step",
+            "reserve_sdk_physical_start",
+            "sdk_saved_original_rows",
+            "sdk_saved_original_snapshot",
+            "sdk_start_material_wire",
+            "sdk_start_original_row",
+            "validate_sdk_start_claim",
+            "validate_sdk_start_material"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Immutable SDK Run row validation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "pub struct ClientRunJournalRowOriginal {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "original.revision == row.revision"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@host.client_run_journal_row_original_matches(original.decoded, row.body)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "mut sdk_row_original : StoredSDKRunRowOriginal?"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_run_journal_inventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "record.sdk_row_capacity = Some(capacity)"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn dispose_sdk_run_row_original("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_cancellation_journal_inventory("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_start.mbt",
+                "anchor": "fn confirm_sdk_start_step("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn sdk_row_original_capacity("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@resources.reserve_capacity(value.root, retention, execution)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Other callers retain the unchanged"
+              },
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "before_construction is None"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original_wbtest.mbt",
+                "anchor": "test \"SDK row exact result reuse retains charged original until same Run cleanup\""
+              },
+              {
+                "path": "src/client_local_run/publication_run_binding_wbtest.mbt",
+                "anchor": "test \"pure retained Run decoder cannot hide changed current or cancellation\""
+              },
+              {
+                "path": ".github/workflows/ci.yml",
+                "anchor": "sdk_row_original_wbtest.mbt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/sdk_row_original.mbt",
+      "sha256": "19863d48f71e7da64f7932064e86a389deb98e7f44cf60c5f4a5e6c81d8b8f93",
+      "exports": [],
+      "operations": [
+        {
+          "name": "dispose_sdk_run_row_original",
+          "declaration": "dispose_sdk_run_row_original ( value : Instance , record : StoredRun ) - > Int"
+        },
+        {
+          "name": "sdk_row_original_capacity",
+          "declaration": "sdk_row_original_capacity ( bytes : Int ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "sdk_run_row_codec_original",
+          "declaration": "sdk_run_row_codec_original ( value : Instance , run : Int , ) - > @ host . ClientRunJournalRowOriginal ?"
+        },
+        {
+          "name": "sdk_run_row_inspection",
+          "declaration": "sdk_run_row_inspection ( value : Instance , run : Int , row : @ host . ClientJournalPhysicalRow , ) - > Result [ @ host . ClientRunJournalInspection , Int ]"
+        },
+        {
+          "name": "sdk_run_row_original",
+          "declaration": "sdk_run_row_original ( value : Instance , run : Int , row : @ host . ClientJournalPhysicalRow , ) - > Result [ @ host . ClientRunJournalEncoding , Int ]"
+        },
+        {
+          "name": "sdk_run_row_original_with_identity",
+          "declaration": "sdk_run_row_original_with_identity ( value : Instance , record : StoredRun , request : @ host . ClientRequestIdentity , definition : @ publication . PublicationContract , row : @ host . ClientJournalPhysicalRow , ) - > Result [ @ host . ClientRunJournalEncoding , Int ]"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Common journal codec and original Local Run/material/root/cleanup Owners; pure exact-validator DATA only, no current/grant/ACK cache",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "dispose_sdk_run_row_original",
+            "sdk_row_original_capacity",
+            "sdk_run_row_codec_original",
+            "sdk_run_row_inspection",
+            "sdk_run_row_original",
+            "sdk_run_row_original_with_identity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Immutable SDK Run row validation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "pub struct ClientRunJournalRowOriginal {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "original.revision == row.revision"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@host.client_run_journal_row_original_matches(original.decoded, row.body)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "mut sdk_row_original : StoredSDKRunRowOriginal?"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_run_journal_inventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "record.sdk_row_capacity = Some(capacity)"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn dispose_sdk_run_row_original("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_cancellation_journal_inventory("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_start.mbt",
+                "anchor": "fn confirm_sdk_start_step("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn sdk_row_original_capacity("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@resources.reserve_capacity(value.root, retention, execution)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Other callers retain the unchanged"
+              },
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "before_construction is None"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original_wbtest.mbt",
+                "anchor": "test \"SDK row exact result reuse retains charged original until same Run cleanup\""
+              },
+              {
+                "path": "src/client_local_run/publication_run_binding_wbtest.mbt",
+                "anchor": "test \"pure retained Run decoder cannot hide changed current or cancellation\""
+              },
+              {
+                "path": ".github/workflows/ci.yml",
+                "anchor": "sdk_row_original_wbtest.mbt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_run/submitted_rows.mbt",
+      "sha256": "cfbdf5cc2eb69e375fe6c81e53cd940a5a5d8129dc9052dbfd39accdb0e8f332",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_saved_submitted_row_originals",
+          "declaration": "local_saved_submitted_row_originals ( value : LocalSubmittedRunRows , plan : LocalRunPlan , preparation : @ input . LocalSubmittedPreparation , run_key : String , run_revision : Int64 , run_body : Bytes , submission_key : String , submission_revision : Int64 , submission_body : Bytes , decode_run ? : ( Bytes ) - > Result [ ( @ host . ClientRunJournalEncoding , String ? , String ? ) , @ host . ClientJournalDecodingIssue , ]"
+        },
+        {
+          "name": "local_submitted_run_rows",
+          "declaration": "local_submitted_run_rows ( value : LocalSubmittedRunRows , plan : LocalRunPlan , preparation : @ input . LocalSubmittedPreparation , ) - > Result [ ( String , String , Bytes , Bytes , Bytes ) , LocalSubmittedRunRowsIssue ]"
+        },
+        {
+          "name": "local_submitted_run_task_materials",
+          "declaration": "local_submitted_run_task_materials ( value : LocalSubmittedRunRows , plan : LocalRunPlan , preparation : @ input . LocalSubmittedPreparation , ) - > Result [ LocalRunTaskMaterialsOriginal ? , LocalSubmittedRunRowsIssue ]"
+        },
+        {
+          "name": "prepare_local_sdk_submitted_run_rows",
+          "declaration": "prepare_local_sdk_submitted_run_rows ( plan : LocalRunPlan , preparation : @ input . LocalSubmittedPreparation , reference : @ host . ClientSubmissionReferenceRecord , retained_preparing : Bytes , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , context_cid : String , now : Double , local_policy_original : @ host . ClientLocalRunPolicyOriginal , task_materials ? : LocalRunTaskMaterialsOriginal ?"
+        },
+        {
+          "name": "prepare_local_submitted_run_rows",
+          "declaration": "prepare_local_submitted_run_rows ( plan : LocalRunPlan , preparation : @ input . LocalSubmittedPreparation , reference : @ host . ClientSubmissionReferenceRecord , retained_preparing : Bytes , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , context_cid : String , now : Double , local_policy_original ? : @ host . ClientLocalRunPolicyOriginal ?"
+        },
+        {
+          "name": "prepare_local_submitted_run_rows_original",
+          "declaration": "prepare_local_submitted_run_rows_original ( plan : LocalRunPlan , preparation : @ input . LocalSubmittedPreparation , reference : @ host . ClientSubmissionReferenceRecord , retained_preparing : Bytes , permit : @ authorization . DispatchAuthorization , current : @ authorization . AdmittedAccountConfiguration , tuple : @ authorization . AccessTuple , context_cid : String , now : Double , local_policy_original : @ host . ClientLocalRunPolicyOriginal ? , observation_originals : String ? , task_materials : LocalRunTaskMaterialsOriginal ? , ) - > Result [ LocalSubmittedRunRows , LocalSubmittedRunRowsIssue ]"
+        },
+        {
+          "name": "validate_local_saved_submitted_rows",
+          "declaration": "validate_local_saved_submitted_rows ( value : LocalSubmittedRunRows , plan : LocalRunPlan , preparation : @ input . LocalSubmittedPreparation , run_key : String , run_revision : Int64 , run_body : Bytes , submission_key : String , submission_revision : Int64 , submission_body : Bytes , row_original ? : @ host . ClientRunJournalRowOriginal ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common journal codec and original Local Run/material/root/cleanup Owners; pure exact-validator DATA only, no current/grant/ACK cache",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_saved_submitted_row_originals",
+            "local_submitted_run_rows",
+            "local_submitted_run_task_materials",
+            "prepare_local_sdk_submitted_run_rows",
+            "prepare_local_submitted_run_rows",
+            "prepare_local_submitted_run_rows_original",
+            "validate_local_saved_submitted_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Immutable SDK Run row validation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "pub struct ClientRunJournalRowOriginal {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "original.revision == row.revision"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@host.client_run_journal_row_original_matches(original.decoded, row.body)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "mut sdk_row_original : StoredSDKRunRowOriginal?"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_run_journal_inventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "record.sdk_row_capacity = Some(capacity)"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn dispose_sdk_run_row_original("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_cancellation_journal_inventory("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_start.mbt",
+                "anchor": "fn confirm_sdk_start_step("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn sdk_row_original_capacity("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@resources.reserve_capacity(value.root, retention, execution)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Other callers retain the unchanged"
+              },
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "before_construction is None"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original_wbtest.mbt",
+                "anchor": "test \"SDK row exact result reuse retains charged original until same Run cleanup\""
+              },
+              {
+                "path": "src/client_local_run/publication_run_binding_wbtest.mbt",
+                "anchor": "test \"pure retained Run decoder cannot hide changed current or cancellation\""
+              },
+              {
+                "path": ".github/workflows/ci.yml",
+                "anchor": "sdk_row_original_wbtest.mbt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_run/publication_run_binding.mbt",
+      "sha256": "d9dc5f53646112388abd7e3c5d9e4fed3d9574276e3deac31f22144e3a05b93c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[Store,E]confirm_local_run_publication_binding",
+          "declaration": "[ Store , E ] confirm_local_run_publication_binding ( step : LocalRunPublicationBindingStep [ Store , E ] , run : @ host . ClientJournalPhysicalRow , submitted : @ host . ClientJournalPhysicalRow , ) - > Result [ LocalRunPublicationBinding [ Store , E ] , LocalRunPublicationBindingIssue [ E ] , ]"
+        },
+        {
+          "name": "[Store,E]local_run_publication_binding_rows",
+          "declaration": "[ Store , E ] local_run_publication_binding_rows ( step : LocalRunPublicationBindingStep [ Store , E ] , ) - > ( String , Int64 , Bytes )"
+        },
+        {
+          "name": "[Store,E]prepare_local_run_publication_binding",
+          "declaration": "[ Store , E ] prepare_local_run_publication_binding ( plan : LocalRunPlan , rows : LocalSubmittedRunRows , preparation : @ input . LocalSubmittedPreparation , material : @ host . ClientLocalAdoptedHostMaterial [ Store , E ] , store : Store , namespace_id : String , store_authority_cid : String , device : UInt64 , inode : UInt64 , run : @ host . ClientJournalPhysicalRow , submitted : @ host . ClientJournalPhysicalRow , ) - > Result [ LocalRunPublicationBindingPlan [ Store , E ] , LocalRunPublicationBindingIssue [ E ] , ]"
+        },
+        {
+          "name": "[Store,E]prepare_local_run_publication_binding_original",
+          "declaration": "[ Store , E ] prepare_local_run_publication_binding_original ( plan : LocalRunPlan , rows : LocalRunPublicationRows , material : @ host . ClientLocalAdoptedHostMaterial [ Store , E ] , store : Store , namespace_id : String , store_authority_cid : String , device : UInt64 , inode : UInt64 , run : @ host . ClientJournalPhysicalRow , submitted : @ host . ClientJournalPhysicalRow , ) - > Result [ LocalRunPublicationBindingPlan [ Store , E ] , LocalRunPublicationBindingIssue [ E ] , ]"
+        },
+        {
+          "name": "[Store,E]prepare_local_saved_run_publication_binding",
+          "declaration": "[ Store , E ] prepare_local_saved_run_publication_binding ( plan : LocalRunPlan , snapshot : @ host . ClientSavedSubmissionSnapshot , material : @ host . ClientLocalAdoptedHostMaterial [ Store , E ] , store : Store , namespace_id : String , store_authority_cid : String , device : UInt64 , inode : UInt64 , run : @ host . ClientJournalPhysicalRow , submitted : @ host . ClientJournalPhysicalRow , ) - > Result [ LocalRunPublicationBindingPlan [ Store , E ] , LocalRunPublicationBindingIssue [ E ] , ]"
+        },
+        {
+          "name": "[Store,E]publication_binding_current",
+          "declaration": "[ Store , E ] publication_binding_current ( original : LocalRunPublicationBinding [ Store , E ] , ) - > Result [ Unit , LocalRunPublicationBindingIssue [ E ] ]"
+        },
+        {
+          "name": "[Store,E]publication_binding_saved_rows",
+          "declaration": "[ Store , E ] publication_binding_saved_rows ( original : LocalRunPublicationBinding [ Store , E ] , run : @ host . ClientJournalPhysicalRow , submitted : @ host . ClientJournalPhysicalRow , decode_run ? : ( Bytes ) - > Result [ ( @ host . ClientRunJournalEncoding , String ? , String ? ) , @ host . ClientJournalDecodingIssue , ]"
+        },
+        {
+          "name": "[Store,E]validate_local_run_publication_binding",
+          "declaration": "[ Store , E ] validate_local_run_publication_binding ( step : LocalRunPublicationBindingStep [ Store , E ] , run : @ host . ClientJournalPhysicalRow , submitted : @ host . ClientJournalPhysicalRow , ) - > Result [ Unit , LocalRunPublicationBindingIssue [ E ] ]"
+        },
+        {
+          "name": "[Store,E]validate_local_run_publication_binding_original",
+          "declaration": "[ Store , E ] validate_local_run_publication_binding_original ( original : LocalRunPublicationBinding [ Store , E ] , run : @ host . ClientJournalPhysicalRow , submitted : @ host . ClientJournalPhysicalRow , row_original ? : @ host . ClientRunJournalRowOriginal ?"
+        },
+        {
+          "name": "local_saved_snapshot_row_originals",
+          "declaration": "local_saved_snapshot_row_originals ( plan : LocalRunPlan , snapshot : @ host . ClientSavedSubmissionSnapshot , run : @ host . ClientJournalPhysicalRow , submitted : @ host . ClientJournalPhysicalRow , decode_run ? : ( Bytes ) - > Result [ ( @ host . ClientRunJournalEncoding , String ? , String ? ) , @ host . ClientJournalDecodingIssue , ]"
+        },
+        {
+          "name": "validate_local_saved_snapshot_rows",
+          "declaration": "validate_local_saved_snapshot_rows ( plan : LocalRunPlan , snapshot : @ host . ClientSavedSubmissionSnapshot , run : @ host . ClientJournalPhysicalRow , submitted : @ host . ClientJournalPhysicalRow , row_original ? : @ host . ClientRunJournalRowOriginal ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common journal codec and original Local Run/material/root/cleanup Owners; pure exact-validator DATA only, no current/grant/ACK cache",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[Store,E]confirm_local_run_publication_binding",
+            "[Store,E]local_run_publication_binding_rows",
+            "[Store,E]prepare_local_run_publication_binding",
+            "[Store,E]prepare_local_run_publication_binding_original",
+            "[Store,E]prepare_local_saved_run_publication_binding",
+            "[Store,E]publication_binding_current",
+            "[Store,E]publication_binding_saved_rows",
+            "[Store,E]validate_local_run_publication_binding",
+            "[Store,E]validate_local_run_publication_binding_original",
+            "local_saved_snapshot_row_originals",
+            "validate_local_saved_snapshot_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Immutable SDK Run row validation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "pub struct ClientRunJournalRowOriginal {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "original.revision == row.revision"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@host.client_run_journal_row_original_matches(original.decoded, row.body)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "mut sdk_row_original : StoredSDKRunRowOriginal?"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_run_journal_inventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "record.sdk_row_capacity = Some(capacity)"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn dispose_sdk_run_row_original("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_cancellation_journal_inventory("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_start.mbt",
+                "anchor": "fn confirm_sdk_start_step("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn sdk_row_original_capacity("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@resources.reserve_capacity(value.root, retention, execution)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Other callers retain the unchanged"
+              },
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "before_construction is None"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original_wbtest.mbt",
+                "anchor": "test \"SDK row exact result reuse retains charged original until same Run cleanup\""
+              },
+              {
+                "path": "src/client_local_run/publication_run_binding_wbtest.mbt",
+                "anchor": "test \"pure retained Run decoder cannot hide changed current or cancellation\""
+              },
+              {
+                "path": ".github/workflows/ci.yml",
+                "anchor": "sdk_row_original_wbtest.mbt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_journal_row_decoding.mbt",
+      "sha256": "103db51853159c0b19c25075fd834c1955ad12a14f56656019e83248fe4715d4",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_journal_issuance_count",
+          "declaration": "client_journal_issuance_count ( bytes : Bytes , max_records : Int , ) - > Result [ Int , ClientJournalDecodingIssue ]"
+        },
+        {
+          "name": "client_run_journal_row_original_matches",
+          "declaration": "client_run_journal_row_original_matches ( original : ClientRunJournalRowOriginal , body : Bytes , ) - > Bool"
+        },
+        {
+          "name": "decode_client_journal_definition",
+          "declaration": "decode_client_journal_definition ( wire : String , original : @ publication . PublicationContract ? , ) - > Result [ ( @ publication . PublicationContract , String ) , ClientJournalDecodingIssue , ]"
+        },
+        {
+          "name": "decode_client_journal_request",
+          "declaration": "decode_client_journal_request ( wire : String , original : ClientRequestIdentity ? , ) - > Result [ ( ClientRequestIdentity , String ) , ClientJournalDecodingIssue ]"
+        },
+        {
+          "name": "decode_client_run_journal_row",
+          "declaration": "decode_client_run_journal_row ( body : Bytes , before_construction ? : ( ( ClientRunJournalConstruction ) - > Result [ Unit , ClientJournalDecodingIssue , ] ) ?"
+        },
+        {
+          "name": "decode_client_run_journal_row_originals",
+          "declaration": "decode_client_run_journal_row_originals ( body : Bytes , allow_local_policy : Bool , allow_observation_originals : Bool , retained_identity ? : ( ClientRequestIdentity , @ publication . PublicationContract ) ?"
+        },
+        {
+          "name": "decode_client_run_journal_row_with_local_policy",
+          "declaration": "decode_client_run_journal_row_with_local_policy ( body : Bytes , before_construction ? : ( ( ClientRunJournalConstruction ) - > Result [ Unit , ClientJournalDecodingIssue , ] ) ?"
+        },
+        {
+          "name": "decode_client_run_journal_row_with_observation_originals",
+          "declaration": "decode_client_run_journal_row_with_observation_originals ( body : Bytes , original ? : ClientRunJournalRowOriginal ?"
+        },
+        {
+          "name": "decode_client_run_journal_row_with_retained_identity",
+          "declaration": "decode_client_run_journal_row_with_retained_identity ( body : Bytes , request : ClientRequestIdentity , definition : @ publication . PublicationContract , before_construction ? : ( ( ClientRunJournalConstruction ) - > Result [ Unit , ClientJournalDecodingIssue , ] ) ?"
+        },
+        {
+          "name": "retain_client_run_journal_row_original",
+          "declaration": "retain_client_run_journal_row_original ( body : Bytes , request : ClientRequestIdentity , definition : @ publication . PublicationContract , ) - > Result [ ClientRunJournalRowOriginal , ClientJournalDecodingIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common journal codec and original Local Run/material/root/cleanup Owners; pure exact-validator DATA only, no current/grant/ACK cache",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_journal_issuance_count",
+            "client_run_journal_row_original_matches",
+            "decode_client_journal_definition",
+            "decode_client_journal_request",
+            "decode_client_run_journal_row",
+            "decode_client_run_journal_row_originals",
+            "decode_client_run_journal_row_with_local_policy",
+            "decode_client_run_journal_row_with_observation_originals",
+            "decode_client_run_journal_row_with_retained_identity",
+            "retain_client_run_journal_row_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Immutable SDK Run row validation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "pub struct ClientRunJournalRowOriginal {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "original.revision == row.revision"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@host.client_run_journal_row_original_matches(original.decoded, row.body)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "mut sdk_row_original : StoredSDKRunRowOriginal?"
+              },
+              {
+                "path": "src/client_host_wasm/run.mbt",
+                "anchor": "pub fn close_run("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "fn submission_append_current("
+              },
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_run_journal_inventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "record.sdk_row_capacity = Some(capacity)"
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn dispose_sdk_run_row_original("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_append.mbt",
+                "anchor": "@host.inspect_client_cancellation_journal_inventory("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_start.mbt",
+                "anchor": "fn confirm_sdk_start_step("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "fn sdk_row_original_capacity("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_row_original.mbt",
+                "anchor": "@resources.reserve_capacity(value.root, retention, execution)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Other callers retain the unchanged"
+              },
+              {
+                "path": "src/run_publication_host/client_journal_row_decoding.mbt",
+                "anchor": "before_construction is None"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/sdk_row_original_wbtest.mbt",
+                "anchor": "test \"SDK row exact result reuse retains charged original until same Run cleanup\""
+              },
+              {
+                "path": "src/client_local_run/publication_run_binding_wbtest.mbt",
+                "anchor": "test \"pure retained Run decoder cannot hide changed current or cancellation\""
+              },
+              {
+                "path": ".github/workflows/ci.yml",
+                "anchor": "sdk_row_original_wbtest.mbt"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "syntaxProjectionBasis": "SHA256 of UTF-8 JSON.stringify over sorted declared {module,operations,exports,imports}; source inventory only."

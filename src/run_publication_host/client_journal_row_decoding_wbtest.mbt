@@ -418,3 +418,82 @@ test "Run row retained Definition preserves exact ASCII and Unicode byte boundar
     }
   }
 }
+
+///|
+test "exact pure Run row original reuses only its own decoder result" {
+  let body = @utf8.encode(journal_decoding_wire)
+  let (first, _, _) = decode_client_run_journal_row_with_observation_originals(
+    body,
+  ).unwrap()
+  let original = retain_client_run_journal_row_original(
+    body,
+    first.request,
+    first.definition,
+  ).unwrap()
+  let (one, _, _) = decode_client_run_journal_row_with_observation_originals(
+    body,
+    original=Some(original),
+  ).unwrap()
+  let (two, _, _) = decode_client_run_journal_row_with_observation_originals(
+    body,
+    original=Some(original),
+  ).unwrap()
+  assert_true(physical_equal(one, two))
+  assert_true(client_run_journal_row_original_matches(original, body))
+  let observed = Ref(0)
+  let (constructed, _, _) = decode_client_run_journal_row_with_observation_originals(
+    body,
+    original=Some(original),
+    before_construction=Some(_ => {
+      observed.val += 1
+      Ok(())
+    }),
+  ).unwrap()
+  assert_eq(observed.val, 3)
+  assert_false(physical_equal(one, constructed))
+}
+
+///|
+test "changed pure Run row original never hides cancellation or malformed fields" {
+  let body = @utf8.encode(journal_decoding_wire)
+  let (first, _, _) = decode_client_run_journal_row_with_observation_originals(
+    body,
+  ).unwrap()
+  let original = retain_client_run_journal_row_original(
+    body,
+    first.request,
+    first.definition,
+  ).unwrap()
+  let changed = @utf8.encode(
+    journal_decoding_wire.replace(
+      old="\"cancellation_requested\":false",
+      new="\"cancellation_requested\":true",
+    ),
+  )
+  assert_false(client_run_journal_row_original_matches(original, changed))
+  let (fresh, _, _) = decode_client_run_journal_row_with_observation_originals(
+    changed,
+    original=Some(original),
+  ).unwrap()
+  assert_true(fresh.cancellation_requested)
+  let malformed = @utf8.encode(
+    journal_decoding_wire.replace(
+      old="\"dispatch_reserved\":false",
+      new="\"dispatch_reserved\":1",
+    ),
+  )
+  assert_true(
+    decode_client_run_journal_row_with_observation_originals(
+      malformed,
+      original=Some(original),
+    )
+    is Err(_),
+  )
+  assert_true(
+    decode_client_run_journal_row_with_observation_originals(
+      body + b" ",
+      original=Some(original),
+    )
+    is Err(_),
+  )
+}

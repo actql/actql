@@ -4084,3 +4084,33 @@ not be promoted to installed-image, durable approval, Saved or normal acceptance
 The diagnostic ABI cases use real Wasmtime VM/Root/buffers with explicit
 physical-reader stop and cleanup ports; those ports are not a provider's live
 reader or physical-stop proof.
+
+### Immutable SDK Run row validation
+
+The existing Run may retain one result of its exact pure journal-row decoder and
+SDK structural validator. This is codec DATA under the same Run, not a saved
+inventory, current Account, publication grant or physical-start acknowledgement.
+Every task/start/material boundary still performs the original physical reads,
+complete inventory, current/authorization checks and cancellation inspection.
+Reuse requires the same selected Run key, physical revision and complete row
+bytes. Changed, foreign or missing observations use the original full validation
+or refusal; a previous successful result never supplies a missing physical row.
+
+The nominal decoder result can also avoid re-admitting those identical bytes in
+nested saved-row/publication validators. Their original Plan/preparation,
+submitted-row, revision, monotonic flag, policy, current and publication-binding
+checks still execute. Construction observers retain their complete invocation;
+when one is selected, the decoder performs its original parse and handoff rather
+than claiming that an older constructor ran. Other callers retain the unchanged
+full decoder by default. No public reference, wire field, ABI number or permission
+is added by this pure retention token.
+
+The same existing Root Ledger reserves row/text/record retention and bounded
+parser/encoder scratch before the cell is constructed. The selected decoder's
+existing byte/node/depth bounds determine that geometry; they do not grant more
+capacity. Only one cell is retained. Replacement first disposes the old pure cell
+and settles its token. A failed constructor keeps its reservation reachable;
+success releases temporary scratch while retaining the immutable result's charge.
+The original Run close refuses while its existing children remain and then
+settles this cell before returning the original input borrow. It does not
+acknowledge physical work, cancel a Run, clear a trap or reset fuel.

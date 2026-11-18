@@ -90,6 +90,16 @@ fn submission_run_row_original_with_identity(
         definition,
       )
   }
+  validate_sdk_run_row_decoded(decoded)
+}
+
+///|
+fn validate_sdk_run_row_decoded(
+  decoded : Result[
+    (@host.ClientRunJournalEncoding, String?, String?),
+    @host.ClientJournalDecodingIssue,
+  ],
+) -> Result[@host.ClientRunJournalEncoding, Int] {
   let (record, local_policy, observation_originals) = match decoded {
     Ok(value) => value
     Err(_) => return Err(-31)
@@ -133,6 +143,7 @@ fn observe_submission_append(
   value : Instance,
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
+  original_run? : Int? = None,
 ) -> Result[@host.ClientSubmittedJournalAppendPlan, Int] {
   match submission_append_current(value, record, configuration) {
     Ok(_) => ()
@@ -175,6 +186,24 @@ fn observe_submission_append(
   let read = (table, key) => {
     physical_journal_row(current.physical, check, 1, table, key)
   }
+  let inspect_run = row => {
+    let decoded = match original_run {
+      None => submission_append_run_inspection(row)
+      Some(run) => sdk_run_row_inspection(value, run, row)
+    }
+    decoded
+  }
+  let inspect_cancellation = row => {
+    match original_run {
+      None => submission_cancellation_run_inspection(row)
+      Some(run) =>
+        sdk_run_row_original(value, run, row).map(record => {
+          request: record.request,
+          definition: record.definition,
+          cancellation_requested: record.cancellation_requested,
+        })
+    }
+  }
   // Keep the original complete inventory and unsupported Effect distinction.
   // No missing row, partial scan or outer count substitutes for these checks.
   match
@@ -182,8 +211,12 @@ fn observe_submission_append(
       1024,
       scan,
       read,
-      submission_append_run_inspection,
-      () => submission_cancellation_inventory(scan, read),
+      inspect_run,
+      () => {
+        @host.inspect_client_cancellation_journal_inventory(
+          1024, scan, read, inspect_cancellation, -31,
+        ).map(_ => ())
+      },
       -31,
     ) {
     Ok(_) => ()
@@ -206,7 +239,7 @@ fn observe_submission_append(
         let observed = @host.read_client_saved_submission(
           original.reference,
           read,
-          submission_append_run_inspection,
+          inspect_run,
           -31,
         )
         match observed {
@@ -218,7 +251,7 @@ fn observe_submission_append(
           _ => Err(-31)
         }
       },
-      submission_append_run_inspection,
+      inspect_run,
       -31,
     ) {
     Ok(value) => value
