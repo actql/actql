@@ -5123,7 +5123,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "34f787cc437808d7ad814f92a06da8dff0016265cd232458f7c10c637f46cdb3",
+      "sha256": "a1b7caed749bf03ec62fa80f58e5b5f6003dc91b555932ce4d1f4e80fc98616b",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5594,7 +5594,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5746edd620699606efe7044345915ca01e9fe176e2c309103d6abf4958850b07",
+      "sha256": "31e524320049843166548a2b18c146ecf2485deb8ec6419acd2f71e25cb49d77",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -5782,7 +5782,8 @@
           "name": "readSite",
           "parameters": [
             "path",
-            "configurationReader"
+            "configurationReader",
+            "providerMoon"
           ],
           "async": true
         },
@@ -5985,6 +5986,10 @@
               {
                 "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
                 "anchor": "test('GitHub native Source joins bounded POST original child charge growth and shared Reader retirement'"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-repository-validation.test.mjs",
+                "anchor": "GitHub actual scalar repository rule gates Source Effect and publication before credentials"
               }
             ]
           }
@@ -6000,7 +6005,6 @@
         "../../../host-node/source-profile-json.mjs",
         "../../../site-node/https-credential-resource.mjs",
         "../site/github-issue-graphql-read.mjs",
-        "../site/github-issue-read.mjs",
         "node:crypto",
         "node:fs/promises",
         "node:path"

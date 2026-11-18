@@ -30,7 +30,6 @@ import {installRowSourceAuthorization,
   '../../../host-node/installed-row-source.mjs';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
-import {githubIssueListPath} from '../site/github-issue-read.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
   prepareGitHubSourceReadSequence} from '../site/github-issue-graphql-read.mjs';
 
@@ -87,7 +86,7 @@ async function readJson(path, code, read = readSourceProfileJson) {
   }
 }
 
-async function readSite(path, configurationReader) {
+async function readSite(path, configurationReader, providerMoon) {
   const readers = captureConfigurationReaders(configurationReader, undefined,
     () => fail('InstalledGitHubConfigurationReaderUnavailable'));
   const site = await readJson(path, 'InvalidInstalledGitHubSite', readers.readJson);
@@ -102,8 +101,19 @@ async function readSite(path, configurationReader) {
       !absolute(rest.credentialPrivateKeyPath) || !absolute(rest.journalRoot)) {
     fail('InvalidInstalledGitHubSite');
   }
-  // The owner/repo of access; the path builder refuses anything else.
-  githubIssueListPath(rest.owner, rest.repo);
+  // Admit Text before the typed, allocation-free Catalog predicate. The old
+  // REST helper's RegExp coercion is not a configuration or provider contract.
+  if (typeof rest.owner !== 'string' || typeof rest.repo !== 'string') {
+    fail('InvalidGitHubRepository');
+  }
+  if (typeof providerMoon?.githubRepositoryAccessValid !== 'function') {
+    fail('InstalledGitHubRepositoryValidationUnavailable');
+  }
+  const valid = providerMoon.githubRepositoryAccessValid(rest.owner, rest.repo);
+  if (valid !== true) {
+    if (valid !== false) fail('InstalledGitHubRepositoryValidationUnavailable');
+    fail('InvalidGitHubRepository');
+  }
   if (caPath !== undefined && configurationReader !== undefined && readers.readOriginalBytes === undefined) {
     fail('InstalledGitHubConfigurationReaderUnavailable');
   }
@@ -227,7 +237,7 @@ export async function publishInstalledGitHubSource(profile, options) {
 export async function publishGitHubRepository(checkedProfile, {root,
   principalId, moon, providerMoon, runtimeBundleCid, resolveSecret, signal,
   installation}) {
-  const site = await readSite(checkedProfile.siteProfilePath);
+  const site = await readSite(checkedProfile.siteProfilePath, undefined, providerMoon);
   const {declared} = await restore(moon, checkedProfile.connectorId, undefined);
   const opened = await openSite(checkedProfile, site, {root, principalId,
     moon, runtimeBundleCid, resolveSecret, installation});
@@ -312,7 +322,7 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
   }
   const readers = construction.configurationReader;
   const checkedProfile = checkInstalledGitHubSourceProfile(profile);
-  const site = await readSite(checkedProfile.siteProfilePath, readers);
+  const site = await readSite(checkedProfile.siteProfilePath, readers, providerMoon);
   const publication = await readGitHubPublication(checkedProfile, site, readers.readJson);
   const viewInput = await readers.readOriginalText(viewsUrl);
   construction.prepareDeclaration(viewInput, publication.catalogCid);

@@ -181,7 +181,7 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
   if (configurationReader !== undefined && readers.readOriginalText === undefined) {
     fail('InstalledGitHubConfigurationReaderUnavailable');
   }
-  const site = await readGitHubSite(checked.siteProfilePath, configurationReader);
+  const site = await readGitHubSite(checked.siteProfilePath, configurationReader, providerMoon);
   const publication = await readGitHubPublication(checked, site, readers.readJson);
   const {declaration, declared} = await restoreGitHubDeclaration(moon,
     checked.connectorId, publication.catalogCid, sourceInitialization, readers.readOriginalText);

@@ -14,6 +14,32 @@ pub let repository_query : String = "query ActqlRepository($owner: String!, $nam
 pub let issues_query : String = "query ActqlIssues($id: ID!, $first: Int!, $after: String, $states: [IssueState!], $labels: [String!], $since: DateTime) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner issues(first: $first, after: $after, states: $states, labels: $labels, filterBy: {since: $since}) { pageInfo { hasNextPage endCursor } nodes { number id title state stateReason body author { login } assignees(first: 100) { totalCount pageInfo { hasNextPage endCursor } nodes { login } } labels(first: 100) { totalCount pageInfo { hasNextPage endCursor } nodes { name } } comments { totalCount } milestone { title } createdAt updatedAt closedAt url } } } } }"
 
 ///|
+fn repository_name_valid(name : String) -> Bool {
+  if name.is_empty() || name.length() > 100 || name == "." || name == ".." {
+    return false
+  }
+  for index = 0; index < name.length(); index = index + 1 {
+    let unit = name[index].to_int()
+    if !((unit >= 65 && unit <= 90) ||
+      (unit >= 97 && unit <= 122) ||
+      (unit >= 48 && unit <= 57) ||
+      unit == 46 ||
+      unit == 95 ||
+      unit == 45) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Bounded, stateless validation of borrowed configuration Text only. No
+/// locator, request, copy, holding, permission or repository binding is issued.
+pub fn repository_access_valid(owner : String, name : String) -> Bool {
+  repository_name_valid(owner) && repository_name_valid(name)
+}
+
+///|
 fn optional_json(value : String?) -> Json {
   match value {
     Some(text) => text.to_json()

@@ -4,6 +4,30 @@ fn page_limits() -> PageLimits {
 }
 
 ///|
+test "repository access validates borrowed bounded ASCII names without request DATA" {
+  assert_true(repository_access_valid("octo", "hello.js"))
+  assert_true(repository_access_valid("A_0-", "..."))
+  let boundary = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  assert_eq(boundary.length(), 100)
+  assert_true(repository_access_valid(boundary, boundary))
+  for
+    invalid in [
+      "",
+      ".",
+      "..",
+      "o/x",
+      "r?x",
+      "r%2F",
+      "東京",
+      "repo\n",
+      boundary + "x",
+    ] {
+    assert_false(repository_access_valid(invalid, "repo"))
+    assert_false(repository_access_valid("owner", invalid))
+  }
+}
+
+///|
 fn graphql_node(
   id : String,
   database_id : Int,

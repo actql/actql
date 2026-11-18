@@ -98,6 +98,8 @@ pub fn pull_requests_request(String, Int, String?, PullRequestFilters) -> Result
 
 pub fn rate_limit_basis(HeaderObservation) -> RateLimitBasis
 
+pub fn repository_access_valid(String, String) -> Bool
+
 pub let repository_query : String
 
 pub fn repository_request(String, String) -> String
