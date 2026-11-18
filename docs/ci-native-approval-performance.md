@@ -22,8 +22,8 @@ the two Effects, complete Result, separate-process Saved reread, no Model
 restart, and no extra writes. The formal collector reuses that consumer and its
 fresh private installation/state; it never replays a failed business state.
 
-The required ordinary Linux Local producer already executes both installed Mock
-workflows. Its ordinary consumer now checks each complete approval process
+The required ordinary Linux Local consumer executes both installed Mock
+workflows. It checks each complete approval process
 against the same maximum of 10000 ms as the formal profile, using the existing
 monotonic `wallNs` observation.
 Missing, invalid, failed or duplicate observations cannot pass. This is a
@@ -39,6 +39,21 @@ cutoff. This smoke check needs no timing baseline and adds no workflow runs.
 The separate Health Quick comparison remains warning-only for latency; adopting
 a reviewed comparable Quick baseline alone does not turn its timing warnings
 into a failing performance gate.
+
+Ready PR and main CI run both complete installed functional workflows once,
+including the ordinary maximum-only smoke check. This does not produce a formal
+p95 assessment. The existing weekly CI schedule retains the full 30 approvals
+per template against its exact same-run Native artifact; it does not start a
+second normal producer or a duplicate scheduled campaign.
+
+Manual formal campaigns use the existing `performance-matrix.yml`
+`native-approval-only` entrance with the exact reviewed producer run and artifact
+IDs. Producer success, run attempt, source and artifact identities remain
+mandatory. Release candidates independently run the same formal collector on
+their own joint same-source release artifact. The installed Linux job and the
+required Native/release aggregate cannot succeed if that assessment fails,
+is incomplete, or times out. A normal functional receipt or an unrelated manual
+campaign cannot replace that candidate-bound release assessment.
 
 Prepare the exact immutable Native release with the existing canonical producer,
 then run through the existing bounded local-check guard:

@@ -4,6 +4,7 @@ import {readFileSync, mkdtempSync, writeFileSync, existsSync, rmSync, symlinkSyn
 import {execFileSync, spawnSync} from 'node:child_process';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
+import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import * as performance from './native-approval-performance.mjs';
 import {parseCommands} from './verification-actions.mjs';
@@ -212,17 +213,42 @@ test('ordinary Native smoke leaves formal slow samples and earlier receipt error
   assert.deepEqual(failed.events, []);
 });
 
-test('required Native CI selects the full original formal campaign and keeps stop bounds separate', () => {
+test('Native CI separates required functional workflows from scheduled and candidate-bound formal campaigns', () => {
   const consumer = readFileSync(new URL('./test-native-cli-mock-install.mjs', import.meta.url), 'utf8');
   const ci = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const collector = readFileSync(new URL('./test-native-approval-performance.mjs', import.meta.url), 'utf8');
   assert.match(consumer, /async function run\(command, args, cwd = root, timeoutMs = 120_000\)/u);
   assert(consumer.indexOf('await registry.close()') < consumer.indexOf('const receiptFile = join(directory,'));
   const job = parse(ci).jobs['native-cli-linux-local-mock'];
+  const functional = job.steps.find(step => step.id === 'functional_profile');
   const formal = job.steps.find(step => step.run?.includes('node scripts/test-native-approval-performance.mjs'));
+  assert(functional && functional['continue-on-error'] === undefined);
+  assert(functional.run.includes('node scripts/test-native-cli-mock-install.mjs'));
+  assert(functional.run.includes('"$RUNNER_TEMP/native-cli-linux-local/release"'));
+  assert(!/--measure-approval-resources|--diagnostic|--diagnose-approval-syscalls/u.test(functional.run),
+    'Ordinary functional execution must retain its maximum-only smoke check');
+  assert(Number.isFinite(functional['timeout-minutes']) && functional['timeout-minutes'] > 0 &&
+    functional['timeout-minutes'] <= job['timeout-minutes']);
   assert(formal && formal['continue-on-error'] === undefined);
   assert(formal.run.includes('--binding') && !formal.run.includes('--diagnostic'));
   assert.equal(formal.env?.TMPDIR, undefined);
+  for (const event of ['pull_request', 'push', 'workflow_dispatch', 'schedule']) {
+    const context = {github: {event_name: event}};
+    assert.equal(runInNewContext(functional.if, context), event !== 'schedule');
+    assert.equal(runInNewContext(formal.if, context), event === 'schedule');
+  }
+  const admission = job.steps.findIndex(step => step.run?.includes('inspect-native-approval-source'));
+  assert(admission >= 0 && admission < job.steps.indexOf(functional) && admission < job.steps.indexOf(formal));
+  assert.equal(job.steps[admission]['continue-on-error'], undefined);
+  // Both other formal entrances use the same collector, without diagnostic or
+  // reduced-sample modes. The existing release gate tests execute its failures.
+  const matrix = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
+  const release = parse(readFileSync(new URL('../.github/workflows/release-candidate.yml', import.meta.url), 'utf8'));
+  for (const owner of [matrix.jobs['native-approval'], release.jobs['native-installed']]) {
+    const selected = owner.steps.find(step => step.run?.includes('node scripts/test-native-approval-performance.mjs'));
+    assert(selected && selected['continue-on-error'] === undefined);
+    assert(selected.run.includes('--normal') && !selected.run.includes('--diagnostic'));
+  }
   assert.match(collector, /count = values\.diagnostic \? 3 : 30/u);
   const owners = parse(ci).jobs.lint.steps.flatMap(step =>
     parseCommands(step.run ?? '').commands.map(command => ({step, argv: command.argv})))
@@ -437,19 +463,26 @@ test('formal samples reject instrumented diagnostics and unavailable original re
   }
 });
 
-test('required CI preserves the formal failure and runs at most one separate fresh diagnostic against the same artifact', () => {
+test('Native CI preserves selected acceptance failure and runs only one fresh diagnostic against the same artifact', () => {
   const job = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')).jobs['native-cli-linux-local-mock'];
   const formal = job.steps.find(step => step.id === 'approval_profile');
   assert(formal && !formal.run.includes('strace') && !formal.run.includes('--diagnose-approval-syscalls'));
   assert.equal(formal['continue-on-error'], undefined);
   const diagnostics = job.steps.filter(step => step.run?.includes('--diagnose-approval-syscalls'));
   assert.equal(diagnostics.length, 1);
-  assert.equal(diagnostics[0].if, "${{ failure() && steps.approval_profile.outcome == 'failure' }}");
+  const expression = diagnostics[0].if.slice(3, -2);
+  for (const [functional, formal, failed, expected] of [
+    ['success', 'skipped', false, false], ['skipped', 'success', false, false],
+    ['failure', 'skipped', true, true], ['skipped', 'failure', true, true],
+    ['skipped', 'skipped', true, false], ['cancelled', 'skipped', true, false],
+  ]) assert.equal(runInNewContext(expression, {failure: () => failed, steps: {
+    functional_profile: {outcome: functional}, approval_profile: {outcome: formal},
+  }}), expected);
   assert(diagnostics[0].run.includes('--measure-approval-resources'));
   assert(diagnostics[0].run.includes('"$RUNNER_TEMP/native-cli-linux-local/release"'));
   assert(diagnostics[0].run.includes('timeout 300s'));
   assert.equal(diagnostics[0]['continue-on-error'], undefined);
-  const upload = job.steps.find(step => step.name === 'Retain complete Native approval samples and original Mock receipts');
+  const upload = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   for (const pattern of ['approval-resources-*.txt', 'approval-syscalls-*.txt', 'mock-syscalls-*.json']) assert(upload.with.path.includes(pattern));
   assert.equal(upload.if, 'always()');
 });
