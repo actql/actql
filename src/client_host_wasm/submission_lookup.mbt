@@ -62,11 +62,7 @@ fn observe_submission_lookup(
   let read = (table, key) => {
     physical_journal_row(current.physical, check, 1, table, key)
   }
-  let cancellation = () => {
-    @host.inspect_client_empty_cancellation_inventory(
-      1024, scan, read, -31, -42,
-    )
-  }
+  let cancellation = () => submission_cancellation_inventory(scan, read)
   // The original physical reader observes its actual same-transaction schema.
   // This is only algorithm-selection DATA; every Account/current/epoch and
   // selected nested-original validator below still runs. Errors never mean

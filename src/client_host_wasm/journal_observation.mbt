@@ -302,11 +302,7 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
     scan,
     read,
     submission_append_run_inspection,
-    () => {
-      @host.inspect_client_empty_cancellation_inventory(
-        1024, scan, read, -31, -42,
-      )
-    },
+    () => submission_cancellation_inventory(scan, read),
     -31,
   ).map_err(issue => {
     match issue {
