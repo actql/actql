@@ -1287,7 +1287,7 @@ test('every heavy primitive is selected as one complete job and lint/spec always
     assert(jobs[name].needs.includes('select-targets'));
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', targets: '["js"]', macos: 'false'}},
       lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), false);
-    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', deep_proofs: 'true', macos: 'true'}},
+    assert.equal(scheduled(name, {'select-targets': {result: 'success', outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', deep_proofs: 'true', macos: 'true'}},
       lint: {result: 'success'}, 'core-js': {result: 'success'}, 'native-cli-linux-local': {result: 'success'}}), true);
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', targets: '[]', macos: 'true'}},
       lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), false);
@@ -1812,8 +1812,8 @@ test('neutral ABI and existing Host source changes retain required current famil
 test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {
   const job = jobs['python-wheels'];
   assert.equal(job['runs-on'], '${{ matrix.runner }}');
-  assert.deepEqual(job.needs, ['select-targets', 'lint', 'core-js']);
-  assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', macos: 'false'}},
+  assert.deepEqual(job.needs, ['select-targets']);
+  assert.equal(scheduled('python-wheels', {'select-targets': {result: 'success', outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', macos: 'false'}},
     lint: {result: 'success'}, 'core-js': {result: 'success'}}), true);
   assert(job.steps.some(step => step.run === 'python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"'));
   assert(jobs.lint.steps.some(step => step.run === 'python3 -B scripts/test_ci_python_wheels.py'));
@@ -1822,6 +1822,30 @@ test('normal Python wheels are mandatory for full profiles independently of opti
     const needs = results(selection); needs['python-wheels'].result = result;
     assert.throws(() => verifyGate(plan(selection), needs, {...context, event: 'workflow_dispatch'}), /python-wheels/);
   }
+});
+
+test('Python wheel overlap requires successful Source admission and cannot clear final validation failures', () => {
+  const selected = {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true'};
+  for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
+    // Even retained selection outputs cannot authorize work after admission
+    // failed. Independent lint/Core outcomes are not wheel build inputs.
+    const needs = {'select-targets': {result, outputs: selected},
+      lint: {result: 'failure'}, 'core-js': {result: 'cancelled'}};
+    assert.equal(scheduled('python-wheels', needs), result === 'success');
+  }
+  const needs = {'select-targets': {result: 'success', outputs: selected}};
+  for (const flag of ['false', '', undefined])
+    assert.equal(scheduled('python-wheels', {'select-targets': {
+      result: 'success', outputs: {...selected, python_wheels: flag}}}), false);
+  assert.equal(scheduled('python-wheels', needs, {}, true), false);
+  for (const inputs of [{performance_matrix: true}, {packed_query_evidence_probe: true}])
+    assert.equal(scheduled('python-wheels', needs, inputs), false);
+  const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
+  for (const name of ['select-targets', 'preflight', 'lint', 'core', 'python-wheels'])
+    for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+      const actual = results(selection); actual[name] = {result};
+      assert.throws(() => verifyGate(plan(selection), actual, {...context, event: 'workflow_dispatch'}));
+    }
 });
 
 test('normal wheel platforms reject foreign machines and keep independent same-platform artifacts', t => {
@@ -1891,7 +1915,7 @@ test('Draft normal Python and CI changes automatically select real wheel accepta
     'packages/python-local-runtime/new.py']) {
     const selection = selectTargets([path], {draft: true});
     assert.equal(pythonWheelAcceptanceRequired(selection), true, path);
-    assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {
+    assert.equal(scheduled('python-wheels', {'select-targets': {result: 'success', outputs: {
       profile: 'draft', targets: JSON.stringify(selection.targets), python_wheels: String(pythonWheelAcceptanceRequired(selection)), macos: 'false'}},
       lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), true);
     assert.throws(() => verifyGate(plan(selection), results(selection), {...context, draft: true}), /awaiting ready_for_review/);

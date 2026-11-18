@@ -376,7 +376,7 @@ jobs:
           retention-days: 7
   # Linux keeps both portable targets and eight complete Native common drivers.
   # Darwin's five original profile owners start after target selection, alongside Native
-  # Mac workloads. Python retains its lint/JS boundary. Every Core row shares the
+  # Mac workloads. Python also follows early Source admission. Every Core row shares the
   # same steps; the final join still requires selected JS, lint and preflight.
   core-common:
     needs: [select-targets]
@@ -3232,8 +3232,10 @@ jobs:
             }
           '
   python-wheels:
-    needs: [select-targets, lint, core-js]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.lint.result == 'success' && ((needs.select-targets.outputs.profile == 'full' && contains(fromJSON(needs.select-targets.outputs.targets), 'js') && needs.core-js.result == 'success') || ((needs.select-targets.outputs.profile != 'full' || !contains(fromJSON(needs.select-targets.outputs.targets), 'js')) && needs.core-js.result == 'skipped')) && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
+    # This job builds its own original Core and wheels after early Source
+    # admission. Lint/JS Core still join it at the unchanged required final gate.
+    needs: [select-targets]
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && needs.select-targets.result == 'success' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.python_wheels == 'true' }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
