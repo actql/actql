@@ -1,15 +1,18 @@
-// Fixture contract tests only. These doubles prove oracle/phase ordering and
-// failure preservation, not provider authentication or ordinary Run acceptance.
+// Fixture contract and TLS transport components only. Client doubles prove
+// oracle/phase ordering; synthetic TLS requests prove the fixture socket point.
+// Neither establishes actual Host authentication, Run/Unknown or ordinary acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile, unlink} from 'node:fs/promises';
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import {request as requestHttps} from 'node:https';
+import {openRecordApprovalExchange} from './fixtures/record-approval/installed.fixture.mjs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase,
-  sharedRecordUpdateSelections, recordUpdateFixtureState} from './fixtures/record-approval/cases.mjs';
+  sharedRecordUpdateSelections, recordUpdateFixtureState, recordUpdateReplyLossFaults} from './fixtures/record-approval/cases.mjs';
 import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
@@ -875,4 +878,77 @@ test('binary Whole JOIN fixture refuses incomplete answer Result without losing 
   await assert.rejects(phase('approve', value, f), {code: 'ERR_ASSERTION'});
   assert.equal(f.events.at(-1), 'close');
   assert.equal(f.saved.has('approved'), false);
+});
+
+
+for (const [connector, makeProvider, credentialHeader] of [
+  ['hubspot', hubspotApprovalProvider, 'authorization'],
+  ['kintone', kintoneApprovalProvider, 'x-cybozu-api-token'],
+]) test(`shared ${connector} reply loss applies once over real TLS and retains independent control`,
+  {timeout: 15000}, async t => {
+  const selected = sharedRecordUpdateSelections[connector];
+  const expected = recordUpdateFixtureState(selected), provider = makeProvider(selected);
+  const before = provider.snapshot();
+  assert.deepEqual({id: before.target.id, name: before.target.name}, expected.before.target);
+  const faults = recordUpdateReplyLossFaults(provider);
+  const tls = await openRecordApprovalExchange(t, {provider, faults});
+  const body = connector === 'hubspot' ? {inputs: [{id: selected.recordId,
+    objectWriteTraceId: cid('a'), properties: {name: selected.nextName, actql_request_id: cid('b')}}]}
+    : {app: '12', records: [{id: selected.recordId, revision: '9007199254740994',
+      record: {Subject: {value: selected.nextName}}}], upsert: false};
+  let receivedResponse = false;
+  // One test protocol request, not a Host claim/approval/credential grant.
+  // The existing TLS fixture alone applies then destroys the original socket.
+  await assert.rejects(new Promise((resolve, reject) => {
+    const bytes = Buffer.from(JSON.stringify(body));
+    const call = requestHttps(new URL(provider.writeRequest.pathname, tls.origin), {
+      method: provider.writeRequest.method, ca: tls.ca, agent: false,
+      headers: {[credentialHeader]: credentialHeader === 'authorization'
+        ? 'Bearer loopback-loss-credential' : 'loopback-loss-credential', 'content-type': 'application/json',
+        'content-length': bytes.length},
+    }, response => {
+      receivedResponse = true;response.resume();response.once('end', resolve);
+      response.once('error', reject);
+    });
+    call.setTimeout(5000, () => call.destroy(Object.assign(new Error('FixtureRequestTimeout'),
+      {code: 'FixtureRequestTimeout'})));
+    call.once('error', reject);call.end(bytes);
+  }), error => error.code === 'ECONNRESET');
+  assert.equal(receivedResponse, false, 'No returned HTTP success/body was fabricated');
+  assert.equal(tls.remainingFaults(), 0);
+  assert.equal(tls.seen().length, 1, 'This component sends exactly one original request, with no retry');
+  assert.equal(tls.seen()[0].method, provider.writeRequest.method);
+  assert.equal(tls.seen()[0].pathname, provider.writeRequest.pathname);
+  assert.equal(JSON.stringify(tls.seen()).includes('loopback-loss-credential'), false);
+  const after = provider.snapshot();
+  assert.equal(after.writes, 1);
+  assert.deepEqual({id: after.target.id, name: after.target.name}, expected.after.target);
+  assert.deepEqual(after.control, before.control);
+  assert.equal(after.failures.length, 0, 'Socket failure followed a real successful provider apply');
+  if (connector === 'hubspot') {
+    assert.equal(after.target.marker, cid('b'));
+    assert.equal(Object.hasOwn(after.target, 'revision'), false);
+  } else {
+    assert.equal(after.target.revision, '9007199254740995');
+    assert.equal(Object.hasOwn(after.target, 'marker'), false);
+  }
+  // These independent backend facts are NOT a public Run/Result/receipt or
+  // product no-resend proof. Actual Unknown/recovery needs the original Host.
+});
+
+test('shared reply-loss selection snapshots only a finite provider-owned write route', () => {
+  assert.deepEqual(recordUpdateReplyLossFaults({writeRequest: {method: 'PUT', pathname: '/v10/records'}}),
+    [{kind: 'apply-then-lose-reply', method: 'PUT', pathname: '/v10/records', times: 1}]);
+  const request = {method: 'PUT', pathname: '/original'};
+  const faults = recordUpdateReplyLossFaults({writeRequest: request});
+  request.pathname = '/changed';
+  assert.deepEqual(faults, [{kind: 'apply-then-lose-reply', method: 'PUT', pathname: '/original', times: 1}]);
+  assert(Object.isFrozen(faults) && Object.isFrozen(faults[0]));
+  for (const writeRequest of [undefined, {}, {method: 'put', pathname: '/x'},
+    {method: 'PUT', pathname: 'https://external.invalid/x'},
+    {method: 'PUT', pathname: '//external.invalid/x'}, {method: 'PUT', pathname: '/x?secret=x'},
+    {method: 'PUT', pathname: '/x\0'}, {method: 'PUT', pathname: '/x\\y'},
+    {method: 'PUT', pathname: '/\ud800'}]) {
+    assert.throws(() => recordUpdateReplyLossFaults({writeRequest}), {message: 'InvalidRecordApprovalWriteRoute'});
+  }
 });

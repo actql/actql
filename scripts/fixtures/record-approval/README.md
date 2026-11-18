@@ -162,3 +162,29 @@ Keep install output, original inputs, state and receipts on failure or success.
 Run on the producer's actual supported platform; a Linux native asset does not
 qualify Darwin. This source connection alone is not hosted CI or real-account
 acceptance. The existing three-path release/closed-installation entry is retained.
+
+
+## Applied update with a lost reply
+
+Each provider fixture exposes `writeRequest` from its actual existing write
+route. `recordUpdateReplyLossFaults(provider)` snapshots that finite method and
+pathname into the existing HTTPS fixture's one-shot `apply-then-lose-reply`
+fault. An explicitly selected installed fault consumer may supply this array as
+`fixture.faults`; the default successful workflow retains an empty fault list.
+No fault chooses a credential, egress grant, claim, Run status or retry policy.
+
+The shared real-TLS component sends one synthetic protocol request, observes
+connection reset without a response, and independently checks one actual fixture
+mutation plus the unchanged control row. HubSpot retains its dispatch marker and
+pre-write comparison meaning; kintone retains its original conditional revision
+and exact String identifiers. Neither gains the other's atomicity guarantee.
+The ordinary runner and these direct controls call the same thin
+`openRecordApprovalExchange` fixture entry; the existing shared server,
+certificates and route assertions are reused unchanged.
+
+This closes only the transport fixture/oracle seam. A single test-driver request
+is not proof of product no-resend, and observed backend mutation is not a public
+Result, success receipt or cleanup ACK. Actual Host Unknown/confirmation/recovery
+and same-original non-resend still require their own selected ordinary case;
+this component does not turn the existing success workflow into a passing fault
+consumer or rerun an old failed business state.

@@ -1,5 +1,6 @@
-// Run only inside a verified ordinary installation. Product implementations
-// and private bootstrap brands come from that same installed Local runtime.
+// The ordinary runner requires a verified installation. Its product/runtime
+// originals come from that installation; the shared TLS opener below is
+// fixture-only and loads no Host, Common or installed product.
 import assert from 'node:assert/strict';
 import {readFile, writeFile, mkdir, mkdtemp} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -17,6 +18,12 @@ const pem = key => key.export({format: 'pem', type: key.type === 'private' ? 'pk
 const safe = error => ({name: error?.name, code: error?.code, message: error?.message});
 const privateFile = {mode: 0o600, flag: 'wx'};
 
+// Same existing transport/fault seam for the ordinary harness and direct TLS
+// protocol controls. This helper never classifies a public Run outcome.
+export function openRecordApprovalExchange(t, fixture) {
+  return openHttpsExchangeFixture(t, {routes: fixture.provider.routes, faults: fixture.faults ?? []});
+}
+
 export async function runInstalledRecordApprovalFixture(t, fixture) {
   const {connectorId, resource, alias, selection, provider} = fixture;
   const expected = recordUpdateFixtureState(selection);
@@ -33,7 +40,7 @@ export async function runInstalledRecordApprovalFixture(t, fixture) {
   const local = new URL('./', import.meta.resolve('@actql/local-node'));
   const load = path => import(new URL(path, local));
   try {
-    tls = await openHttpsExchangeFixture(undefined, {routes: provider.routes});
+    tls = await openRecordApprovalExchange(undefined, fixture);
     const common = await load('_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
     const {loadInstalledSource} = await load('adapters/host-node/installed-source.mjs');
     const {canonicalJson} = await load('adapters/host-node/local-account-config.mjs');

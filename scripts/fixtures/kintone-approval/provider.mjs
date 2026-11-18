@@ -34,6 +34,14 @@ export function kintoneApprovalProvider({recordId, controlId, previousName, next
       throw error;
     }
   }});
+  const writeRoute = route('PUT', '/k/v1/records.json', exchange => {
+    assert.equal(exchange.headers['x-http-method-override'], undefined);
+    assert.deepEqual(JSON.parse(exchange.body), {app: '12', records: [{id: recordId, revision,
+      record: {Subject: {value: nextName}}}], upsert: false});
+    assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
+    writes++; target.name = nextName; target.revision = nextRevision;
+    return {records: [{id: recordId, revision: nextRevision}]};
+  });
   const routes = [
     route('POST', '/k/v1/app/form/fields.json', exchange => {
       assert.equal(exchange.headers['x-http-method-override'], 'GET');
@@ -52,16 +60,9 @@ export function kintoneApprovalProvider({recordId, controlId, previousName, next
       assert.equal(body.query, `$id > ${controlId} order by $id asc limit 2`);
       return {records: [], totalCount: null};
     }),
-    route('PUT', '/k/v1/records.json', exchange => {
-      assert.equal(exchange.headers['x-http-method-override'], undefined);
-      assert.deepEqual(JSON.parse(exchange.body), {app: '12', records: [{id: recordId, revision,
-        record: {Subject: {value: nextName}}}], upsert: false});
-      assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
-      writes++; target.name = nextName; target.revision = nextRevision;
-      return {records: [{id: recordId, revision: nextRevision}]};
-    }),
+    writeRoute,
   ];
-  return {routes, form: structuredClone(form), snapshot: () => ({writes,
+  return {routes, writeRequest: Object.freeze({method: writeRoute.method, pathname: writeRoute.pathname}), form: structuredClone(form), snapshot: () => ({writes,
     target: structuredClone(target), control: structuredClone(control),
     requests: structuredClone(requests), failures: structuredClone(failures)})};
 }

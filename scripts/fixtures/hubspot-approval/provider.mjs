@@ -35,6 +35,24 @@ export function hubspotApprovalProvider({recordId, controlId, previousName, next
       throw error;
     }
   }});
+  const writeRoute = route('POST', '/crm/v3/objects/companies/batch/update', exchange => {
+    const body = JSON.parse(exchange.body);
+    sameKeys(body, ['inputs']);
+    assert.equal(body.inputs.length, 1);
+    const item = body.inputs[0];
+    sameKeys(item, ['id', 'objectWriteTraceId', 'properties']);
+    assert.equal(item.id, recordId);
+    assert.match(item.objectWriteTraceId, cid);
+    sameKeys(item.properties, ['name', 'actql_request_id']);
+    assert.equal(item.properties.name, nextName);
+    assert.match(item.properties.actql_request_id, cid);
+    assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
+    writes++;
+    target.name = item.properties.name;
+    target.marker = item.properties.actql_request_id;
+    target.updatedAt = '2026-11-07T00:00:01.000Z';
+    return {status: 'COMPLETE', results: [record(target)]};
+  });
   const routes = [
     route('GET', '/account-info/v3/details', () => ({portalId: 7, accountType: 'STANDARD'})),
     route('GET', '/crm/v3/properties/companies', () => structuredClone(properties)),
@@ -46,26 +64,9 @@ export function hubspotApprovalProvider({recordId, controlId, previousName, next
       assert.deepEqual(body.properties, ['name']);
       return {status: 'COMPLETE', results: [record(target)]};
     }),
-    route('POST', '/crm/v3/objects/companies/batch/update', exchange => {
-      const body = JSON.parse(exchange.body);
-      sameKeys(body, ['inputs']);
-      assert.equal(body.inputs.length, 1);
-      const item = body.inputs[0];
-      sameKeys(item, ['id', 'objectWriteTraceId', 'properties']);
-      assert.equal(item.id, recordId);
-      assert.match(item.objectWriteTraceId, cid);
-      sameKeys(item.properties, ['name', 'actql_request_id']);
-      assert.equal(item.properties.name, nextName);
-      assert.match(item.properties.actql_request_id, cid);
-      assert.equal(writes, 0, 'Only one original physical UPDATE is expected');
-      writes++;
-      target.name = item.properties.name;
-      target.marker = item.properties.actql_request_id;
-      target.updatedAt = '2026-11-07T00:00:01.000Z';
-      return {status: 'COMPLETE', results: [record(target)]};
-    }),
+    writeRoute,
   ];
-  return {routes, properties, account: {portalId: 7, accountType: 'STANDARD'},
+  return {routes, writeRequest: Object.freeze({method: writeRoute.method, pathname: writeRoute.pathname}), properties, account: {portalId: 7, accountType: 'STANDARD'},
     snapshot: () => ({writes, target: structuredClone(target), control: structuredClone(control),
       requests: structuredClone(requests), failures: structuredClone(failures)})};
 }
