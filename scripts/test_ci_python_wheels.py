@@ -551,6 +551,120 @@ class InstalledAuditTests(unittest.TestCase):
 
 
 class FailureLocationTests(unittest.TestCase):
+    def local_work_fixture(self, *, completed=True, same_reference=True, operation='status'):
+        import asyncio
+        sdk = SCRIPTS.parent / 'packages/python-sdk/src'
+        sys.path.insert(0, str(sdk))
+        try:
+            from actql_sdk._local_core import LocalCore, _Input, _PhysicalInput
+            from actql_sdk._local_product import InstalledLocalHost, _OriginalRunReference
+            from actql_sdk._local_work import OriginalLocalWork
+        finally:
+            sys.path.remove(str(sdk))
+
+        class OpaqueOriginalError(RuntimeError):
+            def __str__(self):
+                raise AssertionError('Never format the retained physical cause')
+
+        original, cleanup, exited = OpaqueOriginalError(), OpaqueOriginalError(), OpaqueOriginalError()
+        core = object.__new__(LocalCore)
+        core._identity, core._closing = object(), True
+        reference = {'namespaceId': 'private-reference-secret'}
+        raw = json.dumps(reference).encode()
+        source = _Input(core._identity, 1, 1, len(raw))
+        core._inputs = {1: _PhysicalInput(raw, lambda: False, lambda _: False)}
+        owner = object()
+        invoked = []
+        def invoke():
+            invoked.append(owner)
+            raise original
+        work = OriginalLocalWork(invoke, owner=owner)
+        if completed:
+            work.start()
+            work._thread.join(2)
+            self.assertFalse(work._thread.is_alive())
+            self.assertIs(work._future.exception(timeout=0), original)
+        work._cleanup_error, work._exit_error = cleanup, exited
+        host = object.__new__(InstalledLocalHost)
+        host._original, host._core = host, core
+        host._closing, host._installation = False, object()
+        host._public_run_references = [_OriginalRunReference(owner, source)]
+        host._physical_work = [work]
+        payload = json.dumps({'ref': reference if same_reference else {'namespaceId': 'foreign'}}).encode()
+        try:
+            asyncio.run(host.open(operation, payload))
+        except ValueError as failure:
+            return failure, host, work, original, cleanup, exited, invoked
+        self.fail('Expected the actual Host availability fence')
+
+    def test_selected_completed_work_reports_same_opaque_original_and_separate_cleanup_exit(self):
+        diagnostics = load('ci_selected_completed_work', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, host, work, original, cleanup, exited, invoked = self.local_work_fixture()
+        before = work._future
+        stream = io.StringIO()
+        diagnostics.report_contexts(failure, stream)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        selected = next(record['local_work'] for record in records if 'local_work' in record)
+        self.assertEqual(selected, {'observed_after_consumer_failure': True,
+                                   'host_closing': False, 'core_closing': True,
+                                   'installation_present': True, 'selected': True, 'future_done': True})
+        self.assertEqual([record.get('failure_role') for record in records[1:]],
+                         ['physical-original', 'physical-cleanup', 'physical-exit'])
+        self.assertEqual(invoked, [work._owner])
+        self.assertIs(work._future, before)
+        self.assertIs(before.exception(timeout=0), original)
+        self.assertIs(work._cleanup_error, cleanup)
+        self.assertIs(work._exit_error, exited)
+        self.assertIs(host._physical_work[0], work)
+        self.assertNotIn('private-reference-secret', stream.getvalue())
+
+    def test_pending_selected_work_is_not_waited_or_invoked(self):
+        diagnostics = load('ci_selected_pending_work', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, _, work, _, _, _, invoked = self.local_work_fixture(completed=False)
+        stream = io.StringIO()
+        diagnostics.report_contexts(failure, stream)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]['local_work']['future_done'], False)
+        self.assertEqual(invoked, [])
+        self.assertFalse(work._future.done())
+        self.assertFalse(work._invoked)
+
+    def test_other_run_failure_is_not_reported_as_selected_work(self):
+        diagnostics = load('ci_foreign_selected_work', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, _, _, _, _, _, _ = self.local_work_fixture(same_reference=False)
+        stream = io.StringIO()
+        diagnostics.report_contexts(failure, stream)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual(len(records), 1)
+        self.assertFalse(records[0]['local_work']['selected'])
+        self.assertNotIn('failure_role', records[0])
+
+    def test_diagnostic_history_bound_and_invalid_snapshot_keep_original_chain(self):
+        diagnostics = load('ci_selected_work_bounds', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, host, work, _, _, _, invoked = self.local_work_fixture()
+        for invalid in ([work] * (diagnostics.MAX_WORK_RECORDS + 1), object()):
+            host._physical_work = invalid
+            stream = io.StringIO()
+            diagnostics.report_contexts(failure, stream)
+            records = [json.loads(line) for line in stream.getvalue().splitlines()]
+            self.assertEqual(len(records), 1)
+            self.assertFalse(records[0]['local_work']['selected'])
+            self.assertIsNone(failure.__cause__)
+        self.assertEqual(len(invoked), 1)
+
+    def test_foreign_operation_diagnostic_cannot_invoke_equality(self):
+        diagnostics = load('ci_selected_work_foreign_operation', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        class ForeignOperation:
+            def __eq__(self, other):
+                raise AssertionError('Diagnostic cannot invoke foreign operation equality')
+        failure, _, _, _, _, _, _ = self.local_work_fixture(operation=ForeignOperation())
+        stream = io.StringIO()
+        diagnostics.report_contexts(failure, stream)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        self.assertEqual(len(records), 1)
+        self.assertNotIn('local_work', records[0])
+
     def test_known_core_seal_status_is_observed_without_private_values_or_retry(self):
         import io
         diagnostics = load('ci_installed_seal_status', SCRIPTS / 'fixtures/ci-python-installed-run.py')
