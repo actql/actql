@@ -52254,7 +52254,9 @@
           "parameters": [
             "self",
             "reference",
-            "kind"
+            "kind",
+            "intent",
+            "intent_cid"
           ]
         },
         {
@@ -52620,7 +52622,7 @@
           ]
         }
       ],
-      "sha256": "0fd02fa3f7a380d447846e22273215528494ab9268f41c9784d741ba8698ddc9",
+      "sha256": "69f974842634c057ced3972fc090e9ae49cd10f5a9b68aaf1fec91f1e9306a7c",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -54181,6 +54183,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The private saved-Result acquisition returns its already bounded and checked"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Shared binding observation of original intents"
               }
             ],
             "inputsOutputs": [
@@ -54195,6 +54201,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The private saved-Result acquisition returns its already bounded and checked"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn observe_client_submitted_intent("
               }
             ],
             "identity": [
@@ -54209,6 +54219,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The private saved-Result acquisition returns its already bounded and checked"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "if expected.wire != original.wire || expected.cid != original.cid {"
               }
             ],
             "ownership": [
@@ -54251,6 +54265,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The private saved-Result acquisition returns its already bounded and checked"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "if !client_submitted_intent_transition(phase, phase) {"
               }
             ],
             "cancellation": [
@@ -54279,6 +54297,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The private saved-Result acquisition returns its already bounded and checked"
+              },
+              {
+                "path": "src/client_host_wasm/submission_lookup.mbt",
+                "anchor": "fn admit_submission_lookup_intent("
               }
             ],
             "extension": [
@@ -54323,6 +54345,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
                 "anchor": "def test_saved_lookup_keeps_same_returned_source_when_original_clock_refuses("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent_observation_test.mbt",
+                "anchor": "test \"submission observation shares retained original and invocation decisions\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_submission_lookup.py",
+                "anchor": "def test_public_ready_submit_uses_same_saved_admission_before_any_preparation(self):"
               }
             ]
           }
