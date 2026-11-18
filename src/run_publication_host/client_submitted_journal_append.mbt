@@ -135,6 +135,60 @@ pub fn[E] prepare_client_submitted_journal_append(
   ClientSubmittedJournalAppendPlan,
   ClientSubmittedJournalAppendIssue[E],
 ] {
+  let original : ClientTaskMaterialsOriginal[Unit]? = None
+  prepare_client_submitted_journal_append_with_task_original(
+    reference,
+    intent,
+    validity,
+    max_records,
+    scan,
+    read,
+    validate_submission,
+    validate_run,
+    custody_lost,
+    original,
+    before_decode_construction~,
+    usage~,
+    before_construction~,
+    max_retained_intent_bytes~,
+  )
+}
+
+///|
+/// The same journal decision with an existing pure material original. The
+/// early retained branch must keep this original just like inventory reads;
+/// all physical rows, nested validators and construction fences still run.
+pub fn[Plan, E] prepare_client_submitted_journal_append_with_task_original(
+  reference : ClientSubmissionReferenceRecord,
+  intent : ClientSubmittedIntent,
+  validity : SubmissionEpochValidity,
+  max_records : Int,
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_submission : (ClientJournalPhysicalRow) -> Result[
+    ClientSubmittedJournalEncoding,
+    E,
+  ],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
+  custody_lost : E,
+  task_original : ClientTaskMaterialsOriginal[Plan]?,
+  before_decode_construction? : ((ClientSubmittedJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ])? = None,
+  usage? : (() -> Result[ClientJournalPhysicalRow?, E])? = None,
+  before_construction? : ((Int, Int, Int) -> Result[
+    Unit,
+    ClientJournalEncodingIssue,
+  ])? = None,
+  max_retained_intent_bytes? : Int64 = 67108864L,
+) -> Result[
+  ClientSubmittedJournalAppendPlan,
+  ClientSubmittedJournalAppendIssue[E],
+] {
   let issuance = match
     journal_issuance_anchor(
       "client_submitted_intent_custody", max_records, read, custody_lost,
@@ -143,11 +197,12 @@ pub fn[E] prepare_client_submitted_journal_append(
     Err(issue) => return Err(Observation(issue))
   }
   match
-    read_client_saved_submission(
+    read_client_saved_submission_with_task_original(
       reference,
       read,
       validate_run,
       custody_lost,
+      task_original,
       before_construction=before_decode_construction,
     ) {
     Ok(Some(snapshot)) => {

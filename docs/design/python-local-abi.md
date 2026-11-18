@@ -4174,6 +4174,10 @@ relation checks still execute. An exact match is never cached inventory,
 authorization, currentness or physical cleanup acknowledgement.
 
 The checked chunk array stays private to the Common reader/inventory call.
+The submitted-intent append decision also forwards that same optional original
+into its early `Retained` read, before the append-only callback can be reached.
+The compatibility entrance supplies no original and keeps the complete cold
+reader. This connection adds no resident field, allowance or scalar ABI export.
 Public chunk projection retains its original copy behavior. No borrowed memory
 or original escapes its existing synchronous owner. Existing material child
 checks and Run cleanup still control retirement and input-borrow return; a
