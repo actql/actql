@@ -15562,7 +15562,7 @@
             "verification": [
               {
                 "path": "scripts/fixtures/python-local-public-success-abi.py",
-                "anchor": "'public_core_derived_task_drive_quantum_one_joined_result_same_saved'"
+                "anchor": "'public_core_derived_task_drive_mixed_quanta_joined_result_same_saved'"
               }
             ]
           }
@@ -87110,7 +87110,7 @@
             "verification": [
               {
                 "path": "scripts/fixtures/python-local-public-success-abi.py",
-                "anchor": "'public_core_derived_task_drive_quantum_one_joined_result_same_saved'"
+                "anchor": "'public_core_derived_task_drive_mixed_quanta_joined_result_same_saved'"
               }
             ]
           }

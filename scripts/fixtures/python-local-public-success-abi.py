@@ -39,10 +39,10 @@ def new_core(raw, digest):
 
 
 async def main():
-    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] not in ('commit-unknown', 'task-drive')):
+    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] not in ('commit-unknown', 'task-drive-mixed')):
         raise ValueError('Expected original module, fresh scratch and optional COMMIT-loss control')
     commit_unknown = len(sys.argv) == 4 and sys.argv[3] == 'commit-unknown'
-    task_drive = len(sys.argv) == 4 and sys.argv[3] == 'task-drive'
+    task_drive = len(sys.argv) == 4 and sys.argv[3] == 'task-drive-mixed'
     expected_n = 2 if task_drive else 41
     raw = Path(sys.argv[1]).read_bytes()
     digest = hashlib.sha256(raw).hexdigest()
@@ -58,21 +58,40 @@ async def main():
         client = await AsyncClient._connect_local(host)
         if task_drive:
             original_drive = core.drive_task
-            def one_original_quantum(task, quantum):
+            def scheduled_original_quantum(task, quantum):
                 reader = host._installation.binding._observed_reader
                 assert reader is not None and core._task_loans[task.handle] is task
                 assert any(original is task for original in host._tasks)
+                counts = driven.setdefault(task.handle, [0, 0, 0, 0])
+                assert counts[1] == 0  # No normal call re-drives a completed task.
+                assert quantum == 256
+                # A deterministic TEST input schedule, never a runtime fallback
+                # on failure, fuel, progress or a Host-selected task phase.
+                selected_quantum = 1 if counts[0] < 8 else 256
+                before_code = core._call('task', 'progress', task.handle, 0)
+                before_progress = (core._call('task', 'progress', task.handle, 2)
+                                   if before_code >= 0 else None)
                 before = core._store.get_fuel()
-                complete = original_drive(task, 1)
+                complete = original_drive(task, selected_quantum)
                 assert core._store.get_fuel() <= before
+                after_code = core._call('task', 'progress', task.handle, 0)
+                after_progress = (core._call('task', 'progress', task.handle, 2)
+                                  if after_code >= 0 else None)
+                assert before_code in (-33, 0, 1) and after_code in (-33, 0, 1)
+                if before_progress is not None and after_progress is not None:
+                    assert 0 <= before_progress <= after_progress
+                if after_code == -33:
+                    assert before_code in (-33, 1)
+                    counts[3] += int(before_code == 1)
+                if complete:
+                    assert before_code == after_code == 1 and counts[3] == 1
                 assert host._installation.binding._observed_reader is reader
                 assert core._task_loans[task.handle] is task
-                counts = driven.setdefault(task.handle, [0, 0])
-                assert counts[1] == 0  # No normal call re-drives a completed task.
                 counts[0] += 1
                 counts[1] += int(complete)
+                counts[2] += int(selected_quantum == 1)
                 return complete
-            driver_checks.enter_context(patch.object(core, 'drive_task', side_effect=one_original_quantum))
+            driver_checks.enter_context(patch.object(core, 'drive_task', side_effect=scheduled_original_quantum))
             for method in ('start_task', 'feed_task', 'advance_task',
                            'prepare_task_finalization', 'complete_task'):
                 driver_checks.enter_context(patch.object(core, method,
@@ -142,7 +161,8 @@ async def main():
         # arbitrary private callback count is not a publication contract.
         assert atomic_observations and commit_calls.call_count == len(atomic_observations)
         if task_drive:
-            assert len(driven) >= 2 and all(calls > 1 and completed == 1 for calls, completed in driven.values())
+            assert len(driven) >= 2 and all(calls > 8 and completed == 1 and small == 8 and phases == 1
+                                          for calls, completed, small, phases in driven.values())
     except BaseException as error:
         primary = error
         if isinstance(error, ClientError):
@@ -214,12 +234,16 @@ async def main():
             raise AssertionError('Saved succeeded Core close remains pending')
     assert reopened._closed
     print(json.dumps({'success': True, 'actualCases': 1,
-        'case': ('public_core_derived_task_drive_quantum_one_joined_result_same_saved' if task_drive else
+        'case': ('public_core_derived_task_drive_mixed_quanta_joined_result_same_saved' if task_drive else
                  'public_commit_reply_loss_original_lookup_same_result_without_reexecution' if commit_unknown else
                  'public_succeeded_execute_typed_result_same_saved_and_close'),
         'module_sha256': digest, 'state': str(state), 'atomic_precommit_writer_exclusion': True,
         'commit_reply_loss_readback_without_reexecution': commit_unknown,
-        **({'core_owned_lifecycle': True, 'quantum': 1, 'original_tasks': len(driven)} if task_drive else {}),
+        **({'core_owned_lifecycle': True, 'initial_quantum': 1, 'initial_drives_per_task': 8,
+            'continuation_quantum': 256, 'original_tasks': len(driven),
+            'actual_initial_quantum_drives': sum(counts[2] for counts in driven.values()),
+            'observed_phase_transitions': sum(counts[3] for counts in driven.values()),
+            'monotonic_progress': True} if task_drive else {}),
         'qualification': 'actual source SDK/raw Wasm/SQLite; no installed normal package acceptance'}))
 
 

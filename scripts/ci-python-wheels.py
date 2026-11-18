@@ -155,8 +155,8 @@ def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
          'public_succeeded_execute_typed_result_same_saved_and_close', 300),
         ('publication-unknown', 'python-local-public-success-abi.py', 'commit-unknown',
          'public_commit_reply_loss_original_lookup_same_result_without_reexecution', 300),
-        ('task-drive', 'python-local-public-success-abi.py', 'task-drive',
-         'public_core_derived_task_drive_quantum_one_joined_result_same_saved', 120),
+        ('task-drive-mixed', 'python-local-public-success-abi.py', 'task-drive-mixed',
+         'public_core_derived_task_drive_mixed_quanta_joined_result_same_saved', 120),
         ('cancellation-drive-start', 'python-local-public-cancellation-abi.py', 'drive-start-state',
          'public_cancel_between_derived_drives_before_first_input_feed', 120),
     )
@@ -177,10 +177,18 @@ def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
         if (selection == 'commit-unknown'
                 and observed.get('commit_reply_loss_readback_without_reexecution') is not True):
             raise ValueError('Incomplete original publication recovery component')
-        if selection == 'task-drive' and (observed.get('core_owned_lifecycle') is not True
-                or type(observed.get('quantum')) is not int or observed['quantum'] != 1
-                or type(observed.get('original_tasks')) is not int or observed['original_tasks'] < 2):
-            raise ValueError('Incomplete original task-drive component')
+        if selection == 'task-drive-mixed':
+            if (observed.get('core_owned_lifecycle') is not True
+                    or type(observed.get('original_tasks')) is not int or observed['original_tasks'] < 2
+                    or observed.get('monotonic_progress') is not True):
+                raise ValueError('Incomplete original task-drive component')
+            expected = {'initial_quantum': 1, 'initial_drives_per_task': 8,
+                        'continuation_quantum': 256,
+                        'actual_initial_quantum_drives': 8 * observed['original_tasks'],
+                        'observed_phase_transitions': observed['original_tasks']}
+            if any(type(observed.get(key)) is not int or observed[key] != value
+                   for key, value in expected.items()):
+                raise ValueError('Incomplete original task-drive component')
         cases.append(observed)
     result = {'source_sha': original['source_sha'], 'module_sha256': original['module_sha256'],
               'cases': cases, 'qualification': 'actual source SDK/raw ABI/SQLite components only',
