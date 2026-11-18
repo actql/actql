@@ -699,6 +699,8 @@ pub fn installed_node_model_async_control_inventory(Int) -> @execution_relation.
 
 pub fn installed_node_model_caller_control_inventory(@model_execution.ModelProvider, Int) -> @execution_relation.PreparationRepresentationUnits?
 
+pub fn installed_node_model_deadline_capacity() -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_pending_duckdb_capture_capacity(ClientDuckDBCaptureCapacity) -> ClientInstalledCaptureCapacity
 
 pub fn installed_physical_write_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity, control_wire_bytes? : Int?, request_construction? : @execution_relation.ExecutionCapacity?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]

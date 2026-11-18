@@ -79,3 +79,42 @@ pub fn installed_node_model_caller_control_inventory(
     SynchronousFixture(_) | OriginalMock(_) => None
   }
 }
+
+///|
+/// Additional logical controls for an explicitly configured whole request/read
+/// clock. The normal Node constructor adds this DATA demand before its existing
+/// extended Model Plan/Scope admission; it never raises the original Ledger.
+/// None does not call this constructor or allocate the wrapper. This quote is
+/// not an engine/async-hooks/GC or arbitrary shared timer-heap adequacy proof.
+pub fn installed_node_model_deadline_capacity() -> @execution.ExecutionCapacity? {
+  // withOriginalCallDeadline: wrapper1H/3R, lexical context1H/6R/2W,
+  // invoke/cleanup/finish/expire closures4H/4R, frozen reason1H/1R.
+  // Node Timeout1H/5R/8W and its possibly new TimersList1H/2R/4W;
+  // timer-map entry2R plus priority-queue entry1R, original SDK finish slot1R.
+  // The same controller/physical object are borrowed, never reconstructed.
+  // Keep the full live timer/list/edge inventory through failed read/cleanup;
+  // clearing a timer releases no original Model holding or I/O responsibility.
+  // Normal configuration/profile/quote-return DATA is already prefunded by
+  // the existing initial constructor, separately from these per-Call controls.
+  let retained : @execution.PreparationRepresentationUnits = {
+    record_headers: 9L,
+    reference_slots: 25L,
+    scalar_words: 14L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  @execution.preparation_execution_capacity({
+    retained,
+    workspace: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}

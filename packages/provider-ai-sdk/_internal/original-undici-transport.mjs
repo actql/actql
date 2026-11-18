@@ -1,4 +1,5 @@
 import {Client, buildConnector} from 'undici';
+import {types} from 'node:util';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 
 // Original physical installation data only. This membership neither admits a
@@ -31,6 +32,27 @@ export function fixedOriginalAcquisitionLimits(value) {
   const snapshot = Object.freeze(Object.fromEntries(entries));
   acquisitionSnapshots.add(snapshot);
   return snapshot;
+}
+
+// Optional explicit physical phase/idle settings and total request/read clock.
+// Immutable Host DATA, never quantity observation or a dispatch grant.
+export function fixedOriginalTransportTimeouts(value) {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== 'object' || Array.isArray(value) || types.isProxy(value)) {
+    throw issue('UndiciOriginalTimeoutsUnavailable');
+  }
+  const names = ['bodyMs', 'connectMs', 'headersMs'];
+  const keys = Reflect.ownKeys(value);
+  if (keys.some(key => typeof key !== 'string' || ![...names, 'callMs'].includes(key)) ||
+      names.some(name => !keys.includes(name))) throw issue('UndiciOriginalTimeoutsUnavailable');
+  const fields = keys.sort().map(name => {
+    const field = Object.getOwnPropertyDescriptor(value, name);
+    if (!field?.enumerable || !Object.hasOwn(field, 'value') || !positive(field.value)) {
+      throw issue('UndiciOriginalTimeoutsUnavailable');
+    }
+    return [name, field.value];
+  });
+  return Object.freeze(Object.fromEntries(fields));
 }
 
 function bindAcquisitionRead(socket, limits, acquisition, inputExtent) {
@@ -126,8 +148,9 @@ function sameResponseLimits(limits, original) {
 // Private selected Host factory, not an arbitrary Run-provided dispatcher.
 // All descriptor/control/module and future Client/native holdings must already
 // be funded by the original installation/Call before physical preparation.
-export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits}) {
+export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits, transportTimeouts}) {
   const acquisition = fixedOriginalAcquisitionLimits(physicalAcquisitionLimits);
+  const timeouts = fixedOriginalTransportTimeouts(transportTimeouts);
   let url;
   try { url = new URL(endpoint); } catch { throw issue('UndiciOriginalEndpointUnavailable'); }
   if (typeof endpoint !== 'string' || url.href !== endpoint ||
@@ -144,17 +167,23 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
   const fetch = Object.freeze(function originalUndiciFetch() {
     throw issue('UndiciOriginalRequestNotPrepared');
   });
-  installations.set(fetch, Object.freeze({endpoint, origin: url.origin,
-    path: url.pathname, maxBytes, maxHeaderBytes, maxHeaders, limits, acquisition}));
+  const original = {endpoint, origin: url.origin,
+    path: url.pathname, maxBytes, maxHeaderBytes, maxHeaders, limits, acquisition};
+  if (timeouts !== undefined) original.timeouts = timeouts;
+  installations.set(fetch, Object.freeze(original));
   return fetch;
 }
 
 // Undefined means the existing generic/native fetch path, not a fallback for
 // malformed selected Undici configuration. No caller-controlled hooks run at
 // transport start. This thin adapter reuses the original SDK/Model lifetime.
-export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
+export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits, controller) {
   const original = installations.get(fetch);
   if (original === undefined) return undefined;
+  if (original.timeouts?.callMs !== undefined &&
+      (!(controller instanceof AbortController) || controller.signal !== init?.signal)) {
+    throw issue('UndiciOriginalDeadlineControllerUnavailable');
+  }
   const limits = fixedInferResponseLimits(responseLimits);
   if (input !== original.endpoint || init?.method !== 'POST' ||
       typeof init.body !== 'string' || Buffer.byteLength(init.body) > original.maxBytes ||
@@ -239,7 +268,11 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
   // No buffer generator, ambient dispatcher or independent stream owner.
   // Node CustomBufferJSListener reuses this exact input backing for TCP/TLS;
   // SSL/BIO/handshake native and queued/copy controls remain explicit holdings.
-  const connector = buildConnector({allowH2: false, maxCachedSessions: 0, onread});
+  // A custom connector does not inherit Client.connectTimeout. Bind the
+  // selected connect setting directly to this SAME connector's existing timer.
+  const connector = original.timeouts === undefined
+    ? buildConnector({allowH2: false, maxCachedSessions: 0, onread})
+    : buildConnector({allowH2: false, maxCachedSessions: 0, onread, timeout: original.timeouts.connectMs});
   const connect = (options, callback) => {
     if (connecting) { callback(issue('UndiciOriginalReconnectRefused')); return; }
     connecting = true;
@@ -263,8 +296,12 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     socketPush = socket.push;
     return socket;
   };
-  let client = new Client(original.origin, {allowH2: false, pipelining: 0, connect,
-    maxHeaderSize: limits.maxHeaderBytes, maxResponseSize: limits.maxBytes});
+  let client = original.timeouts === undefined
+    ? new Client(original.origin, {allowH2: false, pipelining: 0, connect,
+      maxHeaderSize: limits.maxHeaderBytes, maxResponseSize: limits.maxBytes})
+    : new Client(original.origin, {allowH2: false, pipelining: 0, connect,
+      maxHeaderSize: limits.maxHeaderBytes, maxResponseSize: limits.maxBytes,
+      headersTimeout: original.timeouts.headersMs, bodyTimeout: original.timeouts.bodyMs});
   const request = Object.freeze({path: original.path, method: 'POST',
     headers: Object.freeze(headers), body: init.body, signal: init.signal,
     highWaterMark: limits.maxChunkBytes, idempotent: false});
@@ -351,7 +388,45 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     }, () => false).finally(() => { destroying = undefined; });
     return destroying;
   };
-  return Object.freeze({invoke, cleanup});
+  const physical = Object.freeze({invoke, cleanup});
+  return original.timeouts?.callMs === undefined ? physical
+    : withOriginalCallDeadline(physical, controller, original.timeouts.callMs);
+}
+
+// Only the explicitly configured physical Call allocates these controls. The
+// normal factory adds their Common quote to its original per-Task Model demand
+// before Plan/Scope admission. This wraps the SAME transport and controller;
+// it is not another lifetime owner, RunCancel, retry or physical cleanup ACK.
+function withOriginalCallDeadline(physical, controller, ms) {
+  const reason = Object.freeze({code: 'UndiciOriginalCallTimeout'});
+  let timer;
+  let finished = false;
+  const finishResponse = () => {
+    finished = true;
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+  };
+  const expire = () => {
+    timer = undefined;
+    if (!finished) {
+      finished = true;
+      // Abort the original physical request/read only. The SDK's Run-cancel
+      // function also sets stopped; using it here would falsify cancellation.
+      controller.abort(reason);
+    }
+  };
+  return Object.freeze({
+    invoke() {
+      // Preserve the first physical primitive after the original Entry gate.
+      // No timer, observer, await or different request precedes this invoke.
+      const response = physical.invoke();
+      try { timer = setTimeout(expire, ms); }
+      catch (error) {expire(); throw error;}
+      return response;
+    },
+    cleanup() {finishResponse(); return physical.cleanup();},
+    finishResponse,
+  });
 }
 
 function originalHeadersView(originalHeaders) {
