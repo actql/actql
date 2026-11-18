@@ -7,9 +7,20 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {parse} from 'acorn';
-import {nativeReleaseInstallSelection, nativeStandaloneEnvironment} from './release-native-install.mjs';
+import {nativeCliReleaseInstallSelection, nativeReleaseInstallSelection, nativeStandaloneEnvironment} from './release-native-install.mjs';
 import {releaseConsumerDestination} from './release-public-install.mjs';
 import {runNativeInstallCommand, runNativeStandaloneInstall} from './test-native-standalone-install.mjs';
+
+test('Native fixed consumer selects only explicit shared clients without replacing either artifact input', () => {
+  const original = nativeCliReleaseInstallSelection(['native', 'node']);
+  assert.equal(original.sharedClients, false);
+  const shared = nativeCliReleaseInstallSelection(['native', 'node', '--shared-clients']);
+  assert.deepEqual(shared, {...original, sharedClients: true});
+  for (const input of [undefined, [], ['native'], ['', 'node'], ['native', 1],
+    ['native', 'node', '--fallback'], ['native', 'node', '--shared-clients', '--shared-clients']]) {
+    assert.throws(() => nativeCliReleaseInstallSelection(input));
+  }
+});
 
 test('Native public consumer: explicit fixed digest target and fresh Node-free child environment have no fallback or credential input', async () => {
   const selected = nativeReleaseInstallSelection(['fixed', 'a'.repeat(64), 'native', 'host', '/new/consumer']);
