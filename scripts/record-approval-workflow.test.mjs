@@ -7,13 +7,13 @@ import {copyFile, mkdir, mkdtemp, open, readFile, realpath, rm, stat, writeFile,
 import {generateKeyPairSync, verify} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {request as requestHttps} from 'node:https';
-import {openRecordApprovalExchange} from './fixtures/record-approval/installed.fixture.mjs';
+import {openRecordApprovalExchange, installedRecordReplyLossExpectation} from './fixtures/record-approval/installed.fixture.mjs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase,
   sharedRecordUpdateSelections, recordUpdateFixtureState, recordUpdateReplyLossFaults} from './fixtures/record-approval/cases.mjs';
-import {runRecordUpdateApprovalPhase} from './fixtures/record-approval/workflow.mjs';
+import {runRecordUpdateApprovalPhase, recordApprovalReplyLossExpectation} from './fixtures/record-approval/workflow.mjs';
 import {runRecordApprovalCommand} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
 import {kintoneApprovalProvider} from './fixtures/kintone-approval/provider.mjs';
@@ -950,5 +950,121 @@ test('shared reply-loss selection snapshots only a finite provider-owned write r
     {method: 'PUT', pathname: '/x\0'}, {method: 'PUT', pathname: '/x\\y'},
     {method: 'PUT', pathname: '/\ud800'}]) {
     assert.throws(() => recordUpdateReplyLossFaults({writeRequest}), {message: 'InvalidRecordApprovalWriteRoute'});
+  }
+});
+
+// Client doubles qualify only the selected consumer/control flow. These
+// hypothetical capability outcomes are not either provider's runtime evidence.
+for (const connector of ['hubspot', 'kintone']) {
+  test(`shared installed reply-loss ${connector} keeps Unknown and cold same-Run lookup without Result or another approval`, async () => {
+    const value = await definition(connector), f = publicDouble(value);
+    const replyLossExpectation = {approveStatus: 'needs_reconciliation', lookupStatus: 'needs_reconciliation'};
+    await phase('capture', value, f, {replyLossExpectation});
+    f.effect.wait = async () => {f.events.push('effect:wait');return {status: 'needs_reconciliation', run_id: 'same-run'};};
+    const split = f.events.length;
+    await phase('approve', value, f, {replyLossExpectation});
+    assert.deepEqual(f.saved.get('approval-answer'), {ref: f.effect.ref, statuses: ['committed']});
+    assert.equal(f.saved.get('reply-loss').status, 'needs_reconciliation');
+    assert(!f.saved.has('approved'));
+    f.effect.status = async () => {f.events.push('effect:status');return {status: 'needs_reconciliation', run_id: 'same-run'};};
+    const cold = f.events.length;
+    await phase('recover', value, f, {replyLossExpectation});
+    assert.deepEqual(f.saved.get('reply-loss-lookup'), {ref: f.effect.ref, status: 'needs_reconciliation'});
+    assert(!f.saved.has('recovered'));
+    const after = f.events.slice(split), lookup = f.events.slice(cold);
+    assert.equal(after.filter(event => event === 'approve').length, 1);
+    assert.equal(after.filter(event => event === 'effect:wait').length, 1);
+    assert(!after.some(event => event.startsWith('submit:') || event.startsWith('effect:result')));
+    assert(!lookup.some(event => ['approve', 'effect:wait'].includes(event)));
+    assert.equal(lookup.filter(event => event === 'effect:status').length, 1);
+    assert.equal(after.filter(event => event === 'close').length, 2);
+    assert(f.events.indexOf('save:approval-answer') < f.events.lastIndexOf('effect:wait'));
+  });
+}
+
+test('shared installed reply-loss uses explicit distinct capability outcomes and reads Result only after actual success', async () => {
+  for (const approveStatus of ['needs_reconciliation', 'succeeded']) {
+    const value = await definition('hubspot'), f = publicDouble(value);
+    const replyLossExpectation = {approveStatus, lookupStatus: 'succeeded'};
+    await phase('capture', value, f, {replyLossExpectation});
+    f.effect.wait = async () => {f.events.push('effect:wait');return {status: approveStatus, run_id: 'same-run'};};
+    const approval = f.events.length;
+    await phase('approve', value, f, {replyLossExpectation});
+    assert.equal(f.saved.has('approved'), approveStatus === 'succeeded');
+    assert(!f.events.slice(approval).some(event => event.startsWith('submit:')));
+    const cold = f.events.length;
+    await phase('recover', value, f, {replyLossExpectation});
+    const events = f.events.slice(cold);
+    assert(events.indexOf('effect:status') < events.indexOf('effect:result'));
+    assert.deepEqual(f.saved.get('recovered').rows, value.effect.expectedRows);
+    assert.deepEqual(f.saved.get('recovered').ref, f.saved.get('captured').ref);
+    assert(!events.some(event => event.startsWith('submit:') || ['approve', 'effect:wait'].includes(event)));
+  }
+});
+
+test('shared installed reply-loss refuses an unexpected outcome after saving the original returned reply', async () => {
+  const value = await definition('kintone'), f = publicDouble(value);
+  const replyLossExpectation = {approveStatus: 'succeeded', lookupStatus: 'succeeded'};
+  await phase('capture', value, f, {replyLossExpectation});
+  f.effect.wait = async () => {f.events.push('effect:wait');return {status: 'needs_reconciliation', run_id: 'same-run'};};
+  const split = f.events.length;
+  await assert.rejects(phase('approve', value, f, {replyLossExpectation}), {code: 'ERR_ASSERTION'});
+  assert.equal(f.saved.get('approve-wait').status, 'needs_reconciliation');
+  assert(!f.saved.has('reply-loss'));assert(!f.saved.has('approved'));
+  assert(!f.events.slice(split).some(event => event.startsWith('effect:result') || event.startsWith('submit:')));
+  assert.equal(f.events.at(-1), 'close');
+});
+
+test('shared installed reply-loss cannot change its original expectation or operation during cold lookup', async () => {
+  const replyLossExpectation = {approveStatus: 'needs_reconciliation', lookupStatus: 'needs_reconciliation'};
+  for (const change of ['expectation', 'ref', 'runId', 'status']) {
+    const value = await definition('hubspot'), f = publicDouble(value);
+    await phase('capture', value, f, {replyLossExpectation});
+    f.effect.wait = async () => ({status: 'needs_reconciliation', run_id: 'same-run'});
+    await phase('approve', value, f, {replyLossExpectation});
+    if (change !== 'expectation') f.saved.get('reply-loss')[change] = change === 'ref' ? {other: 'operation'} : 'other';
+    const split = f.events.length;
+    await assert.rejects(phase('recover', value, f, {replyLossExpectation: change === 'expectation'
+      ? {...replyLossExpectation, lookupStatus: 'succeeded'} : replyLossExpectation}), {code: 'ERR_ASSERTION'});
+    const events = f.events.slice(split);
+    assert(!events.some(event => event.startsWith('submit:') || ['approve', 'effect:wait', 'effect:status', 'effect:result'].includes(event)));
+    assert.equal(events.at(-1), 'close');
+  }
+});
+
+test('shared installed reply-loss preserves a thrown original wait and actual cleanup failure without retry', async () => {
+  const value = await definition('hubspot'), f = publicDouble(value);
+  const replyLossExpectation = {approveStatus: 'needs_reconciliation', lookupStatus: 'needs_reconciliation'};
+  await phase('capture', value, f, {replyLossExpectation});
+  const primary = new Error('OriginalPostApprovalWaitFailed'), cleanup = new Error('OriginalCleanupPending');
+  f.effect.wait = async () => {f.events.push('effect:wait');throw primary;};
+  f.client.close = async () => {f.events.push('close');throw cleanup;};
+  const split = f.events.length;
+  await assert.rejects(phase('approve', value, f, {replyLossExpectation}), error => {
+    assert(error instanceof AggregateError);assert.deepEqual(error.errors, [primary, cleanup]);
+    assert.strictEqual(error.cause, primary);return true;
+  });
+  assert(f.saved.has('approval-answer'));assert(!f.saved.has('approve-wait'));assert(!f.saved.has('reply-loss'));
+  const events = f.events.slice(split);
+  assert.equal(events.filter(event => event === 'effect:wait').length, 1);
+  assert.equal(events.filter(event => event === 'close').length, 1);
+  assert(!events.some(event => event.startsWith('submit:') || event === 'effect:result'));
+});
+
+test('shared installed reply-loss selection is finite opt-in DATA and snapshots independent outcomes', () => {
+  assert.equal(recordApprovalReplyLossExpectation(undefined), undefined);
+  assert.equal(installedRecordReplyLossExpectation({}), undefined);
+  const original = {approveStatus: 'needs_reconciliation', lookupStatus: 'succeeded'};
+  const selected = recordApprovalReplyLossExpectation(original);
+  original.lookupStatus = 'cancelled';
+  assert.deepEqual(selected, {approveStatus: 'needs_reconciliation', lookupStatus: 'succeeded'});
+  assert(Object.isFrozen(selected));
+  assert.deepEqual(installedRecordReplyLossExpectation({ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION: JSON.stringify(selected)}), selected);
+  for (const value of [null, [], {}, {approveStatus: 'unknown', lookupStatus: 'succeeded'},
+    {approveStatus: 'needs_reconciliation', lookupStatus: 'failed'}, {...selected, allow: true}]) {
+    assert.throws(() => recordApprovalReplyLossExpectation(value));
+  }
+  for (const wire of ['', '{', ' '.repeat(257)]) {
+    assert.throws(() => installedRecordReplyLossExpectation({ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION: wire}));
   }
 });

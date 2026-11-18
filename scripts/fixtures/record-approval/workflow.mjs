@@ -8,6 +8,26 @@ const sha256 = text => createHash('sha256').update(text).digest('hex');
 const cid = /^sha256:[0-9a-f]{64}$/u;
 const text = value => typeof value === 'string' && value.length > 0;
 
+// Trusted fixture expectation, never a Program option or a permission decision.
+// Each selected provider capability supplies its own two independent outcomes.
+export function recordApprovalReplyLossExpectation(value) {
+  if (value === undefined) return undefined;
+  assert(value && typeof value === 'object' && !Array.isArray(value));
+  assert.deepEqual(Object.keys(value).sort(), ['approveStatus', 'lookupStatus']);
+  for (const status of [value.approveStatus, value.lookupStatus]) {
+    assert(['succeeded', 'needs_reconciliation'].includes(status));
+  }
+  return Object.freeze({approveStatus: value.approveStatus, lookupStatus: value.lookupStatus});
+}
+
+export function recordApprovalReplyLossExpectationFromEnvironment(env = process.env) {
+  const wire = env.ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION;
+  if (wire === undefined) return undefined;
+  assert.equal(typeof wire, 'string');
+  assert(wire.length > 0 && wire.length <= 256);
+  return recordApprovalReplyLossExpectation(JSON.parse(wire));
+}
+
 function retainCase(original) {
   // Snapshot only fixture DATA before the first public await. Caller mutation
   // must not turn a returned product value into a new expected-value oracle.
@@ -98,7 +118,7 @@ async function saveRunObservation(save, name, run, state) {
 // the separate processes, fresh installation/state, provider snapshot and alive
 // FD observations. This helper does not infer cleanup ACK from process exit.
 export async function runRecordUpdateApprovalPhase({phase, client,
-  definition, createDefinition, load, save, approve, observeClose}) {
+  definition, createDefinition, load, save, approve, observeClose, replyLossExpectation}) {
   let failed = false, primary;
   try {
     assert(['capture', 'approve', 'recover'].includes(phase));
@@ -109,7 +129,9 @@ export async function runRecordUpdateApprovalPhase({phase, client,
       assert.equal(definition, undefined, 'Supply one original case entrance');
       definition = createDefinition();
     }
-    const value = retainCase(definition), originalBinding = binding(value);
+    const loss = recordApprovalReplyLossExpectation(replyLossExpectation);
+    const value = retainCase(definition), originalBinding = {...binding(value),
+      ...(loss === undefined ? {} : {replyLossExpectation: loss})};
     if (phase === 'capture') {
       const program = value.effect;
       const run = await client.startSource(program.document, {format: program.format,
@@ -147,17 +169,44 @@ export async function runRecordUpdateApprovalPhase({phase, client,
           captured.summary, run.ref, value.review);
         assert.equal(typeof approve, 'function', 'Approval must be explicitly configured');
         const answer = await approve(client, captured);
+        if (loss !== undefined) await save('approval-answer', {ref: run.ref,
+          statuses: answer.results.map(item => item.status)});
         assert.deepEqual(answer.results.map(item => item.status), ['committed']);
         const terminal = await run.wait();
         await saveRunObservation(save, 'approve-wait', run, terminal);
-        assert.equal(terminal.status, 'succeeded');
         assert.equal(terminal.run_id, captured.runId);
-        const rows = await run.result(value.effect.resultName).all();
-        assert.deepEqual(rows, value.effect.expectedRows);
-        const additionalResults = await readAdditionalResults(run, value.effect);
-        await save('approved', {binding: originalBinding, ref: run.ref, rows,
-          ...(value.effect.additionalResults === undefined ? {} : {additionalResults})});
-        await readOriginal(client, value, 'after', save);
+        assert.equal(terminal.status, loss?.approveStatus ?? 'succeeded');
+        if (loss !== undefined) await save('reply-loss', {binding: originalBinding,
+          ref: run.ref, runId: captured.runId, status: terminal.status});
+        if (terminal.status === 'succeeded') {
+          const rows = await run.result(value.effect.resultName).all();
+          assert.deepEqual(rows, value.effect.expectedRows);
+          const additionalResults = await readAdditionalResults(run, value.effect);
+          await save('approved', {binding: originalBinding, ref: run.ref, rows,
+            ...(value.effect.additionalResults === undefined ? {} : {additionalResults})});
+          // The loss case observes the original operation only. Its parent
+          // independently checks the provider target and complete control row.
+          if (loss === undefined) await readOriginal(client, value, 'after', save);
+        }
+      } else if (loss !== undefined) {
+        const observed = await load('reply-loss');
+        assert.deepEqual(observed.binding, originalBinding);
+        assert.deepEqual(observed.ref, run.ref);
+        assert.equal(observed.runId, captured.runId);
+        assert.equal(observed.status, loss.approveStatus);
+        // A fresh Client attaches and looks up only the SAME original Run.
+        // No startSource, approval, resume, manual reconciliation or resend.
+        const state = await run.status();
+        await saveRunObservation(save, 'reply-loss-lookup', run, state);
+        assert.equal(state.run_id, captured.runId);
+        assert.equal(state.status, loss.lookupStatus);
+        if (state.status === 'succeeded') {
+          const rows = await run.result(value.effect.resultName).all();
+          assert.deepEqual(rows, value.effect.expectedRows);
+          const additionalResults = await readAdditionalResults(run, value.effect);
+          await save('recovered', {binding: originalBinding, ref: run.ref, rows,
+            ...(value.effect.additionalResults === undefined ? {} : {additionalResults})});
+        }
       } else {
         const approved = await load('approved');
         assert.deepEqual(approved.binding, originalBinding);

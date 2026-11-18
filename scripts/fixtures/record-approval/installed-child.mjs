@@ -5,10 +5,11 @@ import {connect} from '@actql/node';
 import {runRecordApprovalCommand} from './command.mjs';
 import {salesforceUpdateCase, hubspotUpdateCase, kintoneUpdateCase} from './cases.mjs';
 import {observeRecordApprovalDescriptors} from './scoped-fds.fixture.mjs';
-import {runRecordUpdateApprovalPhase} from './workflow.mjs';
+import {runRecordUpdateApprovalPhase, recordApprovalReplyLossExpectationFromEnvironment} from './workflow.mjs';
 import {workflowWorkObservation, assertRecordWorkflowWork} from '../../../adapters/host-node/fixtures/work-observation.fixture.mjs';
 
 const [connectorId, phase, configuration, prefix, state, credential] = process.argv.slice(2);
+const replyLossExpectation = recordApprovalReplyLossExpectationFromEnvironment();
 const createDefinition = {salesforce: salesforceUpdateCase,
   hubspot: hubspotUpdateCase, kintone: kintoneUpdateCase}[connectorId];
 assert.equal(typeof createDefinition, 'function');
@@ -16,6 +17,7 @@ const observation = process.env.ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR === connect
   ? workflowWorkObservation({trackOriginal: true}) : undefined;
 let originalRef;
 const runPhase = ({programs, selection, load, save, ...selected}) => runRecordUpdateApprovalPhase({...selected,
+  replyLossExpectation,
   createDefinition: () => createDefinition(programs, selection),
   async load(name) {
     const value = await load(name);
@@ -26,8 +28,10 @@ const runPhase = ({programs, selection, load, save, ...selected}) => runRecordUp
     if (name === 'submitted') originalRef = value.ref;
     await save(name, value);
   },
-  observeClose: observation === undefined ? undefined : value => writeFile(`${prefix}.${phase}.close-${value.stage}.json`,
-    JSON.stringify({...value, workObservation: observation.forOriginal(originalRef)}) + '\n', {mode: 0o600, flag: 'wx'}),
+  observeClose: observation === undefined && replyLossExpectation === undefined ? undefined
+    : value => writeFile(`${prefix}.${phase}.close-${value.stage}.json`,
+      JSON.stringify({...value, ...(observation === undefined ? {}
+        : {workObservation: observation.forOriginal(originalRef)})}) + '\n', {mode: 0o600, flag: 'wx'}),
 });
 let outcome;
 await runRecordApprovalCommand({argv: [phase, configuration, prefix],
@@ -49,4 +53,5 @@ assert.deepEqual(before.openPaths, []);
 await setTimeout(2000);
 const after = await observeRecordApprovalDescriptors(roots);
 assert.deepEqual(after.openPaths, []);
-console.log(JSON.stringify({...outcome, pid: process.pid, workObservation: work, descriptors: {before, after}}));
+console.log(JSON.stringify({...outcome, ...(replyLossExpectation === undefined ? {} : {replyLossExpectation}),
+  pid: process.pid, workObservation: work, descriptors: {before, after}}));

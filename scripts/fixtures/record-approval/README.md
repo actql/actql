@@ -182,9 +182,44 @@ The ordinary runner and these direct controls call the same thin
 `openRecordApprovalExchange` fixture entry; the existing shared server,
 certificates and route assertions are reused unchanged.
 
-This closes only the transport fixture/oracle seam. A single test-driver request
-is not proof of product no-resend, and observed backend mutation is not a public
-Result, success receipt or cleanup ACK. Actual Host Unknown/confirmation/recovery
-and same-original non-resend still require their own selected ordinary case;
-this component does not turn the existing success workflow into a passing fault
-consumer or rerun an old failed business state.
+This TLS component closes only the transport fixture/oracle seam. A single
+test-driver request is not proof of product no-resend, and observed backend
+mutation is not a public Result, success receipt or cleanup ACK.
+
+The existing ordinary `--approval` and `--kintone-approval` entries can now select
+this one fault using the trusted fixture-only environment variable
+`ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION`. It is a bounded JSON object with
+exactly `approveStatus` and `lookupStatus`; each is `succeeded` or
+`needs_reconciliation`. Choose each expectation from the actual selected
+provider capability/source contract before the attempt, independently of the
+returned state. These inputs cannot be supplied by the Program and grant no
+approval, permission, reconciliation or send. They are snapshotted into the
+original Program/oracle binding and must remain exact across all three processes.
+No variable means the unchanged successful Saved-first case. An incompatible
+selection refuses; this is not a product outcome whitelist.
+
+In the loss case, capture still seals and independently reviews the original
+Checkpoint before any write. Approval retains its returned committed resolution
+separately from the actual post-approval Run state. An expected Unknown creates
+no successful `approved` receipt and reads no Result. A fresh process attaches
+only that SAME original reference and performs one status lookup. It never
+submits, approves, resumes or manually reconciles another operation. A Result is
+read and checked against the original independent oracle only after actual
+`succeeded`; an expected Unknown remains unresolved. A thrown or unexpected
+reply stays failed and keeps its original observation/primary cause, with
+first-close failure preserved separately.
+
+The parent observes the real provider target and entire unchanged control after
+every phase, consumes exactly one selected loss fault, and counts actual write
+requests (including rejected duplicate attempts). Capability-specific reads
+during a lookup are allowed; another write is not. HubSpot's marker and prewrite
+comparison do not become kintone's conditional revision, and a changed revision
+or matching value alone is never converted by this fixture into a known outcome.
+Existing default lifecycle, package/installed-byte checks, three original
+30-second child bounds, first-close and alive scoped-FD observations remain.
+
+The consumer flow is source/component-qualified only until the selected exact
+normal installation actually executes it. Client-double controls, raw TLS
+controls and the ordinary Host case remain distinct. This source does not prove
+either provider's ordinary lost-reply outcome, Saved success or physical stop,
+and it never reopens an old failed business state.
