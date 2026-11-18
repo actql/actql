@@ -1,6 +1,6 @@
 ///|
 /// Immutable original-operation custody, not a physical stop or terminal Run.
-type NativeClientCancellationRecord = @host.ClientCancellationJournalEncoding
+pub type NativeClientCancellationRecord = @host.ClientCancellationJournalEncoding
 
 ///|
 pub enum NativeClientCancellationLookup {
