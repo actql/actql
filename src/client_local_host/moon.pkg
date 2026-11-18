@@ -188,6 +188,8 @@ options(
     "preparation_recursive_snapshot_layout_js_wbtest.mbt": [ "js" ],
     "preparation_request_native_computation_js_wbtest.mbt": [ "js" ],
     "preparation_managed_publication_js_wbtest.mbt": [ "js" ],
+    "preparation_explanation_capture_js_wbtest.mbt": [ "js" ],
+    "preparation_request_explanation_read_js_wbtest.mbt": [ "js" ],
     "preparation_request_program_json_js_wbtest.mbt": [ "js" ],
     "preparation_request_handoff_js_wbtest.mbt": [ "js" ],
     "preparation_request_check_parent_js_wbtest.mbt": [ "js" ],

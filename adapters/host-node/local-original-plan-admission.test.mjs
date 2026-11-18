@@ -3,10 +3,35 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {sourceFreeValuesPlan, sourceFreeTaskPlan, acquiredTaskRunAdmission,
-  sourceFreeValuesAdmissionEvidence,sourceFreePlanOriginal} from './local-values-plan.mjs';
+  sourceFreeValuesAdmissionEvidence,sourceFreePlanOriginal,sourceFreePlanExplanation} from './local-values-plan.mjs';
 import {restoreInferTaskRunAdmission, selectRestoredInferOccurrence} from './local-values-plan.mjs';
 import {definition,evidence} from './fixtures/original-plan-journal.mjs';
 const cid='sha256:'+'a'.repeat(64);
+
+test('pure Local admission forwards its original Facts loan through the same nominal Plan selection',()=>{
+  for(const make of [sourceFreeValuesPlan,sourceFreeTaskPlan]){
+    const prepared={},ticket={},explanation={};
+    const compiled={admission:{},compiledPlan:{identity:cid},
+      preparedEvidence:{wire:evidence.prepared},authorization:{wire:evidence.authorization}};
+    const control={prepareCheckedClientCompiledRun:()=>compiled,
+      defineCheckedClientCompiledRun:()=>definition,
+      issueCheckedClientCompiledInvocation:()=>({observation:{},invocation:{}}),
+      seal:()=>({identity:cid}),sealRunEvidence:()=>({}),compiledRunResultTransformation:()=>undefined,
+      captureOriginalClientRunPlan(actual,original,run,limits,loan){
+        assert.equal(actual,compiled);assert.equal(original,prepared);assert.equal(run,definition);
+        assert.equal(loan,explanation);return ticket;
+      }};
+    const moon={clientProgramPreparedLocalPublicationLimits:()=>Array(22).fill(1),
+      clientProgramValuesMaxRows:()=>100,clientProgramResultCount:()=>1,clientProgramDefinitionCid:()=>cid};
+    const plan=make({moon,control,preparedProgram:prepared,publicationOriginal:{kind:'preparation',value:{}},
+      originalExplanationPreparation:explanation,authorityScopeCid:cid,namespaceId:'local',storeAuthorityCid:cid,
+      now:()=> '2026-10-12T00:00:00.000Z'});
+    assert.equal(sourceFreePlanOriginal(plan),ticket);
+    assert.equal(sourceFreePlanExplanation(plan),ticket);
+    assert.equal(sourceFreePlanExplanation({...plan}),undefined);
+    assert.equal(Object.hasOwn(plan,'originalExplanation'),false,'closed publication body is unchanged');
+  }
+});
 for (const kind of ['values','source-free-tasks','acquired-tasks']) {
   test(`normal Local ${kind} captures the original opaque compiler plan once`,()=>{
     let compiles=0,captures=0;const prepared={},ticket={};

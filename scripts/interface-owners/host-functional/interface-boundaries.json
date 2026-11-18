@@ -23049,7 +23049,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7ee00c34af594109588dd38411c50aa213e110048f0994ae26b32bada53b5e3d",
+      "sha256": "52e8eb49d2be999991785e9a2ce78fdb5f83a7e59d6ae4de27a1043129934252",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -23093,6 +23093,7 @@
             "plan",
             "inspectRun",
             "runPlan",
+            "runExplanation",
             "maxRequestBytes",
             "observe",
             "loopbackHttp",
@@ -23135,7 +23136,41 @@
           "async": false
         },
         {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/closed/closed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/failed/failed",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
           "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#3",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#4",
           "parameters": [
             "error"
           ],
@@ -23171,17 +23206,24 @@
         {
           "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#4",
           "parameters": [
+            "view"
+          ],
+          "async": true
+        },
+        {
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#5",
+          "parameters": [
             "bytes"
           ],
           "async": false
         },
         {
-          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#5",
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#6",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#6",
+          "name": "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#7",
           "parameters": [
             "resolve",
             "reject"
@@ -23819,6 +23861,1034 @@
               {
                 "path": "adapters/host-node/http-required-preparation.test.mjs",
                 "anchor": "test('HTTP raw adapter retains its single receipt through snapshot and pending cleanup'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/closed/closed"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "export function publicClientErrorCode(error) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "export function publicClientErrorCode(error) {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "for await (const chunk of request) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validCheckpointLookup"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "export function publicClientErrorCode(error) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "export function publicClientErrorCode(error) {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "for await (const chunk of request) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validCheckpointLookup"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/failed/failed"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "export function publicClientErrorCode(error) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "export function publicClientErrorCode(error) {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "for await (const chunk of request) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validCheckpointLookup"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "export function publicClientErrorCode(error) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "export function publicClientErrorCode(error) {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "for await (const chunk of request) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validCheckpointLookup"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "export function publicClientErrorCode(error) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "pub fn run_wait_ready("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "export function publicClientErrorCode(error) {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validResourcePeek, validRunState, validResultDescription, validOwnerObservations,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "for await (const chunk of request) {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "import {projectClientCheckUnavailable} from './client-check.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validClientAdmission, prepareClientHostRequest, validClientProfile, validCancellationAttempt, validCancellationLookup,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "validCheckpointLookup"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "// Client-Host HTTP ingress. Authentication and connection consent are installed"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-http.test.mjs",
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication/run_wait_wbtest.mbt",
+                "anchor": "test \"Run wait accepts only stable original observations above since\""
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-since.test.mjs",
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createClientHttpHandler/createClientHttpHandler/createClientHttpHandler#7"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
               }
             ]
           }
@@ -25992,7 +27062,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -26155,7 +27225,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -26787,7 +27857,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -27037,10 +28107,11 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bdcccdee69ded025bb83c0493f88c9deb4f753d63da41b9b655393b416b21a2d",
+      "sha256": "b8601cd0eefe53cb842bda42ffcd4cfbba9a2f619a676d69bce70bf17c2c76a3",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
+        "assertOriginalClientRequestJournal",
         "assertOriginalClientRequestJournalFacilityCurrent",
         "observeOriginalClientRequestJournalCustody",
         "openClientRequestJournal",
@@ -27109,6 +28180,13 @@
           "parameters": [
             "table",
             "custody"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertOriginalClientRequestJournal",
+          "parameters": [
+            "journal"
           ],
           "async": false
         },
@@ -27706,6 +28784,7 @@
             "resultNames",
             "runAdmissionEvidence",
             "originalPlan",
+            "originalExplanation",
             "originalInferRun",
             "revision",
             "lookupExpiresAt",
@@ -27893,6 +28972,15 @@
             "requestControl",
             "publicationControl",
             "originalFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:lookupRunExplanationOriginal/init:lookupRunExplanationOriginal",
+          "parameters": [
+            "ref",
+            "requestControl",
+            "publicationControl"
           ],
           "async": false
         },
@@ -28348,6 +29436,11 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:supportsOriginalExplanation/init:supportsOriginalExplanation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:verifySubmissionEpoch/init:verifySubmissionEpoch",
           "parameters": [
             "epoch",
@@ -28366,6 +29459,43 @@
         {
           "name": "openClientRequestJournal/openClientRequestJournal#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/probeExplanationRead/probeExplanationRead",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/probeExplanationRead/probeExplanationRead/probeExplanationRead",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/readExplanationSelection/readExplanationSelection",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/readExplanationSelection/readExplanationSelection/readExplanationSelection",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/readExplanationSelection/readExplanationSelection/readExplanationSelection#2",
+          "parameters": [
+            "sum",
+            "value"
+          ],
           "async": false
         },
         {
@@ -31425,6 +32555,762 @@
               {
                 "path": "src/connectors_builtin_node/local_managed_failure_bridge_wbtest.mbt",
                 "anchor": "original budget bridge"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertOriginalClientRequestJournal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:lookupRunExplanationOriginal/init:lookupRunExplanationOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:supportsOriginalExplanation/init:supportsOriginalExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/probeExplanationRead/probeExplanationRead"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/probeExplanationRead/probeExplanationRead/probeExplanationRead"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/readExplanationSelection/readExplanationSelection"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/readExplanationSelection/readExplanationSelection/readExplanationSelection"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/readExplanationSelection/readExplanationSelection/readExplanationSelection#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "assertOriginalClientRequestJournal"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('normal first Plan admission forwards the same nominal explanation without a Saved recapture'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "test('associated explanation insertion failure rolls back the same first Run admission'"
+              },
+              {
+                "path": "adapters/host-node/client-original-explanation-journal.test.mjs",
+                "anchor": "explicit structural read probes only scalar extents then selects one original bounded row"
               }
             ]
           }
@@ -44409,7 +46295,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "fda28f0714b19a5c4d03fecc5c7d3592a139c706768fc78aa1ce5c34f3f8034d",
+      "sha256": "0dedcfa0037d5833e85116241d8f16d0cbf657af88de095b748b0cb77f8d1440",
       "exports": [
         "commonjs:sql"
       ],
@@ -45849,7 +47735,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9fa3826469f973110bcaaa68fb5c3b01030bddddcabed05570b6551e30b41994",
+      "sha256": "988dfa092e2c760431d40ce7b63d4009bbcb10aaf0a2778e90c30cc5cd1ddecb",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -45891,6 +47777,7 @@
             "plan",
             "inspectRun",
             "runPlan",
+            "runExplanation",
             "maxRowBytes",
             "observe",
             "performInstalledRequest",
@@ -45914,6 +47801,13 @@
           "async": false
         },
         {
+          "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform/init:perform",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform#2",
           "parameters": [
             "prepared"
@@ -45928,7 +47822,14 @@
           "async": false
         },
         {
-          "name": "createNodeInProcessClientHost/init:perform/init:perform/invoke/invoke/invoke",
+          "name": "createNodeInProcessClientHost/init:perform/init:perform/init:perform#4",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNodeInProcessClientHost/init:perform/init:perform/invoke/invoke/original/original",
           "parameters": [
             "key"
           ],
@@ -46032,7 +47933,6 @@
             "createNodeInProcessClientHost/init:perform/init:perform/init:perform",
             "createNodeInProcessClientHost/init:perform/init:perform/init:perform#2",
             "createNodeInProcessClientHost/init:perform/init:perform/init:perform#3",
-            "createNodeInProcessClientHost/init:perform/init:perform/invoke/invoke/invoke",
             "publicResultRows/init:<computed>/init:<computed>",
             "publicResultRows/init:close/init:close"
           ],
@@ -46740,6 +48640,682 @@
               {
                 "path": "adapters/host-node/managed-run-observation.test.mjs",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createNodeInProcessClientHost/init:perform/init:perform/init:perform/init:perform"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "export function createNodeInProcessClientHost({"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "export function createNodeInProcessClientHost({"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn installed_managed_run_accounting("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "return await performInstalledRequest(operation,body,signal);"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// Lookup control is transport-only, not part of the journal's canonical"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "if (inContext(() => handle.status()).pending !== false) await inContext(() => handle.retry());"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "import {ClientError} from '../../packages/sdk/index.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "catch {drop('resourceUnavailable'); return;}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-result-observation.test.mjs",
+                "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// request snapshot. Keep its handler alive until settlement; an abort"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "const deferredRequests = new WeakMap();"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// Installed Local Client Host ingress. It shares public validation and Host"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "/// These are managed accounting values, not a measurement of process memory"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/in-process-client.test.mjs",
+                "anchor": "test('Local public ingress excludes private handler causes and stacks', async t => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "anchor": "assert.strictEqual(await observed,stopped);"
+              },
+              {
+                "path": "adapters/host-node/source-request-lineage.test.mjs",
+                "anchor": "test('deferred same-Host ingress retains the actual SDK Source receipt through both admitted snapshots', async t => {"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
+              },
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup keeps live signals outside the canonical request and original identity'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup observes later abort after handler settlement without cancelling the original'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup preserves sanitized handler rejection when its signal also aborts'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createNodeInProcessClientHost/init:perform/init:perform/init:perform#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createNodeInProcessClientHost/init:perform/init:perform/invoke/invoke/original/original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "export function createNodeInProcessClientHost({"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "export function createNodeInProcessClientHost({"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn installed_managed_run_accounting("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "return await performInstalledRequest(operation,body,signal);"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// Lookup control is transport-only, not part of the journal's canonical"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "if (inContext(() => handle.status()).pending !== false) await inContext(() => handle.retry());"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "import {ClientError} from '../../packages/sdk/index.mjs';"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "catch {drop('resourceUnavailable'); return;}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-result-observation.test.mjs",
+                "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// request snapshot. Keep its handler alive until settlement; an abort"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "const deferredRequests = new WeakMap();"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "// Installed Local Client Host ingress. It shares public validation and Host"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "/// These are managed accounting values, not a measurement of process memory"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/in-process-client.test.mjs",
+                "anchor": "test('Local public ingress excludes private handler causes and stacks', async t => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "anchor": "assert.strictEqual(await observed,stopped);"
+              },
+              {
+                "path": "adapters/host-node/source-request-lineage.test.mjs",
+                "anchor": "test('deferred same-Host ingress retains the actual SDK Source receipt through both admitted snapshots', async t => {"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
+              },
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup keeps live signals outside the canonical request and original identity'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup observes later abort after handler settlement without cancelling the original'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('public submission lookup preserves sanitized handler rejection when its signal also aborts'"
               }
             ]
           }
@@ -110072,6 +112648,254 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:originalExplanationPreparation/init:originalExplanationPreparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "adapters/host-node/request-domain-preparation.test.mjs",
+                "anchor": "Model handoff retains the original Scope before completion"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "managed Facts preserve timed compiler custody and wait for actual Journal close after an unacknowledged offer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:retireOriginalExplanation/init:retireOriginalExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed Host verifier continuation"
+              },
+              {
+                "path": "adapters/host-node/request-domain-preparation.test.mjs",
+                "anchor": "Model handoff retains the original Scope before completion"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "managed Facts preserve timed compiler custody and wait for actual Journal close after an unacknowledged offer"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -110512,7 +113336,8 @@
             "request",
             "environment",
             "originalVerifier",
-            "signal"
+            "signal",
+            "journal"
           ],
           "async": true
         },
@@ -110646,6 +113471,13 @@
           "name": "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
           "parameters": [
             "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:originalExplanationPreparation/init:originalExplanationPreparation",
+          "parameters": [
+            "prepared"
           ],
           "async": false
         },
@@ -111281,6 +114113,14 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retireOriginalExplanation/init:retireOriginalExplanation",
+          "parameters": [
+            "prepared",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun",
           "parameters": [
             "prepared",
@@ -111370,7 +114210,9 @@
         "../host-common/runtime-result.mjs",
         "../local-node/request-preparation-adapter.mjs",
         "./client-program-preparation.mjs",
+        "./client-request-journal.mjs",
         "./infer-operation.mjs",
+        "./local-values-plan.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
         "@actql/client-wire",
@@ -111379,7 +114221,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "7d51c7bfb145b0dcb6ee5f5756dd4760ddd5b653c1188d1d1d08588f6eb60183"
+      "sha256": "6f0311329d4ad855b502664363f081f516ac2743d041137133932d2caffd979a"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -114869,7 +117711,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a920c67eddd20c4fcbf7d22b298dbfa6b0a446835430aec64780c95fe0ed0fbd",
+      "sha256": "192769a5a67cd0d38c39c82c202c6b4334b02aaf9ff1d7712c469051996e3a1e",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -114909,7 +117751,8 @@
         {
           "name": "createLocalReadAuthorizations/init:run/init:run",
           "parameters": [
-            "facts"
+            "facts",
+            "operation"
           ],
           "async": false
         },
@@ -115041,7 +117884,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts) {return authorize(facts, undefined, 'run');}"
+                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
               }
             ],
             "ownership": [
@@ -119299,7 +122142,7 @@
       "sha256": "0f21a15f4e54ee8d1535938be8ea3e9518bfe52745f976d2aa29cc6d366bcf8c",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -120426,7 +123269,7 @@
       "sha256": "ecaf8e3fb2a64f2b0cdafefb84d2c9d897b2531757cb475ebc5a31f0ce75189a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "fundedEffectModelGroupCount",
@@ -121635,7 +124478,7 @@
       "sha256": "feca7b8fe2263f81638f458b192ecadb0f260e801d98d0614810845cd9eb7de7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -128501,7 +131344,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -128804,7 +131647,7 @@
       "unresolvedSyntax": [],
       "role": "common-semantics",
       "responsibilityFacet": "primary",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -129439,7 +132282,7 @@
       "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "contracts": [
         {
           "operations": [
@@ -129559,7 +132402,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Result delivery and Request preparation owners; Node resource/cleanup adapter only",
-      "sha256": "a176d227aa7bcd303d9448fcc7d2dd66299c3dba95b786fa94c83a184bcd3748",
+      "sha256": "4f9d07e047ca25f7218e08ef8652cccfe662c7b32dd1dbc30c0507ca12efbb70",
       "exports": [
         "createLocalResultReadWorkspace"
       ],
@@ -129571,6 +132414,11 @@
             "requestMemory",
             "assertCurrent"
           ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/beginEntry/beginEntry",
+          "parameters": [],
           "async": false
         },
         {
@@ -129599,8 +132447,10 @@
           "async": false
         },
         {
-          "name": "createLocalResultReadWorkspace/init:begin/init:begin/init:begin#2",
-          "parameters": [],
+          "name": "createLocalResultReadWorkspace/init:beginExplanation/init:beginExplanation",
+          "parameters": [
+            "request"
+          ],
           "async": false
         },
         {
@@ -129622,6 +132472,13 @@
           "name": "createLocalResultReadWorkspace/init:closeAll/init:closeAll",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:explanationRequest/init:explanationRequest",
+          "parameters": [
+            "request"
+          ],
+          "async": false
         },
         {
           "name": "createLocalResultReadWorkspace/init:metadata/init:metadata",
@@ -129677,6 +132534,22 @@
           "async": false
         },
         {
+          "name": "createLocalResultReadWorkspace/init:prepareExplanation/init:prepareExplanation",
+          "parameters": [
+            "request",
+            "storedBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultReadWorkspace/init:renderExplanation/init:renderExplanation",
+          "parameters": [
+            "request",
+            "stored"
+          ],
+          "async": false
+        },
+        {
           "name": "createLocalResultReadWorkspace/init:row/init:row",
           "parameters": [
             "request",
@@ -129720,7 +132593,8 @@
         "../host-common/runtime-result.mjs",
         "../local-node/request-preparation-adapter.mjs",
         "../store-local/publication-store.mjs",
-        "node:timers/promises"
+        "node:timers/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -129732,7 +132606,6 @@
             "createLocalResultReadWorkspace/cleanupFailure/error/error#2",
             "createLocalResultReadWorkspace/init:begin/init:begin",
             "createLocalResultReadWorkspace/init:begin/init:begin/init:begin",
-            "createLocalResultReadWorkspace/init:begin/init:begin/init:begin#2",
             "createLocalResultReadWorkspace/init:close/init:close",
             "createLocalResultReadWorkspace/init:close/init:close/init:close",
             "createLocalResultReadWorkspace/init:closeAll/init:closeAll",
@@ -129859,6 +132732,666 @@
               {
                 "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
                 "anchor": "READ close cannot retire the same parent while a yielded original row callback is live"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalResultReadWorkspace/beginEntry/beginEntry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "### Result READ framing and wire geometry"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "record durability"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "READ close cannot retire the same parent while a yielded original row callback is live"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "structural workspace supplies exact original DATA to one captured Core constructor and preserves typed refusal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalResultReadWorkspace/init:beginExplanation/init:beginExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "### Result READ framing and wire geometry"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "record durability"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "READ close cannot retire the same parent while a yielded original row callback is live"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "structural workspace supplies exact original DATA to one captured Core constructor and preserves typed refusal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalResultReadWorkspace/init:explanationRequest/init:explanationRequest"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "### Result READ framing and wire geometry"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "record durability"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "READ close cannot retire the same parent while a yielded original row callback is live"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "structural workspace supplies exact original DATA to one captured Core constructor and preserves typed refusal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalResultReadWorkspace/init:prepareExplanation/init:prepareExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "### Result READ framing and wire geometry"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "record durability"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "READ close cannot retire the same parent while a yielded original row callback is live"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "structural workspace supplies exact original DATA to one captured Core constructor and preserves typed refusal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalResultReadWorkspace/init:renderExplanation/init:renderExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              },
+              {
+                "path": "docs/design/retained-result-boundary.md",
+                "anchor": "### Result READ framing and wire geometry"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.mjs",
+                "anchor": "export function createLocalResultReadWorkspace({runtime, requestMemory, assertCurrent}) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Bounded installed READ workspace and physical writes"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-workspace.actual.test.mjs",
+                "anchor": "record durability"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "READ close cannot retire the same parent while a yielded original row callback is live"
+              },
+              {
+                "path": "adapters/host-node/local-result-read-wire-workspace.test.mjs",
+                "anchor": "structural workspace supplies exact original DATA to one captured Core constructor and preserves typed refusal"
               }
             ]
           }
@@ -131006,6 +134539,125 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-run-explanation.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "857206ef30b2a1401e2f951dcae197e977ff0fdf4a0382d8dc3e230a913656df",
+      "role": "physical-io",
+      "owner": "Existing admitted Run read and request Journal owners",
+      "exports": [
+        "installClientRunExplanation"
+      ],
+      "operations": [
+        {
+          "name": "installClientRunExplanation",
+          "parameters": [
+            "authorize",
+            "authorizeEgress",
+            "probeOriginal",
+            "lookupOriginal",
+            "readWorkspace"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunExplanation/installClientRunExplanation",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installClientRunExplanation/installClientRunExplanation#2",
+          "parameters": [
+            "request",
+            "consume"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "rationale": "Retained-original read with explicit current/effective egress and construction control. Does not issue facts, execute or grant access.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installClientRunExplanation",
+            "installClientRunExplanation/installClientRunExplanation",
+            "installClientRunExplanation/installClientRunExplanation#2"
+          ],
+          "exports": [
+            "installClientRunExplanation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.explain reads frozen original structural DATA without Client alias or dispatch', async t => {"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],

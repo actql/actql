@@ -10,7 +10,8 @@ import {withInstalledFamilyFirstClose, assertFamilyReadState,
   installedFamilyResultOnOriginal} from './fixture-source/adapters/host-node/fixtures/installed-family-read.fixture.mjs';
 import {loadExternalRestModules} from './installed-modules.mjs';
 import {resolveInstalledCompletionModules} from './timed-installed-context.fixture.mjs';
-import {timedValuesProgram, timedSourceProgram, assertTimedRows, wallObservation} from './timed-inputs.fixture.mjs';
+import {timedValuesProgram, timedSourceProgram, assertTimedRows, wallObservation,
+  assertTimedValuesExplanation} from './timed-inputs.fixture.mjs';
 
 const [configurationPath, phase] = process.argv.slice(2);
 assert(configurationPath && ['read', 'saved'].includes(phase));
@@ -24,7 +25,7 @@ const scalarFailure = cause => ({name: String(cause?.name ?? 'Error'),
   message: String(cause?.message ?? cause), ...(typeof cause?.code === 'string' ? {code: cause.code} : {})});
 const report = {requestKind, phase, counters: {installedResolutionAttempts: 0, publicStart: 0,
   publicStartSource: 0, publicAttach: 0, publicWait: 0, publicStatus: 0, publicResultAll: 0,
-  publicClose: 0, secretResolutions: 0}, firstCloseAcknowledged: false,
+  publicClose: 0, publicExplain: 0, secretResolutions: 0}, firstCloseAcknowledged: false,
   compilerInvocations: {observable: false, value: null},
   internalModuleInitializationCount: {observable: false, value: null},
   generatedInstallationLoadBoundary: {required: requestKind === 'source', observed: false},
@@ -65,6 +66,8 @@ try {
     original = {reference: JSON.parse(await readFile(join(root, 'original-reference.json'), 'utf8')),
       rows: JSON.parse(await readFile(join(root, 'original-rows.json'), 'utf8')),
       state: JSON.parse(await readFile(join(root, 'original-state.json'), 'utf8'))};
+    if (requestKind === 'values') original.explanation =
+      JSON.parse(await readFile(join(root, 'original-explanation.json'), 'utf8'));
     assertFamilyReadState(original.state);
   }
   try {
@@ -135,12 +138,23 @@ try {
     else assertFamilyReadState(state);
     report.physicalStop = state.control?.physical_stop ?? 'UNOBSERVABLE';
     assert.equal(report.physicalStop, 'confirmed', 'ActualPublicPhysicalStopNotConfirmed');
+    if (requestKind === 'values') {
+      // This is a read of the SAME first admitted Run, after its full Result
+      // and current status. No extra submission, compile or repair entrance.
+      // Keep Saved's original first-all-before-status order unchanged above.
+      report.counters.publicExplain++;
+      const explanation = await execution.explain({maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64});
+      await save(phase === 'read' ? 'original-explanation.json' : 'saved-explanation.json', explanation);
+      report.structuralExplanation = assertTimedValuesExplanation(explanation,
+        execution.ref, original?.explanation);
+    }
   });
   assert.equal(report.counters.publicStart, phase === 'read' && requestKind === 'values' ? 1 : 0);
   assert.equal(report.counters.publicStartSource, phase === 'read' && requestKind === 'source' ? 1 : 0);
   assert.equal(report.counters.publicAttach, phase === 'saved' ? 1 : 0);
   assert.equal(report.counters.publicWait, phase === 'read' ? 1 : 0);
   assert.equal(report.counters.publicStatus, 1); assert.equal(report.counters.publicResultAll, 1);
+  assert.equal(report.counters.publicExplain, requestKind === 'values' ? 1 : 0);
   assert.equal(report.counters.publicClose, 1);
   if (phase === 'saved' || requestKind === 'values') assert.equal(report.counters.secretResolutions, 0);
   report.passed = true;

@@ -17,7 +17,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "87cbd9b525a129242b6f68902d7e088f589fda8a6b7ce94d0aaa387d459be807",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "consumeRetainedComputeInput",
         "encodeManagedColumnFrame",
@@ -4697,7 +4697,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d4de151b675628ba9e21c7d5dec7c9104db72b233ad725fdac1c386a2472dd3c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "finishManagedOutputReceipt"
       ],
@@ -4951,7 +4951,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "243d6e24785503fd307a79711aec9075101956681bff6e9fdc7fa30022449af0",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -5204,7 +5204,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "6f8598cc533afa1629a5d3faa40bb0c3c28ea47e25f6afb52ff670988935ce0e",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "duckdbStrategyContribution"
       ],
@@ -6076,7 +6076,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dfaa700be221ae7119a849d2d3abb8be671dee2fe89759299ea7e6c7a7a5c47a",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_EFFECT_VERSION",
         "SALESFORCE_EFFECT_PUBLICATION_VERSION",
@@ -8676,7 +8676,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "da3d62be59a2d7aabd9ff68d15a68a128de4b769e7293de49cab23c3736b7299",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_SOURCE_VERSION",
         "checkInstalledSalesforceSourceProfile",
@@ -10622,7 +10622,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "c3cc6d7d8139b3a0caa5acb9a1a0a48ac96e3be59fc66e5b3ce0850ded3368c4",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "salesforceRowEffectSite",
         "salesforceTargetReadOperation",
@@ -11631,7 +11631,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2e3ca5fabc271f7717afd5067d29c77b66d1b59fe5c21476a710fb44f4387875",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkedSalesforceCatalogPreparation"
       ],
@@ -11895,7 +11895,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "33b1a587771b64b209bc4bdd70503b69644056eeef1c1ec253b211fb37aaab37",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "prepareSalesforceSourceReadSequence",
         "readSalesforceManagedQuery",
@@ -13450,7 +13450,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -15297,7 +15297,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0313a8872505ef8bf159d088d548873ba3a72783d37d88f47a5e538f653f41c5",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkedEffectPreparation",
         "isEffectPreparationRefusal",
@@ -15794,7 +15794,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -16044,7 +16044,7 @@
       "module": "adapters/host-common/runtime-core.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -16305,7 +16305,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -19215,7 +19215,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -22602,7 +22602,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -24036,6 +24036,1414 @@
               {
                 "path": "src/connectors_builtin_node/client_request_normalization_wbtest.mbt",
                 "anchor": "test \"Node normalization bridge retains the same Request original before Plan and reads it afterward\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:originalRunExplanationAdmissionAcknowledged/init:originalRunExplanationAdmissionAcknowledged"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An Effect Checkpoint, whether issued by genuine Account delegation or an"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "That setup can pass the original immutable contracts from the same publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "retireCapturedComputation(capturedRun) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_checkpoint_run_lifetime("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitOriginal(original, limits) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "? moon.strategyCapturedRunFinishRetained(preparation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "if @publication.publication_contract_identity(definition) != expected_cid {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const original = capturedComputationPreparations.get(capturedRun);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const contractBounds = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const capturedComputationPreparations = new WeakMap();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": ": moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('retirement failure preserves the same holder for its original retry'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "cleanup retain their independent checks and original acknowledgements."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "moon.strategyCapturedRunCancel(original);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and reference retirement remain with the original Host/Run resource lifetime."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "capturedComputationPreparations.delete(capturedRun);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "does not renew the Run, replace a saved Checkpoint or relax Common's lifetime"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Foreign controls, copies, raw wires, unavailable original bounds or stricter"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('restored wrappers take full checking and copied or foreign wrappers refuse'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
+                "anchor": "test(`delegated Effect expiry preserves the original Run deadline:"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('Checkpoint lifetime projects only the same original admitted Run without renewal'"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "delivery START uses native metadata durability before any row exposure"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('the original captured preparation reaches both checks with unchanged argument order'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual Model admission uses the Request raw TaskCompilation"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Request serialized Model preserves native Graph across actual facade Host and manager"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "physical Model Content Effect keeps its original Node layout and trusted Scope through retry"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Effect Model keeps physical read and bootstrap overlap on the same checked demand"
+              },
+              {
+                "path": "src/physical_resources/borrowed_captured_inputs_wbtest.mbt",
+                "anchor": "test \"shared captured inputs borrow exact originals after retained preparation without resetting history\""
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
+              },
+              {
+                "path": "adapters/host-node/infer-model-effect-control.test.mjs",
+                "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
+              },
+              {
+                "path": "adapters/host-node/infer-model-effect-control.test.mjs",
+                "anchor": "test('restored Model publication forwards the same Source witness through actual artifact and import control owners'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_saved_model_imports_wbtest.mbt",
+                "anchor": "test \"saved Model imported Source join rejects another actual capture with equal logical rows\""
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "publication metadata is bounded by its original Read before token-array construction"
+              },
+              {
+                "path": "adapters/host-node/client-original-plan-control.test.mjs",
+                "anchor": "the fixed acknowledgement callback disposes new Facts aliases before returning its original loan"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:originalRunExplanationAdmissionEvidence/init:originalRunExplanationAdmissionEvidence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An Effect Checkpoint, whether issued by genuine Account delegation or an"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "That setup can pass the original immutable contracts from the same publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "retireCapturedComputation(capturedRun) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_checkpoint_run_lifetime("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitOriginal(original, limits) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "? moon.strategyCapturedRunFinishRetained(preparation)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "if @publication.publication_contract_identity(definition) != expected_cid {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const original = capturedComputationPreparations.get(capturedRun);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const contractBounds = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const capturedComputationPreparations = new WeakMap();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": ": moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('retirement failure preserves the same holder for its original retry'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "cleanup retain their independent checks and original acknowledgements."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "moon.strategyCapturedRunCancel(original);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and reference retirement remain with the original Host/Run resource lifetime."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "capturedComputationPreparations.delete(capturedRun);"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "does not renew the Run, replace a saved Checkpoint or relax Common's lifetime"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Foreign controls, copies, raw wires, unavailable original bounds or stricter"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('restored wrappers take full checking and copied or foreign wrappers refuse'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
+                "anchor": "test(`delegated Effect expiry preserves the original Run deadline:"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('Checkpoint lifetime projects only the same original admitted Run without renewal'"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "delivery START uses native metadata durability before any row exposure"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('the original captured preparation reaches both checks with unchanged argument order'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original compilation at Task admission"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Run-held original compilation"
+              },
+              {
+                "path": "adapters/host-node/client-compilation-original.test.mjs",
+                "anchor": "actual Model admission uses the Request raw TaskCompilation"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
+              },
+              {
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs",
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "Request serialized Model preserves native Graph across actual facade Host and manager"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "physical Model Content Effect keeps its original Node layout and trusted Scope through retry"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Effect Model keeps physical read and bootstrap overlap on the same checked demand"
+              },
+              {
+                "path": "src/physical_resources/borrowed_captured_inputs_wbtest.mbt",
+                "anchor": "test \"shared captured inputs borrow exact originals after retained preparation without resetting history\""
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
+              },
+              {
+                "path": "adapters/host-node/infer-model-effect-control.test.mjs",
+                "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
+              },
+              {
+                "path": "adapters/host-node/infer-model-effect-control.test.mjs",
+                "anchor": "test('restored Model publication forwards the same Source witness through actual artifact and import control owners'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_saved_model_imports_wbtest.mbt",
+                "anchor": "test \"saved Model imported Source join rejects another actual capture with equal logical rows\""
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "publication metadata is bounded by its original Read before token-array construction"
+              },
+              {
+                "path": "adapters/host-node/client-original-plan-control.test.mjs",
+                "anchor": "the fixed acknowledgement callback disposes new Facts aliases before returning its original loan"
               }
             ]
           }
@@ -26422,7 +27830,8 @@
             "compiled",
             "original",
             "definition",
-            "limits"
+            "limits",
+            "explanation"
           ],
           "async": false
         },
@@ -28596,6 +30005,26 @@
             "selected",
             "definition",
             "request",
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:originalRunExplanationAdmissionAcknowledged/init:originalRunExplanationAdmissionAcknowledged",
+          "parameters": [
+            "selected",
+            "definition",
+            "programCid",
+            "evidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:originalRunExplanationAdmissionEvidence/init:originalRunExplanationAdmissionEvidence",
+          "parameters": [
+            "selected",
+            "definition",
+            "programCid",
             "evidence"
           ],
           "async": false
@@ -33138,14 +34567,14 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a74b42f60c896720c4433229d17e0baceee59c2186f92cceab64c1fa72886e39"
+      "sha256": "b4933f6d4c4799e74b0f27a35b5a0dfd3b0f0c1c7014924ec421d30066aead15"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
       "responsibilityFacet": "supplemental",
       "sha256": "d17780e2ca901ff56cc87c907dc588eae3b829913d7c06916c14a4659f7aa1ab",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -33397,7 +34826,7 @@
       "responsibilityFacet": "primary",
       "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "strategyAction"
       ],
@@ -33766,7 +35195,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4f5e79c6fd61a8b3e1b264c7127c267b2a9329d359126a248599064a53fbdbc1",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -35435,7 +36864,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d7d3d14486d478986dd2fc31822e7e17a34665677b37fb234ceb678afff9730c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectContinuation"
       ],
@@ -36416,7 +37845,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "283a33719e43444b6374bfd89b2787c64d217e113d14f4204c67b6ba06d155f9",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -37899,7 +39328,7 @@
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -40731,7 +42160,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -40949,7 +42378,7 @@
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "supplemental",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -41180,7 +42609,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "c6a681a0f7fe2acc1b5919f45d9c082d5939d746eed252ac5c3fb42e4309ebfe",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -44133,7 +45562,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -44555,7 +45984,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4c5a10c5e8357bb4991c655ac0666b1e0483568ef499490da97603d4e32c82ca",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
@@ -46752,7 +48181,7 @@
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -46985,7 +48414,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -51740,7 +53169,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts) {return authorize(facts, undefined, 'run');}"
+                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -52979,7 +54408,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -57521,7 +58950,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -59380,7 +60809,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "run(facts) {return authorize(facts, undefined, 'run');}"
+                "anchor": "run(facts, operation) {return authorize(facts, operation, 'run');}"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -61172,6 +62601,1118 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "fn valid_client_submitted_intent_limits("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "fn valid_client_submitted_intent_limits("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "fn valid_client_submitted_intent_limits("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "originalInputs(prepared) {"
+              },
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### INFER original captured evidence"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "fn valid_client_submitted_intent_limits("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('composed INFER consumes original captured evidence without serializing or readmitting it'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openPreparedInstalledHost/preparation/init:managedComputeExplanationPreparation/init:managedComputeExplanationPreparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn installed_managed_run_accounting("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "catch {drop('resourceUnavailable'); return;}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-result-observation.test.mjs",
+                "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const snapshot = {'actql.resource.scope': 'managed-run-ledger'};"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "/// These are managed accounting values, not a measurement of process memory"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
+              },
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "test('Result operation capture forwards the same installed optional holder on demand'"
+              },
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('final managed accounting retains every original scalar after actual retirement and cuts Core aliases'"
+              },
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('pending final Core retirement keeps the same live usage and resamples only its successful retry'"
+              },
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('failed manager retirement retains original custody and publishes final DATA only after the same retry'"
+              },
+              {
+                "path": "adapters/host-node/managed-run-observation.test.mjs",
+                "anchor": "test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port'"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "let final_accounting = installed_managed_run_accounting(run).unwrap()"
+              },
+              {
+                "path": "adapters/host-node/client-check.test.mjs",
+                "anchor": "installed scoped authoring checks and supplementation execute only on explicit start"
+              },
+              {
+                "path": "adapters/host-node/local-original-plan-admission.test.mjs",
+                "anchor": "pure Local admission forwards its original Facts loan through the same nominal Plan selection"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -62760,6 +65301,36 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#2",
+          "parameters": [
+            "_selected",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#3",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runExplanation/runExplanation#4",
+          "parameters": [
+            "ref",
+            "extent"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/init:prepareOriginalMockRun/init:prepareOriginalMockRun",
           "parameters": [
             "prepared",
@@ -63552,7 +66123,8 @@
             "request",
             "environment",
             "originalVerifier",
-            "signal"
+            "signal",
+            "journal"
           ],
           "async": false
         },
@@ -63795,6 +66367,14 @@
         },
         {
           "name": "openPreparedInstalledHost/preparation/init:managedComputeCompilationOriginal/init:managedComputeCompilationOriginal",
+          "parameters": [
+            "runtime",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:managedComputeExplanationPreparation/init:managedComputeExplanationPreparation",
           "parameters": [
             "runtime",
             "prepared"
@@ -65108,6 +67688,7 @@
         "./client-request-journal.mjs",
         "./client-request-lookup.mjs",
         "./client-run-attach.mjs",
+        "./client-run-explanation.mjs",
         "./client-run-inspect.mjs",
         "./client-run-plan.mjs",
         "./client-run-start.mjs",
@@ -65187,14 +67768,14 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "1b896970164fac91b97f6b0b0b1ba79c13bc8af7f1d89de2c95684b932b25dff"
+      "sha256": "26715fcb749640f0b067611b5827e42c4cfaa61085996e90ad7158bd2514af73"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "supplemental",
       "sha256": "46edea0203446b104cdc706dc6e75fba3ee6bcaa7a23b7532b002d47892ba555",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "openNodeInferCaptureCustody"
       ],
@@ -65856,7 +68437,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "01806815c5b54aacacfe43f1ec37240a33813ce20cc4b6dff5e10403562c290e",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "configureInferEvidence",
         "projectInferEvidence",
@@ -67137,7 +69718,7 @@
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -71233,7 +73814,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d6a1c11c9683de2a3953ff0ba4cb22c1973f78c96af8b7162516eaa0ebbfcf5a",
       "role": "physical-io",
-      "owner": "A — existing Model raw custody projection",
+      "owner": "A \u2014 existing Model raw custody projection",
       "exports": [
         "bindOriginalModelRawTransportPersistence",
         "createModelRawCaptureStorePort",
@@ -72265,7 +74846,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -72456,7 +75037,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "4ba3d644206ddf5337fe1029b9b2376c89360ab3b0c338c4ec9f06135207dd2b",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runInstalledComposedInfers"
       ],
@@ -73859,7 +76440,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "7ea91a69c321aa7a14620d8e28deaf183d566a158238d9465a0cf982561ad6a8",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installNodeInferRun"
       ],
@@ -74967,7 +77548,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b913c09775d86a4fcd10ad55b7c64206003bd09bcee4671c243d59113c8539c3",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -75633,7 +78214,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "9644a7634a723a7b48a058e7e168e50f460e0b80de9d03e55a52846a91382429",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installNodeModelContinuation"
       ],
@@ -77415,7 +79996,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2934d8a36d4ba76048a571b562247570fb08c38d6fd640f5f7abb298303a2dbe",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
@@ -79536,7 +82117,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "15d45364d392170850f568c24cc7214c8506f563ecf56d350a774f9477ef4c6c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "collectInstalledRowEffectUpdateObservations",
         "composeInstalledRowEffectOwners",
@@ -88488,7 +91069,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "5f61b3e40445748976fbb347bdd6ba5187f0ca9be3d20584e1901d355dc276cb",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "startInstalledRowRun"
       ],
@@ -90305,7 +92886,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "ace3b7593f5c0882a735005fdcaa3ad35e098d3b99ab57e502ca44dad383a62f",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "encodeTypedResponseJson",
@@ -95563,7 +98144,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "96ead5312b6a2c9b9ae912f068435ad959ecb99a6b297c92ea5897d891302f9f",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkInstalledTableEffectLimits",
         "createInstalledTableEffect"
@@ -97268,9 +99849,9 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f448684b0d90634530a653ea75c37612c3e0c69581f0014ad711ae072be53b80",
+      "sha256": "4f15625e66690c860d586d4ce5ccd05e9957f5ab5fa4a547907c033c868e610a",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -97300,6 +99881,7 @@
         "sourceFreeEffectPublicationPlanOriginal",
         "sourceFreeInferEffectPublicationPlan",
         "sourceFreePlanExecutionOwner",
+        "sourceFreePlanExplanation",
         "sourceFreePlanOriginal",
         "sourceFreeTaskPlan",
         "sourceFreeValuesAdmissionEvidence",
@@ -97924,6 +100506,13 @@
           "async": false
         },
         {
+          "name": "sourceFreePlanExplanation",
+          "parameters": [
+            "plan"
+          ],
+          "async": false
+        },
+        {
           "name": "sourceFreePlanOriginal",
           "parameters": [
             "plan"
@@ -97959,7 +100548,8 @@
             "publicationOriginal",
             "compilationOriginal",
             "publicationPreparation",
-            "invocationOriginal"
+            "invocationOriginal",
+            "originalExplanationPreparation"
           ],
           "async": false
         }
@@ -98155,7 +100745,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -100976,7 +103566,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -103086,7 +105676,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
@@ -103344,6 +105934,262 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "sourceFreePlanExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/local-original-plan-admission.test.mjs",
+                "anchor": "pure Local admission forwards its original Facts loan through the same nominal Plan selection"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "sourceFreePlanExplanation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### Retained structural explanation read"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "### First structural facts admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_explanation_read.mbt",
+                "anchor": "reserve_request_explanation_read"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreePlanOriginal"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/local-original-plan-admission.test.mjs",
+                "anchor": "pure Local admission forwards its original Facts loan through the same nominal Plan selection"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -103539,7 +106385,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "024e1ae2bb1d1a8fbcb1f282ac11b6b71eaab1dcc3e620ab239b139433e69b40",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "authorTableOperationPreview"
       ],
@@ -104288,7 +107134,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "cdc086218b28f7170fbe70e9145c79b4e7ab470d0b64097493974a04c0b7731b",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "checkedTableWriteBinding",
         "verifyTableWriteBinding"
@@ -104668,7 +107514,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2696846f037c18d380967acbabd4ca6dd2de29ae0761bbb5587fe2bcef2835ec",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "prepareLocalRetainedOutput"
       ],
@@ -105080,7 +107926,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "da08eb1a3f44df24927c55d1a822e7a8472264ec8acf0b6a52f9fbcdefa987ce",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "localStrategyContribution"
       ],
@@ -106464,7 +109310,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "752288be142a2ea76466f032875af7b85019d9675dd0a135af109db0fec35f9c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "numericStrategyContribution"
       ],
@@ -107000,7 +109846,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dce72ee5465ad9556e2f2b84758eb0008e491acc0d60f24610f2befe91a52e1a",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "bindWorkersFiniteHost"
       ],
@@ -108177,7 +111023,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -110024,7 +112870,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a3a49743e4f3b4e61c6310b2dfe685ee35431c2064d8853776859858cceb9b51",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "acceptedSiteOutput",
         "acceptedSourceObservation",
@@ -120621,7 +123467,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -122468,7 +125314,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -124315,7 +127161,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -126162,7 +129008,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "e6872570d64052f999d5ad0ce0dac2916a137104386852b5fc73d5d907478aa4",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "admitCapturedResultSnapshot",
         "admitCompletedSourceObservation",
@@ -151799,7 +154645,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "47c5920dcd16b65be41156686e7970adfd6b998d719c4e62420b0bef5f93887c",
       "role": "observation-presentation",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "admitObservationScope",
         "chargeObservation",
@@ -153034,7 +155880,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -153285,7 +156131,7 @@
       "responsibilityFacet": "primary",
       "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
       "role": "generated-binding",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -155132,7 +157978,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "ba3ac39d933226c2230e0abc1d5d12c09dde8d3097c6d18629defae3e8ee70a6",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "activeAt",
         "admitDurableJson",
@@ -157739,7 +160585,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "9f3fc78c48515de73ed14360dafff6318a4bac68191eb53e68fe728dab40ab0c",
       "role": "physical-io",
-      "owner": "A — existing JS/Core projection boundary",
+      "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "prepareAcquiredEffectKeyedCapture",
         "prepareAcquiredEffectKeyedPrefix"

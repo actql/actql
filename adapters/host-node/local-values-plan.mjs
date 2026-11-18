@@ -134,20 +134,25 @@ const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
 const valuesAdmissions = new WeakMap();
 const originalPlans = new WeakMap();
 export function sourceFreePlanOriginal(plan) {return originalPlans.get(plan)?.original;}
+export function sourceFreePlanExplanation(plan) {return originalPlans.get(plan)?.originalExplanation;}
 export function sourceFreePlanExecutionOwner(plan) {return originalPlans.get(plan)?.executionOwner;}
 
-function retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime) {
+function retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime, explanation) {
   // Keep lifetime links in the existing private association, outside the
   // closed publication data bag. This replaces the larger timed Plan clone.
-  originalPlans.set(plan, Object.freeze({
+  const original = explanation === undefined
+    ? control.captureOriginalClientRunPlan(compiled, preparedProgram, plan.runDefinition, limits)
+    : control.captureOriginalClientRunPlan(compiled, preparedProgram, plan.runDefinition, limits, explanation);
+  const retained = {
     executionOwner: Object.freeze({program: preparedProgram, compiled}),
     // Original admission uses the same metadata codec as its invocation and
     // publication. Later inspection keeps the reader's own explicit bounds.
-    original: control.captureOriginalClientRunPlan(
-      compiled, preparedProgram, plan.runDefinition, limits),
+    original,
     queryTimePreparation: queryTime?.queryTimePreparation,
     queryTime: queryTime?.queryTime,
-  }));
+  };
+  if (explanation !== undefined) retained.originalExplanation = original;
+  originalPlans.set(plan, Object.freeze(retained));
   return plan;
 }
 // The ordinary Effect-free INFER Host profile explicitly binds unknown
@@ -903,7 +908,7 @@ export async function acquiredInferEffectPublicationPlan({acquired, sources,
 
 export function sourceFreeValuesPlan({moon, control, preparedProgram,
   authorityScopeCid, namespaceId, storeAuthorityCid, now,
-  retainedDefinitionWire, requestIdentity, publicationOriginal, compilationOriginal, publicationPreparation, invocationOriginal}) {
+  retainedDefinitionWire, requestIdentity, publicationOriginal, compilationOriginal, publicationPreparation, invocationOriginal, originalExplanationPreparation}) {
   const original = invocationOriginal === undefined ? undefined : checkedOriginalQueryInvocation(
     invocationOriginal, control, preparedProgram, requestIdentity, 'values', retainedDefinitionWire);
   const at = original === undefined ? Date.parse(now()) : undefined;
@@ -949,7 +954,7 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
     prepared: compiled.preparedEvidence.wire,
     authorization: compiled.authorization.wire,
   }));
-  return retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime);
+  return retainOriginalPlan(plan, compiled, preparedProgram, control, queryTime, originalExplanationPreparation);
 }
 
 // Admit the complete checked task graph, including acquired sources, to the
@@ -1128,7 +1133,7 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
 }
 
 function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializationGraph,
-  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity, compilationOriginal, publicationPreparation, invocationOriginal, publicationOriginal}, kind) {
+  authorityScopeCid, namespaceId, now, retainedDefinitionWire, resultDataPolicy, requestIdentity, compilationOriginal, publicationPreparation, invocationOriginal, publicationOriginal, originalExplanationPreparation}, kind) {
   const original = invocationOriginal === undefined ? undefined : checkedOriginalQueryInvocation(
     invocationOriginal, control, preparedProgram, requestIdentity, kind, retainedDefinitionWire);
   const at = original === undefined ? Date.parse(now()) : undefined;
@@ -1162,7 +1167,7 @@ function checkedTaskRunAdmission({control, preparedProgram, inferGraph, serializ
     ...queryTime,
     ...(kind === 'infer' ? {inferGraph} : {}),
     ...(kind === 'serialization' ? {serializationGraph} : {})});
-  return kind === 'tasks' ? retainOriginalPlan(admitted, compiled, preparedProgram, control, queryTime) : admitted;
+  return kind === 'tasks' ? retainOriginalPlan(admitted, compiled, preparedProgram, control, queryTime, originalExplanationPreparation) : admitted;
 }
 
 // Multi-task source-free Programs use the common task compiler and the same

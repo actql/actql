@@ -63,6 +63,7 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
   // local execution-owner table is conditional on that original ownership and
   // must not be manufactured just to make an unowned schema equal the asset.
   const selectedSql = support.sql.filter(sql => !sql.startsWith('CREATE TABLE client_local_execution_owners (') &&
+    !sql.startsWith('CREATE TABLE client_run_explanation_originals (') &&
     !((sql.startsWith('CREATE TABLE client_submitted_intent_usage (') ||
       sql.startsWith('CREATE TABLE client_submission_restart_usage (')) &&
       sql.includes('retained_bytes <= 67108864')));

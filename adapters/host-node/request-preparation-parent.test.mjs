@@ -12,6 +12,11 @@ import {sourceFreeValuesPlan, inferTaskRunAdmission, serializationTaskRunAdmissi
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {submissionEpoch} from '../../packages/sdk/submission-fixture.mjs';
+import {mkdtempSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
+import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 
 // Actual normal manager/adapter/Resource originals; Core phase/shape results
 // are explicit ports. This does not certify a matching Common or body tariff.
@@ -874,6 +879,91 @@ test('normal generic Native cleanup keeps its original holder without the requir
   const state={context:{runtime},parent,holder,prepared};
   assert.throws(()=>cleanupRequestInput(state),{code:'NodeLocalPreparationAdmissionUnavailable'});
   assert.equal(returns,0);assert.equal(state.holder,holder);assert.equal(state.prepared,prepared);
+});
+
+test('managed Facts preserve timed compiler custody and wait for actual Journal close after an unacknowledged offer', async t => {
+  // Actual manager, Resource ports and native SQLite; compiler/loan results
+  // remain explicit component ports, not matching Common/funding acceptance.
+  for(const declined of [false,true]){
+    const directory=mkdtempSync(join(tmpdir(),'actql-original-facts-manager-'));
+    let refuseClose=false;
+    const nativeClose=DatabaseSync.prototype.close;
+    DatabaseSync.prototype.close=function(){
+      if(refuseClose) throw Error('AuthoredNativeJournalClosePending');
+      return Reflect.apply(nativeClose,this,[]);
+    };
+    let journal;
+    try {journal=openClientRequestJournal(directory);}
+    finally {DatabaseSync.prototype.close=nativeClose;}
+    t.after(()=>{refuseClose=false;journal.close();rmSync(directory,{recursive:true,force:true});});
+    const f=await fixture(),moon=f.context.runtime,request={},prepared={},holder={},identity={},value={};
+    const artifact={},preparation={},scope={},invocation={};
+    const receipt=f.view.beforeSourceSnapshot('program',input(),{},connection);
+    const body=f.view.captureSourceSnapshot(receipt,{kind:'program',input:input(),parameters:null},snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt,body);f.view.bindSourceRequest(receipt,body,request);
+    f.originals.installation={sequenceContractOriginal:{moon,admission:{}}};
+    let compilation,compiles=0,modules=0,returns=0,retiring=false,context;
+    moon.clientProgramPrepareRequestNativeComputation=()=>ok(undefined);
+    moon.clientProgramBorrowRequestProgramPlanInput=()=>ok(holder);
+    moon.clientProgramPreparationBorrowRead=actual=>{assert.equal(actual,holder);return prepared;};
+    moon.clientProgramRequestParametersOriginal=()=>ok(undefined);
+    moon.clientProgramRequiresQueryTime=()=>ok(true);
+    moon.clientProgramRequestProgramCompilationOriginal=(parent,original)=>{
+      assert.equal(parent,f.parent);assert.equal(original,receipt);return compilation;
+    };
+    moon.clientProgramPrepareRequestProgramCompilation=()=>{
+      assert.equal(compilation,undefined);compiles++;compilation=artifact;return ok(artifact);
+    };
+    moon.clientProgramReserveRequestQueryTimeInvocation=(parent,original,compiled)=>{
+      assert.equal(compiled,artifact);return ok(undefined);
+    };
+    moon.clientProgramPrepareRequestOriginalExplanation=(parent,original)=>{
+      assert.equal(parent,f.parent);assert.equal(original,receipt);assert.equal(compiles,1);
+      return ok(declined?undefined:preparation);
+    };
+    moon.clientProgramPrepareRequestProgramModuleBody=(parent,original,contracts,retained,timed)=>{
+      assert.equal(timed,invocation);modules++;return ok(undefined);
+    };
+    moon.clientProgramAdoptRequestProgramPreparation=()=>{assert.equal(declined,true);return ok(value);};
+    moon.clientProgramAdoptRequestProgramWithExplanation=(parent,actual,selected)=>{
+      assert.equal(parent,f.parent);assert.equal(actual,identity);assert.equal(selected,preparation);return ok(value);
+    };
+    moon.clientProgramCaptureRequestOriginalExplanation=()=>assert.fail('The fixed compiler control owns capture');
+    moon.clientProgramOriginalExplanationPlanWire=()=>assert.fail('The fixed compiler control owns output');
+    moon.clientProgramOriginalExplanationFactsWire=()=>assert.fail('The fixed compiler control owns output');
+    moon.clientProgramReturnRequestOriginalExplanation=()=>assert.fail('The capture consumed the preparation');
+    moon.clientProgramReturnOriginalExplanationCapture=actual=>{
+      assert.equal(actual,scope);assert.equal(context.factsWire,undefined);assert.equal(context.journal,undefined);
+      returns++;return ok(true);
+    };
+    moon.clientProgramPreparationBorrowRetirementStarted=()=>retiring;
+    moon.clientProgramPreparationBorrowReturn=()=>ok(true);
+    await f.view.fundedPreparation(request,undefined,undefined,undefined,journal);
+    f.view.adoptPreparation(prepared,request,identity,actual=>{assert.equal(actual,artifact);return invocation;});
+    assert.equal(compiles,1);assert.equal(modules,1);
+    context=f.view.originalExplanationPreparation(prepared);
+    if(declined){assert.equal(context,undefined);assert.equal(returns,0);}
+    else{
+      assert.equal(context.preparation,preparation);
+      // The fixed control's independently tested handoff retains this SAME
+      // per-producer scope before any output/current getter can fail.
+      context.preparation=undefined;context.scope=scope;context.factsWire='original-facts';context.offered=true;
+      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),false);
+      refuseClose=true;assert.throws(()=>journal.close(),/AuthoredNativeJournalClosePending/u);
+      assert.equal(observeOriginalClientRequestJournalCustody(journal).journalClosed,true);
+      assert.equal(observeOriginalClientRequestJournalCustody(journal).databaseClosed,false);
+      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),false);assert.equal(returns,0);
+      refuseClose=false;journal.close();
+      assert.equal(f.view.retireOriginalExplanation(prepared,f.original),true);
+      assert.equal(returns,1);assert.equal(context.acknowledged,false);
+    }
+    f.view.finishSourceProducer(receipt,'returned');retiring=true;
+    f.view.severPreparation(prepared,f.original);
+    moon.clientProgramAbortRequestPreparation(f.parent);
+    f.view.retireSeveredPreparation(f.original);
+    assert.equal((await f.view.close()).pending,false);
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+  }
 });
 
 test('normal generic Native Request retains an undefined foreign failure without another constructor', async () => {

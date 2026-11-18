@@ -337,6 +337,8 @@ pub fn capture_client_run_observation_originals(ClientCompiledRun, @run_publicat
 
 pub fn capture_client_structural_explanation_original(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientStructuralExplanationOriginal, ClientExplanationFactsIssue]
 
+pub fn capture_client_structural_explanation_plan_original(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[(ClientStructuralExplanationOriginal, String), ClientExplanationFactsIssue]
+
 pub fn captured_client_result_transformation_matches_run(CapturedClientResultTransformation, @physical_strategy_host.CapturedDAG) -> Bool
 
 pub fn captured_client_result_transformation_retained(CapturedClientResultTransformation) -> Bool
@@ -2139,6 +2141,8 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(PreparedCl
 
 pub fn lower_client_source_input_query(ClientSourceInput, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, @query_syntax.Query, public_primary? : Bool, calls_out? : @ref.Ref[Int64]?, limits? : @query_program.Limits?) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), ClientSourcePreparationIssue]
 
+pub fn measure_client_compiled_explanation_facts(ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
+
 pub fn measure_client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
 pub fn measure_client_effect_generic_keyed_plan_construction(PreparedClientEffectComputation, ClientKeyedAcquisition, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientEffectKeyedPlanConstruction, ClientInferPlanGraphIssue]
@@ -2150,6 +2154,10 @@ pub fn measure_client_local_normalization_construction(ClientLocalNormalizationP
 pub fn measure_client_model_provider_binding_construction(String) -> (Int, Int, Int)?
 
 pub fn measure_client_operation_explanation_structural(ClientOperationExplanation, PreparedClientProgram, Int, Int, Int) -> Result[(Int, Int, Int), ClientExplanationProjectionIssue]
+
+pub fn measure_client_pure_compilation_explanation_facts(ClientRunCompilation, PreparedClientProgram, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
+
+pub fn measure_client_pure_compilation_static_plan_view(ClientRunCompilation, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool, before_carrier_measurement? : ((@carrier_contract.Carrier) -> Bool)?) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue]
 
 pub fn measure_client_structural_explanation_facts(ClientStructuralExplanationOriginal, ClientCompiledRun, PreparedClientProgram, Int, Int, Int) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue]
 
@@ -2752,6 +2760,8 @@ pub fn retain_compiled_client_source_effect_input(ClientSourceInput, PreparedCli
 pub fn retain_compiled_client_source_input(ClientSourceInput, ClientSourceProgramPreparation) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
 
 pub fn retain_compiled_client_source_pure_input(ClientSourceInput, PreparedClientProgram) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
+
+pub fn retained_client_run_explanation_view(@run_publication.PublicationContract, @run_publication.PublicationContract?, String, String, String?, String?, String, String, String, Int, Int, Int, before_binding? : ((@run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Bool)?) -> Result[String, ClientRetainedExplanationIssue]
 
 pub fn retire_client_model_current_state_match(@physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin]) -> Unit
 
@@ -4900,6 +4910,15 @@ pub fn ClientResultTransformationPreparation::advance(Self, Int) -> Result[(Bool
 pub fn ClientResultTransformationPreparation::advance_progress(Self, Int) -> (Bool, Int, ClientResultTransformationIssue?)
 pub fn ClientResultTransformationPreparation::cancel(Self) -> Bool
 pub fn ClientResultTransformationPreparation::finish(Self) -> Result[PublicationOutputExport, ClientResultTransformationIssue]
+
+pub(all) enum ClientRetainedExplanationIssue {
+  ForeignOriginal
+  InvalidReadLimits
+  Contract(@run_publication.PublicationContractIssue)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+  Encoding(@encode_core.EncodeFailure)
+  ConstructionUnavailable
+} derive(Eq, @debug.Debug)
 
 type ClientRetainedInputCleanup
 
