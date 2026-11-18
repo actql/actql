@@ -25,11 +25,16 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
       assert.equal(value.timeoutMode, caseId.slice('timeout-'.length));
       assert.equal(value.preserveOriginalState, true);
       assert.equal(value.originalUnknown, true); assert.equal(value.zeroResend, true);
+      assert.equal(value.originalSavedFirst, undefined);
     } else assert.equal(value.originalSavedFirst, true);
   } else if (phase.startsWith('timeout-')) {
     assert.equal(value.timeoutMode, phase.slice('timeout-'.length));
     assert.equal(value.preserveOriginalState, true);
     for (const field of ['tasks', 'requests', 'calls']) assert.equal(value[field], 1);
+    if (phase === 'timeout-call') {
+      assert(Number.isSafeInteger(value.continuousWrites) && value.continuousWrites >= 2 && value.continuousWrites < 128);
+      assert.equal(value.responseClosedBeforeFirstClose, true);
+    }
   } else {
     assert.equal(value.usageMode, phase.slice('usage-'.length));
     for (const field of ['tasks', 'requests', 'calls', 'usageCaptures']) assert.equal(value[field], 1);
@@ -53,7 +58,7 @@ export async function runPackedProviderAI(root, {repository = fileURLToPath(new 
   // Each timeout cold read observes its own entered original, never a Saved
   // success or a replacement request. Its state and profile stay in that case.
   const selections = [['warm', 'cold'], ['usage-reported'], ['usage-zero'], ['usage-absent'],
-    ['timeout-headers', 'cold'], ['timeout-body', 'cold']];
+    ['timeout-headers', 'cold'], ['timeout-body', 'cold'], ['timeout-call', 'cold']];
   const report = {source: source.revision, preparations: [],
     phases: selections.flatMap(phases => phases.map(phase => ({case: phases[0], phase, status: 'unexecuted',
       reason: phase === 'cold' ? 'Requires the same original case and its confirmed first close' : 'Requires a fresh verified installation'}))),

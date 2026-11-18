@@ -85,7 +85,8 @@ async function fixture(t) {
       ...(phase === 'warm' ? {tasks: 2, requests: 2} : phase === 'cold'
         ? {egressChecks: 0, ...(profile.timeout === null ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
         : {tasks: 1, requests: 1, ...(profile.usage === null ? {} : {usageMode: profile.usage, usageCaptures: 1})}),
-      ...(profile.timeout === null ? {} : {timeoutMode: profile.timeout, preserveOriginalState: true})})};
+      ...(profile.timeout === null ? {} : {timeoutMode: profile.timeout, preserveOriginalState: true}),
+      ...(phase === 'timeout-call' ? {continuousWrites: 3, responseClosedBeforeFirstClose: true} : {})})};
   };
   return {root, repository, retained, optional, source, command, phases, installs, preparations, phaseCalls};
 }
@@ -133,7 +134,8 @@ test('optional timeout originals retain independent installations and same-profi
     () => runPackedProviderAI(join(f.root, 'timeouts'), f));
   const required = [['warm', ['warm', 'cold']], ['usage-reported', ['usage-reported']],
     ['usage-zero', ['usage-zero']], ['usage-absent', ['usage-absent']],
-    ['timeout-headers', ['timeout-headers', 'cold']], ['timeout-body', ['timeout-body', 'cold']]];
+    ['timeout-headers', ['timeout-headers', 'cold']], ['timeout-body', ['timeout-body', 'cold']],
+    ['timeout-call', ['timeout-call', 'cold']]];
   assert.deepEqual(result.phases.map(row => `${row.case}/${row.phase}`).sort(),
     required.flatMap(([id, phases]) => phases.map(phase => `${id}/${phase}`)).sort());
   assert.equal(result.complete, true);assert(result.phases.every(row => row.status === 'passed'));
@@ -151,7 +153,7 @@ test('optional timeout originals retain independent installations and same-profi
     modules.add((await lstat(join(prepared.consumer, 'node_modules'))).ino);
   }
   assert.equal(modules.size, required.length);
-  for (const mode of ['headers', 'body']) {
+  for (const mode of ['headers', 'body', 'call']) {
     const id = 'timeout-' + mode, calls = f.phaseCalls.filter(row => row.case === id);
     assert.deepEqual(calls.map(row => row.phase), [id, 'cold']);
     assert.equal(calls[0].cwd, calls[1].cwd);assert.equal(calls[0].raw, calls[1].raw);
@@ -162,6 +164,33 @@ test('optional timeout originals retain independent installations and same-profi
     assert.equal(cold.actual.originalUnknown, true);assert.equal(cold.actual.zeroResend, true);
     assert.equal(cold.actual.calls, 0);assert.equal(cold.actual.egressChecks, 0);
     assert.equal(cold.actual.originalSavedFirst, undefined);
+    if (mode === 'call') {
+      const original = result.phases.find(row => row.case === id && row.phase === id);
+      assert.equal(original.actual.continuousWrites, 3);
+      assert.equal(original.actual.responseClosedBeforeFirstClose, true);
+    }
+  }
+});
+
+test('whole-call timeout observation requires continuous body writes and peer close before public close', () => {
+  const originalPid = 70001, pid = 70002;
+  const observation = {phase:'timeout-call', calls:1, tasks:1, requests:1,
+    firstCloseReturned:true, aliveScopedFD0:true, timeoutMode:'call', preserveOriginalState:true,
+    continuousWrites:3, responseClosedBeforeFirstClose:true};
+  checkPackedProviderObservation({caseId:'timeout-call', phase:'timeout-call', pid:originalPid,
+    observation});
+  for (const change of [
+    ...[undefined, 0, 1, 128, 1.5, '3'].map(continuousWrites => ({continuousWrites})),
+    {responseClosedBeforeFirstClose:false}, {responseClosedBeforeFirstClose:undefined},
+  ]) assert.throws(() => checkPackedProviderObservation({caseId:'timeout-call', phase:'timeout-call',
+    pid:originalPid, observation:{...observation, ...change}}));
+  const cold = {phase:'cold', calls:0, egressChecks:0, firstCloseReturned:true, aliveScopedFD0:true,
+    timeoutMode:'call', preserveOriginalState:true, originalUnknown:true, zeroResend:true};
+  checkPackedProviderObservation({caseId:'timeout-call', phase:'cold', pid, originalPid, observation:cold});
+  for (const change of [{originalUnknown:false}, {zeroResend:false}, {timeoutMode:'body'},
+    {calls:1}, {egressChecks:1}, {originalSavedFirst:true}]) {
+    assert.throws(() => checkPackedProviderObservation({caseId:'timeout-call', phase:'cold', pid,
+      originalPid, observation:{...cold, ...change}}));
   }
 });
 
@@ -169,7 +198,7 @@ test('optional timeout cold completion refuses mismatched Unknown, resend, profi
   const originalPid = 70001, pid = 70002;
   const observation = mode => ({phase: 'cold', calls: 0, egressChecks: 0, firstCloseReturned: true,
     aliveScopedFD0: true, timeoutMode: mode, preserveOriginalState: true, originalUnknown: true, zeroResend: true});
-  for (const mode of ['headers', 'body'])
+  for (const mode of ['headers', 'body', 'call'])
     checkPackedProviderObservation({caseId: 'timeout-' + mode, phase: 'cold', pid, originalPid, observation: observation(mode)});
   // Reuse the actual imported DATA guard for independent invalid fields rather
   // than repacking/reinstalling every unchanged case for each assertion.
@@ -302,7 +331,7 @@ test('optional diagnostic selection retains nested inventories and bounded usage
   const patterns = upload.with.path.split('\n').filter(path => path.startsWith(prefix)).map(path => path.slice(prefix.length));
   const expected = ['summary.json'];
   const privateFiles = [];
-  for (const name of ['warm', 'usage-reported', 'usage-zero', 'usage-absent', 'timeout-headers', 'timeout-body']) {
+  for (const name of ['warm', 'usage-reported', 'usage-zero', 'usage-absent', 'timeout-headers', 'timeout-body', 'timeout-call']) {
     expected.push(`cases/${name}/packages/ordinary-operation-packages.json`,
       `cases/${name}/packages/optional-provider-packages.json`, `raw/${name}/install-node.stdout`);
     if (name.startsWith('usage-')) for (const file of ['usage-original.json', 'usage-receipt.json']) expected.push(`cases/${name}/consumer/${file}`);
