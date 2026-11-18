@@ -293,7 +293,14 @@ pub fn client_program_preparation_issue_code(
               ValuesProfileUnsupported => "values_profile_unsupported"
               NeedsInputs(_) => "needs_inputs"
               Check(diagnostic) =>
-                if @program_check.diagnostic_cause(diagnostic)
+                if @program_check.diagnostic_undeclared_parameter(diagnostic)
+                  is Some(_) {
+                  "ClientProgramParameterUndeclared"
+                } else if @program_check.diagnostic_supplied_parameter_undeclared(
+                    diagnostic,
+                  ) {
+                  "ClientSuppliedParameterUndeclared"
+                } else if @program_check.diagnostic_cause(diagnostic)
                   is Source(Registration(Selection(issue))) &&
                   issue.kind is (Unresolved | Ambiguous(_)) {
                   // The existing Source Owner could not resolve the authored

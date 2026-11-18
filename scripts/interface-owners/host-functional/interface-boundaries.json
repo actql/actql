@@ -25344,7 +25344,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c89d664781f91fb0322c2fb54c6d547ea724c5922ebb7272f6c8fd5b2791e1ec",
+      "sha256": "c9999ba33bd6b46edb3cbc41abd8972d490ea40c671099c5324fe0a6f128cb0c",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -25352,7 +25352,8 @@
         "checkedRequestSnapshotPreparation",
         "installNodeClientProgramPreparation",
         "requestProgramCapacityRefusal",
-        "requestProgramPreparationProblemCode"
+        "requestProgramPreparationProblemCode",
+        "requestProgramPreparationRefusalCode"
       ],
       "operations": [
         {
@@ -25495,6 +25496,13 @@
         },
         {
           "name": "requestProgramPreparationProblemCode",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "requestProgramPreparationRefusalCode",
           "parameters": [
             "error"
           ],
@@ -26944,64 +26952,102 @@
         },
         {
           "operations": [
-            "requestProgramPreparationProblemCode"
+            "requestProgramPreparationProblemCode",
+            "requestProgramPreparationRefusalCode"
           ],
           "exports": [
-            "requestProgramPreparationProblemCode"
+            "requestProgramPreparationProblemCode",
+            "requestProgramPreparationRefusalCode"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original parameter declaration problem codes"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original parameter declaration problem codes"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original parameter declaration problem codes"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original parameter declaration problem codes"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original parameter declaration problem codes"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original parameter declaration problem codes"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original parameter declaration problem codes"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original parameter declaration problem codes"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original preparation work problem code"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original parameter declaration problem codes"
               }
             ],
             "verification": [
@@ -27020,6 +27066,14 @@
               {
                 "path": "packages/python-sdk/tests/test_named_submission.py",
                 "anchor": "test_compatible_problem_code_preserves_actual_submission_phase"
+              },
+              {
+                "path": "src/connectors_builtin_node/request_program_work_code_wbtest.mbt",
+                "anchor": "test \"Request supplied declaration code retains original binder root and nested distinctions\""
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "parameter declaration code ${category} preserves invalid-input Journal"
               }
             ]
           }
@@ -33439,7 +33493,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b31ccd064aee6f3b7778a8b4516c43c5ae47a197224573df45e0cf477edd0f30",
+      "sha256": "d3cab7e8139b2158c0a262c999b1126a4645fe5561baf0d08a95d019a6146cfb",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [

@@ -15,6 +15,8 @@ const issueCodes = Object.freeze({
   values_profile_unsupported: 'ClientProgramUnsupported',
   needs_inputs: 'ClientProgramNeedsInputs',
   check_invalid_input: 'ClientProgramInvalidInput',
+  ClientProgramParameterUndeclared: 'ClientProgramInvalidInput',
+  ClientSuppliedParameterUndeclared: 'ClientParametersInvalid',
   // A typed checker configuration refusal precedes submission and Run admission.
   check_invalid_configuration: 'ClientProgramRejected',
   check_unsupported: 'ClientProgramImplementationLimit',
@@ -69,11 +71,14 @@ function originalPreparationRefusal(error) {
 }
 export function requestProgramCapacityRefusal(error) {
   const original = originalPreparationRefusal(error);
-  return typeof original === 'string' ? undefined : original;
+  return original?.problemCode === undefined ? original : undefined;
 }
 export function requestProgramPreparationProblemCode(error) {
   const original = originalPreparationRefusal(error);
-  return typeof original === 'string' ? original : undefined;
+  return original?.problemCode;
+}
+export function requestProgramPreparationRefusalCode(error) {
+  return originalPreparationRefusal(error)?.refusalCode;
 }
 function projectCapacityRefusal(moon, result) {
   const project = moon.clientProgramRequestProgramModuleCapacityRefusal;
@@ -122,7 +127,8 @@ export function checkedRequestProgramPreparation(moon, result,
       // result may supply its reached Core cause on the open Problem surface.
       const error = Object.assign(new Error('ClientProgramRejected', {cause: runtimeField(result, 0)}),
         {code: 'ClientProgramRejected'});
-      capacityRefusals.set(error, category);
+      capacityRefusals.set(error, Object.freeze({problemCode: category,
+        refusalCode: 'ClientProgramRejected'}));
       throw error;
     }
     if (category === 'source_free_capacity_exceeded') {
@@ -136,7 +142,16 @@ export function checkedRequestProgramPreparation(moon, result,
     }
     const code = issueCodes[category] ?? effectIssueCodes[category];
     if (code !== undefined) {
-      throw Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
+      const error = Object.assign(new Error(code, {cause: runtimeField(result, 0)}), {code});
+      if (category === 'ClientSuppliedParameterUndeclared' ||
+          category === 'ClientProgramParameterUndeclared') {
+        // Core has proved the original query or supplied-map declaration failure
+        // and its invalid-input
+        // category. Keep both original facts; mutable error properties cannot
+        // turn this into a work failure or a different refusal classification.
+        capacityRefusals.set(error, Object.freeze({problemCode: category, refusalCode: code}));
+      }
+      throw error;
     }
   }
   return checked(result);

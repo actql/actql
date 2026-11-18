@@ -6873,6 +6873,15 @@ The code borrows an immutable Common constant, with no owned text. This is in
 addition to the original typed work issue's 40 bytes, not a new Request owner,
 reservation or policy grant.
 
+The same nominal association retains a frozen code/refusal-category pair
+(one header and two borrowed references, 32 bytes). The original query diagnostic
+getter also returns its pipeline-issue Some and parameter-name Some; their two
+headers, two references and two tag words add 64 bytes, conservatively coheld.
+The same Request reserves these additional 96 bytes before any domain current
+or resize callback. Both independent bootstrap oracles include the original
+roles; no later domain packet, policy headroom or second reservation supplies
+them. The parameter name remains internal and is not copied into the outcome.
+
 Node retains the original typed error in its existing private association and
 preserves the existing outer `ClientProgramRejected` refusal. Copied errors or
 mutable properties cannot issue the more specific code. Opaque Host failures
@@ -6887,3 +6896,28 @@ or resubmission. This code uses the existing bounded open-string contract, so
 strict published decoders continue to accept it. Rich diagnostic text would need
 its own explicitly compatible or negotiated contract and is not part of this
 wire or this construction inventory.
+
+### Original parameter declaration problem codes
+
+The existing Common diagnostic distinguishes an actual query
+`UnknownParameter` from the supplied-map binder rejecting a top-level key outside
+its original declared names. They select `ClientProgramParameterUndeclared` and
+`ClientSuppliedParameterUndeclared`, respectively, with the existing
+`invalid_input` classification. A nested unknown field in a declared value,
+default value, generic decoder failure or foreign Request does not establish
+the supplied-map cause. No query reference or authored source range is inferred
+from a supplied key, and no input is checked again to explain the refusal.
+
+The same nominal error association retains the original trusted refusal category
+alongside that fixed Common code. Mutable error properties and copied errors
+cannot reclassify the original failure as runtime work or issue either specific
+code. Existing current-audience disclosure and original check-observation gates
+remain in force; an unavailable or protected report keeps the existing coarse
+refusal rather than revealing a private distinction.
+
+The original Journal phase alone selects `not_accepted` or
+`preparation_failed`. Reopening and looking up the same reference preserves the
+two-field outcome without preparing or submitting another Run. SDK/Python can
+display these already admitted open code values through their existing public
+presentation. This adds no Problem field, reason-schema variant, message text,
+owner, resource grant, cancellation rule or cleanup acknowledgment.

@@ -1,4 +1,57 @@
 ///|
+test "original supplied declaration cause separates root names from nested value fields" {
+  let declaration_limits : @parameters.DeclarationLimits = {
+    max_parameters: 16,
+    max_nodes: 256,
+    max_depth: 16,
+    max_text_bytes: 4096,
+  }
+  let value_limits : @value.Limits = {
+    max_nodes: 256,
+    max_depth: 16,
+    max_text_bytes: 4096,
+  }
+  for
+    (declarations, supplied, expected) in [
+      (None, "{\"n\":42}", true),
+      (
+        Some(supplied_fixture("{\"n\":{\"type\":\"number\"}}")),
+        "{\"extra\":42}",
+        true,
+      ),
+      (
+        Some(
+          supplied_fixture(
+            "{\"n\":{\"type\":\"object\",\"fields\":{\"allowed\":{\"type\":\"number\"}}}}",
+          ),
+        ),
+        "{\"n\":{\"allowed\":1,\"extra\":42}}",
+        false,
+      ),
+      (
+        Some(supplied_fixture("{\"n\":{\"type\":\"number\"}}")),
+        "{\"n\":\"wrong type\"}",
+        false,
+      ),
+    ] {
+    let declared = @parameters.read_declarations(
+      declarations, declaration_limits,
+    ).unwrap()
+    guard @parameters.bind(
+        declared,
+        Some(supplied_fixture(supplied)),
+        value_limits,
+      )
+      is Err(issue) else {
+      fail("original binder must refuse this supplied input")
+    }
+    // Reuse the actual binder issue directly. Context's read-only wrappers
+    // are issued only by its real constructor, exercised by the Request test.
+    assert_eq(supplied_parameter_undeclared_issue(issue), expected)
+  }
+}
+
+///|
 test "sequence temporal diagnostics separate invalid bounds settings and work" {
   let cases : Array[(@relation.IssueKind, DiagnosticCategory)] = [
     (Temporal(InvalidMilliseconds), InvalidInput),
