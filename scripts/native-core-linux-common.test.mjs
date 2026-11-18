@@ -9,7 +9,7 @@ import {nativeCoreTestCaseInventory} from './native-core-test-selection.mjs';
 import {nativeCoreCiPartitions} from './ci-core-partitions.mjs';
 import {partitionNativeCorePlatformPackages} from './native-core-platform-packages.mjs';
 import {nativeCoreLinuxCommonArguments, nativeCoreLinuxCommonPartitions, runNativeCoreLinuxCommon} from './test-native-core-linux-common.mjs';
-import {reviewedNativeCoreNames, reviewedNativeCoreSource, selectReviewedNativeCoreCases,
+import {reviewedNativeCoreFiles, selectReviewedNativeCoreCases,
   verifyReviewedNativeCoreOutput, runReviewedNativeCoreSuite} from './native-core-reviewed-suite.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -155,14 +155,17 @@ test('reviewed Native child follows only the successful first Linux shard and pr
   assert.deepEqual(original, {PATH: '/original/tool', RUNNER_TEMP: '/original/scratch'});
 });
 
-const reviewedRecords = () => reviewedNativeCoreNames.map((name, index) => ({
-  source: reviewedNativeCoreSource, directory: 'src/platform_native/row_source', benchmark: false,
-  entry: [JSON.stringify(['actql/actql/platform_native/row_source', 'whitebox']), 'capacity_wbtest.mbt',
+const reviewedRecords = () => reviewedNativeCoreFiles.flatMap(file => file.names.map((name, index) => ({
+  source: file.source, directory: 'src/platform_native/row_source', benchmark: false,
+  entry: [JSON.stringify(['actql/actql/platform_native/row_source', 'whitebox']), file.source.split('/').at(-1),
     {name, index, attrs: []}],
-}));
+})));
 
 test('reviewed compiler selection refuses changed cases without adopting physical siblings', () => {
   const records = reviewedRecords();
+  assert.deepEqual([...new Set(records.map(record => record.entry[1]))].sort(), [
+    'capacity_wbtest.mbt', 'file_content_bytes_wbtest.mbt', 'file_listing_page_wbtest.mbt', 'keyed_read_profile_wbtest.mbt',
+  ]);
   const sibling = {...records[0], source: 'src/platform_native/row_source/capture_physical_scoped_wbtest.mbt'};
   assert.deepEqual(selectReviewedNativeCoreCases({records: [sibling, ...records]}), records);
   const mutations = [
@@ -171,6 +174,8 @@ test('reviewed compiler selection refuses changed cases without adopting physica
     values => {values[0].entry[2].attrs = ['skip'];},
     values => {values[0].benchmark = true;},
     values => {values[0].entry[0] = JSON.stringify(['foreign/package', 'whitebox']);},
+    values => {values[0].entry[1] = 'keyed_read_profile_wbtest.mbt';},
+    values => {values.splice(0, values.filter(value => value.source === values[0].source).length);},
     values => {values[0].entry[2].index = values[1].entry[2].index;},
   ];
   for (const mutate of mutations) {
@@ -182,11 +187,12 @@ test('reviewed compiler selection refuses changed cases without adopting physica
 
 test('reviewed Native proof requires every actual original name beyond the nonzero total', () => {
   const records = reviewedRecords();
-  const lines = records.map(({entry}) => '[actql/actql] test platform_native/row_source/capacity_wbtest.mbt:1 (' +
+  const lines = records.map(({entry, source}) => '[actql/actql] test ' + source.slice('src/'.length) + ':1 (' +
     JSON.stringify(entry[2].name) + ') ok');
   verifyReviewedNativeCoreOutput(records, lines.join('\n'));
   for (const output of ['', lines.slice(1).join('\n'), [...lines, lines[0]].join('\n'),
     lines.join('\n').replace(') ok', ') failed'), lines.join('\n').replace('Native transport', 'Changed transport'),
+    lines.join('\n').replace('keyed_read_profile_wbtest.mbt', 'capacity_wbtest.mbt'),
     [...lines, '[actql/actql] test platform_native/row_source/physical_wbtest.mbt:1 ("other") ok'].join('\n')])
     assert.throws(() => verifyReviewedNativeCoreOutput(records, output));
 });

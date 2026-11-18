@@ -24,25 +24,50 @@ export const reviewedNativeCoreNames = Object.freeze([
   'Source caller preparation inventory matches independent constructor vectors',
   'Native target Text response backing keeps original guards and maximum',
 ]);
+// Closed reviewed scope, not all tests in this platform package. Layout
+// witnesses still run on both OSes; no Darwin case is retired by this list.
+export const reviewedNativeCoreFiles = Object.freeze([
+  Object.freeze({source: reviewedNativeCoreSource, names: reviewedNativeCoreNames}),
+  Object.freeze({source: 'src/platform_native/row_source/keyed_read_profile_wbtest.mbt', names: Object.freeze([
+    'Native file read profile retains same provider roles and refuses missing projections',
+    'Native file read profile preserves admitted long physical paths',
+  ])}),
+  Object.freeze({source: 'src/platform_native/row_source/file_listing_page_wbtest.mbt', names: Object.freeze([
+    'Native file listing projects original rows with Source-issued refs and row-bound versions',
+    'Native file listing refuses unavailable nominal refs and parent retirement during issuance',
+    'Native file listing validates physical roles before issuance and quotes bounded construction',
+    'Native file listing canonical version keeps the full admitted raw byte boundary',
+  ])}),
+  Object.freeze({source: 'src/platform_native/row_source/file_content_bytes_wbtest.mbt', names: Object.freeze([
+    'Native file Content extracts exact bytes only for the original listing version',
+    'Native file Content rejects a changed row even when its authored label is unchanged',
+    'Native file Content preserves decomposed Unicode CRLF empty bytes and the exact byte ceiling',
+    'Native file Content refuses unavailable fields retired originals and invalid constructor bounds',
+  ])}),
+]);
+const caseKey = (source, name) => JSON.stringify([source, name]);
 
 export function selectReviewedNativeCoreCases(inventory) {
   assert(Array.isArray(inventory?.records), 'Actual compiler case inventory required');
-  const records = inventory.records.filter(record => record.source === reviewedNativeCoreSource);
+  const records = inventory.records.filter(record => reviewedNativeCoreFiles.some(file => file.source === record.source));
   const names = new Set(), indexes = new Set();
   for (const record of records) {
     const [driver, file, test] = record.entry;
+    const reviewed = reviewedNativeCoreFiles.find(file => file.source === record.source);
+    const nameKey = caseKey(record.source, test.name), indexKey = caseKey(record.source, test.index);
     assert.deepEqual(JSON.parse(driver), [packageName, 'whitebox'], 'Foreign reviewed Native driver');
-    assert.equal(file, 'capacity_wbtest.mbt');
+    assert.equal(file, record.source.split('/').at(-1));
     assert.equal(record.directory, 'src/platform_native/row_source');
     assert.equal(record.benchmark, false, 'Reviewed Native cases cannot become benchmarks');
     assert.deepEqual(test.attrs, [], 'Reviewed Native cases cannot be skipped or reclassified');
-    assert(Number.isSafeInteger(test.index) && test.index >= 0 && !indexes.has(test.index),
+    assert(Number.isSafeInteger(test.index) && test.index >= 0 && !indexes.has(indexKey),
       'Duplicate or invalid reviewed Native case index');
-    assert(reviewedNativeCoreNames.includes(test.name) && !names.has(test.name),
+    assert(reviewed.names.includes(test.name) && !names.has(nameKey),
       'Unknown or duplicate reviewed Native case');
-    names.add(test.name); indexes.add(test.index);
+    names.add(nameKey); indexes.add(indexKey);
   }
-  assert.deepEqual([...names].sort(), [...reviewedNativeCoreNames].sort(),
+  const expected = reviewedNativeCoreFiles.flatMap(file => file.names.map(name => caseKey(file.source, name)));
+  assert.deepEqual([...names].sort(), expected.sort(),
     'Missing reviewed Native case');
   return records;
 }
@@ -51,14 +76,14 @@ export function verifyReviewedNativeCoreOutput(records, output) {
   // The nonzero wrapper independently checks Moon's total. Also check identity:
   // an equal number of unrelated cases is not the selected Linux proof.
   const selected = selectReviewedNativeCoreCases({records});
-  const expected = new Set(selected.map(record => record.entry[2].name)), observed = new Set();
+  const expected = new Set(selected.map(record => caseKey(record.source, record.entry[2].name))), observed = new Set();
   for (const line of output.split(/\r?\n/u)) {
     if (!/^\[[^\]]+\] test /u.test(line)) continue;
-    const match = /^\[actql\/actql\] test platform_native\/row_source\/capacity_wbtest\.mbt:\d+ \(("(?:[^"\\]|\\.)*")\) ok$/u.exec(line);
+    const match = /^\[actql\/actql\] test ([^\s:]+):\d+ \(("(?:[^"\\]|\\.)*")\) ok$/u.exec(line);
     assert(match, 'Foreign, failed or skipped Native execution result');
-    const name = JSON.parse(match[1]);
-    assert(expected.has(name) && !observed.has(name), 'Unknown or duplicate Native execution result');
-    observed.add(name);
+    const key = caseKey('src/' + match[1], JSON.parse(match[2]));
+    assert(expected.has(key) && !observed.has(key), 'Unknown or duplicate Native execution result');
+    observed.add(key);
   }
   assert.deepEqual([...observed].sort(), [...expected].sort(), 'Missing actual Native execution result');
 }
@@ -88,7 +113,7 @@ export async function executeReviewedNativeCoreSuite() {
   const env = {...process.env, MOONBIT_NEW_NATIVE: '0',
     ACTQL_TEST_NATIVE_CORE_PARTITION: undefined, ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: undefined,
     ...nativeCoreCCompiler(root, scratch.path)};
-  const args = ['--target', 'native', ...nativeCoreLinuxCommonArguments, reviewedNativeCoreSource];
+  const args = ['--target', 'native', ...nativeCoreLinuxCommonArguments, ...reviewedNativeCoreFiles.map(file => file.source)];
   const inventory = nativeCoreTestCaseInventory(root, args.slice(2), {env});
   const records = selectReviewedNativeCoreCases(inventory);
   const evidenceScratch = join(root, '_build', 'native-reviewed-evidence');
