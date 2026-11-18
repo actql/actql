@@ -1423,7 +1423,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "35bf2c72210d6fca39421bfe7dc809154f768770dcbb421d435986590efc5dfc",
+      "sha256": "da50b7f9d427f8e6a7e825005b27ac129073cc768fa195fd1f782340ad1aee9c",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",

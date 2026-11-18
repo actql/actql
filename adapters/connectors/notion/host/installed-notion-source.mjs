@@ -91,6 +91,7 @@ function captureProvider(provider){
 export async function loadInstalledNotionSource(profile,{moon,providerMoon,runtimeBundleCid,
   resolveSecret,configurationReader,sourceInitialization,installationServices,installation}={}){
   if(!sourceInitialization||typeof sourceInitialization!=='object'||nodeTypes.isProxy(sourceInitialization)||
+    !moon||typeof moon!=='object'||nodeTypes.isProxy(moon)||
     installation===undefined)fail('NotionSourceInitializationUnavailable');
   const constructor=Object.getOwnPropertyDescriptor(sourceInitialization,'prepareDeclaration');
   if(!constructor||!Object.hasOwn(constructor,'value')||typeof constructor.value!=='function'||
@@ -114,17 +115,17 @@ export async function loadInstalledNotionSource(profile,{moon,providerMoon,runti
     installation,sourceInitialization,metadataResponses:0,originUnits:siteProfile.apiOrigin.length});
   if(limits.maxDeclarationBytes>implementationProfile.maxDeclarationBytes||
     limits.maxDeclarationNodes>implementationProfile.maxDeclarationNodes)fail('InstalledNotionImplementationBoundsExceeded');
+  const wire=checked(provider.notionUserListSchemaWire(limits.maxDeclarationBytes,
+    limits.maxDeclarationNodes,limits.maxDepth));
+  const{declaration,declared,environment}=Reflect.apply(prepareDeclaration,sourceInitialization,
+    [[{resource,resource_kind:'notion_users',schema_wire:wire,schema_cid:sha(wire),
+      facts_wire:provider.notionUserListRelationFactsWire()}],undefined]);
   const requestConstruction=Object.freeze({capacity:checked(Reflect.apply(constructionCapacity.value,moon,
     restSourceRequestConstructionUnits(NOTION_USER_LIST_REQUEST.read,NOTION_USER_LIST_REQUEST.pagination.parameter))),
     maxRequestBytes:limits.maxTargetBytes});
   const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,
     limits:Object.fromEntries([...readLimitKeys,'maxSecretBytes'].map(name=>[name,limits[name]])),
     columnCount:provider.notionUserListColumnNames().length,requestConstruction});
-  const wire=checked(provider.notionUserListSchemaWire(limits.maxDeclarationBytes,
-    limits.maxDeclarationNodes,limits.maxDepth));
-  const{declaration,declared,environment}=Reflect.apply(prepareDeclaration,sourceInitialization,
-    [[{resource,resource_kind:'notion_users',schema_wire:wire,schema_cid:sha(wire),
-      facts_wire:provider.notionUserListRelationFactsWire()}],undefined]);
   const request=Reflect.apply(targetConstructor.value,sourceInitialization,[Object.freeze({
     capacity(){return checked(Reflect.apply(constructionCapacity.value,moon,
       restSourceReadConstructionUnits(NOTION_USER_LIST_REQUEST.read,NOTION_USER_LIST_REQUEST.pagination.parameter)));},

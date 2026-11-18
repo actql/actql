@@ -89,7 +89,10 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
     'slackUserListColumnNames', 'slackChannelListColumnNames', 'slackMessageColumnNames'].map(name =>
     [name, () => name === 'notionUserListColumnNames' ? ['id'] : (() => {throw stop;})()]));
   const installation = Object.freeze({original: role});
-  const sourceInitialization = Object.freeze({prepareDeclaration() {assert.fail('no declaration before schema');}});
+  const sourceInitialization = Object.freeze({
+    prepareDeclaration() {assert.fail('no declaration before schema');},
+    prepareReadTarget() {assert.fail('no target construction before schema');},
+  });
   const installationServices = {
     sourceReaderImplementationProfile(input) {
       assert.equal(this, installationServices); assert.equal(input.installation, installation);
@@ -117,7 +120,11 @@ function fixture(role, {textFailure, mutateMethods = false, badMethod, noCa = fa
         clientProgramInstalledSlackSourceReaderCapacity() {
           assert.fail('no runtime capacity before provider declaration');
         },
-      })} : {}),
+      })} : {moon: Object.freeze({
+        clientProgramInstalledSourceConstructionCapacity() {
+          assert.fail('no runtime capacity before provider declaration');
+        },
+      })}),
       resolveSecret() {assert.fail('no secret lookup');}, installationServices,
       ...(legacy ? {} : {configurationReader: reader}), providerMoon: provider});},
   };
