@@ -1143,33 +1143,57 @@ class LocalCore:
         and does not interpret coroutine cancellation as physical stop.
         """
         work._nominal()
-        if not getattr(self, '_ordinary_host', False):
-            return
         with self._lock:
-            scope = getattr(self, '_host_operation_scope', None)
-            if (scope is None or self._host_fuel_phase != 'operation' or
-                    self._host_operation_id <= 0 or self._invoking or
+            ordinary = getattr(self, '_ordinary_host', False)
+            scope = getattr(self, '_host_operation_scope', None) if ordinary else work
+            if (scope is None or ordinary and (self._host_fuel_phase != 'operation' or
+                    self._host_operation_id <= 0) or self._invoking or
                     getattr(self, '_host_retained_work', None) is not None or
                     work._invoked or work._on_exit != self._finish_work_operation):
                 raise RuntimeError('Original Host operation cannot transfer its physical custody')
-            self._host_retained_work = (work, scope, self._host_operation_id)
+            self._host_retained_work = (work, scope, self._host_operation_id if ordinary else 0)
+
+    @contextmanager
+    def _borrow_work_operation(self, work: OriginalLocalWork) -> Iterator[bool]:
+        """Serialize a same-original control call inside the retained allowance.
+
+        This does not authorize a Run operation. Its existing Owner still
+        observes the complete current journal and original Account. A worker
+        which has already relinquished the scope must actually exit before
+        the caller can begin a separate operation.
+        """
+        work._nominal()
+        with self._lock:
+            retained = getattr(self, '_host_retained_work', None)
+            if retained is not None:
+                ordinary = getattr(self, '_ordinary_host', False)
+                if (retained[0] is not work or self._invoking or self._closed or
+                        self._retired or self._closing or ordinary and (
+                            retained[1] is not self._host_operation_scope or
+                            retained[2] != self._host_operation_id or
+                            self._host_fuel_phase != 'operation')):
+                    raise RuntimeError('Original Host control cannot borrow this physical operation')
+                yield True
+                return
+        # Never keep the Core lock while the caller waits for physical exit.
+        yield False
 
     def _finish_work_operation(self, work: OriginalLocalWork) -> None:
         """Relinquish only the allowance held by this original worker."""
         work._nominal()
-        if not getattr(self, '_ordinary_host', False):
-            return
         with self._lock:
+            ordinary = getattr(self, '_ordinary_host', False)
             retained = getattr(self, '_host_retained_work', None)
             if (retained is None or retained[0] is not work or
-                    retained[1] is not self._host_operation_scope or
+                    ordinary and (retained[1] is not self._host_operation_scope or
                     retained[2] != self._host_operation_id or
-                    self._host_fuel_phase != 'operation' or self._invoking or
+                    self._host_fuel_phase != 'operation') or self._invoking or
                     not work._invoked or work._thread is not current_thread()):
                 raise RuntimeError('Original Host physical operation custody changed')
-            self._host_operation_id = 0
-            self._host_fuel_phase = None
-            self._host_operation_scope = None
+            if ordinary:
+                self._host_operation_id = 0
+                self._host_fuel_phase = None
+                self._host_operation_scope = None
             self._host_retained_work = None
 
     @contextmanager
@@ -4401,6 +4425,15 @@ class LocalCore:
             self._check('close_task', code)
             del self._task_loans[value.handle]
             return True
+
+    def task_cleanup_continuation(self, value: _Task) -> int:
+        """Observe only this original provider's bounded retirement cursor."""
+        with self._lock:
+            self._owned_task(value)
+            cursor = self._call('task', 'progress', value.handle, 5)
+            if type(cursor) is not int or not -1 <= cursor <= 2**63 - 1:
+                raise LocalCoreError('task_cleanup_continuation', cursor if type(cursor) is int else -33)
+            return cursor
 
     def reserve_native_command(self, attempt: _NativeAttempt, kind: int, account: _Input, *,
                                cleanup: Callable[[], bool]) -> _Output:

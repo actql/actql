@@ -351,12 +351,34 @@ class InstalledLocalHost:
 
     async def open(self, operation: str, payload: bytes) -> httpx.Response:
         self._active()
-        if any(not work.stopped for work in self._physical_work):
-            raise ValueError('Original Local physical invocation is still active')
         body = _object(payload, 1048576)
         if (type(operation) is not str or not wire.valid_body(operation, body)  # type: ignore[no-untyped-call]
                 or body['connection'] != _LOCAL_SELECTION):
             raise ValueError('Invalid original Local Client operation')
+        active = next((work for work in self._physical_work if not work.stopped), None)
+        if active is not None:
+            # Reference equality locates the retained original only. Core still
+            # checks this operation's actual Account, journal and Run originals.
+            reference = wire_bytes(body.get('ref'))  # type: ignore[no-untyped-call]
+            with self._core._lock:
+                original = None
+                for held in self._public_run_references:
+                    if held.run is active._owner:
+                        self._core._owned_input(held.source)
+                        if self._core._inputs[held.source.ticket].payload == reference:
+                            original = held
+                            break
+            if original is None:
+                raise ValueError('Original Local physical invocation is still active')
+            if operation in ('read', 'wait', 'delivery-attempt'):
+                await active.wait_stopped()
+            elif operation in ('status', 'cancel', 'lookup-cancellation'):
+                with self._core._borrow_work_operation(active) as borrowed:
+                    if borrowed:
+                        return await self._open_operation(operation, body)
+                await active.wait_stopped()
+            else:
+                raise ValueError('Original Local physical invocation is still active')
         with self._core._host_operation():
             return await self._open_operation(operation, body)
 
@@ -435,7 +457,7 @@ class InstalledLocalHost:
                     if run is not None:
                         self._register_original_run_reference(run, admission)
                         work = OriginalLocalWork(partial(self._execute_original_admitted_run, run),
-                            on_exit=self._core._finish_work_operation)
+                            on_exit=self._core._finish_work_operation, owner=run)
                 else:
                     raise ValueError('Invalid original Local Submission action')
             elif operation in ('status', 'wait'):
@@ -484,7 +506,6 @@ class InstalledLocalHost:
             self._physical_work.append(work)
             self._core._retain_work_operation(work)
             work.start()
-            await work.wait()
         with self._core._lock:
             response = httpx.Response(200, headers={'content-type': 'application/json',
                 'content-encoding': 'identity'}, stream=stream)
@@ -1970,59 +1991,87 @@ class InstalledLocalHost:
                 not any(original is preflight for original in self._publication_preflights) or
                 not any(original is publisher for original in self._publishers)):
             raise ValueError('Foreign original Local task/publication custody')
-        with self._core._lock:
-            self._runs._compute(compute)
+        def step(work: Callable[[], _T]) -> _T:
+            # Each quantum has its own real current reader. No transaction or
+            # Core lock spans a later quantum or a same-Run control operation.
+            with self._core._lock:
+                self._runs._compute(compute)
+                values: list[_T] = []
+                installation.binding.inspect(lambda current: values.append(
+                    self._checked_original_read(current, work)))
+                return values[0]
+
+        owned: list[_Task] = []
+        try:
             while True:
-                selected: list[_Task | None] = []
-                def select_task(_: _Output) -> None:
+                def select_task() -> _Task | None:
                     task = self._core.reserve_next_sdk_task(compute.core, configuration.handle)
-                    # Retain the original loan before the enclosing snapshot's
-                    # post-current checks can refuse its use.
                     if task is not None:
+                        # Retain before the original reader's post-current checks.
                         self._tasks.append(task)
-                    selected.append(task)
-                installation.binding.inspect(select_task)
-                task = selected[0]
+                        owned.append(task)
+                    return task
+                task = step(select_task)
                 if task is None:
                     break  # Explicit Core-checked end, never reserve's -2.
-                def drive_task(current: _Output) -> None:
-                    def checked(work: Callable[[], _T]) -> _T:
-                        return self._checked_original_read(current, work)
-                    checked(lambda: self._core.start_task(task))
-                    while not checked(lambda: self._core.feed_task(task, _EXECUTION_WORK_QUANTUM)):
-                        pass
-                    while True:
-                        progress = checked(lambda: self._core.advance_task(task, _EXECUTION_WORK_QUANTUM))
-                        if progress.waiting:
-                            raise LocalCoreError('original_task_waiting', -7)
-                        if progress.complete:
-                            break
-                    checked(lambda: self._core.prepare_task_finalization(task))
-                    while True:
-                        progress = checked(lambda: self._core.advance_task(
-                            task, _EXECUTION_WORK_QUANTUM, finalization=True))
-                        if progress.waiting:
-                            raise LocalCoreError('original_task_finalization_waiting', -7)
-                        if progress.complete:
-                            break
-                    checked(lambda: self._core.complete_task(task))
-                installation.binding.inspect(drive_task)
-            counts: list[int] = []
-            installation.binding.inspect(lambda _: counts.append(
-                self._core.publication_preflight_result_count(preflight, configuration.handle)))
+                step(lambda: self._core.start_task(task))
+                while not step(lambda: self._core.feed_task(task, _EXECUTION_WORK_QUANTUM)):
+                    pass
+                while True:
+                    progress = step(lambda: self._core.advance_task(task, _EXECUTION_WORK_QUANTUM))
+                    if progress.waiting:
+                        raise LocalCoreError('original_task_waiting', -7)
+                    if progress.complete:
+                        break
+                step(lambda: self._core.prepare_task_finalization(task))
+                while True:
+                    progress = step(lambda: self._core.advance_task(
+                        task, _EXECUTION_WORK_QUANTUM, finalization=True))
+                    if progress.waiting:
+                        raise LocalCoreError('original_task_finalization_waiting', -7)
+                    if progress.complete:
+                        break
+                step(lambda: self._core.complete_task(task))
+            count = step(lambda: self._core.publication_preflight_result_count(preflight, configuration.handle))
             results: list[_ResultExport] = []
-            for index in range(counts[0]):
-                selected_results: list[_ResultExport] = []
-                def select_result(_: _Output) -> None:
+            for index in range(count):
+                def select_result() -> _ResultExport:
                     result = self._core.reserve_result_from_compute(compute.core, index, configuration.handle)
-                    # The same Result remains reachable for cleanup even when
-                    # the original snapshot's post-current fence fails.
                     self._result_exports.append(result)
-                    selected_results.append(result)
-                installation.binding.inspect(select_result)
-                result = selected_results[0]
-                results.append(result)
+                    return result
+                results.append(step(select_result))
             return tuple(results)
+
+        except BaseException:
+            # Same-original physical retirement never replaces the initiating
+            # failure or interprets the request/worker Future as a stop ACK.
+            try:
+                self._retire_original_tasks(tuple(reversed(owned)))
+            except BaseException as cleanup:
+                work = next((work for work in self._physical_work
+                    if work._owner is compute.start.run), None)
+                if work is not None and work._cleanup_error is None:
+                    work._cleanup_error = cleanup
+            raise
+
+    def _retire_original_tasks(self, tasks: tuple[_Task, ...]) -> None:
+        """Drive only observed local cleanup progress under the same allowance.
+
+        A pending external stop returns immediately with its original loan.
+        Finite continuation comes from the existing Core/provider cursor, not
+        an arbitrary retry count, timer, new operation or instruction refill.
+        """
+        with self._core._lock:
+            for task in tasks:
+                self._core._owned_task(task)
+                while True:
+                    before = self._core.task_cleanup_continuation(task)
+                    if self._core.close_task(task):
+                        self._tasks.remove(task)
+                        break
+                    after = self._core.task_cleanup_continuation(task)
+                    if after < 0 or before >= 0 and after <= before:
+                        break
 
     def _capture_original_results(self, compute: _SourceFreeCompute, preflight: _Output,
                                   results: tuple[_ResultExport, ...]) -> _Output:

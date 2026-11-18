@@ -16,13 +16,16 @@ class OriginalLocalWork:
     """
 
     def __init__(self, invoke: Callable[[], None], *,
-                 on_exit: Callable[[OriginalLocalWork], None] | None = None) -> None:
+                 on_exit: Callable[[OriginalLocalWork], None] | None = None,
+                 owner: object | None = None) -> None:
         if not callable(invoke) or (on_exit is not None and not callable(on_exit)):
             raise ValueError('Invalid original Local physical invocation')
         self._original = self
         self._invoke = invoke
+        self._owner = owner
         self._on_exit = on_exit
         self._exit_error: BaseException | None = None
+        self._cleanup_error: BaseException | None = None
         self._future: Future[None] = Future()
         self._thread = Thread(target=self._run, name='actql-local-original-work', daemon=False)
         self._invoked = False

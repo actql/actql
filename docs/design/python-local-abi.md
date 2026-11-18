@@ -3285,6 +3285,21 @@ acknowledgments. Explicit diagnostic factory limits remain independent.
 
 ### Ordinary Host operation fuel
 
+An admitted background invocation retains its original operation allowance and
+observation generation after the submitting coroutine returns or is cancelled.
+Same-Run control calls borrow that exact allowance under the same Core lock;
+they do not start a replacement operation or replenish fuel. Nominal worker
+custody and the independently retained original Run reference locate this path.
+The existing Account and complete journal validators still authorize each call.
+
+Managed task driving returns its physical reader and Core lock after each bounded
+quantum. A saved cancellation invalidates the original start claim before any
+later normal quantum. The worker retires the same task operations on refusal;
+physical stop, original execution settlement and cleanup remain separate checks.
+Only an advancing original finite cleanup cursor permits further local cleanup
+steps. An external or unchanged pending cursor retains the original task without
+spinning, replacing the primary cause or acquiring another operation allowance.
+
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
 allowance for initialization and bootstrap together. Each subsequent admitted
 outer Host operation has a finite 32,000,000,000-instruction allowance so that

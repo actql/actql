@@ -269,10 +269,20 @@ pub fn advance_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
 pub fn managed_task_progress(nonce : Int64, handle : Int, field : Int) -> Int64 {
   guard selected(nonce) is Some(value) &&
     value.tasks.get(handle) is Some(record) &&
-    !record.pending &&
-    record.progress is Some(progress) else {
+    !record.pending else {
     return -33L
   }
+  if field == 4 || field == 5 {
+    guard record.operations is Some(operations) else { return -33L }
+    // Existing original finite retirement cursor, never a physical ACK or a
+    // grant to start another provider. Negative means no local continuation.
+    return if field == 4 {
+      (operations.cleanup_progress)()
+    } else {
+      (operations.cleanup_local_continuation)()
+    }
+  }
+  guard record.progress is Some(progress) else { return -33L }
   match field {
     0 => if progress.complete { 1L } else { 0L }
     1 => if progress.waiting { 1L } else { 0L }

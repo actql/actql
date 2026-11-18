@@ -137,10 +137,24 @@ class LocalHostFuelTests(unittest.TestCase):
                 with core._host_operation():
                     self.fail('A live worker received fresh instruction fuel')
             self.assertEqual(core._store.get_fuel(), remaining)
+            import copy
+            with self.assertRaises(ValueError):
+                with core._borrow_work_operation(copy.copy(work)):
+                    self.fail('A copied worker borrowed original control custody')
+            with self.assertRaises(RuntimeError):
+                with core._borrow_work_operation(OriginalLocalWork(lambda: None)):
+                    self.fail('A different original worker borrowed this operation')
+            self.assertEqual(core._store.get_fuel(), remaining)
+            with core._borrow_work_operation(work) as borrowed:
+                self.assertTrue(borrowed)
+                self.assertEqual(core._host_operation_id, original)
+                self.assertEqual(core._call('probe', 'value'), 7)
+            control_remaining = core._store.get_fuel()
+            self.assertLess(control_remaining, remaining)
             resume.set()
             asyncio.run(work.wait())
             self.assertEqual(observations, [7, 7])
-            self.assertLess(core._store.get_fuel(), remaining)
+            self.assertLess(core._store.get_fuel(), control_remaining)
             self.assertEqual(core._host_operation_id, 0)
             self.assertIsNone(core._host_fuel_phase)
         finally:
