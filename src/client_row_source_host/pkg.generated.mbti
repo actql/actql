@@ -295,6 +295,8 @@ pub fn relation_document_projection_construction_inventory(RelationDocumentProje
 
 pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]
 
+pub fn relation_document_projection_retained_inventory(RelationDocumentProjectionConstruction, RowPageLimits, Int64) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?

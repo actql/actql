@@ -207,6 +207,7 @@ pub fn relation_document_mapping_construction_inventory(
 fn relation_document_typed_construction(
   original : @contract.Contract,
   limits : RowPageLimits,
+  returned_only? : Bool = false,
 ) -> @execution.PreparationRepresentationUnits? {
   let n = limits.max_nodes
   let parts = []
@@ -239,16 +240,18 @@ fn relation_document_typed_construction(
       return None
     }
     parts.push(relation_construction_collection_units(value.returned))
-    parts.push(relation_construction_collection_units(value.temporary))
+    if !returned_only {
+      parts.push(relation_construction_collection_units(value.temporary))
+    }
     parts.push({
       record_headers: 0L,
       reference_slots: 0L,
       scalar_words: 0L,
       owned_utf16_units: value.returned_utf16_units +
-      value.temporary_utf16_units,
+      (if returned_only { 0L } else { value.temporary_utf16_units }),
       owned_wire_bytes: 0L,
     })
-    if value.normalization is Some(normalization) {
+    if !returned_only && value.normalization is Some(normalization) {
       parts.push({
         record_headers: normalization.record_headers,
         reference_slots: normalization.reference_slots,
@@ -285,13 +288,23 @@ fn relation_document_typed_construction(
     is Some(entry) &&
     @execution.compose_preparation_representation([
       relation_construction_collection_units(entry.returned),
-      relation_construction_collection_units(entry.temporary),
+      if returned_only {
+        @execution.PreparationRepresentationUnits::{
+          record_headers: 0L,
+          reference_slots: 0L,
+          scalar_words: 0L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        }
+      } else {
+        relation_construction_collection_units(entry.temporary)
+      },
       {
         record_headers: 0L,
         reference_slots: 0L,
         scalar_words: 0L,
         owned_utf16_units: entry.returned_utf16_units +
-        entry.temporary_utf16_units,
+        (if returned_only { 0L } else { entry.temporary_utf16_units }),
         owned_wire_bytes: 0L,
       },
     ])
@@ -341,6 +354,76 @@ fn relation_document_nested_construction(
 }
 
 ///|
+fn relation_document_projection_construction_valid(
+  projection : RelationDocumentProjectionConstruction,
+  limits : RowPageLimits,
+) -> Bool {
+  relation_document_construction_limits_valid(limits) &&
+  projection.items_path_depth >= 0 &&
+  projection.items_path_depth <= limits.max_depth &&
+  projection.writable_fields >= 0 &&
+  projection.writable_fields <= limits.max_nodes &&
+  (
+    projection.key_path_depth is None ||
+    (
+      projection.key_path_depth is Some(depth) &&
+      depth >= 0 &&
+      depth <= limits.max_depth
+    )
+  ) &&
+  (
+    projection.original.shape is @contract.Object(fields) &&
+    @contract.field_count(fields) <= limits.max_nodes
+  ) &&
+  !projection.original.nullable
+}
+
+///|
+/// Surviving immutable Values after a read-only projection has transferred
+/// into the original Row and all document/cursor/constructor aliases retire.
+/// Keep the SAME Contract's returned Value/CheckedValue inventory and owned
+/// Decimal output. Text borrowed from Source is NOT included by that Value
+/// inventory: retain its original String headers and decoded UTF16 backing
+/// separately, without Span/tree/index/Bytes or temporary admission controls.
+/// borrowed_text_utf16 must bound the SAME input's decoded text, not guessed
+/// output sizes. This DATA neither proves retirement nor reduces a reservation.
+pub fn relation_document_projection_retained_inventory(
+  projection : RelationDocumentProjectionConstruction,
+  limits : RowPageLimits,
+  borrowed_text_utf16 : Int64,
+) -> @execution.PreparationRepresentationUnits? {
+  guard relation_document_projection_construction_valid(projection, limits) &&
+    projection.writable_fields == 0 &&
+    borrowed_text_utf16 >= 0L &&
+    borrowed_text_utf16 <= limits.max_bytes.to_int64() &&
+    relation_document_typed_construction(
+      projection.original,
+      limits,
+      returned_only=true,
+    )
+    is Some(typed) &&
+    @source.json_index_borrowed_construction_extent(
+      limits.max_nodes,
+      limits.max_nodes - 1,
+      borrowed_text_utf16,
+      keep_spans=false,
+    )
+    is Some(borrowed) else {
+    return None
+  }
+  @execution.compose_preparation_representation([
+    typed,
+    {
+      record_headers: borrowed.record_headers,
+      reference_slots: borrowed.reference_slots,
+      scalar_words: borrowed.scalar_words,
+      owned_utf16_units: borrowed.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    },
+  ])
+}
+
+///|
 /// One retained projection plus its full constructor/failure overlap. The
 /// raw tree is shared, not reparsed. Metadata reconstruction is separate here
 /// and is included by the whole-document composer below.
@@ -348,17 +431,9 @@ pub fn relation_document_projection_construction_inventory(
   projection : RelationDocumentProjectionConstruction,
   limits : RowPageLimits,
 ) -> @execution.PreparationRepresentationUnits? {
-  guard relation_document_construction_limits_valid(limits) &&
-    projection.items_path_depth >= 0 &&
-    projection.items_path_depth <= limits.max_depth &&
-    projection.writable_fields >= 0 &&
-    projection.writable_fields <= limits.max_nodes &&
+  guard relation_document_projection_construction_valid(projection, limits) &&
     projection.original.shape is @contract.Object(fields) &&
     !projection.original.nullable else {
-    return None
-  }
-  if projection.key_path_depth is Some(depth) &&
-    (depth < 0 || depth > limits.max_depth) {
     return None
   }
   let f = @contract.field_count(fields).to_int64()

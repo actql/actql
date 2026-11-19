@@ -119,10 +119,10 @@ fn file_provider_projection_inventory(
 }
 
 ///|
-// Preserve the ENTIRE original projection constructor, including immutable
-// Values/text shared with the Row and conservative projection controls. Only
-// the raw parser/index/Bytes and physical transport constructors are absent
-// after the original reader's retirement fence. Initial full R/E is unchanged.
+// Preserve the SAME original projection's returned immutable Values, owned
+// Decimal text and borrowed Source String backing. Its completed temporary
+// constructors no longer coexist after the original reader's retirement fence.
+// No output bound is inferred from physical bytes. Initial full R/E is unchanged.
 // These are logical implementation units, not an allocator/RSS or stop proof.
 fn file_provider_completed_query_capacity(
   provider : NativeRelationFilePreparedProvider,
@@ -131,13 +131,33 @@ fn file_provider_completed_query_capacity(
   if response_bytes < 0 || response_bytes > provider.limits.page.max_bytes {
     return None
   }
-  file_provider_projection_inventory(
-    provider,
-    response_bytes=if provider.response_measured {
-      Some(response_bytes)
-    } else {
-      None
+  let contract = @rows.relation_document_prepared_contract(
+    provider.prepared_contract,
+  )
+  guard file_capture_projection_backing_page(
+      contract,
+      provider.limits.page,
+      if provider.response_measured {
+        Some(response_bytes)
+      } else {
+        None
+      },
+    )
+    is Some(page) else {
+    return None
+  }
+  @rows.relation_document_projection_retained_inventory(
+    {
+      original: contract,
+      items_path_depth: provider.selection.items_path.length(),
+      key_path_depth: provider.selection.key_path.map(path => path.length()),
+      writable_fields: 0,
     },
+    page,
+    // Strict UTF8 JSON decoding cannot produce more UTF16 units than the
+    // SAME received bytes. Decimal/value output keeps its original full
+    // Contract geometry above; this bound funds borrowed input text only.
+    response_bytes.to_int64(),
   ).bind(units => {
     @execution.preparation_representation_cost(units).bind(bytes => {
       @execution.execution_capacity(bytes, bytes)

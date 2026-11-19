@@ -1600,7 +1600,7 @@ fn NativeRelationFileCapture::advance_original(
             | Some(ManagedFileQueryAcquisition(_, _, _)) =>
               if self.response_provider is Some(provider) {
                 // The SAME prepared Contract and actual completed response
-                // select the retained projection recipe. Values/text remain
+                // select the returned-Value/backing recipe. Values/text remain
                 // funded even though they now also belong to the Row input.
                 // The Common cut independently confirms the original reader
                 // observer and both current fences; fields/EOF are not ACKs.

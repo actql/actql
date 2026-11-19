@@ -120,8 +120,9 @@ test "completed Native Query keeps its full original typed projection and initia
     provider.prepared_contract,
   )
   // The numeric field is not the closed Text-only narrowing profile. Keep
-  // the original whole projection bound, including all shared Values/text
-  // and conservative construction controls, for either response length.
+  // the original whole Value geometry for either response length. Borrowed
+  // input String backing has its own actual-byte bound; output/Decimal
+  // geometry is never inferred from that physical count.
   let projection = @rows.relation_document_projection_construction_inventory(
     {
       original: contract,
@@ -134,14 +135,25 @@ test "completed Native Query keeps its full original typed projection and initia
   let projected = @execution.preparation_representation_cost(projection).unwrap()
   let initial = provider.capacity()
   for bytes in [62, limits.page.max_bytes] {
+    let retained = @rows.relation_document_projection_retained_inventory(
+      {
+        original: contract,
+        items_path_depth: 1,
+        key_path_depth: None,
+        writable_fields: 0,
+      },
+      limits.page,
+      bytes.to_int64(),
+    ).unwrap()
+    let retained_bytes = @execution.preparation_representation_cost(retained).unwrap()
     let remaining = file_provider_completed_query_capacity(provider, bytes).unwrap()
     assert_eq(
       @execution.execution_capacity_retained_bytes(remaining),
-      projected,
+      retained_bytes,
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(remaining),
-      projected,
+      retained_bytes,
     )
     let full = file_capture_provider_capacity(
       selection,
@@ -166,7 +178,7 @@ test "completed Native Query keeps its full original typed projection and initia
       @execution.preparation_representation_cost(raw).unwrap() +
       transport,
     )
-    assert_true(full_bytes > projected)
+    assert_true(full_bytes > retained_bytes)
   }
   assert_true(file_provider_completed_query_capacity(provider, -1) is None)
   assert_true(

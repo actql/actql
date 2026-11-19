@@ -7334,10 +7334,14 @@ EOF or discarded DATA marks alone never establish this boundary.
 The existing response-construction completion entry has a completed, nonlisting
 Query cut through that same observer and its pre/post current fences. The Native
 caller derives the remaining allowance from the same prepared Contract, declared
-paths and original response length, using the entire existing typed-projection
-construction inventory. This conservatively retains every shared immutable
-Value/text and projection control. Only raw parser/index/byte and transport
-construction E returns. Reservation R, already moved holdings, the complete
+paths and original response length, using the existing Value phase's returned
+inventory plus Source-owned borrowed String backing. The same endpoint geometry
+keeps every immutable Value/container, checked wrapper and owned Decimal text;
+the Source inventory separately retains decoded input String headers and UTF16
+bodies without discarded Span/tree/index/Bytes. Temporary admission, traversal,
+normalization and projection construction controls are not surviving Values.
+The full initial constructor peak remains unchanged. Only retired constructor
+execution workspace returns. Reservation R, already moved holdings, the complete
 Common Row base E and scratch, original input/export backing, Native metadata,
 attempts and transfer history remain unchanged. No holding or reservation is
 settled and no physical Read/Run cleanup acknowledgement is issued here.
@@ -7350,6 +7354,17 @@ another remainder cannot reclaim a second slice. The existing Row/holding/DAG
 and Native physical owners still perform their separate final cleanup. These
 logical implementation allowances are not an allocator/RSS bound or permission
 for another Source attempt.
+
+`relation_document_projection_retained_inventory` describes only this read-only
+transfer boundary. It shares the original constructor's checked projection and
+Value geometry, refuses unsupported Json/Vector/reference shapes and writable
+projection use, and consumes an independently justified decoded-text bound.
+The Native caller derives that input bound from the same completed strict UTF8
+response: decoded UTF16 units do not exceed received UTF8 bytes. This fact does
+not narrow Decimal or other output geometry. A Value phase's returned inventory
+alone omits borrowed Source text and is therefore insufficient. The pure quote
+neither observes physical retirement nor changes accounting; the original
+response-borrow/current/cleanup cut still owns any execution return.
 
 
 The existing Request also has a separate complete-input construction frontier.
