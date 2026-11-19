@@ -194,3 +194,64 @@ test "managed File snapshot keeps quoted paths when current mutates same acquisi
   assert_eq(inputs[0].selection.items_path, ["items", "unquoted-child"])
   assert_eq(inputs[0].selection.key_path, Some(["id", "unquoted-key"]))
 }
+
+///|
+// Checked original Source/Program DATA only. No Account, physical Source,
+// currentness, completion or cleanup acknowledgement is supplied here.
+fn whole_publication_task_fixture(
+  shared_task : Bool,
+) -> @host.PreparedClientProgram raise {
+  let declaration = relation_snapshot_fixture_declaration()
+  let (wire, cid) = relation_snapshot_fixture_environment(declaration)
+  let environment = @host.admit_client_check_environment(
+    wire,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let document = if shared_task {
+    (
+      #|{"version":"actql/0.1","id":"whole-publication-tasks","stages":[{"id":"joined","inputs":{"left":{"connector":"native-file-fixture","resource":"records"},"right":{"connector":"native-file-fixture","resource":"records"}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"},"max_output_rows":4},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"joined","result":"rows"}}}}
+    )
+  } else {
+    (
+      #|{"version":"actql/0.1","id":"whole-publication-tasks","stages":[{"id":"left","inputs":{"remote":{"connector":"native-file-fixture","resource":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"right","inputs":{"remote":{"connector":"native-file-fixture","resource":"records"}},"steps":[{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"joined","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"},"max_output_rows":4},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"joined","result":"rows"}}}}
+    )
+  }
+  @host.prepare_effect_free_client_program(
+    document,
+    Json,
+    environment,
+    None,
+    @host.client_standard_program_preparation_limits(),
+  ).unwrap()
+}
+
+///|
+test "Whole publication selects original task coordinates and refuses equal-wire foreign preparation" {
+  for shared in [false, true] {
+    let prepared = whole_publication_task_fixture(shared)
+    let foreign = whole_publication_task_fixture(shared)
+    let left = @host.prepare_client_source_acquisition(prepared, 0, 0).unwrap()
+    let right = @host.prepare_client_source_acquisition(
+      prepared,
+      if shared {
+        0
+      } else {
+        1
+      },
+      if shared {
+        1
+      } else {
+        0
+      },
+    ).unwrap()
+    assert_eq(native_whole_source_publication_task(prepared, left), Some(0))
+    assert_eq(
+      native_whole_source_publication_task(prepared, right),
+      Some(if shared { 0 } else { 1 }),
+    )
+    assert_true(native_whole_source_publication_task(foreign, left) is None)
+    assert_true(native_whole_source_publication_task(foreign, right) is None)
+  }
+}
