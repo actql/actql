@@ -668,10 +668,12 @@ test "retained Request intent continues native Effect Parameters Plan and retire
 extern "js" fn request_numeric_local_environment(
   wire : String,
   rows : Int,
+  artifact_bytes : Int,
 ) -> String =
-  #|(wire, rows) => {const value=JSON.parse(wire);delete value.evidence_bundle_cid;
+  #|(wire, rows, artifactBytes) => {const value=JSON.parse(wire);delete value.evidence_bundle_cid;
   #| value.host_policy_profile.capacity.max_relation_output_rows=rows;
   #| value.host_policy_profile.capacity.max_artifact_rows=rows;
+  #| if(artifactBytes>0)value.host_policy_profile.capacity.max_artifact_bytes=artifactBytes;
   #| const canonical=v=>Array.isArray(v)?'['+v.map(canonical).join(',')+']':v!==null&&typeof v==='object'?'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}':JSON.stringify(v);
   #| value.evidence_bundle_cid='sha256:'+process.getBuiltinModule('node:crypto').createHash('sha256').update(canonical(value)).digest('hex');return canonical(value);}
 
@@ -774,7 +776,17 @@ fn request_numeric_100000_profile_fixture(
   assert_eq(@resources.ledger_limits(parent.ledger), original_limits)
   let wire = request_numeric_local_environment(
     @publication_host.client_local_product_assets().environment,
-    client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap(),
+    if normalization_only {
+      100000
+    } else {
+      client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap()
+    },
+    // Match the existing explicit Native numeric operator's finite profile.
+    if normalization_only {
+      16777216
+    } else {
+      0
+    },
   )
   let environment = @publication_host.admit_client_check_environment(
     wire,
