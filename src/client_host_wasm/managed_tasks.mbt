@@ -68,7 +68,13 @@ fn managed_task_run_current(
     Err(code) => return code
     Ok(_) => ()
   }
-  validate_sdk_start_claim(value, step, plan)
+  // Only a live same-instance start has the retained nominal row/material
+  // originals. Cold/executable restoration keeps its full existing route.
+  if original.restoration is None {
+    validate_live_sdk_started_run_current(value, step, plan)
+  } else {
+    validate_sdk_start_claim(value, step, plan)
+  }
 }
 
 ///|
@@ -800,7 +806,7 @@ pub fn reserve_next_sdk_task(
       { closing: false, origin: SourceFree(_, start), host: Some(host), .. } as record
     ) &&
     stored_compute_original_run(value, record)
-    is Some({ configuration, outcome: Some(Ok(plan)), .. }) &&
+    is Some({ configuration, outcome: Some(Ok(plan)), restoration, .. }) &&
     value.run_configurations.get(configuration) is Some({ sdk: Some(_), .. }) &&
     value.run_configurations.get(current_configuration) is Some(current) &&
     value.physical_starts.get(start) is Some({ sdk_step: Some(step), .. }) &&
@@ -811,7 +817,11 @@ pub fn reserve_next_sdk_task(
     Ok(_) => ()
     Err(code) => return code
   }
-  let code = validate_sdk_start_claim(value, step, plan)
+  let code = if restoration is None {
+    validate_live_sdk_started_run_current(value, step, plan)
+  } else {
+    validate_sdk_start_claim(value, step, plan)
+  }
   if code != 0 {
     return code
   }
