@@ -953,8 +953,14 @@ test('controlled performance check consumes existing artifacts and cannot omit f
       value.invocation?.kind === 'node-test' && value.invocation.argv.includes(file));
     assert(action, `Required performance regression is absent: ${file}`);
     assert.equal(action.condition.continueOnError, false);
-    if (file.includes('policy') || file.includes('native-approval') || file.includes('node-wait'))
-      assert.equal(action.condition.step, null, 'Performance policy controls also run on Drafts');
+    if (file.includes('policy') || file.includes('native-approval') || file.includes('node-wait')) {
+      const condition = (action.condition.step ?? 'true').replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+        .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, key) => `needs[${JSON.stringify(key)}]`);
+      assert(!/\b(?:always|failure|cancelled)\s*\(/u.test(condition));
+      for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused', 'documentation'])
+        assert.equal(runInNewContext(condition, {needs: {'select-targets': {outputs: {profile}}}}, {timeout: 100}),
+          profile !== 'documentation', file + ':' + profile);
+    }
   }
   const job = workflow.jobs['ordinary-operations'];
   assert.equal(job.permissions.actions, 'read');

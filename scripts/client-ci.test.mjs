@@ -770,19 +770,35 @@ const preparesRuntime = ({run = '', uses = ''}) =>
   /(?:^|\n)\s*(?:node scripts\/(?:build-runtime-packages|build-local-node-adapters)\.mjs(?:\s|$)|npm run build(?:\s|$)|moon build(?:\s|$))/u.test(run) ||
   /(?:^|\/)download-client-packages(?:$|@)/u.test(uses);
 
+function assertLintProfiles(step, enabledProfiles) {
+  const condition = (step.if ?? 'true').replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+    .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
+  // These ordinary steps must keep Actions' implicit success() prerequisite;
+  // a status override or continue-on-error could hide an earlier failure.
+  assert(!/\b(?:always|failure|cancelled)\s*\(/u.test(condition));
+  assert.notEqual(step['continue-on-error'], true);
+  for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused', 'documentation']) {
+    const enabled = runInNewContext(condition, {
+      needs: {'select-targets': {outputs: {profile}}},
+      startsWith: (value, prefix) => value.startsWith(prefix),
+    }, {timeout: 100});
+    assert.equal(enabled, enabledProfiles.includes(profile), profile);
+  }
+}
+
 test('source-only Client wire and scratch tests do not wait for a producer or runtime', () => {
   const files = ['packages/client-wire/cancel-identity.test.mjs',
     'packages/client-wire/submission-check-semantics.test.mjs', 'scripts/owned-scratch.test.mjs'];
   const step = jobs.lint.steps.find(step => step.name === 'Test source-only Client wire contracts');
   assert(step);
   assert.deepEqual(jobs.lint.needs, ['select-targets']);
-  assert.equal(step.if, "${{ needs.select-targets.outputs.profile == 'full' }}");
+  assertLintProfiles(step, ['full']);
   assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.slice(0, 2).join(' '));
   assert(!jobs.lint.needs.includes('client-packages'));
   assert(!jobs.lint.steps.slice(0, jobs.lint.steps.indexOf(step)).some(preparesRuntime));
   const scratch = jobs.lint.steps.find(step => step.run === 'node --test scripts/owned-scratch.test.mjs');
   assert(scratch);
-  assert.equal(scratch.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assertLintProfiles(scratch, ['full', 'maintenance', 'focused-tests']);
   const owners = ['lint', ...groups].flatMap(name => jobs[name].steps.filter(step => step.run)
     .map(step => ({name, command: step.run})));
   for (const file of files) {
@@ -802,7 +818,7 @@ test('source-only evaluation tests have one early bounded CI owner', () => {
   const step = jobs.lint.steps.find(step => step.name === 'Test source-only INFER evaluation contracts');
   assert(step);
   assert.deepEqual(jobs.lint.needs, ['select-targets']);
-  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assertLintProfiles(step, ['full', 'maintenance', 'focused-tests']);
   assert.equal(step.run, 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- ' + files.join(' '));
   assert(!jobs.lint.steps.slice(0, jobs.lint.steps.indexOf(step)).some(preparesRuntime));
   const owners = ['lint', ...groups].flatMap(name => jobs[name].steps.filter(step => step.run)

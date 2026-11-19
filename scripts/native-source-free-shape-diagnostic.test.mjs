@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -121,7 +122,14 @@ test('hosted shape route reuses diagnostic provenance while formal and ordinary 
     packageText: await readFile(new URL('../package.json', import.meta.url), 'utf8')}).actions;
   const unit = actions.find(action => action.origin === 'workflow' && action.job === 'lint' &&
     action.invocation?.kind === 'node-test' && action.invocation.argv.includes('scripts/native-source-free-shape-diagnostic.test.mjs'));
-  assert(unit); assert.equal(unit.condition.step, null); assert.equal(unit.condition.continueOnError, false);
+  assert(unit);
+  const lintCondition = (unit.condition.step ?? 'true').replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+    .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, key) => `needs[${JSON.stringify(key)}]`);
+  assert(!/\b(?:always|failure|cancelled)\s*\(/u.test(lintCondition));
+  for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused', 'documentation'])
+    assert.equal(runInNewContext(lintCondition, {needs: {'select-targets': {outputs: {profile}}}}, {timeout: 100}),
+      profile !== 'documentation', profile);
+  assert.equal(unit.condition.continueOnError, false);
   for (const event of ['workflow_dispatch', 'workflow_call']) {
     assert.equal(workflow.on[event].inputs['native-source-free-shape-diagnostic'].default, false);
   }
