@@ -7193,13 +7193,30 @@ recipe, actual checked Query material/writer recipes, bounded array backing and
 closed caller frontier grow that same working reservation before construction.
 A pricing result is neither a new allowance nor Source execution authority.
 
+Runtime acquisition precedes the consuming Read claim. Its Query asset
+constructor therefore adds its named inventory to the original initial Read
+budget before any Runtime/Reader is opened; a consuming-Read grow method is
+not valid at that boundary. The increment counts the physical Runtime's one
+reference and original optional pair, two bounded immutable decoded bodies,
+original file observations, witness backing, Map growth and transport/UTF8
+overlap. It uses the existing text constructor, collection inventories,
+shared tariff and the compiled filesystem's readonly layout facts. The
+initial execution clipping is applied before this addition. The unchanged
+original domain ceilings admit the sum or refuse it; no unused bootstrap
+space or facility maximum is treated as backing. The CLI borrows the same
+physical Runtime pair instead of retaining another field. These quantities
+are logical construction bounds, not RSS or physical cleanup evidence.
+
 There is one prepared relation-file Work entry, original claim and managed
 DAG for the entire prefix. Its original Read backs all selection snapshots and
 its business child prebacks the complete checked Work quote before Journal
 reservation. Every slot checks the original Plan acquisition, declaration,
 provider capacity, Account target and current scope. The private source vector
-is snapshotted after its actual admission callback and never replaced by the
-caller's mutable paths. Legacy single-entry locator fields do not select a
+is snapshotted on that prepaid Read before canonical admission can invoke
+current. The admission callback cannot enlarge the copied prefix or replace
+its quoted paths, even when it retains the same acquisition. The subsequent
+original checks use that same snapshot. An actual acquired-but-unready arena
+entry remains in its original cleanup carrier. Legacy single-entry locator fields do not select a
 primary read or publication input for this purpose.
 
 Each original managed read is retained before the next fallible operation.

@@ -339,7 +339,9 @@ fn LocalCommandPreparationOriginal::execute_product_command(
         local_utc_now(),
         runtime.assets,
         runtime.manifest,
-        query_contracts=runtime.query_contracts,
+        query_contracts=runtime.physical
+          .query_contract_assets()
+          .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged")),
         mock~,
         host_configuration~,
       ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))

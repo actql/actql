@@ -109215,7 +109215,7 @@
     },
     {
       "module": "src/cmd/native_client/local_packaged_product.mbt",
-      "sha256": "4c53ce651dab0288b0103585bc957c7b0a30f6586af241ba3c194896a9d6f258",
+      "sha256": "9bc25f027c0b5e90414503a259364a8ea266e2b609b713fa4e8ccda9066b720a",
       "exports": [],
       "operations": [
         {
@@ -109452,7 +109452,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_entry.mbt",
-      "sha256": "597f219754312f2a3ae7215693a2354efcab25b5dd9c3f4f5f682269913b812a",
+      "sha256": "8e89032bf2f92bd2b3c90fadd634c9d08720c25de082da86943d3be96425a9a6",
       "exports": [],
       "operations": [
         {
@@ -109462,6 +109462,10 @@
         {
           "name": "NativeLocalHostConnection::prepare_original_managed_relation_files_work_entry",
           "declaration": "NativeLocalHostConnection : : prepare_original_managed_relation_files_work_entry ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , principal : String , connection : String , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , managed : @ local . ClientInstalledManagedRun , inputs : Array [ NativeRelationFileQuerySource ] , ) - > Result [ NativeClientRelationFileWorkEntry , NativeClientRelationFileWorkFailure , ] ?"
+        },
+        {
+          "name": "snapshot_managed_relation_file_sources",
+          "declaration": "snapshot_managed_relation_file_sources ( inputs : Array [ NativeRelationFileQuerySource ] , ) - > Array [ NativeRelationFileQuerySource ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -109473,7 +109477,8 @@
           "operations": [
             "<module>",
             "managed_relation_file_sources_match",
-            "NativeLocalHostConnection::prepare_original_managed_relation_files_work_entry"
+            "NativeLocalHostConnection::prepare_original_managed_relation_files_work_entry",
+            "snapshot_managed_relation_file_sources"
           ],
           "exports": [],
           "attributes": {

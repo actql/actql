@@ -6,7 +6,6 @@ priv struct LocalPackagedRuntime {
   sqlite : String
   crypto : String
   assets : @run_host.ClientLocalProductAssets
-  query_contracts : (String, String)?
   installed_contracts : @local_values.ClientInstalledSequenceContracts
   physical : @local_host.NativeLocalPackagedRuntime
 }
@@ -167,18 +166,7 @@ fn local_packaged_runtime_from_physical(
   let (sqlite, crypto) = physical
     .library_paths()
     .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-  let query_contracts = physical
-    .query_contract_assets()
-    .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-  {
-    manifest,
-    sqlite,
-    crypto,
-    assets,
-    query_contracts,
-    installed_contracts,
-    physical,
-  }
+  { manifest, sqlite, crypto, assets, installed_contracts, physical, }
 }
 
 ///|
@@ -324,7 +312,9 @@ fn execute_native_local_packaged_with_parent(
       local_utc_now(),
       runtime.assets,
       runtime.manifest,
-      query_contracts=runtime.query_contracts,
+      query_contracts=runtime.physical
+        .query_contract_assets()
+        .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged")),
     ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
     let originals = local_product_model_policy_originals(
       originals,

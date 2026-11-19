@@ -41,6 +41,25 @@ fn managed_relation_file_sources_match(
 }
 
 ///|
+// Caller-owned path arrays must not cross an imported current callback. This
+// constructor is called only on the finite prefix already quoted on Read.
+fn snapshot_managed_relation_file_sources(
+  inputs : Array[NativeRelationFileQuerySource],
+) -> Array[NativeRelationFileQuerySource] {
+  inputs.map(input => NativeRelationFileQuerySource::{
+    declaration: input.declaration,
+    acquisition: input.acquisition,
+    provider: input.provider,
+    selection: {
+      ..input.selection,
+      items_path: input.selection.items_path.copy(),
+      key_path: input.selection.key_path.map(path => path.copy()),
+    },
+    limits: input.limits,
+  })
+}
+
+///|
 /// One prepared Work entry for the SAME finite captured prefix. Input paths
 /// are snapshotted only after its already-quoted original Read/Work frontier.
 pub fn NativeLocalHostConnection::prepare_original_managed_relation_files_work_entry(
@@ -71,7 +90,6 @@ pub fn NativeLocalHostConnection::prepare_original_managed_relation_files_work_e
   if !managed_relation_file_sources_match(managed, prepared, request, inputs) {
     return Some(Err(relation_file_work_failure(FileWorkSourceBinding)))
   }
-  let first = inputs[0]
   guard @local.installed_managed_preparation_admission_original(
       managed, prepared, request,
     )
@@ -83,6 +101,12 @@ pub fn NativeLocalHostConnection::prepare_original_managed_relation_files_work_e
     is Some(capacity) else {
     return Some(Err(relation_file_work_failure(FileWorkControlQuote)))
   }
+  // The enclosing original Read already backs this exact finite snapshot.
+  // Copy every path before canonical admission can invoke original current:
+  // the callback may mutate the caller's vector, including its cardinality.
+  // No subsequent constructor/quote/retention reads that mutable vector.
+  let sources = snapshot_managed_relation_file_sources(inputs)
+  let first = sources[0]
   let acquired = match
     original.host.prepare_domain_nonmodel_prepared_work_entry(
       original.pair,
@@ -102,24 +126,13 @@ pub fn NativeLocalHostConnection::prepare_original_managed_relation_files_work_e
     @arena.ReadyNonModelWorkEntry(value)
     | @arena.PendingNonModelWorkEntry(value) => value
   }
-  // The admission's current callback may have revoked the original Read or
-  // changed a caller vector. Recheck originals before retaining the snapshot.
+  // The admission's current callback may revoke the original Read or Plan.
+  // Recheck that SAME snapshot, not later caller replacements or path growth.
   let ready = acquired is @arena.ReadyNonModelWorkEntry(_) &&
     self.relation_file_original_read_matches(
       operation, request, prepared, compiled, definition,
     ) &&
-    managed_relation_file_sources_match(managed, prepared, request, inputs)
-  let sources = inputs.map(input => NativeRelationFileQuerySource::{
-    declaration: input.declaration,
-    acquisition: input.acquisition,
-    provider: input.provider,
-    selection: {
-      ..input.selection,
-      items_path: input.selection.items_path.copy(),
-      key_path: input.selection.key_path.map(path => path.copy()),
-    },
-    limits: input.limits,
-  })
+    managed_relation_file_sources_match(managed, prepared, request, sources)
   let access : NativeLocalRelationOriginalAccess = {
     base: {
       operation,
