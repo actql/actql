@@ -83,7 +83,7 @@ pub fn NativeLocalJournalCapture::bind_run_policy_profile_in_original_read(
     Err(issue) => return Err(issue)
   }
   let wire = @utf8.decode(read) catch { _ => return Err(Encoding) }
-  let selection = match admit_native_local_read_selection(wire) {
+  let selection = match admit_native_local_read_purpose(wire) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }

@@ -154,12 +154,23 @@ fn local_public_result(
         stop("LocalResultMaterialOriginalNotSelected")
       }
       match
-        actual.capture.bind_result_material_read_policy_for_run_in_original_read(
+        actual.capture.bind_requested_original_result_read_in_original_read(
           actual.policy,
-          original.reference(),
-          original.request(),
+          original,
+          actual.store,
+          selected.namespace_id,
+          actual.result_name,
           @env.now().to_double(),
-          "material-read.json",
+          (r, e) => {
+            match actual.owner.prepare_host_metadata(r, e) {
+              Ok(_) => true
+              Err(issue) => {
+                actual.owner.retain_primary(issue)
+                false
+              }
+            }
+          },
+          material_file=Some("material-read.json"),
         ) {
         Ok(value) => value
         Err(issue) => stop(local_read_issue(issue))
@@ -205,17 +216,13 @@ fn local_public_result(
           store,
           selected.namespace_id,
         )
-      Some(actual) =>
+      Some(actual) => {
         local_result_host_value(
-          actual.capture.lookup_original_result_names_json_in_original_read(
-            settings.principal,
-            settings.connection,
-            original,
-            store,
-            selected.namespace_id,
-          ),
-          "publication inventory",
+          actual.capture.check_current_in_original_read(),
+          "committed Result current",
         )
+        Ok(Some(actual.result_names))
+      }
     }
     let names = match names_result {
       Ok(Some(value)) => value

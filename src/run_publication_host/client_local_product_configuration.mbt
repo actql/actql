@@ -479,20 +479,16 @@ fn product_assemble_originals(
                 ("enabled", Json::boolean(true)),
                 ("principal", Json::string(principal)),
                 ("connection", Json::string(connection)),
-                (
-                  "result_names",
-                  product_texts(
-                    if mock is Some(subjects) {
-                      if subjects.update_target is Some(_) {
-                        ["answer", "main", "updates"]
-                      } else {
-                        ["answer", "main"]
-                      }
-                    } else {
-                      ["answer"]
-                    },
-                  ),
-                ),
+                if mock is Some(_) {
+                  (
+                    "result_selection",
+                    product_object([
+                      ("kind", Json::string("requested_original_result")),
+                    ]),
+                  )
+                } else {
+                  ("result_names", product_texts(["answer"]))
+                },
                 ("formats", product_texts(["csv", "json", "jsonl"])),
                 ("purpose", Json::string("cli-read")),
                 ("sink", Json::string("stdout")),

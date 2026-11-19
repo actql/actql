@@ -3,8 +3,8 @@
 // It cannot create an adopted Policy binding or issue a grant.
 fn local_read_installation_or_stop(
   text : String,
-) -> @local_host.NativeLocalReadSelection raise ClientStop {
-  match @local_host.admit_native_local_read_selection(text) {
+) -> @local_host.NativeLocalReadPurpose raise ClientStop {
+  match @local_host.admit_native_local_read_purpose(text) {
     Ok(value) => value
     Err(issue) =>
       stop(

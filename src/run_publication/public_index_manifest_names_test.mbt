@@ -107,3 +107,45 @@ test "indexed manifest names preserve Unicode names and UTF16 order" {
     Ok("[\"\u{10000}\",\"\u{e000}\"]"),
   )
 }
+
+///|
+test "original Result membership validates the same complete index and manifest without a name copy" {
+  let (index, manifest, artifact) = delivery_test_root()
+  assert_eq(
+    public_index_manifest_has_original_result(index, manifest, "answer"),
+    Ok(true),
+  )
+  assert_eq(
+    public_index_manifest_has_original_result(index, manifest, "file"),
+    Ok(false),
+  )
+  assert_true(
+    public_index_manifest_has_original_result(artifact, manifest, "answer")
+    is Err(_),
+  )
+  let changed = indexed_names_changed_contract(
+    manifest,
+    publication_contract_json(manifest).replace(
+      old="\"answer\":" + publication_contract_json(artifact),
+      new="\"file\":" + publication_contract_json(artifact),
+    ),
+  )
+  assert_true(
+    public_index_manifest_has_original_result(index, changed, "file") is Err(_),
+  )
+  let original_index = indexed_names_changed_contract(
+    index,
+    publication_contract_json(index).replace(
+      old=publication_contract_identity(manifest),
+      new=publication_contract_identity(changed),
+    ),
+  )
+  assert_eq(
+    public_index_manifest_has_original_result(original_index, changed, "file"),
+    Ok(true),
+  )
+  assert_eq(
+    public_index_manifest_has_original_result(original_index, changed, "answer"),
+    Ok(false),
+  )
+}

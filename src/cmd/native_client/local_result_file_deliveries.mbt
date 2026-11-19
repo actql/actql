@@ -86,12 +86,23 @@ fn local_result_file_deliveries(
       let binding = if index == 0 {
         actual.binding
       } else {
-        actual.capture.bind_result_file_read_policy_for_run_in_original_read(
+        actual.capture.bind_requested_original_result_read_in_original_read(
           actual.policy,
-          actual.original.reference(),
-          actual.original.request(),
+          actual.original,
+          actual.store,
+          selected.namespace_id,
+          result_name,
           @env.now().to_double(),
-          "file-read.json",
+          (r, e) => {
+            match actual.owner.prepare_host_metadata(r, e) {
+              Ok(_) => true
+              Err(issue) => {
+                actual.owner.retain_primary(issue)
+                false
+              }
+            }
+          },
+          file_configuration=Some("file-read.json"),
         )
         |> local_result_read_value
       }

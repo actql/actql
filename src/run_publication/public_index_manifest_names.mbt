@@ -15,3 +15,17 @@ pub fn public_index_manifest_result_names_json(
     Err(issue) => Err(issue)
   }
 }
+
+///|
+/// Pure membership in the SAME checked index/manifest pair, not another
+/// Result identity, authorization or payload read. No name vector is copied.
+pub fn public_index_manifest_has_original_result(
+  index : PublicationContract,
+  manifest : PublicationContract,
+  name : String,
+) -> Result[Bool, DeliveryIssuanceIssue] {
+  match validate_public_read_root(index, manifest) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok(manifest_result_artifact_cid(manifest, name) is Some(_))
+  }
+}

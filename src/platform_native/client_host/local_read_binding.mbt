@@ -138,6 +138,14 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
   material? : @result_access.NativeResultMaterialReceiver? = None,
   material_file? : String? = None,
   file_configuration? : String? = None,
+  requested_result? : (
+    NativeClientOriginalRunSelection,
+    @publication_store.Store,
+    String,
+    String,
+  )? = None,
+  construction? : ((Int64, Int64) -> Bool)? = None,
+  requested_operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeLocalReadPolicyBinding, NativeLocalReadBindingIssue] {
   if !physical_equal(self, policy.host) {
     return Err(SelectionMismatch)
@@ -176,9 +184,59 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
       }
     Upgraded(_, wire) => wire
   }
-  let selection = match admit_native_local_read_selection(text) {
+  let purpose = match admit_native_local_read_purpose(text) {
     Ok(value) => value
     Err(issue) => return Err(Selection(issue))
+  }
+  let selection = match requested_result {
+    None =>
+      match purpose.names {
+        FiniteResultNames(names) => purpose.finite_selection(names)
+        RequestedOriginalResult => return Err(SelectionMismatch)
+      }
+    Some((original, store, namespace_id, name)) => {
+      guard capture is Some(current) &&
+        construction is Some(prepare) &&
+        requested_operations is Some(operations) &&
+        original.reference.wire == reference.wire &&
+        @host.client_request_identity_relation(original.request, request) ==
+        @host.SameRequest else {
+        return Err(SelectionMismatch)
+      }
+      let mut primary : NativeClientRunJournalIssue? = None
+      let selected = purpose.narrow_original(
+        name,
+        () => {
+          match
+            self.lookup_original_result_names_json_with_operations(
+              policy.crypto,
+              policy.principal,
+              policy.connection,
+              original,
+              store,
+              namespace_id,
+              operations=Some(operations),
+              capture=Some(current),
+              requested_name=Some(name),
+            ) {
+            Ok(value) => value == Some(name)
+            Err(issue) => {
+              primary = Some(issue)
+              false
+            }
+          }
+        },
+        prepare,
+      )
+      match primary {
+        Some(issue) => return Err(Journal(issue))
+        None => ()
+      }
+      match selected {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    }
   }
   let material_original = match (selection.sink, material) {
     (Stdout, None) => None

@@ -2074,6 +2074,19 @@ recognizes their original legacy control domain without expanding their finite
 Result grants. Reopen never materializes a newer profile over saved state.
 A new-profile intent lacking its original selected control, or one whose actual
 connection inventory now collides with it, refuses instead of retargeting.
+For new Native Mock read-purpose configuration, the explicit
+`result_selection: {kind: "requested_original_result"}` alternative is mutually
+exclusive with a finite `result_names` list. It requires the existing accepted
+Run profile/role binding and is purpose DATA, never an Account grant. The
+unnarrowed purpose cannot be passed to the finite reader. The requested name
+is checked against the same authenticated Run, committed index/manifest and
+Store custody/current boundaries, then narrowed to exactly that original name
+before the existing finite read/evidence/egress path. Unknown, foreign or
+mismatched names refuse. Original limits, sink, expiry and current authority
+remain unchanged. Existing finite lists, even those identical to old defaults,
+remain exact restrictions. Recovery retains the same original configuration
+CID and authenticated recorded name; it neither selects a newer purpose nor
+opens a replacement receiver or grants another read.
 The selected UPDATE uses `delegate`, never
 automatic approval. The original Host request-protection `write` tuple is
 distinct from a Source or Effect target and MUST NOT name either in its place.

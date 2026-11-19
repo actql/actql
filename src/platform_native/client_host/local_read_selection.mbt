@@ -16,6 +16,56 @@ struct NativeLocalReadSelection {
 }
 
 ///|
+// Template DATA cannot reach the finite reader. It is narrowed only against
+// the SAME authenticated committed Run/Result by the binding constructor.
+struct NativeLocalReadPurpose {
+  enabled : Bool
+  principal : String
+  connection : String
+  names : NativeLocalReadNamePurpose
+  formats : Array[String]
+  purpose : String
+  sink : NativeLocalReadSink
+  policy : NativeLocalReadPolicySelection
+  max_bytes : Int
+  max_uses : Int
+  expiry : NativeLocalReadExpiry
+}
+
+///|
+priv enum NativeLocalReadNamePurpose {
+  FiniteResultNames(Array[String])
+  RequestedOriginalResult
+}
+
+///|
+fn NativeLocalReadPurpose::finite_selection(
+  self : NativeLocalReadPurpose,
+  names : Array[String],
+) -> NativeLocalReadSelection {
+  {
+    enabled: self.enabled,
+    principal: self.principal,
+    connection: self.connection,
+    result_names: names,
+    formats: self.formats,
+    purpose: self.purpose,
+    sink: self.sink,
+    policy: self.policy,
+    max_bytes: self.max_bytes,
+    max_uses: self.max_uses,
+    expiry: self.expiry,
+  }
+}
+
+///|
+/// Syntax only, never a grant or a payload read. The returned purpose may
+/// still require original-name narrowing before a finite selection exists.
+pub fn NativeLocalReadPurpose::enabled(self : NativeLocalReadPurpose) -> Bool {
+  self.enabled
+}
+
+///|
 // Exactly one explicit selection. The Run alternative selects only the actual
 // committed Result root, not every dependency in its retained Policy closure.
 priv enum NativeLocalReadPolicySelection {
@@ -170,9 +220,9 @@ fn read_policy_configuration_name(
 }
 
 ///|
-pub fn admit_native_local_read_selection(
+pub fn admit_native_local_read_purpose(
   text : String,
-) -> Result[NativeLocalReadSelection, NativeLocalReadPolicyIssue] {
+) -> Result[NativeLocalReadPurpose, NativeLocalReadPolicyIssue] {
   try {
     let node = match
       @source.parse_json_bytes_preserving(@utf8.encode(text), {
@@ -202,9 +252,10 @@ pub fn admit_native_local_read_selection(
     )
     let fields = read_policy_decoded(
       @decode.closed_object(read_policy_field(native, "result_read"), [
-        "enabled", "principal", "connection", "result_names", "formats", "purpose",
-        "sink", "data_policy_cids", "accepted_run_policy", "max_bytes", "max_uses",
-        "expires_at", "run_policy_profile_cid", "run_file", "retention_file", "store_file",
+        "enabled", "principal", "connection", "result_names", "result_selection",
+        "formats", "purpose", "sink", "data_policy_cids", "accepted_run_policy",
+        "max_bytes", "max_uses", "expires_at", "run_policy_profile_cid", "run_file",
+        "retention_file", "store_file",
       ]),
     )
     let enabled = read_policy_decoded(
@@ -275,11 +326,32 @@ pub fn admit_native_local_read_selection(
       }
       _ => return Err(InvalidOriginal)
     }
+    let names = match
+      (
+        @decode.lookup(fields, "result_names"),
+        @decode.lookup(fields, "result_selection"),
+      ) {
+      (Some(_), None) =>
+        FiniteResultNames(read_policy_list(fields, "result_names", 16, 128))
+      (None, Some(value)) => {
+        let selected = read_policy_decoded(
+          @decode.closed_object(value, ["kind"]),
+        )
+        if read_policy_text(selected, "kind", 32) != "requested_original_result" {
+          return Err(InvalidOriginal)
+        }
+        if !(expiry is AcceptedRunProfile(_)) {
+          return Err(InvalidOriginal)
+        }
+        RequestedOriginalResult
+      }
+      _ => return Err(InvalidOriginal)
+    }
     Ok({
       enabled,
       principal: read_policy_text(fields, "principal", 512),
       connection: read_policy_text(fields, "connection", 512),
-      result_names: read_policy_list(fields, "result_names", 16, 128),
+      names,
       formats,
       purpose: read_policy_text(fields, "purpose", 256),
       sink,
@@ -307,4 +379,60 @@ pub fn NativeLocalReadSelection::enabled(
   self : NativeLocalReadSelection,
 ) -> Bool {
   self.enabled
+}
+
+///|
+/// Legacy finite-only API. A requested-original template is intentionally not
+/// representable as a NativeLocalReadSelection, even when syntax is valid.
+pub fn admit_native_local_read_selection(
+  text : String,
+) -> Result[NativeLocalReadSelection, NativeLocalReadPolicyIssue] {
+  match admit_native_local_read_purpose(text) {
+    Err(issue) => Err(issue)
+    Ok(purpose) =>
+      match purpose.names {
+        FiniteResultNames(names) => Ok(purpose.finite_selection(names))
+        RequestedOriginalResult => Err(InvalidOriginal)
+      }
+  }
+}
+
+///|
+fn NativeLocalReadPurpose::narrow_original(
+  self : NativeLocalReadPurpose,
+  name : String,
+  original_exists : () -> Bool,
+  prepare : (Int64, Int64) -> Bool,
+) -> Result[NativeLocalReadSelection, NativeLocalReadBindingIssue] {
+  if name.is_empty() || name.length() > 128 || name.contains("\u{0000}") {
+    return Err(SelectionMismatch)
+  }
+  // Finite selection record1H7R4W, one-name array1H1R, returned Ok1H1R1W.
+  // Text is the SAME retained original name; no normalization/copy or wildcard.
+  guard @execution.preparation_representation_cost({
+      record_headers: 3L,
+      reference_slots: 9L,
+      scalar_words: 5L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(cost) &&
+    prepare(cost, cost) else {
+    return Err(Adoption(OriginalResourceScopePending))
+  }
+  match self.names {
+    FiniteResultNames(names) => {
+      if !names.contains(name) || !original_exists() {
+        return Err(SelectionMismatch)
+      }
+      // Even an old finite list is narrowed, never widened to another name.
+      Ok(self.finite_selection([name]))
+    }
+    RequestedOriginalResult => {
+      if !original_exists() {
+        return Err(SelectionMismatch)
+      }
+      Ok(self.finite_selection([name]))
+    }
+  }
 }
