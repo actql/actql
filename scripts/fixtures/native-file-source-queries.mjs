@@ -1,5 +1,6 @@
 // Original issue3609 query shapes. These inputs do not simulate a Native reader.
 import assert from 'node:assert/strict';
+import {writeSync} from 'node:fs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {canonicalText} from '../check-canonical-json.mjs';
@@ -35,6 +36,35 @@ export const nativeReadonlyMockQueries = Object.freeze([
 export const nativeInstalledSourceQueries = Object.freeze([
   ...nativeFileSourceQueries, ...nativeReadonlyMockQueries,
 ]);
+// Preserve the original hermetic command environment. These two metadata
+// flags cannot choose a runtime, change a quote or reconfigure execution.
+export function nativeFileSourceQueryEnvironment({fixture, args, emptyPath, home, environment}) {
+  const child = {PATH: emptyPath, HOME: home, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8'};
+  if (fixture.name === 'readonly-filter' && args[0] === 'sql' &&
+    environment.ACTQL_NATIVE_TIMINGS === '1' &&
+    environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS === '1')
+    Object.assign(child, {ACTQL_NATIVE_TIMINGS: '1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: '1'});
+  return child;
+}
+
+// The complete original stderr remains in the existing case-owned file.
+// Tee only one complete closed numeric row into the installed owner's command
+// record, never arbitrary diagnostics/payloads/IDs. Missing/duplicate/truncated
+// rows or a failed write stay unmeasured and cannot replace the primary.
+export function retainNativeFileCapacityStderr(environment, stderr, write = body => writeSync(2, body)) {
+  if (environment.ACTQL_NATIVE_TIMINGS !== '1' ||
+    environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS !== '1' || typeof stderr !== 'string') return;
+  const natural = '(?:0|[1-9][0-9]{0,18})', observed = `(?:-1|${natural})`;
+  const row = new RegExp('^ACTQL_NATIVE_FILE_CAPACITY \\{"phase":1[0-6],"compute":(?:true|false),' +
+    `"requested_execution":${natural},"task_capacity":${observed},` +
+    `"limit_execution":${natural},"reserved_execution":${natural},` +
+    `"entry_singleton_execution":${observed},"row_execution":${observed}\\}\\n`, 'gmu');
+  const matches = [...stderr.matchAll(row)];
+  if (matches.length === 1) {
+    try { write(matches[0][0]); } catch { /* Diagnostic loss is not execution failure. */ }
+  }
+}
+
 const multiset = rows => rows.map(canonicalText).sort();
 const requireSuccess = result => {
   assert.ifError(result.error);

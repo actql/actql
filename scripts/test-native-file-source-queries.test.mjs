@@ -7,14 +7,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {after, test} from 'node:test';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {nativeInstalledSourceQueries, observeNativeFileSourceQuery} from './fixtures/native-file-source-queries.mjs';
+import {nativeInstalledSourceQueries, observeNativeFileSourceQuery,
+  nativeFileSourceQueryEnvironment, retainNativeFileCapacityStderr} from './fixtures/native-file-source-queries.mjs';
 
 const launcher = process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER;
 const binary = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY;
 assert(launcher && binary, 'Select the same actual installed Native launcher and binary');
 const originalBinary = await readFile(binary);
-const capacityObserving = process.env.ACTQL_NATIVE_TIMINGS === '1' &&
-  process.env.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS === '1';
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-file-queries-',
   label: 'Installed Native original File Source queries'});
 const emptyPath = join(scratch.path, 'empty-path');
@@ -31,9 +30,8 @@ for (const fixture of nativeInstalledSourceQueries) test(`Native installed File 
   let ordinal = 0;
   const cli = async (args, cwd) => {
     const startedAt = new Date().toISOString();
-    const result = spawnSync(process.execPath, [launcher, ...args], {cwd,
-      env: {PATH: emptyPath, HOME: home, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8',
-        ...(capacityObserving ? {ACTQL_NATIVE_TIMINGS: '1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: '1'} : {})},
+    const environment = nativeFileSourceQueryEnvironment({fixture, args, emptyPath, home, environment: process.env});
+    const result = spawnSync(process.execPath, [launcher, ...args], {cwd, env: environment,
       timeout: 30_000, maxBuffer: 1024 * 1024, encoding: 'utf8'});
     const name = fixture.name + '-' + ordinal++;
     // Preserve the original result before any assertion, including timeouts,
@@ -43,6 +41,7 @@ for (const fixture of nativeInstalledSourceQueries) test(`Native installed File 
     await writeFile(join(scratch.path, name + '.json'), JSON.stringify({args, cwd, startedAt,
       endedAt: new Date().toISOString(), status: result.status, signal: result.signal,
       error: result.error?.code}, null, 2) + '\n', {flag: 'wx'});
+    retainNativeFileCapacityStderr(environment, result.stderr);
     return result;
   };
   const observed = await observeNativeFileSourceQuery({parent: scratch.path, fixture, cli});
