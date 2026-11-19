@@ -1,5 +1,5 @@
 {
-  "abi_version": 88,
+  "abi_version": 89,
   "import_module": "actql_host",
   "imports": [
     {
@@ -6896,6 +6896,36 @@
       "source": {
         "path": "src/client_host_wasm/submission.mbt",
         "symbol": "begin_submission_cleanup"
+      }
+    },
+    {
+      "name": "actql_submission_cancellation_stop_interest",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_submission_cancellation_stop_interest.handle"
+        },
+        {
+          "name": "run",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_submission_cancellation_stop_interest.run"
+        },
+        {
+          "name": "current",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_submission_cancellation_stop_interest.current"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/submission_cancellation_append.mbt",
+        "symbol": "observe_cancellation_stop_interest"
       }
     },
     {

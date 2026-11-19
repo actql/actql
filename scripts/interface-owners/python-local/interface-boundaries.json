@@ -1,6 +1,6 @@
 {
-  "source": "0fc862302192e560d79614fed2852c842fda2298",
-  "syntaxProjectionSha256": "b01380142ae243ed212349486c1c835aa46fce75b874d54fa31d7272f2578ac0",
+  "source": "0bc674d1cb12c243bdfb8b1cb1f6c6c7cb913659",
+  "syntaxProjectionSha256": "60a6ef5e050c42bbb53e0cc2f1088c70ba94aa1cd419e3872e21d85aef92c47a",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "5c011cac8a4dc18270309cec8b4503a4a96c6532138984a885a3446791a2a644",
+      "sha256": "ba80654605785a6c8dd58297392e6e8341e90a66e08cdcfdc38d22ffe9194b22",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -6076,6 +6076,16 @@
         },
         {
           "async": false,
+          "name": "LocalCore/cancellation_stop_interest",
+          "parameters": [
+            "self",
+            "value",
+            "run",
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/close",
           "parameters": [
             "self"
@@ -8283,7 +8293,7 @@
           ]
         }
       ],
-      "sha256": "61dc367185dd3340d9d2e41fa1d775d85042ab95911da993c9a536b9d18bdf95",
+      "sha256": "e038914c78d6f49774984fbc1542f267022d2ceb61cd5461ac6a6d76dba3257d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -15571,6 +15581,110 @@
               {
                 "path": "scripts/fixtures/python-local-public-success-abi.py",
                 "anchor": "'public_core_derived_task_drive_mixed_quanta_joined_result_same_saved'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/cancellation_stop_interest"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "def cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_confirmed_cancel_between_gate_and_next_drive_selects_same_original_retirement("
               }
             ]
           }
@@ -52511,6 +52625,13 @@
           "async": false
         },
         {
+          "async": false,
+          "name": "InstalledLocalHost/_cancel_original/confirm",
+          "parameters": [
+            "current"
+          ]
+        },
+        {
           "name": "InstalledLocalHost/_cancel_original/inspect",
           "parameters": [
             "reader"
@@ -52559,6 +52680,14 @@
             "profile"
           ],
           "async": false
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_check_original_stop_interest",
+          "parameters": [
+            "self",
+            "run"
+          ]
         },
         {
           "name": "InstalledLocalHost/_checked_original_read",
@@ -52683,6 +52812,16 @@
           "async": false
         },
         {
+          "async": false,
+          "name": "InstalledLocalHost/_dispatch_original_cancellation_stop",
+          "parameters": [
+            "self",
+            "output",
+            "reference",
+            "current"
+          ]
+        },
+        {
           "name": "InstalledLocalHost/_ensure_original_publication_observation",
           "parameters": [
             "self",
@@ -52769,6 +52908,13 @@
             "expected_revision"
           ],
           "async": false
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_lookup_original_cancellation/confirm",
+          "parameters": [
+            "current"
+          ]
         },
         {
           "name": "InstalledLocalHost/_lookup_original_submission",
@@ -53630,6 +53776,19 @@
           "async": false
         },
         {
+          "async": false,
+          "name": "_OriginalCancellationStop",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalCancellationStop/__init__",
+          "parameters": [
+            "self",
+            "original"
+          ]
+        },
+        {
           "name": "_OriginalExecution",
           "parameters": [],
           "async": false
@@ -53688,7 +53847,7 @@
           "async": false
         }
       ],
-      "sha256": "1f5a479728766f69b4456d548237ca9d29c7d4e3464589025335387bee52a636",
+      "sha256": "1ce31ffe65a6556bcd0fd6b1e02c4be6ed776afad7e3f376c47607a7a9ea3c50",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -53873,6 +54032,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "inputsOutputs": [
@@ -53927,6 +54090,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "identity": [
@@ -53985,6 +54152,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "ownership": [
@@ -54043,6 +54214,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "synchronization": [
@@ -54101,6 +54276,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "failure": [
@@ -54159,6 +54338,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "cancellation": [
@@ -54213,6 +54396,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "resources": [
@@ -54271,6 +54458,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "extension": [
@@ -54325,6 +54516,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "verification": [
@@ -54495,6 +54690,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_sdk_start.py",
                 "anchor": "def test_post_current_failure_after_start_reserve_keeps_both_original_inventories("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_confirmed_cancel_between_gate_and_next_drive_selects_same_original_retirement("
               }
             ]
           }
@@ -55960,6 +56159,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "inputsOutputs": [
@@ -55970,6 +56173,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "identity": [
@@ -55980,6 +56187,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "ownership": [
@@ -55990,6 +56201,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "synchronization": [
@@ -56000,6 +56215,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "failure": [
@@ -56010,6 +56229,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "cancellation": [
@@ -56020,6 +56243,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "resources": [
@@ -56030,6 +56257,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "extension": [
@@ -56040,12 +56271,20 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Original cancellation and unpublished state observations"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "verification": [
               {
                 "path": "scripts/fixtures/python-local-public-cancellation-abi.py",
                 "anchor": "assert final['status'] == 'cancelled' and not final['result_available']"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_confirmed_cancel_between_gate_and_next_drive_selects_same_original_retirement("
               }
             ]
           }
@@ -56192,6 +56431,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _handoff_original_step("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "inputsOutputs": [
@@ -56210,6 +56453,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _handoff_original_step("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "identity": [
@@ -56228,6 +56475,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _handoff_original_step("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "ownership": [
@@ -56246,6 +56497,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _handoff_original_step("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "synchronization": [
@@ -56264,6 +56519,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _handoff_original_step("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "failure": [
@@ -56282,6 +56541,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _handoff_original_step("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "cancellation": [
@@ -56300,6 +56563,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _handoff_original_step("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "resources": [
@@ -56318,6 +56585,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _handoff_original_step("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "extension": [
@@ -56336,6 +56607,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _handoff_original_step("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "verification": [
@@ -56350,6 +56625,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_async_operation_lock.py",
                 "anchor": "async def test_store_observation_worker_hands_same_original_to_control_between_real_reader_quanta("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_confirmed_cancel_between_gate_and_next_drive_selects_same_original_retirement("
               }
             ]
           }
@@ -56503,6 +56782,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "inputsOutputs": [
@@ -56529,6 +56812,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "identity": [
@@ -56555,6 +56842,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "ownership": [
@@ -56581,6 +56872,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "synchronization": [
@@ -56607,6 +56902,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "failure": [
@@ -56633,6 +56932,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "cancellation": [
@@ -56659,6 +56962,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "resources": [
@@ -56685,6 +56992,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "extension": [
@@ -56711,6 +57022,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "verification": [
@@ -56801,6 +57116,131 @@
               {
                 "path": "packages/python-sdk/tests/test_local_finite_run.py",
                 "anchor": "def test_known_prepare_failure_keeps_partial_parents_without_starting_work("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_confirmed_cancel_between_gate_and_next_drive_selects_same_original_retirement("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_cancel_original/confirm",
+            "InstalledLocalHost/_check_original_stop_interest",
+            "InstalledLocalHost/_dispatch_original_cancellation_stop",
+            "InstalledLocalHost/_lookup_original_cancellation/confirm",
+            "_OriginalCancellationStop",
+            "_OriginalCancellationStop/__init__"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _dispatch_original_cancellation_stop("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _dispatch_original_cancellation_stop("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _dispatch_original_cancellation_stop("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _dispatch_original_cancellation_stop("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _dispatch_original_cancellation_stop("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _dispatch_original_cancellation_stop("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _dispatch_original_cancellation_stop("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _dispatch_original_cancellation_stop("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _dispatch_original_cancellation_stop("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_confirmed_cancel_between_gate_and_next_drive_selects_same_original_retirement("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_entered_stop_gate_keeps_identity_without_scanning_unrelated_work("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_pending_cancel_readback_preserves_unrelated_live_run_lookup("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_pending_cancel_readback_retains_same_original_stop_and_close_debt("
               }
             ]
           }
@@ -68738,7 +69178,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "5c011cac8a4dc18270309cec8b4503a4a96c6532138984a885a3446791a2a644",
+      "sha256": "ba80654605785a6c8dd58297392e6e8341e90a66e08cdcfdc38d22ffe9194b22",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -79448,7 +79888,7 @@
     },
     {
       "module": "src/client_host_wasm/version.mbt",
-      "sha256": "f02f480b089ec1808f37f43ddd8f17252b8004e59f6f049bd6b2af24a8d29df6",
+      "sha256": "2f1fb0c26430a2d74830d0f7e0d4988a2749c451e3143c0efb7c6322ad3d39d4",
       "exports": [],
       "operations": [
         {
@@ -89373,9 +89813,114 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "cancellation_stop_record",
+            "observe_cancellation_stop_interest"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_host_wasm/submission_cancellation_append.mbt",
+                "anchor": "pub fn observe_cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/submission_cancellation_append.mbt",
+                "anchor": "pub fn observe_cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/submission_cancellation_append.mbt",
+                "anchor": "pub fn observe_cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/submission_cancellation_append.mbt",
+                "anchor": "pub fn observe_cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/submission_cancellation_append.mbt",
+                "anchor": "pub fn observe_cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/submission_cancellation_append.mbt",
+                "anchor": "pub fn observe_cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/submission_cancellation_append.mbt",
+                "anchor": "pub fn observe_cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/submission_cancellation_append.mbt",
+                "anchor": "pub fn observe_cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_host_wasm/submission_cancellation_append.mbt",
+                "anchor": "pub fn observe_cancellation_stop_interest("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/cancellation_stop_interest_wbtest.mbt",
+                "anchor": "test \"confirmed cancellation stop interest includes same retained accepted original\""
+              }
+            ]
+          }
         }
       ],
-      "sha256": "383a1bc6de47657fb03b862ca785e5d4e6e2c940f202d8b386f49614fcea3c4c",
+      "sha256": "d3fa7f2c99ab51e10199333c1303513b5980e6809ed410bf2befaaf7be5042a4",
       "exports": [],
       "operations": [
         {
@@ -89399,12 +89944,20 @@
           "declaration": "cancellation_request_fields ( value : Instance , record : StoredSubmissionProjection , ) - > Result [ ( String , Int , String ) , Int ]"
         },
         {
+          "name": "cancellation_stop_record",
+          "declaration": "cancellation_stop_record ( retained : StoredCancellationAppend , request : @ host . ClientRequestIdentity , definition : @ publication . PublicationContract , ) - > Result [ @ host . ClientCancellationJournalEncoding ? , Int ]"
+        },
+        {
           "name": "close_cancellation_append",
           "declaration": "close_cancellation_append ( record : StoredSubmissionProjection ) - > Int"
         },
         {
           "name": "confirm_cancellation_append",
           "declaration": "confirm_cancellation_append ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , retained : StoredCancellationAppend , ) - > Int"
+        },
+        {
+          "name": "observe_cancellation_stop_interest",
+          "declaration": "observe_cancellation_stop_interest ( nonce : Int64 , handle : Int , run : Int , current : Int , ) - > Int"
         },
         {
           "name": "produce_cancellation_append",

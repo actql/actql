@@ -3311,6 +3311,43 @@ cannot complete that cleanup. An uncertain write cannot be replaced by a fresh
 state preparation. Cold status reads only the saved originals, with no prepare,
 lowering, dispatch or authorization renewal.
 
+#### Confirmed cancellation stop interest
+
+The existing cancellation projection exposes stop interest only after its same
+original candidate has been confirmed. Core binds the projection to the same
+nominal Run, configuration, Request and Definition, rechecks current authority,
+and freshly reads its exact Run and cancellation rows. An accepted original
+retained through uncertain-COMMIT readback is eligible too. No-plan,
+already-requested and already-terminal records select no stop; pending, absent
+or foreign originals retain their existing refusals. The observation performs
+two point reads at this control boundary, not namespace inventories per quantum.
+
+Python dispatches that observation to the same retained physical invocation
+before closing the projection. Confirmation, dispatch and the next normal
+task-drive gate hold the same Core lock. A control handoff releases that lock
+before waiting and rechecks the original invocation after reacquiring it. No
+stale outside-lock flag authorizes another quantum. The gate selects the
+already-entered physical worker with its original thread, Host, Run and owner
+checks; it does not search unrelated work history. No thread join occurs while
+holding the Core/Store locks.
+
+A pending cancellation projection retains the bounded original cancellation
+locator captured with it. Lookup may confirm, dispatch and consume that pending
+projection only when its Run reference, cancellation id and expected revision
+match that same locator. An unrelated lookup returns its own checked view and
+leaves the pending original untouched. The locator is routing DATA only: the
+same Core projection, nominal Run and fresh current/row checks still decide
+stop interest. Failed projection close retains that association and its original
+cleanup duty; no lookup resends the cancellation write.
+
+Stop interest is neither permission to work nor a cancellation outcome. The
+private invocation signal only selects existing Compute sealing and original
+child retirement. Other Core refusals, including `-35`, remain errors; original
+cleanup failures and pending loans remain retained. Only the existing Common
+unpublished-state Owner, with its actual stop and cleanup observations, can
+report terminal cancellation. Closing the projection or observing a completed
+Python Future supplies no such acknowledgment.
+
 Managed task custody records successful settlement only after the original
 operation returns success. Later close still observes actual physical stop and
 the original cleanup port, but does not repeat settlement after that execution

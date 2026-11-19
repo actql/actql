@@ -3,7 +3,7 @@
 #define ACTQL_COMPILER_CORE_ABI_H
 #include <stddef.h>
 typedef struct { const char *name; const char *parameters; const char *result; } actql_compiler_signature;
-#define ACTQL_COMPILER_CORE_ABI 88
+#define ACTQL_COMPILER_CORE_ABI 89
 static const actql_compiler_signature actql_compiler_imports[] = {
     {"execution_child_admit", "i64", "i32"},
     {"execution_child_capacity", "i64 i32", "i64"},
@@ -283,6 +283,7 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_source_start", "i64 i32", "i32"},
     {"actql_source_started", "i64 i32", "i32"},
     {"actql_submission_begin_cleanup", "i64 i32", "i32"},
+    {"actql_submission_cancellation_stop_interest", "i64 i32 i32 i32", "i32"},
     {"actql_submission_close", "i64 i32", "i32"},
     {"actql_submission_length", "i64 i32", "i32"},
     {"actql_submission_produce", "i64 i32", "i32"},
@@ -309,5 +310,5 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_workspace_reserve", "i64 i32 i64", "i32"},
     {"actql_workspace_root_reserved", "i64", "i64"},
 };
-#define ACTQL_COMPILER_EXPORTS_COUNT 277
+#define ACTQL_COMPILER_EXPORTS_COUNT 278
 #endif
