@@ -16,6 +16,7 @@ import {checkedRequestSnapshotPreparation, requestProgramCapacityRefusal}
   from './client-program-preparation.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
+import {createLocalSigningOriginalReader} from './local-checkpoint-answer.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 import {checked as checkedRuntime} from '../host-common/runtime-result.mjs';
 import {retainUpdateTargetSelection, originalUpdateTargetSelectionsCid, updateTargetSelectionMatchesRun}
@@ -1535,7 +1536,6 @@ test('retained Plan lookup keeps partial failure and fences original retirement 
 });
 
 test('Local signing original uses the same restored parent and keeps its borrow through consumption', async () => {
-  const source = retainedRequestSourceMember('./embedded-local.mjs', 'loadRunOriginal');
   const managed = {}, original = {}, materials = {}, requestIdentity = {}, invocation = {}, preview = {};
   const runDefinition = {wire: 'original-definition'}, retained = {runDefinition, revision: 2, cancellationRequested: false};
   const recovered = {materials, requestIdentity, originalSubmittedIntent: {referenceWire: 'original-reference', assertCurrent() {}},
@@ -1546,11 +1546,11 @@ test('Local signing original uses the same restored parent and keeps its borrow 
     journal: {lookupRunDefinition: () => retained},
     restoreEffectManagedPreparation: async () => {calls.push('same-parent'); return {managedEffect: managed, original};},
     recoverEffectCapture(ref, signal, parent, retain, binding) {assert.strictEqual(parent, managed); assert.strictEqual(binding, original); calls.push('capture'); return recovered;},
-    localSigningRecoveries: recoveries, assertProjectRuntime() {}, preparation: {assertResultPublicationCurrent() {}},
+    localSigningRecoveries: recoveries, assertCurrent() {},
     clientOperationError: code => Object.assign(new Error(code), {code}),
     async releaseLocalSigningRecovery(value) {assert.strictEqual(value, recovered); assert.equal(consuming, false); calls.push('release-original'); recoveries.delete(value);}};
-  const owner = new Function(...Object.keys(ports), 'return ({' + source + '});')(...Object.values(ports));
-  const result = await owner.loadRunOriginal({runDefinitionCid: 'original-run', requiredArtifact: {cid: 'preview-cid'}}, undefined, async frame => {
+  const loadRunOriginal = createLocalSigningOriginalReader(ports);
+  const result = await loadRunOriginal({runDefinitionCid: 'original-run', requiredArtifact: {cid: 'preview-cid'}}, undefined, async frame => {
     assert(recoveries.has(recovered)); assert.strictEqual(frame.materials, materials); assert.strictEqual(frame.requestIdentity, requestIdentity);
     assert.strictEqual(frame.invocation, invocation); stale = frame.assertCurrent; frame.assertCurrent();
     consuming = true; await Promise.resolve(); assert(recoveries.has(recovered)); consuming = false; calls.push('consume'); return 'signed';
