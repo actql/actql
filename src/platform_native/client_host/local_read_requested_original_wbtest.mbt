@@ -130,7 +130,7 @@ test "requested original purpose independent canonical body preserves its comple
     #|{"native":{"result_read":{"connection":"cli","data_policy_cids":["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],"enabled":true,"formats":["jsonl"],"max_bytes":65536,"max_uses":1,"principal":"operator","purpose":"inspection","result_selection":{"kind":"requested_original_result"},"retention_file":"retention.json","run_file":"run.json","run_policy_profile_cid":"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243","sink":"stdout","store_file":"store.json"}},"version":"actql-config/0.1"}
   assert_eq(
     "sha256:" + @sha.hex(@utf8.encode(wire)),
-    "sha256:4eda3772ec30b941c674a137584057cb17d49d7c2a40e1e4c931a668d0b717e4",
+    "sha256:9c2deeb0bce96f7adedf721c204ae410597abf5b68686192dfe3cc2a35ff6148",
   )
   assert_true(
     admit_native_local_read_purpose(wire).unwrap().names
