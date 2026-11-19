@@ -4668,14 +4668,14 @@
         "./entry.mjs",
         "./installed-source.mjs",
         "./local-values-plan.mjs",
+        "./logical-task-observation.mjs",
         "./ordinary-source-binding.mjs",
-        "node:util",
-        "./logical-task-observation.mjs"
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "fbed381ffd34aac1dce55a64c7b24a4e839803619a1d36b30dc8bbc98c406918",
+      "sha256": "e5f3b3e727d1cb715ee420a5dddf50f3b144ca7a882840ebb43c2bd124f609d8",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {

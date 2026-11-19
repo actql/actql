@@ -25820,6 +25820,102 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:executionFailureExplanation/init:executionFailureExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Canonical Timestamp conversion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "The Common catalogue maps only that exact closed cause"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "executionFailureExplanation(cause) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "existing 512-unit terminal envelope"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_explanation_test.mbt",
+                "anchor": "test \"canonical timestamp cause describes its expected existing input form"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_message_js_wbtest.mbt",
+                "anchor": "test \"original canonical CAST cause reaches Common catalogue"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_timestamp_explanation_bridge_wbtest.mbt",
+                "anchor": "test \"timestamp explanation Node bridge preserves actual String Option ABI"
+              },
+              {
+                "path": "adapters/host-node/client-failure-catalog-message.test.mjs",
+                "anchor": "test('actual dispatch owner forwards only the installed Common catalogue method'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -29003,6 +29099,13 @@
           "name": "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:executionFailureExplanation/init:executionFailureExplanation",
+          "parameters": [
+            "cause"
           ],
           "async": false
         },
@@ -35008,7 +35111,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "f71b16e6494e042143fabc041178e2281fe2b63ea14368e46a7baa6b5041451a"
+      "sha256": "723603ead261adc7fc67a20fe8339c3ebc274e07653f72e611e78931e8844df0"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -42528,14 +42631,14 @@
         "./entry.mjs",
         "./installed-source.mjs",
         "./local-values-plan.mjs",
+        "./logical-task-observation.mjs",
         "./ordinary-source-binding.mjs",
-        "node:util",
-        "./logical-task-observation.mjs"
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "fbed381ffd34aac1dce55a64c7b24a4e839803619a1d36b30dc8bbc98c406918",
+      "sha256": "e5f3b3e727d1cb715ee420a5dddf50f3b144ca7a882840ebb43c2bd124f609d8",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {

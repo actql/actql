@@ -10136,6 +10136,102 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:executionFailureExplanation/init:executionFailureExplanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Canonical Timestamp conversion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "The Common catalogue maps only that exact closed cause"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "executionFailureExplanation(cause) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "existing 512-unit terminal envelope"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_explanation_test.mbt",
+                "anchor": "test \"canonical timestamp cause describes its expected existing input form"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_message_js_wbtest.mbt",
+                "anchor": "test \"original canonical CAST cause reaches Common catalogue"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_timestamp_explanation_bridge_wbtest.mbt",
+                "anchor": "test \"timestamp explanation Node bridge preserves actual String Option ABI"
+              },
+              {
+                "path": "adapters/host-node/client-failure-catalog-message.test.mjs",
+                "anchor": "test('actual dispatch owner forwards only the installed Common catalogue method'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -13319,6 +13415,13 @@
           "name": "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:executionFailureExplanation/init:executionFailureExplanation",
+          "parameters": [
+            "cause"
           ],
           "async": false
         },
@@ -19324,7 +19427,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "f71b16e6494e042143fabc041178e2281fe2b63ea14368e46a7baa6b5041451a"
+      "sha256": "723603ead261adc7fc67a20fe8339c3ebc274e07653f72e611e78931e8844df0"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -99890,7 +99993,7 @@
     },
     {
       "module": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
-      "sha256": "4c9b58f52983c931e8df40bfdf5bbdc41f666b76eeecda34b2ae9a5162e7dee0",
+      "sha256": "efb14327586be3e0e7a576bc64ad708de715f83a82d70a72657d6b2e044cf2e3",
       "exports": [],
       "operations": [
         {
@@ -99920,6 +100023,10 @@
         {
           "name": "local_managed_advance_row_step",
           "declaration": "local_managed_advance_row_step ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int"
+        },
+        {
+          "name": "local_managed_failure_explanation",
+          "declaration": "local_managed_failure_explanation ( cause : String ) - > String ?"
         }
       ],
       "role": "common-semantics",
@@ -100164,6 +100271,102 @@
               {
                 "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
                 "anchor": "test('original typed row cause reaches"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "local_managed_failure_explanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Canonical Timestamp conversion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "The Common catalogue maps only that exact closed cause"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_managed_failure_bridge.mbt",
+                "anchor": "pub fn local_managed_failure_explanation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "existing 512-unit terminal envelope"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_explanation_test.mbt",
+                "anchor": "test \"canonical timestamp cause describes its expected existing input form"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_message_js_wbtest.mbt",
+                "anchor": "test \"original canonical CAST cause reaches Common catalogue"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_timestamp_explanation_bridge_wbtest.mbt",
+                "anchor": "test \"timestamp explanation Node bridge preserves actual String Option ABI"
+              },
+              {
+                "path": "adapters/host-node/client-failure-catalog-message.test.mjs",
+                "anchor": "test('actual dispatch owner forwards only the installed Common catalogue method'"
               }
             ]
           }
@@ -100172,7 +100375,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
-      "sha256": "4a86ab53841d962732241c68c6e07b21cca8fefce68ab094704bad19df91929e",
+      "sha256": "a5d03e3c954b7984786174c215a5c2f0e0a9840a3966994fe12f5a2b2d3bbf20",
       "exports": [],
       "operations": [
         {
@@ -100202,6 +100405,10 @@
         {
           "name": "local_managed_advance_row_step",
           "declaration": "local_managed_advance_row_step ( result : Result [ @ local_driver . LocalManagedAdvance , @ local_driver . LocalDispatchIssue , ] , ) - > Int"
+        },
+        {
+          "name": "local_managed_failure_explanation",
+          "declaration": "local_managed_failure_explanation ( cause : String ) - > String ?"
         }
       ],
       "role": "common-semantics",
@@ -100446,6 +100653,102 @@
               {
                 "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
                 "anchor": "test('original typed row cause reaches"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "local_managed_failure_explanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Canonical Timestamp conversion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "The Common catalogue maps only that exact closed cause"
+              },
+              {
+                "path": "src/connectors_builtin_node_rela/local_managed_failure_bridge.mbt",
+                "anchor": "pub fn local_managed_failure_explanation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "existing 512-unit terminal envelope"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_explanation_test.mbt",
+                "anchor": "test \"canonical timestamp cause describes its expected existing input form"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_message_js_wbtest.mbt",
+                "anchor": "test \"original canonical CAST cause reaches Common catalogue"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_timestamp_explanation_bridge_wbtest.mbt",
+                "anchor": "test \"timestamp explanation Node bridge preserves actual String Option ABI"
+              },
+              {
+                "path": "adapters/host-node/client-failure-catalog-message.test.mjs",
+                "anchor": "test('actual dispatch owner forwards only the installed Common catalogue method'"
               }
             ]
           }
@@ -105899,7 +106202,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-diagnostic.mjs",
-      "sha256": "81551a4a6fd8f7c086e79cd9a7a0ad5f7d46e9f7bd778777c8b55389bc3d8775",
+      "sha256": "0b317e1e8997bc84bfe2a48ba4f6ab1bb8b37d7cc4f708379a7a254f07459881",
       "exports": [
         "dispatchFailureCodeSite",
         "dispatchFailureSnapshot",
@@ -105933,7 +106236,8 @@
         {
           "name": "publicBudgetFailureMessage",
           "parameters": [
-            "error"
+            "error",
+            "describeCause"
           ],
           "async": false
         },
@@ -105943,7 +106247,8 @@
             "key",
             "state",
             "runId",
-            "control"
+            "control",
+            "describeCause"
           ],
           "async": false
         },
@@ -106089,6 +106394,22 @@
               {
                 "path": "adapters/host-node/client-preparation-disclosure.test.mjs",
                 "anchor": "test('prepared submission catch retains original first and observer throw cannot replace primary or touch cleanup'"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_explanation_test.mbt",
+                "anchor": "test \"canonical timestamp cause describes its expected existing input form"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_message_js_wbtest.mbt",
+                "anchor": "test \"original canonical CAST cause reaches Common catalogue"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_timestamp_explanation_bridge_wbtest.mbt",
+                "anchor": "test \"timestamp explanation Node bridge preserves actual String Option ABI"
+              },
+              {
+                "path": "adapters/host-node/client-failure-catalog-message.test.mjs",
+                "anchor": "test('actual dispatch owner forwards only the installed Common catalogue method'"
               }
             ]
           }
@@ -106097,12 +106418,16 @@
     },
     {
       "module": "src/execution_relation/row_failure_diagnostic.mbt",
-      "sha256": "b40d9057d915125cf7fd8fbe9855d44c005ea15c59075cfcff8651ad383710fa",
+      "sha256": "8b8bcabe33c8eaf6bb10fb4666c94c18b233e858df6773c1a34d8d1bb81fb253",
       "exports": [],
       "operations": [
         {
           "name": "row_failure_diagnostic_cause",
           "declaration": "row_failure_diagnostic_cause ( issue : RowIssue ) - > String ?"
+        },
+        {
+          "name": "row_failure_diagnostic_explanation",
+          "declaration": "row_failure_diagnostic_explanation ( cause : String ) - > String ?"
         },
         {
           "name": "row_failure_is_logical_work_limit",
@@ -106201,6 +106526,102 @@
               {
                 "path": "src/connectors/local/driver/managed_advance_diagnostic_wbtest.mbt",
                 "anchor": "logical work failure keeps actual policy"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_failure_diagnostic_explanation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Canonical Timestamp conversion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "The Common catalogue maps only that exact closed cause"
+              },
+              {
+                "path": "src/execution_relation/row_failure_diagnostic.mbt",
+                "anchor": "pub fn row_failure_diagnostic_explanation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "existing 512-unit terminal envelope"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/managed-advance-diagnostic.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_explanation_test.mbt",
+                "anchor": "test \"canonical timestamp cause describes its expected existing input form"
+              },
+              {
+                "path": "src/execution_relation/timestamp_cause_message_js_wbtest.mbt",
+                "anchor": "test \"original canonical CAST cause reaches Common catalogue"
+              },
+              {
+                "path": "src/connectors_builtin_node/local_timestamp_explanation_bridge_wbtest.mbt",
+                "anchor": "test \"timestamp explanation Node bridge preserves actual String Option ABI"
+              },
+              {
+                "path": "adapters/host-node/client-failure-catalog-message.test.mjs",
+                "anchor": "test('actual dispatch owner forwards only the installed Common catalogue method'"
               }
             ]
           }
