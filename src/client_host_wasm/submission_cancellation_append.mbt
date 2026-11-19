@@ -279,6 +279,135 @@ fn confirm_cancellation_append(
 }
 
 ///|
+// Pure relationship inside the existing cancellation Owner. The caller still
+// owes current/target observations; this result grants no normal work or ACK.
+fn cancellation_stop_record(
+  retained : StoredCancellationAppend,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+) -> Result[@host.ClientCancellationJournalEncoding?, Int] {
+  if @host.client_request_identity_relation(retained.run.1.request, request) !=
+    @host.SameRequest ||
+    @publication.publication_contract_identity(retained.run.1.definition) !=
+    @publication.publication_contract_identity(definition) {
+    return Err(-35)
+  }
+  guard retained.plan is Some(plan) else { return Ok(None) }
+  if !retained.confirmed {
+    return Err(-33)
+  }
+  // A retained readback can be the same original accepted operation. Its
+  // original action, rather than Append/Retained shape, determines interest.
+  let original = cancellation_append_original_record(plan)
+  if @host.client_request_identity_relation(original.request, request) !=
+    @host.SameRequest ||
+    @publication.publication_contract_identity(original.definition) !=
+    @publication.publication_contract_identity(definition) {
+    return Err(-35)
+  }
+  match original.action {
+    @host.AcceptCancellation => Ok(Some(original))
+    @host.AlreadyRequested | @host.AlreadyTerminal => Ok(None)
+  }
+}
+
+///|
+/// Observe stop interest from this SAME confirmed cancellation/Run only.
+/// Zero is no request; one requests original physical retirement, never work,
+/// cancellation completion or physical ACK. Negative refusals remain refusals.
+pub fn observe_cancellation_stop_interest(
+  nonce : Int64,
+  handle : Int,
+  run : Int,
+  current : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
+    record.kind == 10 &&
+    record.produced &&
+    !record.output_closed &&
+    record.cancellation_append is Some(retained) &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    configuration.host_current == Some(current) &&
+    value.runs.get(run) is Some(original_run) &&
+    original_run.configuration == record.configuration &&
+    original_run.outcome is Some(Ok(plan)) &&
+    value.host_currents.get(current) is Some(scope) else {
+    return -2
+  }
+  let check = () => submission_lookup_current(value, record, configuration)
+  match check() {
+    Err(code) => return code
+    Ok(_) => ()
+  }
+  let request = @local_run.local_run_request(plan)
+  let definition = @local_run.local_run_definition(plan)
+  let accepted = match cancellation_stop_record(retained, request, definition) {
+    Ok(Some(original)) => original
+    Ok(None) => return 0
+    Err(code) => return code
+  }
+  if accepted.namespace_id != configuration.run_namespace {
+    return -35
+  }
+  guard record.saved_snapshot is Some(snapshot) &&
+    @host.client_saved_submission_run_row(snapshot) is Some(expected) &&
+    expected.key == @host.client_request_scope_cid(request) else {
+    return -33
+  }
+  // The control request boundary reobserves only its two original target rows.
+  // No namespace census or cold/status admission enters the normal task loop.
+  let read = (table, key) => {
+    physical_journal_row(scope.physical, check, 1, table, key)
+  }
+  let row = match read("client_runs", expected.key) {
+    Ok(Some(row)) => row
+    Ok(None) => return -33
+    Err(code) => return code
+  }
+  if row.key != expected.key ||
+    row.revision != expected.revision ||
+    row.body != expected.body {
+    return -35
+  }
+  let encoding = match sdk_run_row_original(value, run, row) {
+    Ok(encoding) => encoding
+    Err(code) => return code
+  }
+  if !encoding.cancellation_requested {
+    return -35
+  }
+  let key = match
+    @host.client_cancellation_journal_index(
+      accepted.namespace_id,
+      @host.client_request_authority_scope_cid(request),
+      accepted.cancel_id,
+    ) {
+    Some(key) => key
+    None => return -31
+  }
+  let cancellation = match read("client_cancellations", key) {
+    Ok(Some(row)) if row.key == key => row
+    Ok(Some(_)) => return -35
+    Ok(None) => return -33
+    Err(code) => return code
+  }
+  let observed = match
+    @host.decode_client_cancellation_journal_row(cancellation) {
+    Ok(observed) => observed
+    Err(_) => return -31
+  }
+  if @host.client_cancellation_journal_row_body(observed) !=
+    @host.client_cancellation_journal_row_body(accepted) {
+    return -35
+  }
+  match check() {
+    Ok(_) => 1
+    Err(code) => code
+  }
+}
+
+///|
 fn produce_cancellation_append(
   value : Instance,
   record : StoredSubmissionProjection,

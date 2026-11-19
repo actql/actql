@@ -161,11 +161,28 @@ class _OriginalExecution:
     rows_input: _Input | None = None
     physical_start: _PhysicalStart | None = None
     start_step: _Output | None = None
+    # A consumed Core-derived physical stop request. This original association
+    # is not business authority, current permission, cancellation state or ACK.
+    stop_interest: _Output | None = None
 
     def __call__(self) -> None:
         if self.reference is None:
             raise ValueError('Original execution has no admitted reference')
-        self.host._execute_original_admitted_run(self.run)
+        try:
+            self.host._execute_original_admitted_run(self.run)
+        except _OriginalCancellationStop as stop:
+            if stop.original is not self:
+                raise
+            # Existing handlers have sealed this same DAG and attempted its
+            # original child retirement. Pending/failed cleanup stays retained;
+            # only the separate Core state Owner can determine cancellation.
+            with self.host._core._lock:
+                work = next(value for value in self.host._physical_work if value._invoke is self)
+                if work._cleanup_error is not None:
+                    raise work._cleanup_error
+                if self.tasks is not None and any(
+                        self.host._core._task_loans.get(task.handle) is task for task in self.tasks):
+                    raise LocalProductCleanupPending(self.host)
 
     def input_cleanup(self) -> bool:
         # Only immutable in-memory input transport, exactly as the former
@@ -178,6 +195,13 @@ class LocalProductCleanupPending(RuntimeError):
     def __init__(self, host: 'InstalledLocalHost') -> None:
         super().__init__('Installed Local Host cleanup is pending')
         self.cleanup_host = host
+
+
+class _OriginalCancellationStop(Exception):
+    """Same invocation's physical control request, not a business failure/state."""
+    def __init__(self, original: _OriginalExecution) -> None:
+        super().__init__('Original cancellation requests physical retirement')
+        self.original = original
 
 
 def _default_directory() -> Path:
@@ -1646,8 +1670,12 @@ class InstalledLocalHost:
             pending = self._pending_cancellation_write
             if pending is not None:
                 confirmed: list[bool] = []
-                installation.binding.inspect(lambda current: confirmed.append(
-                    self._core.confirm_cancellation_append(pending, current, allow_pending=True)))
+                def confirm(current: _Output) -> None:
+                    value = self._core.confirm_cancellation_append(pending, current, allow_pending=True)
+                    confirmed.append(value)
+                    if value:
+                        self._dispatch_original_cancellation_stop(pending, reference, current)
+                installation.binding.inspect(confirm)
                 if confirmed == [True]:
                     if not self._close_projection(pending):
                         raise LocalProductCleanupPending(self)
@@ -1727,12 +1755,27 @@ class InstalledLocalHost:
                         inspect=inspect, current=installation.binding._current_observer)
                 if result is None:
                     raise LocalStorageError('Original cancellation write conflicted; lookup is required')
-            installation.binding.inspect(lambda current:
-                self._core.confirm_cancellation_append(output, current))
+            def confirm(current: _Output) -> None:
+                self._core.confirm_cancellation_append(output, current)
+                self._dispatch_original_cancellation_stop(output, captured['ref'], current)
+            installation.binding.inspect(confirm)
             if not self._close_projection(output):
                 raise LocalProductCleanupPending(self)
             self._pending_cancellation_write = None
             return response
+
+    def _dispatch_original_cancellation_stop(self, output: _Output, reference: object,
+                                             current: _Output) -> None:
+        """Caller holds Core/control custody through the canonical confirmation."""
+        selected = self._find_original_run_reference(
+            _canonical_bytes(reference, data_keys=True))  # type: ignore[no-untyped-call]
+        original = None if selected is None else self._execution_for_run(selected.run)
+        if type(original) is _OriginalExecution:
+            self._runs._run(original.run)
+            if self._core.cancellation_stop_interest(output, original.run.handle, current):
+                # Dispatch under the SAME lock as CAS/readback. This consumed
+                # request is physical interest, never retained business authority.
+                original.stop_interest = output
 
     def _read_original_reference(self, reference: object, *, kind: int,
                                  intent: bytes | None = None, intent_cid: str | None = None) -> bytes:
@@ -2628,6 +2671,7 @@ class InstalledLocalHost:
         No guest view, current frame or reusable permission leaves this unit.
         """
         with self._core._lock:
+            self._check_original_stop_interest(compute.start.run)
             installation = self._active()
             self._runs._compute(compute)
             values: list[_T] = []
@@ -2647,7 +2691,15 @@ class InstalledLocalHost:
             physical = retained[0] if retained is not None and retained[0]._owner is run else None
         if physical is not None:
             physical._yield_to_control()
+            with self._core._lock:
+                self._check_original_stop_interest(run)
         return value
+
+    def _check_original_stop_interest(self, run: _Run) -> None:
+        """Caller holds Core: no stale check may race a confirmed cancel CAS."""
+        original = self._current_execution()
+        if type(original) is _OriginalExecution and original.run is run and original.stop_interest is not None:
+            raise _OriginalCancellationStop(original)
 
     def _capture_original_results(self, compute: _SourceFreeCompute, preflight: _Output,
                                   results: tuple[_ResultExport, ...]) -> _Output:

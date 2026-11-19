@@ -317,6 +317,7 @@ options(
         "close_submission_projection:actql_submission_close",
         "begin_submission_cleanup:actql_submission_begin_cleanup",
         "validate_submission_append:actql_submission_validate_append",
+        "observe_cancellation_stop_interest:actql_submission_cancellation_stop_interest",
         "host_abi_version:actql_host_abi_version",
         "reserve_workspace:actql_workspace_reserve",
         "close_workspace:actql_workspace_close",

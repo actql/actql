@@ -2460,6 +2460,23 @@ class LocalCore:
             self._check('produce_cancellation_append', code)
             self.validate_cancellation_append(value, current)
 
+    def cancellation_stop_interest(self, value: _Output, run: int,
+                                   current: _Output) -> bool:
+        """Dispatch interest from Core's SAME confirmed original, never a Run outcome."""
+        with self._lock:
+            self._owned_output(value, 'cancellation_append')
+            if type(run) is not int or not 0 < run < 2**31:
+                raise ValueError('Invalid original cancellation Run handle')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'cancellation_stop_interest',
+                              value.handle, run, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            if code in (0, 1):
+                return code == 1
+            self._check('cancellation_stop_interest', code if code < 0 else -33)
+            raise AssertionError('Unreachable cancellation stop interest')
+
     def validate_cancellation_append(self, value: _Output, current: _Output) -> None:
         with self._lock:
             self._owned_output(value, 'cancellation_append')
