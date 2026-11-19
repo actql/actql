@@ -1,8 +1,10 @@
 """Independent scalar capacity originals and actual file/ZIP checks; no Engine."""
+from contextlib import nullcontext
 from dataclasses import replace
 import hashlib
 import importlib.util
 import json
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -43,7 +45,7 @@ class CapacityOriginalTests(unittest.TestCase):
     def stage(self):
         encoded = self.installed()
         (self.directory / '_local_host_capacity.json').write_bytes(encoded)
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 74,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 89,
             'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
             'host_capacity_sha256': hashlib.sha256(encoded).hexdigest()}
         (self.directory / '_local_release_binding.json').write_text(json.dumps(binding))
@@ -116,6 +118,7 @@ class CapacityOriginalTests(unittest.TestCase):
 
     def test_ordinary_factory_does_not_import_declared_capacity_as_physical_funding(self):
         self.stage(); core = Mock()
+        core._host_operation.return_value = nullcontext()
         with patch('actql_sdk._local_capacity_original.resources.files', return_value=self.directory), \
                 patch('actql_sdk._local_capacity_original._selected_capacity_original',
                       side_effect=AssertionError('No declared backing import')) as physical, \
@@ -126,6 +129,7 @@ class CapacityOriginalTests(unittest.TestCase):
             InstalledLocalHost.installed()
         resolve.assert_called_once_with()
         physical.assert_not_called()
+        core._host_operation.assert_called_once_with(initial=True)
         self.assertEqual(construct.call_count, 1)
         limits = construct.call_args.kwargs['resources']
         self.assertTrue(limits.valid())
@@ -148,7 +152,9 @@ class CapacityOriginalTests(unittest.TestCase):
 
     def script(self):
         spec = importlib.util.spec_from_file_location('capacity_cohort_recipe', ROOT / 'scripts/build-python-product-wheels.py')
-        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        module = importlib.util.module_from_spec(spec)
+        with patch.object(sys, 'path', [str(ROOT / 'scripts'), *sys.path]):
+            spec.loader.exec_module(module)
         return module
 
     def test_wheel_capacity_member_is_exact_and_not_an_engine_acceptance(self):
