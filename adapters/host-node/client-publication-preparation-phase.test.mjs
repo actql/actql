@@ -8,6 +8,9 @@ import {prepareOrdinarySourceManagedInstallation, prepareOrdinaryProjectSourceMa
   from './ordinary-source-managed.mjs';
 import resources from './ordinary-node-resource-runtime.cjs';
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
+import {sourceFreeTaskPlan, sourceFreePlanOriginal, localContractLimits, localOutputLimits}
+  from './local-values-plan.mjs';
+import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 function get(file,name,context,property=false){const source=readFileSync(new URL(file,import.meta.url),'utf8'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let n;function walk(x){if(!x||typeof x!=='object')return;if(property?x.type==='Property'&&x.key?.name===name:x.type==='FunctionDeclaration'&&x.id?.name===name)n=property?x.value:x;for(const v of Object.values(x)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}}walk(ast);assert(n,name);const code=property?`${n.async?'async ':''}function(${n.params.map(p=>source.slice(p.start,p.end)).join(',')})${source.slice(n.body.start,n.body.end)}`:source.slice(n.start,n.end);return new Function(...Object.keys(context),`return ${code}`)(...Object.values(context));}
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 test('publication phase manager relays the actual original Run without caller quote or holder',()=>{
@@ -71,23 +74,48 @@ test('funded Values plan passes its borrowed owner and Prepared to the single in
 });
 
 test('funded source-free Tasks plan forwards its original publication owner and Prepared once',()=>{
- const prepared={},owner={},compiled={kind:'tasks'},definition={},observation={},invocation={},original={};
- let issues=0;
- const acquired={compiled,runDefinition:definition,admission:{},compiledPlan:{identity:'compiled'},
-   preparedEvidence:{wire:'prepared'},authorization:{wire:'authorization'},createdAt:'created'};
- const control={issueCheckedClientCompiledInvocation(actual,run,policy,limits,publication,body){
-   assert.equal(actual,compiled);assert.equal(run,definition);assert.equal(policy.dataPolicyCid,'policy');
-   assert.equal(publication,owner);assert.equal(body,prepared);assert.equal(issues++,0);
-   return {observation,invocation};}};
- const invoke=get('./local-values-plan.mjs','sourceFreeTaskPlan',{
-   acquiredTaskRunAdmission:options=>{assert.equal(options.preparedProgram,prepared);return acquired;},
-   policyCid:()=> 'policy',limits:{},
-   localPublicationPlan:input=>{assert.equal(input.invocation,invocation);assert.equal(input.observation,observation);return {};},
-   checkedLocalOutputLimits:()=>({}),valuesAdmissions:new WeakMap(),originalPlans:new WeakMap(),
-   sourceFreePlanOriginal:actual=>{assert.equal(actual,acquired);return original;}});
- invoke({moon:{clientProgramDefinitionCid:()=> 'program',clientProgramResultCount:()=>1},
-   control,preparedProgram:prepared,publicationPreparation:owner});
- assert.equal(issues,1);
+ const prepared={},owner={},request={},authoring={},definition={identity:'run'},observation={},invocation={},original={};
+ const compiled={kind:'tasks',admission:{},compiledPlan:{identity:'compiled'},
+   preparedEvidence:{wire:'prepared'},authorization:{wire:'authorization'}};
+ const retention=Object.freeze({identity:'original-retention',wire:'original checked retention'});
+ let issues=0,retentionIssues=0,captures=0,dataPolicy;
+ const control={
+   prepareCheckedClientCompiledRun(actual,kind){assert.strictEqual(actual,prepared);assert.equal(kind,'tasks');return compiled;},
+   defineCheckedClientCompiledRun(actual){assert.strictEqual(actual,compiled);return definition;},
+   captureOriginalClientRunPlan(actual,body,run,limits){
+     assert.strictEqual(actual,compiled);assert.strictEqual(body,prepared);assert.strictEqual(run,definition);
+     assert.strictEqual(limits,localContractLimits);assert.equal(captures++,0);return original;
+   },
+   issueCheckedClientCompiledInvocation(actual,run,policy,limits,publication,body){
+     assert.strictEqual(actual,compiled);assert.strictEqual(run,definition);
+     assert.strictEqual(publication,owner);assert.strictEqual(body,prepared);
+     assert.strictEqual(limits,localContractLimits);assert.equal(issues++,0);dataPolicy=policy.dataPolicyCid;
+     return {observation,invocation};
+   },
+   issueProgramInitialRetention(publication,body,identity,policy,selection,dependencies,limits){
+     assert.strictEqual(this,control);assert.strictEqual(publication,owner);assert.strictEqual(body,prepared);
+     assert.strictEqual(identity,request);assert.strictEqual(policy,dataPolicy);assert.strictEqual(limits,localContractLimits);
+     assert.deepEqual(selection,{availableUntil:'2026-11-19T01:00:00.000Z',
+       deleteBy:'2026-11-19T02:00:00.000Z',metadataDeleteBy:'2026-11-26T00:00:00.000Z'});
+     assert.deepEqual(dependencies.map(item=>item.kind),['retention_contract','metadata_retention_policy','clock_contract']);
+     assert.equal(retentionIssues++,0);return retention;
+   },
+   preparedClientNormalizationEvidence(body){assert.strictEqual(body,prepared);return {};},
+   preparedClientAuthoringContextEvidence(body,proof){assert.strictEqual(body,prepared);assert.strictEqual(proof,authoring);return {};},
+   compiledRunResultTransformation(actual,body,index){assert.strictEqual(actual,compiled);assert.strictEqual(body,prepared);assert.equal(index,0);},
+ };
+ const moon={clientProgramDefinitionCid:body=>{assert.strictEqual(body,prepared);return 'program';},
+   clientProgramResultCount:()=>1,
+   clientProgramInstalledManagedPublicationLimits(publication,body){
+     assert.strictEqual(publication,owner);assert.strictEqual(body,prepared);
+     return resultOutputLimitFields.map(name=>localOutputLimits[name]);
+   }};
+ const plan=sourceFreeTaskPlan({moon,control,preparedProgram:prepared,requestIdentity:request,
+   publicationPreparation:owner,publicationOriginal:{kind:'installed_run',value:owner,authoringContext:authoring},
+   authorityScopeCid:'authority',namespaceId:'namespace',storeAuthorityCid:'store',now:()=> '2026-11-19T00:00:00.000Z'});
+ assert.equal(issues,1);assert.equal(retentionIssues,1);assert.equal(captures,1);
+ assert.strictEqual(plan.invocation,invocation);assert.strictEqual(plan.observation,observation);
+ assert.strictEqual(plan.results[0].retention,retention);assert.strictEqual(sourceFreePlanOriginal(plan),original);
 });
 
 test('funded source-free Tasks invocation uses the same Core owner without a legacy issuer',()=>{
