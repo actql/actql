@@ -407,12 +407,14 @@ fn NativeLocalReadPurpose::narrow_original(
   if name.is_empty() || name.length() > 128 || name.contains("\u{0000}") {
     return Err(SelectionMismatch)
   }
-  // Finite selection record1H7R4W, one-name array1H1R, returned Ok1H1R1W.
-  // Text is the SAME retained original name; no normalization/copy or wildcard.
-  guard @execution.preparation_representation_cost({
-      record_headers: 3L,
-      reference_slots: 9L,
-      scalar_words: 5L,
+  // Finite selection record1H7R4W + pinned one-name wrapper/backing2H2R2W
+  // + returned Ok1H1R1W =4H10R7W. No growth or String copy occurs.
+  // Use the existing pinned collection owner, not a raw-array assumption.
+  guard @shape.reference_array_retained_extent(1L, 1L) is Some(array) &&
+    @execution.preparation_representation_cost({
+      record_headers: 2L + array.record_headers,
+      reference_slots: 8L + array.reference_slots,
+      scalar_words: 5L + array.scalar_words,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })

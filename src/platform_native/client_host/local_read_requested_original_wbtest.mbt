@@ -87,16 +87,16 @@ test "requested original narrows to one existing name and preserves finite opera
 test "requested original finite controls are admitted before the original lookup" {
   let purpose = admit_native_local_read_purpose(requested_original_test_wire()).unwrap()
   let observations = Ref(0)
-  // Independent adopted tariff:3H*16 +9R*8 +5W*8 =160B; no String copy.
+  // Independent pinned wrapper/backing and tariff:4H*16+10R*8+7W*8=200B.
   assert_eq(
     @execution.preparation_representation_cost({
-      record_headers: 3L,
-      reference_slots: 9L,
-      scalar_words: 5L,
+      record_headers: 4L,
+      reference_slots: 10L,
+      scalar_words: 7L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     }),
-    Some(160L),
+    Some(200L),
   )
   assert_true(
     purpose.narrow_original(
@@ -105,7 +105,7 @@ test "requested original finite controls are admitted before the original lookup
         observations.val += 1
         true
       },
-      (r, e) => r <= 159L && e <= 160L,
+      (r, e) => r <= 199L && e <= 200L,
     )
     is Err(_),
   )
@@ -117,7 +117,7 @@ test "requested original finite controls are admitted before the original lookup
         observations.val += 1
         true
       },
-      (r, e) => r == 160L && e == 160L,
+      (r, e) => r == 200L && e == 200L,
     )
     .unwrap()
   assert_eq(observations.val, 1)

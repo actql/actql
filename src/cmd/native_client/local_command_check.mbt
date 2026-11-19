@@ -322,23 +322,24 @@ fn LocalCommandPreparationOriginal::execute_product_command(
         _ => None
       }
       let mock = mock.map(subjects => {
-        // Target vector1H1R, new subjects8R and Some1R/tag1W; the existing
-        // assembler additionally retains one alias to the selected String.
+        // The fixed target literal still has the pinned Array wrapper/backing:
+        //2H,(1+N)R,2W. Add new subjects1H8R, Some1H1R1W and the existing
+        // private assembler's selected-control alias1R, before any allocation.
+        let slots = if subjects.update_target is Some(_) { 1L } else { 0L }
+        let array = @shape.reference_array_retained_extent(1L, slots).unwrap_or_else(() => {
+            stop("LocalMockAccountConstructionUnavailable")
+          },
+        )
+        let controls : @authorization.AccountConfigurationConstructionUnits = {
+          record_headers: array.record_headers + 2L,
+          reference_slots: array.reference_slots + 10L,
+          scalar_words: array.scalar_words + 1L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        }
         if !self.prepare_account_construction({
-            retained: {
-              record_headers: 3L,
-              reference_slots: 11L,
-              scalar_words: 1L,
-              owned_utf16_units: 0L,
-              owned_wire_bytes: 0L,
-            },
-            execution: {
-              record_headers: 3L,
-              reference_slots: 11L,
-              scalar_words: 1L,
-              owned_utf16_units: 0L,
-              owned_wire_bytes: 0L,
-            },
+            retained: controls,
+            execution: controls,
           }) {
           stop("LocalMockAccountConstructionUnavailable")
         }
