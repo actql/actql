@@ -54206,7 +54206,7 @@
     {
       "module": "src/client_local_preparation/client_check_program.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "8dbaf226d7fff3b4b4c6e5612fcdbb5da5a38e5e54dce7d084a83c0016e54d53",
+      "sha256": "0aa6744687e0935afc691fc82aac15413d280049cfe6f37053d7848fa331f8ea",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
