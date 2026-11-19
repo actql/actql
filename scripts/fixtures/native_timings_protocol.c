@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     OBS(&ledger, 3, 0, 0, 200, 0, 0); /* actual serial zero is valid */
     OBS(&ledger, 4, 0, 0, 180, 0, 0);
     OBS(&ledger, 2, 0, 0, 0, 0, 280);
-    OBS(&ledger, 3, 1, 0, 50, 0, 0);
+    if (strcmp(argv[1], "file-capacity-window") != 0) OBS(&ledger, 3, 1, 0, 50, 0, 0);
     if (strcmp(argv[1], "file-capacity-reentry") == 0) OBS(&ledger, 0, 1, 0, 0, 0, 330);
     if (strcmp(argv[1], "file-capacity-foreign") == 0) OBS(&foreign, 11, 1, 80, 50, 400, 330);
     if (strcmp(argv[1], "file-capacity-fork") == 0) {
@@ -61,7 +61,8 @@ int main(int argc, char **argv) {
     }
     if (strcmp(argv[1], "file-capacity-closed") == 0) OBS(&ledger, 1, 0, 0, 0, 0, 0);
     if (strcmp(argv[1], "file-capacity-closed-stderr") == 0) close(STDERR_FILENO);
-    OBS(&ledger, 12, -1, 80, 500, 400, 330);
+    OBS(&ledger, strcmp(argv[1], "file-capacity-window") == 0 ? 15 : 12,
+      -1, 80, 500, 400, 330);
     OBS(&ledger, 11, 1, 999, 50, 400, 330); /* first observation wins */
     OBS(&ledger, 1, 0, 0, 0, 0, 0);
     if (strcmp(argv[1], "file-capacity-reentry") == 0) OBS(&ledger, 1, 0, 0, 0, 0, 0);

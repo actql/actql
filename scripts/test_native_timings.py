@@ -120,6 +120,14 @@ class NativeTimingProtocol(unittest.TestCase):
                      'file-capacity-closed-stderr'):
             self.assertFalse(any(k=='ACTQL_NATIVE_FILE_CAPACITY' for k,x in self.run_protocol(mode,'1','1')))
 
+    def test_file_capacity_window_without_observed_task_is_unmeasured_not_zero(self):
+        rows=[x for k,x in self.run_protocol('file-capacity-window','1','1')
+              if k=='ACTQL_NATIVE_FILE_CAPACITY']
+        self.assertEqual(len(rows),1)
+        self.assertEqual(rows[0]['phase'],15)
+        self.assertEqual(rows[0]['task_capacity'],-1)
+        self.assertEqual(rows[0]['row_execution'],180)
+
     def test_file_capacity_standalone_core_has_no_filesystem_link_dependency(self):
         source=Path(self.temporary.name)/'standalone.c'
         source.write_text('#include <stdint.h>\n#include <errno.h>\n#include <assert.h>\nextern void actql_resource_capacity_observation(const void*,int32_t,int32_t,int64_t,int64_t,int64_t,int64_t);\nint main(void) { int ledger; errno=EDOM; actql_resource_capacity_observation(&ledger,10,0,1,0,0,0); assert(errno==EDOM); return 0; }\n')

@@ -307,7 +307,7 @@ void actql_native_file_capacity_observe(const void *ledger, int32_t kind,
     "\"limit_execution\":%" PRId64 ",\"reserved_execution\":%" PRId64 ","
     "\"entry_singleton_execution\":%" PRId64 ",\"row_execution\":%" PRId64 "}\n",
     kind, scope->compute ? "true" : "false", requested,
-    kind == 12 || kind == 13
+    kind == 12 || kind == 13 || kind == 15 || kind == 16
       ? (scope->task_seen && !scope->task_ambiguous ? scope->task_execution : -1)
       : capacity, limit,
     reserved, scope->body_execution,
