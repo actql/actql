@@ -590,6 +590,7 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
         control.drive_code, control.export_code = CorePort.drive_task.__code__, FunctionPort.__call__.__code__
         control.counts, control.valid, control.failure, control.restored = [0] * 5, True, None, False
         control.refusal_bits = 0
+        control.span_refusal_bits = 0
         control.profile = control._profile
         control.previous = (None, None)
         return module, control, core, matches
@@ -650,10 +651,38 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
             'stage': 'closed-task-drive-refusal', 'counts': [1, 1, 1, 1, 0],
             'valid': False, 'profilers_restored': True,
             'failure_present': False, 'refusal_bits': 3,
+            'span_refusal_bits': 1,
         })
         self.assertLess(len(str(caught.exception)), 512)
         self.assertIsNone(control.host)
         self.assertIsNone(control.core)
+
+    def test_unqualified_original_span_is_distinct_from_an_absent_span_and_still_refuses(self):
+        _, control, core, _ = self.configured_control()
+        core._invocation_observation.wasm_export = None
+        with control:
+            core.drive_task()
+        with self.assertRaises(AssertionError) as caught:
+            control.result()
+        witness = json.loads(str(caught.exception).split(': ', 1)[1])
+        self.assertEqual(witness['counts'], [1, 1, 1, 1, 0])
+        self.assertEqual(witness['refusal_bits'], 3)
+        self.assertEqual(witness['span_refusal_bits'], 2)
+        self.assertFalse(witness['failure_present'])
+        self.assertTrue(witness['profilers_restored'])
+
+    def test_malformed_original_span_receipt_stays_a_closed_bounded_refusal(self):
+        _, control, core, _ = self.configured_control()
+        core._invocation_observation.wasm_export = ('not-a-complete-receipt',)
+        with control:
+            core.drive_task()
+        with self.assertRaises(AssertionError) as caught:
+            control.result()
+        witness = json.loads(str(caught.exception).split(': ', 1)[1])
+        self.assertEqual(witness['counts'], [1, 1, 1, 1, 0])
+        self.assertEqual(witness['refusal_bits'], 3)
+        self.assertEqual(witness['span_refusal_bits'], 4)
+        self.assertLess(len(str(caught.exception)), 512)
 
     def test_unqualified_observer_never_formats_its_original_opaque_callback_failure(self):
         from types import SimpleNamespace

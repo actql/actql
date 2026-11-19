@@ -50,6 +50,7 @@ class _ClosedTaskDriveObservation:
         self.export_code = type(export).__call__.__code__
         self.counts = [0, 0, 0, 0, 0]
         self.refusal_bits = 0
+        self.span_refusal_bits = 0
         self.valid = True
         self.failure = None
         self.restored = False
@@ -68,11 +69,21 @@ class _ClosedTaskDriveObservation:
             elif code is self.export_code and frame.f_locals.get('self') is self.export:
                 self.counts[2 if event == 'call' else 3] += 1
                 span = self.core._invocation_observation
+                span_original_type = type(span) is self.span_type
                 original = (object.__getattribute__(span, 'wasm_export')
-                            if type(span) is self.span_type else None)
+                            if span_original_type else None)
                 retained = self.core._host_retained_work
                 works, rows = self.host._physical_work, self.host._run_rows
                 span_original = type(original) is tuple and len(original) == 4
+                # Keep the existing refusal and exact identity predicate. These
+                # closed bits only distinguish which prerequisite was absent;
+                # no object, native handle or eligibility fallback is exported.
+                if not span_original_type:
+                    self.span_refusal_bits |= 1
+                elif original is None:
+                    self.span_refusal_bits |= 2
+                elif not span_original:
+                    self.span_refusal_bits |= 4
                 export_original = (span_original and original[0] is self.receipt
                                    and type(original[1]) is str and original[1] == 'actql_task_drive'
                                    and original[2] is self.export and original[3] is self.export._func)
@@ -161,6 +172,9 @@ class _ClosedTaskDriveObservation:
             witness = {'stage': 'closed-task-drive-refusal', 'counts': counts,
                        'valid': self.valid is True, 'profilers_restored': self.restored is True,
                        'failure_present': self.failure is not None,
+                       'span_refusal_bits': (self.span_refusal_bits
+                                             if type(self.span_refusal_bits) is int
+                                             and 0 <= self.span_refusal_bits <= 7 else None),
                        'refusal_bits': (self.refusal_bits if type(self.refusal_bits) is int
                                         and 0 <= self.refusal_bits <= 511 else None)}
             raise AssertionError('Closed task drive observation is unqualified: '
