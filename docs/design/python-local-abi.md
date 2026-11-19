@@ -3585,6 +3585,24 @@ metadata are included in the original current transfer allowance. The original
 publisher port and its bound callbacks are included in its own allowance. SQLite
 and other workspace reservations remain separate.
 
+#### Synchronous cleanup and other-thread quanta
+
+The existing Core lock encloses the complete synchronous cleanup frame, from
+its depth/fuel observation through the original close and final depth return.
+A retained worker cannot enter an ordinary quantum while another thread has
+only marked cleanup interest but has not entered its close body. Actual cleanup
+still selects full checks, and callback reentry still poisons the original
+invocation. This does not turn a pending close, completed Future or waiter
+cancellation into physical stop, nor refresh the retained operation's fuel.
+
+No await, worker join or future wait belongs inside that frame. The four
+production close callers enter synchronous originals that already serialize
+their Core work; Host close observes stopped workers without waiting for them
+under the lock. The SDK chunk generator's asynchronous finalizer merely returns
+its reading flag outside the cleanup frame. Its actual payload/Store/parent
+retirement remains the separate synchronous close, including Unknown and
+pending-child retention.
+
 ### Original observation data within one Host operation
 
 The ordinary Host records a private monotone operation generation only after

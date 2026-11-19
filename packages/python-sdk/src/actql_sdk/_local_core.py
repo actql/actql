@@ -1220,10 +1220,13 @@ class LocalCore:
             if not joined:
                 self._store.set_fuel(_NORMAL_HOST_CLEANUP_FUEL)
                 self._host_fuel_phase = 'cleanup'
-        try:
-            yield
-        finally:
-            with self._lock:
+            # This marker describes the actual serialized Core call, not a
+            # different thread's cleanup interest between ordinary quanta.
+            # Callers must finish synchronous cleanup before leaving this lock;
+            # no await, worker join or public backpressure belongs in the frame.
+            try:
+                yield
+            finally:
                 self._host_cleanup_depth -= 1
                 if not joined:
                     self._host_fuel_phase = None

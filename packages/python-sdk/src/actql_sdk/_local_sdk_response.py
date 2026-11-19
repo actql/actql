@@ -94,8 +94,10 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
                         return
                 yield payload
         finally:
-            with self._host._core._host_cleanup():
-                await iterator.aclose()
+            # The original generator only returns its iteration flag here.
+            # Physical child retirement is the separate synchronous _close()
+            # below; never carry a Core cleanup frame across an await.
+            await iterator.aclose()
 
     async def _original_chunks(self) -> AsyncGenerator[bytes, None]:
         self._reading = True

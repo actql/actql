@@ -8283,7 +8283,7 @@
           ]
         }
       ],
-      "sha256": "027f723a8b1cc87cb7795c3b6a488c10f940f82e2bee1c15f2786d64b1279dee",
+      "sha256": "61dc367185dd3340d9d2e41fa1d775d85042ab95911da993c9a536b9d18bdf95",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -11111,6 +11111,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Synchronous cleanup and other-thread quanta"
               }
             ],
             "failure": [
@@ -11393,6 +11397,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
                 "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_cleanup_frame_excludes_other_thread_original_quantum_until_same_scope_returns("
               }
             ]
           }
@@ -61330,7 +61338,7 @@
           ]
         }
       ],
-      "sha256": "d0427a8cd6bd14179c42fa438daec80313a0d67724c54a852302ea6b124e5527",
+      "sha256": "1781ddf8bac2e9c01a003d0ba0edd69150990d0cc45b57085067cebce467d23f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -61555,6 +61563,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "ABI call, callback and nested phase shares that operation's remaining fuel."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Synchronous cleanup and other-thread quanta"
               }
             ],
             "failure": [
@@ -61641,6 +61653,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_sdk_response.py",
                 "anchor": "def test_partial_parent_close_does_not_reuse_retired_transport_inputs("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
+                "anchor": "def test_cleanup_frame_excludes_other_thread_original_quantum_until_same_scope_returns("
               }
             ]
           }

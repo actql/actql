@@ -9,7 +9,7 @@ import inspect
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
-from threading import Thread
+from threading import Event, Thread
 import textwrap
 import unittest
 from unittest.mock import patch
@@ -55,6 +55,61 @@ class ClosedInvocationTests(unittest.TestCase):
         returned = []
         binding.inspect(lambda _: returned.append(core._call('probe', 'run')))
         return returned
+
+    def test_cleanup_frame_excludes_other_thread_original_quantum_until_same_scope_returns(self):
+        core, binding, store, _, current = self.fixture()
+        attempted, returned = Event(), Event()
+        acquired, spans, failures = [], [], []
+        original_operation = core._host_operation_id
+
+        def export():
+            spans.append(core._invocation_observation)
+            self.assertEqual(current(), 0)
+            return 7
+
+        def invoke():
+            try:
+                first = core._lock.acquire(blocking=False)
+                acquired.append(first)
+                try:
+                    if first:
+                        self.assertEqual(self.run_export(core, binding, export), [7])
+                finally:
+                    if first:
+                        core._lock.release()
+                    attempted.set()
+                if not returned.wait(2):
+                    raise TimeoutError('Original cleanup frame did not return')
+                if not first:
+                    self.assertEqual(self.run_export(core, binding, export), [7])
+            except BaseException as cause:
+                failures.append(cause)
+                attempted.set()
+
+        worker = Thread(target=invoke)
+        try:
+            with core._host_cleanup():
+                worker.start()
+                self.assertTrue(attempted.wait(2))
+                self.assertFalse(failures)
+                self.assertEqual(acquired, [False],
+                    'Another original quantum cannot observe a foreign cleanup depth')
+                self.assertEqual(spans, [])
+                self.assertEqual(core._host_operation_id, original_operation)
+        finally:
+            returned.set()
+            worker.join(3)
+        self.assertFalse(worker.is_alive())
+        self.assertFalse(failures)
+        self.assertEqual(len(spans), 1)
+        from actql_sdk._local_host_binding import _InvocationObservation
+        self.assertIs(type(spans[0]), _InvocationObservation)
+        self.assertFalse(spans[0].active)
+        self.assertIsNone(binding._observed_reader)
+        self.assertIsNone(core._invocation_observation)
+        self.assertIsNone(store._connection._closed_invocation)
+        self.assertEqual(core._host_cleanup_depth, 0)
+        self.assertEqual(core._host_operation_id, original_operation)
 
     def test_repeated_current_imports_keep_calls_but_group_graph_walks_per_invocation(self):
         core, binding, store, _, current = self.fixture()
