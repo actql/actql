@@ -634,6 +634,48 @@ fn retained_consumer_holder_case(
             )
           )
         ),
+        // Keep the original expected refusal above. Render only closed
+        // constructors and known evidence labels, never materials or paths.
+        msg=match denied {
+          Ok(_) => "saved-output:unexpected-success"
+          Err(@resident.Refused(@resident_protocol.MaterialsRejected(issue))) =>
+            match issue {
+              @host.MaterialsMalformed => "saved-output:materials-malformed"
+              @host.MaterialsEnvironment => "saved-output:materials-environment"
+              @host.MaterialsParameters => "saved-output:materials-parameters"
+              @host.MaterialsProgram(@host.EffectNotSupported(_)) =>
+                "saved-output:program-effect-not-supported"
+              @host.MaterialsProgram(_) => "saved-output:materials-program"
+              @host.MaterialsCompilation(_) =>
+                "saved-output:materials-compilation"
+              @host.MaterialsEvidence(name) =>
+                match name {
+                  "normalization_journal"
+                  | "effect_target_selections"
+                  | "prepared_invocation"
+                  | "infer_native_read_profile"
+                  | "source_free_result_policy"
+                  | "infer_execution_contract"
+                  | "infer_execution_contracts" =>
+                    "saved-output:materials-evidence:" + name
+                  _ => "saved-output:materials-evidence:unreported-name"
+                }
+              @host.MaterialsAdmission(_) => "saved-output:materials-admission"
+              @host.MaterialsDefinition(_) => "saved-output:materials-definition"
+              @host.MaterialsRunMismatch => "saved-output:materials-run-mismatch"
+              @host.MaterialsBinding(_) => "saved-output:materials-binding"
+              @host.MaterialsConstructionRefused(_) =>
+                "saved-output:materials-construction-refused"
+              @host.MaterialsEncoding(_, _) => "saved-output:materials-encoding"
+              @host.MaterialsNormalization(_) =>
+                "saved-output:materials-normalization"
+            }
+          Err(@resident.Refused(@resident_protocol.TaskMaterialsRejected(_))) =>
+            "saved-output:task-materials-rejected"
+          Err(@resident.Refused(_)) => "saved-output:other-refusal"
+          Err(@resident.EnvelopeMissing) => "saved-output:envelope-missing"
+          Err(_) => "saved-output:other-host-issue"
+        },
       )
     } else {
       assert_true(
