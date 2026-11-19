@@ -1,6 +1,6 @@
 {
   "source": "b6e7a0077d1e266ec2de4cb20bc3c8bf373d0f11",
-  "syntaxProjectionSha256": "2f971a155ca3c38e870673799d9e1c591249ac0d8f15a4470a736f727e6bf081",
+  "syntaxProjectionSha256": "7072285baa1945a611b664dd2532ca878475e551e5e057ce32fc72685facb34c",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -79478,9 +79478,17 @@
     },
     {
       "module": "src/client_host_wasm/journal_observation.mbt",
-      "sha256": "ff60261c0990d1af38aacec868b73f20a49084f84bb9c311bd2c927dc4c33551",
+      "sha256": "cc26bbdd45017780a823c2f97aceb7e8beb388b6eaaa6541eb667b7792d9c02c",
       "exports": [],
       "operations": [
+        {
+          "name": "[T]journal_close_payload",
+          "declaration": "[ T ] journal_close_payload ( observed : Result [ T , Int ] , frame : StoredJournalDecodeFrame , ) - > StoredJournalObservationOutcome"
+        },
+        {
+          "name": "begin_journal_observation_close",
+          "declaration": "begin_journal_observation_close ( child : StoredJournalObservation ) - > Unit"
+        },
         {
           "name": "close_journal_observation",
           "declaration": "close_journal_observation ( nonce : Int64 , handle : Int ) - > Int"
@@ -79560,7 +79568,9 @@
             "physical_journal_current_operation",
             "physical_journal_row",
             "physical_journal_schema",
-            "reserve_journal_observation"
+            "reserve_journal_observation",
+            "[T]journal_close_payload",
+            "begin_journal_observation_close"
           ],
           "exports": [],
           "attributes": {
@@ -79598,6 +79608,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "def _journal_schema("
+              },
+              {
+                "path": "src/client_host_wasm/journal_observation.mbt",
+                "anchor": "fn begin_journal_observation_close("
               }
             ],
             "synchronization": [
@@ -93782,7 +93796,7 @@
     },
     {
       "module": "src/client_host_wasm/journal_decode_originals.mbt",
-      "sha256": "6d9117f958ff0302ac25a21a424c93b8871c9c3217cb6b8ed947d98c8e930a64",
+      "sha256": "82b1bda295d1512939ce169925860ee727f25ac530b5f414e067b2be6bb9914e",
       "exports": [],
       "operations": [
         {
@@ -93816,6 +93830,10 @@
         {
           "name": "open_journal_decode_frame",
           "declaration": "open_journal_decode_frame ( value : Instance , handle : Int , child : StoredJournalObservation , selected_key : String , ) - > StoredJournalDecodeFrame ?"
+        },
+        {
+          "name": "settle_journal_decode_original",
+          "declaration": "settle_journal_decode_original ( value : Instance , capacity : @ resources . CapacityReservation , ) - > Int"
         }
       ],
       "role": "public-wire-codec",
@@ -93832,7 +93850,8 @@
             "journal_decode_row_capacity",
             "journal_decode_run_inspection",
             "journal_inspect_decoded_run",
-            "open_journal_decode_frame"
+            "open_journal_decode_frame",
+            "settle_journal_decode_original"
           ],
           "exports": [],
           "attributes": {
@@ -93870,6 +93889,10 @@
               {
                 "path": "src/client_host_wasm/journal_decode_originals.mbt",
                 "anchor": "frame.pending = Some(capacity)"
+              },
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn settle_journal_decode_original("
               }
             ],
             "cancellation": [

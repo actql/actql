@@ -4256,6 +4256,14 @@ reservation moves to the same journal child's outcome before other cells are
 released. That backing survives until the child's original close. It cannot be
 reused by another inspection. Errors, traps and failed settlement keep the exact
 pending tokens reachable under that child, and preserve the initiating failure.
+Close first projects any successful observation to debt-only state in a separate
+function-return boundary, so no successful payload still aliases backing when
+settlement begins. If interruption occurs after trusted settlement but before
+unlink, only that exact opaque token's same-Ledger `ClosedReservation` together
+with its actual spent state permits disposal to continue. A foreign token,
+false coverage result or another refusal is not acknowledgement. Buffer close
+still requires the original physical cleanup; pending close retains the same
+frame and initiating error after byte tokens have settled.
 No new public wire, ABI export, resource Owner or physical cleanup ACK is issued.
 
 ### Live SDK continuation currentness
