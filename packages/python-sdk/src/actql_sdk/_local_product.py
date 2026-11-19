@@ -49,6 +49,7 @@ from ._local_work import OriginalLocalWork
 from ._local_saved_read import OriginalSavedResultRead
 from ._local_check import OriginalLocalCheck
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
+from ._local_storage import LocalStorageCommitUnknown as _LocalStorageCommitUnknown
 from ._local_native_store import _OriginalNativeStoreSelection
 from ._values import canonical_bytes as _canonical_bytes, content_cid, wire_bytes
 
@@ -164,6 +165,10 @@ class _OriginalExecution:
     # A consumed Core-derived physical stop request. This original association
     # is not business authority, current permission, cancellation state or ACK.
     stop_interest: _Output | None = None
+    # One failed original attempt/cause association, not a resolution or grant.
+    # The existing Core/Store readback must qualify the same publication anew.
+    publication_reply_loss: tuple[OriginalCommitProjection, _Output,
+        _LocalStorageCommitUnknown, BaseException] | None = None
 
     def __call__(self) -> None:
         if self.reference is None:
@@ -1026,7 +1031,8 @@ class InstalledLocalHost:
             raise ValueError('Original Local Run observation is unavailable')
         return projections[0]
 
-    def _raise_original_wait_failure(self, run: _Run) -> None:
+    def _raise_original_wait_failure(self, run: _Run, *,
+                                     projection: OriginalCommitProjection | None = None) -> None:
         """Only after Common's protected Run-read/current observation returns.
 
         Saved admission/Activation and nominal publication binding alone are
@@ -1038,10 +1044,25 @@ class InstalledLocalHost:
             work = next(value for value in self._physical_work if value._invoke is original)
             if not work.stopped:
                 raise LocalProductCleanupPending(self)
-            work._future.result()
+            loss = original.publication_reply_loss
+            observation = (None if projection is None or loss is None else
+                self._store_observations.get(projection._publication.ticket))
+            resolved_reply_loss = (projection is not None and loss is not None
+                and loss[0] is projection and original.publication is projection._publication
+                and original.publisher is loss[1] and observation is not None
+                and observation._projection is projection and observation._publisher is loss[1]
+                and self._pending_publication_write is not projection
+                and loss[2].cleanup_store is self._active()._store
+                and work._future.exception() is loss[2] and work._cleanup_error is loss[3])
+            # Only the published caller supplies this exact projection AFTER
+            # complete original index/state readback and protected Run-read.
+            # Neither status DATA, action names nor pending disappearance is
+            # sufficient. Keep the Future, marker and all loans unchanged.
+            if not resolved_reply_loss:
+                work._future.result()
             if work._exit_error is not None:
                 raise work._exit_error
-            if work._cleanup_error is not None:
+            if work._cleanup_error is not None and not resolved_reply_loss:
                 raise work._cleanup_error
 
     def _check_original_wait_state(self, raw: bytes) -> None:
@@ -1087,7 +1108,7 @@ class InstalledLocalHost:
                     raise ValueError('Incomplete original Local Run observation')
                 # The actual Run-read supplier and its post-current checks
                 # have returned; nominal publication binding is insufficient.
-                self._raise_original_wait_failure(run)
+                self._raise_original_wait_failure(run, projection=projection)
                 self._check_original_wait_state(wait_states[0])
                 streams.append(OriginalLocalResponseStream(self, wait_states[0]))
         except BaseException:
@@ -2458,7 +2479,7 @@ class InstalledLocalHost:
                 pass
             # An action is not ACK or terminal. Public observation must still copy
             # the actual stored chain through the original RunState/read Owners.
-        except BaseException:
+        except BaseException as failure:
             try:
                 # Sealing the SAME DAG is not an acknowledgment of its children.
                 # Never discard a begun write's original Unknown/lookup custody.
@@ -2466,7 +2487,16 @@ class InstalledLocalHost:
                                      if original is run)
                 if (self._pending_publication_write is not None and any(
                         self._pending_publication_write._publication is original for original in publications)):
-                    raise LocalProductCleanupPending(self)
+                    blocked = LocalProductCleanupPending(self)
+                    if (execution is not None and execution.publication_reply_loss is None
+                            and type(failure) is _LocalStorageCommitUnknown
+                            and failure.cleanup_store is self._active()._store
+                            and execution.publication is self._pending_publication_write._publication
+                            and execution.publisher is publisher
+                            and self._pending_publication_publisher is publisher):
+                        execution.publication_reply_loss = (
+                            self._pending_publication_write, publisher, failure, blocked)
+                    raise blocked
                 if self._core.close_native_compute(compute.core):
                     raise ValueError('Original failed Compute was released before its invocation')
                 if self._result_chunks or not self._close_original_publications(publications):

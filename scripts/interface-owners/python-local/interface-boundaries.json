@@ -1,6 +1,6 @@
 {
   "source": "b6e7a0077d1e266ec2de4cb20bc3c8bf373d0f11",
-  "syntaxProjectionSha256": "9d4aabe986f670808469370c7bf514762b1adcb3264128dd03aa5bd044f23a50",
+  "syntaxProjectionSha256": "2b5f672997c842eb5e13d3bcdf609da7050307fc6cae7e4c6cb469c8b1bed4e6",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -53407,7 +53407,8 @@
           "name": "InstalledLocalHost/_raise_original_wait_failure",
           "parameters": [
             "self",
-            "run"
+            "run",
+            "projection"
           ],
           "async": false
         },
@@ -53865,7 +53866,7 @@
           "async": false
         }
       ],
-      "sha256": "b516a5950f8a6d79aa6900770a72a2d87e601fee753b8ab206741fb637368918",
+      "sha256": "7ef496287a2f6d0b8c7c4092705b90cf7e3872f389366281c64b57a30bb93772",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -57376,6 +57377,18 @@
               {
                 "path": "packages/python-sdk/tests/test_local_wait_readiness.py",
                 "anchor": "async def test_denied_run_read_precedes_failed_future_after_activation_selection("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_wait_readback.py",
+                "anchor": "async def test_same_reply_loss_resolved_by_original_readback_can_return_the_committed_wait("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_wait_readback.py",
+                "anchor": "async def test_exact_attempt_error_store_projection_publisher_and_cleanup_identity_are_required("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_wait_readback.py",
+                "anchor": "async def test_action_without_original_index_and_failed_index_never_resolve_reply_loss("
               }
             ]
           }

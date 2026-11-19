@@ -4461,3 +4461,19 @@ Original metadata CAS/Unknown and partial-close custody remain with the same
 Host owners. The observation releases its Core/current scopes before any
 await; coroutine cancellation does not cancel the physical worker or Run.
 Explicit Host cleanup remains available for the same retained originals.
+
+A lost publication COMMIT reply is not an irrevocable Run failure. The existing
+pending-publication exception guard retains at most one fixed four-reference
+association on the original Execution: projection, publisher, exact reply-loss
+exception and exact cleanup marker that only blocked on that pending write.
+This is cause/custody correlation, not a resolution, read grant or ACK cache.
+
+Only after the same published-state supplier completes full original
+Core/Store index readback and protected Run-read/post-current checks may a wait
+use that committed observation without rethrowing those two correlated objects.
+The same Store, projection, publisher, Future exception and blocker identities
+must still match. An action name, disappearance of pending state, error type or
+`succeeded` DATA alone is insufficient. Unpublished observations, unfinished or
+denied readback, independent exit errors and different cleanup causes retain
+their refusal. The Future, exceptions and actual child/parent cleanup loans are
+not cleared or acknowledged by delivering this observation.
