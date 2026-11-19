@@ -2799,12 +2799,26 @@ function normalizationPublicationFixture(failure) {
   const journal = Object.freeze({name: 'normalization_journal', identity: cid('2'), wire: 'original journal'});
   const definition = {identity: cid('3'), wire: '{}'}, events = [], authoring = {};
   const context = Object.freeze({name:'authoring_context',identity:cid('9'),wire:'original annotations'});
+  const publicationPreparation = {}, requestIdentity = {};
+  const retention = Object.freeze({name: 'result_retention_policy', identity: cid('a'),
+    wire: 'original checked retention'});
+  let invocationDataPolicy;
   const control = {
     prepareCheckedClientCompiledRun(actual) {assert.strictEqual(actual, prepared); return compiled;},
     defineCheckedClientCompiledRun(actual) {assert.strictEqual(actual, compiled); return definition;},
-    issueCheckedClientCompiledInvocation(actual, run) {
+    issueCheckedClientCompiledInvocation(actual, run, policy) {
       assert.strictEqual(actual, compiled); assert.strictEqual(run, definition);
+      invocationDataPolicy = policy.dataPolicyCid;
       return {observation: {}, invocation: {}};
+    },
+    issueProgramInitialRetention(owner, actual, request, dataPolicy, selection, dependencies, limits) {
+      assert.strictEqual(this, control); assert.strictEqual(owner, publicationPreparation);
+      assert.strictEqual(actual, prepared); assert.strictEqual(request, requestIdentity);
+      assert.strictEqual(dataPolicy, invocationDataPolicy); assert.strictEqual(limits, localContractLimits);
+      assert.equal(selection.availableUntil, '2026-11-18T01:00:00.000Z');
+      assert.equal(selection.deleteBy, '2026-11-18T02:00:00.000Z');
+      assert.equal(selection.metadataDeleteBy, '2026-11-25T00:00:00.000Z');
+      assert(dependencies.length > 0); return retention;
     },
     preparedClientNormalizationEvidence(actual, limits) {
       assert.strictEqual(actual, prepared); assert.strictEqual(limits, localContractLimits);
@@ -2822,10 +2836,15 @@ function normalizationPublicationFixture(failure) {
   };
   const moon = {clientProgramDefinitionCid(actual) {assert.strictEqual(actual, prepared); return cid('6');},
     clientProgramResultCount() {return 1;},
-    clientProgramPreparedLocalPublicationLimits() {return resultOutputLimitFields.map(name => localOutputLimits[name]);}};
-  const options = {moon, control, preparedProgram: prepared, namespaceId: 'original',
+    clientProgramInstalledManagedPublicationLimits(owner, actual, maxObjectBytes) {
+      assert.strictEqual(this, moon); assert.strictEqual(owner, publicationPreparation);
+      assert.strictEqual(actual, prepared); assert(Number.isSafeInteger(maxObjectBytes) && maxObjectBytes > 0);
+      return resultOutputLimitFields.map(name => localOutputLimits[name]);
+    }};
+  const options = {moon, control, preparedProgram: prepared, requestIdentity, namespaceId: 'original',
     authorityScopeCid: cid('7'), storeAuthorityCid: cid('8'), now: () => '2026-11-18T00:00:00.000Z',
-    publicationOriginal: {kind: 'preparation', value: {}, authoringContext:authoring}, publicationPreparation: {}};
+    publicationOriginal: {kind: 'installed_run', value: publicationPreparation, authoringContext:authoring},
+    publicationPreparation};
   return {options, journal, events, authoring, context};
 }
 
