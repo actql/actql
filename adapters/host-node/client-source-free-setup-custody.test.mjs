@@ -117,11 +117,12 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
   const runDefinition = {wire: 'definition'}, failures = [];
   const calls = {borrowed: 0, returned: 0, opened: 0, closed: 0,
     leaseRetired: 0, sourceRetired: 0, physicalClaims: 0, managedLedger: 0, legacyLedger: 0,
-    wholeLedger: 0, captureOpened: 0, sourceClosed: 0, bound: 0, stopped: 0};
+    wholeLedger: 0, captureOpened: 0, sourceClosed: 0, bound: 0, stopped: 0, retention: 0};
   const marker = new Error('OriginalResourceParked');
   const bindingFailure = new Error('OriginalCaptureBindingStopped');
   const sourceOriginal = {}, capturedIdentity = {}, compiled = {}, dag = {};
-  const sourceEvidence = {}, publicationPreparation = {}, authoringContextOriginal = {};
+  const sourceEvidence = {}, publicationPreparation = run, authoringContextOriginal = {};
+  const originalRetention = Object.freeze({wire: 'original-retention'});
   const dataPolicyCid = 'fixture-policy';
   let ready = cleanupReady, failed, entered, resume;
   const failure = new Promise(resolve => { failed = resolve; });
@@ -184,6 +185,7 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     source() { assert.equal(calls.sourceClosed, 0); return sourceOriginal; },
     retainTask(actual, task) {
       assert.equal(actual, dag); assert.equal(task, 0); assert.equal(calls.opened, 1);
+      assert.equal(calls.retention, 1, 'The same Run retention must precede capture binding');
       calls.bound++;
       // Exercise the supervisor's real custody after the fallible binding;
       // no fabricated completed Compute or public Result is issued here.
@@ -272,11 +274,21 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     moon.strategyHostRun = value => { assert.equal(value, setup); return dag; };
     if (host === 'missing') delete moon.clientProgramOpenInstalledManagedCaptureHost;
     Object.assign(control, {
+      issueProgramInitialRetention(original, value, identity, policy, selection, dependencies) {
+        assert.equal(this, control); assert.equal(original, run);
+        assert.equal(value, prepared); assert.equal(identity, request); assert.equal(policy, dataPolicyCid);
+        assert.deepEqual(selection, {availableUntil: '2026-11-15T01:00:00.000Z',
+          deleteBy: '2026-11-15T02:00:00.000Z', metadataDeleteBy: '2026-11-22T00:00:00.000Z'});
+        assert.deepEqual(dependencies.map(value => value.kind),
+          ['retention_contract', 'metadata_retention_policy', 'clock_contract']);
+        assert.equal(calls.retention++, 0); return originalRetention;
+      },
       takeSourceEvidenceOriginal(original) { assert.equal(original, captureHandle); return sourceEvidence; },
       checkClientCompiledRunOwner(original, value) { assert.equal(original, compiled); assert.equal(value, prepared); },
       issueCheckedClientCompiledInvocation(original, definition, options, _limits, preparation, value) {
         assert.equal(original, compiled); assert.equal(definition, runDefinition); assert.equal(value, prepared);
         assert.equal(preparation, publicationPreparation); assert.equal(options.source.captured, captured);
+        assert.equal(calls.retention, 1, 'Original retention is established before invocation issuance');
         assert.equal(options.source.sourceEvidence, sourceEvidence);
         return {observation: {}, invocation: {}};
       },
@@ -314,7 +326,7 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     startRun: async () => ({kind: 'reserved', ref}),
     hostConnection: () => true,
     planFor: () => ({kind: source ? 'tasks' : 'values', compiled, runDefinition,
-      publicationPreparation, authoringContextOriginal, admission: {}, compiledPlan: {identity: 'fixture-compiled'},
+      publicationPreparation, requestIdentity: request, authoringContextOriginal, admission: {}, compiledPlan: {identity: 'fixture-compiled'},
       createdAt: '2026-11-15T00:00:00.000Z'}),
     sourceProfile: adapter,
     prepareAcquisition() { assert.fail('The same prepared Source must not be reacquired'); },
@@ -463,6 +475,7 @@ test('imported Whole dispatcher retains the opened original Host when capture bi
   assert.equal((await f.failure).code, 'OriginalCaptureBindingStopped');
   assert.equal(f.calls.wholeLedger, 1); assert.equal(f.calls.managedLedger, 0); assert.equal(f.calls.legacyLedger, 0);
   assert.equal(f.calls.captureOpened, 1); assert.equal(f.calls.opened, 1); assert.equal(f.calls.bound, 1);
+  assert.equal(f.calls.retention, 1);
   assert.equal(f.calls.sourceClosed, 1); assert.equal(f.calls.closed, 1);
   assert.equal(f.calls.borrowed, 1); assert.equal(f.calls.returned, 1); assert.equal(f.calls.leaseRetired, 1);
   assert.deepEqual(f.stops, ['failed']); assert.equal(f.owner.operation(f.ref), undefined);
@@ -477,6 +490,7 @@ test('imported Whole dispatcher preserves missing or parked original opener refu
     assert.equal((await f.failure).code, host === 'missing'
       ? 'InstalledManagedComputeHostUnavailable' : 'OriginalResourceParked');
     assert.equal(f.calls.captureOpened, 1); assert.equal(f.calls.bound, 0);
+    assert.equal(f.calls.retention, 1);
     assert.equal(f.calls.sourceClosed, 1); assert.equal(f.calls.closed, 0); assert.equal(f.calls.stopped, 0);
     assert.equal(f.calls.returned, 1); assert.equal(f.calls.leaseRetired, 1);
     assert.deepEqual(f.stops, ['failed']); assert.equal(f.owner.operation(f.ref), undefined);
