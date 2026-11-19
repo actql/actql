@@ -665,15 +665,22 @@ test "retained Request intent continues native Effect Parameters Plan and retire
 ///|
 // Fixture for the normal Local selector's two existing row projections. The
 // generic 1000-row Environment used by other component fixtures is unchanged.
-extern "js" fn request_numeric_local_environment(
+extern "js" fn request_numeric_local_environment_with_artifact_bytes(
   wire : String,
   rows : Int,
+  artifact_bytes : Int,
 ) -> String =
-  #|(wire, rows) => {const value=JSON.parse(wire);delete value.evidence_bundle_cid;
+  #|(wire, rows, artifactBytes) => {const value=JSON.parse(wire);delete value.evidence_bundle_cid;
   #| value.host_policy_profile.capacity.max_relation_output_rows=rows;
   #| value.host_policy_profile.capacity.max_artifact_rows=rows;
+  #| if(artifactBytes>0)value.host_policy_profile.capacity.max_artifact_bytes=artifactBytes;
   #| const canonical=v=>Array.isArray(v)?'['+v.map(canonical).join(',')+']':v!==null&&typeof v==='object'?'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}':JSON.stringify(v);
   #| value.evidence_bundle_cid='sha256:'+process.getBuiltinModule('node:crypto').createHash('sha256').update(canonical(value)).digest('hex');return canonical(value);}
+
+///|
+fn request_numeric_local_environment(wire : String, rows : Int) -> String {
+  request_numeric_local_environment_with_artifact_bytes(wire, rows, 0)
+}
 
 ///|
 extern "js" fn request_numeric_environment_cid(wire : String) -> String =
@@ -690,7 +697,15 @@ test "same original 100000 Plan leaves its selected task execution allowance ava
 }
 
 ///|
-fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise {
+test "original numeric 100000 enters normalization before its Program borrow" {
+  request_numeric_100000_profile_fixture(false, normalization_only=true)
+}
+
+///|
+fn request_numeric_100000_profile_fixture(
+  check_execution : Bool,
+  normalization_only? : Bool = false,
+) -> Unit raise {
   // Match the ordinary installation default: retained-file output is an
   // explicit separate consumer, not required to retain all completed rows.
   let retained_file_output = false
@@ -764,9 +779,19 @@ fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise 
     selected.checking.input.source.max_depth,
   )
   assert_eq(@resources.ledger_limits(parent.ledger), original_limits)
-  let wire = request_numeric_local_environment(
+  let wire = request_numeric_local_environment_with_artifact_bytes(
     @publication_host.client_local_product_assets().environment,
-    client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap(),
+    if normalization_only {
+      100000
+    } else {
+      client_local_materialized_row_ceiling(client_local_resource_policy()).unwrap()
+    },
+    // Match the existing explicit Native numeric operator's finite profile.
+    if normalization_only {
+      16777216
+    } else {
+      0
+    },
   )
   let environment = @publication_host.admit_client_check_environment(
     wire,
@@ -853,6 +878,50 @@ fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise 
     Err(Publication(_)) => fail("Original100000 Publication")
     Err(QuerySyntax(_)) => fail("Original100000 QuerySyntax")
     Err(QueryLowering(_)) => fail("Original100000 QueryLowering")
+  }
+  if normalization_only {
+    let prepared = parent.compiled_program.unwrap()
+    let quote = request_original_normalization_audit_extent_cost(prepared).unwrap()
+    let base = @resources.preparation_capacity_working_extents(
+      parent.program_capacity.unwrap(),
+      input,
+    ).unwrap()
+    let normalized = match
+      prepare_request_program_normalization(parent, input) {
+      Ok(value) => value
+      Err(issue) =>
+        fail(
+          "Original100000 normalization: " +
+          (match issue {
+            Preparation(Capacity(inner)) =>
+              "Capacity " + @debug.to_string(inner)
+            Preparation(Work(_)) => "Work"
+            Preparation(Policy) => "Policy"
+            Preparation(ForeignOriginal) => "ForeignOriginal"
+            Preparation(WrongPhase) => "WrongPhase"
+            Preparation(_) => "OtherPreparation"
+            Normalization(CommonInventory(inner)) =>
+              "CommonInventory " + @debug.to_string(inner)
+            Normalization(_) => "OtherNormalization"
+          }) +
+          "; auditQuote=" +
+          quote.to_string() +
+          "; baselineR=" +
+          base.0.to_string() +
+          "; baselineE=" +
+          base.1.to_string(),
+        )
+    }
+    assert_true(
+      physical_equal(
+        normalized,
+        @publication_host.prepared_client_local_normalization_original(prepared).unwrap(),
+      ),
+    )
+    assert_eq(@resources.ledger_limits(parent.ledger), original_limits)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    return
   }
   let module_base = @resources.ledger_usage(parent.ledger).reserved_execution_bytes
   let module_contracts = request_program_module_contracts()

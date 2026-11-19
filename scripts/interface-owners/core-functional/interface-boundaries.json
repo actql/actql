@@ -103733,7 +103733,7 @@
     },
     {
       "module": "src/run_publication_host/client_local_normalization_preparation.mbt",
-      "sha256": "06171581c012a44ae4d1cb96385afb5ddb42ee69446d3e69930354821ffaa983",
+      "sha256": "0760efe9de5498a03e79e95215c93cd98bc5af4db8b9839d965f1f063f1035e2",
       "exports": [],
       "operations": [
         {
@@ -103895,6 +103895,14 @@
               {
                 "path": "docs/design/model-original-state-storage.md",
                 "anchor": "### Same-Request material normalization and authoring originals"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_intent_js_wbtest.mbt",
+                "anchor": "test \"original numeric 100000 enters normalization before its Program borrow\""
+              },
+              {
+                "path": "src/client_local_host/client_local_normalization_union_request_js_wbtest.mbt",
+                "anchor": "test \"Values normalization control bound excludes rows and keeps non-Values conservative\""
               }
             ]
           }

@@ -288,9 +288,24 @@ pub fn prepared_client_normalization_audit_data(
   let source = @decode.admission_preparation_data(
     @syntax.program_body(owner.source),
   )
-  (
-    owner.sequence_preparation_demand,
-    source.total_utf16,
-    @syntax.program_usage(owner.source).tree.nodes,
-  )
+  let original_nodes = @syntax.program_usage(owner.source).tree.nodes
+  let structure = @syntax.program_preparation_data(owner.source)
+  let nodes = if !structure.may_contain_expression_syntax &&
+    structure.external_inputs == 0 &&
+    structure.effect_members == 0 &&
+    prepared_client_normalization_source_count(owner) == 0L {
+    // The original syntax constructor already classified every step as Values.
+    // The Common audit borrows their checked cells and retains no relation,
+    // Source or expression entry. Its control/empty-slot frames are bounded by
+    // these original structural occurrences, not by the number of literal rows.
+    // Keep full source/text/Values retention at their existing Request owners;
+    // this bound neither skips the real audit nor issues an empty journal.
+    let controls = structure.operations.to_int64() +
+      structure.results.to_int64() +
+      1L
+    Int64::min(controls, original_nodes.to_int64()).to_int()
+  } else {
+    original_nodes
+  }
+  (owner.sequence_preparation_demand, source.total_utf16, nodes)
 }
