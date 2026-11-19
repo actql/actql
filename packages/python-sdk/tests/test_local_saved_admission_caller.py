@@ -18,7 +18,8 @@ class SavedAdmissionCallerTests(unittest.TestCase):
         self.addCleanup(fixture.doCleanups)
         host, core, events, admission = fixture.assembly(path)
         ref = {'epoch': host.profile()['submissionEpoch'], 'nonce': 'original'}
-        run, original = host._accept_original(ref, input_fixture.INTENT, run_id='original-run')
+        execution, original = host._accept_original(ref, input_fixture.INTENT, run_id='original-run')
+        run = execution.run
         self.assertEqual(original, admission)
         return host, core, run, events, admission
 

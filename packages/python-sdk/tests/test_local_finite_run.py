@@ -8,6 +8,8 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_core import LocalCoreError, _Output
+from actql_sdk._local_product import _OriginalExecution
+from actql_sdk._local_run import LocalRunCustody
 from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError
 import test_local_run as run_fixture
 import test_local_submission_append as append_fixture
@@ -385,6 +387,32 @@ class FiniteRunSQLiteTests(unittest.TestCase):
 class FiniteRunAssemblyTests(unittest.TestCase):
     host = FiniteRunSQLiteTests.host
     rows = FiniteRunSQLiteTests.rows
+    def test_known_prepare_failure_keeps_partial_parents_without_starting_work(self):
+        with TemporaryDirectory() as directory:
+            host, core, _, _ = self.assembly(Path(directory))
+            reference = {'epoch': host.profile()['submissionEpoch'], 'nonce': 'original'}
+            originals = []
+            initialize = _OriginalExecution.__init__
+            def init(original, *args, **kwargs):
+                initialize(original, *args, **kwargs)
+                originals.append(original)
+            primary = LocalCoreError('prepare_sdk', -32)
+            with patch.object(_OriginalExecution, '__init__', init), patch.object(
+                    LocalRunCustody, 'prepare_sdk', side_effect=primary):
+                with self.assertRaises(LocalCoreError) as failed:
+                    host._accept_original(reference, append_fixture.INTENT, run_id='original-run')
+            self.assertIs(failed.exception, primary)
+            self.assertEqual(len(originals), 1)
+            original = originals[0]
+            self.assertIsNone(original.reference)
+            self.assertIn(original.run, host._run_loans)
+            self.assertIn(original.run.preparation, host._prepared_inputs)
+            self.assertIn(original.submission, host._projections)
+            self.assertIs(core._loans[original.run.input.ticket], original.run.input)
+            self.assertIs(core._loans[original.run.preparation.input.ticket], original.run.preparation.input)
+            self.assertFalse(host._physical_work)
+            self.assertTrue(host.close())  # Scalar Core ACK ports, not a physical unknown-write ACK.
+
     # Inherited physical cases are selected separately; this class adds only
     # the complete assembly caller over the same scalar Core and actual Store.
     def assembly(self, path, *, restored=False, preparing=True):
@@ -435,7 +463,8 @@ class FiniteRunAssemblyTests(unittest.TestCase):
         with TemporaryDirectory(prefix='actql-finite-assembly-') as directory:
             host, core, events, admission = self.assembly(Path(directory))
             reference = {'epoch': host.profile()['submissionEpoch'], 'nonce': 'original'}
-            run, saved = host._accept_original(reference, append_fixture.INTENT, run_id='original-run')
+            execution, saved = host._accept_original(reference, append_fixture.INTENT, run_id='original-run')
+            run = execution.run
             self.assertEqual(saved, admission)
             self.assertIs(host._run_loans[0], run)
             self.assertIs(host._runs._runs[run.handle], run)

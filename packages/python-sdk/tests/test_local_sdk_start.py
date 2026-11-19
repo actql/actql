@@ -1,12 +1,17 @@
 """Real same-Store CAS with scalar Core, not physical Wasm/start admission."""
 import copy
+import asyncio
+import importlib.util
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+import sys
 from unittest.mock import patch
 
 from actql_sdk._local_core import LocalCoreError
+from actql_sdk._local_product import InstalledLocalHost, _OriginalExecution
+from actql_sdk._local_work import OriginalLocalWork
 from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError
 import test_local_finite_run as fixture
 import test_local_submission_append as append_fixture
@@ -18,10 +23,144 @@ CLAIM = b'{"opaque":"original Core physical claim e\xcc\x81/~","null":null}'
 
 
 class SDKStartAssemblyTests(unittest.TestCase):
+    def test_post_current_failure_after_start_reserve_keeps_both_original_inventories(self):
+        originals = []
+        initialize = _OriginalExecution.__init__
+        def init(original, *args, **kwargs):
+            initialize(original, *args, **kwargs)
+            originals.append(original)
+        with TemporaryDirectory() as directory:
+            with patch.object(_OriginalExecution, '__init__', init):
+                host, core, run, events, _ = self.host(Path(directory))
+            original = originals[0]
+            original.reference = host._register_original_run_reference(run,
+                host._read_original_saved_admission(run))
+            binding = host._installation.binding
+            current = binding._physical_current
+            primary = RuntimeError('Original post-consume current refusal')
+            def post_current():
+                current()
+                if host._runs._starts:
+                    raise primary
+            work = OriginalLocalWork(original, on_exit=core._finish_work_operation, owner=run)
+            host._physical_work.append(work)
+            try:
+                with patch.object(binding, '_physical_current', side_effect=post_current), patch.object(
+                        InstalledLocalHost, '_execute_original_admitted_run',
+                        lambda receiver, selected: receiver._configure_original_compute(selected)):
+                    core._retain_work_operation(work)
+                    work.start()
+                    work._thread.join(2)
+                    self.assertTrue(work.stopped)
+                self.assertIs(work._future.exception(), primary)
+                self.assertEqual(len(host._runs._starts), 1)
+                start = next(iter(host._runs._starts.values()))
+                self.assertIs(original.physical_start, start)
+                self.assertIn(start, host._physical_starts)
+                self.assertNotIn(('run', 'confirm_physical_start'), events)
+                self.assertFalse(host._source_free_computes)
+                self.assertTrue(host.close())
+                self.assertFalse(host._runs._starts)
+            finally:
+                # Fixture-only teardown also returns the original loan on a
+                # failing pre-fix assertion; no production repair is inserted.
+                if work.stopped:
+                    for start in tuple(host._runs._starts.values()):
+                        if host._runs.close_physical_start(start):
+                            if start in host._physical_starts:
+                                host._physical_starts.remove(start)
+                host.close()
+
+    def test_real_active_cancellation_fixture_forwards_same_nominal_run_in_both_modes(self):
+        source = Path(__file__).resolve().parents[3] / 'scripts/fixtures/python-local-active-task-cancellation-abi.py'
+        spec = importlib.util.spec_from_file_location('original_active_task_fixture', source)
+        module = importlib.util.module_from_spec(spec)
+        # Import the actual callable without running its CLI. No source slice
+        # or reconstructed function; the coroutine is simply never entered.
+        with patch.object(asyncio, 'run', side_effect=lambda coroutine: coroutine.close()):
+            spec.loader.exec_module(module)
+        class ReachedOriginalRunBoundary(RuntimeError):
+            pass
+        for mode in (None, 'active-provider'):
+            with self.subTest(mode=mode), TemporaryDirectory() as directory:
+                originals = []
+                initialize = _OriginalExecution.__init__
+                def init(original, *args, **kwargs):
+                    initialize(original, *args, **kwargs)
+                    originals.append(original)
+                with patch.object(_OriginalExecution, '__init__', init):
+                    host, core, run, _, _ = self.host(Path(directory))
+                original = originals[0]
+                admission = host._read_original_saved_admission(run)
+                selected = []
+                def compute(actual):
+                    host._runs._run(actual)  # Actual nominal guard, not duck typing.
+                    self.assertIs(actual, run)
+                    selected.append(actual)
+                    raise ReachedOriginalRunBoundary()
+                raw = Path(directory) / 'source-port.wasm'
+                raw.write_bytes(b'\0asm\x01\0\0\0')
+                argv = [str(source), str(raw), str(Path(directory) / 'fresh-cli-state')]
+                if mode is not None:
+                    argv.append(mode)
+                # Explicit constructor/admission ports for the imported CLI
+                # caller only. No engine, raw provider or cancellation runs.
+                with patch.object(module, 'LocalCore', return_value=core), patch.object(
+                        module, 'InstalledLocalHost', return_value=host), patch.object(
+                        host, '_accept_original', return_value=(original, admission)), patch.object(
+                        host, '_configure_original_compute', side_effect=compute), patch.object(sys, 'argv', argv):
+                    with self.assertRaises(ReachedOriginalRunBoundary):
+                        asyncio.run(module.main())
+                self.assertEqual(selected, [run])
+                self.assertTrue(core._closed)
+
+    def test_same_execution_retains_start_and_step_before_original_callbacks(self):
+        originals = []
+        initialize = _OriginalExecution.__init__
+        def init(original, *args, **kwargs):
+            initialize(original, *args, **kwargs)
+            originals.append(original)
+        with TemporaryDirectory() as directory:
+            with patch.object(_OriginalExecution, '__init__', init):
+                host, core, run, _, _ = self.host(Path(directory))
+            self.assertEqual(len(originals), 1)
+            original = originals[0]
+            self.assertIs(original.run, run)
+            self.assertIsNone(original.reference)
+            original.reference = host._register_original_run_reference(run,
+                host._read_original_saved_admission(run))
+            previous = core._call
+            observed = []
+            def before_callback(family, name, *args):
+                if (family, name) == ('material', 'produce') and original.start_step is not None:
+                    self.assertEqual(args, (original.start_step.handle,))
+                    self.assertIs(core._loans[original.start_step.ticket], original.start_step)
+                    observed.append('step')
+                if (family, name) == ('run', 'confirm_physical_start'):
+                    self.assertIs(original.physical_start, host._physical_starts[-1])
+                    self.assertIs(original.physical_start.run, run)
+                    self.assertEqual(args, (original.physical_start.handle,))
+                    observed.append('start')
+                return previous(family, name, *args)
+            work = OriginalLocalWork(original, on_exit=core._finish_work_operation, owner=run)
+            host._physical_work.append(work)
+            with patch.object(core, '_call', side_effect=before_callback), patch.object(
+                    InstalledLocalHost, '_execute_original_admitted_run',
+                    lambda receiver, selected: receiver._configure_original_compute(selected)):
+                core._retain_work_operation(work)
+                work.start()
+                work._thread.join(2)
+                self.assertTrue(work.stopped)
+                work._future.result(timeout=0)
+            self.assertEqual(observed, ['step', 'start'])
+            self.assertIs(original.physical_start, original.compute.start)
+            self.assertTrue(host.close())
+
     def host(self, path):
         host, core, _, _ = fixture.FiniteRunAssemblyTests().assembly(path)
         reference = {'epoch': host.profile()['submissionEpoch'], 'nonce': 'original'}
-        run, _ = host._accept_original(reference, append_fixture.INTENT, run_id='original-run')
+        execution, _ = host._accept_original(reference, append_fixture.INTENT, run_id='original-run')
+        run = execution.run
         self.addCleanup(host.close)
         previous = core._call
         kinds, candidates = {}, {}
