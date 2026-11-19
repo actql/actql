@@ -1,4 +1,17 @@
 ///|
+// The entry's same-Plan geometry lookup repeats the original admission Some
+// (H1/R1/W1), then returns graph/row/two-count tuple and Some (H2/R3/W3).
+// Precompute this fixed quantity outside the Read whose grow it precedes.
+let native_whole_files_entry_geometry_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 3L,
+    reference_slots: 4L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
 /// Complete Whole-input control peak on the SAME prepared Work. Every
 /// Source has its own already-quoted physical capture/provider debt. This
 /// recipe adds the Native vectors, per-slot typed handoffs, partial-open
@@ -84,11 +97,23 @@ pub fn native_relation_whole_files_entry_read_capacity(
 ) -> @execution.ExecutionCapacity? {
   guard native_relation_whole_files_work_control_capacity(sources, graph)
     is Some(work) &&
-    native_relation_whole_file_preback_read_capacity() is Some(backing) else {
+    native_relation_whole_file_preback_read_capacity() is Some(backing) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_retained_bytes(work),
+      native_whole_files_entry_geometry_bytes,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(work),
+      native_whole_files_entry_geometry_bytes,
+      1L,
+    )
+    is Some(executing) else {
     return None
   }
-  let mut r = @execution.execution_capacity_retained_bytes(work)
-  let mut e = @execution.execution_capacity_execution_bytes(work)
+  let mut r = retained
+  let mut e = executing
   for source in sources {
     guard native_relation_file_entry_read_control_capacity(
         source.selection,

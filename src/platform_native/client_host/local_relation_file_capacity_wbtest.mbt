@@ -22,6 +22,28 @@ fn relation_work_capacity_inputs() -> (
 }
 
 ///|
+test "File entry Native raw endpoint covers actual constructors and snapshot growth" {
+  let (header, width, terminator, array_header, pointer) = @bootstrap.native_managed_value_layout()
+  assert_true(header > 0L && array_header > 0L && pointer > 0L)
+  assert_eq(width, 2L)
+  assert_eq(terminator, width)
+  assert_true(native_relation_file_entries_read_raw_bytes(0) is None)
+  assert_true(native_relation_file_entries_read_raw_bytes(-1) is None)
+  let fixed = native_relation_file_entries_read_raw_bytes(1).unwrap()
+  // Both implemented path bounds are16. The diagnostic has at most237
+  // UTF16 units; its pinned builder doubles to256 plus the terminator.
+  assert_true(fixed >= array_header + (12L + 3L * 16L) * pointer)
+  assert_true(fixed >= header + 257L * width)
+  // A large snapshot vector dominates fixed records. No vector or Source is
+  // allocated by this arithmetic-only case and no Read capacity is granted.
+  assert_eq(
+    native_relation_file_entries_read_raw_bytes(100000).unwrap(),
+    array_header + (12L + 3L * 100000L) * pointer,
+  )
+  assert_eq(native_relation_file_entry_raw_quote_control_bytes(), 176L)
+}
+
+///|
 // Arithmetic only. These unfunded test Ledgers cannot enter the original Work
 // route and do not establish installed Read/Account/Source execution evidence.
 test "relation Work preflight requires Source and Compute simultaneous dimensions" {

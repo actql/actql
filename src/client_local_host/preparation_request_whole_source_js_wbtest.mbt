@@ -209,6 +209,19 @@ test "Request Whole domain retains each original route before its plural Plan" {
   )
   complete_request_capture_preparation(parent, input, plan).unwrap()
   let owner = begin_request_capture_managed_run(parent, request).unwrap()
+  let logical_graph = @publication_host.prepared_client_graph(prepared)
+  assert_true(@strategy.graph_captured_prefix(logical_graph) > 0)
+  assert_true(source_input_local_tasks_control_capacity(logical_graph) is None)
+  let (physical_graph, _, _, _) = installed_managed_capture_publication_geometry_original(
+    owner, prepared, request,
+  ).unwrap()
+  assert_true(
+    @strategy.source_inputs_dag_matches_original(physical_graph, logical_graph),
+  )
+  assert_eq(@strategy.graph_captured_prefix(physical_graph), 0)
+  assert_true(
+    source_input_local_tasks_control_capacity(physical_graph) is Some(_),
+  )
   // No DAG was opened and no physical Source exists in this component. Port
   // retirement may report that narrow absence; it must not accept Query's
   // distinct purpose or retire/reissue the managed Run/request itself.

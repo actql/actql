@@ -1501,6 +1501,18 @@ fn local_command_initial_read_budget(
   guard local_command_query_assets_capacity(profile.diagnostic_ceiling)
     is Some((assets_r, assets_e)) &&
     @execution.checked_preparation_add_product(
+      assets_r,
+      @local_host.native_relation_file_entry_raw_quote_control_bytes(),
+      1L,
+    )
+    is Some(assets_r) &&
+    @execution.checked_preparation_add_product(
+      assets_e,
+      @local_host.native_relation_file_entry_raw_quote_control_bytes(),
+      1L,
+    )
+    is Some(assets_e) &&
+    @execution.checked_preparation_add_product(
       budget.read_retained,
       assets_r,
       1L,

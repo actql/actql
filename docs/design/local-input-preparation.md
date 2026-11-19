@@ -7368,6 +7368,30 @@ The Query predicate remains separate. Neither entry acknowledges physical
 Source retirement; captures, managed reads and the original Work remain
 cleanup-owned until their actual existing release predicates succeed.
 
+The Whole entry quotes the physical supplied-input graph retained by that
+same managed Plan, as does its original caller preback. The logical compiler
+graph still contains captured Source roots and is not an interchangeable
+input to that complete-input executor quote. Missing original geometry is a
+current/original refusal; it never removes the executor's purpose checks.
+
+Original Read entry backing keeps independent logical and physical dimensions.
+Its R/E quote retains all existing entry/Work coexistence. Its contiguous
+allocation endpoint instead uses the Native layout owner's actual object and
+Array headers, pointer width, scalar fields and UTF16 builder/terminator.
+The same entry constructor inventory bounds fixed records and implemented
+sixteen-item/sixteen-key path snapshots; the original snapshot cardinality
+separately bounds the largest vector backing. Neither the entire logical
+R/E sum nor a policy ceiling is interpreted as one raw allocation. Quote
+Options and the original-geometry additions are backed in the initial Read
+before this endpoint is evaluated. All existing facility limits, owners,
+current callbacks and acquired-total backing checks remain authoritative.
+
+A failed original Read backing preserves its actual typed Bootstrap or
+Accounting cause. The CLI may project closed constructor names, including
+payload-free Ledger categories, but never its physical integer, byte amount,
+Source/path/credential or opaque original. Such a diagnostic remains refusal
+DATA; it cannot issue a retry, resend, cleanup acknowledgement or capacity.
+
 Publication scans every actual retained Query capture under that acquisition's
 completion/measurement bounds, independent of smaller aggregate Result bounds.
 All original identities, Query requirements, logical artifacts and Source

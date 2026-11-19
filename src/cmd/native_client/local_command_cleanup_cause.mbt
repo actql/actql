@@ -52,7 +52,7 @@ fn command_preparation_cleanup_cause(
       }
     CommandRead(cause) =>
       match cause {
-        Domain(_) => "Domain"
+        Domain(original) => command_read_domain_cause(original)
         Child(_) => "Child"
         Read(_) => "Read"
         Buffer(_) => "Buffer"

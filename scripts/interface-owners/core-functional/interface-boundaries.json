@@ -110415,7 +110415,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "0e796d890621824db19b5ebd92e234ba40cec69dbc7f59f98094c0ad7187ba35",
+      "sha256": "3d8b6b95182dd74c92e38fc391d01b3c1c1f0779f588c5c30e48d7a805b56cb0",
       "exports": [],
       "operations": [
         {
@@ -110531,7 +110531,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_cleanup_cause.mbt",
-      "sha256": "1a2c83e07dfb9b762c8b40bdb6d09b652381aa28ec3d8fa0b030673d3b5ac82c",
+      "sha256": "60436ac9d29efd86faf773289ef77a8097b577dbce831bc9077705394d817339",
       "exports": [],
       "operations": [
         {
@@ -112907,7 +112907,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_whole_files_entry.mbt",
-      "sha256": "4e0173e0a3b60a2590eddc3afb7f28bd9892117b8774a84d6c65fd662a2c9fdc",
+      "sha256": "d8c55f3c07506b1dee1cf7b24f072b73aa9e4aa0c4926c15eef8afb5e0facbd6",
       "exports": [],
       "operations": [
         {
@@ -113094,7 +113094,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_work_capacity.mbt",
-      "sha256": "3f5f7143cb25af7436ef19d29a4772584877cce6864e86d354b16b66f52b074c",
+      "sha256": "4d825bd2d0d7b972b335f1e0eaa51149e598042cd587db2e6793e5501772c9a5",
       "exports": [],
       "operations": [
         {
@@ -113116,6 +113116,591 @@
             "<module>",
             "native_relation_whole_files_entry_read_capacity",
             "native_relation_whole_files_work_control_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_command_preparation.mbt",
+      "sha256": "276297f17df9f25922db5e69143a61ce8a8c0cd0f0c3b0b0bdc7b081a7bfc993",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]command_preparation_option",
+          "declaration": "[ T ] command_preparation_option ( value : T ? , ) - > T raise LocalCommandPreparationStop"
+        },
+        {
+          "name": "[T]command_preparation_value",
+          "declaration": "[ T ] command_preparation_value ( result : Result [ T , LocalCommandPreparationIssue ] , ) - > T raise LocalCommandPreparationStop"
+        },
+        {
+          "name": "command_preparation_read_return_issue",
+          "declaration": "command_preparation_read_return_issue ( outcome : Result [ String , String ] ? , return_issue : LocalCommandPreparationIssue , ) - > LocalCommandPreparationIssue"
+        },
+        {
+          "name": "local_command_initial_read_budget",
+          "declaration": "local_command_initial_read_budget ( profile : LocalCommandPreparationProfile , ) - > @ initial_arena . InstalledArenaOriginalReadBudget ?"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::acquire",
+          "declaration": "LocalCommandPreparationOriginal : : acquire ( self : LocalCommandPreparationOriginal , root : String , source : String , platform : String , manifest_digest : String , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::acquire_physical_read",
+          "declaration": "LocalCommandPreparationOriginal : : acquire_physical_read ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::acquire_runtime",
+          "declaration": "LocalCommandPreparationOriginal : : acquire_runtime ( self : LocalCommandPreparationOriginal , root : String , source : String , platform : String , manifest_digest : String , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::close_checked",
+          "declaration": "LocalCommandPreparationOriginal : : close_checked ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::enter",
+          "declaration": "LocalCommandPreparationOriginal : : enter ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::initial_read_budget",
+          "declaration": "LocalCommandPreparationOriginal : : initial_read_budget ( self : LocalCommandPreparationOriginal , ) - > @ initial_arena . InstalledArenaOriginalReadBudget ?"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::leave",
+          "declaration": "LocalCommandPreparationOriginal : : leave ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::library",
+          "declaration": "LocalCommandPreparationOriginal : : library ( self : LocalCommandPreparationOriginal , inner : Bool , ) - > Result [ @ local_crypto . Library , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::prepare_adopted_journal",
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adopted_journal ( self : LocalCommandPreparationOriginal , initialize_signing : Bool , options : LocalInitialSigningAdoptionOptions , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::prepare_adoption",
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , ) - > Result [ @ local_host . NativeLocalAdoptionSession , LocalCommandPreparationIssue , ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::read_command",
+          "declaration": "LocalCommandPreparationOriginal : : read_command ( self : LocalCommandPreparationOriginal , operation : ( @ local_host . NativeLocalHostConnection , @ local_host . NativeLocalJournalCapture , ) - > Result [ String , String ] , ) - > Result [ String , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::retain_primary",
+          "declaration": "LocalCommandPreparationOriginal : : retain_primary ( self : LocalCommandPreparationOriginal , issue : LocalCommandPreparationIssue , ) - > Unit"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::select_configuration_root",
+          "declaration": "LocalCommandPreparationOriginal : : select_configuration_root ( self : LocalCommandPreparationOriginal , path : String , ) - > Result [ @ local_filesystem . Root , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::select_product_parent",
+          "declaration": "LocalCommandPreparationOriginal : : select_product_parent ( self : LocalCommandPreparationOriginal , path : String , ) - > Result [ @ local_filesystem . Root , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::stage_product",
+          "declaration": "LocalCommandPreparationOriginal : : stage_product ( self : LocalCommandPreparationOriginal , parent : String , name : String , originals : Array [ ( String , Bytes ) ] ? , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::text_file",
+          "declaration": "LocalCommandPreparationOriginal : : text_file ( self : LocalCommandPreparationOriginal , root : String , name : String , maximum : Int64 , ordinary_name ? : Bool"
+        },
+        {
+          "name": "prepare_local_command_preparation_original",
+          "declaration": "prepare_local_command_preparation_original ( profile : LocalCommandPreparationProfile , business ? : LocalCommandBusinessProfile ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]command_preparation_option",
+            "[T]command_preparation_value",
+            "command_preparation_read_return_issue",
+            "local_command_initial_read_budget",
+            "LocalCommandPreparationOriginal::acquire",
+            "LocalCommandPreparationOriginal::acquire_physical_read",
+            "LocalCommandPreparationOriginal::acquire_runtime",
+            "LocalCommandPreparationOriginal::close_checked",
+            "LocalCommandPreparationOriginal::enter",
+            "LocalCommandPreparationOriginal::initial_read_budget",
+            "LocalCommandPreparationOriginal::leave",
+            "LocalCommandPreparationOriginal::library",
+            "LocalCommandPreparationOriginal::prepare_adopted_journal",
+            "LocalCommandPreparationOriginal::prepare_adoption",
+            "LocalCommandPreparationOriginal::read_command",
+            "LocalCommandPreparationOriginal::retain_primary",
+            "LocalCommandPreparationOriginal::select_configuration_root",
+            "LocalCommandPreparationOriginal::select_product_parent",
+            "LocalCommandPreparationOriginal::stage_product",
+            "LocalCommandPreparationOriginal::text_file",
+            "prepare_local_command_preparation_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/relation_file_entry_capacity.mbt",
+      "sha256": "d12dddca316ffa1de09a7983f934e09e0cda2af1388230d76fd62b0080eba6b0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_relation_file_entry_outer_capacity",
+          "declaration": "native_relation_file_entry_outer_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "native_relation_file_entry_read_capacity",
+          "declaration": "native_relation_file_entry_read_capacity ( selection : @ row_file . NativeRelationFileSelection , limits : @ row_file . NativeRelationFileLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "native_relation_file_entry_read_control_capacity",
+          "declaration": "native_relation_file_entry_read_control_capacity ( selection : @ row_file . NativeRelationFileSelection , prepared_diagnostic ? : Bool"
+        },
+        {
+          "name": "native_relation_file_entry_read_control_units",
+          "declaration": "native_relation_file_entry_read_control_units ( items : Int64 , key_fields : Int64 , key_records : Int64 , key_tag : Int64 , source : @ execution . PreparationRepresentationUnits , diagnostic : Int64 , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "native_relation_whole_file_entry_read_capacity",
+          "declaration": "native_relation_whole_file_entry_read_capacity ( selection : @ row_file . NativeRelationFileSelection , limits : @ row_file . NativeRelationFileLimits , provider : @ row_file . NativeRelationFilePreparedProvider , graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "native_relation_whole_file_preback_read_capacity",
+          "declaration": "native_relation_whole_file_preback_read_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_relation_file_entry_outer_capacity",
+            "native_relation_file_entry_read_capacity",
+            "native_relation_file_entry_read_control_capacity",
+            "native_relation_file_entry_read_control_units",
+            "native_relation_whole_file_entry_read_capacity",
+            "native_relation_whole_file_preback_read_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/row_source/caller_preparation_capacity.mbt",
+      "sha256": "6e5639cdb9686a0b32ad4ebee0fefed09de12d3a08749f28397226685bde44b3",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_relation_file_caller_evaluation_maximum_inventory",
+          "declaration": "native_relation_file_caller_evaluation_maximum_inventory ( ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "native_relation_file_caller_evaluation_units",
+          "declaration": "native_relation_file_caller_evaluation_units ( paths : Int64 , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "native_relation_file_caller_preparation_evaluation_inventory",
+          "declaration": "native_relation_file_caller_preparation_evaluation_inventory ( selection : NativeRelationFileSelection , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "native_relation_file_caller_preparation_inventory",
+          "declaration": "native_relation_file_caller_preparation_inventory ( selection : NativeRelationFileSelection , limits : NativeRelationFileLimits , prepared_provider ? : NativeRelationFilePreparedProvider ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_relation_file_caller_evaluation_maximum_inventory",
+            "native_relation_file_caller_evaluation_units",
+            "native_relation_file_caller_preparation_evaluation_inventory",
+            "native_relation_file_caller_preparation_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_command_read_domain_cause.mbt",
+      "sha256": "2d219da0f0c6ee5a088f4963e80020a2d7abf2e56859d28c1df86ea6800e8e05",
+      "exports": [],
+      "operations": [
+        {
+          "name": "command_read_domain_cause",
+          "declaration": "command_read_domain_cause ( issue : @ initial_bootstrap . NativeBackedExecutionIssue , ) - > String"
+        },
+        {
+          "name": "command_read_domain_resource_cause",
+          "declaration": "command_read_domain_resource_cause ( issue : @ initial_resources . LedgerIssue , bootstrap : Bool , ) - > String"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "command_read_domain_cause",
+            "command_read_domain_resource_cause"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/relation_file_entry_raw_native.mbt",
+      "sha256": "cfc8b5b4262b3a5eb8048783bc99bccbd9fb3aff3496765e1064ba2d4cdefb25",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_relation_file_entries_read_raw_bytes",
+          "declaration": "native_relation_file_entries_read_raw_bytes ( count : Int ) - > Int64 ?"
+        },
+        {
+          "name": "native_relation_file_entry_raw_quote_control_bytes",
+          "declaration": "native_relation_file_entry_raw_quote_control_bytes ( ) - > Int64"
+        },
+        {
+          "name": "native_relation_file_entry_read_raw_layout",
+          "declaration": "native_relation_file_entry_read_raw_layout ( ) - > ( Int64 , Int64 , Int64 ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_relation_file_entries_read_raw_bytes",
+            "native_relation_file_entry_raw_quote_control_bytes",
+            "native_relation_file_entry_read_raw_layout"
           ],
           "exports": [],
           "attributes": {

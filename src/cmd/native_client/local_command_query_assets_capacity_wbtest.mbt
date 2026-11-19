@@ -44,7 +44,14 @@ test "Query assets add their original initial Read quote after execution clippin
   let budget = local_command_initial_read_budget(base).unwrap()
   assert_true(retained > 2L * 65536L * 2L)
   assert_true(execution > retained)
-  assert_eq(budget.read_retained, base.read_budget.read_retained + retained)
+  assert_eq(
+    @local_host.native_relation_file_entry_raw_quote_control_bytes(),
+    176L,
+  )
+  assert_eq(
+    budget.read_retained,
+    base.read_budget.read_retained + retained + 176L,
+  )
   assert_eq(
     budget.read_execution,
     Int64::min(
@@ -54,7 +61,8 @@ test "Query assets add their original initial Read quote after execution clippin
         base.read_budget.workspace_execution,
       ),
     ) +
-    execution,
+    execution +
+    176L,
   )
   assert_eq(budget.bootstrap_retained, base.read_budget.bootstrap_retained)
   assert_eq(budget.bootstrap_execution, base.read_budget.bootstrap_execution)

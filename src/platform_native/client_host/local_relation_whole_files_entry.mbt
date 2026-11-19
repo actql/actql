@@ -128,10 +128,20 @@ pub fn NativeLocalHostConnection::prepare_original_managed_whole_relation_files_
   guard @local.installed_managed_preparation_admission_original(
       managed, prepared, request,
     )
-    is Some(admission) &&
-    native_relation_whole_files_work_control_capacity(
-      inputs,
-      @host.prepared_client_graph(prepared),
+    is Some(admission) else {
+    return Some(Err(relation_file_work_failure(OriginalRunNotCurrent)))
+  }
+  // The original logical graph still has captured Source roots. Quote the
+  // SAME Whole Plan's supplied-input physical graph, as the CLI preback and
+  // existing single-Whole entry already do. This is no graph reconstruction.
+  guard @local.installed_managed_capture_publication_geometry_original(
+      managed, prepared, request,
+    )
+    is Some((physical_graph, _, _, _)) else {
+    return Some(Err(relation_file_work_failure(OriginalRunNotCurrent)))
+  }
+  guard native_relation_whole_files_work_control_capacity(
+      inputs, physical_graph,
     )
     is Some(capacity) else {
     return Some(Err(relation_file_work_failure(FileWorkControlQuote)))
