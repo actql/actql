@@ -2131,6 +2131,8 @@ pub fn client_program_read_installed_model_defaults(String, String, String, Stri
 
 pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.PublicModelTaskDeclaration, @check_environment.ModelTaskIssue]
 
+pub fn client_program_read_request_checked_static_plan(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int, Int, Int) -> Result[String, ClientRequestStaticPlanBridgeIssue]
+
 pub fn client_program_read_request_explanation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String, String?, String?, String?, String, String, String, String, String, Int, Int, Int, Int) -> Result[String, @client_local_host.ClientRequestExplanationReadIssue]
 
 pub fn client_program_read_request_policy_subject(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment, Int) -> Result[String, @client_local_host.ClientRequestTerminalIssue]
@@ -2240,6 +2242,8 @@ pub fn client_program_release_effect_input(@physical_strategy_host.CapturedEffec
 pub fn client_program_release_effect_inputs(@physical_strategy_host.CapturedEffectInputs) -> Bool
 
 pub fn client_program_release_request_result_metadata(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
+pub fn client_program_request_checked_static_plan_issue_code(Result[String, ClientRequestStaticPlanBridgeIssue]) -> String?
 
 pub fn client_program_request_explanation_read_issue_code(@client_local_host.ClientRequestExplanationReadIssue) -> String
 
@@ -4411,6 +4415,11 @@ pub suberror ClientRequestProgramModuleBridgeIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Preparation(@client_local_host.ClientRequestProgramPlanIssue)
   Provider(@model_execution.ModelProviderAdmissionIssue)
+}
+
+pub suberror ClientRequestStaticPlanBridgeIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Preparation(@client_local_host.ClientRequestTerminalIssue)
 }
 
 pub(all) suberror NodeHostFailure {

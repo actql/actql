@@ -1375,6 +1375,8 @@ pub fn[I] request_preparation_work_calls(ClientRequestPreparation[I]) -> (Int64,
 
 pub fn[I] request_prepared_computation_kind(ClientRequestPreparation[I], I) -> Result[ClientRequestComputationKind, ClientRequestPreparationIssue]
 
+pub fn[I] request_prepared_static_plan_view(ClientRequestPreparation[I], I, @run_publication_host.ClientCompilationManifests, Int, Int, Int) -> Result[String, ClientRequestTerminalIssue]
+
 pub fn request_program_authoring_context_issue_code(Result[@run_publication_host.ClientAuthoringContextPreparation, ClientRequestAuthoringIssue]) -> String?
 
 pub fn[I] request_program_compilation_limits(ClientRequestPreparation[I], I) -> Result[@run_publication_host.ClientPureCompilationLimits, ClientRequestProgramPlanIssue]

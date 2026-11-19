@@ -2972,3 +2972,80 @@ test('static Plan manager retains one admitted original and never constructs a m
     assert(!f.calls.includes('retire-registry-original'), 'No submitted preparation alias was issued');
   }
 });
+
+test('static Effect Plan manager reads the same checked Request without execution material or Run', async () => {
+  const environment = {}, f = await fixture({environment}), moon = f.context.runtime, request = {};
+  const program = input();
+  program.stages[0].effects = {save: {update: {target: 'connector://crm/account',
+    mapping: 'mapping:crm.account.v1', from: {result: 'rows'}, id: 'n', set: {Name: {field: 'n'}}}}};
+  const receipt = f.view.beforeSourceSnapshot('program', program, {}, connection);
+  const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: program}, snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+  f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+  const bounds = Object.freeze({maxWireBytes: 4096, maxNodes: 512, maxDepth: 32});
+  const events = [], originalWire = 'original Effectful static envelope';
+  let reentry;
+  moon.clientProgramPrepareRequestNativeComputation = function(parent, original, captured) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
+    assert.equal(captured, body.input); events.push('check'); return ok(undefined);
+  };
+  moon.clientProgramRequestOriginalStaticPlanWire = () => assert.fail('No Pure Plan loan for an Effect');
+  moon.clientProgramRequestCheckedStaticPlanIssueCode = () => assert.fail('No original static refusal selected');
+  moon.clientProgramReadRequestCheckedStaticPlan = function(parent, original, ...limits) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
+    assert.deepEqual(limits, [4096, 512, 32]); events.push('original-plan');
+    reentry = f.view.fundedPreparation(request, environment, undefined, undefined, undefined, bounds);
+    reentry.catch(() => {});
+    return ok(originalWire);
+  };
+  moon.clientProgramFinishRequestComputation = function(parent, original, selected, publication) {
+    assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(original, receipt);
+    assert.equal(selected, environment); assert.equal(publication, f.context.preparedEnvironment);
+    moon.clientProgramReadRequestCheckedStaticPlan = () => assert.fail('Substituted later namespace method');
+    events.push('compile'); return ok('effectful');
+  };
+  for (const name of ['clientProgramBorrowRequestEffectPlanInput', 'clientProgramIssueRequestEffectRunMaterials',
+    'clientProgramPrepareRequestProgramModuleBody', 'clientProgramAdoptRequestEffectPreparation']) {
+    moon[name] = () => assert.fail('Static Effect read cannot enter ' + name);
+  }
+  try {
+    assert.equal(await f.view.fundedPreparation(request, environment, undefined, undefined, undefined, bounds), originalWire);
+    await assert.rejects(reentry, {code: 'ForeignInstalledSourceProducer'});
+    assert.deepEqual(events, ['check', 'compile', 'original-plan']);
+    assert(!f.calls.includes('retire-registry-original'), 'No submitted alias or Run');
+  } finally {
+    f.view.finishSourceProducer(receipt, 'returned'); await f.view.close();
+  }
+  assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback', async () => {
+  for (const outcome of ['missing', 'original-error', 'stale']) {
+    const primary = Error('original Effect Plan failure'); let current = true;
+    const environment = {}, f = await fixture({environment, validate: () => {if (!current) throw primary;}});
+    const moon = f.context.runtime, request = {}, program = input();
+    const receipt = f.view.beforeSourceSnapshot('program', program, {}, connection);
+    const body = f.view.captureSourceSnapshot(receipt, {kind: 'program', input: program}, snapshotClientRequest);
+    f.view.bindSourceSnapshot(receipt, body); f.view.bindSourceRequest(receipt, body, request);
+    f.originals.installation = {sequenceContractOriginal: {moon, admission: {}}};
+    const limits = {maxWireBytes: 4096, maxNodes: 512, maxDepth: 32};
+    moon.clientProgramPrepareRequestNativeComputation = () => ok(undefined);
+    moon.clientProgramFinishRequestComputation = () => ok('effectful');
+    moon.clientProgramRequestCheckedStaticPlanIssueCode = () => assert.fail('No typed refusal selected');
+    let reads = 0;
+    if (outcome !== 'missing') moon.clientProgramReadRequestCheckedStaticPlan = () => {
+      reads++;
+      if (outcome === 'original-error') throw primary;
+      current = false; return ok('must not escape a stale current boundary');
+    };
+    moon.clientProgramBorrowRequestEffectPlanInput = () => assert.fail('No execution fallback');
+    try {
+      await assert.rejects(f.view.fundedPreparation(request, environment, undefined, undefined, undefined, limits),
+        error => outcome === 'missing' ? error.code === 'ClientOperationUnavailable' : error === primary);
+      assert.equal(reads, outcome === 'missing' ? 0 : 1);
+    } finally {
+      current = true; f.view.finishSourceProducer(receipt, 'failed'); await f.view.close();
+    }
+    assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+  }
+});

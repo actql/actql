@@ -1165,8 +1165,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       // await. Its token still requires actual original working admission.
       const readStaticPlan = staticPlan === undefined ? undefined
         : Object.getOwnPropertyDescriptor(moon, 'clientProgramRequestOriginalStaticPlanWire')?.value;
+      const readCheckedStaticPlan = staticPlan === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(moon, 'clientProgramReadRequestCheckedStaticPlan')?.value;
+      const checkedStaticIssue = staticPlan === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(moon, 'clientProgramRequestCheckedStaticPlanIssueCode')?.value;
       if (staticPlan !== undefined) {
-        if (typeof readStaticPlan !== 'function') fail('ClientOperationUnavailable');
         if (state.staticPlanRead || state.holder !== undefined) fail('ForeignInstalledSourceProducer');
         state.staticPlanRead = true;
       }
@@ -1258,7 +1261,22 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           // Host caller. A logical compiler result cannot select a different
           // parent or claim that an unconstructed Plan is ready.
           if (state.compilationKind === 'effectful') {
-            if (staticPlan !== undefined) fail('ClientOperationUnavailable');
+            if (staticPlan !== undefined) {
+              if (typeof readCheckedStaticPlan !== 'function' || typeof checkedStaticIssue !== 'function') {
+                fail('ClientOperationUnavailable');
+              }
+              // The same checked Effect and original Request capacity supply
+              // the existing static envelope before any execution material.
+              return constructRequestDomain(state, () => {
+                const wire = checkedRequestProgramPreparation(moon,
+                  Reflect.apply(readCheckedStaticPlan, moon, [parent, producer.receipt,
+                    staticPlan.maxWireBytes, staticPlan.maxNodes, staticPlan.maxDepth]), checkedStaticIssue);
+                current();
+                assertPreparingOriginal();
+                if (typeof wire !== 'string') fail('InvalidOriginalStaticPlan');
+                return wire;
+              });
+            }
             // The actual typed Effect borrow reserves construction on this SAME
             // Request. Never cast it to a Program borrow or select a new Root.
             const names = ['clientProgramBorrowRequestEffectPlanInput',
@@ -1395,6 +1413,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         fail('ForeignInstalledSourceProducer');
       }
       if (staticPlan !== undefined) {
+        if (typeof readStaticPlan !== 'function') fail('ClientOperationUnavailable');
         const original = state.originalExplanation;
         if (original?.preparation === undefined) fail('ClientOperationUnavailable');
         const wire = constructRequestDomain(state, () => {
