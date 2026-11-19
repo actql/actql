@@ -523,7 +523,16 @@ test('Host collection retains original command bodies and their actual build pre
   for (const prerequisite of retained[0].trim().split(/\s+/u)) {
     assert(sharedBuild.includes(prerequisite), `Missing shared Host build prerequisite: ${prerequisite}`);
   }
-  assert.equal(step('Test bounded retained storage and process lifecycle').run, retained[1]);
+  const retainedArguments = retained[1].trim().split(/\s+/u);
+  const storageArguments = step('Test bounded retained storage and process lifecycle').run.trim().split(/\s+/u);
+  assert.deepEqual(storageArguments.slice(0, 2), ['node', '--test']);
+  assert(storageArguments.slice(2).every(argument => argument.endsWith('.test.mjs')),
+    'Run each selected whole test file without name/skip filters');
+  for (const file of new Set([...retainedArguments.slice(2),
+    'adapters/host-node/client-original-plan-control.test.mjs',
+    'adapters/host-node/dispatch-failure-observation.test.mjs'])) {
+    assert.equal(storageArguments.filter(argument => argument === file).length, 1, file);
+  }
   assert.equal(step('Test prepared holder cleanup owner').run, retained[2]);
   assert.equal(step('Test portable publication control with the durable Store').run, publication[1]);
   assert.equal(step('Test original publication owned extents').run, publication[2]);
