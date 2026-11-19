@@ -4,12 +4,13 @@ import {readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, realpathSyn
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {moonGraphCandidate, nonMoonRequirements, normalizeMoonGraph, planMoonTests,
   validateMoonTestPlan, readMoonTestPlan} from './ci-moon-test-plan.mjs';
 import {selectTargets, validateSelection, gateJobRequired, deepProofRequired, verifyGate, gateJobs,
-  maintenanceFiles, readChanges} from './ci-targets.mjs';
+  maintenanceFiles, documentationFiles, readChanges} from './ci-targets.mjs';
 import {runMoonTests, nativeMoonPackages} from './ci-moon-tests.mjs';
 import {nativeCoreTestSelection, nativeCoreTestSelectionOptions, nativeScopedTestFiles, portableMoonTestCount} from './native-core-test-selection.mjs';
 import {runFocusedTests} from './test-execution.mjs';
@@ -249,7 +250,7 @@ test('reviewed real prose and independent JS edits omit product jobs but retain 
     'scripts/operation-performance.mjs', 'scripts/operation-performance.test.mjs', 'scripts/operation-performance-policy.test.mjs']) {
     assert(maintenanceFiles.includes(path)); assert(readFileSync(new URL('../' + path, import.meta.url)).length > 0);
     const selected = selectTargets([path], {maintenanceChanges:[{path, before:{mode:'100644', object:hash}, after:{mode:'100644', object:other}}]});
-    assert.equal(selected.profile, 'maintenance', path);
+    assert.equal(selected.profile, documentationFiles.includes(path) ? 'documentation' : 'maintenance', path);
     for (const name of ['lint', 'spec']) assert.equal(gateJobRequired(selected, name), true);
     for (const name of ['core', 'host', 'client', 'native', 'python-wheels', 'session-evidence'])
       assert.equal(gateJobRequired(selected, name), false, path + ':' + name);
@@ -257,7 +258,11 @@ test('reviewed real prose and independent JS edits omit product jobs but retain 
     assert.equal(selectTargets([path, 'toolchain.json']).profile, 'full');
   }
   const owned = workflow.jobs.lint.steps.find(step => step.name === 'Test ordinary operation performance policy oracles');
-  assert.equal(owned.if, undefined, 'Small policy oracles must execute during Draft preparation too');
+  const condition = owned.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+    .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, key) => `needs[${JSON.stringify(key)}]`);
+  for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused', 'documentation'])
+    assert.equal(runInNewContext(condition, {needs: {'select-targets': {outputs: {profile}}}}), profile !== 'documentation',
+      'Small policy oracles remain required for code and Draft preparation');
   const inventory = verificationInventory({
     workflowText: JSON.stringify({jobs: {lint: {steps: [owned]}}}),
     packageText: readFileSync(new URL('../package.json', import.meta.url), 'utf8'),

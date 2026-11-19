@@ -1,4 +1,4 @@
-// Main integration uses full coverage; PRs select their applicable checks.
+// Runtime integration uses full coverage; reviewed prose has a docs-only lane.
 // An exact maintenance inventory may omit whole unrelated job families.
 // Selected evidence campaigns retain their complete three-target contract.
 import assert from 'node:assert/strict';
@@ -13,6 +13,14 @@ import {readCiInput} from './ci-input.mjs';
 
 const all = ['js', 'wasm', 'native'];
 const sha = /^[0-9a-f]{40}$/u;
+// Exact prose owners with no compiler, generator, proof or executable-example
+// consumer. Keep README/Quickstart, normative specs and generated references out.
+// Adding a semantic consumer requires removing or re-reviewing its entry here.
+export const documentationFiles = Object.freeze([
+  'docs/reference/status.md', 'docs/contributing/README.md',
+  'docs/ci-client.md', 'docs/ci-artifact-analysis.md', 'docs/verification-actions.md',
+]);
+const documentation = new Set(documentationFiles);
 // Reviewed callers are retained lint tests or manual reporting commands only.
 // These files are not runtime/proof semantic inputs (generic checkout identity
 // still changes). A new runtime/build/proof caller must remove or re-review its
@@ -82,6 +90,7 @@ export function deepProofRequired(selection) {
 }
 export function gateJobRequired(selection, name) {
   if (['select-targets', 'preflight', 'lint', 'spec'].includes(name)) return true;
+  if (selection.profile === 'documentation') return false;
   if (name === 'client-readme-packed') return selection.profile === 'full';
   if (name === 'main-performance') return selection.event === 'push' ||
     selection.event === 'pull_request' && selection.profile === 'full';
@@ -137,10 +146,14 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
   const focusedPaths = validPaths ? partitionFocusedPaths(paths, maintenanceChanges) : null;
   const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason,
     profile: 'full', event, paths: validPaths && !failure ? [...paths] : [], maintenanceChanges: null, focusedChanges: null, focusedTests: null});
-  // Main runtime integration is unconditional; only deep campaigns use the
-  // current push diff. No previous-success lookup or ancestry search is used.
+  const docs = () => ({...full('Reviewed prose-only modifications: document validation, links, metadata and current-source admission; no runtime evidence'),
+    profile: 'documentation', targets: ['js'], macos: false, maintenanceChanges});
+  const docsOnly = !failure && validPaths && eligibleDocumentation(paths, maintenanceChanges);
+  // A main push may omit runtime work only for the same exact regular-file
+  // modifications admitted on PRs. Manual/scheduled and unknown inputs stay full.
   if (mainIntegration) {
     assert(['push', 'workflow_dispatch'].includes(event), 'Invalid main integration event');
+    if (event === 'push' && docsOnly) return docs();
     const result = full('Main integration requires every runtime family; deep campaigns follow their inputs');
     if (event === 'workflow_dispatch') result.macos = nativeMacos;
     return result;
@@ -166,6 +179,7 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
   }
   if (failure) return full(`Diff unavailable: ${failure}`);
   if (!Array.isArray(paths) || !paths.length || !paths.every(validPath)) return full('Empty or invalid change inventory');
+  if (docsOnly) return docs();
   if (eligibleMaintenance(paths, maintenanceChanges)) return {...full('Reviewed maintenance files: lint and spec required; runtime and proof families not applicable'),
     profile: 'maintenance', targets: ['js'], macos: false, maintenanceChanges};
   if (focusedTests && focusedPaths && eligibleFocusedChanges(focusedPaths, focusedChanges)) {
@@ -190,7 +204,13 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
     reason: 'Reviewed portable paths: PR core uses JS; full targets run on main integration; optional macOS can be requested manually'};
 }
 function eligibleMaintenance(paths, changes) {
-  return paths.length > 0 && paths.every(path => maintenance.has(path))
+  return eligibleModifications(paths, changes, maintenance);
+}
+function eligibleDocumentation(paths, changes) {
+  return eligibleModifications(paths, changes, documentation);
+}
+function eligibleModifications(paths, changes, inventory) {
+  return paths.length > 0 && paths.every(path => inventory.has(path))
     && new Set(paths).size === paths.length && Array.isArray(changes) && changes.length === paths.length
     && changes.every((entry, index) => entry && Object.keys(entry).sort().join(',') === 'after,before,path'
       && entry.path === paths[index] && [entry.before, entry.after].every(identity => identity
@@ -217,7 +237,7 @@ export function validateSelection(selection) {
   assert.deepEqual(selection.targets, selection.targets?.length === 1 ? ['js'] : all);
   assert.equal(typeof selection.macos, 'boolean');
   assert(typeof selection.reason === 'string' && selection.reason.trim());
-  assert(['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused'].includes(selection.profile), 'Invalid selection profile');
+  assert(['full', 'documentation', 'maintenance', 'focused-tests', 'draft', 'draft-focused'].includes(selection.profile), 'Invalid selection profile');
   assert(typeof selection.event === 'string' && selection.event.length, 'Missing selection event');
   assert(Array.isArray(selection.paths) && selection.paths.every(validPath), 'Invalid selection paths');
   if (Object.hasOwn(selection, 'moonTests')) {
@@ -225,10 +245,11 @@ export function validateSelection(selection) {
     assert.deepEqual(selection.targets, all); assert.equal(selection.macos, true);
     assert(moonGraphCandidate(selection.paths)); validateMoonTestPlan(selection.moonTests);
   }
-  if (selection.profile !== 'full') assert.equal(selection.event, 'pull_request', 'Narrow selection requires a PR event');
+  if (selection.profile === 'documentation') assert(['pull_request', 'push'].includes(selection.event), 'Documentation requires a PR or main push');
+  else if (selection.profile !== 'full') assert.equal(selection.event, 'pull_request', 'Narrow selection requires a PR event');
   const focused = ['focused-tests', 'draft-focused'].includes(selection.profile);
-  if (selection.profile === 'maintenance') {
-    assert(eligibleMaintenance(selection.paths, selection.maintenanceChanges), 'Invalid maintenance inventory');
+  if (['documentation', 'maintenance'].includes(selection.profile)) {
+    assert((selection.profile === 'documentation' ? eligibleDocumentation : eligibleMaintenance)(selection.paths, selection.maintenanceChanges), 'Invalid reviewed modification inventory');
     assert.deepEqual(selection.targets, ['js']);
     assert.equal(selection.macos, false);
   } else if (!focused) assert.equal(selection.maintenanceChanges, null, 'Unexpected maintenance inventory');
@@ -285,32 +306,10 @@ export function readChanges(payload, git = args => execFileSync('git', args,
   const paths = output.split('\0').filter(Boolean);
   let maintenanceChanges = null, focusedChanges = null, focusedTests = null, structuralChange = false;
   const focusedPaths = paths.filter(path => focusedPattern.test(path));
-  const lightweightPaths = paths.filter(path => maintenance.has(path));
+  const lightweightPaths = paths.filter(path => maintenance.has(path) || documentation.has(path));
   const reviewedOnly = paths.length > 0 && focusedPaths.length + lightweightPaths.length === paths.length;
   if (reviewedOnly) {
-    // Exact raw Git identities distinguish ordinary edits from additions,
-    // deletions, renames, symlinks and mode changes. No text/extension guess.
-    const raw = git(['diff', '--no-renames', '--raw', '--no-abbrev', '-z', base, head, '--']);
-    assert(raw.endsWith('\0'), 'Truncated raw change inventory');
-    const records = raw.slice(0, -1).split('\0');
-    assert(records.length === paths.length * 2, 'Incomplete raw change inventory');
-    const changes = [];
-    for (let index = 0; index < records.length; index += 2) {
-      const match = /^:(\d{6}) (\d{6}) ([0-9a-f]{40}) ([0-9a-f]{40}) ([A-Z][0-9]*)$/u.exec(records[index]);
-      assert(match && records[index + 1] === paths[index / 2], 'Invalid raw change inventory');
-      const [, beforeMode, afterMode, beforeObject, afterObject, status] = match;
-      changes.push({path: records[index + 1], before: {mode: beforeMode, object: beforeObject},
-        after: {mode: afterMode, object: afterObject}});
-      if (!(focusedPattern.test(records[index + 1]) ? ['A', 'M'].includes(status) : status === 'M')) changes[index / 2].before.mode = 'unsupported';
-      // Packed consumers execute this exact Quickstart. Prose is independent;
-      // changed/removed executable blocks require their normal product owners.
-      if (records[index + 1] === 'docs/development.md' && status === 'M') {
-        try {
-          assert.deepEqual(readmeQuickstart(git(['show', beforeObject])),
-            readmeQuickstart(git(['show', afterObject])));
-        } catch { changes[index / 2].before.mode = 'unsupported'; }
-      }
-    }
+    const changes = readModificationIdentities(paths, base, head, git);
     const focused = changes.filter(change => focusedPattern.test(change.path));
     const lightweight = changes.filter(change => maintenance.has(change.path));
     if (focusedPaths.length && eligibleFocusedChanges(focusedPaths, focused) &&
@@ -320,7 +319,7 @@ export function readChanges(payload, git = args => execFileSync('git', args,
         focusedChanges = focused;
         maintenanceChanges = lightweightPaths.length ? lightweight : null;
       } else structuralChange = true;
-    } else if (!focusedPaths.length && eligibleMaintenance(paths, changes)) maintenanceChanges = changes;
+    } else if (!focusedPaths.length && (eligibleDocumentation(paths, changes) || eligibleMaintenance(paths, changes))) maintenanceChanges = changes;
     else structuralChange = true;
   }
   const boundary = /\b(?:extern|supported_targets|targets|native-stub|unsafe|malloc|realloc|sizeof)\b|\b(?:free|release|retain|dispose|cleanup)\s*\(|#(?:cfg|external|borrow|owned)\b|\btarget\s*=|\b\w*(?:cid|sha256|canonical|preimage|hash)\w*\b/iu;
@@ -336,6 +335,33 @@ export function readChanges(payload, git = args => execFileSync('git', args,
   }
   return {paths, targetSensitiveDiff, maintenanceChanges, focusedChanges, focusedTests, head};
 }
+
+function readModificationIdentities(paths, base, head, git) {
+  // Both events admit the same complete Git modification identities. Additions,
+  // deletions, renames, aliases and mode changes cannot become prose-only.
+  const raw = git(['diff', '--no-renames', '--raw', '--no-abbrev', '-z', base, head, '--']);
+  assert(raw.endsWith('\0'), 'Truncated raw change inventory');
+  const records = raw.slice(0, -1).split('\0');
+  assert(records.length === paths.length * 2, 'Incomplete raw change inventory');
+  const changes = [];
+  for (let index = 0; index < records.length; index += 2) {
+    const match = /^:(\d{6}) (\d{6}) ([0-9a-f]{40}) ([0-9a-f]{40}) ([A-Z][0-9]*)$/u.exec(records[index]);
+    assert(match && records[index + 1] === paths[index / 2], 'Invalid raw change inventory');
+    const [, beforeMode, afterMode, beforeObject, afterObject, status] = match;
+    changes.push({path: records[index + 1], before: {mode: beforeMode, object: beforeObject},
+      after: {mode: afterMode, object: afterObject}});
+    if (!(focusedPattern.test(records[index + 1]) ? ['A', 'M'].includes(status) : status === 'M')) changes[index / 2].before.mode = 'unsupported';
+    // Packed consumers execute this exact Quickstart. Prose is independent;
+    // changed/removed executable blocks require their normal product owners.
+    if (records[index + 1] === 'docs/development.md' && status === 'M') {
+      try {
+        assert.deepEqual(readmeQuickstart(git(['show', beforeObject])),
+          readmeQuickstart(git(['show', afterObject])));
+      } catch { changes[index / 2].before.mode = 'unsupported'; }
+    }
+  }
+  return changes;
+}
 // Exactly the event's endpoints, never a previous successful run or ancestor.
 // --no-renames retains both sides of renames and deletions. Failure is handled
 // by the caller as an unknown diff, which requires the complete deep campaign.
@@ -350,7 +376,9 @@ export function readPushChanges(payload, testedRevision, git = args => execFileS
   assert(output === '' || output.endsWith('\0'), 'Truncated push change inventory');
   const paths = output.split('\0').filter(Boolean);
   assert(paths.every(validPath), 'Malformed push change inventory');
-  return {paths};
+  const maintenanceChanges = paths.length && paths.every(path => documentation.has(path))
+    ? readModificationIdentities(paths, payload.before, testedRevision, git) : null;
+  return {paths, maintenanceChanges};
 }
 async function main() {
   if (process.argv[2] === 'gate') {
@@ -363,7 +391,7 @@ async function main() {
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
     return;
   }
-  assert(!process.argv[2] || process.argv[2] === 'moon-graph-candidate', 'Usage: ci-targets.mjs [gate|moon-graph-candidate]');
+  assert(!process.argv[2] || ['moon-graph-candidate', 'documentation-candidate'].includes(process.argv[2]), 'Usage: ci-targets.mjs [gate|moon-graph-candidate|documentation-candidate]');
   const draft = pullRequestDraft(process.env.GITHUB_EVENT_NAME,
     process.env.GITHUB_EVENT_NAME === 'pull_request'
       ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')) : null);
@@ -378,6 +406,12 @@ async function main() {
     assert.equal(payload.after, process.env.GITHUB_SHA, 'Different pushed revision');
     try { changes = readPushChanges(payload, process.env.GITHUB_SHA); }
     catch (error) { failure = error.message; changes = {paths: []}; }
+  }
+  if (process.argv[2] === 'documentation-candidate') {
+    const required = !failure && ['pull_request', 'push'].includes(process.env.GITHUB_EVENT_NAME) && draft !== true &&
+      eligibleDocumentation(changes.paths, changes.maintenanceChanges);
+    appendFileSync(process.env.GITHUB_OUTPUT, `required=${required}\n`);
+    return;
   }
   const candidate = process.env.GITHUB_EVENT_NAME === 'pull_request' && draft === false && !failure &&
     !changes.targetSensitiveDiff && moonGraphCandidate(changes.paths);

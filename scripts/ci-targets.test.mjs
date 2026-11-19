@@ -10,7 +10,7 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
+import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, documentationFiles, gateJobs, pythonWheelAcceptanceRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
 import {readCiInput} from './ci-input.mjs';
@@ -93,13 +93,18 @@ test('early Source admission runs original recipes once and refuses plan publica
       .map(step => ({job, step})));
     assert.equal(selected.length, 1, `${recipe}: missing or duplicated original recipe`);
     assert.equal(selected[0].job, 'select-targets');
-    assert.equal(selected[0].step.if, undefined);
+    for (const docs of [false, true]) {
+      const step = selected[0].step;
+      const enabled = !step.if || runInNewContext(step.if.replace(/steps\.([a-z][a-z0-9-]*)/gu, (_, key) => `steps[${JSON.stringify(key)}]`), {steps: {'documentation-candidate': {outputs: {required: String(docs)}}}});
+      assert.equal(enabled, recipe !== 'check:client-types' || !docs);
+    }
     assert.notEqual(selected[0].step['continue-on-error'], true);
     assert(steps.indexOf(selected[0].step) < steps.indexOf(select));
   }
   const graph = steps.find(step => step.id === 'moon-candidate');
   assert(steps.indexOf(graph) < steps.indexOf(select));
-  const prefix = steps.slice(0, steps.indexOf(select) + 1).filter(step => step.run && !step.if);
+  const prefix = steps.slice(0, steps.indexOf(select) + 1).filter(step => step.run && (!step.if || runInNewContext(step.if.replace(/steps\.([a-z][a-z0-9-]*)/gu, (_, key) => `steps[${JSON.stringify(key)}]`),
+    {steps: {'documentation-candidate': {outputs: {required: 'false'}}, 'moon-candidate': {outputs: {required: 'false'}}}})));
   const directory = mkdtempSync(join(tmpdir(), 'actql-source-admission-')), bin = join(directory, 'bin');
   t.after(() => rmSync(directory, {recursive: true, force: true}));mkdirSync(bin);
   // Execute the actual YAML command prefix with closed recording command ports.
@@ -110,7 +115,7 @@ test('early Source admission runs original recipes once and refuses plan publica
     if(command==='npm') {
       const recipe=args[0]==='run'?args[1]:args[0];
       if(recipe===process.env.FAIL_RECIPE)process.exit(71);
-    } else if(!args.includes('moon-graph-candidate')) {
+    } else if(args.length===1 && args[0]==='scripts/ci-targets.mjs') {
       fs.appendFileSync(process.env.GITHUB_OUTPUT,'plan=recording-port\\n');
     }\n`;
   for (const command of ['npm', 'node']) writeFileSync(join(bin, command), record, {mode: 0o755});
@@ -130,7 +135,7 @@ test('early Source admission runs original recipes once and refuses plan publica
     assert.equal(npmCalls.filter(row => row.args[0] === 'ci').length, failure === recipes[0] ? 0 : 1);
     assert.equal(readFileSync(output, 'utf8').includes('plan='), failure === '');
     // A refused Source cannot start even the optional Moon discovery entrance.
-    assert.equal(observed.some(row => row.command === 'node'), failure === '');
+    assert.equal(observed.some(row => row.args.includes('moon-graph-candidate')), failure === '');
   }
   const {scripts} = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const types = scripts['check:client-types'].split(/\s+/u);
@@ -441,7 +446,8 @@ test('normal lint executes installed-interface correspondence controls once', ()
   const args = step.run.trim().split(/\s+/u);
   assert.deepEqual(args.slice(0, 2), ['node', '--test']);
   assert.equal(args.filter(value => value === file).length, 1);
-  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  for (const profile of ['full', 'maintenance', 'focused-tests']) assert.equal(draftStepEnabled(step, profile), true);
+  for (const profile of ['draft', 'draft-focused', 'documentation']) assert.equal(draftStepEnabled(step, profile), false);
   assert.equal(step['continue-on-error'], undefined);
 });
 
@@ -451,8 +457,10 @@ test('normal lint executes behavioral operation performance assessment tests', (
   assert.equal(collectors.length, 1);
   assert.equal(policies.length, 1);
   const [step] = collectors, [policy] = policies;
-  assert.equal(policy.if, undefined);
-  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused']) assert.equal(draftStepEnabled(policy, profile), true);
+  assert.equal(draftStepEnabled(policy, 'documentation'), false);
+  for (const profile of ['full', 'maintenance', 'focused-tests']) assert.equal(draftStepEnabled(step, profile), true);
+  for (const profile of ['draft', 'draft-focused', 'documentation']) assert.equal(draftStepEnabled(step, profile), false);
   // These tests validate raw samples, frame counts, faults and incomplete
   // evidence. Running them is not an ordinary-package performance result.
   assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
@@ -465,7 +473,8 @@ test('normal lint executes ordinary process collector protocol tests', () => {
   const selected = jobs.lint.steps.filter(row => row.run === 'python3 -I -B scripts/benchmark-ordinary-processes.test.py');
   assert.equal(selected.length, 1);
   const [step] = selected;
-  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  for (const profile of ['full', 'maintenance', 'focused-tests']) assert.equal(draftStepEnabled(step, profile), true);
+  for (const profile of ['draft', 'draft-focused', 'documentation']) assert.equal(draftStepEnabled(step, profile), false);
   assert.equal(step['continue-on-error'], undefined);
   // Process fixtures exercise the collector and package fence, not product speed.
 });
@@ -1155,7 +1164,7 @@ test('maintenance inventory is nonempty unique and every existing reviewed modif
   assert.equal(new Set(maintenanceFiles).size, maintenanceFiles.length);
   for (const path of maintenanceFiles) {
     const selection = validateSelection(maintenanceSelection([path]));
-    assert.equal(selection.profile, 'maintenance', path);
+    assert.equal(selection.profile, documentationFiles.includes(path) ? 'documentation' : 'maintenance', path);
     const lines = verifyGate(plan(selection), results(selection), context);
     assert(lines.some(line => line.startsWith('NOT APPLICABLE pipeline-evidence')));
     assert(lines.some(line => line.startsWith('PASS lint')));
@@ -1172,6 +1181,146 @@ test('maintenance inventory is nonempty unique and every existing reviewed modif
     assert.equal(maintenanceSelection([maintenanceFiles[0], path]).profile, 'full', path);
   }
   assert.equal(selectTargets(maintenanceFiles).profile, 'full', 'paths alone are not modification evidence');
+});
+
+test('documentation modifications select the same mandatory lightweight jobs on PR and main push', () => {
+  for (const event of ['pull_request', 'push']) for (const paths of [[...documentationFiles], ...documentationFiles.map(path => [path])]) {
+    const selection = validateSelection(selectTargets(paths, {event, maintenanceChanges: changes(paths)}));
+    assert.equal(selection.profile, 'documentation');
+    assert.equal(deepProofRequired(selection), false);
+    assert.equal(pythonWheelAcceptanceRequired(selection), false);
+    for (const name of gateJobs) assert.equal(gateJobRequired(selection, name),
+      ['select-targets', 'preflight', 'lint', 'spec'].includes(name), name);
+    const env = {...context, event};
+    verifyGate(plan(selection), results(selection), env);
+    for (const name of ['select-targets', 'preflight', 'lint', 'spec']) for (const result of ['failure', 'cancelled', 'skipped', undefined])
+      assert.throws(() => verifyGate(plan(selection), {...results(selection), [name]: {result}}, env), new RegExp(name));
+    for (const mutate of [
+      value => {value.event = 'schedule';}, value => {value.event = 'workflow_dispatch';},
+      value => {value.paths.push('docs/spec/language.md');},
+      value => {value.maintenanceChanges[0].before.mode = '120000';},
+      value => {value.maintenanceChanges[0].after.mode = '100755';},
+      value => {value.maintenanceChanges[0].before.object = '0'.repeat(40);},
+      value => {value.maintenanceChanges[0].after.object = value.maintenanceChanges[0].before.object;},
+    ]) {
+      const changed = structuredClone(selection); mutate(changed);
+      assert.throws(() => validateSelection(changed));
+    }
+  }
+  const paths = ['docs/reference/status.md'];
+  for (const event of ['schedule', 'workflow_dispatch'])
+    assert.equal(selectTargets(paths, {event, maintenanceChanges: changes(paths)}).profile, 'full');
+  assert.equal(selectTargets(paths, {draft: true, maintenanceChanges: changes(paths)}).profile, 'draft');
+  for (const event of ['pull_request', 'push']) {
+    assert.equal(selectTargets(paths, {event}).profile, 'full', 'a pathname alone is insufficient');
+    assert.equal(selectTargets(paths, {event, failure: 'Missing Git endpoint', maintenanceChanges: changes(paths)}).profile, 'full');
+    for (const other of ['docs/spec/language.md', 'docs/design/versioning.md', 'docs/reference/check-reasons.md',
+      'docs/getting-started/quickstart.md', 'docs/development.md', 'README.md',
+      'docs/guides/unreviewed.md', 'spec/contracts/example.json', 'src/source_span/span.mbt', 'package.json']) {
+      const mixed = [...paths, other];
+      assert.equal(selectTargets(mixed, {event, maintenanceChanges: changes(mixed)}).profile, 'full', other);
+    }
+  }
+});
+
+test('real Git endpoints admit only existing regular documentation modifications for both events', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-docs-endpoints-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const git = args => {
+    const result = spawnSync('git', args, {cwd: root, encoding: 'utf8', timeout: 5000});
+    assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stderr);
+    return result.stdout;
+  };
+  git(['init', '--quiet']); git(['config', 'user.name', 'Fixture']); git(['config', 'user.email', 'fixture@example.invalid']);
+  const path = 'docs/reference/status.md'; mkdirSync(dirname(join(root, path)), {recursive: true});
+  writeFileSync(join(root, path), '# Original status\n');
+  git(['add', '.']); git(['-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Original documentation']);
+  const before = git(['rev-parse', 'HEAD']).trim();
+  const inspect = event => {
+    const after = git(['rev-parse', 'HEAD']).trim();
+    const read = event === 'push' ? readPushChanges({ref: 'refs/heads/main', before, after}, after, git)
+      : readChanges({pull_request: {base: {sha: before}}}, git);
+    return selectTargets(read.paths, {...read, event});
+  };
+  const commit = () => {git(['add', '-A']); git(['-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Changed documentation']);};
+  const reset = () => git(['reset', '--hard', before]);
+  writeFileSync(join(root, path), '# Updated status\nRun and cleanup are documented, not executed.\n'); commit();
+  for (const event of ['pull_request', 'push']) {
+    assert.equal(inspect(event).profile, 'documentation');
+    const after = git(['rev-parse', 'HEAD']).trim();
+    const payload = event === 'push' ? {ref: 'refs/heads/main', before, after}
+      : {action: 'synchronize', pull_request: {draft: false, base: {sha: before}}};
+    const eventFile = join(root, 'event.json'), output = join(root, 'output.txt');
+    writeFileSync(eventFile, JSON.stringify(payload));
+    for (const command of ['documentation-candidate', null]) {
+      writeFileSync(output, '');
+      const result = spawnSync(process.execPath, [fileURLToPath(new URL('./ci-targets.mjs', import.meta.url)), ...(command ? [command] : [])], {
+        cwd: root, encoding: 'utf8', timeout: 10000,
+        env: {...process.env, GITHUB_EVENT_NAME: event, GITHUB_EVENT_PATH: eventFile, GITHUB_SHA: after,
+          GITHUB_REF: event === 'push' ? 'refs/heads/main' : 'refs/pull/1/merge', GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: ''},
+      });
+      assert.equal(result.error, undefined); assert.equal(result.status, 0, result.stderr);
+      const published = readFileSync(output, 'utf8');
+      if (command) assert.equal(published, 'required=true\n');
+      else {
+        const envelope = JSON.parse(published.split('\n').find(line => line.startsWith('plan=')).slice(5));
+        assert.equal(envelope.sourceRevision, after); assert.equal(envelope.selection.profile, 'documentation');
+        assert(published.includes('deep_proofs=false\n')); assert(published.includes('python_wheels=false\n'));
+      }
+    }
+  }
+  // Event/command outputs are not fixture Source inputs for the next commit.
+  rmSync(join(root, 'event.json')); rmSync(join(root, 'output.txt'));
+  for (const edit of [
+    () => {chmodSync(join(root, path), 0o755);},
+    () => {git(['rm', path]);},
+    () => {git(['mv', path, 'CONTRIBUTING.md']);},
+    () => {git(['rm', path]); mkdirSync(dirname(join(root, path)), {recursive: true}); symlinkSync('../../target', join(root, path));},
+    () => {writeFileSync(join(root, 'CONTRIBUTING.md'), '# Newly added reviewed filename\n');},
+    () => {writeFileSync(join(root, 'product.mbt'), 'new runtime input\n');},
+  ]) {
+    reset(); edit(); commit();
+    for (const event of ['pull_request', 'push']) assert.equal(inspect(event).profile, 'full');
+  }
+});
+
+test('documentation keeps required job names and real document checks without compiler or product fan-out', () => {
+  for (const event of ['pull_request', 'push']) {
+    const paths = ['docs/reference/status.md'];
+    const selection = selectTargets(paths, {event, maintenanceChanges: changes(paths)});
+    const needs = Object.fromEntries(Object.keys(jobs).map(name => [name, {result: 'skipped'}]));
+    needs['select-targets'] = {result: 'success', outputs: {profile: selection.profile, targets: JSON.stringify(selection.targets),
+      macos: 'false', deep_proofs: 'false', python_wheels: 'false'}};
+    for (const [name, job] of Object.entries(jobs)) {
+      const expression = job.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+        .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, key) => `needs[${JSON.stringify(key)}]`);
+      const enabled = runInNewContext(expression, {needs, inputs: {}, vars: {},
+        always: () => true, cancelled: () => false, toJSON: JSON.stringify, fromJSON: JSON.parse,
+        contains: (items, item) => items.includes(item),
+        github: {event_name: event, ref: 'refs/heads/main', event: {repository: {visibility: 'public', private: false}, pull_request: {draft: false}}},
+      }, {timeout: 100});
+      assert.equal(enabled, ['select-targets', 'preflight', 'lint', 'spec', 'check'].includes(name), `${event}/${name}`);
+    }
+  }
+  const enabled = name => jobs[name].steps.filter(step => draftStepEnabled(step, 'documentation'));
+  for (const name of ['preflight', 'lint', 'spec']) {
+    const steps = enabled(name);
+    assert(!steps.some(step => /setup-toolchain|setup-python/u.test(step.uses ?? '') || /\bmoon\b|setup-moonbit|check-moonbit-api/u.test(step.run ?? '')), name);
+    assert(steps.some(step => step.uses?.startsWith('actions/setup-node@')));
+    assert(steps.some(step => step.run === 'npm ci'));
+    assert(!steps.some(step => step['continue-on-error']));
+  }
+  assert(enabled('preflight').some(step => step.run === 'npm run check:metadata'));
+  assert(enabled('preflight').some(step => step.run === 'node scripts/ci-preflight.mjs'));
+  const lint = enabled('lint').filter(step => step.run && step.run !== 'npm ci');
+  assert(lint.some(step => step.run.includes('scripts/document-validation.test.mjs')));
+  for (const step of lint) {
+    assert(step.run.startsWith('node scripts/local-checks.mjs test node '));
+    assert(step.run.includes('--timeout-seconds')); assert(step.run.includes('--kill-grace-seconds'));
+    assert(!step.run.includes('continue-on-error'));
+  }
+  for (const recipe of ['check:links', 'check:examples'])
+    assert(enabled('spec').some(step => step.run === `npm run ${recipe}`));
 });
 
 test('raw Git classification rejects additions deletions renames modes and malformed inventories', () => {
@@ -1604,7 +1753,6 @@ test('fast health monitor harness runs in PR and Draft lint without enabling the
   const command = 'node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- scripts/health-monitor.test.mjs';
   const selected = jobs.lint.steps.filter(step => step.run === command);
   assert.equal(selected.length, 1);
-  assert.equal(selected[0].if, undefined);
   assert.equal(selected[0]['continue-on-error'], undefined);
   for (const profile of ['draft', 'draft-focused', 'focused-tests', 'maintenance', 'full']) {
     assert.equal(draftStepEnabled(selected[0], profile), true);
@@ -2092,7 +2240,7 @@ test('existing push-only health result is required by the same aggregate that sc
   const runs = (event, ref = 'refs/heads/main', inputs = {}, outcomes = {admission: 'success', producer: 'success'}) => runInNewContext(
     jobs['health-quick'].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`),
     {inputs, always: () => true, toJSON: JSON.stringify,
-      needs: {'select-targets': {result: outcomes.admission}, 'client-packages': {result: outcomes.producer}},
+      needs: {'select-targets': {result: outcomes.admission, outputs: {profile: 'full'}}, 'client-packages': {result: outcomes.producer}},
       github: {event_name: event, ref, event: {repository: {visibility: 'public', private: false}}}});
   for (const event of ['push', 'pull_request', 'schedule', 'workflow_dispatch']) {
     const selection = selectTargets(['README.md'], {event});
@@ -2136,7 +2284,8 @@ test('same-environment duplicate checks retain one explicit owner without weaken
   assert(!jobs.host.steps.some(step => step.run?.startsWith('node --test adapters/store-local/publication-commit-owner.test.mjs')));
   assert(pkg.scripts['check:distribution-client'].includes('scripts/owned-scratch.test.mjs'));
   const scratch = jobs.lint.steps.find(step => step.run === 'node --test scripts/owned-scratch.test.mjs');
-  assert.equal(scratch.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  for (const profile of ['full', 'maintenance', 'focused-tests']) assert.equal(draftStepEnabled(scratch, profile), true);
+  for (const profile of ['draft', 'draft-focused', 'documentation']) assert.equal(draftStepEnabled(scratch, profile), false);
   assert.deepEqual(Object.entries(jobs).flatMap(([name, job]) =>
     job.steps?.filter(step => step.run?.split(/\s+/u).includes('scripts/owned-scratch.test.mjs'))
       .map(() => name) ?? []), ['lint'], 'normal scratch checks have one runtime-independent owner');
