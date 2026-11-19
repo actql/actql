@@ -3331,6 +3331,15 @@ already-entered physical worker with its original thread, Host, Run and owner
 checks; it does not search unrelated work history. No thread join occurs while
 holding the Core/Store locks.
 
+A pending cancellation projection retains the bounded original cancellation
+locator captured with it. Lookup may confirm, dispatch and consume that pending
+projection only when its Run reference, cancellation id and expected revision
+match that same locator. An unrelated lookup returns its own checked view and
+leaves the pending original untouched. The locator is routing DATA only: the
+same Core projection, nominal Run and fresh current/row checks still decide
+stop interest. Failed projection close retains that association and its original
+cleanup duty; no lookup resends the cancellation write.
+
 Stop interest is neither permission to work nor a cancellation outcome. The
 private invocation signal only selects existing Compute sealing and original
 child retirement. Other Core refusals, including `-35`, remain errors; original

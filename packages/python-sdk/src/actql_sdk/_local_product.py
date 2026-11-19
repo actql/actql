@@ -264,6 +264,9 @@ class InstalledLocalHost:
         self._row_write_attempts: set[int] = set()
         self._pending_run_write: _Output | None = None
         self._pending_cancellation_write: _Output | None = None
+        # Bounded routing DATA for this same retained projection, never a
+        # cancellation decision or permission to consume a different original.
+        self._pending_cancellation_locator: bytes | None = None
         self._step_outputs: list[_Output] = []
         self._step_write_attempts: set[int] = set()
         self._pending_start_write: _Output | None = None
@@ -1668,7 +1671,8 @@ class InstalledLocalHost:
             if not wire.cancellation_lookup(_object(raw, 8192), selected):  # type: ignore[no-untyped-call]
                 raise ValueError('Invalid original Local cancellation lookup response')
             pending = self._pending_cancellation_write
-            if pending is not None:
+            if (pending is not None and self._pending_cancellation_locator ==
+                    _canonical_bytes(selected, data_keys=True)):  # type: ignore[no-untyped-call]
                 confirmed: list[bool] = []
                 def confirm(current: _Output) -> None:
                     value = self._core.confirm_cancellation_append(pending, current, allow_pending=True)
@@ -1680,6 +1684,7 @@ class InstalledLocalHost:
                     if not self._close_projection(pending):
                         raise LocalProductCleanupPending(self)
                     self._pending_cancellation_write = None
+                    self._pending_cancellation_locator = None
             if not self._close_projection(output):
                 raise LocalProductCleanupPending(self)
             return raw
@@ -1745,6 +1750,8 @@ class InstalledLocalHost:
                     raise ValueError('Invalid bounded Core cancellation row transport')
                 writes.append(ByteWrite(store.namespaced_key(row['namespace'], row['key']),
                                         None if revision is None else int(revision), payload))
+            self._pending_cancellation_locator = _canonical_bytes(
+                cancel_ref, data_keys=True)  # type: ignore[no-untyped-call]
             self._pending_cancellation_write = output
             if writes:
                 with installation.binding.fenced() as fences:
@@ -1762,6 +1769,7 @@ class InstalledLocalHost:
             if not self._close_projection(output):
                 raise LocalProductCleanupPending(self)
             self._pending_cancellation_write = None
+            self._pending_cancellation_locator = None
             return response
 
     def _dispatch_original_cancellation_stop(self, output: _Output, reference: object,
@@ -4224,6 +4232,7 @@ class InstalledLocalHost:
                     return False
                 if self._pending_cancellation_write is output:
                     self._pending_cancellation_write = None
+                    self._pending_cancellation_locator = None
             if self._configuration is not None:
                 if not self._runs.close_configuration(self._configuration):
                     return False

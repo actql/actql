@@ -215,3 +215,113 @@ class CancellationStopInterestTests(unittest.TestCase):
             work._original = object()
             with self.assertRaisesRegex(ValueError, 'Copied original'):
                 host._check_original_stop_interest(original.run)
+
+    def pending_readback_fixture(self, *, other_live=False, pending_close=False):
+        host, core, original, work, body, *rest = self.fixture(1)
+        events = rest[-2]
+        confirm_original = core.confirm_cancellation_append
+        pending = core.reserve_submission_projection()
+        primary = LocalCoreError('confirm_cancellation_append', -33)
+
+        def uncertain(value, current, **options):
+            self.assertIs(value, pending)
+            raise primary
+
+        core.confirm_cancellation_append = uncertain
+        with self.assertRaises(LocalCoreError) as refused:
+            host._cancel_original(body)
+        self.assertIs(refused.exception, primary)
+        self.assertIs(host._pending_cancellation_write, pending)
+        core.confirm_cancellation_append = confirm_original
+        reference = body['ref']
+        other_ref = dict(reference, runDefinitionCid='sha256:' + 'c' * 64)
+        other_run = SimpleNamespace(handle=72)
+        other = _OriginalExecution(host, other_run, reference=object())
+        if other_live:
+            host._physical_work.append(OriginalLocalWork(other, owner=other_run))
+
+        def locate(raw):
+            selected = json.loads(raw)
+            if selected == reference:
+                return SimpleNamespace(run=original.run)
+            if selected == other_ref and other_live:
+                return SimpleNamespace(run=other_run)
+            return None
+
+        host._find_original_run_reference = locate
+        host._runs._run = lambda value: self.assertTrue(
+            value is original.run or value is other_run)
+        scalar_original = core._call
+
+        def scalar(family, name, *args):
+            if args[1] != original.run.handle:
+                events.append('foreign-stop-observation')
+                return -35
+            return scalar_original(family, name, *args)
+
+        core._call = scalar
+        host._copy = lambda raw: raw
+        selections = {}
+
+        def reserve(configuration, source, kind, **options):
+            self.assertEqual(kind, 11)
+            output = SimpleNamespace(handle=110 + len(selections), ticket=120 + len(selections))
+            selections[output.ticket] = json.loads(source)
+            return output
+
+        core.reserve_submission_projection = reserve
+
+        def read(output, current):
+            selection = selections[output.ticket]
+            return json.dumps({'kind': 'unknown', 'cancelRef': selection}).encode()
+
+        core.produce_and_read_submission_lookup = read
+        closes = []
+
+        def close(output):
+            closes.append(output)
+            if output is pending and pending_close:
+                return False
+            return True
+
+        host._close_projection = close
+        return host, original, other, reference, other_ref, pending, events, closes, primary
+
+    def test_pending_cancel_readback_preserves_unrelated_lookup_without_a_worker(self):
+        host, original, _, reference, other_ref, pending, events, closes, _ = self.pending_readback_fixture()
+        raw = host._lookup_original_cancellation(other_ref, 'other-cancel', 7)
+        self.assertEqual(json.loads(raw)['cancelRef']['runDefinitionCid'], other_ref['runDefinitionCid'])
+        self.assertIs(host._pending_cancellation_write, pending)
+        self.assertIsNone(original.stop_interest)
+        self.assertNotIn('confirmed-original', events)
+        self.assertFalse(any(value is pending for value in closes))
+        # The same Run with a different cancellation key is unrelated too.
+        host._lookup_original_cancellation(reference, 'other-cancel', 19)
+        self.assertIs(host._pending_cancellation_write, pending)
+        self.assertNotIn('confirmed-original', events)
+
+    def test_pending_cancel_readback_preserves_unrelated_live_run_lookup(self):
+        host, original, other, _, other_ref, pending, events, closes, _ = self.pending_readback_fixture(other_live=True)
+        raw = host._lookup_original_cancellation(other_ref, 'other-cancel', 7)
+        self.assertEqual(json.loads(raw)['kind'], 'unknown')
+        self.assertIs(host._pending_cancellation_write, pending)
+        self.assertIsNone(original.stop_interest)
+        self.assertIsNone(other.stop_interest)
+        self.assertNotIn('foreign-stop-observation', events)
+        self.assertFalse(any(value is pending for value in closes))
+
+    def test_pending_cancel_readback_retains_same_original_stop_and_close_debt(self):
+        host, original, other, reference, _, pending, events, closes, primary = self.pending_readback_fixture(
+            other_live=True, pending_close=True)
+        with self.assertRaises(LocalProductCleanupPending):
+            host._lookup_original_cancellation(reference, 'cancel-original', 19)
+        self.assertIs(host._pending_cancellation_write, pending)
+        self.assertIs(original.stop_interest, pending)
+        self.assertIsNone(other.stop_interest)
+        self.assertEqual(events.count('core-stop-observation'), 1)
+        self.assertIsInstance(primary, LocalCoreError)
+        self.assertEqual(primary.code, -33)
+        host._close_projection = lambda output: True
+        host._lookup_original_cancellation(reference, 'cancel-original', 19)
+        self.assertIsNone(host._pending_cancellation_write)
+        self.assertIs(original.stop_interest, pending)
