@@ -49,6 +49,7 @@ class _ClosedTaskDriveObservation:
         self.drive_code = self.drive_method.__code__
         self.export_code = type(export).__call__.__code__
         self.counts = [0, 0, 0, 0, 0]
+        self.refusal_bits = 0
         self.valid = True
         self.failure = None
         self.restored = False
@@ -71,22 +72,32 @@ class _ClosedTaskDriveObservation:
                             if type(span) is self.span_type else None)
                 retained = self.core._host_retained_work
                 works, rows = self.host._physical_work, self.host._run_rows
-                same = (type(original) is tuple and len(original) == 4
-                        and original[0] is self.receipt and original[1] == 'actql_task_drive'
-                        and original[2] is self.export and original[3] is self.export._func
-                        and type(retained) is tuple and len(retained) == 3
-                        and type(retained[0]) is self.work_type
-                        and type(works) is list and type(rows) is list
-                        and len(works) <= 16 and len(rows) <= 16
-                        and any(work is retained[0] for work in works)
-                        and any(run is retained[0]._owner for run, _ in rows))
+                span_original = type(original) is tuple and len(original) == 4
+                export_original = (span_original and original[0] is self.receipt
+                                   and type(original[1]) is str and original[1] == 'actql_task_drive'
+                                   and original[2] is self.export and original[3] is self.export._func)
+                retained_original = (type(retained) is tuple and len(retained) == 3
+                                     and type(retained[0]) is self.work_type)
+                holder_original = (retained_original and type(works) is list and type(rows) is list
+                                   and len(works) <= 16 and len(rows) <= 16
+                                   and any(work is retained[0] for work in works)
+                                   and any(run is retained[0]._owner for run, _ in rows))
+                # Fixed predicate bits only, never the tuple, holder, rows,
+                # original exception or a formatter inside this callback.
+                for passed, bit in ((span_original, 1), (export_original, 2),
+                                    (retained_original, 4), (holder_original, 8)):
+                    if not passed:
+                        self.refusal_bits |= bit
+                same = span_original and export_original and retained_original and holder_original
                 self.valid = self.valid and same
                 if event == 'call' and same:
                     self.counts[4] += 1
             if any(count > 1024 for count in self.counts):
+                self.refusal_bits |= 16
                 self.valid = False
                 self.counts[:] = [min(count, 1025) for count in self.counts]
         except BaseException as failure:
+            self.refusal_bits |= 32
             self.valid = False
             if self.failure is None:
                 self.failure = failure
@@ -108,8 +119,10 @@ class _ClosedTaskDriveObservation:
                     or self.core._call.__func__ is not self.call_method
                     or self.core._closed_wasm_exports is not self.receipt
                     or not self.receipt._matches('actql_task_drive', self.export, full=True)):
+                self.refusal_bits |= 64
                 self.valid = False
         except BaseException as failure:
+            self.refusal_bits |= 256
             self.valid = False
             if self.failure is None:
                 self.failure = failure
@@ -121,6 +134,7 @@ class _ClosedTaskDriveObservation:
                 try:
                     restore(previous)
                 except BaseException as failure:
+                    self.refusal_bits |= 128
                     self.valid = False
                     if self.failure is None:
                         self.failure = failure
@@ -138,7 +152,19 @@ class _ClosedTaskDriveObservation:
         if (not self.valid or not self.restored or self.failure is not None or not 0 < entered <= 1024
                 or entered != returned or entered != wasm_entered
                 or entered != wasm_returned or entered != retained):
-            raise AssertionError('Closed task drive observation is unqualified')
+            # Emit only already-bounded qualification DATA after the original
+            # public close. Never inspect/format an opaque callback failure or
+            # serialize a Host, Core, holder, reference, row or runtime value.
+            counts = ([count if type(count) is int and 0 <= count <= 1025 else None
+                       for count in self.counts] if type(self.counts) is list and len(self.counts) == 5
+                      else [None] * 5)
+            witness = {'stage': 'closed-task-drive-refusal', 'counts': counts,
+                       'valid': self.valid is True, 'profilers_restored': self.restored is True,
+                       'failure_present': self.failure is not None,
+                       'refusal_bits': (self.refusal_bits if type(self.refusal_bits) is int
+                                        and 0 <= self.refusal_bits <= 511 else None)}
+            raise AssertionError('Closed task drive observation is unqualified: '
+                                 + json.dumps(witness, sort_keys=True))
         return {'actual_closed_task_drive': True, 'drive_calls': entered,
                 'drive_returns': returned, 'wasm_entries': wasm_entered,
                 'wasm_returns': wasm_returned, 'retained_holder_checks': retained,

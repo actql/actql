@@ -589,6 +589,7 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
         control.drive_method, control.call_method = CorePort.drive_task, CorePort._call
         control.drive_code, control.export_code = CorePort.drive_task.__code__, FunctionPort.__call__.__code__
         control.counts, control.valid, control.failure, control.restored = [0] * 5, True, None, False
+        control.refusal_bits = 0
         control.profile = control._profile
         control.previous = (None, None)
         return module, control, core, matches
@@ -634,6 +635,55 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
         self.assertIsNone(module.threading.getprofile())
         with self.assertRaisesRegex(AssertionError, 'unqualified'):
             control.result()
+
+    def test_unqualified_observer_reports_bounded_counts_and_missing_span_without_private_data(self):
+        _, control, core, _ = self.configured_control()
+        core._invocation_observation = None
+        with control:
+            core.drive_task()
+        with self.assertRaises(AssertionError) as caught:
+            control.result()
+        prefix = 'Closed task drive observation is unqualified: '
+        self.assertTrue(str(caught.exception).startswith(prefix))
+        witness = json.loads(str(caught.exception)[len(prefix):])
+        self.assertEqual(witness, {
+            'stage': 'closed-task-drive-refusal', 'counts': [1, 1, 1, 1, 0],
+            'valid': False, 'profilers_restored': True,
+            'failure_present': False, 'refusal_bits': 3,
+        })
+        self.assertLess(len(str(caught.exception)), 512)
+        self.assertIsNone(control.host)
+        self.assertIsNone(control.core)
+
+    def test_unqualified_observer_never_formats_its_original_opaque_callback_failure(self):
+        from types import SimpleNamespace
+        _, control, core, _ = self.configured_control()
+        class OpaqueFailure(RuntimeError):
+            def __str__(self):
+                raise AssertionError('No original diagnostic formatting')
+        original = OpaqueFailure()
+        class WorkPort:
+            @property
+            def _owner(self):
+                raise original
+        work = WorkPort()
+        core._host_retained_work = (work, object(), 1)
+        control.work_type = WorkPort
+        control.host = SimpleNamespace(_physical_work=[work], _run_rows=[(object(), object())])
+        with control:
+            core.drive_task()
+        self.assertIs(control.failure, original)
+        with self.assertRaises(AssertionError) as caught:
+            control.result()
+        prefix = 'Closed task drive observation is unqualified: '
+        self.assertTrue(str(caught.exception).startswith(prefix))
+        witness = json.loads(str(caught.exception)[len(prefix):])
+        self.assertEqual(witness['counts'], [1, 1, 1, 1, 0])
+        self.assertTrue(witness['failure_present'])
+        self.assertEqual(witness['refusal_bits'], 32)
+        self.assertLess(len(str(caught.exception)), 512)
+        self.assertNotIn('OpaqueFailure', str(caught.exception))
+        self.assertIs(control.failure, original)
 
     def test_restore_failure_attempts_both_and_never_replaces_primary(self):
         module, control, _, _ = self.configured_control()
