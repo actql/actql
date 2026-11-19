@@ -486,3 +486,54 @@ test "normalization audit excludes unrelated admitted catalogue data from its sa
   assert_eq(original_quotes[1], original_quotes[0])
   assert_eq(journals[1], journals[0])
 }
+
+///|
+test "Values normalization control bound excludes rows and keeps non-Values conservative" {
+  for rows in [1, 51] {
+    for filtering in [false, true] {
+      let row_wire = "{\"id\":1},".repeat(rows)
+      let body = row_wire[:row_wire.length() - 1].to_owned()
+      let filtered = if filtering {
+        ",{\"from\":\"seed\",\"where\":\"id >= 0\",\"as\":\"filtered\"}"
+      } else {
+        ""
+      }
+      let result = if filtering { "filtered" } else { "seed" }
+      let authored = "{\"version\":\"actql/0.1\",\"id\":\"audit-control\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[" +
+        body +
+        "]},\"as\":\"seed\"}" +
+        filtered +
+        "],\"results\":{\"rows\":{\"from\":\"" +
+        result +
+        "\",\"fields\":[\"id\"]}}}],\"results\":{\"rows\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}"
+      let (parent, input, prepared) = request_model_input_fixture(
+        authored=Some(authored),
+        normalization_profile=Some(
+          @publication_host.client_standard_program_preparation_limits(),
+        ),
+      )
+      let (demand, _, nodes) = @publication_host.prepared_client_normalization_audit_data(
+        prepared,
+      )
+      assert_eq(demand.authored_literal_rows, rows)
+      assert_eq(demand.authored_literal_cells, rows)
+      if filtering {
+        assert_true(nodes > 3)
+      } else {
+        // One original Values step + one Stage Result + one fixed inventory.
+        assert_eq(nodes, 3)
+      }
+      let original = prepare_request_program_normalization(parent, input).unwrap()
+      assert_true(
+        physical_equal(
+          original,
+          @publication_host.prepared_client_local_normalization_original(
+            prepared,
+          ).unwrap(),
+        ),
+      )
+      abort_request_preparation_after_cleanup(parent).unwrap()
+      assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    }
+  }
+}

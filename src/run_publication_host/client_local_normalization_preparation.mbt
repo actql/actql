@@ -292,7 +292,8 @@ pub fn prepared_client_normalization_audit_data(
   let structure = @syntax.program_preparation_data(owner.source)
   let nodes = if !structure.may_contain_expression_syntax &&
     structure.external_inputs == 0 &&
-    structure.effect_members == 0 {
+    structure.effect_members == 0 &&
+    prepared_client_normalization_source_count(owner) == 0L {
     // The original syntax constructor already classified every step as Values.
     // The Common audit borrows their checked cells and retains no relation,
     // Source or expression entry. Its control/empty-slot frames are bounded by

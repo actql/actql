@@ -7036,6 +7036,16 @@ exact bytes and nominal preparation binding.
 The Request reserves the next audit constructor cohort before entering it. Its
 conservative variable-data estimate comes from the same observed Program,
 Catalog and checked-input material; it is not an allocation of a codec maximum.
+For a structurally Values-only Program with no external input, Effect member
+or checked Source execution, the existing syntax-constructor metadata bounds
+new audit controls by its operation count, Stage Result count and one inventory
+frame. Checked Values cells remain borrowed: their full source/tree and row
+retention stays in the original Request/compiler baseline. Other Programs keep
+the conservative original node envelope. This construction-only distinction
+neither discharges validation nor substitutes a predeclared empty journal; the
+same Common auditor, current fences, writer and original evidence still run.
+The existing fixed Request entrance backs the scalar bound calculation; no
+row-dependent cache, array, map, changed resource ceiling or new owner is added.
 Once the audit frame returns, an inventory of its actual retained array capacity,
 entry Strings and order views replaces its disposed scratch. A bounded measuring
 writer then sizes the same journal emitter from those retained originals. Sizing
