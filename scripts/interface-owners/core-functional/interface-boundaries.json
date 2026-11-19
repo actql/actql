@@ -2235,7 +2235,13 @@
             "siteControl/siteControl#3",
             "siteControl/siteControl/siteControl",
             "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys"
+            "usageKeys/usageKeys/usageKeys",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities",
+            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand"
           ],
           "exports": [
             "contentCaptureControl",
@@ -10815,6 +10821,43 @@
           "async": false
         },
         {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+          "parameters": [
+            "parent",
+            "input",
+            "compiled",
+            "selection",
+            "generation",
+            "reference",
+            "contract",
+            "output",
+            "identitySlots"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
           "parameters": [
             "parent",
@@ -15913,6 +15956,25 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+          "parameters": [
+            "parent",
+            "input",
+            "compiled",
+            "selection",
+            "fields",
+            "output"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
           "parameters": [
             "format",
@@ -19427,7 +19489,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "723603ead261adc7fc67a20fe8339c3ebc274e07653f72e611e78931e8844df0"
+      "sha256": "eff7e93d637e48e60ccf29cc57cb2b203dfd7dc1ff5994a3869c649aca3bdac5"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -53556,7 +53618,7 @@
     },
     {
       "module": "src/client_local_host/serialization_capacity.mbt",
-      "sha256": "bdf484e7abe1306bd79a5e2130d76665f4924a8ddc9c97fa6c2f2376a80c79c6",
+      "sha256": "e15381cefc95061ffd73bd53d0d42e7719c1750c3382e9457bf4099ed6828b42",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Content component workspace and checked input-shape owners",
@@ -53575,6 +53637,10 @@
           "declaration": "client_serialization_json_leaf_field_count ( component : @ publication_host . ClientSerializationPlanGraph , ) - > Int"
         },
         {
+          "name": "client_serialization_output_limits",
+          "declaration": "client_serialization_output_limits ( component : @ publication_host . ClientSerializationPlanGraph , generation_rows : Int , limits : ClientSerializationWorkspaceLimits , ) - > ClientSerializationWorkspaceLimits ?"
+        },
+        {
           "name": "client_serialization_workspace_capacity",
           "declaration": "client_serialization_workspace_capacity ( limits : ClientSerializationWorkspaceLimits , ) - > @ execution . ExecutionCapacity ?"
         }
@@ -53586,7 +53652,8 @@
             "client_local_json_leaf_schema",
             "client_serialization_json_leaf_field_count",
             "client_serialization_workspace_capacity",
-            "client_serialization_input_row_bound"
+            "client_serialization_input_row_bound",
+            "client_serialization_output_limits"
           ],
           "exports": [],
           "attributes": {
@@ -71558,7 +71625,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_serialization_bridge.mbt",
-      "sha256": "0027379407b84ac3f45d122be841f58a552432c779a92931eb6248a0ba5159ec",
+      "sha256": "57a9f8e8e0ba5cdfab2b578aba0fca3f5acc5b2bfd32dd7f9d6df6cdf09c2df8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Content component workspace and checked input-shape owners",
@@ -71583,6 +71650,10 @@
         {
           "name": "client_program_admit_serialization_captured_input",
           "declaration": "client_program_admit_serialization_captured_input ( owner : @ publication_host . PreparedClientProgram , graph : @ publication_host . ClientSerializationPlanGraph , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , requirement : @ planning . QueryRequirement , logical : @ publication . RunEvidenceValue , source_wire : String , authority_scope_cid : String , started_at : String , completed_at : String , keyed : @ publication_host . ClientKeyedLookupObservation ? , ) - > Result [ @ publication_host . ClientSerializationCapturedInput , @ publication . RunEvidenceValueIssue , ]"
+        },
+        {
+          "name": "client_program_admit_serialization_whole_captured_input",
+          "declaration": "client_program_admit_serialization_whole_captured_input ( owner : @ publication_host . PreparedClientProgram , graph : @ publication_host . ClientSerializationPlanGraph , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , capacity : @ client_local_host . ClientInstalledWholeSourceCapacity , logical : @ publication . RunEvidenceValue , source_wire : String , authority_scope_cid : String , started_at : String , completed_at : String , ) - > Result [ @ publication_host . ClientSerializationCapturedInput , @ publication . RunEvidenceValueIssue , ]"
         },
         {
           "name": "client_program_compile_local_serialization",
@@ -71659,6 +71730,10 @@
         {
           "name": "client_program_prepare_request_model_serialization_plan",
           "declaration": "client_program_prepare_request_model_serialization_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , max_rows : Int , max_work : Int , max_entries : Int , max_value_bytes : Int , max_value_nodes : Int , max_value_depth : Int , max_frames : Int , workspace : @ execution . ExecutionCapacity ? , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledManagedSerializationPreparation , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_serialization_output_demand",
+          "declaration": "client_program_prepare_request_serialization_output_demand ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , compiled : @ publication_host . ClientCompiledRun , component : @ publication_host . ClientSerializationPlanGraph , generation_rows : Int , generation_bytes : Int , generation_nodes : Int , generation_depth : Int , generation_frames : Int , identity_slots : Int , reference_bytes : Int , reference_nodes : Int , reference_depth : Int , contract_bytes : Int , contract_nodes : Int , contract_depth : Int , max_result_fields : Int , max_result_mapping_work : Int , max_result_order_work : Int , max_result_workspace_entries : Int , max_rows : Int , max_value_nodes : Int , max_value_text_bytes : Int , max_value_depth : Int , max_value_work : Int , max_wire_bytes : Int , max_wire_nodes : Int , max_wire_depth : Int , max_columns : Int , max_order_work : Int , max_logical_wire_bytes : Int , max_logical_wire_nodes : Int , max_logical_wire_depth : Int , max_schema_fields : Int , max_schema_bytes : Int , max_schema_nodes : Int , max_schema_depth : Int , max_batch_bytes : Int , ) - > Result [ ( @ execution . ExecutionCapacity , Int , Int , Int , Int , Int , Int , Int , Int ) , @ client_local_host . ClientRequestPreparationIssue , ]"
         },
         {
           "name": "client_program_prepare_request_serialization_plan",
@@ -71759,6 +71834,10 @@
         {
           "name": "client_program_serialization_input_row",
           "declaration": "client_program_serialization_input_row ( input : @ publication_host . ClientSerializationInput , row : Int , ) - > Result [ Unit , @ publication_host . ClientSerializationInputIssue ]"
+        },
+        {
+          "name": "client_program_serialization_input_row_bound",
+          "declaration": "client_program_serialization_input_row_bound ( graph : @ publication_host . ClientSerializationPlanGraph , ) - > Int"
         },
         {
           "name": "client_program_serialization_input_rows",
@@ -71968,7 +72047,10 @@
             "client_program_stored_generated_content_candidate",
             "client_program_stored_generated_content_candidate_wire",
             "client_program_stored_generated_content_storage",
-            "serialization_prefix_limits"
+            "serialization_prefix_limits",
+            "client_program_admit_serialization_whole_captured_input",
+            "client_program_prepare_request_serialization_output_demand",
+            "client_program_serialization_input_row_bound"
           ],
           "exports": [],
           "attributes": {
@@ -109927,6 +110009,131 @@
         }
       ],
       "referenceQualification": "Actual checked-geometry and same-capacity construction controls only; no installed Host, normal supplier, execution permission or physical-parent certificate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_serialization_output.mbt",
+      "sha256": "e3e34571ea001a78b27cd9dd343a91cf8b8ec26f478e9062b8e0457e9be172a3",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing original Request preparation capacity, same compiled Task/Content Graph, and imported current owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]prepare_request_serialization_output_limits",
+          "declaration": "[ I ] prepare_request_serialization_output_limits ( owner : ClientRequestPreparation [ I ] , input : I , compiled : @ publication_host . ClientCompiledRun , component : @ publication_host . ClientSerializationPlanGraph , generation_rows : Int , construct_limits : ( ) - > ClientSerializationWorkspaceLimits ? , ) - > Result [ ClientSerializationOutputDemand , ClientRequestPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]prepare_request_serialization_output_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/preparation_request_serialization_output.mbt",
+                "anchor": "pub fn[I] prepare_request_serialization_output_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_serialization_output.mbt",
+                "anchor": "pub fn[I] prepare_request_serialization_output_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_serialization_output.mbt",
+                "anchor": "pub fn[I] prepare_request_serialization_output_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/preparation_request_serialization_output.mbt",
+                "anchor": "pub fn[I] prepare_request_serialization_output_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_serialization_output.mbt",
+                "anchor": "pub fn[I] prepare_request_serialization_output_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/preparation_request_serialization_output.mbt",
+                "anchor": "pub fn[I] prepare_request_serialization_output_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/preparation_request_serialization_output.mbt",
+                "anchor": "pub fn[I] prepare_request_serialization_output_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_serialization_output.mbt",
+                "anchor": "pub fn[I] prepare_request_serialization_output_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/preparation_request_serialization_output.mbt",
+                "anchor": "pub fn[I] prepare_request_serialization_output_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_serialization_output.mbt",
+                "anchor": "pub fn[I] prepare_request_serialization_output_limits("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Content workspace uses its original checked input bounds"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

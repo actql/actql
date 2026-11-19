@@ -59360,7 +59360,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "55896c4338d82290b4f9112a2e918b13088ee404098fb0aec944e85b01eb7a24",
+      "sha256": "c202e74fea9a09d8af3e820d4e6df4cca190c7265ceb7094cd6dc450b4f48d92",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -59389,7 +59389,8 @@
             "borrowKeyedManagedLedger",
             "prepareSerializationManagedRun",
             "prepareModelManagedRun",
-            "retainPreparation"
+            "retainPreparation",
+            "prepareSerializationOutputDemand"
           ],
           "async": false
         },
@@ -60443,7 +60444,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, workspace, original);"
+                "anchor": "original.managed = prepareSerializationManagedRun(preparedProgram, request, plan, prefixLimits, original.workspace, original);"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -61789,6 +61790,7 @@
         "./local-account-config.mjs",
         "./local-values-plan.mjs",
         "./recovered-command-content.mjs",
+        "./recovered-source-command-content.mjs",
         "./serialization-result-publication.mjs"
       ],
       "compilerFields": [],
@@ -108549,7 +108551,9 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#5",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#6",
             "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
-            "prepareOrdinarySourceManagedInstallation"
+            "prepareOrdinarySourceManagedInstallation",
+            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand",
+            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -114832,6 +114836,20 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand",
+          "parameters": [
+            "prepared",
+            "request",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun",
           "parameters": [
             "prepared",
@@ -115095,7 +115113,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4ac3f2f96d4d58e8d142020f8f1006218f21a85e1256d6f27bf75595c0b348df"
+      "sha256": "a7540cc94bd207e8724016a9414c20c73529623455c277c2081fb01418b4dc47"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

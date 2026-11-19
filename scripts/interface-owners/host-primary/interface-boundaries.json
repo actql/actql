@@ -7446,7 +7446,10 @@
             "openPreparedInstalledHost/preparation/init:restoreManagedModelOriginal/init:restoreManagedModelOriginal",
             "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput",
             "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/init:finish/init:finish",
-            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/pending/pending"
+            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/pending/pending",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand"
           ],
           "exports": [],
           "attributes": {
@@ -26547,6 +26550,20 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#4",
           "parameters": [
             "prepared",
+            "compiled",
+            "selection",
+            "generation",
+            "reference",
+            "contract",
+            "output",
+            "identitySlots"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5",
+          "parameters": [
+            "prepared",
             "request",
             "plan",
             "limits",
@@ -26556,7 +26573,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#6",
           "parameters": [
             "prepared",
             "request",
@@ -26567,7 +26584,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#6",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
           "parameters": [
             "prepared",
             "request",
@@ -28027,6 +28044,29 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "compiled",
+            "selection",
+            "generation",
+            "reference",
+            "contract",
+            "output",
+            "identitySlots"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
+          "parameters": [
+            "parent",
+            "input"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
           "parameters": [
             "runtime",
@@ -29059,7 +29099,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "08d4151b5b9050a333a4de2f0d728f7ab4e66e440af53a278039e77c73349168"
+      "sha256": "ba2bb9b1e437b2b1e45070158fa0b08b4d0d4ee2431a55c3f87d8e7e85220d2e"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

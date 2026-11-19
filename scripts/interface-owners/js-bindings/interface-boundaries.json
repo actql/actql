@@ -16052,7 +16052,13 @@
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
             "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys"
+            "usageKeys/usageKeys/usageKeys",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
+            "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities",
+            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand"
           ],
           "exports": [],
           "attributes": {
@@ -26499,6 +26505,43 @@
           "async": false
         },
         {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+          "parameters": [
+            "parent",
+            "input",
+            "compiled",
+            "selection",
+            "generation",
+            "reference",
+            "contract",
+            "output",
+            "identitySlots"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "contentGenerationControl/init:prepareRequestPrefix/init:prepareRequestPrefix",
           "parameters": [
             "parent",
@@ -31597,6 +31640,25 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+          "parameters": [
+            "parent",
+            "input",
+            "compiled",
+            "selection",
+            "fields",
+            "output"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
           "parameters": [
             "format",
@@ -35111,7 +35173,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "723603ead261adc7fc67a20fe8339c3ebc274e07653f72e611e78931e8844df0"
+      "sha256": "eff7e93d637e48e60ccf29cc57cb2b203dfd7dc1ff5994a3869c649aca3bdac5"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -48815,7 +48877,10 @@
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand"
           ],
           "exports": [],
           "attributes": {
@@ -66232,6 +66297,20 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#4",
           "parameters": [
             "prepared",
+            "compiled",
+            "selection",
+            "generation",
+            "reference",
+            "contract",
+            "output",
+            "identitySlots"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5",
+          "parameters": [
+            "prepared",
             "request",
             "plan",
             "limits",
@@ -66241,7 +66320,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#5",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#6",
           "parameters": [
             "prepared",
             "request",
@@ -66252,7 +66331,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#6",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
           "parameters": [
             "prepared",
             "request",
@@ -67712,6 +67791,29 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "compiled",
+            "selection",
+            "generation",
+            "reference",
+            "contract",
+            "output",
+            "identitySlots"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
+          "parameters": [
+            "parent",
+            "input"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationRun/init:prepareManagedSerializationRun",
           "parameters": [
             "runtime",
@@ -68744,7 +68846,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "08d4151b5b9050a333a4de2f0d728f7ab4e66e440af53a278039e77c73349168"
+      "sha256": "ba2bb9b1e437b2b1e45070158fa0b08b4d0d4ee2431a55c3f87d8e7e85220d2e"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
