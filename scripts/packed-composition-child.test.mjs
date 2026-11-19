@@ -108,4 +108,3 @@ test('packed child diagnostics preserve original spawn error and close timer cle
   assert.deepEqual(observed.kills, []);
   assert.equal(observed.spawns.length, 1);
 });
-
