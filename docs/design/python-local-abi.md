@@ -4231,6 +4231,33 @@ The original Run close refuses while its existing children remain and then
 settles this cell before returning the original input borrow. It does not
 acknowledge physical work, cancel a Run, clear a trap or reset fuel.
 
+### One-read outer Run decoding
+
+One original journal inspection may retain pure outer Run decoder tuples for
+identical physical namespace, key, revision and complete bytes. This storage
+belongs to its existing journal child and expires with that read frame. It is
+not a saved inventory, current Account, grant, COMMIT acknowledgement or permission
+to issue work. Every physical scan/read, original relationship and mutable
+current/Account/cancellation gate still executes. The SDK Policy, evidence and
+unsupported-Effect validator also runs on every tuple reuse. A different frame,
+transaction, row or decoder purpose cannot consume the retained tuple.
+
+The existing Root Ledger admits the actual cold request/Definition and row
+constructor geometry, linked-cell storage and distinct fresh selected-row copy
+before retention. The logical geometry is shared with the Native codec;
+Native raw allocation/layout bounds remain target-specific. Extra optimization
+capacity is optional: unavailable capacity takes the original complete decoder
+path, without raising a cap, granting an allowance or trusting a record count.
+No Array/Map backing is inferred from the journal's maximum record count.
+
+All unrelated frame cells and temporary construction capacity retire on exit.
+The selected tuple may back the returned saved observation, so its original
+reservation moves to the same journal child's outcome before other cells are
+released. That backing survives until the child's original close. It cannot be
+reused by another inspection. Errors, traps and failed settlement keep the exact
+pending tokens reachable under that child, and preserve the initiating failure.
+No new public wire, ABI export, resource Owner or physical cleanup ACK is issued.
+
 ### Live SDK continuation currentness
 
 Only the same live Instance/Run/Plan with its original physical-start claim may

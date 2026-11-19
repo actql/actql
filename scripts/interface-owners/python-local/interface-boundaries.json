@@ -1,6 +1,6 @@
 {
   "source": "b6e7a0077d1e266ec2de4cb20bc3c8bf373d0f11",
-  "syntaxProjectionSha256": "2b5f672997c842eb5e13d3bcdf609da7050307fc6cae7e4c6cb469c8b1bed4e6",
+  "syntaxProjectionSha256": "2f971a155ca3c38e870673799d9e1c591249ac0d8f15a4470a736f727e6bf081",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -79478,7 +79478,7 @@
     },
     {
       "module": "src/client_host_wasm/journal_observation.mbt",
-      "sha256": "63237448ba2d5fa46b57f96835a3a3cff6b81ce27544102d3347d67fa5b700fb",
+      "sha256": "ff60261c0990d1af38aacec868b73f20a49084f84bb9c311bd2c927dc4c33551",
       "exports": [],
       "operations": [
         {
@@ -93774,6 +93774,224 @@
               {
                 "path": "src/run_publication_host/client_effect_material_journal_packet_wbtest.mbt",
                 "anchor": "test \"portable Effect material envelope retains all six exact original fields\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_host_wasm/journal_decode_originals.mbt",
+      "sha256": "6d9117f958ff0302ac25a21a424c93b8871c9c3217cb6b8ed947d98c8e930a64",
+      "exports": [],
+      "operations": [
+        {
+          "name": "close_journal_decode_frame",
+          "declaration": "close_journal_decode_frame ( value : Instance , frame : StoredJournalDecodeFrame , ) - > Int"
+        },
+        {
+          "name": "dispose_journal_decode_rows",
+          "declaration": "dispose_journal_decode_rows ( value : Instance , frame : StoredJournalDecodeFrame , keep_selected : Bool , ) - > Int"
+        },
+        {
+          "name": "journal_decode_frame_capacity",
+          "declaration": "journal_decode_frame_capacity ( ) - > Int64 ?"
+        },
+        {
+          "name": "journal_decode_frame_current",
+          "declaration": "journal_decode_frame_current ( value : Instance , child : StoredJournalObservation , frame : StoredJournalDecodeFrame , ) - > Bool"
+        },
+        {
+          "name": "journal_decode_row_capacity",
+          "declaration": "journal_decode_row_capacity ( row : @ host . ClientJournalPhysicalRow , ) - > ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "journal_decode_run_inspection",
+          "declaration": "journal_decode_run_inspection ( value : Instance , child : StoredJournalObservation , frame : StoredJournalDecodeFrame , row : @ host . ClientJournalPhysicalRow , before_construction ? : ( ( @ host . ClientRunJournalConstruction ) - > Result [ Unit , @ host . ClientJournalDecodingIssue , ] ) ?"
+        },
+        {
+          "name": "journal_inspect_decoded_run",
+          "declaration": "journal_inspect_decoded_run ( decoded : ( @ host . ClientRunJournalEncoding , String ? , String ? ) , ) - > Result [ @ host . ClientRunJournalInspection , Int ]"
+        },
+        {
+          "name": "open_journal_decode_frame",
+          "declaration": "open_journal_decode_frame ( value : Instance , handle : Int , child : StoredJournalObservation , selected_key : String , ) - > StoredJournalDecodeFrame ?"
+        }
+      ],
+      "role": "public-wire-codec",
+      "owner": "D / existing Local journal read child and original Root Ledger; same-read pure codec DATA only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "close_journal_decode_frame",
+            "dispose_journal_decode_rows",
+            "journal_decode_frame_capacity",
+            "journal_decode_frame_current",
+            "journal_decode_row_capacity",
+            "journal_decode_run_inspection",
+            "journal_inspect_decoded_run",
+            "open_journal_decode_frame"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### One-read outer Run decoding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_run_inspection("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_frame_current("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_host_wasm/journal_observation.mbt",
+                "anchor": "Some(Observed(_, Some(frame)))"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_host_wasm/journal_observation.mbt",
+                "anchor": "match journal_current(value, child, plan)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "frame.pending = Some(capacity)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "validate_sdk_run_row_decoded(Ok(decoded))"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals.mbt",
+                "anchor": "fn journal_decode_row_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### One-read outer Run decoding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_host_wasm/journal_decode_originals_wbtest.mbt",
+                "anchor": "test \"journal same-frame pure original avoids repeated construction but keeps row changes distinct\""
+              },
+              {
+                "path": ".github/workflows/ci.yml",
+                "anchor": "journal_decode_originals_wbtest.mbt"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_run_decode_construction.mbt",
+      "sha256": "5f6631066c1075bff4470f258b7fff75325a64bfbfbb6b9882a21e6a6bd2674b",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_run_decode_definition_construction",
+          "declaration": "client_run_decode_definition_construction ( ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "client_run_decode_request_construction",
+          "declaration": "client_run_decode_request_construction ( ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "client_run_decode_units",
+          "declaration": "client_run_decode_units ( headers : Int64 , references : Int64 , words : Int64 , text : Int64 , wire : Int64 , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "client_run_journal_decode_construction",
+          "declaration": "client_run_journal_decode_construction ( stage : ClientRunJournalConstruction , ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "D / existing Local journal read child and original Root Ledger; same-read pure codec DATA only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_run_decode_definition_construction",
+            "client_run_decode_request_construction",
+            "client_run_decode_units",
+            "client_run_journal_decode_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### One-read outer Run decoding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_run_decode_construction.mbt",
+                "anchor": "pub fn client_run_journal_decode_construction("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_run_decode_construction.mbt",
+                "anchor": "ClientRunJournalConstruction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### One-read outer Run decoding"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Pure logical constructor DATA. The caller retains its original read/TX/current and reservation owners."
+            },
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_run_decode_construction.mbt",
+                "anchor": "return None"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This quote issues no operation or cancellation decision; original mutable gates remain with the caller."
+            },
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_run_decode_construction.mbt",
+                "anchor": "@execution.preparation_representation_cost"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### One-read outer Run decoding"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/platform_native/client_host/journal_run_decode_construction_native_wbtest.mbt",
+                "anchor": "test \"Run decode quotes outer rows separately from bounded cold identities\""
               }
             ]
           }
