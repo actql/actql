@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from concurrent.futures import Future
-from threading import Thread
+from contextlib import contextmanager
+from threading import Condition, Thread, current_thread
 
 
 class OriginalLocalWork:
@@ -31,10 +32,46 @@ class OriginalLocalWork:
         self._future: Future[None] = Future()
         self._thread = Thread(target=self._run, name='actql-local-original-work', daemon=False)
         self._invoked = False
+        # Fixed physical-worker scaffolding beside its Thread/Future. No
+        # individual operation, callback, grant or wait queue is retained here.
+        self._control_condition = Condition()
+        self._control_waiters = 0
 
     def _nominal(self) -> None:
         if self._original is not self:
             raise ValueError('Copied original Local physical invocation')
+
+    @contextmanager
+    def _control_turn(self) -> Iterator[None]:
+        """Register scheduling interest only; the original Core still decides.
+
+        The Condition lock is never retained while acquiring Core or awaiting.
+        Cancellation and every other exit withdraw the same registered turn.
+        """
+        self._nominal()
+        with self._control_condition:
+            self._control_waiters += 1
+        try:
+            yield
+        finally:
+            with self._control_condition:
+                self._control_waiters -= 1
+                self._control_condition.notify_all()
+
+    def _yield_to_control(self) -> None:
+        """Only this physical worker waits, after releasing Core and its reader.
+
+        Test and wait share the same Condition as withdrawal/notification, so a
+        withdrawal before entry sees zero and a later one wakes the worker.
+        No sleep occurs on the ordinary no-waiter path. This is not Run pause,
+        cancellation, a new scheduler or physical cleanup acknowledgement.
+        """
+        self._nominal()
+        if current_thread() is not self._thread:
+            return
+        with self._control_condition:
+            while self._control_waiters:
+                self._control_condition.wait()
 
     def start(self) -> None:
         self._nominal()

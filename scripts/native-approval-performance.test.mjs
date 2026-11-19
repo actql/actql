@@ -255,7 +255,13 @@ test('Native CI separates required functional workflows from scheduled and candi
     .filter(({argv}) => argv.includes('scripts/native-cli-interface-check.test.mjs'));
   assert.equal(owners.length, 1, 'Original admission controls need one existing lint owner');
   const {step, argv} = owners[0];
-  assert.equal(step.if, undefined); assert.equal(step['continue-on-error'], undefined);
+  const lintCondition = (step.if ?? 'true').replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+    .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, key) => `needs[${JSON.stringify(key)}]`);
+  assert(!/\b(?:always|failure|cancelled)\s*\(/u.test(lintCondition));
+  for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused', 'documentation'])
+    assert.equal(runInNewContext(lintCondition, {needs: {'select-targets': {outputs: {profile}}}}, {timeout: 100}),
+      profile !== 'documentation', profile);
+  assert.equal(step['continue-on-error'], undefined);
   assert.deepEqual(argv.slice(0, 4), ['node', 'scripts/local-checks.mjs', 'test', 'node']);
   const timeout = Number(argv[argv.indexOf('--timeout-seconds') + 1]);
   assert(timeout > 0 && timeout <= parse(ci).jobs.lint['timeout-minutes'] * 60);

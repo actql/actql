@@ -233,6 +233,20 @@ def accept_installed_cancellation(run, consumer: Path, destination: Path,
             previous_pid = observed['pid']
 
 
+def require_closed_task_drive(observed) -> None:
+    """Require the existing installed initial case's same-Core call witness."""
+    witness = observed.get('closed_task_drive') if type(observed) is dict else None
+    counts = ('drive_calls', 'drive_returns', 'wasm_entries', 'wasm_returns', 'retained_holder_checks')
+    flags = ('actual_closed_task_drive', 'methods_unchanged', 'profilers_restored')
+    absent = ('per_drive_fuel_observed', 'hash_count_observed')
+    if (type(witness) is not dict or set(witness) != set(counts + flags + absent)
+            or any(witness.get(key) is not True for key in flags)
+            or any(witness.get(key) is not False for key in absent)
+            or any(type(witness.get(key)) is not int or not 0 < witness[key] <= 1024 for key in counts)
+            or len({witness[key] for key in counts}) != 1):
+        raise ValueError('Incomplete installed closed task drive control')
+
+
 def run_acceptance(destination: Path) -> None:
     target_platform = normal_target()
     _, _, archive_bytes, library_name = duckdb_release(target_platform)
@@ -324,10 +338,12 @@ def run_acceptance(destination: Path) -> None:
         work = destination / facade
         work.mkdir()
         for phase in ('initial', 'resume'):
-            run(f'{facade}-{phase}', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+            observed = run(f'{facade}-{phase}', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                 destination / 'python-product-installed.py',
                 '--version', version, '--mode', 'local', '--facade', facade, '--phase', phase,
                 '--receipt', work / 'original.json'], cwd=work, env=env, timeout=180)
+            if facade == 'sync' and phase == 'initial':
+                require_closed_task_drive(json.loads(observed))
     health = destination / 'health'
     health.mkdir()
     run('health', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',

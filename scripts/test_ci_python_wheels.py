@@ -550,6 +550,159 @@ class InstalledAuditTests(unittest.TestCase):
                 audit.audit(path, path / 'report.json')
 
 
+class ClosedTaskDriveControlTests(unittest.TestCase):
+    """Observer service ports only; real compiled-Core proof belongs to CI."""
+
+    def configured_control(self):
+        from types import SimpleNamespace
+        sdk = SCRIPTS.parent / 'packages/python-sdk/src'
+        sys.path.insert(0, str(sdk))
+        try:
+            from actql_sdk._local_host_binding import _InvocationObservation
+        finally:
+            sys.path.remove(str(sdk))
+        module = load('closed_task_control', SCRIPTS / 'fixtures/python-product-installed.py')
+        self.assertIsNone(module.sys.getprofile())
+        self.assertIsNone(module.threading.getprofile())
+        control = object.__new__(module._ClosedTaskDriveObservation)
+        class FunctionPort:
+            def __call__(self):
+                return 1
+        class CorePort:
+            def drive_task(self):
+                return function()
+            def _call(self):
+                raise AssertionError('Observer cannot call a Core entrance')
+        function, core, run = FunctionPort(), CorePort(), object()
+        function._func = object()
+        work = SimpleNamespace(_owner=run)
+        matches = []
+        receipt = SimpleNamespace(_matches=lambda *a, **k: matches.append((a, k)) or True)
+        core._closed_wasm_exports = receipt
+        core._invocation_observation = object.__new__(_InvocationObservation)
+        core._invocation_observation.wasm_export = (receipt, 'actql_task_drive', function, function._func)
+        core._host_retained_work = (work, object(), 1)
+        control.host = SimpleNamespace(_physical_work=[work], _run_rows=[(run, object())])
+        control.core, control.receipt, control.export = core, receipt, function
+        control.work_type = SimpleNamespace
+        control.span_type = _InvocationObservation
+        control.drive_method, control.call_method = CorePort.drive_task, CorePort._call
+        control.drive_code, control.export_code = CorePort.drive_task.__code__, FunctionPort.__call__.__code__
+        control.counts, control.valid, control.failure, control.restored = [0] * 5, True, None, False
+        control.profile = control._profile
+        control.previous = (None, None)
+        return module, control, core, matches
+
+    def test_worker_thread_calls_are_observed_without_replacing_methods_and_both_profiles_restore(self):
+        module, control, core, matches = self.configured_control()
+        original = type(core).drive_task
+        with control:
+            worker = module.threading.Thread(target=core.drive_task)
+            worker.start()
+            worker.join(2)
+            self.assertFalse(worker.is_alive())
+            # Runtime validation is forbidden inside the callback; it runs only
+            # when this explicit control returns its observer custody.
+            self.assertEqual(matches, [])
+        self.assertEqual(control.counts, [1] * 5)
+        self.assertIs(type(core).drive_task, original)
+        self.assertEqual(len(matches), 1)
+        self.assertIsNone(module.sys.getprofile())
+        self.assertIsNone(module.threading.getprofile())
+        self.assertIsNone(control.host)
+        self.assertIsNone(control.core)
+        self.assertIsNone(control.receipt)
+        self.assertIsNone(control.export)
+        result = control.result()
+        ci.require_closed_task_drive({'closed_task_drive': result})
+
+    def test_observer_refusal_preserves_primary_and_restores_both_profiles(self):
+        module, control, core, _ = self.configured_control()
+        class Primary(RuntimeError):
+            def __str__(self):
+                raise AssertionError('No primary formatting in observer cleanup')
+        original = Primary()
+        core._invocation_observation = object.__new__(control.span_type)
+        with self.assertRaises(Primary) as caught:
+            with control:
+                core.drive_task()
+                raise original
+        self.assertIs(caught.exception, original)
+        self.assertFalse(control.valid)
+        self.assertIsNotNone(control.failure)
+        self.assertIsNone(module.sys.getprofile())
+        self.assertIsNone(module.threading.getprofile())
+        with self.assertRaisesRegex(AssertionError, 'unqualified'):
+            control.result()
+
+    def test_restore_failure_attempts_both_and_never_replaces_primary(self):
+        module, control, _, _ = self.configured_control()
+        original = RuntimeError('original operation failure')
+        cleanup = OSError('profiler restore failed')
+        with patch.object(module.sys, 'setprofile', side_effect=[None, cleanup]) as main, \
+                patch.object(module.threading, 'setprofile') as threads:
+            with self.assertRaises(RuntimeError) as caught:
+                with control:
+                    raise original
+        self.assertIs(caught.exception, original)
+        self.assertEqual(main.call_args_list, [unittest.mock.call(control.profile), unittest.mock.call(None)])
+        self.assertEqual(threads.call_args_list, [unittest.mock.call(control.profile), unittest.mock.call(None)])
+        self.assertIs(control.failure, cleanup)
+        with self.assertRaisesRegex(AssertionError, 'unqualified'):
+            control.result()
+
+    def test_missing_holder_or_bounded_counter_overflow_cannot_qualify(self):
+        for missing in (True, False):
+            module, control, core, _ = self.configured_control()
+            if missing:
+                control.host._run_rows.clear()
+            else:
+                control.counts = [1024] * 5
+            with control:
+                core.drive_task()
+            self.assertTrue(all(count <= 1025 for count in control.counts))
+            self.assertIsNone(module.sys.getprofile())
+            self.assertIsNone(module.threading.getprofile())
+            with self.assertRaisesRegex(AssertionError, 'unqualified'):
+                control.result()
+
+    def test_parent_rejects_missing_mismatched_boolean_and_unobserved_claims(self):
+        original = {'actual_closed_task_drive': True, 'drive_calls': 2, 'drive_returns': 2,
+                    'wasm_entries': 2, 'wasm_returns': 2, 'retained_holder_checks': 2,
+                    'methods_unchanged': True, 'profilers_restored': True,
+                    'per_drive_fuel_observed': False, 'hash_count_observed': False}
+        ci.require_closed_task_drive({'closed_task_drive': original})
+        for witness in (None, {}, original | {'drive_calls': True}, original | {'drive_calls': 0},
+                        original | {'drive_calls': 1025}, original | {'wasm_returns': 1},
+                        original | {'retained_holder_checks': 1}, original | {'methods_unchanged': False},
+                        original | {'profilers_restored': False}, original | {'hash_count_observed': True},
+                        original | {'per_drive_fuel_observed': True}):
+            with self.assertRaises(ValueError):
+                ci.require_closed_task_drive({'closed_task_drive': witness})
+
+    def test_preexisting_profiler_and_changed_method_identity_cannot_qualify(self):
+        from types import MethodType
+        module, control, _, _ = self.configured_control()
+        existing = lambda *args: None
+        control.previous = (existing, existing)
+        with patch.object(module.sys, 'setprofile') as main, \
+                patch.object(module.threading, 'setprofile') as threads:
+            with self.assertRaisesRegex(AssertionError, 'another profiler'):
+                control.__enter__()
+        main.assert_not_called()
+        threads.assert_not_called()
+        module, control, core, _ = self.configured_control()
+        control.counts = [1] * 5  # Independent already-complete observer DATA.
+        def changed(self):
+            raise AssertionError('Changed method must never be called')
+        with control:
+            core.drive_task = MethodType(changed, core)
+        self.assertIsNone(module.sys.getprofile())
+        self.assertIsNone(module.threading.getprofile())
+        with self.assertRaisesRegex(AssertionError, 'unqualified'):
+            control.result()
+
+
 class FailureLocationTests(unittest.TestCase):
     def local_work_fixture(self, *, completed=True, same_reference=True, operation='status'):
         import asyncio

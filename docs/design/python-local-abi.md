@@ -3358,6 +3358,46 @@ Only an advancing original finite cleanup cursor permits further local cleanup
 steps. An external or unchanged pending cursor retains the original task without
 spinning, replacing the primary cause or acquiring another operation allowance.
 
+Result export and publication preparation use the same bounded read-step owner.
+Each feed or advance keeps its existing 256-work quantum and original cursor,
+but ends its current frame and Store reader before releasing the Core lock.
+Chunk and publication loans are retained before fallible production or
+post-current checks. Their explicit return uses the same token; a declined
+return leaves cleanup pending. Payload CAS, final validation, physical COMMIT
+and uncertain-write lookup retain their existing atomic boundaries.
+
+Asynchronous operation entrances wait for that original reentrant lock using a
+nonblocking attempt followed by a cancellable one-millisecond suspension. No
+executor acquires a thread-owned lock on the caller's behalf, and no callback
+queue or replacement operation is created. After acquisition the same thread
+checks the live Host and performs the synchronous operation body; every exit,
+including a `BaseException`, releases the lock before any further await. The
+same-Run operation allowance and original-reference selection rules are
+unchanged. This gives lock waiters an event-loop suspension, not a fairness,
+wall-clock latency or performance guarantee for arbitrary foreign callbacks.
+
+Unlocking alone does not give a polling control waiter a turn before a worker
+immediately reacquires the lock. The same physical `OriginalLocalWork` therefore
+owns one Condition and a scalar registered-waiter count beside its existing
+Thread/Future. These fixed thread-coordination objects use the existing trusted
+Host overhead; they contain no per-request list, command log, grant or row DATA.
+An asynchronous control attempt registers scheduling interest before waiting
+for Core. Reference, Account, original-work scope and journal validation still
+run under the existing Core owner; registration grants none of them.
+
+After a successful bounded read step, only that original worker checks the
+Condition, outside Core, reader and Store locks. It waits while registered
+control attempts remain. Withdrawal and the test/wait use the same Condition;
+withdrawal before entry sees zero, and withdrawal after waiting notifies the
+worker. Every control exit, including cancellation before Core acquisition and
+`BaseException` after it, withdraws its count in `finally` after releasing Core.
+There is no worker sleep when no control is waiting and no event-loop callback
+queue. Host close continues to observe the actual worker; a pending turn or
+notification is neither physical stop nor cleanup ACK. This finite handoff is
+for these existing safe points, not a durable Run scheduler or global latency
+guarantee. Failed producer steps retain their original exception and existing
+cleanup path; they do not wait while holding a reader or any parent lock.
+
 #### Common-owned bounded task driving
 
 The private ABI 88 `actql_task_drive` entry derives one next action from the
