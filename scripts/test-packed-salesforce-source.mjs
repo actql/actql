@@ -4,7 +4,7 @@
 // acquisition and computation, and the Named Result. The org is a local HTTPS
 // mock; the `sf` CLI is a stand-in that returns a test-only token.
 import assert from 'node:assert/strict';
-import {execFileSync, spawn, spawnSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {createHash, generateKeyPairSync} from 'node:crypto';
 import {appendFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
@@ -27,6 +27,7 @@ import {optionalEffectCases, optionalEffectFixtureFiles, optionalEffectExpectati
   './fixtures/two-source-optional-effect.mjs';
 import {admitCompositionRelease, compositionReleaseDirectory} from './composition-release-input.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
+import {runPackedCompositionChild} from './packed-composition-child.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const releaseDirectory = compositionReleaseDirectory(process.argv.slice(2));
@@ -82,21 +83,10 @@ function run(command, args, cwd, env = {...process.env,
 
 // A child that talks to the mock org served by this process: it must not
 // block this process's event loop.
+let childBoundary = {source: 'publication', protocol: 'local'};
 function runChild(script, env, args = [], expectedExit = 0) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [script, ...args], {cwd: root, env});
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', chunk => { stdout += chunk; });
-    child.stderr.on('data', chunk => { stderr += chunk; });
-    const timer = setTimeout(() => child.kill('SIGKILL'), 120000);
-    child.on('error', reject);
-    child.on('close', code => {
-      clearTimeout(timer);
-      if (code === expectedExit) resolve(stdout);
-      else reject(new Error(`${script} failed:\n${stdout}\n${stderr}`));
-    });
-  });
+  return runPackedCompositionChild({script, cwd: root, env, args, expectedExit,
+    ...childBoundary});
 }
 
 function assertReleasedComputationCleanup(completed, released) {
@@ -1355,6 +1345,7 @@ try {
   // Independent Values→Effect target-read acceptance. Reuse this installation
   // and its packed public driver, but every phase owns a fresh Host process.
   if (targetReadApprovalEnabled) for (const transport of ['local', 'https']) {
+    childBoundary = {source: 'target-read', protocol: transport};
     server.target.name = 'prior-name';
     const environment = {...effectEnvironment, PACKED_RCE_TRANSPORT: transport,
       PACKED_TARGET_READ_APPROVAL: '1', NODE_EXTRA_CA_CERTS: join(root, 'org.crt'),
@@ -1409,6 +1400,7 @@ try {
   const expectations = graphFamily ? graphCompositionExpectations(graphFamily) : compositionExpectations;
   const {updates:expectedUpdates,writes:expectedWrites,modelInputs:expectedModelInputs} = expectations;
   for (const transport of admissionHttpsOnly ? ['https'] : ['local', 'https']) {
+    childBoundary = {source: compositionKind, protocol: transport};
     server.target.name = 'prior-name';
     const rceEnvironment = {...effectEnvironment,
       PACKED_RCE_TRANSPORT: transport,
@@ -2025,6 +2017,7 @@ try {
   // Same acquisition and JOIN semantics, with only a terminal Effect added.
   // Reuse the dedicated Host, signed approval and durable restart driver.
   for (const kind of optionalCases) for (const transport of ['local', 'https']) {
+    childBoundary = {source: 'optional-effect', protocol: transport};
     const pair = [];
     for (const enabled of [false, true]) {
       server.target.name = 'prior-name';
