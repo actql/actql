@@ -113591,16 +113591,16 @@
     },
     {
       "module": "src/cmd/native_client/local_command_read_domain_cause.mbt",
-      "sha256": "2d219da0f0c6ee5a088f4963e80020a2d7abf2e56859d28c1df86ea6800e8e05",
+      "sha256": "6e700b0223e8e63b2da4f9e2588f2476668dde6debc911a94a4bcb3807f6046d",
       "exports": [],
       "operations": [
         {
           "name": "command_read_domain_cause",
-          "declaration": "command_read_domain_cause ( issue : @ initial_bootstrap . NativeBackedExecutionIssue , ) - > String"
+          "declaration": "command_read_domain_cause ( issue : @ initial_bootstrap . NativeBackedExecutionIssue , read_kind ? : Bool"
         },
         {
           "name": "command_read_domain_resource_cause",
-          "declaration": "command_read_domain_resource_cause ( issue : @ initial_resources . LedgerIssue , bootstrap : Bool , ) - > String"
+          "declaration": "command_read_domain_resource_cause ( issue : @ initial_resources . LedgerIssue , bootstrap : Bool , read_kind ? : Bool"
         }
       ],
       "responsibilityFacet": "primary",
