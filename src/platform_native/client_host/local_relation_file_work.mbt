@@ -1,7 +1,17 @@
 ///|
+priv enum NativeRelationFileSources {
+  Single(@row_file.NativeRelationFileCapture)
+  Managed(
+    Array[@row_file.NativeRelationFileCapture],
+    Array[@local.ClientInstalledSourceRead]
+  )
+}
+
+///|
 priv enum NativeRelationFileExecutionPlan {
   QueryFileExecution(@local.ClientLocalRequirements)
   WholeFileExecution(@execution.RetainedRowDecodeLimits, Int, Int)
+  ManagedQueryFileExecution(@execution.RetainedRowDecodeLimits, Int, Int)
 }
 
 ///|
@@ -28,7 +38,7 @@ struct NativeClientRelationFileWork {
   prepared : @host.PreparedClientProgram
   compiled : @host.ClientCompiledRun
   definition : @publication.PublicationContract
-  source : @row_file.NativeRelationFileCapture
+  source : NativeRelationFileSources
   run : @strategy.CapturedDAG
   source_usage : @resources.LedgerUsage
   execution : @local.LocalValuesExecution
@@ -37,11 +47,11 @@ struct NativeClientRelationFileWork {
   mut output_bridge : @local.LocalValuesResultExport?
   capture_times : (String, String)?
   mut publication_original : (
-    @publication.RunEvidenceValue,
-    @publication.RunEvidenceValue,
+    Array[@publication.RunEvidenceValue],
+    Array[@publication.RunEvidenceValue],
     @publication.RunEvidenceValue,
     @publication.PublicationContract,
-    String,
+    Array[String],
     String,
   )?
   mut publication : @local.ClientProgramPublication?
@@ -608,6 +618,7 @@ fn open_original_relation_file_work_selected(
           () => access.require_start_current(start) is Ok(_),
           require_live=Some(() => access.poll_execution_original(start)),
         )
+      ManagedQueryFileExecution(_, _, _) => return Err(unstarted(Configuration))
       WholeFileExecution(_, _, _) => {
         // A complete Source is the original root's supplied input, not a
         // source-free root. Use the existing task loop that keeps
@@ -652,7 +663,7 @@ fn open_original_relation_file_work_selected(
     prepared,
     compiled,
     definition,
-    source,
+    source: Single(source),
     run,
     source_usage,
     execution: computed,
@@ -764,6 +775,10 @@ pub fn NativeClientRelationFileWork::close(
   self.publication_basis = None
   self.publication_identity_issue = None
   self.execution.close() &&
-  self.source.close() is Ok(true) &&
+  (match self.source {
+    Single(source) => source.close() is Ok(true)
+    Managed(sources, reads) =>
+      close_managed_relation_file_sources(sources, reads)
+  }) &&
   self.entry.arena.finish_business_cleanup()
 }

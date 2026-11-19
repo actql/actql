@@ -662,3 +662,42 @@ fn execute_local_tasks_guarded(
     tasks: Some((lookup, cleanup)),
   })
 }
+
+///|
+/// Cleanup only the SAME retained Query prefix's original DAG ports, including
+/// a failed Host binding that returned no setup. This neither retires Source
+/// readers nor reports physical stop. Actual pending task/resource/pin custody
+/// refuses completion; no current/availability callback can substitute for it.
+pub fn retire_installed_query_capture_ports(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> Bool {
+  guard owner.original is Some(original) &&
+    physical_equal(original, owner) &&
+    owner.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    physical_equal(owner.request, request) &&
+    owner.preparation is Some(PureManaged(_, original_prepared)) &&
+    physical_equal(original_prepared, prepared) &&
+    !@strategy.graph_program_has_effects(plan.graph) &&
+    plan.whole_sources.is_empty() &&
+    !plan.captures.is_empty() &&
+    !owner.source_free_opening else {
+    return false
+  }
+  match owner.source_free_captured {
+    None => true
+    Some(run) => {
+      guard physical_equal(plan.graph, @strategy.captured_dag_graph(run)) &&
+        owner.ledger is Some(ledger) &&
+        physical_equal(ledger, @strategy.captured_dag_ledger(run)) else {
+        return false
+      }
+      close_local_values_tasks(run, []) &&
+      !@strategy.captured_task_retirement_pending(run) &&
+      !@strategy.captured_task_boundary_cleanup_pending(run)
+    }
+  }
+}

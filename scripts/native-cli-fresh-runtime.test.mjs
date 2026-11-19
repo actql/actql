@@ -18,6 +18,8 @@ function currentRecipe() {
     ordered: aoa.execution_contracts['REL.derive.ordered'],
     'result-policy': {classification:'unknown', source_data_policy_cids:[],
       source_response_policy_cids:[], unknown_provenance:true, version:'actql-effective-data-policy/0.1'},
+    query: JSON.parse(readFileSync('spec/contracts/actql-query-acquisition.json')),
+    'query-evidence': JSON.parse(readFileSync('spec/contracts/actql-query-process-evidence.json')),
   };
   return {sourceSha:source, assets:Object.entries(bodies).map(([role, body]) => {
     const bytes = Buffer.from(JSON.stringify(body));
@@ -53,7 +55,8 @@ test('fresh current generated inputs cannot be replaced by a stale compiled asse
     // Copy only the normal generator's declared finite input owners and outputs.
     const aoa=JSON.parse(readFileSync('spec/contracts/actql-aoa.json'));
     for (const path of ['spec/contracts/actql-aoa.json', aoa.pipeline_registry_file,
-      'spec/local-check-environment.json', 'spec/contracts/local-signing-bootstrap-policy.json']) {
+      'spec/local-check-environment.json', 'spec/contracts/local-signing-bootstrap-policy.json',
+      'spec/contracts/actql-query-acquisition.json', 'spec/contracts/actql-query-process-evidence.json']) {
       const target=join(root,path);mkdirSync(dirname(target),{recursive:true});copyFileSync(path,target);
     }
     mkdirSync(join(root,'src/run_publication_host'),{recursive:true});

@@ -457,3 +457,10 @@ Row physical custody without calling a Source verifier. The complete inventory
 is checked again after all Source callbacks: a later verifier can retire an
 earlier DAG port while its independent RowRun remains live. Availability and
 Account/current checks remain separate; this predicate creates no pin or grant.
+
+The Query acquisition's original completion limits and logical target are
+available as immutable DATA through `row_query_acquisition_completion_limits`
+and `row_query_acquisition_target_resource`. They neither re-derive an
+acquisition nor supply a Result's possibly smaller bounds. Native publication
+uses those same input limits; its original Account/current check still admits
+the exact logical target, independently of this callback-free observation.

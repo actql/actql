@@ -154,3 +154,10 @@ cross-Source Row retirement, independent DAG-port retirement, and exact/one-shor
 control reservations. They do not
 qualify a Native physical reader, ordinary CLI installation, publication or
 cross-Host acceptance.
+
+`retire_installed_query_capture_ports` is the cleanup-only counterpart for the
+same Pure Query Plan. It closes that retained DAG's original ports even if
+Host binding failed before returning a setup. It refuses foreign preparation,
+request or still-opening custody and requires actual task/resource/pin and
+boundary retirement. This is not Source reader, physical-stop or Host cleanup
+acknowledgement; the caller retains every independent child until its own close.

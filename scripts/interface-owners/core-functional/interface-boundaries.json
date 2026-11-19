@@ -101302,7 +101302,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "73076c9efcbacbb0503383d92dab4673b221802fbc38735b7b1ecc8cd0263c72",
+      "sha256": "af18c0fc91c4b2d6bb67fdbc9e74002ff9775c7814c32334cf7e93e805e04952",
       "exports": [],
       "operations": [
         {
@@ -101315,7 +101315,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::select_business_file_source",
-          "declaration": "LocalCommandPreparationOriginal : : select_business_file_source ( self : LocalCommandPreparationOriginal , prepared : @ run_host . PreparedClientProgram , ) - > ( LocalProjectMockSourceDeclaration , LocalProjectMockRowBinding ) ?"
+          "declaration": "LocalCommandPreparationOriginal : : select_business_file_source ( self : LocalCommandPreparationOriginal , prepared : @ run_host . PreparedClientProgram , ) - > LocalProjectMockDeclarations ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -102797,7 +102797,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "ebc9e127a2927192a3687d285a11da227e84db4f92341d2d1d33f4168f82d1d3",
+      "sha256": "32a54db54a4aa4b843400e96ea441344d8c36796f9f1d3829cb308bb7fadea1e",
       "exports": [],
       "operations": [
         {
@@ -108818,6 +108818,2003 @@
         }
       ],
       "referenceQualification": "Actual checked-geometry and same-capacity construction controls only; no installed Host, normal supplier, execution permission or physical-parent certificate."
+    },
+    {
+      "module": "src/client_local_host/preparation_request_query_contracts.mbt",
+      "sha256": "f225e63bf9abc9e611992d7d11e04686b38f911a159bd31b2da3292ffd101a08",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]admit_request_query_acquisition_contracts",
+          "declaration": "[ I ] admit_request_query_acquisition_contracts ( owner : ClientRequestPreparation [ I ] , input : I , query : String , evidence : String , ) - > Result [ ( @ planning . QueryEvidenceContracts , @ publication_host . ClientDirectAcquisitionOccurrences , ) , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "request_query_acquisition_constructor_bytes",
+          "declaration": "request_query_acquisition_constructor_bytes ( prepared : @ publication_host . PreparedClientProgram , direct : @ publication_host . ClientDirectAcquisitionOccurrences , query : String , evidence : String , ) - > Int64 ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Plan owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]admit_request_query_acquisition_contracts",
+            "request_query_acquisition_constructor_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_command_file_query_plan.mbt",
+      "sha256": "2f6b2fd32c5358e834d7c8d9515ba79abf7b7ea61ba952bce323f4009746d6c1",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]prepare_local_native_file_request_module",
+          "declaration": "[ I ] prepare_local_native_file_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , bodies : ( String , String ) ? , ) - > ( @ local_values . ClientInstalledWholeSourceCapacity ? , LocalCommandFileSources , ) raise ClientStop"
+        },
+        {
+          "name": "[T]local_command_query_preparation_result",
+          "declaration": "[ T ] local_command_query_preparation_result ( control : LocalCommandPreparationOriginal , result : Result [ T , LocalCommandPreparationIssue ] , message : String , ) - > T raise ClientStop"
+        },
+        {
+          "name": "local_command_file_row",
+          "declaration": "local_command_file_row ( original : LocalProjectMockDeclarations , connector : String , resource : String , ) - > ( LocalProjectMockSourceDeclaration , LocalProjectMockRowBinding ) raise ClientStop"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]prepare_local_native_file_request_module",
+            "[T]local_command_query_preparation_result",
+            "local_command_file_row"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_command_business_children.mbt",
+      "sha256": "b985ffccea58c0775ea238dab17994ac946b1255029eab85159d66072f710abc",
+      "exports": [],
+      "operations": [
+        {
+          "name": "LocalCommandBusinessOriginal::enter_children_cleanup",
+          "declaration": "LocalCommandBusinessOriginal : : enter_children_cleanup ( business : LocalCommandBusinessOriginal , host : @ initial_arena . InstalledArenaHost , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandBusinessPreparation::open_file_work",
+          "declaration": "LocalCommandBusinessPreparation : : open_file_work ( self : Self , entry : @ local_host . NativeClientRelationFileWorkEntry , occurrence : String , ) - > @ local_host . NativeClientRelationFileWork raise ClientStop"
+        },
+        {
+          "name": "LocalCommandBusinessPreparation::open_store",
+          "declaration": "LocalCommandBusinessPreparation : : open_store ( self : LocalCommandBusinessPreparation , library : @ local_sqlite . Library , managed : String , run : LocalRunInstallation , ) - > @ local_store . Store raise ClientStop"
+        },
+        {
+          "name": "LocalCommandBusinessPreparation::open_values_work",
+          "declaration": "LocalCommandBusinessPreparation : : open_values_work ( self : LocalCommandBusinessPreparation , run : LocalRunInstallation , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , request : @ run_host . ClientRequestIdentity , ) - > @ local_host . NativeClientValuesWork raise ClientStop"
+        },
+        {
+          "name": "LocalCommandBusinessPreparation::prepare_file_work_entry",
+          "declaration": "LocalCommandBusinessPreparation : : prepare_file_work_entry ( self : Self , prepared : @ run_host . PreparedClientProgram , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , request : @ run_host . ClientRequestIdentity , ) - > @ local_host . NativeClientRelationFileWorkEntry raise ClientStop"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::close_business_children",
+          "declaration": "LocalCommandPreparationOriginal : : close_business_children ( self : LocalCommandPreparationOriginal , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
+        },
+        {
+          "name": "LocalCommandPreparationOriginal::open_business_store",
+          "declaration": "LocalCommandPreparationOriginal : : open_business_store ( self : LocalCommandPreparationOriginal , library : @ local_sqlite . Library , managed : String , run : LocalRunInstallation , existing ? : Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "LocalCommandBusinessOriginal::enter_children_cleanup",
+            "LocalCommandBusinessPreparation::open_file_work",
+            "LocalCommandBusinessPreparation::open_store",
+            "LocalCommandBusinessPreparation::open_values_work",
+            "LocalCommandBusinessPreparation::prepare_file_work_entry",
+            "LocalCommandPreparationOriginal::close_business_children",
+            "LocalCommandPreparationOriginal::open_business_store"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_command_cleanup_cause.mbt",
+      "sha256": "1a2c83e07dfb9b762c8b40bdb6d09b652381aa28ec3d8fa0b030673d3b5ac82c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "command_preparation_cleanup_cause",
+          "declaration": "command_preparation_cleanup_cause ( issue : LocalCommandPreparationIssue , ) - > String"
+        },
+        {
+          "name": "local_project_mock_answer_cleanup_cause",
+          "declaration": "local_project_mock_answer_cleanup_cause ( issue : @ model . ModelMockAnswerIssue , ) - > String"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "command_preparation_cleanup_cause",
+            "local_project_mock_answer_cleanup_cause"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_packaged_product.mbt",
+      "sha256": "4c53ce651dab0288b0103585bc957c7b0a30f6586af241ba3c194896a9d6f258",
+      "exports": [],
+      "operations": [
+        {
+          "name": "execute_native_local_packaged_operation",
+          "declaration": "execute_native_local_packaged_operation ( matches : @ argparse . Matches , operation : String , runtime : LocalPackagedRuntime , ) - > String raise ClientStop"
+        },
+        {
+          "name": "execute_native_local_packaged_with_parent",
+          "declaration": "execute_native_local_packaged_with_parent ( matches : @ argparse . Matches , operation : String , runtime : LocalPackagedRuntime , location : LocalProductLocation , parent : @ local_filesystem . Root , ) - > String raise ClientStop"
+        },
+        {
+          "name": "execute_native_local_product",
+          "declaration": "execute_native_local_product ( matches : @ argparse . Matches , operation : String , ) - > String raise ClientStop"
+        },
+        {
+          "name": "local_packaged_runtime",
+          "declaration": "local_packaged_runtime ( context_wire : String , ) - > LocalPackagedRuntime raise ClientStop"
+        },
+        {
+          "name": "local_packaged_runtime_from_physical",
+          "declaration": "local_packaged_runtime_from_physical ( physical : @ local_host . NativeLocalPackagedRuntime , ) - > LocalPackagedRuntime raise ClientStop"
+        },
+        {
+          "name": "local_product_context",
+          "declaration": "local_product_context ( wire : String , ) - > ( String , String , String , String ) raise ClientStop"
+        },
+        {
+          "name": "local_product_location_with_home",
+          "declaration": "local_product_location_with_home ( state_directory : String ? , read_home : ( ) - > String ? raise ClientStop , ) - > LocalProductLocation raise ClientStop"
+        },
+        {
+          "name": "local_product_operation",
+          "declaration": "local_product_operation ( operation : String ) - > Bool"
+        },
+        {
+          "name": "local_product_original_location",
+          "declaration": "local_product_original_location ( state_directory : String ? , ) - > LocalProductLocation raise ClientStop"
+        },
+        {
+          "name": "local_product_path",
+          "declaration": "local_product_path ( path : String ) - > Bool"
+        },
+        {
+          "name": "local_product_require_same_runtime_wire",
+          "declaration": "local_product_require_same_runtime_wire ( original : String , current : String , ) - > Unit raise ClientStop"
+        },
+        {
+          "name": "local_product_runtime_current",
+          "declaration": "local_product_runtime_current ( runtime : LocalPackagedRuntime ) - > Bool"
+        },
+        {
+          "name": "local_product_selected_location",
+          "declaration": "local_product_selected_location ( state_directory : String ? , home : String ? , ) - > LocalProductLocation raise ClientStop"
+        },
+        {
+          "name": "local_product_with_owned_parent",
+          "declaration": "local_product_with_owned_parent ( parent : @ local_filesystem . Root , operation : ( ) - > String raise ClientStop , ) - > String raise ClientStop"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "execute_native_local_packaged_operation",
+            "execute_native_local_packaged_with_parent",
+            "execute_native_local_product",
+            "local_packaged_runtime",
+            "local_packaged_runtime_from_physical",
+            "local_product_context",
+            "local_product_location_with_home",
+            "local_product_operation",
+            "local_product_original_location",
+            "local_product_path",
+            "local_product_require_same_runtime_wire",
+            "local_product_runtime_current",
+            "local_product_selected_location",
+            "local_product_with_owned_parent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_relation_file_original_start.mbt",
+      "sha256": "9deb602b7b477c62a4f67bb56d9a7d1318981756d6265ed43aa08f45bbd4f0fc",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_execute_original_publish_file_source",
+          "declaration": "local_execute_original_publish_file_source ( selection : LocalCommandBusinessPreparation , settings : LocalHostSettings , run : LocalRunInstallation , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , reference : @ local_host . NativeClientSubmissionReference , attempt : String , store : @ local_store . Store , ) - > String raise ClientStop"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_execute_original_publish_file_source"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/local_relation_files_entry.mbt",
+      "sha256": "597f219754312f2a3ae7215693a2354efcab25b5dd9c3f4f5f682269913b812a",
+      "exports": [],
+      "operations": [
+        {
+          "name": "managed_relation_file_sources_match",
+          "declaration": "managed_relation_file_sources_match ( managed : @ local . ClientInstalledManagedRun , prepared : @ host . PreparedClientProgram , request : @ host . ClientRequestIdentity , sources : Array [ NativeRelationFileQuerySource ] , ) - > Bool"
+        },
+        {
+          "name": "NativeLocalHostConnection::prepare_original_managed_relation_files_work_entry",
+          "declaration": "NativeLocalHostConnection : : prepare_original_managed_relation_files_work_entry ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , principal : String , connection : String , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , managed : @ local . ClientInstalledManagedRun , inputs : Array [ NativeRelationFileQuerySource ] , ) - > Result [ NativeClientRelationFileWorkEntry , NativeClientRelationFileWorkFailure , ] ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "managed_relation_file_sources_match",
+            "NativeLocalHostConnection::prepare_original_managed_relation_files_work_entry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/local_relation_files_work.mbt",
+      "sha256": "b3aa784b98a6b9d725a6547497420b14c73f8c037ed4887f09e248be077ce319",
+      "exports": [],
+      "operations": [
+        {
+          "name": "close_managed_relation_file_sources",
+          "declaration": "close_managed_relation_file_sources ( sources : Array [ @ row_file . NativeRelationFileCapture ] , reads : Array [ @ local . ClientInstalledSourceRead ] , ) - > Bool"
+        },
+        {
+          "name": "NativeLocalHostConnection::open_original_managed_relation_files_source_work",
+          "declaration": "NativeLocalHostConnection : : open_original_managed_relation_files_source_work ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , entry : NativeClientRelationFileWorkEntry , occurrence : String , quantum : Int , max_rounds : Int , current_time : ( ) - > String , ) - > Result [ NativeClientRelationFileWork , NativeClientRelationFileWorkFailure ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "close_managed_relation_file_sources",
+            "NativeLocalHostConnection::open_original_managed_relation_files_source_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/relation_files_publication.mbt",
+      "sha256": "ad0c876c9ecf3e03c37b3fc822399d805100e8da93aa814f9f28b2c04bdc8109",
+      "exports": [],
+      "operations": [
+        {
+          "name": "NativeClientRelationFileWork::managed_query_publication_invocation",
+          "declaration": "NativeClientRelationFileWork : : managed_query_publication_invocation ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileQuerySource ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "NativeClientRelationFileWork::managed_query_publication_invocation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/local_relation_file_entry.mbt",
+      "sha256": "0b5c0aa617f7384b48ec5ed2caf894fc6c22d9948cd68e35bcbcceb8871f67b0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "NativeClientRelationFileWorkEntry::cancel_unclaimed_in_original_read",
+          "declaration": "NativeClientRelationFileWorkEntry : : cancel_unclaimed_in_original_read ( self : NativeClientRelationFileWorkEntry , ) - > Bool"
+        },
+        {
+          "name": "NativeClientRelationFileWorkEntry::close_after_original_return",
+          "declaration": "NativeClientRelationFileWorkEntry : : close_after_original_return ( self : NativeClientRelationFileWorkEntry , ) - > Bool"
+        },
+        {
+          "name": "NativeClientRelationFileWorkEntry::retire_operation_projection",
+          "declaration": "NativeClientRelationFileWorkEntry : : retire_operation_projection ( self : NativeClientRelationFileWorkEntry , ) - > Bool"
+        },
+        {
+          "name": "NativeClientRelationFileWorkEntry::take_entered_ledger",
+          "declaration": "NativeClientRelationFileWorkEntry : : take_entered_ledger ( self : NativeClientRelationFileWorkEntry , host : NativeLocalHostConnection , operation : NativeLocalStoreOperation , ) - > @ resources . Ledger ?"
+        },
+        {
+          "name": "NativeClientRelationFileWorkEntry::usage",
+          "declaration": "NativeClientRelationFileWorkEntry : : usage ( self : NativeClientRelationFileWorkEntry , ) - > @ resources . LedgerUsage"
+        },
+        {
+          "name": "NativeLocalHostConnection::prepare_original_relation_file_work_entry",
+          "declaration": "NativeLocalHostConnection : : prepare_original_relation_file_work_entry ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , principal : String , connection : String , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , declaration : @ rows . RowDeclaration , requirement : @ planning . QueryRequirement , acquisition : @ rows . RowAcquisition , selection : @ row_file . NativeRelationFileSelection , limits : @ row_file . NativeRelationFileLimits , ) - > Result [ NativeClientRelationFileWorkEntry , NativeClientRelationFileWorkFailure , ] ?"
+        },
+        {
+          "name": "NativeLocalHostConnection::prepare_original_whole_relation_file_work_entry",
+          "declaration": "NativeLocalHostConnection : : prepare_original_whole_relation_file_work_entry ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , principal : String , connection : String , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , declaration : @ rows . RowDeclaration , managed : @ local . ClientInstalledManagedRun , selected_source : @ local . ClientInstalledWholeSourceCapacity , provider : @ row_file . NativeRelationFilePreparedProvider , selection : @ row_file . NativeRelationFileSelection , limits : @ row_file . NativeRelationFileLimits , ) - > Result [ NativeClientRelationFileWorkEntry , NativeClientRelationFileWorkFailure , ] ?"
+        },
+        {
+          "name": "NativeLocalHostConnection::relation_file_original_read_matches",
+          "declaration": "NativeLocalHostConnection : : relation_file_original_read_matches ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Bool"
+        },
+        {
+          "name": "relation_file_prepared_binding_current",
+          "declaration": "relation_file_prepared_binding_current ( journal : NativeClientRunJournal , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "NativeClientRelationFileWorkEntry::cancel_unclaimed_in_original_read",
+            "NativeClientRelationFileWorkEntry::close_after_original_return",
+            "NativeClientRelationFileWorkEntry::retire_operation_projection",
+            "NativeClientRelationFileWorkEntry::take_entered_ledger",
+            "NativeClientRelationFileWorkEntry::usage",
+            "NativeLocalHostConnection::prepare_original_relation_file_work_entry",
+            "NativeLocalHostConnection::prepare_original_whole_relation_file_work_entry",
+            "NativeLocalHostConnection::relation_file_original_read_matches",
+            "relation_file_prepared_binding_current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/local_relation_file_work.mbt",
+      "sha256": "12f87609ec85ab59c39e65df057f31afe8967abfb11259a7e71844a9ff8a9af2",
+      "exports": [],
+      "operations": [
+        {
+          "name": "NativeClientRelationFileWork::close",
+          "declaration": "NativeClientRelationFileWork : : close ( self : NativeClientRelationFileWork , ) - > Bool"
+        },
+        {
+          "name": "NativeClientRelationFileWork::require_bound_source_current",
+          "declaration": "NativeClientRelationFileWork : : require_bound_source_current ( self : NativeClientRelationFileWork , ) - > Result [ Unit , NativeClientSourceWorkIssue ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::require_current",
+          "declaration": "NativeClientRelationFileWork : : require_current ( self : NativeClientRelationFileWork , ) - > Result [ Unit , NativeClientSourceWorkIssue ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::require_publication_current",
+          "declaration": "NativeClientRelationFileWork : : require_publication_current ( self : NativeClientRelationFileWork , ) - > Result [ Unit , NativeClientSourceWorkIssue ]"
+        },
+        {
+          "name": "NativeClientRelationFileWorkFailure::close",
+          "declaration": "NativeClientRelationFileWorkFailure : : close ( self : NativeClientRelationFileWorkFailure , ) - > Bool"
+        },
+        {
+          "name": "NativeClientRelationFileWorkFailure::issue",
+          "declaration": "NativeClientRelationFileWorkFailure : : issue ( self : NativeClientRelationFileWorkFailure , ) - > NativeClientSourceWorkIssue"
+        },
+        {
+          "name": "NativeLocalHostConnection::open_original_relation_file_source_work",
+          "declaration": "NativeLocalHostConnection : : open_original_relation_file_source_work ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , entry : NativeClientRelationFileWorkEntry , installed_contracts : @ local . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , requirements : @ local . ClientLocalRequirements , occurrence : String , quantum : Int , max_rounds : Int , ) - > Result [ NativeClientRelationFileWork , NativeClientRelationFileWorkFailure ]"
+        },
+        {
+          "name": "NativeLocalHostConnection::open_original_whole_relation_file_source_work",
+          "declaration": "NativeLocalHostConnection : : open_original_whole_relation_file_source_work ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , entry : NativeClientRelationFileWorkEntry , occurrence : String , quantum : Int , max_rounds : Int , current_time : ( ) - > String , ) - > Result [ NativeClientRelationFileWork , NativeClientRelationFileWorkFailure ]"
+        },
+        {
+          "name": "open_original_relation_file_work_selected",
+          "declaration": "open_original_relation_file_work_selected ( host : NativeLocalHostConnection , operation : NativeLocalStoreOperation , entry : NativeClientRelationFileWorkEntry , ledger : @ resources . Ledger , selected : NativeRelationFileExecutionSelection , occurrence : String , quantum : Int , max_rounds : Int , ) - > Result [ NativeClientRelationFileWork , NativeClientRelationFileWorkFailure ]"
+        },
+        {
+          "name": "relation_file_inventory_available",
+          "declaration": "relation_file_inventory_available ( ledger : @ resources . Ledger , source : @ resources . LedgerLimits , compute : @ resources . LedgerLimits , ) - > Bool"
+        },
+        {
+          "name": "relation_file_work_failure",
+          "declaration": "relation_file_work_failure ( issue : NativeClientSourceWorkIssue , access ? : NativeLocalValuesOriginalAccess ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "NativeClientRelationFileWork::close",
+            "NativeClientRelationFileWork::require_bound_source_current",
+            "NativeClientRelationFileWork::require_current",
+            "NativeClientRelationFileWork::require_publication_current",
+            "NativeClientRelationFileWorkFailure::close",
+            "NativeClientRelationFileWorkFailure::issue",
+            "NativeLocalHostConnection::open_original_relation_file_source_work",
+            "NativeLocalHostConnection::open_original_whole_relation_file_source_work",
+            "open_original_relation_file_work_selected",
+            "relation_file_inventory_available",
+            "relation_file_work_failure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/local_values_original_operation.mbt",
+      "sha256": "169115f7a554722410f34d5da589539f086e995d9758b0c2b8478e8262ea4fae",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]NativeLocalValuesOriginalAccess::in_original_read",
+          "declaration": "[ T ] NativeLocalValuesOriginalAccess : : in_original_read ( self : NativeLocalValuesOriginalAccess , call : ( NativeClientJournalOperationAccess , ( ) - > Bool ) - > Result [ T , NativeClientValuesWorkIssue , ] , source ? : NativeLocalWorkSourceOriginal"
+        },
+        {
+          "name": "NativeLocalHostConnection::open_original_values_work",
+          "declaration": "NativeLocalHostConnection : : open_original_values_work ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , principal : String , connection : String , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , installed_contracts : @ local . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , finalization_quantum : Int , max_finalization_rounds : Int , requirements ? : @ local . ClientLocalRequirements ?"
+        },
+        {
+          "name": "NativeLocalValuesOriginalAccess::claim",
+          "declaration": "NativeLocalValuesOriginalAccess : : claim ( self : NativeLocalValuesOriginalAccess , ) - > Result [ NativeClientWorkFirstStart , NativeClientValuesWorkIssue ]"
+        },
+        {
+          "name": "NativeLocalValuesOriginalAccess::current",
+          "declaration": "NativeLocalValuesOriginalAccess : : current ( self : NativeLocalValuesOriginalAccess , ) - > Bool"
+        },
+        {
+          "name": "NativeLocalValuesOriginalAccess::lookup",
+          "declaration": "NativeLocalValuesOriginalAccess : : lookup ( self : NativeLocalValuesOriginalAccess , ) - > Result [ NativeClientRunLookup , NativeClientValuesWorkIssue ]"
+        },
+        {
+          "name": "NativeLocalValuesOriginalAccess::poll_execution_original",
+          "declaration": "NativeLocalValuesOriginalAccess : : poll_execution_original ( self : NativeLocalValuesOriginalAccess , start : NativeClientWorkFirstStart , ) - > Bool"
+        },
+        {
+          "name": "NativeLocalValuesOriginalAccess::require_start_current",
+          "declaration": "NativeLocalValuesOriginalAccess : : require_start_current ( self : NativeLocalValuesOriginalAccess , start : NativeClientWorkFirstStart , ) - > Result [ Unit , NativeClientValuesWorkIssue ]"
+        },
+        {
+          "name": "NativeLocalValuesOriginalAccess::retain",
+          "declaration": "NativeLocalValuesOriginalAccess : : retain ( self : NativeLocalValuesOriginalAccess , issue : NativeClientValuesWorkIssue , ) - > NativeClientValuesWorkIssue"
+        },
+        {
+          "name": "NativeLocalValuesOriginalAccess::routing_issue",
+          "declaration": "NativeLocalValuesOriginalAccess : : routing_issue ( self : NativeLocalValuesOriginalAccess , issue : @ sqlite . NativeSqliteIssue , ) - > NativeLocalStoreOperationIssue"
+        },
+        {
+          "name": "NativeLocalValuesOriginalAccess::source_allowed_in_original_read",
+          "declaration": "NativeLocalValuesOriginalAccess : : source_allowed_in_original_read ( self : NativeLocalValuesOriginalAccess , source : NativeLocalWorkSourceOriginal , captured : NativeLocalJournalCapture , host : NativeLocalHostConnection , material : @ host . ClientLocalAdoptedHostMaterial [ @ sqlite . Database , NativeLocalAdoptionIssue , ] , ) - > Bool"
+        },
+        {
+          "name": "values_original_cleanup_entered",
+          "declaration": "values_original_cleanup_entered ( access : NativeLocalValuesOriginalAccess ? , ) - > Bool"
+        },
+        {
+          "name": "values_original_current",
+          "declaration": "values_original_current ( access : NativeLocalValuesOriginalAccess ? , start : NativeClientWorkFirstStart , journal : NativeClientRunJournal , request : @ host . ClientRequestIdentity , current : ( ) - > Bool , ) - > Result [ Unit , NativeClientValuesWorkIssue ]"
+        },
+        {
+          "name": "values_original_issue",
+          "declaration": "values_original_issue ( access : NativeLocalValuesOriginalAccess ? , fallback : NativeClientValuesWorkIssue , ) - > NativeClientValuesWorkIssue"
+        },
+        {
+          "name": "values_unstarted_failure",
+          "declaration": "values_unstarted_failure ( run : @ strategy . CapturedDAG , access : NativeLocalValuesOriginalAccess ? , issue : NativeClientValuesWorkIssue , ) - > NativeClientValuesWorkFailure"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]NativeLocalValuesOriginalAccess::in_original_read",
+            "NativeLocalHostConnection::open_original_values_work",
+            "NativeLocalValuesOriginalAccess::claim",
+            "NativeLocalValuesOriginalAccess::current",
+            "NativeLocalValuesOriginalAccess::lookup",
+            "NativeLocalValuesOriginalAccess::poll_execution_original",
+            "NativeLocalValuesOriginalAccess::require_start_current",
+            "NativeLocalValuesOriginalAccess::retain",
+            "NativeLocalValuesOriginalAccess::routing_issue",
+            "NativeLocalValuesOriginalAccess::source_allowed_in_original_read",
+            "values_original_cleanup_entered",
+            "values_original_current",
+            "values_original_issue",
+            "values_unstarted_failure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/relation_file_publication.mbt",
+      "sha256": "7a17d4b62d1aa37e0b9273b0f2412c67e553f3c2c96792fd806ab54f57e0ebd7",
+      "exports": [],
+      "operations": [
+        {
+          "name": "NativeClientRelationFileWork::grow_publication_identity",
+          "declaration": "NativeClientRelationFileWork : : grow_publication_identity ( self : Self , metadata : Int64 , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , NativeClientSourceWorkIssue ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::install_publication_service",
+          "declaration": "NativeClientRelationFileWork : : install_publication_service ( self : NativeClientRelationFileWork , store : @ publication_store . Store , namespace_id : String , authorize : ( @ native_publication . NativeRunPublicationAuthorization ) - > Bool , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , request_authorize ? : ( ( @ publication . PublicationRequestContext , @ native_publication . NativeRunPublicationAuthorization , ) - > Bool ) ?"
+        },
+        {
+          "name": "NativeClientRelationFileWork::prepare_local_publication",
+          "declaration": "NativeClientRelationFileWork : : prepare_local_publication ( self : NativeClientRelationFileWork , service : @ native_publication . NativeRunPublicationService , results : Array [ @ native_publication . NativeCapturedResultPublicationContext ] , original_normalization : @ host . ClientLocalNormalization , authoring : @ publication . RunEvidenceValue , intent : @ native_publication . NativeRunPublicationIntent , occurrence : @ native_publication . NativeRunPublicationOccurrence , limits : @ host . PublicationOutputExportLimits , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ native_publication . NativePreparedCapturedRunPublication , NativeClientSourcePublicationIssue , ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::publication_entry_limits",
+          "declaration": "NativeClientRelationFileWork : : publication_entry_limits ( self : NativeClientRelationFileWork , ) - > ( Int , Int ) ?"
+        },
+        {
+          "name": "NativeClientRelationFileWork::publication_invocation",
+          "declaration": "NativeClientRelationFileWork : : publication_invocation ( self : NativeClientRelationFileWork , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::publication_invocation_original",
+          "declaration": "NativeClientRelationFileWork : : publication_invocation_original ( self : NativeClientRelationFileWork , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::publication_limits",
+          "declaration": "NativeClientRelationFileWork : : publication_limits ( self : NativeClientRelationFileWork , max_payload_bytes : Int , ) - > ( @ execution . RetainedRowDecodeLimits , @ host . PublicationOutputExportLimits ) ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "NativeClientRelationFileWork::grow_publication_identity",
+            "NativeClientRelationFileWork::install_publication_service",
+            "NativeClientRelationFileWork::prepare_local_publication",
+            "NativeClientRelationFileWork::publication_entry_limits",
+            "NativeClientRelationFileWork::publication_invocation",
+            "NativeClientRelationFileWork::publication_invocation_original",
+            "NativeClientRelationFileWork::publication_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/relation_file_result_export.mbt",
+      "sha256": "18dfde81bdfe73c3d77e108c8346c3a96022ee911d7cfe5dbf425974f6ed7ba4",
+      "exports": [],
+      "operations": [
+        {
+          "name": "NativeClientRelationFileWork::close_export",
+          "declaration": "NativeClientRelationFileWork : : close_export ( self : NativeClientRelationFileWork , ) - > Unit"
+        },
+        {
+          "name": "NativeClientRelationFileWork::prepare_result_export",
+          "declaration": "NativeClientRelationFileWork : : prepare_result_export ( self : NativeClientRelationFileWork , limits : @ host . PublicationOutputExportLimits , ) - > Result [ @ host . PublicationOutputExport , NativeClientSourceWorkIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "NativeClientRelationFileWork::close_export",
+            "NativeClientRelationFileWork::prepare_result_export"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/relation_file_work_capacity.mbt",
+      "sha256": "7793c578a26a20d4b160f45d71d595b62b977ed9c86c93fdf0f5534fb803cff0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_relation_file_work_control_capacity",
+          "declaration": "native_relation_file_work_control_capacity ( selection : @ row_file . NativeRelationFileSelection , limits : @ row_file . NativeRelationFileLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "native_relation_files_entry_read_capacity",
+          "declaration": "native_relation_files_entry_read_capacity ( sources : Array [ NativeRelationFileQuerySource ] , graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "native_relation_files_work_control_capacity",
+          "declaration": "native_relation_files_work_control_capacity ( sources : Array [ NativeRelationFileQuerySource ] , graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "native_relation_whole_file_clock_capacity",
+          "declaration": "native_relation_whole_file_clock_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "native_relation_whole_file_work_control_capacity",
+          "declaration": "native_relation_whole_file_work_control_capacity ( selection : @ row_file . NativeRelationFileSelection , limits : @ row_file . NativeRelationFileLimits , provider : @ row_file . NativeRelationFilePreparedProvider , graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "relation_file_work_control_bytes",
+          "declaration": "relation_file_work_control_bytes ( ) - > Int64 ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_relation_file_work_control_capacity",
+            "native_relation_files_entry_read_capacity",
+            "native_relation_files_work_control_capacity",
+            "native_relation_whole_file_clock_capacity",
+            "native_relation_whole_file_work_control_capacity",
+            "relation_file_work_control_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/local_packaged_runtime.mbt",
+      "sha256": "c8e146745cbf0a34150bf9ca5ee5b0d75c66645db085f73edd36b4ba4971b03c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]local_runtime_read_finish",
+          "declaration": "[ T ] local_runtime_read_finish ( runtime : NativeLocalPackagedRuntime , result : Result [ T , NativeLocalPackagedRuntimeIssue ] , ) - > Result [ T , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "[T]local_runtime_result",
+          "declaration": "[ T ] local_runtime_result ( result : Result [ T , NativeLocalPackagedRuntimeIssue ] , ) - > T raise LocalRuntimeStop"
+        },
+        {
+          "name": "[T]local_runtime_stop",
+          "declaration": "[ T ] local_runtime_stop ( issue : NativeLocalPackagedRuntimeIssue , ) - > T raise LocalRuntimeStop"
+        },
+        {
+          "name": "local_runtime_bind_command_member",
+          "declaration": "local_runtime_bind_command_member ( runtime : NativeLocalPackagedRuntime , component : @ filesystem . NativeObservedComponentMember , ) - > Bool"
+        },
+        {
+          "name": "local_runtime_capture",
+          "declaration": "local_runtime_capture ( runtime : NativeLocalPackagedRuntime , root : @ filesystem . Root , root_path : String , source_sha : String , platform : String , manifest_sha256 : String , ) - > Result [ NativeLocalPackagedRuntime , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "local_runtime_command_original_available",
+          "declaration": "local_runtime_command_original_available ( ) - > Bool"
+        },
+        {
+          "name": "local_runtime_empty",
+          "declaration": "local_runtime_empty ( original_read : ( @ arena . InstalledArenaHost , @ arena . InstalledArenaOriginalRead ) ? , original_resources ? : @ arena . InstalledArenaLocalHostResources ?"
+        },
+        {
+          "name": "local_runtime_finish_open",
+          "declaration": "local_runtime_finish_open ( runtime : NativeLocalPackagedRuntime , result : Result [ NativeLocalPackagedRuntime , NativeLocalPackagedRuntimeIssue ] , ) - > Result [ NativeLocalPackagedRuntime , NativeLocalPackagedRuntimeOpenIssue ]"
+        },
+        {
+          "name": "local_runtime_path_valid",
+          "declaration": "local_runtime_path_valid ( root_path : String ) - > Bool"
+        },
+        {
+          "name": "local_runtime_read_begin",
+          "declaration": "local_runtime_read_begin ( runtime : NativeLocalPackagedRuntime , cleanup ? : Bool"
+        },
+        {
+          "name": "local_runtime_read_member",
+          "declaration": "local_runtime_read_member ( runtime : NativeLocalPackagedRuntime , root : @ filesystem . Root , name : String , bytes : Int64 , hash : String , collect : Bool , expected_mode ? : Int ?"
+        },
+        {
+          "name": "local_runtime_retain_root",
+          "declaration": "local_runtime_retain_root ( runtime : NativeLocalPackagedRuntime , root : @ filesystem . Root , ) - > Unit raise LocalRuntimeStop"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::assets",
+          "declaration": "NativeLocalPackagedRuntime : : assets ( self : NativeLocalPackagedRuntime , ) - > Result [ @ host . ClientLocalProductAssets , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::bind_original_host_resources",
+          "declaration": "NativeLocalPackagedRuntime : : bind_original_host_resources ( self : NativeLocalPackagedRuntime , resources : @ arena . InstalledArenaLocalHostResources , ) - > Result [ Unit , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::check_current",
+          "declaration": "NativeLocalPackagedRuntime : : check_current ( self : NativeLocalPackagedRuntime , ) - > Result [ Unit , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::close",
+          "declaration": "NativeLocalPackagedRuntime : : close ( self : NativeLocalPackagedRuntime , ) - > Result [ Unit , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::command_library_members",
+          "declaration": "NativeLocalPackagedRuntime : : command_library_members ( self : NativeLocalPackagedRuntime , ) - > Result [ ( @ filesystem . NativeObservedComponentMember , @ filesystem . NativeObservedComponentMember , ) , NativeLocalPackagedRuntimeIssue , ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::installed_assets",
+          "declaration": "NativeLocalPackagedRuntime : : installed_assets ( self : NativeLocalPackagedRuntime , ) - > Result [ ( @ host . ClientLocalProductAssets , @ local . ClientInstalledSequenceContracts ) , NativeLocalPackagedRuntimeIssue , ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::library_paths",
+          "declaration": "NativeLocalPackagedRuntime : : library_paths ( self : NativeLocalPackagedRuntime , ) - > Result [ ( String , String ) , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::local_runtime_check_originals",
+          "declaration": "NativeLocalPackagedRuntime : : local_runtime_check_originals ( self : NativeLocalPackagedRuntime , ) - > Result [ Unit , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::local_runtime_close_originals",
+          "declaration": "NativeLocalPackagedRuntime : : local_runtime_close_originals ( self : NativeLocalPackagedRuntime , ) - > Result [ Unit , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::local_runtime_require_live",
+          "declaration": "NativeLocalPackagedRuntime : : local_runtime_require_live ( self : NativeLocalPackagedRuntime , ) - > Result [ Unit , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::manifest",
+          "declaration": "NativeLocalPackagedRuntime : : manifest ( self : NativeLocalPackagedRuntime , ) - > Result [ @ host . ClientNativeLocalRuntime , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::query_contract_assets",
+          "declaration": "NativeLocalPackagedRuntime : : query_contract_assets ( self : NativeLocalPackagedRuntime , ) - > Result [ ( String , String ) ? , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "open_native_local_packaged_runtime",
+          "declaration": "open_native_local_packaged_runtime ( root_path : String , source_sha : String , platform : String , manifest_sha256 : String , ) - > Result [ NativeLocalPackagedRuntime , NativeLocalPackagedRuntimeOpenIssue ]"
+        },
+        {
+          "name": "open_native_local_packaged_runtime_in_original_host_resources",
+          "declaration": "open_native_local_packaged_runtime_in_original_host_resources ( original : ( @ arena . InstalledArenaHost , @ arena . InstalledArenaOriginalRead , @ arena . InstalledArenaLocalHostResources , ) ? , root_path : String , source_sha : String , platform : String , manifest_sha256 : String , diagnostic_ceiling : Int , ) - > Result [ NativeLocalPackagedRuntime , NativeLocalPackagedRuntimeOpenIssue ]"
+        },
+        {
+          "name": "open_native_local_packaged_runtime_in_original_read",
+          "declaration": "open_native_local_packaged_runtime_in_original_read ( original_read : ( @ arena . InstalledArenaHost , @ arena . InstalledArenaOriginalRead ) ? , root_path : String , source_sha : String , platform : String , manifest_sha256 : String , diagnostic_ceiling : Int , command_preparation ? : Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]local_runtime_read_finish",
+            "[T]local_runtime_result",
+            "[T]local_runtime_stop",
+            "local_runtime_bind_command_member",
+            "local_runtime_capture",
+            "local_runtime_command_original_available",
+            "local_runtime_empty",
+            "local_runtime_finish_open",
+            "local_runtime_path_valid",
+            "local_runtime_read_begin",
+            "local_runtime_read_member",
+            "local_runtime_retain_root",
+            "NativeLocalPackagedRuntime::assets",
+            "NativeLocalPackagedRuntime::bind_original_host_resources",
+            "NativeLocalPackagedRuntime::check_current",
+            "NativeLocalPackagedRuntime::close",
+            "NativeLocalPackagedRuntime::command_library_members",
+            "NativeLocalPackagedRuntime::installed_assets",
+            "NativeLocalPackagedRuntime::library_paths",
+            "NativeLocalPackagedRuntime::local_runtime_check_originals",
+            "NativeLocalPackagedRuntime::local_runtime_close_originals",
+            "NativeLocalPackagedRuntime::local_runtime_require_live",
+            "NativeLocalPackagedRuntime::manifest",
+            "NativeLocalPackagedRuntime::query_contract_assets",
+            "open_native_local_packaged_runtime",
+            "open_native_local_packaged_runtime_in_original_host_resources",
+            "open_native_local_packaged_runtime_in_original_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_native_local_runtime.mbt",
+      "sha256": "9a8042366e6e22e42b5fadad0d0f30e2904a303f255da63a3e97dcdb7f65c112",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]runtime_refuse",
+          "declaration": "[ T ] runtime_refuse ( issue : ClientNativeLocalRuntimeIssue , ) - > T raise ProductRuntimeFailure"
+        },
+        {
+          "name": "admit_client_native_local_runtime",
+          "declaration": "admit_client_native_local_runtime ( wire : String , source_sha : String , platform : String , manifest_sha256 : String , ) - > Result [ ClientNativeLocalRuntime , ClientNativeLocalRuntimeIssue ]"
+        },
+        {
+          "name": "assemble_client_native_local_product_originals",
+          "declaration": "assemble_client_native_local_product_originals ( configuration_root : String , sqlite_library : String , signature_library : String , observed_at : String , assets : ClientLocalProductAssets , runtime : ClientNativeLocalRuntime , finite_run_profile ? : Bool"
+        },
+        {
+          "name": "client_native_local_finite_product_originals",
+          "declaration": "client_native_local_finite_product_originals ( configuration_root : String , sqlite_library : String , signature_library : String , observed_at : String , assets : ClientLocalProductAssets , runtime : ClientNativeLocalRuntime , mock ? : @ authorization . LocalMockAccountSubjects ?"
+        },
+        {
+          "name": "client_native_local_product_originals",
+          "declaration": "client_native_local_product_originals ( configuration_root : String , sqlite_library : String , signature_library : String , observed_at : String , assets : ClientLocalProductAssets , runtime : ClientNativeLocalRuntime , query_contracts ? : ( String , String ) ?"
+        },
+        {
+          "name": "client_native_local_runtime_members",
+          "declaration": "client_native_local_runtime_members ( value : ClientNativeLocalRuntime , ) - > Array [ ClientNativeLocalRuntimeMember ]"
+        },
+        {
+          "name": "client_native_local_runtime_original",
+          "declaration": "client_native_local_runtime_original ( value : ClientNativeLocalRuntime , ) - > String"
+        },
+        {
+          "name": "runtime_assemble",
+          "declaration": "runtime_assemble ( wire : String , source_sha : String , platform : String , manifest_sha256 : String , ) - > ClientNativeLocalRuntime raise ProductRuntimeFailure"
+        },
+        {
+          "name": "runtime_elements",
+          "declaration": "runtime_elements ( object : @ decode . ObjectView , key : String , min : Int , max : Int , ) - > Array [ @ decode . Cursor ] raise ProductRuntimeFailure"
+        },
+        {
+          "name": "runtime_filename",
+          "declaration": "runtime_filename ( value : String ) - > Bool"
+        },
+        {
+          "name": "runtime_hex",
+          "declaration": "runtime_hex ( value : String , length : Int ) - > Bool"
+        },
+        {
+          "name": "runtime_member",
+          "declaration": "runtime_member ( object : @ decode . ObjectView , role : String , prefix : String , limit : Int64 , ) - > ClientNativeLocalRuntimeMember raise ProductRuntimeFailure"
+        },
+        {
+          "name": "runtime_object",
+          "declaration": "runtime_object ( cursor : @ decode . Cursor , keys : Array [ String ] , ) - > @ decode . ObjectView raise ProductRuntimeFailure"
+        },
+        {
+          "name": "runtime_text",
+          "declaration": "runtime_text ( object : @ decode . ObjectView , key : String , ) - > String raise ProductRuntimeFailure"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]runtime_refuse",
+            "admit_client_native_local_runtime",
+            "assemble_client_native_local_product_originals",
+            "client_native_local_finite_product_originals",
+            "client_native_local_product_originals",
+            "client_native_local_runtime_members",
+            "client_native_local_runtime_original",
+            "runtime_assemble",
+            "runtime_elements",
+            "runtime_filename",
+            "runtime_hex",
+            "runtime_member",
+            "runtime_object",
+            "runtime_text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

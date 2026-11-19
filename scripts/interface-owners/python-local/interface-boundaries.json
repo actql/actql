@@ -885,7 +885,7 @@
     {
       "module": "packages/native-cli/lib/local-runtime.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0f9b52ee72e883a635bd7dddf41300649aac6682a911c927ac8f87f553947553",
+      "sha256": "3362f64680d2f4f923c9ec534195824305af5bcd51168eb5f09dd9d2ced73f33",
       "exports": [
         "LOCAL_RUNTIME_MAX_BYTES",
         "admitInstalledLocalRuntime",
@@ -84361,7 +84361,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "22526df2f00444dba9ce6d40545d48995686e7efbca817c8506518e77e3ea18b",
+      "sha256": "dca60f4025f84965daa766fb550310aa835c9d76c8351df1ec0051324c831f79",
       "exports": [],
       "operations": [
         {
@@ -84556,7 +84556,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "6618a5470e8731070f1ba43e96e26aeddbfb8e14834bb40d374e21043b7f6f4f",
+      "sha256": "1a7fadb3da4ea4fd91c3bcb6da3970b628777e8d2163e2ffd8e8dc1dcc0fbff8",
       "exports": [],
       "operations": [
         {

@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "fb8474ad0848fb7e489230c5cc0b1fdbcaa1b94315a95ea57a8c917becf5c178",
+      "sha256": "a91ddf5eb6afac55e8f0c4a9b5d272e09e10945abab92d065b5b388b452518f5",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -582,6 +582,8 @@
         "pub fn row_original_capture_export_facts(RowOriginalCaptureExport) -> (String, String, Array[String])",
         "pub fn row_original_input_capacity() -> (Int64, Int64)",
         "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?",
+        "pub fn row_query_acquisition_completion_limits(RowAcquisition) -> RowCompletionLimits",
+        "pub fn row_query_acquisition_target_resource(RowAcquisition) -> String",
         "pub fn row_run_attempt(RowRun) -> RowAttempt",
         "pub fn row_run_listing_complete(RowRun) -> Bool",
         "pub fn row_run_normal_available(RowRun) -> Bool",
@@ -1517,6 +1519,14 @@
           "declaration": "pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?"
         },
         {
+          "name": "row_query_acquisition_completion_limits",
+          "declaration": "pub fn row_query_acquisition_completion_limits(RowAcquisition) -> RowCompletionLimits"
+        },
+        {
+          "name": "row_query_acquisition_target_resource",
+          "declaration": "pub fn row_query_acquisition_target_resource(RowAcquisition) -> String"
+        },
+        {
           "name": "row_run_attempt",
           "declaration": "pub fn row_run_attempt(RowRun) -> RowAttempt"
         },
@@ -1778,7 +1788,9 @@
             "start_row_acquisition",
             "row_acquisition_listing_capacity",
             "keyed_row_capture_export_construction_capacity",
-            "row_declaration_keyed_read_schema_identities"
+            "row_declaration_keyed_read_schema_identities",
+            "row_query_acquisition_completion_limits",
+            "row_query_acquisition_target_resource"
           ],
           "exports": [
             "pub fn abort_row_run(RowRun) -> Unit",
@@ -1887,7 +1899,9 @@
             "pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool",
             "pub fn row_acquisition_listing_capacity(RowAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
             "pub fn keyed_row_capture_export_construction_capacity(RowKeyedSourceCapture) -> @execution_relation.ExecutionCapacity?",
-            "pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?"
+            "pub fn row_declaration_keyed_read_schema_identities(RowDeclaration, String) -> (String, String)?",
+            "pub fn row_query_acquisition_completion_limits(RowAcquisition) -> RowCompletionLimits",
+            "pub fn row_query_acquisition_target_resource(RowAcquisition) -> String"
           ],
           "attributes": {
             "responsibility": [
@@ -1906,6 +1920,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "inputsOutputs": [
@@ -1924,6 +1942,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "identity": [
@@ -1942,6 +1964,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "ownership": [
@@ -1964,6 +1990,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "synchronization": [
@@ -1986,6 +2016,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "failure": [
@@ -2008,6 +2042,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "cancellation": [
@@ -2030,6 +2068,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "resources": [
@@ -2052,6 +2094,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "extension": [
@@ -2070,6 +2116,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "# Original composed keyed Model prefix"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "verification": [
@@ -2112,6 +2162,10 @@
               {
                 "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
                 "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ]
           }
@@ -7800,7 +7854,7 @@
     {
       "module": "src/client_row_source_host/captured_compute_binding.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "f3b4e816fda9da97daa56cc59a9d1972b02921327802a7fca73aea5d0249f112",
+      "sha256": "7ea879d326e45db89bcea55bcab24d9c358274af21ff8c7e27c8b72368cc5152",
       "role": "common-semantics",
       "owner": "Existing Common original Row capture and physical custody owner; read-only exact DAG binding",
       "exports": [],
@@ -7816,6 +7870,14 @@
         {
           "name": "check_row_query_capture_run",
           "declaration": "check_row_query_capture_run ( capture : RowSourceCapture , run : RowRun , ) - > Bool"
+        },
+        {
+          "name": "row_query_acquisition_completion_limits",
+          "declaration": "row_query_acquisition_completion_limits ( acquisition : RowAcquisition , ) - > RowCompletionLimits"
+        },
+        {
+          "name": "row_query_acquisition_target_resource",
+          "declaration": "row_query_acquisition_target_resource ( acquisition : RowAcquisition , ) - > String"
         }
       ],
       "contracts": [
@@ -7824,7 +7886,9 @@
             "<module>",
             "check_row_capture_compute_binding",
             "check_row_query_capture_run",
-            "check_row_capture_compute_original"
+            "check_row_capture_compute_original",
+            "row_query_acquisition_completion_limits",
+            "row_query_acquisition_target_resource"
           ],
           "exports": [],
           "attributes": {
@@ -7832,54 +7896,90 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "identity": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "failure": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "resources": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "extension": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "verification": [
@@ -7890,6 +7990,10 @@
               {
                 "path": "src/client_local_host/installed_query_tasks_js_wbtest.mbt",
                 "anchor": "installed plural Query continuation fences earlier DAG port retirement from a later Source callback"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ]
           }

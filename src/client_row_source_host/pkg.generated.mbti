@@ -465,6 +465,10 @@ pub fn row_original_input_capacity() -> (Int64, Int64)
 
 pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?
 
+pub fn row_query_acquisition_completion_limits(RowAcquisition) -> RowCompletionLimits
+
+pub fn row_query_acquisition_target_resource(RowAcquisition) -> String
+
 pub fn row_run_attempt(RowRun) -> RowAttempt
 
 pub fn row_run_listing_complete(RowRun) -> Bool

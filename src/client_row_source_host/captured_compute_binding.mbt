@@ -62,3 +62,19 @@ pub fn check_row_query_capture_run(
   }
   true
 }
+
+///|
+/// Borrowed original Query capture policy, not Result decode bounds or a grant.
+pub fn row_query_acquisition_completion_limits(
+  acquisition : RowAcquisition,
+) -> RowCompletionLimits {
+  acquisition.configuration.limits
+}
+
+///|
+/// Original checked logical target; no copied field vector or authorization.
+pub fn row_query_acquisition_target_resource(
+  acquisition : RowAcquisition,
+) -> String {
+  acquisition.preparation.view.resource
+}

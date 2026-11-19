@@ -255,11 +255,12 @@ fn runtime_assemble(
     runtime_refuse(InvalidClosure)
   }
   let asset_roles : Array[String] = []
-  for item in runtime_elements(root, "assets", 5, 6) {
+  for item in runtime_elements(root, "assets", 5, 8) {
     let object = runtime_object(item, ["role", "path", "bytes", "sha256"])
     let role = runtime_text(object, "role")
     if ![
         "environment", "registry", "values", "fragment", "ordered", "result-policy",
+        "query", "query-evidence",
       ].contains(role) ||
       asset_roles.contains(role) {
       runtime_refuse(InvalidMember)
@@ -273,7 +274,8 @@ fn runtime_assemble(
   }
   if !["environment", "registry", "values", "fragment", "result-policy"].all(role => {
       asset_roles.contains(role)
-    }) {
+    }) ||
+    asset_roles.contains("query") != asset_roles.contains("query-evidence") {
     runtime_refuse(InvalidClosure)
   }
   { wire, source_sha, platform, members, }
@@ -320,6 +322,7 @@ fn assemble_client_native_local_product_originals(
   finite_run_profile? : Bool = false,
   mock? : @authorization.LocalMockAccountSubjects? = None,
   host_configuration? : String? = None,
+  query_contracts? : (String, String)? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
   try {
     // Packaged asset bytes must match this exact original manifest, not merely
@@ -332,6 +335,8 @@ fn assemble_client_native_local_product_originals(
         "fragment" => Some(assets.fragment)
         "ordered" => assets.ordered
         "result-policy" => Some(assets.result_policy)
+        "query" => query_contracts.map(value => value.0)
+        "query-evidence" => query_contracts.map(value => value.1)
         _ => None
       }
       if entry.path.has_prefix("data/") {
@@ -345,6 +350,10 @@ fn assemble_client_native_local_product_originals(
     }
     if assets.ordered is Some(_) &&
       !runtime.members.any(entry => entry.role == "ordered") {
+      return Err(UnsupportedAsset)
+    }
+    if query_contracts is Some(_) &&
+      !runtime.members.any(entry => entry.role == "query") {
       return Err(UnsupportedAsset)
     }
     let originals = product_require(
@@ -442,9 +451,16 @@ pub fn client_native_local_product_originals(
   observed_at : String,
   assets : ClientLocalProductAssets,
   runtime : ClientNativeLocalRuntime,
+  query_contracts? : (String, String)? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
   assemble_client_native_local_product_originals(
-    configuration_root, sqlite_library, signature_library, observed_at, assets, runtime,
+    configuration_root,
+    sqlite_library,
+    signature_library,
+    observed_at,
+    assets,
+    runtime,
+    query_contracts~,
   )
 }
 
@@ -461,6 +477,7 @@ pub fn client_native_local_finite_product_originals(
   runtime : ClientNativeLocalRuntime,
   mock? : @authorization.LocalMockAccountSubjects? = None,
   host_configuration? : String? = None,
+  query_contracts? : (String, String)? = None,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
   assemble_client_native_local_product_originals(
     configuration_root,
@@ -472,5 +489,6 @@ pub fn client_native_local_finite_product_originals(
     finite_run_profile=true,
     mock~,
     host_configuration~,
+    query_contracts~,
   )
 }

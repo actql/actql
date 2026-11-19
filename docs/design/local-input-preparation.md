@@ -7171,3 +7171,58 @@ two-field outcome without preparing or submitting another Run. SDK/Python can
 display these already admitted open code values through their existing public
 presentation. This adds no Problem field, reason-schema variant, message text,
 owner, resource grant, cancellation rule or cleanup acknowledgment.
+
+### Native finite Query Source continuation
+
+The installed Native read-only path keeps the original checked direct Source
+inventory, rather than identifying a Query by one resource or a fixed task
+index. The Project supplies its existing declaration, physical locator and
+prepared provider for each exact logical connection/resource. The immutable
+Query Plan fixes every acquisition and its captured task. SQL aliases do not
+supply a capture count: repeated uses may share one original Source, whereas
+separate direct occurrences retain their separate original bindings.
+
+The normal Native asset pipeline carries the original Query-acquisition and
+Query-evidence protocol bodies as a closed optional pair. The manifest's byte
+and identity checks apply to these members too. Their original strings remain
+under the same physical Runtime/current/Read lifetime. Missing old assets do
+not select a repository body or a default protocol. The original Request
+admits the pair once before its finite acquisition vector; subsequent slots
+reuse that same nominal contract value. The existing Row protocol-construction
+recipe, actual checked Query material/writer recipes, bounded array backing and
+closed caller frontier grow that same working reservation before construction.
+A pricing result is neither a new allowance nor Source execution authority.
+
+There is one prepared relation-file Work entry, original claim and managed
+DAG for the entire prefix. Its original Read backs all selection snapshots and
+its business child prebacks the complete checked Work quote before Journal
+reservation. Every slot checks the original Plan acquisition, declaration,
+provider capacity, Account target and current scope. The private source vector
+is snapshotted after its actual admission callback and never replaced by the
+caller's mutable paths. Legacy single-entry locator fields do not select a
+primary read or publication input for this purpose.
+
+Each original managed read is retained before the next fallible operation.
+Each physical capture or partial-open failure is retained before advancing or
+opening another child. The existing managed Query capture API performs the
+physical read; the common captured-prefix loop performs its original checked
+Compute tail. Neither path opens another Run, reclaims a dispatch or uses a
+caller-provided skip index. Current cancellation, claim and no-resend rules
+remain at the original Journal/operation boundary.
+
+Publication scans every actual retained Query capture under that acquisition's
+completion/measurement bounds, independent of smaller aggregate Result bounds.
+All original identities, Query requirements, logical artifacts and Source
+receipts enter the existing captured-publication issuer in prefix order. The
+Result binds the complete input-CID vector and original resolved policy; a
+legacy first locator is not a substitute. Metadata and identity-scan overlap
+grow through the same prepared body's native backing and current fence.
+
+Cleanup closes the dependent DAG ports/Compute before physical captures, then
+those captures before their original managed reads. The cleanup-only port
+entry also handles a failed Host binding that returned no setup, without
+requiring a fresh current/Allow. It checks the same nominal Pure Query Plan,
+DAG/resource/pin retirement and pending boundary obligations. Its success says
+nothing about physical readers or whole Host stop; those remain the actual
+Native owners' separate acknowledgements. Failure never enables Source replay,
+publication success, or another physical start.

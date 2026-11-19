@@ -144,7 +144,7 @@
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "5a7f6cbafdeb7da1a13741aeba56df934d38170765ac7ba43baadbb9ebc0facd",
+      "sha256": "cee3ed3d4ed8b5d21c8be8c8c77676803842d47b7fe58e9344adb64252f4d9f1",
       "role": "common-semantics",
       "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
       "exports": [],
@@ -188,6 +188,10 @@
         {
           "name": "installed_captured_local_tasks_nominal",
           "declaration": "installed_captured_local_tasks_nominal ( owner : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedDAG , captures : Array [ @ row_source_host . RowSourceCapture ] , ) - > Bool"
+        },
+        {
+          "name": "retire_installed_query_capture_ports",
+          "declaration": "retire_installed_query_capture_ports ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Bool"
         }
       ],
       "contracts": [
@@ -203,7 +207,8 @@
             "execute_retained_effect_local_tasks_guarded",
             "execute_source_free_local_tasks_guarded",
             "installed_captured_local_tasks_current",
-            "installed_captured_local_tasks_nominal"
+            "installed_captured_local_tasks_nominal",
+            "retire_installed_query_capture_ports"
           ],
           "exports": [],
           "attributes": {
@@ -215,18 +220,30 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "## Installed finite Query captures"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "ownership": [
@@ -237,24 +254,40 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "## Installed finite Query captures"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "failure": [
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "resources": [
@@ -265,12 +298,20 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "## Installed finite Query captures"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "extension": [
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "verification": [
@@ -281,6 +322,10 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "## Installed finite Query captures"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ]
           }

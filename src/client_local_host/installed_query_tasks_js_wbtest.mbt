@@ -1,4 +1,8 @@
 ///|
+let installed_query_tasks_document : String =
+  #|{"version":"actql/0.1","id":"same-original-query-join","stages":[{"id":"left","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"right","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"joined","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"},"max_output_rows":4},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"joined","result":"rows"}}}}
+
+///|
 // Actual Request/check/Query acquisitions and managed RowRun originals. The
 // existing explicit component admission is not a physical Native/Account grant.
 priv struct InstalledQueryTasksFixture {
@@ -13,13 +17,13 @@ priv struct InstalledQueryTasksFixture {
 }
 
 ///|
-fn installed_query_tasks_fixture() -> InstalledQueryTasksFixture raise {
+fn installed_query_tasks_fixture(
+  request_protocols? : Bool = false,
+) -> InstalledQueryTasksFixture raise {
   let declaration = pure_provider_declaration()
   let environment = pure_provider_environment(declaration)
-  let document =
-    #|{"version":"actql/0.1","id":"same-original-query-join","stages":[{"id":"left","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"right","inputs":{"remote":{"connector":"pure-provider","resource":"records"}},"steps":[{"filter":"id > 0"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}},{"id":"joined","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"},"max_output_rows":4},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"joined","result":"rows"}}}}
   let (parent, child, _, input) = registration_parent_fixture(
-    text=document,
+    text=installed_query_tasks_document,
     environment=Some(environment),
   )
   guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
@@ -47,6 +51,23 @@ fn installed_query_tasks_fixture() -> InstalledQueryTasksFixture raise {
     Some(source_query_original_fragment),
     None,
   ).unwrap()
+  let original_protocols = if request_protocols {
+    let (protocols, direct) = admit_request_query_acquisition_contracts(
+      parent, input, original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+    ).unwrap()
+    assert_eq(
+      @publication_host.client_direct_acquisition_occurrence_count(direct),
+      2,
+    )
+    assert_true(
+      @publication_host.client_direct_acquisition_occurrences_match_program(
+        direct, prepared,
+      ),
+    )
+    Some(protocols)
+  } else {
+    None
+  }
   let acquisitions = [0, 1].map(stage => {
     let requirement = prepare_local_query_requirement(
       prepared,
@@ -57,9 +78,18 @@ fn installed_query_tasks_fixture() -> InstalledQueryTasksFixture raise {
       Some(source_query_original_fragment),
       None,
     ).unwrap()
-    @row_source_host.prepare_row_acquisition(
-      declaration, requirement, original_row_query_contract_fixture, original_row_evidence_contract_fixture,
-    ).unwrap()
+    match original_protocols {
+      None =>
+        @row_source_host.prepare_row_acquisition(
+          declaration, requirement, original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+        ).unwrap()
+      Some(protocols) =>
+        @row_source_host.prepare_declared_row_acquisition_with_contracts(
+          @row_source_host.prepare_row_source(requirement, declaration).unwrap(),
+          declaration.connector_registration,
+          protocols,
+        ).unwrap()
+    }
   })
   let plan = prepare_installed_managed_capture_plan(
     prepared,
@@ -419,4 +449,146 @@ test "installed filtered SQL read keeps its actual checked acquisition route" {
   assert_true(route is @sourceviews.QueryRoute(_))
   assert_eq(@publication_host.prepared_client_acquisition_count(prepared), 1)
   assert_true(@strategy.graph_result_count(graph) == 1)
+}
+
+///|
+test "installed Query protocols are admitted on SAME Request before complete finite captures" {
+  let value = installed_query_tasks_fixture(request_protocols=true)
+  let before = @resources.ledger_usage(value.ledger)
+  let execution = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    value.captures,
+    1,
+    10000,
+    () => true,
+  ).unwrap()
+  assert_eq(execution.rows().unwrap(), ["{\"id\":2}"])
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts + 1)
+  assert_true(execution.close())
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed Query port-only cleanup preserves original Source custody until caller retirement" {
+  let value = installed_query_tasks_fixture()
+  let row = value.owner.reads[0].unwrap().run.unwrap()
+  let before = @resources.ledger_usage(value.ledger)
+  assert_true(
+    retire_installed_query_capture_ports(
+      value.owner,
+      value.plan.prepared,
+      value.plan.request,
+    ),
+  )
+  assert_true(
+    @row_source_host.check_row_query_capture_run(value.captures[0], row),
+  )
+  assert_true(@row_source_host.row_capture_source(value.captures[0]) is Ok(_))
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts)
+  // Source holding and native physical cleanup are separate from DAG ports.
+  assert_true(@resources.ledger_usage(value.ledger).held_bytes > 0L)
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed Query protocol constructor refuses one-short before contract admission on each axis" {
+  for axis in 0..<2 {
+    for shortage in [0L, 1L] {
+      let declaration = pure_provider_declaration()
+      let (parent, child, _, input) = registration_parent_fixture(
+        text=installed_query_tasks_document,
+        environment=Some(pure_provider_environment(declaration)),
+      )
+      guard finish_program_check_preparation(child).unwrap()
+        is @checked.Checked(_) else {
+        fail("checked original required")
+      }
+      let prepared = compile_program_check_preparation(
+        child,
+        @publication_host.client_standard_program_preparation_limits(),
+      ).unwrap()
+      continue_request_program_preparation(parent, input).unwrap() |> ignore
+      reserve_request_program_plan(parent, input).unwrap()
+      // Select the SAME checked direct Query shape. No occurrence/contract
+      // is reconstructed from scalar coordinates or copied wire metadata.
+      let direct = installed_direct_occurrences_owned(Pure(prepared)).unwrap()
+      if @publication_host.client_direct_acquisition_occurrence_count(direct) ==
+        0 {
+        abort_request_preparation_after_cleanup(parent).unwrap()
+        fail("direct Query fixture required")
+      }
+      let bytes = request_query_acquisition_constructor_bytes(
+        prepared, direct, "{}", "{}",
+      ).unwrap()
+      let limits = @resources.ledger_limits(parent.ledger)
+      let usage = @resources.ledger_usage(parent.ledger)
+      let available = if axis == 0 {
+        limits.retained_bytes -
+        usage.held_bytes -
+        usage.reserved_retention_bytes
+      } else {
+        limits.execution_bytes - usage.reserved_execution_bytes
+      }
+      assert_true(available >= bytes)
+      let blocker = @resources.reserve_capacity(
+        parent.ledger,
+        if axis == 0 {
+          available - bytes + shortage
+        } else {
+          0L
+        },
+        if axis == 1 {
+          available - bytes + shortage
+        } else {
+          0L
+        },
+      ).unwrap()
+      let result = admit_request_query_acquisition_contracts(
+        parent, input, "{}", "{}",
+      )
+      if shortage == 0L {
+        assert_true(result is Err(ModelSource(InvalidContracts)))
+      } else {
+        assert_true(result is Err(Preparation(Capacity(_))))
+      }
+      @resources.settle_capacity(parent.ledger, blocker).unwrap()
+      abort_request_preparation_after_cleanup(parent).unwrap()
+      assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+      assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    }
+  }
+}
+
+///|
+test "installed JOIN SQL read keeps the complete checked direct acquisition prefix" {
+  let prepared = set_output_expression_prepared(
+    text="SELECT l.id FROM records l JOIN records r ON l.id = r.id",
+  )
+  let graph = @publication_host.prepared_client_graph(prepared)
+  // The public selector's second argument is work, not an item count.
+  // Use the SAME installed bounded selector as the actual Native caller.
+  let direct = installed_direct_occurrences_owned(Pure(prepared)).unwrap()
+  let count = @publication_host.client_direct_acquisition_occurrence_count(
+    direct,
+  )
+  assert_true(count > 0)
+  // Repeated aliases of one logical Source may share a capture. The actual
+  // checked prefix, not SQL alias count, determines the original inventory.
+  assert_eq(count, @strategy.graph_captured_prefix(graph))
+  guard @strategy.graph_result_task(graph, 0) is Some(result) else {
+    fail("original Result task required")
+  }
+  assert_true(result >= @strategy.graph_captured_prefix(graph))
+  for index in 0..<count {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        direct, index,
+      )
+      is Some((_, _, task)) else {
+      fail("original direct occurrence required")
+    }
+    assert_eq(task, index)
+  }
 }

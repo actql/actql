@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {after, test} from 'node:test';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {nativeFileSourceQueries, observeNativeFileSourceQuery} from './fixtures/native-file-source-queries.mjs';
+import {nativeInstalledSourceQueries, observeNativeFileSourceQuery} from './fixtures/native-file-source-queries.mjs';
 
 const launcher = process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER;
 const binary = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY;
@@ -23,7 +23,7 @@ after(async () => {
   scratch.passed();
 });
 
-for (const fixture of nativeFileSourceQueries) test(`Native installed File Source ${fixture.name}`, async () => {
+for (const fixture of nativeInstalledSourceQueries) test(`Native installed File Source ${fixture.name}`, async () => {
   const home = join(scratch.path, fixture.name + '-home');
   await mkdir(home, {mode: 0o700});
   let ordinal = 0;

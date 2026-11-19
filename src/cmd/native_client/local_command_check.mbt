@@ -57,6 +57,10 @@ fn command_preparation_cleanup_kind(
     CommandBusinessSource(_) => "business-source"
     CommandBusinessModel(_) => "business-model"
     CommandBusinessModelGraph(_) => "business-model-graph"
+    CommandBusinessQueryPlan(_) => "business-query-plan"
+    CommandBusinessQueryRequirement(_) => "business-query-requirement"
+    CommandBusinessQueryRow(_) => "business-query-row"
+    CommandBusinessQueryCapture(_) => "business-query-capture"
     CommandBusinessSourceIdentity(_) => "business-source-identity"
     CommandBusinessEffectProposals(_) => "business-effect-proposals"
     CommandBusinessEffectAcceptance(_) => "business-effect-acceptance"
@@ -335,6 +339,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
         local_utc_now(),
         runtime.assets,
         runtime.manifest,
+        query_contracts=runtime.query_contracts,
         mock~,
         host_configuration~,
       ).unwrap_or_else(() => stop("LocalProductDefaultsNotAdmitted"))
