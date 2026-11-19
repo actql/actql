@@ -27,6 +27,77 @@ SAVED_STATE = b'{"opaque":"same original Core saved state","revision":0}'
 
 
 class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
+    async def test_failed_worker_returns_confirmed_state_transport_before_read_admission(self):
+        failure = LocalStorageCommitUnknown(object())
+        with TemporaryDirectory() as directory:
+            with patch.object(_OriginalExecution, '__call__', side_effect=failure):
+                host, core, client, run, store, key, calls, codes, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            work = host._physical_work[0]
+            await asyncio.wait_for(work.wait_stopped(), 2)
+            held = []
+            codes['during_produce'] = lambda: held.append((original.state.source, original.state.output))
+            observe(lambda _: None)
+            source, output = held[0]
+            self.assertNotIn(output.ticket, core._loans)
+            self.assertNotIn(source.ticket, core._loans)
+            self.assertNotIn(run.handle, host._run_state_custody)
+            self.assertIsNone(original.state)
+            self.assertIs(work._future.exception(), failure)
+            self.assertIn(original.reference, host._public_run_references)
+            self.assertIn(work, host._physical_work)
+            self.assertIn(original.publication, host._publications)
+            self.assertEqual(store.read(key).payload, SAVED_STATE)
+            self.assertEqual(calls.count('confirm_sdk_run_state'), 1)
+            rows = next(value for owner, value in host._run_rows if owner is run)
+            # Same actual constructor as the ordinary failed frontier, with
+            # explicit scalar Core ports. This neither models a numeric quota
+            # nor claims a physical Journal/installed Result acceptance.
+            journal = core.reserve_journal_observation(rows, host._configuration.handle,
+                store=store, current=host._installation.binding._current_observer,
+                cleanup=lambda: True)
+            self.assertTrue(core.close_journal_observation(journal))
+            await client.aclose()
+
+    async def test_failed_worker_state_transport_false_ack_keeps_same_original_custody(self):
+        for boundary in ('output', 'input'):
+            with self.subTest(boundary=boundary), TemporaryDirectory() as directory:
+                primary = RuntimeError('Original physical invocation failure')
+                with patch.object(_OriginalExecution, '__call__', side_effect=primary):
+                    host, core, client, run, store, key, calls, codes, observe = await self.bridge(directory)
+                original = self.selected_execution(host, run)
+                work = host._physical_work[0]
+                await asyncio.wait_for(work.wait_stopped(), 2)
+                captured = []
+                codes['during_produce'] = lambda: captured.append((original.state.source, original.state.output))
+                previous = core._call
+                def refuse(family, name, *args):
+                    if captured:
+                        source, output = captured[0]
+                        if (boundary == 'output' and (family, name, args) ==
+                                ('publication_commit_export', 'close', (output.handle,))):
+                            return -9
+                        if (boundary == 'input' and (family, name, args) ==
+                                ('buffer', 'close', (source.handle,))):
+                            return -9
+                    return previous(family, name, *args)
+                with patch.object(core, '_call', side_effect=refuse):
+                    with self.assertRaises(LocalProductCleanupPending):
+                        observe(lambda _: None)
+                source, output = captured[0]
+                held = host._run_state_custody[run.handle]
+                self.assertIs(original.state, held)
+                self.assertIs(core._loans[source.ticket], source)
+                self.assertIs(held.output, output if boundary == 'output' else None)
+                self.assertEqual(output.ticket in core._loans, boundary == 'output')
+                self.assertIs(work._future.exception(), primary)
+                self.assertIn(original.reference, host._public_run_references)
+                self.assertIn(original.publication, host._publications)
+                self.assertEqual(store.read(key).payload, SAVED_STATE)
+                self.assertEqual(calls.count('confirm_sdk_run_state'), 1)
+                await client.aclose()  # Existing whole-Host cleanup retries only remaining originals.
+                self.assertTrue(core._closed)
+
     def selected_execution(self, host, run):
         # The public fixture admitted one original work but supplies its Core
         # publication separately. Associate that exact scalar-port original;
@@ -161,7 +232,8 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             observe(lambda _: None)
             self.assertIn(original.reference, host._public_run_references)
             self.assertIn(work, host._physical_work)
-            self.assertIs(core._loans[original.state.output.ticket], original.state.output)
+            self.assertIsNone(original.state)
+            self.assertNotIn(run.handle, host._run_state_custody)
             self.assertIs(work._future.exception(), primary)
             await client.aclose()
 

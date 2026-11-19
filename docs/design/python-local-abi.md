@@ -4344,6 +4344,16 @@ one original confirmation per observation; they do not prepare another update
 or retry its Store write. Actual current/refusal/Unknown leaves the live route
 and existing children retained.
 
+An invocation, exit or cleanup failure excludes that same physical worker from
+success-only child retirement. After the original Core confirmation and reader
+handoff succeed, its SDK state transport follows the prior immediate return
+path instead of remaining live solely for a retirement it cannot take. Both
+output and input still require their real close acknowledgments; a declined or
+thrown return retains the original state custody for whole-Host cleanup. This
+returns no Run, publication or failed worker, changes no saved state, and does
+not acknowledge an uncertain physical write. The next original admission/read
+observation does not inherit an otherwise unnecessary full state output.
+
 After the original current/Store frame has returned and no selected reader is
 active, remove only the original live-reference routing alias. Later public
 operations use the existing independent Saved readers, never a manufactured
