@@ -946,6 +946,23 @@ export async function preserveOrdinaryFailureWithDiagnostic(primary, diagnose) {
   }
 }
 
+// Scope only metadata selection around the existing installed ingress child.
+// The File fixture further narrows forwarding to its original readonly-filter
+// SQL child; ordinary Local controls continue to strip these flags.
+export async function withInstalledFileCapacityObservations(environment, observe) {
+  const flags = ['ACTQL_NATIVE_TIMINGS', 'ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS'];
+  const original = flags.map(key => [key, environment[key]]);
+  try {
+    for (const key of flags) environment[key] = '1';
+    return await observe();
+  } finally {
+    for (const [key, value] of original) {
+      if (value === undefined) delete environment[key];
+      else environment[key] = value;
+    }
+  }
+}
+
 export function nativeInstalledIngressSelection() {
   return {files: ['./test-native-local-cli.test.mjs', './test-native-file-source-queries.test.mjs']
     .map(path => fileURLToPath(new URL(path, import.meta.url))),
@@ -1024,8 +1041,8 @@ async function observeInstalledSourceFree(input, observationPath) {
       }
       const focused=new URL('./test-execution.mjs',import.meta.url).href;
       const {files,expectedTests}=nativeInstalledIngressSelection();
-      await run(process.execPath,['--input-type=module','-e',
-        `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',${JSON.stringify(files)},{cwd:process.cwd(),expectedTests:${expectedTests}});`]);
+      await withInstalledFileCapacityObservations(env, () => run(process.execPath,['--input-type=module','-e',
+        `import {runFocusedTests} from ${JSON.stringify(focused)};process.exitCode=runFocusedTests('node',${JSON.stringify(files)},{cwd:process.cwd(),expectedTests:${expectedTests}});`]));
     };
     // Node launches only the installed npm entry. Neither it nor the Native child
     // can discover a compiler, a repository executable, a provider or a Node Host.
