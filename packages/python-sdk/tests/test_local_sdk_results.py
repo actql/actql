@@ -225,7 +225,8 @@ class SDKResultAssemblyTests(unittest.TestCase):
                     raise LocalStorageError('Current changed after original Result selection')
                 return original_validate(value)
 
-            with patch.object(core, 'validate_host_current', side_effect=validate):
+            with (patch.object(core, 'validate_host_current', side_effect=validate),
+                  patch.object(core, 'close_result_export', return_value=False)):
                 with self.assertRaisesRegex(LocalStorageError, 'after original Result selection'):
                     host._execute_original_tasks(compute, preflight, publisher)
             result = next(iter(core._result_loans.values()))
@@ -234,6 +235,57 @@ class SDKResultAssemblyTests(unittest.TestCase):
             self.assertFalse(any(family == 'publication' for family, _, _ in calls))
             self.assertTrue(host.close())
             self.assertFalse(core._result_loans)
+
+    def test_post_current_failure_returns_selected_result_before_its_tasks(self):
+        with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
+            host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
+            original_validate = core.validate_host_current
+            primary = LocalStorageError('Current changed after original Result selection')
+            selected = []
+
+            def validate(value):
+                if core._result_loans and not selected:
+                    selected.extend(core._result_loans.values())
+                    raise primary
+                return original_validate(value)
+
+            with patch.object(core, 'validate_host_current', side_effect=validate):
+                with self.assertRaises(LocalStorageError) as failed:
+                    host._execute_original_tasks(compute, preflight, publisher)
+            self.assertIs(failed.exception, primary)
+            self.assertEqual(len(selected), 1)
+            self.assertFalse(host._result_exports)
+            self.assertFalse(core._result_loans)
+            self.assertFalse(host._tasks)
+            self.assertFalse(core._task_loans)
+            close = [(family, name) for family, name, _ in calls if name == 'close']
+            self.assertLess(close.index(('result', 'close')), close.index(('task', 'close')))
+            self.assertFalse(any(family == 'publication' for family, _, _ in calls))
+
+    def test_later_result_constructor_failure_returns_only_prior_original_results(self):
+        with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
+            host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
+            reserve = core.reserve_result_from_compute
+            primary = LocalCoreError('reserve_result_from_compute', -4)
+
+            def select(original, index, configuration):
+                self.assertIs(original, compute.core)
+                if index == 1:
+                    raise primary
+                return reserve(original, index, configuration)
+
+            with (patch.object(core, 'publication_preflight_result_count', return_value=2),
+                  patch.object(core, 'reserve_result_from_compute', side_effect=select)):
+                with self.assertRaises(LocalCoreError) as failed:
+                    host._execute_original_tasks(compute, preflight, publisher)
+            self.assertIs(failed.exception, primary)
+            self.assertFalse(host._result_exports)
+            self.assertFalse(core._result_loans)
+            self.assertFalse(host._tasks)
+            self.assertFalse(core._task_loans)
+            self.assertEqual(sum((family, name) == ('result', 'close')
+                                 for family, name, _ in calls), 1)
+            self.assertFalse(any(family == 'publication' for family, _, _ in calls))
 
     def test_bounded_steps_share_reader_but_loan_and_cleanup_boundaries_do_not(self):
         with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
