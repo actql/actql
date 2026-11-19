@@ -36,7 +36,7 @@ class LocalWaitReadinessTests(unittest.IsolatedAsyncioTestCase):
         source, output, current = object(), SimpleNamespace(ticket=19), object()
         events, streams = [], []
         options = {'state': state, 'close': True, 'kind': 'retained',
-                   'confirm_error': None, 'commit_error': None}
+                   'confirm_error': None, 'commit_error': None, 'run_read_error': None}
         core = SimpleNamespace(_lock=RLock(), _loans={output.ticket: output})
         host._core = core
         host._configuration = SimpleNamespace(handle=13, sdk=True)
@@ -80,7 +80,15 @@ class LocalWaitReadinessTests(unittest.IsolatedAsyncioTestCase):
         host._has_live_original_run_reference = lambda _: True
         host._runs = SimpleNamespace(_run=lambda candidate: self.assertIs(candidate, run))
         core.reserve_submission_projection = lambda *args, **kwargs: output
-        core.produce_unpublished_state = lambda *args: events.append('produce')
+        def produce(*args):
+            # Distinct protected Common run/read port, not the Activation-only
+            # saved-admission/current selection above. This is not real admission.
+            events.append('authorize-run-read')
+            if options['run_read_error'] is not None:
+                raise options['run_read_error']
+            events.append('produce')
+
+        core.produce_unpublished_state = produce
         core.validate_unpublished_state = lambda *args: events.append('validate')
 
         def read(*args):
@@ -198,6 +206,22 @@ class LocalWaitReadinessTests(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaisesRegex(ValueError, 'wait condition supplier is unavailable'):
                     self.observe(host, reference)
                 self.assertIs(host._physical_work[0], work)
+
+    async def test_denied_run_read_precedes_failed_future_after_activation_selection(self):
+        host, _, run, reference, options, events, streams = self.bridge()
+        primary = RuntimeError('opaque original physical failure')
+        denial = ValueError('Original Common Run read denied')
+        work = self.work(host, run, primary=primary)
+        options['run_read_error'] = denial
+        with patch.object(work._future, 'result', wraps=work._future.result) as result:
+            with self.assertRaises(ValueError) as failed:
+                self.observe(host, reference)
+            self.assertIs(failed.exception, denial)
+            result.assert_not_called()
+        self.assertEqual(events[:2], ['authorized-original', 'authorize-run-read'])
+        self.assertIs(work._future.exception(), primary)
+        self.assertFalse(streams)
+        self.assertIs(host._physical_work[0], work)
 
     async def test_status_still_returns_nonstable_common_data_despite_worker_error(self):
         host, _, run, reference, _, _, streams = self.bridge()
