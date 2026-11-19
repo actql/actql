@@ -195,6 +195,29 @@ test('public init help does not need a runtime or create project files', async t
   assert.deepEqual(await readdir(root), []);
 });
 
+test('public help init uses the existing init help without Native package admission or writes', async t => {
+  const root = await scratch(t), args = ['help', 'init'];
+  const original = [...args];
+  const direct = command(root, ['init', '--help']);
+  const selected = command(root, args);
+  assert.equal(direct.status, 0);
+  assert.equal(selected.error, undefined);
+  assert.equal(selected.status, 0, selected.stderr);
+  assert.equal(selected.stderr, '');
+  assert.equal(selected.stdout, direct.stdout);
+  assert.match(selected.stdout, /^Usage: actql init /u);
+  assert.deepEqual(projectInitArguments(args), {help: true});
+  assert.deepEqual(args, original);
+  assert(Object.isFrozen(projectInitArguments(args)));
+  assert.deepEqual(await readdir(root), []);
+  for (const other of [['help'], ['help', 'run'], ['help', 'init', 'extra'],
+    ['help', 'init', '--host-config', 'UNOPENED.json']]) {
+    const before = [...other];
+    assert.equal(projectInitArguments(other), undefined);
+    assert.deepEqual(other, before);
+  }
+});
+
 test('actual launcher rejects invalid preparation before writes or Native package selection', async t => {
   const root = await scratch(t);
   for (const tail of [['--template', 'other', 'project'], ['--runtime', 'replacement'], ['project', 'second']]) {
