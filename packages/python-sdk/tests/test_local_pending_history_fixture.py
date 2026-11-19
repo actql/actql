@@ -133,6 +133,32 @@ class HistoryPhaseControlTests(unittest.IsolatedAsyncioTestCase):
         self.enterContext(patch.object(history.LocalCore, '__init__',
                                        side_effect=AssertionError('No VM selected in these controls')))
 
+    async def test_actual_startup_query_callback_preserves_original_port_and_primary(self):
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        calls = []
+        core = object()  # Explicit callback receiver port, never a Core instance.
+        primary = RuntimeError('Startup port ends before any admission')
+
+        def original_query(*args):
+            calls.append(args)
+            return 1
+
+        def installed(*, state_dir):
+            # population has installed its ACTUAL nested query wrapper now.
+            code = history.LocalCore._journal_query_header(core, None, 1, 0, 0, 0, 0, 0, 0)
+            self.assertEqual(code, 1)
+            raise primary
+
+        with TemporaryDirectory() as directory, \
+                patch.object(history.LocalCore, '_journal_query_header', original_query), \
+                patch.object(history.InstalledLocalHost, 'installed', installed):
+            with self.assertRaises(RuntimeError) as caught:
+                await history.population(None, None, Path(directory), 100,
+                                         pending=True, installed=True, phase='prepare')
+        self.assertIs(caught.exception, primary)
+        self.assertEqual(calls, [(core, None, 1, 0, 0, 0, 0, 0, 0)])
+
     def test_phase_selection_and_ready_namespace_correlation(self):
         import copy
         from tempfile import TemporaryDirectory
