@@ -7324,6 +7324,33 @@ fixture forwards only these two diagnostic flags and still strips every
 execution, runtime and loader override. Actual matched Native execution is
 required to measure a refusal; compiler and writer controls alone do not do so.
 
+The original Native Query reader keeps its full provider R/E construction peak
+through receiving, parsing, projection and capture. After the actual original
+Reader and Root close, the charged projection is accepted and finished, and the
+adapter drops its target/document/Bytes aliases across an advance return, the
+same bound transport/transient observer may confirm constructor retirement.
+EOF or discarded DATA marks alone never establish this boundary.
+
+The existing response-construction completion entry has a completed, nonlisting
+Query cut through that same observer and its pre/post current fences. The Native
+caller derives the remaining allowance from the same prepared Contract, declared
+paths and original response length, using the entire existing typed-projection
+construction inventory. This conservatively retains every shared immutable
+Value/text and projection control. Only raw parser/index/byte and transport
+construction E returns. Reservation R, already moved holdings, the complete
+Common Row base E and scratch, original input/export backing, Native metadata,
+attempts and transfer history remain unchanged. No holding or reservation is
+settled and no physical Read/Run cleanup acknowledgement is issued here.
+
+The old Reading/page-ticket completion and whole-input retirement cuts keep
+their own original contracts. A refused or reentered observer returns no credit;
+a successful reduction remains monotonic even if the original current callback
+closes the capture. Repeating the same completed Query remainder is idempotent;
+another remainder cannot reclaim a second slice. The existing Row/holding/DAG
+and Native physical owners still perform their separate final cleanup. These
+logical implementation allowances are not an allocator/RSS bound or permission
+for another Source attempt.
+
 
 The existing Request also has a separate complete-input construction frontier.
 `reserve_request_whole_source_construction` accepts the same original input and

@@ -280,6 +280,14 @@ pub fn complete_row_run_response_construction_capacity(
   value : RowRunResponseBorrow,
   capacity : @execution.ExecutionCapacity,
 ) -> Result[Unit, RowHostIssue] {
+  // A completed direct Query keeps its admitted Values and original Row
+  // backing. Its trusted physical implementation may return only retired
+  // provider construction E through the SAME bound cleanup observer. Do not
+  // reuse the Reading/page-ticket cut or reduce any retained holding here.
+  if value.selection is QueryResponse(_) &&
+    row_response_workspace_capture_current(value) {
+    return retire_row_run_response_workspace_selected(value, Some(capacity))
+  }
   match check_row_run_response_borrow_current(value) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -374,13 +382,27 @@ fn row_response_workspace_capture_current(value : RowRunResponseBorrow) -> Bool 
 pub fn retire_row_run_response_workspace(
   value : RowRunResponseBorrow,
 ) -> Result[Unit, RowHostIssue] {
+  retire_row_run_response_workspace_selected(value, None)
+}
+
+///|
+// A selected completed-Query remainder comes from the SAME physical
+// implementation's admitted constructor/projection recipe, never a Program
+// allowance. Preserve the complete nonprovider Row frame and every R/holding
+// obligation. The default path retains its existing provider-R remainder.
+fn retire_row_run_response_workspace_selected(
+  value : RowRunResponseBorrow,
+  provider_remainder : @execution.ExecutionCapacity?,
+) -> Result[Unit, RowHostIssue] {
   guard row_response_workspace_capture_current(value) else {
     return Err(InvalidState)
   }
-  if value.cleanup_state is WorkspaceReturned {
+  if value.cleanup_state is WorkspaceReturned && provider_remainder is None {
     return Ok(())
   }
-  guard value.cleanup_state is Bound &&
+  guard (
+      value.cleanup_state is Bound || value.cleanup_state is WorkspaceReturned
+    ) &&
     value.run.physical is Some(physical) &&
     physical.provider_capacity is Some(provider) &&
     physical.cleanup_confirmed is Some(confirm) else {
@@ -392,15 +414,35 @@ pub fn retire_row_run_response_workspace(
       let provider_retained = @execution.execution_capacity_retained_bytes(
         provider,
       )
+      let provider_execution = match provider_remainder {
+        None => provider_retained
+        Some(remaining) => {
+          guard physical.holding is Some(_) && value.run.page_charge is None else {
+            return Err(InvalidState)
+          }
+          let retained = @execution.execution_capacity_retained_bytes(remaining)
+          let execution = @execution.execution_capacity_execution_bytes(
+            remaining,
+          )
+          if retained > provider_retained ||
+            execution > @execution.execution_capacity_execution_bytes(provider) {
+            return Err(Physical(InvalidCharge))
+          }
+          execution
+        }
+      }
       let base = row_acquisition_execution_capacity(acquisition)
-      if provider_retained > 9223372036854775807L - base ||
+      if provider_execution > 9223372036854775807L - base ||
         physical.execution_scratch >
-        9223372036854775807L - base - provider_retained {
+        9223372036854775807L - base - provider_execution {
         return Err(Physical(InvalidLimits))
       }
-      (None, base + provider_retained + physical.execution_scratch)
+      (None, base + provider_execution + physical.execution_scratch)
     }
     InputResponse(_) => {
+      if provider_remainder is Some(_) {
+        return Err(InvalidState)
+      }
       // The SAME token funded provider construction beside the receiver.
       // Its immutable transferred values now have their own input holding;
       // no provider document/cursor is stored in the receiver's Value graph.
@@ -428,6 +470,17 @@ pub fn retire_row_run_response_workspace(
         Some(retention - provider_retained),
         execution - provider_execution - physical.execution_scratch,
       )
+    }
+  }
+  if value.cleanup_state is WorkspaceReturned {
+    return match
+      @resources.reservation_capacity_amounts(
+        physical.ledger,
+        physical.reservation,
+      ) {
+      Ok((_, execution)) if execution == remaining => Ok(())
+      Ok(_) => Err(Physical(InvalidCharge))
+      Err(issue) => Err(Physical(issue))
     }
   }
   // Synchronous external observers may reenter. A throwing observer leaves

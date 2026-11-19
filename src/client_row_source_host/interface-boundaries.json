@@ -5722,7 +5722,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
-      "sha256": "e8481acb94c39baf5e684145f24c3ca1b30d43e188941aaebc45469c9b94955c",
+      "sha256": "50d1c007d6f6ef308f3d5d3da3defe8de55231d547c7bad2918d0a44ee28713d",
       "exports": [],
       "operations": [
         {
@@ -5746,6 +5746,10 @@
           "declaration": "check_row_run_response_borrow_current ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
+          "name": "complete_row_run_response_construction_capacity",
+          "declaration": "complete_row_run_response_construction_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
           "name": "grow_row_run_response_capacity",
           "declaration": "grow_row_run_response_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
         },
@@ -5760,6 +5764,10 @@
         {
           "name": "retire_row_run_response_workspace",
           "declaration": "retire_row_run_response_workspace ( value : RowRunResponseBorrow , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "retire_row_run_response_workspace_selected",
+          "declaration": "retire_row_run_response_workspace_selected ( value : RowRunResponseBorrow , provider_remainder : @ execution . ExecutionCapacity ? , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
           "name": "row_response_configuration_matches",
@@ -6136,6 +6144,79 @@
               {
                 "path": "src/run_publication_host/client_whole_response_growth_wbtest.mbt",
                 "anchor": "WholeInput response growth refuses one short byte dimension atomically"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "complete_row_run_response_construction_capacity",
+            "retire_row_run_response_workspace_selected"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The original Native Query reader keeps its full provider R/E construction peak"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "caller derives the remaining allowance from the same prepared Contract, declared"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "same bound transport/transient observer may confirm constructor retirement."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Reservation R, already moved holdings, the complete"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Query cut through that same observer and its pre/post current fences."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A refused or reentered observer returns no credit;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "closes the capture. Repeating the same completed Query remainder is idempotent;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Common Row base E and scratch, original input/export backing, Native metadata,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "logical implementation allowances are not an allocator/RSS bound or permission"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/provider_workspace_retirement_wbtest.mbt",
+                "anchor": "test \"completed Query constructor return preserves Row debt and admits only exact suffix coexistence\""
+              },
+              {
+                "path": "src/query_integration/provider_workspace_retirement_wbtest.mbt",
+                "anchor": "test \"completed Query constructor return refuses observer reentry and current loss without another credit\""
               }
             ]
           }
