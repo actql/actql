@@ -659,6 +659,14 @@ class InstalledLocalHost:
             return None
         return original if self._execution_for_run(original.run) is original else None
 
+    @staticmethod
+    def _original_work_failed(work: OriginalLocalWork) -> bool:
+        """Physical invocation failure only, never a Run outcome or ACK."""
+        work._nominal()
+        return (work._exit_error is not None or work._cleanup_error is not None
+                or work._future.done() and (work._future.cancelled()
+                    or work._future.exception() is not None))
+
     def _retire_original_execution(self, original: _OriginalExecution) -> bool:
         """Return one observed execution's children, not a Run outcome/Owner.
 
@@ -677,8 +685,7 @@ class InstalledLocalHost:
             publication = original.publication
             held = original.state
             live = any(value is original.reference for value in self._public_run_references)
-            if live and (work._exit_error is not None or work._cleanup_error is not None
-                         or work._future.exception() is not None):
+            if live and self._original_work_failed(work):
                 # A confirmed business observation does not erase a physical
                 # invocation/exit/cleanup failure. Its original whole-Host
                 # cleanup remains available; this success-only path abstains.
@@ -1143,7 +1150,13 @@ class InstalledLocalHost:
                         raise ValueError('Invalid synchronous original SDK state consumer')
                     observation._validate_facts()
                 installation.binding.inspect(confirm_and_consume)
-            if execution is None:
+            retain_state = execution is not None and not self._original_work_failed(
+                next(work for work in self._physical_work if work._invoke is execution))
+            if not retain_state:
+                # A failed physical invocation cannot take success-only child
+                # retirement. After the SAME Core confirmation and reader
+                # handoff, return this transport as before; keep its Run,
+                # publication, original failure and Unknown/cleanup custody.
                 if not self._core.close_publication_commit_export(output):
                     raise LocalProductCleanupPending(self)
                 held.output = None
@@ -1151,7 +1164,9 @@ class InstalledLocalHost:
                     raise LocalProductCleanupPending(self)
                 self._inputs.remove(held.source)
                 del self._run_state_custody[run.handle]
-        if execution is not None:
+                if execution is not None and execution.state is held:
+                    execution.state = None
+        if execution is not None and retain_state:
             # One original output per Run, even when the first observation
             # precedes physical Thread exit or overlaps a Result reader.
             # Retry the same confirmation on later ordinary observations;

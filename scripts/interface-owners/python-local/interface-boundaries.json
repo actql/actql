@@ -53027,6 +53027,13 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_original_work_failed",
+          "parameters": [
+            "work"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_payload_original",
           "parameters": [
             "self",
@@ -53666,7 +53673,7 @@
           "async": false
         }
       ],
-      "sha256": "71276da5619ff0c559124c122c3c3f5caf8d2836c7e800d4b093be510cb572f3",
+      "sha256": "75f5298e9f4f7836ab58fc35c914803c8eb6edf5d74344e39aba20425f5c8b0f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -56399,6 +56406,7 @@
           "operations": [
             "InstalledLocalHost/_current_execution",
             "InstalledLocalHost/_execution_for_run",
+            "InstalledLocalHost/_original_work_failed",
             "InstalledLocalHost/_retire_original_execution",
             "_OriginalExecution",
             "_OriginalExecution/__call__",
@@ -56418,6 +56426,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _retire_original_execution("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_work_failed("
               }
             ],
             "inputsOutputs": [
@@ -56432,6 +56444,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _retire_original_execution("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_work_failed("
               }
             ],
             "identity": [
@@ -56446,6 +56462,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _retire_original_execution("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_work_failed("
               }
             ],
             "ownership": [
@@ -56460,6 +56480,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _retire_original_execution("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_work_failed("
               }
             ],
             "synchronization": [
@@ -56474,6 +56498,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _retire_original_execution("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_work_failed("
               }
             ],
             "failure": [
@@ -56488,6 +56516,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _retire_original_execution("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_work_failed("
               }
             ],
             "cancellation": [
@@ -56502,6 +56534,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _retire_original_execution("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_work_failed("
               }
             ],
             "resources": [
@@ -56516,6 +56552,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _retire_original_execution("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_work_failed("
               }
             ],
             "extension": [
@@ -56530,6 +56570,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _retire_original_execution("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_work_failed("
               }
             ],
             "verification": [
@@ -56572,6 +56616,18 @@
               {
                 "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
                 "anchor": "def test_retirement_export_ack_precedes_task_and_pending_task_retries_same_original("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_work_failed("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "async def test_failed_worker_returns_confirmed_state_transport_before_read_admission("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "async def test_failed_worker_state_transport_false_ack_keeps_same_original_custody("
               }
             ]
           }

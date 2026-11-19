@@ -255,6 +255,9 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
   // Single(source) adds one variant header, one borrowed capture reference
   // and one tag word to the old Work vectors. Source and Read stay unchanged.
   let single_source_tag = 16L + 8L + 8L
+  // The publication-refusal closure borrows the SAME Work once. This is one
+  // central-tariff reference slot, not physical backing or a larger policy.
+  let publication_failure_borrow = 8L
   for
     (
       page,
@@ -330,11 +333,11 @@ fn relation_original_verify_quote_vectors() -> Unit raise {
     ).unwrap()
     assert_eq(
       @execution.execution_capacity_retained_bytes(work),
-      work_without_source_tag + single_source_tag,
+      work_without_source_tag + single_source_tag + publication_failure_borrow,
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(work),
-      work_without_source_tag + single_source_tag,
+      work_without_source_tag + single_source_tag + publication_failure_borrow,
     )
     assert_eq(@execution.execution_capacity_retained_bytes(read), read_bytes)
     assert_eq(@execution.execution_capacity_execution_bytes(read), read_bytes)

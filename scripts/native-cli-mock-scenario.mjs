@@ -11,7 +11,7 @@ import {join} from 'node:path';
 
 export const mockTemplates = Object.freeze(['deal-review-mock', 'churn-risk-mock']);
 
-const expectedChanges = Object.freeze({
+export const expectedChanges = Object.freeze({
   'deal-review-mock': {
     resource: 'Opportunity', model: 'review', answers: [
       {changed: true, stage: 'Negotiation', next_step: 'Send revised pricing by Friday'},
@@ -88,7 +88,7 @@ export async function captureNativeMockCommand(command, args, {
       child.once('close', (code, signal) => {
         clearTimeout(timer); clearInterval(monitor);
         process.removeListener('SIGTERM', onTerm); process.removeListener('SIGINT', onTerm);
-        resolve({code, signal});
+        resolve({code, signal, pid: child.pid});
       });
     });
     const size = (await sink.stat()).size;
@@ -104,7 +104,7 @@ export async function captureNativeMockCommand(command, args, {
     if (offset !== body.length || (await sink.stat()).size !== size)
       failure ??= Object.assign(new Error('Native diagnostic file changed after child close'),
         {code: 'ERR_NATIVE_MOCK_STDERR'});
-    const result = {stdout: Buffer.concat(stdout).toString('utf8'),
+    const result = {pid: outcome.pid, stdout: Buffer.concat(stdout).toString('utf8'),
       stderr: body.subarray(0, offset).toString('utf8')};
     if (failure || outcome.code !== 0 || outcome.signal !== null) {
       throw Object.assign(failure ?? new Error('Native command failed'), result,
@@ -184,7 +184,8 @@ function waitingHuman(record, original, before, change) {
 }
 
 
-function requireNativeMockWork(args, groups, rows) {
+export function requireNativeMockWork(args, groups, rows, {minimumWrites = rows} = {}) {
+  assert(Number.isSafeInteger(minimumWrites) && minimumWrites >= 0 && minimumWrites <= rows);
   const model = [], modelSlots = [], writes = [];
   for (const group of groups) {
     const events = group.events;
@@ -208,8 +209,13 @@ function requireNativeMockWork(args, groups, rows) {
   assert.equal(model.length, args[0] === 'run' ? rows : 0, 'Actual Model start count differs');
   assert.equal(new Set(model).size, model.length, 'Repeated original Model attempt');
   assert.deepEqual([...modelSlots].sort((a,b)=>a-b), args[0] === 'run' ? Array.from({length:rows},(_,index)=>index) : [], 'Changed original Model slots');
-  assert.equal(writes.length, args[0] === 'approve' ? rows : 0, 'Actual target replacement count differs');
-  assert.deepEqual(writes.map(row=>row.ordinal).sort((a,b)=>a-b), args[0] === 'approve' ? Array.from({length:rows},(_,index)=>index) : [], 'Changed original Effect ordinals');
+  if (args[0] === 'approve') {
+    assert(writes.length >= minimumWrites && writes.length <= rows, 'Actual target replacement count differs');
+    assert(writes.every(row => Number.isSafeInteger(row.ordinal) && row.ordinal >= 0 && row.ordinal < rows));
+    assert.equal(new Set(writes.map(row => row.ordinal)).size, writes.length, 'Repeated original Effect ordinal');
+    if (minimumWrites === rows)
+      assert.deepEqual(writes.map(row=>row.ordinal).sort((a,b)=>a-b), Array.from({length:rows},(_,index)=>index), 'Changed original Effect ordinals');
+  } else assert.equal(writes.length, 0, 'Unexpected target replacement');
   for (const field of ['key', 'fileReceipt', 'rowReceipt']) assert.equal(new Set(writes.map(row => row[field])).size, writes.length, 'Repeated Effect operation/receipt');
   return {modelAttempts: model, writes};
 }
