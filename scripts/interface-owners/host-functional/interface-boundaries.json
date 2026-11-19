@@ -28162,7 +28162,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "970cb30d40721430dcbbc3dc729303dce97c54d3ea19f917a76d79de4a9b5931",
+      "sha256": "d5d1f8f97be1c98372708fa3c0a9a6bfe34f8115bbe7cc2e5596cf4d20fb245c",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -28863,6 +28863,21 @@
             "publicationControl"
           ],
           "async": true
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
+          "parameters": [
+            "beforeFrame",
+            "afterFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         },
         {
           "name": "openClientRequestJournal/journal/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication",
@@ -29848,7 +29863,9 @@
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation/init:persistOriginalKeyedLookupActivation#2",
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
             "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage",
-            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2"
+            "openClientRequestJournal/journal/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage/init:persistOriginalKeyedLookupPage#2",
+            "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose",
+            "openClientRequestJournal/journal/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose/init:canReinspectRunAfterPhysicalClose"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -30657,6 +30674,14 @@
               {
                 "path": "adapters/host-node/client-submission-operation.test.mjs",
                 "anchor": "test('shared observation compares the selected journal original rather than a repeated incoming alias'"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "test('signing stop comparison accepts only the same Journal original physical-close progression'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "test('Local signing original uses the same restored parent and keeps its borrow through consumption'"
               }
             ]
           }
@@ -117723,9 +117748,10 @@
     },
     {
       "module": "adapters/host-node/local-checkpoint-answer.mjs",
-      "sha256": "3883ed970594f29ca6e9647c52814b848dfa9968822c7f16057a57b453b17925",
+      "sha256": "c95f61ceeed28b47155d19a1cbe5e650ca56468494096cdaae5f44dd6e1b8814",
       "exports": [
-        "createLocalCheckpointAnswer"
+        "createLocalCheckpointAnswer",
+        "createLocalSigningOriginalReader"
       ],
       "operations": [
         {
@@ -117797,6 +117823,37 @@
             "name"
           ],
           "async": false
+        },
+        {
+          "name": "createLocalSigningOriginalReader",
+          "parameters": [
+            "namespaceId",
+            "authorityScopeCid",
+            "moon",
+            "control",
+            "journal",
+            "restoreEffectManagedPreparation",
+            "recoverEffectCapture",
+            "localSigningRecoveries",
+            "assertCurrent",
+            "releaseLocalSigningRecovery",
+            "clientOperationError"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalSigningOriginalReader/loadRunOriginal",
+          "parameters": [
+            "view",
+            "signal",
+            "consume"
+          ],
+          "async": true
+        },
+        {
+          "name": "createLocalSigningOriginalReader/loadRunOriginal/current/current",
+          "parameters": [],
+          "async": false
         }
       ],
       "imports": [
@@ -117821,10 +117878,14 @@
             "createLocalCheckpointAnswer/answerCheckpoint/settled/settled",
             "createLocalCheckpointAnswer/createLocalCheckpointAnswer",
             "createLocalCheckpointAnswer/createLocalCheckpointAnswer#2",
-            "createLocalCheckpointAnswer/methods/methods"
+            "createLocalCheckpointAnswer/methods/methods",
+            "createLocalSigningOriginalReader",
+            "createLocalSigningOriginalReader/loadRunOriginal",
+            "createLocalSigningOriginalReader/loadRunOriginal/current/current"
           ],
           "exports": [
-            "createLocalCheckpointAnswer"
+            "createLocalCheckpointAnswer",
+            "createLocalSigningOriginalReader"
           ],
           "attributes": {
             "responsibility": [
@@ -117933,6 +117994,14 @@
               {
                 "path": "adapters/host-node/local-checkpoint-recovery-custody.test.mjs",
                 "anchor": "original signing consumer"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "test('signing stop comparison accepts only the same Journal original physical-close progression'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "test('Local signing original uses the same restored parent and keeps its borrow through consumption'"
               }
             ]
           }

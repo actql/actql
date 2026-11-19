@@ -49120,9 +49120,7 @@
           }
         },
         {
-          "operations": [
-            "cid/cid"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -54735,8 +54733,10 @@
             "openInstalledHost/bootstrapPort/init:answerCheckpoint/init:answerCheckpoint",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:assertCurrent/init:assertCurrent",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:loadRunOriginal/init:loadRunOriginal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:loadRunOriginal/init:loadRunOriginal/current/current"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:assertCurrent/init:assertCurrent#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/restoreEffectManagedPreparation/restoreEffectManagedPreparation",
+            "openInstalledHost/releaseLocalSigningRecovery"
           ],
           "exports": [],
           "attributes": {
@@ -54846,6 +54846,14 @@
               {
                 "path": "adapters/host-node/local-checkpoint-recovery-custody.test.mjs",
                 "anchor": "original signing consumer"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "test('signing stop comparison accepts only the same Journal original physical-close progression'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "test('Local signing original uses the same restored parent and keeps its borrow through consumption'"
               }
             ]
           }
@@ -56223,7 +56231,7 @@
                 "anchor": "the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/local-checkpoint-answer.mjs",
                 "anchor": "localSigningRecoveries.add(recovered);"
               },
               {
@@ -64471,13 +64479,6 @@
           "async": false
         },
         {
-          "name": "cid/cid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "clientOperationError/clientOperationError",
           "parameters": [
             "code",
@@ -64810,16 +64811,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:loadRunOriginal/init:loadRunOriginal",
-          "parameters": [
-            "view",
-            "signal",
-            "consume"
-          ],
-          "async": true
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:loadRunOriginal/init:loadRunOriginal/current/current",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:assertCurrent/init:assertCurrent#2",
           "parameters": [],
           "async": false
         },
@@ -65789,6 +65781,17 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
+          "parameters": [
+            "ref",
+            "signal",
+            "managed",
+            "retainRecoveryResources",
+            "boundOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture",
           "parameters": [
             "options"
@@ -65822,6 +65825,14 @@
             "selection"
           ],
           "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/restoreEffectManagedPreparation/restoreEffectManagedPreparation",
+          "parameters": [
+            "ref",
+            "signal"
+          ],
+          "async": true
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
@@ -66605,6 +66616,13 @@
             "member"
           ],
           "async": false
+        },
+        {
+          "name": "openInstalledHost/releaseLocalSigningRecovery",
+          "parameters": [
+            "recovered"
+          ],
+          "async": true
         },
         {
           "name": "openInstalledHost/releaseRequestDomainAliases",
@@ -68459,7 +68477,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "0bd02a30207f734f2c59c1b0035acf3034e86d7866839e08a6996538b41366ae"
+      "sha256": "72c18c8f5751bf923622ba99fdfd20f78c9b122cf19d8fd1a232f5a4071c0610"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
