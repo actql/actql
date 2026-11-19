@@ -1,6 +1,6 @@
 {
   "source": "b6e7a0077d1e266ec2de4cb20bc3c8bf373d0f11",
-  "syntaxProjectionSha256": "7072285baa1945a611b664dd2532ca878475e551e5e057ce32fc72685facb34c",
+  "syntaxProjectionSha256": "f7142506d64a439e7869e535e082ec59c5e1b46a9ae10e97092f54d69a2bd871",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -79478,7 +79478,7 @@
     },
     {
       "module": "src/client_host_wasm/journal_observation.mbt",
-      "sha256": "cc26bbdd45017780a823c2f97aceb7e8beb388b6eaaa6541eb667b7792d9c02c",
+      "sha256": "9eb664c36a5bab82e0275ea2fb3a4039eb1a98965fffccfb9ceff22436ad67e0",
       "exports": [],
       "operations": [
         {
@@ -79546,8 +79546,16 @@
           "declaration": "physical_journal_schema ( ticket : Int ) - > Int"
         },
         {
+          "name": "prepare_journal_observation_close",
+          "declaration": "prepare_journal_observation_close ( value : Instance , child : StoredJournalObservation , ) - > Int"
+        },
+        {
           "name": "reserve_journal_observation",
           "declaration": "reserve_journal_observation ( nonce : Int64 , material : Int , configuration : Int , physical_ticket : Int , physical_copy_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "settle_journal_observation_close_capacity",
+          "declaration": "settle_journal_observation_close_capacity ( value : Instance , child : StoredJournalObservation , ) - > Int"
         }
       ],
       "role": "physical-io",
@@ -79570,7 +79578,9 @@
             "physical_journal_schema",
             "reserve_journal_observation",
             "[T]journal_close_payload",
-            "begin_journal_observation_close"
+            "begin_journal_observation_close",
+            "prepare_journal_observation_close",
+            "settle_journal_observation_close_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -79612,6 +79622,10 @@
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
                 "anchor": "fn begin_journal_observation_close("
+              },
+              {
+                "path": "src/client_host_wasm/journal_observation.mbt",
+                "anchor": "fn prepare_journal_observation_close("
               }
             ],
             "synchronization": [
@@ -93796,13 +93810,9 @@
     },
     {
       "module": "src/client_host_wasm/journal_decode_originals.mbt",
-      "sha256": "82b1bda295d1512939ce169925860ee727f25ac530b5f414e067b2be6bb9914e",
+      "sha256": "abc4e20e3b837ef59beeb57114b7f2089a8c0034cc95378b0aa46cbc65b580ff",
       "exports": [],
       "operations": [
-        {
-          "name": "close_journal_decode_frame",
-          "declaration": "close_journal_decode_frame ( value : Instance , frame : StoredJournalDecodeFrame , ) - > Int"
-        },
         {
           "name": "dispose_journal_decode_rows",
           "declaration": "dispose_journal_decode_rows ( value : Instance , frame : StoredJournalDecodeFrame , keep_selected : Bool , ) - > Int"
@@ -93843,7 +93853,6 @@
         {
           "operations": [
             "<module>",
-            "close_journal_decode_frame",
             "dispose_journal_decode_rows",
             "journal_decode_frame_capacity",
             "journal_decode_frame_current",
@@ -93876,7 +93885,7 @@
             "ownership": [
               {
                 "path": "src/client_host_wasm/journal_observation.mbt",
-                "anchor": "Some(Observed(_, Some(frame)))"
+                "anchor": "fn prepare_journal_observation_close("
               }
             ],
             "synchronization": [

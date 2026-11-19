@@ -4261,9 +4261,13 @@ function-return boundary, so no successful payload still aliases backing when
 settlement begins. If interruption occurs after trusted settlement but before
 unlink, only that exact opaque token's same-Ledger `ClosedReservation` together
 with its actual spent state permits disposal to continue. A foreign token,
-false coverage result or another refusal is not acknowledgement. Buffer close
-still requires the original physical cleanup; pending close retains the same
-frame and initiating error after byte tokens have settled.
+false coverage result or another refusal is not acknowledgement. Row debt
+retires while the frame's controller reservation remains open. A second helper
+return then drops the frame, retaining only its exact capacity token and original
+error before that controller token is settled. A completed controller settlement
+therefore cannot leave a reachable frame over a pending physical close. Buffer
+close still requires the original physical cleanup; pending close retains only
+the scalar initiating error, without successful payload or decoder frame.
 No new public wire, ABI export, resource Owner or physical cleanup ACK is issued.
 
 ### Live SDK continuation currentness
