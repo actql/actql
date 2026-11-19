@@ -1,6 +1,6 @@
 {
   "source": "b6e7a0077d1e266ec2de4cb20bc3c8bf373d0f11",
-  "syntaxProjectionSha256": "60a6ef5e050c42bbb53e0cc2f1088c70ba94aa1cd419e3872e21d85aef92c47a",
+  "syntaxProjectionSha256": "9d4aabe986f670808469370c7bf514762b1adcb3264128dd03aa5bd044f23a50",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -52690,6 +52690,14 @@
           ]
         },
         {
+          "name": "InstalledLocalHost/_check_original_wait_state",
+          "parameters": [
+            "self",
+            "raw"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_checked_original_read",
           "parameters": [
             "self",
@@ -53121,7 +53129,8 @@
           "parameters": [
             "self",
             "run",
-            "projection"
+            "projection",
+            "wait"
           ],
           "async": false
         },
@@ -53391,6 +53400,14 @@
           "name": "InstalledLocalHost/_project_original_sdk_run_state/inspect/validate",
           "parameters": [
             "_"
+          ],
+          "async": false
+        },
+        {
+          "name": "InstalledLocalHost/_raise_original_wait_failure",
+          "parameters": [
+            "self",
+            "run"
           ],
           "async": false
         },
@@ -53702,7 +53719,8 @@
           "parameters": [
             "self",
             "run",
-            "reference"
+            "reference",
+            "wait"
           ],
           "async": false
         },
@@ -53847,7 +53865,7 @@
           "async": false
         }
       ],
-      "sha256": "1ce31ffe65a6556bcd0fd6b1e02c4be6ed776afad7e3f376c47607a7a9ea3c50",
+      "sha256": "b516a5950f8a6d79aa6900770a72a2d87e601fee753b8ab206741fb637368918",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -57241,6 +57259,123 @@
               {
                 "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
                 "anchor": "def test_pending_cancel_readback_retains_same_original_stop_and_close_debt("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_check_original_wait_state",
+            "InstalledLocalHost/_raise_original_wait_failure"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _check_original_wait_state("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Local wait readiness"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _check_original_wait_state("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Local wait readiness"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _check_original_wait_state("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Local wait readiness"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _check_original_wait_state("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Local wait readiness"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _check_original_wait_state("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Local wait readiness"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _check_original_wait_state("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Local wait readiness"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _check_original_wait_state("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Local wait readiness"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _check_original_wait_state("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Local wait readiness"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _check_original_wait_state("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Local wait readiness"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_wait_readiness.py",
+                "anchor": "async def test_stopped_unpublished_running_is_not_a_wait_response_or_a_retry_loop("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_wait_readiness.py",
+                "anchor": "async def test_authorization_precedes_same_worker_primary_and_foreign_errors_never_escape("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_wait_readiness.py",
+                "anchor": "async def test_cancelled_wait_releases_core_lock_and_retains_original_worker("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_wait_readiness.py",
+                "anchor": "async def test_denied_run_read_precedes_failed_future_after_activation_selection("
               }
             ]
           }

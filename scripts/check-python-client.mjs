@@ -31,6 +31,7 @@ export const remotePythonClientTests = Object.freeze([
 export const sourceLocalPythonClientTests = Object.freeze([
   'test_local_cancellation_worker_oracle.py',
   'test_local_cancellation_stop_interest.py',
+  'test_local_wait_readiness.py',
   'test_local_import.py',
   'test_local_linux_components.py',
   'test_local_public_factory.py',
