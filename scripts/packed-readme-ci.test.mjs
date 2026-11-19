@@ -1444,6 +1444,7 @@ test('small original Model failure and preclose units run once in Draft lint wit
     'adapters/host-node/acquired-effect-unknown-primary.test.mjs',
     'adapters/host-node/mock-project-effect-public.test.mjs',
     'adapters/host-common/observation.test.mjs',
+    'adapters/host-node/logical-task-observation.test.mjs',
     'adapters/host-common/sqlite-transaction.test.mjs',
     'scripts/owner-fault-mutations.test.mjs'];
   const step = workflow.jobs.lint.steps.find(value => value.name === 'Test original Model failure and workflow observation');
