@@ -1384,7 +1384,7 @@ fn native_mock_original_journal_body(
     .observe_file("account.json")
     .native_mock_journal_required("observe original Account Source")
   let write_lock = changed_root
-    .acquire_lock("account.json.actql-write.lock")
+    .acquire_exclusive_lock_with_custody("account.json.actql-write.lock")
     .native_mock_journal_required("hold original Source write lock")
   let writer = changed_root
     .create_writer("changed-account.stage", 4096L)

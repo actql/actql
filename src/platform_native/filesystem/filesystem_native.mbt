@@ -81,6 +81,14 @@ extern "C" fn root_acquisition_error_ffi(root : Root) -> Bytes = "actql_native_f
 extern "C" fn acquire_lock_ffi(root : Root, name : Bytes, length : Int) -> Lock = "actql_native_filesystem_acquire_lock"
 
 ///|
+#borrow(root, name)
+extern "C" fn acquire_exclusive_lock_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+) -> Lock = "actql_native_filesystem_acquire_exclusive_lock"
+
+///|
 #borrow(lock)
 extern "C" fn lock_ready_ffi(lock : Lock) -> Bool = "actql_native_filesystem_lock_ready"
 
@@ -454,6 +462,30 @@ pub fn Root::acquire_lock_with_custody(
   }
   let encoded = @utf8.encode(name)
   let lock = acquire_lock_ffi(self, encoded, encoded.length())
+  if lock_ready_ffi(lock) {
+    Ok(lock)
+  } else {
+    Err({
+      original_issue: Lock(decode_diagnostic_message(lock_error_ffi(lock))),
+      lock: Some(lock),
+    })
+  }
+}
+
+///|
+/// Cooperating cross-Host file writer lock: exclusive creation of the named
+/// marker, followed only by acknowledged FD close and original-inode unlink.
+/// An existing name refuses without acquiring or deleting it. Every partially
+/// acquired original is returned through the existing failure custody.
+pub fn Root::acquire_exclusive_lock_with_custody(
+  self : Root,
+  name : String,
+) -> Result[Lock, NativeLockOpenFailure] {
+  if !valid_object_name(name) {
+    return Err({ original_issue: InvalidName, lock: None, })
+  }
+  let encoded = @utf8.encode(name)
+  let lock = acquire_exclusive_lock_ffi(self, encoded, encoded.length())
   if lock_ready_ffi(lock) {
     Ok(lock)
   } else {

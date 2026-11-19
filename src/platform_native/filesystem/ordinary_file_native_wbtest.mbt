@@ -14,7 +14,9 @@ test "Mock replacement keeps the new target through original writer cleanup" {
   ignore(initial.seal_file("mock-target.json").unwrap())
   initial.close_retaining_files().unwrap()
   let observed = root.observe_file("mock-target.json").unwrap()
-  let lock = root.acquire_lock("mock-target.json.actql-write.lock").unwrap()
+  let lock = root
+    .acquire_exclusive_lock_with_custody("mock-target.json.actql-write.lock")
+    .unwrap()
   let writer = root.create_writer("mock-replacement-stage", 3L).unwrap()
   writer.append(b"new").unwrap()
   let generation = writer.replace_observed_file(observed, lock).unwrap()
@@ -46,7 +48,9 @@ test "Mock replacement refuses stale observations and a foreign or retired lock"
   initial.close_retaining_files().unwrap()
   let observed = root.observe_file("mock-fence.json").unwrap()
   let other = open_root(ordinary_file_fixture()).unwrap()
-  let foreign = other.acquire_lock("mock-fence.json.actql-write.lock").unwrap()
+  let foreign = other
+    .acquire_exclusive_lock_with_custody("mock-fence.json.actql-write.lock")
+    .unwrap()
   let first = root.create_writer("mock-fence-first", 1L).unwrap()
   first.append(b"b").unwrap()
   assert_true(
@@ -54,7 +58,9 @@ test "Mock replacement refuses stale observations and a foreign or retired lock"
   )
   foreign.close_checked().unwrap()
   other.close().unwrap()
-  let retired = root.acquire_lock("mock-fence.json.actql-write.lock").unwrap()
+  let retired = root
+    .acquire_exclusive_lock_with_custody("mock-fence.json.actql-write.lock")
+    .unwrap()
   retired.close_checked().unwrap()
   assert_true(
     first.replace_observed_file(observed, retired) is Err(GenerationMismatch),
@@ -64,7 +70,9 @@ test "Mock replacement refuses stale observations and a foreign or retired lock"
     first.replace_observed_file(observed, unrelated) is Err(GenerationMismatch),
   )
   unrelated.close_checked().unwrap()
-  let lock = root.acquire_lock("mock-fence.json.actql-write.lock").unwrap()
+  let lock = root
+    .acquire_exclusive_lock_with_custody("mock-fence.json.actql-write.lock")
+    .unwrap()
   let original = first.replace_observed_file(observed, lock).unwrap()
   first.cancel().unwrap()
   let second = root.create_writer("mock-fence-second", 1L).unwrap()
@@ -86,7 +94,9 @@ test "Mock replacement sync failure never replays or removes the replaced target
   ignore(initial.seal_file("mock-sync.json").unwrap())
   initial.close_retaining_files().unwrap()
   let observed = root.observe_file("mock-sync.json").unwrap()
-  let lock = root.acquire_lock("mock-sync.json.actql-write.lock").unwrap()
+  let lock = root
+    .acquire_exclusive_lock_with_custody("mock-sync.json.actql-write.lock")
+    .unwrap()
   let writer = root.create_writer("mock-sync-replacement", 1L).unwrap()
   writer.append(b"b").unwrap()
   test_fail_root_sync(root, 1)
@@ -216,11 +226,87 @@ test "Mock replacement refuses same-inode writes after its original observation"
   assert_true(root.verify_file_generation("mock-inplace.json", generation))
   let writer = root.create_writer("mock-inplace-replacement", 3L).unwrap()
   writer.append(b"new").unwrap()
-  let lock = root.acquire_lock("mock-inplace.json.actql-write.lock").unwrap()
+  let lock = root
+    .acquire_exclusive_lock_with_custody("mock-inplace.json.actql-write.lock")
+    .unwrap()
   assert_true(
     writer.replace_observed_file(observed, lock) is Err(GenerationMismatch),
   )
   writer.cancel().unwrap()
   lock.close_checked().unwrap()
+  root.close().unwrap()
+}
+
+///|
+test "exclusive file lock refuses another owner and removes only its original marker" {
+  let root = open_root(ordinary_file_fixture()).unwrap()
+  let other = open_root(ordinary_file_fixture()).unwrap()
+  let name = "exclusive-success.actql-write.lock"
+  let first = root.acquire_exclusive_lock_with_custody(name).unwrap()
+  let rejected = match other.acquire_exclusive_lock_with_custody(name) {
+    Ok(_) => fail("another exclusive owner was admitted")
+    Err(failure) => failure
+  }
+  assert_true(rejected.issue() is Lock(_))
+  rejected.retry_cleanup().unwrap()
+  assert_true(root.inspect_file_generation(name).unwrap() is Some(_))
+  let still_refused = match other.acquire_exclusive_lock_with_custody(name) {
+    Ok(_) => fail("rejected cleanup released the first owner")
+    Err(failure) => failure
+  }
+  still_refused.retry_cleanup().unwrap()
+  first.close_checked().unwrap()
+  first.close_checked().unwrap()
+  assert_eq(root.inspect_file_generation(name).unwrap(), None)
+  let successor = other.acquire_exclusive_lock_with_custody(name).unwrap()
+  successor.close_checked().unwrap()
+  assert_eq(other.inspect_file_generation(name).unwrap(), None)
+  other.close().unwrap()
+  root.close().unwrap()
+}
+
+///|
+test "exclusive file lock never unlinks a replacement inode after its FD closes" {
+  let root = open_root(ordinary_file_fixture()).unwrap()
+  let name = "exclusive-foreign.actql-write.lock"
+  let original = root.acquire_exclusive_lock_with_custody(name).unwrap()
+  let observed = root.observe_file(name).unwrap()
+  // Deliberately replace this OWN fixture marker under a distinct original
+  // filesystem lock. This is adversarial test mutation, not a Host grant.
+  let replacing = root
+    .acquire_exclusive_lock_with_custody(name + ".actql-write.lock")
+    .unwrap()
+  let writer = root.create_writer("exclusive-foreign-stage", 7L).unwrap()
+  writer.append(b"foreign").unwrap()
+  let foreign = writer.replace_observed_file(observed, replacing).unwrap()
+  writer.cancel().unwrap()
+  replacing.close_checked().unwrap()
+  assert_true(original.close_checked() is Err(Cleanup(_)))
+  assert_true(original.close_checked() is Err(Cleanup(_)))
+  assert_eq(root.inspect_file_generation(name).unwrap(), Some(foreign))
+  // Root::close acknowledges only its own directory FD. The failed Lock
+  // cleanup and foreign marker remain unacknowledged and are never removed.
+  root.close().unwrap()
+}
+
+///|
+test "exclusive file lock keeps its marker on unknown close and never recloses a reused FD" {
+  let root = open_root(ordinary_file_fixture()).unwrap()
+  let name = "exclusive-close-unknown.actql-write.lock"
+  let original = root.acquire_exclusive_lock_with_custody(name).unwrap()
+  assert_true(mark_lock_retirement_unknown(original))
+  let writer = root.create_writer("exclusive-close-reuse", 1L).unwrap()
+  assert_true(original.close_checked() is Err(Cleanup(_)))
+  assert_true(original.close_checked() is Err(Cleanup(_)))
+  writer.append(b"x").unwrap()
+  writer.cancel().unwrap()
+  assert_true(root.inspect_file_generation(name).unwrap() is Some(_))
+  let refused = match root.acquire_exclusive_lock_with_custody(name) {
+    Ok(_) => fail("unknown close marker was bypassed")
+    Err(failure) => failure
+  }
+  refused.retry_cleanup().unwrap()
+  assert_true(root.inspect_file_generation(name).unwrap() is Some(_))
+  // Deliberately retain the original Unknown marker; no whole cleanup ACK.
   root.close().unwrap()
 }
