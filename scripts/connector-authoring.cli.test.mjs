@@ -86,6 +86,42 @@ test('author build refuses a missing shipped pure validator before writing a pac
   assert.deepEqual(readdirSync(author),['connector.json']);
 });
 
+test('author child resolves its installed consumer validator and preserves original refusal', t => {
+  const root=fileURLToPath(new URL('../',import.meta.url));
+  const scratch=mkdtempSync(join(realpathSync(tmpdir()),'actql-author-consumer-resolution-'));
+  t.after(()=>rmSync(scratch,{recursive:true,force:true}));
+  const consumer=join(scratch,'consumer'),author=join(consumer,'author'),output=join(scratch,'package');
+  mkdirSync(consumer);writeFileSync(join(consumer,'package.json'),'{"private":true,"type":"module"}\n');
+  const cli=join(root,'scripts/connector.mjs');
+  const invoke=args=>spawnSync(process.execPath,[cli,...args],{cwd:root,encoding:'utf8',timeout:10000});
+  const initialized=invoke(['init',author,'acme']);assert.equal(initialized.status,0,initialized.stderr);
+  const definition=join(author,'connector.json'),original=readFileSync(definition);
+  const missing=invoke(['build',definition,output]);
+  assert.equal(missing.status,1);assert.equal(missing.signal,null);
+  assert.match(missing.stderr,/RestAuthoringValidatorUnavailable: install a matching/u);
+  assert.deepEqual(readdirSync(scratch),['consumer']);
+  // Explicit test-owned public export controls only. They do not implement or
+  // qualify Common validation, a normal package, Host or successful build.
+  const validator=join(consumer,'node_modules','@actql','local-node');mkdirSync(validator,{recursive:true});
+  writeFileSync(join(validator,'package.json'),JSON.stringify({name:'@actql/local-node',
+    version:'0.0.0-development',type:'module',exports:{'./connector-authoring':'./author.mjs'}}));
+  writeFileSync(join(validator,'author.mjs'),'export const unrelated = true;\n');
+  const absentMethod=invoke(['build',definition,output]);
+  assert.equal(absentMethod.status,1);assert.equal(absentMethod.signal,null);
+  assert.equal(absentMethod.stderr.trim(),'RestAuthoringValidatorUnavailable');
+  writeFileSync(join(validator,'author.mjs'),
+    'export function validateRestReadDeclaration(wire,cursor) {\n'+
+    'const read=JSON.parse(wire);\n'+
+    'if(read.method!=="GET"||read.path!=="/v1/records"||cursor!=="after") throw Error("FixtureOriginalReadMismatch");\n'+
+    'throw Object.assign(new Error("FixtureParentValidatorReached"),{code:"RestAuthoringValidatorUnavailable"});\n}\n');
+  const originalRefusal=invoke(['build',definition,output]);
+  assert.equal(originalRefusal.status,1);assert.equal(originalRefusal.signal,null);
+  assert.equal(originalRefusal.stderr.trim(),'FixtureParentValidatorReached');
+  assert.deepEqual(readFileSync(definition),original);
+  assert.deepEqual(readdirSync(author),['connector.json']);
+  assert.deepEqual(readdirSync(scratch),['consumer']);
+});
+
 test('author conformance selects the installed reference case without creating an installation', t => {
   const root=fileURLToPath(new URL('../',import.meta.url));
   const scratch=mkdtempSync(join(realpathSync(tmpdir()),'actql-rest-author-normal-plan-'));

@@ -132,7 +132,14 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
   family=await createInstalledFamilyScenario(undefined,{scratchParent:output,scenario:{id:'shared-source-cancel'},accountConfigurationWire:JSON.stringify(account),provider,maxRequestBytes:4096});
   await save('authored-account.json',account);
   await save('fixture-paths.json',{paths:family.paths,origin:family.resourceHttps.origin});
-  const author=join(output,'author'),packageRoot=join(output,'connector-package');
+  // Author validation resolves the same installed public package from its
+  // consumer ancestor. Establish and verify it before invoking the author CLI.
+  await mkdir(consumer);await writeFile(join(consumer,'package.json'),'{"private":true,"type":"module"}\n');
+  await run('install-normal-five','npm',['install','--offline','--no-audit','--no-fund',
+   ...nodeTarballs],consumer);
+  const authorFramework=await verifyNodeBenchmarkPackages(normalComparison,normalManifestPath,consumer);
+  await save('author-installed-normal-five.json',authorFramework);
+  const author=join(consumer,'author'),packageRoot=join(output,'connector-package');
   await run('author-init',process.execPath,[join(runtime,'scripts/connector.mjs'),'init',author,'acme'],runtime);
   const definition=join(author,'connector.json');await writeFile(definition,JSON.stringify(externalRestDefinition(family.resourceHttps.origin))+'\n');
   await run('author-build',process.execPath,[join(runtime,'scripts/connector.mjs'),'build',definition,packageRoot],runtime);
@@ -141,12 +148,12 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
   const packed=parseNpmPackJson(await run('pack-connector','npm',normalNpmPackJsonArgs(['pack','--offline','--json','--pack-destination',artifacts]),packageRoot))[0];
   assert.equal(packed.name,'@actql-connectors/acme');const connectorTar=join(artifacts,packed.filename);
   const bytes=await readFile(connectorTar);assert.equal(packed.integrity,'sha512-'+createHash('sha512').update(bytes).digest('base64'));
-  await mkdir(consumer);await writeFile(join(consumer,'package.json'),'{"private":true,"type":"module"}\n');
-  await run('install-eight','npm',['install','--offline','--no-audit','--no-fund',
-   ...native.packages.map(p=>join(nativeDirectory,p.file)),...nodeTarballs,connectorTar],consumer);
+  await run('install-native-connector','npm',['install','--offline','--no-audit','--no-fund',
+   ...native.packages.map(p=>join(nativeDirectory,p.file)),connectorTar],consumer);
   const installed=async()=>{
    const n=[];for(const p of native.packages){const files=await inventory(join(consumer,'node_modules',p.name));assert.deepEqual(files,p.files);n.push({name:p.name,files});}
    const framework=await verifyNodeBenchmarkPackages(normalComparison,normalManifestPath,consumer);
+   assert.deepEqual(framework,authorFramework);
    const connector=await inventory(join(consumer,'node_modules/@actql-connectors/acme'));assert.deepEqual(connector,pluginFiles);
    return {native:n,framework,connector};
   };
