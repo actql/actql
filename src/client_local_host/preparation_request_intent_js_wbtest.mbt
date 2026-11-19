@@ -665,7 +665,7 @@ test "retained Request intent continues native Effect Parameters Plan and retire
 ///|
 // Fixture for the normal Local selector's two existing row projections. The
 // generic 1000-row Environment used by other component fixtures is unchanged.
-extern "js" fn request_numeric_local_environment(
+extern "js" fn request_numeric_local_environment_with_artifact_bytes(
   wire : String,
   rows : Int,
   artifact_bytes : Int,
@@ -676,6 +676,11 @@ extern "js" fn request_numeric_local_environment(
   #| if(artifactBytes>0)value.host_policy_profile.capacity.max_artifact_bytes=artifactBytes;
   #| const canonical=v=>Array.isArray(v)?'['+v.map(canonical).join(',')+']':v!==null&&typeof v==='object'?'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}':JSON.stringify(v);
   #| value.evidence_bundle_cid='sha256:'+process.getBuiltinModule('node:crypto').createHash('sha256').update(canonical(value)).digest('hex');return canonical(value);}
+
+///|
+fn request_numeric_local_environment(wire : String, rows : Int) -> String {
+  request_numeric_local_environment_with_artifact_bytes(wire, rows, 0)
+}
 
 ///|
 extern "js" fn request_numeric_environment_cid(wire : String) -> String =
@@ -774,7 +779,7 @@ fn request_numeric_100000_profile_fixture(
     selected.checking.input.source.max_depth,
   )
   assert_eq(@resources.ledger_limits(parent.ledger), original_limits)
-  let wire = request_numeric_local_environment(
+  let wire = request_numeric_local_environment_with_artifact_bytes(
     @publication_host.client_local_product_assets().environment,
     if normalization_only {
       100000
