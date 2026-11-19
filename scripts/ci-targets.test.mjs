@@ -1855,10 +1855,15 @@ test('REST demand controls have one prepared public package owner without narrow
   assert.equal(recipes.length, 1);
   assert.equal(recipes[0].split(/\s+/u).filter(argument => argument === file).length, 1);
   const steps = jobs['client-distribution'].steps;
-  const owners = steps.filter(step => step.run === recipes[0]);
+  const owners = steps.filter(step => step.name === 'Test source-backed distribution contracts');
   assert.equal(owners.length, 1);
   const [owner] = owners;
-  assert.equal(owner.name, 'Test source-backed distribution contracts');
+  // The original local command and CI's split command need not contain every
+  // identical peer test. Require this whole module's real Node entrance once.
+  const arguments_ = owner.run.trim().split(/\s+/u);
+  assert.deepEqual(arguments_.slice(0, 2), ['node', '--test']);
+  assert.equal(arguments_.filter(argument => argument === file).length, 1);
+  assert(!arguments_.some(argument => /^--test-(?:name|skip|only)/u.test(argument)));
   assert.equal(owner.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
   assert.equal(owner['continue-on-error'], undefined);
   assert(jobs['client-distribution'].needs.includes('client-packages'));
