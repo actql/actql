@@ -1,10 +1,12 @@
 """Opaque port caller identities/order; no physical Core/product acceptance."""
+from threading import RLock
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
 
 from actql_sdk._local_product import InstalledLocalHost
 from actql_sdk._local_storage import LocalStorageError
+from actql_sdk._local_work import OriginalLocalWork
 
 
 class LocalStartDriverTests(unittest.TestCase):
@@ -12,6 +14,7 @@ class LocalStartDriverTests(unittest.TestCase):
         host = object.__new__(InstalledLocalHost)
         run, compute, preflight, publisher, publication, projection = [object() for _ in range(6)]
         host._active = Mock()
+        host._core = SimpleNamespace(_lock=RLock(), _host_retained_work=None)
         host._runs = SimpleNamespace(_run=Mock())
         host._source_free_computes = []
         records = [object(), object()]
@@ -60,6 +63,30 @@ class LocalStartDriverTests(unittest.TestCase):
         self.assertLess(names.index('advance_original_payload_reader'), names.index('prepare_original_commit_candidate'))
         self.assertLess(names.index('store_original_commit'), names.index('prepare_original_store_observation'))
         self.assertFalse(any('ack' in name or 'run_state' in name or 'cancel' in name for name in names))
+
+    def test_each_postpublication_continuation_hands_off_after_its_original_return(self):
+        host, ports, values = self.fixture()
+        run = values[0]
+        work = OriginalLocalWork(lambda: None, on_exit=lambda _: None, owner=run)
+        host._core._host_retained_work = (work,)
+        observed = []
+
+        def handoff():
+            self.assertFalse(host._core._lock._is_owned(),
+                'A worker cannot hand control over while retaining Core')
+            observed.append(ports.mock_calls[-1][0])
+
+        work._yield_to_control = handoff
+        host._execute_original_admitted_run(run)
+        self.assertEqual(observed, [
+            *(['advance_original_payload_copy'] * 2
+              + ['advance_original_payload_sealing'] * 2
+              + ['advance_original_payload_reader'] * 2) * 2,
+            *(['advance_original_commit_candidate'] * 2),
+            *(['advance_original_store_observation'] * 2),
+        ])
+        self.assertIs(host._core._host_retained_work[0], work)
+        host._store_original_commit.assert_called_once()
 
     def test_store_unknown_is_preserved_without_retry_new_observation_or_cleanup(self):
         host, ports, values = self.fixture()
