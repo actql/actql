@@ -1,11 +1,13 @@
 """Finite actual Core/SQLite managed-continuation read counters.
 
-Raw same-source Wasm and explicit fixture authority; not an installed package,
-latency benchmark, normal Host qualification or physical-stop proof. Only the
-existing task selection/drive and physical Journal import are observed.
+Raw mode uses explicit fixture authority. Isolated installed-image mode uses
+the real owning factory and operation allowance; it is not equivalent raw fuel.
+Neither is normal Host, latency or physical-stop acceptance. Only the existing
+task selection/drive and physical Journal import are measured.
 """
 import asyncio
 from collections import Counter
+from contextlib import nullcontext
 from dataclasses import dataclass
 import hashlib
 import json
@@ -15,10 +17,12 @@ from tempfile import mkdtemp
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
+INSTALLED_IMAGE = len(sys.argv) > 1 and sys.argv[1] == '--installed'
+if not INSTALLED_IMAGE:
+    sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk import AsyncClient
-from actql_sdk._local_core import LocalCore, LocalCoreError, _NORMAL_HOST_OPERATION_FUEL
-from actql_sdk._local_product import InstalledLocalHost, _ordinary_core_limits
+from actql_sdk._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, _NORMAL_HOST_OPERATION_FUEL
+from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending, _ordinary_core_limits
 from actql_sdk._local_journal_port import _JournalCallbacks
 from actql_sdk._local_storage import StoredBytes
 from actql_sdk._values import thaw, wire_bytes
@@ -75,7 +79,7 @@ class Trace:
         return result
 
 
-async def population(raw, digest, scratch, history, fault=None, persisted=False, pending=False):
+async def population(raw, digest, scratch, history, fault=None, persisted=False, pending=False, installed=False):
     assert not (persisted and pending)
     trace = Trace()
     original_header = LocalCore._journal_query_header
@@ -194,16 +198,36 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
     closed_pending_history = 0
     pending_references = set()
     cleanup = []
+
+    async def open_original():
+        nonlocal host, core, client
+        try:
+            if installed:
+                # The existing owning factory resolves and acquires the real
+                # image. Never mark a raw Core ordinary or build a profile here.
+                host = InstalledLocalHost.installed(state_dir=state)
+                core = host._core
+                assert core._ordinary_host
+            else:
+                core = LocalCore(raw, digest=digest, transfer_capacity=12 * 1024 * 1024,
+                    slots=128, resources=_ordinary_core_limits(), fuel=_NORMAL_HOST_OPERATION_FUEL)
+                host = InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
+                    observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
+        except LocalProductCleanupPending as failure:
+            host = failure.cleanup_host
+            core = host._core
+            raise
+        except LocalCoreInitializationError as failure:
+            core = failure.cleanup_core
+            raise
+        client = await AsyncClient._connect_local(host)
+
     try:
         with patch.object(LocalCore, '_journal_query_header', query), \
                 patch.object(LocalCore, '_journal_current', current), \
                 patch.object(LocalCore, '_journal_current_operation', operation), \
                 patch.object(_JournalCallbacks, 'query', queried):
-            core = LocalCore(raw, digest=digest, transfer_capacity=12 * 1024 * 1024,
-                slots=128, resources=_ordinary_core_limits(), fuel=_NORMAL_HOST_OPERATION_FUEL)
-            host = InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
-                observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
-            client = await AsyncClient._connect_local(host)
+            await open_original()
             for index in range(history):
                 if pending:
                     # Stop at the original accepting owner, before its outer
@@ -213,7 +237,14 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                     intent = wire_bytes({'kind': 'aql', 'input': {
                         'text': 'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer',
                         'format': 'aql'}, 'parameters': None})
-                    run, admission = host._accept_original(reference, intent, run_id=name)
+                    # Exit this SAME original operation before client/Host
+                    # close. No refill, nested initial frame or Work is issued.
+                    with core._host_operation():
+                        if installed:
+                            assert core._host_fuel_phase == 'operation'
+                        run, admission = host._accept_original(reference, intent, run_id=name)
+                    if installed:
+                        assert core._host_fuel_phase is None and core._host_retained_work is None
                     saved = json.loads(admission)
                     assert run is not None and _wire.negotiated(saved, 'admission', thaw(client._selected))
                     assert saved['ref']['authorityScopeCid'] == reference['epoch']['authorityScopeCid']
@@ -241,11 +272,7 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                     if pending:
                         closed_pending_history += 1
                         print(json.dumps({'closedPendingHistory': closed_pending_history}), flush=True)
-                    core = LocalCore(raw, digest=digest, transfer_capacity=12 * 1024 * 1024,
-                        slots=128, resources=_ordinary_core_limits(), fuel=_NORMAL_HOST_OPERATION_FUEL)
-                    host = InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
-                        observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
-                    client = await AsyncClient._connect_local(host)
+                    await open_original()
 
             if pending:
                 assert accepted_pending_history == closed_pending_history == len(pending_references) == history
@@ -342,6 +369,7 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
             # failed/pending cleanup to first-close success.
             print(json.dumps({'cleanupFailures': [type(error).__name__ for error in cleanup]}), file=sys.stderr)
     return {'history': history, 'fault': fault, 'steps': trace.steps,
+            'coreMode': 'installed-image/ordinary-operation-owner' if installed else 'raw-component/initial-fuel',
             'populationMode': 'accepted-pending-durable-history/live-target' if pending else
                 'persisted-history-fresh-live-target' if persisted else 'same-live-host',
             'completedHistory': completed_history, 'acceptedPendingHistory': accepted_pending_history,
@@ -352,26 +380,65 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
 
 
 async def main():
-    if len(sys.argv) not in (3, 4):
-        raise ValueError('Expected same-source Wasm, fresh scratch and optional selected history')
-    raw = Path(sys.argv[1]).read_bytes()
-    digest = hashlib.sha256(raw).hexdigest()
-    scratch = Path(sys.argv[2]); scratch.mkdir(parents=True, exist_ok=True)
-    fault = sys.argv[3][6:] if len(sys.argv) == 4 and sys.argv[3].startswith('fault:') else None
+    image_identity = None
+    resolver = nullcontext()
+    if INSTALLED_IMAGE:
+        if len(sys.argv) != 5 or not sys.flags.isolated:
+            raise ValueError('Expected isolated installed Python, --installed source SHA, fresh scratch and selection')
+        expected_source, scratch, selection = sys.argv[2:]
+        if len(expected_source) != 40 or any(c not in '0123456789abcdef' for c in expected_source):
+            raise ValueError('Expected exact installed cohort source SHA')
+        if not (selection == 'pending' or selection.startswith(('pending:', 'fault:'))):
+            raise ValueError('Installed image selection is pending history or its original current/refusal control')
+        from actql_sdk import _local_product
+        original_resolver = _local_product.installed_local_components
+
+        def checked_components():
+            nonlocal image_identity
+            # Observe the actual existing resolver result before its factory
+            # constructs Core. Return that original, never cached/forged parts.
+            components = original_resolver()
+            assert components.source_sha == expected_source, 'Installed SDK/image source differs'
+            observed = {'sourceSha': components.source_sha, 'packageVersion': components.package_version,
+                'moduleSha256': components.module_sha256, 'imageSha256': components.image_sha256,
+                'imageBytes': components.image_bytes, 'engineRecipeSha256': components.engine_recipe_sha256,
+                'duckdbSha256': components.duckdb_sha256, 'duckdbVersion': components.duckdb_version}
+            if image_identity is None:
+                image_identity = observed
+            else:
+                assert observed == image_identity, 'Installed original cohort changed between owners'
+            return components
+
+        resolver = patch.object(_local_product, 'installed_local_components', checked_components)
+        raw = digest = None
+    else:
+        if len(sys.argv) not in (3, 4):
+            raise ValueError('Expected same-source Wasm, fresh scratch and optional selected history')
+        raw = Path(sys.argv[1]).read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        scratch = sys.argv[2]
+        selection = sys.argv[3] if len(sys.argv) == 4 else None
+    scratch = Path(scratch); scratch.mkdir(parents=True, exist_ok=True)
+    fault = selection[6:] if selection is not None and selection.startswith('fault:') else None
     assert fault is None or fault in FAULTS
-    persisted = len(sys.argv) == 4 and sys.argv[3].startswith('persisted:')
-    pending = len(sys.argv) == 4 and (sys.argv[3] == 'pending' or sys.argv[3].startswith('pending:'))
-    sizes = [0] if fault is not None else [1, 10, 100] if len(sys.argv) == 3 or sys.argv[3] == 'pending' else [
-        int(sys.argv[3][10:] if persisted else sys.argv[3][8:] if pending else sys.argv[3])]
+    persisted = selection is not None and selection.startswith('persisted:')
+    pending = selection is not None and (selection == 'pending' or selection.startswith('pending:'))
+    sizes = [0] if fault is not None else [1, 10, 100] if selection in (None, 'pending') else [
+        int(selection[10:] if persisted else selection[8:] if pending else selection)]
     assert fault is not None or all(size in (1, 10, 100) for size in sizes)
     observations = []
-    for size in sizes:
-        observed = await population(raw, digest, scratch, size, fault, persisted, pending)
-        if observations:
-            assert observed['steps'] == observations[0]['steps'], 'Target counters changed with unrelated history'
-        observations.append(observed)
-    print(json.dumps({'qualification': 'raw same-source component, no latency/normal/stop claim',
-        'wasmSha256': digest, 'histories': observations,
+    with resolver:
+        for size in sizes:
+            observed = await population(raw, digest, scratch, size, fault, persisted, pending, INSTALLED_IMAGE)
+            if observations:
+                assert observed['steps'] == observations[0]['steps'], 'Target counters changed with unrelated history'
+            observations.append(observed)
+    print(json.dumps({'qualification': 'installed image/real ordinary operation component; not raw fuel equivalence or normal/stop/latency acceptance'
+        if INSTALLED_IMAGE else 'raw same-source component, no latency/normal/stop claim',
+        'fuelMode': {'owner': 'ordinary Host operation' if INSTALLED_IMAGE else 'raw initial allowance',
+            'sourceDeclaredLimit': _NORMAL_HOST_OPERATION_FUEL, 'consumedFuel': 'unmeasured'},
+        'wasmSha256': image_identity['moduleSha256'] if INSTALLED_IMAGE else digest,
+        'installedCohort': image_identity, 'histories': observations,
         'unmeasured': ['Core internal parse/hash counts', 'latency', 'physical ACK/FD']}, sort_keys=True))
 
 
