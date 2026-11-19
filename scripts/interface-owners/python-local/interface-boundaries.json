@@ -87697,7 +87697,7 @@
           }
         }
       ],
-      "sha256": "a1f79a59f0cc620ab53ba524df81291606f5b9ad2640bcea50053aee388e870f",
+      "sha256": "a063ae90d3535f86956bed7224e653d1383ea477d00fb274c14adab17df4f327",
       "exports": [],
       "operations": [
         {
@@ -90127,7 +90127,7 @@
     },
     {
       "module": "src/client_host_wasm/sdk_start.mbt",
-      "sha256": "6bfa9b41dd3dc87b0d8a9261397dfc8619ae125a3fe970dbd54fcb29febf1c8a",
+      "sha256": "72f2609c79953c4ec2caa35b9ab8dc167df0be565d3193c76cbbf3cee2ee3f35",
       "exports": [],
       "operations": [
         {
@@ -90155,12 +90155,20 @@
           "declaration": "sdk_saved_original_snapshot ( value : Instance , run : Int , plan : @ local_run . LocalRunPlan , ) - > Result [ ( @ host . ClientSavedSubmissionSnapshot , StoredSDKOriginalRows , Int ) , Int , ]"
         },
         {
+          "name": "sdk_start_activation_current",
+          "declaration": "sdk_start_activation_current ( current : StoredRunConfiguration , plan : @ local_run . LocalRunPlan , ) - > Int"
+        },
+        {
           "name": "sdk_start_material_wire",
           "declaration": "sdk_start_material_wire ( value : Instance , material : StoredMaterial , record : StoredRun , plan : @ local_run . LocalRunPlan , ) - > Result [ String , Int ]"
         },
         {
           "name": "sdk_start_original_row",
           "declaration": "sdk_start_original_row ( value : Instance , run : Int , plan : @ local_run . LocalRunPlan , ) - > Result [ ( @ host . ClientJournalPhysicalRow , @ host . ClientRunJournalEncoding , String ? , String ? , Int , ) , Int , ]"
+        },
+        {
+          "name": "validate_live_sdk_started_run_current",
+          "declaration": "validate_live_sdk_started_run_current ( value : Instance , step_handle : Int , plan : @ local_run . LocalRunPlan , ) - > Int"
         },
         {
           "name": "validate_sdk_start_claim",
@@ -90187,7 +90195,9 @@
             "sdk_start_material_wire",
             "sdk_start_original_row",
             "validate_sdk_start_claim",
-            "validate_sdk_start_material"
+            "validate_sdk_start_material",
+            "sdk_start_activation_current",
+            "validate_live_sdk_started_run_current"
           ],
           "exports": [],
           "attributes": {

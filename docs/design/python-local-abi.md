@@ -4130,8 +4130,11 @@ reader or physical-stop proof.
 The existing Run may retain one result of its exact pure journal-row decoder and
 SDK structural validator. This is codec DATA under the same Run, not a saved
 inventory, current Account, publication grant or physical-start acknowledgement.
-Every task/start/material boundary still performs the original physical reads,
-complete inventory, current/authorization checks and cancellation inspection.
+Every task/start/material boundary still performs fresh physical reads and
+current/authorization checks, including cancellation inspection. Namespace
+admission, initial start confirmation, cold recovery and legacy lookup retain
+their complete inventories. An already confirmed live SDK continuation uses
+the narrower original-row boundary below; it does not claim an inventory audit.
 Reuse requires the same selected Run key, physical revision and complete row
 bytes. Changed, foreign or missing observations use the original full validation
 or refusal; a previous successful result never supplies a missing physical row.
@@ -4154,6 +4157,31 @@ success releases temporary scratch while retaining the immutable result's charge
 The original Run close refuses while its existing children remain and then
 settles this cell before returning the original input borrow. It does not
 acknowledge physical work, cancel a Run, clear a trap or reset fuel.
+
+### Live SDK continuation currentness
+
+Only the same live Instance/Run/Plan with its original physical-start claim may
+use the continuation boundary. It follows the already retained publication and
+submitted-row handles rather than searching unrelated in-instance materials.
+Every protected task selection and lifecycle step freshly reads the complete
+original Submission, Run and task-material rows through the original current
+Store ticket. The original Plan/preparation, task material, request/intent,
+publication binding, claim key, exact successor revision and complete claim body
+must still match. A cancelled, changed, foreign or missing target refuses; it
+never falls through to Append, preparation, another start or resend.
+
+Host/settings/epoch/Account and reader currentness remain checked around each
+physical transfer and before returning, with fresh Activation authorization.
+Their existing adoption scans are distinct from the unrelated Run/task/Effect/
+cancellation census. No previous successful current result becomes permission.
+The cold/restored branch continues through the original complete inventory path.
+
+This split adds no retained reference, cache, callback or reservation owner.
+Transient reference decoding remains inside the existing submission input and
+material allowance. The same Run's pure row decoder original still requires its
+existing charged reservation before construction or reuse, and remains subject
+to the original child-first cleanup. A failed or pending operation keeps its
+original cause and cleanup duty; refusal is not physical-stop acknowledgement.
 
 
 ### Fresh task-material validation
