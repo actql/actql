@@ -117,9 +117,9 @@ export function reviewedEsmModuleOptionEnd(list, start) {
 
 // Read the existing literal target clause as compiler-owned DATA. Neither
 // consumer evaluates its string expressions or uses them to hide dependencies.
-export function readPackageTargetOptions({take, peek}) {
+function readPackageTargetMap({take, peek}) {
   const symbol = value => take('symbol', value);
-  symbol('('); take('word', 'targets'); symbol(':'); symbol('{');
+  symbol('{');
   const targets = [];
   const files = new Set();
   while (!peek('}')) {
@@ -136,8 +136,47 @@ export function readPackageTargetOptions({take, peek}) {
     targets.push([file, expression]);
     if (!peek('}')) symbol(',');
   }
-  symbol('}'); if (peek(',')) symbol(','); symbol(')');
+  symbol('}');
   return targets;
+}
+
+export function readPackageTargetOptions({take, peek}) {
+  const symbol = value => take('symbol', value);
+  symbol('('); take('word', 'targets'); symbol(':');
+  const targets = readPackageTargetMap({take, peek});
+  if (peek(',')) symbol(','); symbol(')');
+  return targets;
+}
+
+// Compiler-input inventory has a distinct reviewed metadata purpose. Retain
+// Native stub DATA here without admitting it to the portable target-only
+// inspector/copier or evaluating any compiler/build option.
+export function readPackageCompilerInputOptions({take, peek}) {
+  const symbol = value => take('symbol', value);
+  symbol('(');
+  let targets = null, nativeStubs = null;
+  if (peek(')')) throw new Error('UnknownManifestOptions: empty options');
+  while (!peek(')')) {
+    if (peek('targets')) {
+      if (targets !== null) throw new Error('UnknownManifestOptions: duplicate targets');
+      take('word', 'targets'); symbol(':');
+      targets = readPackageTargetMap({take, peek});
+    } else if (peek('native-stub')) {
+      if (nativeStubs !== null) throw new Error('UnknownManifestOptions: duplicate native-stub');
+      take('string', 'native-stub'); symbol(':'); symbol('[');
+      nativeStubs = [];
+      while (!peek(']')) {
+        const file = take('string');
+        if (nativeStubs.includes(file)) throw new Error('UnknownManifestOptions: duplicate native stub');
+        nativeStubs.push(file);
+        if (!peek(']')) symbol(',');
+      }
+      symbol(']');
+    } else throw new Error('UnknownManifestOptions: unreviewed compiler input option');
+    if (!peek(')')) symbol(',');
+  }
+  symbol(')');
+  return {targets, nativeStubs};
 }
 
 function packageMetadata(source) {
