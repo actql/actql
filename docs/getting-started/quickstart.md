@@ -4,7 +4,8 @@ In ten minutes you will run a Program that reads accounts from Salesforce and
 usage data from Snowflake, asks an LLM which accounts are at risk of churning,
 stops for approval, and writes the answer back to Salesforce — all against
 mock systems, so nothing real is touched and no credentials are needed. You
-will do it from the CLI first, then from TypeScript and Python.
+will do it from the CLI first, then from TypeScript. The Python form below is
+target behavior, with its current API limitation noted separately.
 
 Install the CLI first ([Install](install.md)):
 
@@ -313,8 +314,13 @@ with nothing written.
 
 ## 6. The same from your application
 
-The CLI is one way to drive a Run. Your application can do the same with
-`@actql/node` or the `actql` Python package, with no server to run.
+The CLI is one way to drive a Run. The Node example below uses `@actql/node`
+inside your application, with no server to run. The Python target form is
+noted separately.
+
+Use a separate state directory for each embedded Host. The Node example uses
+`.actql-node`, while the CLI project uses `.actql`. These are independent Runs;
+the application handles its own Checkpoint before closing its Host.
 
 TypeScript:
 
@@ -322,7 +328,7 @@ TypeScript:
 import {readFile} from 'node:fs/promises';
 import {connect} from '@actql/node';
 
-const client = await connect({mode: 'local', installation: {directory: '.actql'}, profile: 'mock'});
+const client = await connect({mode: 'local', installation: {directory: '.actql-node'}, profile: 'mock'});
 try {
   const source = await readFile('churn-risk.aql', 'utf8');
   const execution = await client.startSource(source, {format: 'aql', stopBefore: 'commit'});
@@ -335,12 +341,17 @@ try {
 }
 ```
 
-Python:
+Python (target example):
+
+The current installed Local entry is `actql.open(state_dir=...)`; it does not
+expose the `connect(mode=..., installation=..., profile=...)` form shown below.
+This mock approval example is therefore target behavior, not a runnable
+current Python configuration.
 
 ```python
 import actql
 
-with actql.connect(mode="local", installation=".actql", profile="mock") as client:
+with actql.connect(mode="local", installation=".actql-python", profile="mock") as client:
     source = open("churn-risk.aql").read()
     execution = client.start_source(source, format="aql", stop_before="commit")
     state = execution.wait()
@@ -349,10 +360,11 @@ with actql.connect(mode="local", installation=".actql", profile="mock") as clien
     print(execution.wait().status)  # "succeeded"
 ```
 
-Each of these starts a new Run, with its own Checkpoint. The CLI, TypeScript
-and Python share one Run model and, pointed at the same `.actql` directory,
-the same Runs: a Run started from code can be inspected and approved from the
-CLI by its Run ID, and the other way round.
+Each example starts its own Run and Checkpoint. Local state has one owning
+Host at a time; choosing the same directory does not connect another process
+to that Host or convert its persistence format. A Run started from code and
+reviewed from the CLI remains a separate shared-Host interoperability goal;
+the examples above do not establish that handoff.
 
 ## Next
 
