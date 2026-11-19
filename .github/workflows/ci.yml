@@ -110,7 +110,11 @@ jobs:
       - name: Check owned contract versions
         run: npm run check:contract-versions
       - run: npm ci
+      - name: Identify reviewed documentation modifications before compiler admission
+        id: documentation-candidate
+        run: node scripts/ci-targets.mjs documentation-candidate
       - name: Type-check public SDK and Client wire declarations
+        if: steps.documentation-candidate.outputs.required != 'true'
         run: npm run check:client-types
       - name: Identify a regular Moon-only change before preparing graph tooling
         id: moon-candidate
@@ -186,14 +190,16 @@ jobs:
       - name: Check specification metadata without updating it
         run: npm run check:metadata
       - name: Install pinned MoonBit
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: |
           node scripts/setup-moonbit.mjs
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - run: moon fmt --check
+        if: needs.select-targets.outputs.profile != 'documentation'
       - name: Check public interfaces
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node scripts/check-moonbit-api.mjs
       - name: Verify admission checks did not change tracked files
         run: git diff --exit-code
@@ -212,132 +218,147 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-toolchain
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         with:
           python: 'true'
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        if: ${{ startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile == 'documentation' || startsWith(needs.select-targets.outputs.profile, 'draft') }}
         with:
           node-version: 22.22.0
           cache: npm
       - run: npm ci
-        if: ${{ startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile == 'documentation' || startsWith(needs.select-targets.outputs.profile, 'draft') }}
+      - name: Test document validation contracts
+        if: needs.select-targets.outputs.profile == 'documentation'
+        run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- scripts/document-validation.test.mjs
       - name: Test source-only Client wire contracts
-        if: ${{ needs.select-targets.outputs.profile == 'full' }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (needs.select-targets.outputs.profile == 'full') }}
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- packages/client-wire/cancel-identity.test.mjs packages/client-wire/submission-check-semantics.test.mjs
       - name: Test source-only INFER evaluation contracts
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- examples/infer-evaluation/evaluate.test.mjs examples/infer-evaluation/compare-source-instructions.test.mjs
       - name: Test original Source current control ownership
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/source-read-current-control.test.mjs
       - name: Test read-only worktree inventory fixtures
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/worktree-inventory.test.mjs
       - name: Test nonzero execution guards
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/test-execution.test.mjs
       - name: Test bounded local execution and optional hook adapters
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
       - name: Test environment guards
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs scripts/native-resident-phase-watchdog.test.mjs scripts/native-resident-function-diagnostic.test.mjs scripts/observation-ack-loss-proxy.test.mjs
       - name: Test preflight admission and latest-revision guard
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/ci-preflight.test.mjs
       - name: Test focused owning-family selection and zero-test guards
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/ci-focused-tests.test.mjs
       - name: Test conservative CI target selection
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
       - name: Test collection budget and required packed README selection
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test adapters/host-node/local-result-read-policy.test.mjs adapters/host-node/client-result-collection-policy.test.mjs adapters/host-node/request-memory-policy.test.mjs adapters/local-node/managed-advance-diagnostic.test.mjs scripts/packed-readme-ci.test.mjs scripts/packed-project-dependency-boundary.test.mjs scripts/packed-model-controls.test.mjs scripts/project-file-store-ledger-observation.test.mjs
       - name: Test original Model failure and workflow observation
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test adapters/host-node/infer-model-effect-control.test.mjs adapters/host-node/acquired-effect-unknown-primary.test.mjs adapters/host-node/mock-project-effect-public.test.mjs adapters/host-common/observation.test.mjs adapters/host-common/sqlite-transaction.test.mjs scripts/owner-fault-mutations.test.mjs
       - name: Test fast health monitor harness without Runtime build
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- scripts/health-monitor.test.mjs
       - name: Test connector Source profiles and independent request fixtures
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- adapters/connectors/gcs/test/gcs-file-listing.test.mjs adapters/connectors/gcs/test/gcs-prefix-profile.test.mjs adapters/connectors/gcs/test/gcs-site-profile-bounds.test.mjs adapters/connectors/snowflake/test/snowflake-key-pair.test.mjs adapters/connectors/snowflake/test/snowflake-public-fixture.test.mjs adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mjs adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs
       - name: Build Explorer component assets
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: npm run build --prefix packages/explorer
       - name: Test Explorer gateway and UI components
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- packages/explorer/*.test.mjs packages/explorer-ui/*.test.mjs
       - name: Test compiler-owned package selection and non-Moon input boundaries
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/ci-moon-test-plan.test.mjs
       - name: Test ordinary operation performance policy oracles
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: npm run test:operation-performance-policy
       - name: Test original Native Mock admission controls
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: >-
           node scripts/local-checks.mjs test node --timeout-seconds 120 --
           --test-name-pattern '^(same-call|Native Mock)'
           scripts/native-cli-interface-check.test.mjs
       - name: Test ordinary operation performance assessment
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: npm run test:operation-performance-collectors
       - name: Test ordinary process collector protocols
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: python3 -I -B scripts/benchmark-ordinary-processes.test.py
       - name: Test ordinary artifact reuse and controlled performance gate
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/ordinary-operation-packages.test.mjs scripts/packed-provider-ai-sdk.test.mjs
       - name: Test Client CI partition and aggregate requirements
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/client-ci.test.mjs scripts/native-cli-project-init.test.mjs scripts/native-cli-project-scaffold.test.mjs scripts/native-cli-linux-local-ci.test.mjs scripts/produce-native-cli-linux-local.test.mjs scripts/native-cli-source-free-install.test.mjs scripts/release-test-registry.test.mjs scripts/native-cli-linux-local-recipe.test.mjs scripts/ci-native-cli-installed.test.mjs scripts/native-cli-mock-scenario.test.mjs
       - name: Test plain-init Native numeric result and refusal oracles
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/native-cli-default-numeric.test.mjs
       - name: Test explicit release policy and publication refusal
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-review.test.mjs scripts/release-promotion-review.test.mjs scripts/release-registry.test.mjs scripts/release-stage.test.mjs scripts/release-native-registry.test.mjs scripts/release-native-publish.test.mjs scripts/release-native-latest.test.mjs scripts/release-public-install.test.mjs scripts/release-python-install.test.mjs scripts/release-python-publish.test.mjs scripts/release-python-cold-verifier.test.mjs scripts/release-native-install.test.mjs scripts/release-lanes.test.mjs scripts/release-fixed-source.test.mjs scripts/native-standalone-release.test.mjs scripts/native-cli-version.test.mjs scripts/installed-interface-correspondence.test.mjs
       - name: Test release candidate assembly and public consumer controls
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/node-directory-native-inputs.test.mjs scripts/produce-native-cli-darwin-local.test.mjs scripts/test-package-release-readme.test.mjs scripts/test-native-cli-public-install.test.mjs scripts/release-candidate-ci.test.mjs
       - name: Test cross-host Python release preparation without runtime loading
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: |
           python3 -m pip install --disable-pip-version-check -e ./packages/python-sdk
           python3 -B packages/python-sdk/tests/run.py --pattern test_release_packaging_target.py
       - name: Test lightweight cross-language Checkpoint candidates
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node scripts/local-checks.mjs test node -- scripts/checkpoint-answer-construction.test.mjs
       - name: Check the Python source-caller CI selection
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node scripts/local-checks.mjs test node -- scripts/python-client-ci.test.mjs
       - name: Install the pinned Python row-schema dependency
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: python3 -m pip install --disable-pip-version-check pydantic==2.12.5
       - name: Test reviewed Python SDK and Local-source callers
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node scripts/check-python-client.mjs --source-only
       - name: Test normal Python wheel acceptance harness guards
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: python3 -B scripts/test_ci_python_wheels.py
       - name: Test bounded compiler crash metadata privacy controls
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: python3 -B scripts/test_native_compiler_diagnostics.py
       - name: Test Native preparation originals and bounded compiler orchestration
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-preparation-resources.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs scripts/native-http-phases.test.mjs
       - name: Test CI lane coverage and bounded Native phase measurement
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/ci-balanced-lanes.test.mjs scripts/packed-public-query-parts.test.mjs scripts/ci-session-lanes.test.mjs scripts/ci-native-lanes.test.mjs scripts/ci-native-background-groups.test.mjs scripts/native-core-measured-tests.test.mjs
       - name: Test read-only CI evidence reporting
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/ci-evidence.test.mjs
       - name: Test portable dependency inspection and injected violations
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/portable-core.test.mjs
       - name: Test dependency isolation scratch ownership
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/dependency-isolation-scratch.test.mjs
       # Source-only process/filesystem checks need no Client package or runtime.
       - name: Test owned scratch without Client runtime preparation
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/owned-scratch.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node scripts/check-node-without-duckdb.mjs
   focused-tests:
     needs: [select-targets]
@@ -1696,7 +1717,7 @@ jobs:
   # Require the existing push-only monitor result; its timing warnings remain nonblocking.
   health-quick:
     needs: [select-targets, client-packages]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && needs.select-targets.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && needs.select-targets.result == 'success' && needs.select-targets.outputs.profile != 'documentation' && github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     uses: ./.github/workflows/health-monitor.yml
     permissions:
       contents: read
@@ -1707,7 +1728,7 @@ jobs:
       package-artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
   # Reuse the normal producer; this small trend lane is not the release matrix.
   main-performance:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs['select-targets'].outputs.profile == 'full')) }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && ((github.event_name == 'push' && github.ref == 'refs/heads/main' && needs['select-targets'].outputs.profile != 'documentation') || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && needs['select-targets'].outputs.profile == 'full')) }}
     needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -3099,23 +3120,26 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
-      - if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+      - if: ${{ needs.select-targets.outputs.profile != 'documentation' && !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
       - run: npm ci
       - name: Install pinned MoonBit
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: |
           node scripts/setup-moonbit.mjs
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - run: npm run check:spec-after-preflight
-        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-      - name: Check document links during Draft preparation
-        if: ${{ startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+      - name: Check document links during lightweight preparation
+        if: ${{ needs.select-targets.outputs.profile == 'documentation' || startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: npm run check:links
+      - name: Validate authored document examples without a runtime build
+        if: needs.select-targets.outputs.profile == 'documentation'
+        run: npm run check:examples
       - name: Check strict Local resource boundary evidence
         run: npm run check:local-resource-completion
       - name: Check independently pinned execution authorization vectors

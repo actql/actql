@@ -50,8 +50,10 @@ Open that file directly if the client does not discover repository skills.
   or FFI changes need an explicitly selected matching-target diagnostic.
 - Do not default to full Core, all-target, proof, packed acceptance or performance
   suites. Public-repository PRs run applicable hosted checks; main pushes retain
-  full integration verification. Local and PR review establish only the checks
-  actually executed. Draft checks are preparation only and never establish merge
+  full runtime integration verification except for exact reviewed prose-only
+  modifications, which retain the required document/source checks. Local and PR
+  review establish only the checks actually executed. Draft checks are
+  preparation only and never establish merge
   or release evidence.
 - Use the existing bounded/nonzero-test wrappers. Preserve incremental `_build`;
   do not edit, merge or switch a worktree while its gate runs, or run competing

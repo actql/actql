@@ -131,11 +131,21 @@ historical product failure's cause.
 
 ## Change-scoped PR verification
 
-Main integration retains all runtime families. Ready PRs may use the existing
-maintenance/focused profiles or a compiler-owned Moon test plan; a failed or
-unavailable diff never authorizes omission.
+Main runtime integration retains all runtime families. Ready PRs and main pushes that
+only modify the exact reviewed prose files use the `documentation` profile:
+owned-version, metadata, document-validation, link, example and current-revision
+checks remain, with no Moon toolchain, Core, Native, wheel or normal-package
+build. The existing required preflight, lint, spec and final check still execute.
+Root npm dependencies are still installed; this is not a zero-cost workflow.
+The exact Git endpoints must identify existing regular-file modifications.
+README/Quickstart, normative specs, generated references, unclassified files and
+mixed changes retain their existing coverage. Manual and scheduled runs do not
+use this exception. A failed or unavailable diff never authorizes omission.
 
-- Reviewed modifications to contribution/CI prose and the standalone performance
+Ready PRs may also use the existing maintenance/focused profiles or a
+compiler-owned Moon test plan.
+
+- Reviewed modifications to maintenance tooling and the standalone performance
   report assessor retain lint and spec, including their actual synthetic tests,
   without starting unrelated product, Native, wheel or proof producers. New,
   deleted, renamed, executable or aliased files stay full. The list is explicit
