@@ -112,9 +112,12 @@ export function projectInitialAdoptionArguments(project, hostConfiguration) {
     '--state-dir', project.stateDirectory, 'adopt', '--initialize-signing']);
 }
 
-// Parse only the public project-creation spelling. Runtime, approval and Host
-// suppliers remain fixed by the installed Native package, never by options.
+// Parse the public project-creation spelling and its help alias. Runtime,
+// approval and Host suppliers remain fixed by the installed Native package.
 export function projectInitArguments(args) {
+  if (args.length === 2 && args[0] === 'help' && args[1] === 'init') {
+    return Object.freeze({help: true});
+  }
   if (args[0] !== 'init') return undefined;
   if (args.length === 2 && ['--help', '-h'].includes(args[1])) {
     return Object.freeze({help: true});
