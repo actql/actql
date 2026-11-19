@@ -494,7 +494,7 @@ test "Values normalization control bound excludes rows and keeps non-Values cons
       let row_wire = "{\"id\":1},".repeat(rows)
       let body = row_wire[:row_wire.length() - 1].to_owned()
       let filtered = if filtering {
-        ",{\"from\":\"seed\",\"where\":\"id >= 0\",\"as\":\"filtered\"}"
+        ",{\"from\":\"seed\",\"filter\":\"id >= 0\",\"as\":\"filtered\"}"
       } else {
         ""
       }
