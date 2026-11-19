@@ -306,6 +306,20 @@ pub fn Database::reserve_capacity_in_transaction(
 }
 
 ///|
+pub fn Database::grow_key_capacity_in_transaction(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _previous : NativeCapacityUsage,
+  _bytes : Int64,
+  _objects : Int64,
+  _max_bytes : Int64,
+  _max_objects : Int64,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::release_capacity(
   _self : Database,
   _scope : String,

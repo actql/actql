@@ -229,7 +229,7 @@ pub fn NativeClientMockModelWork::commit_settlement_in_original_read(
               return Err(CustodyLost)
             }
             match
-              grow_client_journal_capacity(
+              grow_client_journal_key_capacity(
                 host.database,
                 "client_model_call_originals",
                 saved.scope_cid,

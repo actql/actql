@@ -3650,3 +3650,23 @@ Cleanup settles publication children before retiring their saved review aliases,
 then closes file children and Store/Roots/routing before the original entry
 acknowledges its C context, settles its token and closes the execution. Neither
 an exited process nor an empty pending flag substitutes for those acknowledgments.
+
+### Retained Model and keyed lookup capacity domains
+
+Model entry/settlement accounting is keyed by the original invocation scope;
+keyed lookup activation/page accounting is keyed by the original Run definition
+and batch plan. Their existing snapshot-byte bound and finite `2N`/`N` object
+counts apply to that same scope, not to all retained Runs in the namespace.
+Each next row grows the exact previous counters using indexed key CAS in the
+same Journal transaction as its business row. An absent nonzero original, stale
+counter, duplicate entry or exceeded bound refuses without reconstruction.
+Unequal successive bodies add their actual encoded lengths; equal lengths do
+not turn a second batch into an idempotent reservation acknowledgement.
+
+These durable accounting rows follow the existing history retention lifetime.
+They are not released as temporary RAM cleanup or consumed-work refunds. The
+namespace-sum reservation primitive remains unchanged for its other owners;
+Store storage bounds and cumulative retained-intent admission remain separate.
+No namespace history scan, dynamically enlarged ceiling or history deletion is
+part of admitting a new protocol scope. Failed mutation leaves commit/rollback
+and any unconfirmed outcome with the same original transaction Owner.

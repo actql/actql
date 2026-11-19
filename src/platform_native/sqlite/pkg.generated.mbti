@@ -38,6 +38,7 @@ pub fn Database::current_component_matches_heap(Self, Int64) -> Bool
 pub fn Database::database_usage(Self) -> Result[NativeDatabaseUsage, NativeSqliteIssue]
 pub fn Database::diagnostic_ceiling(Self) -> Int?
 pub fn Database::fence_transactions(Self) -> Unit
+pub fn Database::grow_key_capacity_in_transaction(Self, String, String, NativeCapacityUsage, Int64, Int64, Int64, Int64) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::insert_original_store_cleanup(Self, NativeStoreOperationOriginal, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::insert_with_body_extent(Self, String, String, Bytes, Int64) -> Result[Int64, NativeSqliteIssue]

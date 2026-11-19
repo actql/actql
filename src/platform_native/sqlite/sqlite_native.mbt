@@ -511,6 +511,22 @@ extern "C" fn database_reserve_capacity_ffi(
 
 ///|
 #borrow(database, scope, key)
+extern "C" fn database_grow_key_capacity_in_transaction_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+  previous_bytes : Int64,
+  previous_objects : Int64,
+  bytes : Int64,
+  objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+) -> Int = "actql_native_sqlite_database_grow_key_capacity_in_transaction"
+
+///|
+#borrow(database, scope, key)
 extern "C" fn database_release_capacity_ffi(
   database : Database,
   scope : Bytes,
@@ -1564,6 +1580,55 @@ pub fn Database::reserve_capacity_in_transaction(
   self.reserve_capacity_transaction(
     scope, key, reserved_bytes, reserved_objects, max_bytes, max_objects, true,
   )
+}
+
+///|
+/// Grow only the exact original key in the caller's active transaction. Bounds
+/// apply to this protocol scope, never to the namespace's retained history.
+/// A stale or absent nonzero original refuses; no accounting row is released.
+/// The caller owns commit/rollback and any unconfirmed transaction outcome.
+pub fn Database::grow_key_capacity_in_transaction(
+  self : Database,
+  scope : String,
+  key : String,
+  previous : NativeCapacityUsage,
+  bytes : Int64,
+  objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+) -> Result[Unit, NativeSqliteIssue] {
+  self.with_original_store_sql(false, fn() {
+    let scope_bytes = @utf8.encode(scope)
+    let key_bytes = @utf8.encode(key)
+    if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+      return Err(InvalidName)
+    }
+    if previous.reserved_bytes < 0L ||
+      previous.reserved_objects < 0L ||
+      bytes <= 0L ||
+      objects <= 0L ||
+      max_bytes < 0L ||
+      max_objects < 0L {
+      return Err(InvalidLimit)
+    }
+    match
+      database_grow_key_capacity_in_transaction_ffi(
+        self,
+        scope_bytes,
+        scope_bytes.length(),
+        key_bytes,
+        key_bytes.length(),
+        previous.reserved_bytes,
+        previous.reserved_objects,
+        bytes,
+        objects,
+        max_bytes,
+        max_objects,
+      ) {
+      0 => Ok(())
+      code => Err(operation_issue(self, code))
+    }
+  })
 }
 
 ///|

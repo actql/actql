@@ -42,6 +42,7 @@ priv struct NativeClientJournalOperationAccess {
     @sqlite.NativeSqliteIssue,
   ]
   grow_capacity : (
+    Bool,
     String,
     String,
     @sqlite.NativeCapacityUsage,
@@ -106,7 +107,9 @@ fn grow_journal_capacity_in_transaction(
 }
 
 ///|
-fn grow_client_journal_capacity(
+// Per-Run Model invocation or keyed batch-plan accounting, retained for the
+// same history lifetime. This does not release physical memory or grant work.
+fn grow_client_journal_key_capacity(
   database : @sqlite.Database,
   table_name : String,
   key : String,
@@ -119,12 +122,12 @@ fn grow_client_journal_capacity(
 ) -> Result[Unit, @sqlite.NativeSqliteIssue] {
   match access {
     None =>
-      grow_journal_capacity_in_transaction(
-        database, table_name, key, previous, bytes, objects, max_bytes, max_objects,
+      database.grow_key_capacity_in_transaction(
+        table_name, key, previous, bytes, objects, max_bytes, max_objects,
       )
     Some(original) if physical_equal(database, original.reads.database) =>
       (original.grow_capacity)(
-        table_name, key, previous, bytes, objects, max_bytes, max_objects,
+        true, table_name, key, previous, bytes, objects, max_bytes, max_objects,
       )
     _ => Err(@sqlite.Collision)
   }
