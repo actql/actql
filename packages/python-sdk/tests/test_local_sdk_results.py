@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -16,6 +17,26 @@ from local_abi_declaration_fixture import original_byte_fixture_port
 
 
 class SDKResultAssemblyTests(unittest.TestCase):
+    def test_execution_constructor_association_moves_original_arrays_and_publication(self):
+        with TemporaryDirectory(prefix='actql-execution-association-') as directory:
+            host, _, compute, preflight, publisher, _, _ = self.host(Path(directory))
+            # Explicit physical-invocation lookup port only. Real task/export
+            # constructors and their original scalar Core loans execute below;
+            # no new Run/current/physical-worker proof comes from this record.
+            original = SimpleNamespace(run=compute.start.run, tasks=None, results=None,
+                                       publication=None, input_cleanup=lambda: True)
+            owned = []
+            with patch.object(host, '_current_execution', return_value=original), \
+                    patch.object(host, '_execution_for_run', return_value=original):
+                results = host._execute_original_tasks(compute, preflight, publisher, retained_tasks=owned)
+                publication = host._capture_original_results(compute, preflight, results)
+            self.assertIs(original.tasks, owned)
+            self.assertEqual(len(owned), 2)
+            self.assertTrue(all(left is right for left, right in zip(original.results, results)))
+            self.assertIs(original.publication, publication)
+            self.assertIs(host._publications[-1], publication)
+            self.assertTrue(host.close())
+
     def host(self, path):
         host, core, compute, _, _ = preflight_fixture.SDKPreflightAssemblyTests().host(path)
         self.addCleanup(host.close)

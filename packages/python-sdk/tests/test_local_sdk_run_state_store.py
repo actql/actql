@@ -4,15 +4,19 @@ No actual Wasm, physical payload availability, installed Host or wheel result.
 The portable Owner cases separately validate state/key/counter semantics.
 """
 from contextlib import nullcontext
+import asyncio
+import copy
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
+from threading import Event
 import unittest
 from unittest.mock import patch
 
-from actql_sdk._local_core import LocalCoreError
-from actql_sdk._local_product import InstalledLocalHost
+from actql_sdk._local_core import LocalCoreError, _Task, _ResultExport
+from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending, _OriginalExecution
+from actql_sdk._local_work import OriginalLocalWork
 from actql_sdk._local_storage import LocalStorageCommitUnknown
 from actql_sdk._values import wire_bytes
 import test_local_public_run_observation as fixture
@@ -23,6 +27,273 @@ SAVED_STATE = b'{"opaque":"same original Core saved state","revision":0}'
 
 
 class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
+    def selected_execution(self, host, run):
+        # The public fixture admitted one original work but supplies its Core
+        # publication separately. Associate that exact scalar-port original;
+        # this does not claim execution of the installed Core/physical driver.
+        original = host._execution_for_run(run)
+        self.assertIsNotNone(original)
+        original.publication = host._commit_projections[0]._publication
+        return original
+
+    async def test_retirement_waits_for_real_thread_exit_after_future_completion(self):
+        done, release = Event(), Event()
+        initialize = OriginalLocalWork.__init__
+        def init(work, *args, **kwargs):
+            initialize(work, *args, **kwargs)
+            complete = work._future.set_result
+            def complete_before_exit(value):
+                complete(value)
+                done.set()
+                if not release.wait(3):
+                    raise AssertionError('Bounded original worker fixture was not released')
+            work._future.set_result = complete_before_exit
+        with TemporaryDirectory() as directory:
+            with patch.object(OriginalLocalWork, '__init__', init):
+                host, core, client, run, store, key, calls, _, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            work = next(work for work in host._physical_work if work._invoke is original)
+            try:
+                self.assertTrue(done.wait(1))
+                self.assertTrue(work._future.done())
+                self.assertTrue(work._thread.is_alive())
+                self.assertFalse(work.stopped)
+                observe(lambda _: None)
+                self.assertIn(original.reference, host._public_run_references)
+                self.assertIs(host._run_state_custody[run.handle], original.state)
+                self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            finally:
+                release.set()
+                await asyncio.wait_for(work.wait_stopped(), 2)
+            observe(lambda _: None)
+            self.assertNotIn(original.reference, host._public_run_references)
+            self.assertNotIn(work, host._physical_work)
+            self.assertNotIn(original.publication, host._publications)
+            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('confirm_sdk_run_state'), 2)
+            self.assertEqual(store.read(key).payload, SAVED_STATE)
+            await client.aclose()
+
+    async def test_retirement_worker_input_is_bound_before_original_driver_handoff(self):
+        copied = []
+        invoke = _OriginalExecution.__call__
+        def entered(original):
+            host = original.host
+            with host._core._lock:
+                self.assertIs(host._current_execution(), original)
+                source = host._copy(b'original-worker-input')
+                self.assertIs(host._core._inputs[source.ticket].cleanup.__self__, original)
+                copied.append(source)
+            invoke(original)
+        with TemporaryDirectory() as directory:
+            with patch.object(_OriginalExecution, '__call__', entered):
+                host, core, client, run, _, _, _, _, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            work = host._physical_work[0]
+            await asyncio.wait_for(work.wait_stopped(), 2)
+            self.assertIsNone(work._future.exception())
+            self.assertEqual(len(copied), 1)
+            self.assertIs(core._loans[copied[0].ticket], copied[0])
+            observe(lambda _: None)
+            self.assertNotIn(copied[0].ticket, core._loans)
+            self.assertNotIn(copied[0], host._inputs)
+            self.assertNotIn(work, host._physical_work)
+            await client.aclose()
+
+    async def test_retirement_keeps_one_confirmation_and_active_original_reader(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, store, key, calls, _, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            work = next(work for work in host._physical_work if work._invoke is original)
+            await asyncio.wait_for(work.wait_stopped(), 2)
+            publication = original.publication
+            # Explicit existing delivery pin port: neither poll may close it.
+            delivery = SimpleNamespace(_active=False, _payload_reader_borrows={7: object()}, close=lambda: True)
+            host._sdk_deliveries[publication.ticket] = delivery
+            observe(lambda _: None)
+            held, output = original.state, original.state.output
+            saved = store.read(key)
+            observe(lambda _: None)
+            self.assertIs(original.state, held)
+            self.assertIs(held.output, output)
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('confirm_sdk_run_state'), 2)
+            self.assertEqual(store.read(key), saved)
+            self.assertIn(original.reference, host._public_run_references)
+            delivery._payload_reader_borrows.clear()
+            observe(lambda _: None)
+            self.assertNotIn(publication, host._publications)
+            self.assertNotIn(work, host._physical_work)
+            self.assertFalse(host._run_state_custody)
+            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            await client.aclose()
+
+    async def test_retirement_current_refusal_keeps_same_output_and_live_route(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, _, _, calls, codes, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            await asyncio.wait_for(host._physical_work[0].wait_stopped(), 2)
+            codes['confirm_sdk_run_state'] = -35
+            with self.assertRaises(LocalCoreError):
+                observe(lambda _: self.fail('Refused confirmation escaped'))
+            held = original.state
+            self.assertFalse(held.metadata_confirmed)
+            self.assertIs(core._loans[held.output.ticket], held.output)
+            self.assertIn(original.reference, host._public_run_references)
+            del codes['confirm_sdk_run_state']
+            observe(lambda _: None)
+            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertNotIn(original.reference, host._public_run_references)
+            await client.aclose()
+
+    async def test_retirement_does_not_erase_original_failed_worker_for_saved_state(self):
+        with TemporaryDirectory() as directory:
+            primary = RuntimeError('original physical invocation failure')
+            with patch.object(_OriginalExecution, '__call__', side_effect=primary):
+                host, core, client, run, _, _, _, _, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            work = host._physical_work[0]
+            await asyncio.wait_for(work.wait_stopped(), 2)
+            self.assertIs(work._future.exception(), primary)
+            # This explicit Core port still returns its ordinary state bytes.
+            # They cannot erase a separately retained physical failure.
+            observe(lambda _: None)
+            self.assertIn(original.reference, host._public_run_references)
+            self.assertIn(work, host._physical_work)
+            self.assertIs(core._loans[original.state.output.ticket], original.state.output)
+            self.assertIs(work._future.exception(), primary)
+            await client.aclose()
+
+    async def test_retirement_close_refusal_keeps_same_owner_and_saved_fallback(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, _, _, _, _, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            work = host._physical_work[0]
+            await asyncio.wait_for(work.wait_stopped(), 2)
+            publication = original.publication
+            reference = json.loads(core._inputs[original.reference.source.ticket].payload)
+            previous = core._call
+            def refuse(family, name, *args):
+                if (family, name) == ('publication', 'close'):
+                    return -9
+                return previous(family, name, *args)
+            with patch.object(core, '_call', side_effect=refuse):
+                with self.assertRaises(LocalProductCleanupPending) as failed:
+                    observe(lambda _: None)
+            self.assertIs(work._cleanup_error, failed.exception)
+            self.assertIs(original.publication, publication)
+            self.assertIn(publication, host._publications)
+            self.assertIn(work, host._physical_work)
+            self.assertNotIn(original.reference, host._public_run_references)
+            with patch.object(host, '_read_original_reference', return_value=wire_bytes(fixture.STATE)) as saved:
+                state = await client._request('status', {'ref': reference})
+                self.assertEqual(state['status'], 'succeeded')
+                saved.assert_called_once_with(reference, kind=7)
+            self.assertTrue(host._retire_original_execution(original))
+            self.assertNotIn(work, host._physical_work)
+            self.assertNotIn(publication, host._publications)
+            self.assertIs(work._cleanup_error, failed.exception)
+            await client.aclose()
+            self.assertTrue(core._closed)
+            self.assertFalse(host._physical_work)
+
+    async def test_retirement_closes_only_construction_associated_inputs(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, _, _, _, _, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            await asyncio.wait_for(host._physical_work[0].wait_stopped(), 2)
+            first = host._copy(b'owned-before', execution=original)
+            unrelated = host._copy(b'independent-original')
+            last = host._copy(b'owned-after', execution=original)
+            self.assertIs(core._inputs[first.ticket].cleanup.__self__, original)
+            before = len(host._inputs)
+            with self.assertRaises(ValueError):
+                host._copy(b'foreign-copy', execution=copy.copy(original))
+            self.assertEqual(len(host._inputs), before)
+            observe(lambda _: None)
+            self.assertNotIn(first, host._inputs)
+            self.assertNotIn(last, host._inputs)
+            self.assertNotIn(first.ticket, core._loans)
+            self.assertNotIn(last.ticket, core._loans)
+            self.assertIn(unrelated, host._inputs)
+            self.assertIs(core._loans[unrelated.ticket], unrelated)
+            self.assertEqual(core._inputs[unrelated.ticket].payload, b'independent-original')
+            self.assertIn(run, host._run_loans)  # Not full historical Host closure.
+            with self.assertRaises(ValueError):
+                host._retire_original_execution(original)
+            await client.aclose()
+
+    async def test_retirement_throw_keeps_original_output_and_retry_does_not_reconfirm(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, _, _, calls, _, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            work = host._physical_work[0]
+            await asyncio.wait_for(work.wait_stopped(), 2)
+            failure = LocalCoreError('close_publication_commit_export', -33)
+            with patch.object(core, 'close_publication_commit_export', side_effect=failure):
+                with self.assertRaises(LocalCoreError) as failed:
+                    observe(lambda _: None)
+            self.assertIs(failed.exception, failure)
+            held = original.state
+            self.assertIs(host._run_state_custody[run.handle], held)
+            self.assertIs(core._loans[held.output.ticket], held.output)
+            self.assertIs(work._cleanup_error, failure)
+            self.assertNotIn(original.reference, host._public_run_references)
+            self.assertTrue(host._retire_original_execution(original))
+            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('confirm_sdk_run_state'), 1)
+            self.assertIs(work._cleanup_error, failure)
+            await client.aclose()
+
+    async def test_retirement_export_ack_precedes_task_and_pending_task_retries_same_original(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, _, _, _, _, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            work = host._physical_work[0]
+            await asyncio.wait_for(work.wait_stopped(), 2)
+            # Explicit scalar Core cleanup originals, not real Task admission,
+            # execution or physical ACK. The actual imported close adapters,
+            # nominal maps and Host reverse-retirement caller execute below.
+            task = _Task(core._identity, 9900101)
+            result = _ResultExport(core._identity, 9900102)
+            core._task_loans[task.handle] = task
+            core._result_loans[result.handle] = result
+            host._tasks.append(task)
+            host._result_exports.append(result)
+            original.tasks, original.results = [task], [result]
+            previous = core._call
+            pending = [True]
+            returned = []
+            def port(family, name, *args):
+                if (family, name) == ('result', 'close'):
+                    self.assertEqual(args, (result.handle,))
+                    returned.append(result)
+                    return 0
+                if (family, name) == ('task', 'progress'):
+                    self.assertEqual(args, (task.handle, 5))
+                    return -1
+                if (family, name) == ('task', 'close'):
+                    self.assertEqual(args, (task.handle,))
+                    self.assertNotIn(result.handle, core._result_loans)
+                    returned.append(task)
+                    return -9 if pending[0] else 0
+                return previous(family, name, *args)
+            core._call = original_byte_fixture_port(port)
+            with self.assertRaises(LocalProductCleanupPending):
+                observe(lambda _: None)
+            self.assertEqual(returned, [result, task])
+            self.assertFalse(original.results)
+            self.assertEqual(original.tasks, [task])
+            self.assertIs(core._task_loans[task.handle], task)
+            self.assertIn(work, host._physical_work)
+            pending[0] = False
+            self.assertTrue(host._retire_original_execution(original))
+            self.assertEqual(returned, [result, task, task])
+            self.assertNotIn(task.handle, core._task_loans)
+            self.assertNotIn(work, host._physical_work)
+            await client.aclose()
+
     async def test_confirmed_response_guard_and_transfer_share_original_read_frame(self):
         with TemporaryDirectory() as directory:
             host, core, client, run, store, key, calls, _, observe = await self.bridge(directory)

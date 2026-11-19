@@ -4314,3 +4314,50 @@ history scans and full resource retirement are separate; this is not an overall
 Host constant-time or memory-retirement claim. The logical growing vector and
 bounded request bytes are unchanged; binary loop/call controls use existing
 fixed Host overhead, without a larger policy or another reservation.
+
+## Successful execution-child retirement
+
+One fixed slotted invoke callable replaces the existing partial/bound-method
+envelope on the same `OriginalLocalWork`. It retains the original Run, existing
+task and Result lists, Compute, preflight, publisher, publication and one
+existing Run-state custody record. No array is copied and no new Run state,
+permission, Ledger or handle domain is issued. Constructors retain each
+original before their post-current or other fallible handoff. Fixed callable
+fields and call frames use the existing trusted Host control overhead;
+variable input and output bodies retain their actual original reservations.
+
+Immutable input copies created by that physical worker, or selected explicitly
+by the existing same-Run public reader, bind the callable in their existing
+cleanup callback at construction. This association selects only original
+in-memory transport for later return; it supplies no physical worker stop or
+current permission. Unrelated inputs are not selected by ticket order or a
+history interval. Result readers and response Buffers keep their existing
+independent ownership.
+
+Retirement requires actual original Thread termination, returned Host operation
+custody, no retained invocation/exit/cleanup failure, and the existing Core
+confirmation of that same Run's SDK saved-state update. Future completion,
+COMMIT, a Python success flag or a caller's cancellation is insufficient. The
+same nominal Run-state output remains charged while Thread stop or a Result
+reader is pending. Repeated ordinary observations reuse that output and perform
+one original confirmation per observation; they do not prepare another update
+or retry its Store write. Actual current/refusal/Unknown leaves the live route
+and existing children retained.
+
+After the original current/Store frame has returned and no selected reader is
+active, remove only the original live-reference routing alias. Later public
+operations use the existing independent Saved readers, never a manufactured
+restoration entry or cached read grant. Existing Core close decisions then
+retire the same state output, publication/read children, Result exports, tasks,
+publisher/preflight/invocation and Compute. Only acknowledged originals leave
+their existing inventories. Task cleanup advances only its existing bounded
+continuation, and a pending or thrown return retains the same callable and
+remaining loans for cleanup-only retry. It does not restore the live route,
+replace the initiating failure, refresh consumed work, join a Thread while
+holding a lock, or infer physical ACK from an absent child.
+
+This closes an execution-child set, not every historical Host parent. Original
+Run/preparation/admission/start/row materials and copies outside that recorded
+construction set retain their existing owners until their own close. Fully
+bounded long-lived Host history and ordinary physical acceptance require
+separate evidence; successful child cleanup alone establishes neither.

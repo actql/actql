@@ -6,11 +6,11 @@ No bootstrap/profile/epoch result is an admission or execution permission.
 """
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Iterable as _Iterable
 from contextlib import ExitStack, asynccontextmanager, nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from functools import partial
+from threading import current_thread as _current_thread
 import asyncio
 import hashlib
 import os
@@ -137,6 +137,35 @@ class _RunStateCustody:
     write_attempted: bool = False
     first_failure: BaseException | None = None
     metadata_confirmed: bool = False
+
+
+@dataclass(slots=True, eq=False)
+class _OriginalExecution:
+    """Fixed invoke custody; every decision remains with the original Core.
+
+    Replace the former partial/bound-method envelope, not its physical worker.
+    Lists and the confirmed output are existing originals, never copies or
+    success/permission caches. Fixed fields use the trusted Host overhead.
+    """
+    host: 'InstalledLocalHost'
+    run: _Run
+    reference: _OriginalRunReference
+    compute: _SourceFreeCompute | None = None
+    preflight: _Output | None = None
+    publisher: _Output | None = None
+    tasks: list[_Task] | None = None
+    results: list[_ResultExport] | None = None
+    publication: _Output | None = None
+    state: _RunStateCustody | None = None
+
+    def __call__(self) -> None:
+        self.host._execute_original_admitted_run(self.run)
+
+    def input_cleanup(self) -> bool:
+        # Only immutable in-memory input transport, exactly as the former
+        # lambda: True. Buffer borrowers still own actual stop/return checks.
+        # The bound receiver records construction association, not authority.
+        return True
 
 
 class LocalProductCleanupPending(RuntimeError):
@@ -476,8 +505,8 @@ class InstalledLocalHost:
                         raise ValueError('Invalid original Local Submission response')
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
                     if run is not None:
-                        self._register_original_run_reference(run, admission)
-                        work = OriginalLocalWork(partial(self._execute_original_admitted_run, run),
+                        reference = self._register_original_run_reference(run, admission)
+                        work = OriginalLocalWork(_OriginalExecution(self, run, reference),
                             on_exit=self._core._finish_work_operation, owner=run)
                 else:
                     raise ValueError('Invalid original Local Submission action')
@@ -548,7 +577,7 @@ class InstalledLocalHost:
             stream._attached = True
             return response
 
-    def _register_original_run_reference(self, run: _Run, admission: bytes) -> None:
+    def _register_original_run_reference(self, run: _Run, admission: bytes) -> _OriginalRunReference:
         """Hold only a Core-issued reference for routing to its nominal Run loan."""
         with self._core._lock:
             self._runs._run(run)
@@ -567,7 +596,7 @@ class InstalledLocalHost:
                 if original.run is run:
                     if held != raw:
                         raise ValueError('Original Local Run reference changed')
-                    return
+                    return original
                 if held == raw:
                     raise ValueError('Ambiguous original Local Run reference')
                 if held > raw and position == len(self._public_run_references):
@@ -575,7 +604,9 @@ class InstalledLocalHost:
             # This is the existing vector and original accounted input, not a
             # parallel Map/key copy. Registration and cleanup retain all loans;
             # only this routing vector's internal order changes.
-            self._public_run_references.insert(position, _OriginalRunReference(run, self._copy(raw)))
+            original = _OriginalRunReference(run, self._copy(raw))
+            self._public_run_references.insert(position, original)
+            return original
 
     def _find_original_run_reference(self, captured: bytes) -> _OriginalRunReference | None:
         """Locate an original only; a hit never supplies saved/current authority.
@@ -604,6 +635,169 @@ class InstalledLocalHost:
                 else:
                     high = middle
             return None
+
+    def _execution_for_run(self, run: _Run, publication: _Output | None = None) -> _OriginalExecution | None:
+        for work in self._physical_work:
+            original = work._invoke
+            if (type(original) is _OriginalExecution and original.host is self
+                    and original.run is run and work._owner is run
+                    and (publication is None or original.publication is publication)):
+                work._nominal()
+                return original
+        return None
+
+    def _current_execution(self) -> _OriginalExecution | None:
+        retained = getattr(self._core, '_host_retained_work', None)
+        if retained is None:
+            return None
+        work = retained[0]
+        if work._thread is not _current_thread():
+            return None
+        original = work._invoke
+        if (type(original) is not _OriginalExecution or original.host is not self
+                or original.run is not work._owner):
+            return None
+        return original if self._execution_for_run(original.run) is original else None
+
+    def _retire_original_execution(self, original: _OriginalExecution) -> bool:
+        """Return one observed execution's children, not a Run outcome/Owner.
+
+        Initial route cut follows the SAME Core confirmation/reader frame;
+        later calls resume only the already selected cleanup originals.
+        A pending child keeps this callable and its original inventories; the
+        existing explicit Host close can retry them without another execution.
+        """
+        with self._core._lock:
+            if self._execution_for_run(original.run) is not original:
+                raise ValueError('Foreign original execution retirement')
+            work = next(value for value in self._physical_work if value._invoke is original)
+            if (not work.stopped or self._state_observing
+                    or getattr(self._core, '_host_retained_work', None) is not None):
+                return False
+            publication = original.publication
+            held = original.state
+            live = any(value is original.reference for value in self._public_run_references)
+            if live and (work._exit_error is not None or work._cleanup_error is not None
+                         or work._future.exception() is not None):
+                # A confirmed business observation does not erase a physical
+                # invocation/exit/cleanup failure. Its original whole-Host
+                # cleanup remains available; this success-only path abstains.
+                return False
+            if live and (publication is None or held is None or held.run is not original.run
+                         or held.projection is None or held.projection._publication is not publication
+                         or not held.metadata_confirmed or held.output is None
+                         or self._run_state_custody.get(original.run.handle) is not held):
+                return False
+            projection = next((value for value in self._commit_projections
+                if value._publication is publication), None) if publication is not None else None
+            if (projection is not None and (projection._projecting or projection._outputs)
+                    or self._pending_publication_write is not None
+                    and self._pending_publication_write._publication is publication):
+                return False
+            key = None if publication is None else publication.ticket
+            evidence = self._sdk_read_evidence.get(key) if key is not None else None
+            delivery = self._sdk_deliveries.get(key) if key is not None else None
+            if (evidence is not None and evidence._active
+                    or delivery is not None and (delivery._active or delivery._payload_reader_borrows)):
+                return False
+            # Only routing is cut. The same Core-issued entry/input stays in
+            # this callable through any partial close; Saved readers independently
+            # validate current original state. Never forge a restored Run.
+            if live:
+                self._public_run_references.remove(original.reference)
+            try:
+                with self._core._host_cleanup():
+                    if held is not None:
+                        if held.output is not None:
+                            if not self._core.close_publication_commit_export(held.output):
+                                raise LocalProductCleanupPending(self)
+                            held.output = None
+                        if not self._core.close_input(held.source):
+                            raise LocalProductCleanupPending(self)
+                        self._inputs.remove(held.source)
+                        del self._run_state_custody[original.run.handle]
+                        original.state = None
+                    if projection is not None:
+                        if not projection.close():
+                            raise LocalProductCleanupPending(self)
+                        self._commit_projections.remove(projection)
+                    if key is not None:
+                        if evidence is not None:
+                            if not evidence.close():
+                                raise LocalProductCleanupPending(self)
+                            del self._sdk_read_evidence[key]
+                        if delivery is not None:
+                            if not delivery.close():
+                                raise LocalProductCleanupPending(self)
+                            del self._sdk_deliveries[key]
+                    if publication is not None:
+                        if not self._close_original_publications((publication,)):
+                            raise LocalProductCleanupPending(self)
+                        original.publication = None
+                    if original.results is not None:
+                        while original.results:
+                            result = original.results[-1]
+                            if not self._core.close_result_export(result):
+                                raise LocalProductCleanupPending(self)
+                            self._result_exports.remove(result)
+                            original.results.pop()
+                    if original.tasks is not None:
+                        index = len(original.tasks) - 1
+                        while index >= 0:
+                            task = original.tasks[index]
+                            if self._core._task_loans.get(task.handle) is task:
+                                self._retire_original_tasks((task,))
+                            if self._core._task_loans.get(task.handle) is not task:
+                                if any(value is task for value in self._tasks):
+                                    raise ValueError('Changed original task cleanup custody')
+                                original.tasks.pop(index)
+                            index -= 1
+                        if original.tasks:
+                            raise LocalProductCleanupPending(self)
+                    if original.publisher is not None:
+                        if not self._core.close_publisher(original.publisher):
+                            raise LocalProductCleanupPending(self)
+                        self._publishers.remove(original.publisher)
+                        original.publisher = None
+                    if original.preflight is not None:
+                        if not self._core.close_publication_preflight(original.preflight):
+                            raise LocalProductCleanupPending(self)
+                        self._publication_preflights.remove(original.preflight)
+                        original.preflight = None
+                    compute = original.compute
+                    if compute is not None:
+                        for index, (owner, invocation) in enumerate(self._source_free_invocations):
+                            if owner is compute:
+                                if not self._core.close_source_free_invocation(invocation):
+                                    raise LocalProductCleanupPending(self)
+                                self._source_free_invocations.pop(index)
+                                break
+                        if not self._runs.close_source_free_compute(compute):
+                            raise LocalProductCleanupPending(self)
+                        self._source_free_computes.remove(compute)
+                        original.compute = None
+                    # The input's existing cleanup callback was associated at
+                    # construction. No ticket interval or global-input pruning.
+                    index = len(self._inputs) - 1
+                    while index >= 0:
+                        source = self._inputs[index]
+                        physical = self._core._inputs.get(source.ticket)
+                        cleanup = None if physical is None else physical.cleanup
+                        if (getattr(cleanup, '__self__', None) is original
+                                and getattr(cleanup, '__func__', None) is _OriginalExecution.input_cleanup):
+                            if not self._core.close_input(source):
+                                raise LocalProductCleanupPending(self)
+                            self._inputs.pop(index)
+                        index -= 1
+                    if not self._core.close_input(original.reference.source):
+                        raise LocalProductCleanupPending(self)
+                    self._inputs.remove(original.reference.source)
+                    self._physical_work.remove(work)
+                    return True
+            except BaseException as error:
+                if work._cleanup_error is None:
+                    work._cleanup_error = error
+                raise
 
     def _has_live_original_run_reference(self, reference: object) -> bool:
         """Locate existing live custody only; exact equality is not authority."""
@@ -873,6 +1067,7 @@ class InstalledLocalHost:
             raise ValueError('Original SDK state installation is unavailable')
         if self._state_observing:
             raise ValueError('Original SDK state observation is already active')
+        execution = self._execution_for_run(run, projection._publication)
         with self._core._lock, ExitStack() as active:
             self._state_observing = True
             active.callback(setattr, self, '_state_observing', False)
@@ -887,9 +1082,12 @@ class InstalledLocalHost:
                     microsecond=milliseconds * 1000).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
                 payloads = [{'record': fact._record.handle, 'result': fact._result,
                              'binding': fact._binding_index} for fact in observation._facts]
-                source = self._copy(wire_bytes({'observed_at': at, 'payloads': payloads}))  # type: ignore[no-untyped-call]
+                source = self._copy(wire_bytes({'observed_at': at, 'payloads': payloads}),  # type: ignore[no-untyped-call]
+                    execution=execution)
                 held = _RunStateCustody(run, projection, source)
                 self._run_state_custody[run.handle] = held
+                if execution is not None:
+                    execution.state = held
                 created_output = self._reserve(lambda: self._core.reserve_publication_commit_export(
                     projection._publication, cleanup=lambda: True))
                 held.output = created_output
@@ -938,19 +1136,27 @@ class InstalledLocalHost:
                 raw = candidate['state'].encode('utf-8')
                 def confirm_and_consume(_: _Output) -> None:
                     self._core.confirm_publication_sdk_run_state(output, configuration.handle)
+                    held.metadata_confirmed = True
                     # The response's original Run guard and bounded transfer
                     # still need this same entered physical journal snapshot.
                     if consume(raw) is not None:
                         raise ValueError('Invalid synchronous original SDK state consumer')
                     observation._validate_facts()
                 installation.binding.inspect(confirm_and_consume)
-            if not self._core.close_publication_commit_export(output):
-                raise LocalProductCleanupPending(self)
-            held.output = None
-            if not self._core.close_input(held.source):
-                raise LocalProductCleanupPending(self)
-            self._inputs.remove(held.source)
-            del self._run_state_custody[run.handle]
+            if execution is None:
+                if not self._core.close_publication_commit_export(output):
+                    raise LocalProductCleanupPending(self)
+                held.output = None
+                if not self._core.close_input(held.source):
+                    raise LocalProductCleanupPending(self)
+                self._inputs.remove(held.source)
+                del self._run_state_custody[run.handle]
+        if execution is not None:
+            # One original output per Run, even when the first observation
+            # precedes physical Thread exit or overlaps a Result reader.
+            # Retry the same confirmation on later ordinary observations;
+            # never manufacture a second candidate or poll-owned receipt.
+            self._retire_original_execution(execution)
 
     def _original_sdk_read_response(self, run: _Run,
                                     projection: OriginalCommitProjection,
@@ -964,12 +1170,14 @@ class InstalledLocalHost:
         """
         self._ensure_original_publication_observation(projection)
         delivery = self._original_sdk_delivery_store(run, projection)
-        clock = self._original_sdk_delivery_clock()
+        clock = self._original_sdk_delivery_clock(
+            execution=self._execution_for_run(run, projection._publication))
         # Reuse the physical clock projection only; its timestamp has no
         # independent expiry or authorization meaning outside the Core Owner.
         tick = _object(self._core._inputs[clock.ticket].payload, 256)
         request = self._copy(wire_bytes({'result_name': result_name, 'format': format,  # type: ignore[no-untyped-call]
-            'attempt_id': attempt_id, 'observed_at': tick['observed_at']}))
+            'attempt_id': attempt_id, 'observed_at': tick['observed_at']}),
+            execution=self._execution_for_run(run, projection._publication))
         streams: list[OriginalLocalSDKResponseStream] = []
         try:
             self._persist_original_sdk_read_evidence(run, projection, request)
@@ -999,7 +1207,7 @@ class InstalledLocalHost:
         stream._attached = True
         return response
 
-    def _original_sdk_delivery_clock(self) -> _Input:
+    def _original_sdk_delivery_clock(self, *, execution: _OriginalExecution | None = None) -> _Input:
         """Reserve one physical clock input; this renews no grant or attempt."""
         self._active()
         now = self._now()
@@ -1008,7 +1216,7 @@ class InstalledLocalHost:
         seconds, milliseconds = divmod(now, 1000)
         observed_at = datetime.fromtimestamp(seconds, timezone.utc).replace(
             microsecond=milliseconds * 1000).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-        return self._copy(wire_bytes({'observed_at': observed_at}))  # type: ignore[no-untyped-call]
+        return self._copy(wire_bytes({'observed_at': observed_at}), execution=execution)  # type: ignore[no-untyped-call]
 
     def _original_delivery_lookup_response(self, run: _Run,
                                             projection: OriginalCommitProjection,
@@ -1027,7 +1235,8 @@ class InstalledLocalHost:
         # selects/validates the original format and saved metadata scope. The
         # supplied current clock never renews the old attempt or grant.
         source = self._copy(wire_bytes({'result_name': result_name, 'format': 'jsonl',  # type: ignore[no-untyped-call]
-            'attempt_id': attempt_id, 'observed_at': observed_at}))
+            'attempt_id': attempt_id, 'observed_at': observed_at}),
+            execution=self._execution_for_run(run, projection._publication))
         streams: list[OriginalLocalResponseStream] = []
         try:
             observation.project_sdk_delivery_lookup(source, run.handle,
@@ -1078,9 +1287,13 @@ class InstalledLocalHost:
         self._uncertain_ticket = None
         return value
 
-    def _copy(self, raw: bytes) -> _Input:
+    def _copy(self, raw: bytes, *, execution: _OriginalExecution | None = None) -> _Input:
+        original = self._current_execution() if execution is None else execution
+        if original is not None and self._execution_for_run(original.run) is not original:
+            raise ValueError('Foreign original execution input')
         loan = self._reserve(lambda: self._core.reserve_input(raw,
-            cleanup=lambda: True, stopped=lambda _: True))
+            cleanup=(lambda: True) if original is None else original.input_cleanup,
+            stopped=lambda _: True))
         self._inputs.append(loan)
         for start in range(0, len(raw), 16384):
             self._core.fill_input(loan, start, min(16384, len(raw) - start))
@@ -2000,6 +2213,9 @@ class InstalledLocalHost:
         compute = self._configure_original_compute(run)
         preflight, publisher = self._prepare_original_publication(compute)
         owned: list[_Task] = []
+        execution = self._current_execution()
+        if execution is not None:
+            execution.tasks = owned
         results = self._execute_original_tasks(compute, preflight, publisher, retained_tasks=owned)
         try:
             publication = self._capture_original_results(compute, preflight, results)
@@ -2104,6 +2320,9 @@ class InstalledLocalHost:
             source = self._copy(installation.binding._source.original_bytes(selected))
             compute = self._runs.reserve_source_free_compute(self._physical_starts[-1], source)
             self._source_free_computes.append(compute)
+            execution = self._current_execution()
+            if execution is not None:
+                execution.compute = compute
             installation.binding.inspect(lambda _:
                 self._runs.configure_source_free_compute(compute, configuration))
             return compute
@@ -2140,6 +2359,9 @@ class InstalledLocalHost:
             preflight = self._reserve(lambda: self._core.reserve_publication_preflight(
                 invocation, request, cleanup=lambda: True))
             self._publication_preflights.append(preflight)
+            execution = self._current_execution()
+            if execution is not None:
+                execution.preflight = preflight
             installation.binding.inspect(lambda _:
                 self._core.prepare_publication_preflight(preflight, configuration.handle))
             # The original request/attempt remain nominal in Core. Installing
@@ -2153,6 +2375,8 @@ class InstalledLocalHost:
                 authorize=physical_publisher.authorize_callback, cleanup=lambda: True,
                 original=physical_publisher))
             self._publishers.append(publisher)
+            if execution is not None:
+                execution.publisher = publisher
             installation.binding.inspect(lambda _:
                 self._core.install_publisher(publisher, configuration.handle))
             installation.binding.inspect(lambda _:
@@ -2205,6 +2429,9 @@ class InstalledLocalHost:
             return self._original_compute_read_step(compute, work)
 
         owned: list[_Task] = [] if retained_tasks is None else retained_tasks
+        execution = self._current_execution()
+        if execution is not None:
+            execution.tasks = owned
         results: list[_ResultExport] | None = None
         try:
             while True:
@@ -2223,6 +2450,8 @@ class InstalledLocalHost:
             count = step(lambda: self._core.publication_preflight_result_count(preflight, configuration.handle))
             selected_results: list[_ResultExport] = []
             results = selected_results
+            if execution is not None:
+                execution.results = selected_results
             for index in range(count):
                 def select_result() -> _ResultExport:
                     result = self._core.reserve_result_from_compute(compute.core, index, configuration.handle)
@@ -2258,7 +2487,7 @@ class InstalledLocalHost:
                     work._cleanup_error = cleanup
             raise
 
-    def _retire_original_tasks(self, tasks: tuple[_Task, ...]) -> None:
+    def _retire_original_tasks(self, tasks: _Iterable[_Task]) -> None:
         """Drive only observed local cleanup progress under the same allowance.
 
         A pending external stop returns immediately with its original loan.
@@ -2363,6 +2592,9 @@ class InstalledLocalHost:
                 source, request, cleanup=lambda: True))
             self._publications.append(publication)
             self._run_publications.append((compute.start.run, publication))
+            execution = self._current_execution()
+            if execution is not None:
+                execution.publication = publication
             return publication
         publication = step(reserve_publication)
         step(lambda: self._core.prepare_publication(publication, configuration.handle))

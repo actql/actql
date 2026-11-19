@@ -52276,7 +52276,6 @@
         "installed_local_components",
         "nullcontext",
         "os",
-        "partial",
         "secrets",
         "stat",
         "time",
@@ -52318,13 +52317,13 @@
         "contextlib",
         "dataclasses",
         "datetime",
-        "functools",
         "hashlib",
         "httpx",
         "os",
         "pathlib",
         "secrets",
         "stat",
+        "threading",
         "time",
         "typing"
       ],
@@ -52664,7 +52663,15 @@
           "name": "InstalledLocalHost/_copy",
           "parameters": [
             "self",
-            "raw"
+            "raw",
+            "execution"
+          ],
+          "async": false
+        },
+        {
+          "name": "InstalledLocalHost/_current_execution",
+          "parameters": [
+            "self"
           ],
           "async": false
         },
@@ -52709,6 +52716,15 @@
           "name": "InstalledLocalHost/_execute_original_tasks/step",
           "parameters": [
             "work"
+          ],
+          "async": false
+        },
+        {
+          "name": "InstalledLocalHost/_execution_for_run",
+          "parameters": [
+            "self",
+            "run",
+            "publication"
           ],
           "async": false
         },
@@ -52966,7 +52982,8 @@
         {
           "name": "InstalledLocalHost/_original_sdk_delivery_clock",
           "parameters": [
-            "self"
+            "self",
+            "execution"
           ],
           "async": false
         },
@@ -53365,6 +53382,14 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_retire_original_execution",
+          "parameters": [
+            "self",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_retire_original_tasks",
           "parameters": [
             "self",
@@ -53583,6 +53608,25 @@
           "async": false
         },
         {
+          "name": "_OriginalExecution",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "_OriginalExecution/__call__",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
+          "name": "_OriginalExecution/input_cleanup",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
           "name": "_OriginalRunReference",
           "parameters": [],
           "async": false
@@ -53622,7 +53666,7 @@
           "async": false
         }
       ],
-      "sha256": "003ba4e28c971a0fb363594650e7a8303de71970548fa9190b716bcae9ae13ea",
+      "sha256": "71276da5619ff0c559124c122c3c3f5caf8d2836c7e800d4b093be510cb572f3",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -53798,6 +53842,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "inputsOutputs": [
@@ -53844,6 +53892,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "identity": [
@@ -53894,6 +53946,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "ownership": [
@@ -53944,6 +54000,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "synchronization": [
@@ -53994,6 +54054,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "failure": [
@@ -54044,6 +54108,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "cancellation": [
@@ -54090,6 +54158,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "resources": [
@@ -54140,6 +54212,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "extension": [
@@ -54186,6 +54262,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "verification": [
@@ -54304,6 +54384,46 @@
               {
                 "path": "packages/python-sdk/tests/test_local_sdk_results.py",
                 "anchor": "def test_partial_result_cleanup_refusal_keeps_original_primary_and_children("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_waits_for_real_thread_exit_after_future_completion("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_keeps_one_confirmation_and_active_original_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_current_refusal_keeps_same_output_and_live_route("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_does_not_erase_original_failed_worker_for_saved_state("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_close_refusal_keeps_same_owner_and_saved_fallback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_closes_only_construction_associated_inputs("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_throw_keeps_original_output_and_retry_does_not_reconfirm("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_results.py",
+                "anchor": "def test_execution_constructor_association_moves_original_arrays_and_publication("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_worker_input_is_bound_before_original_driver_handoff("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_export_ack_precedes_task_and_pending_task_retries_same_original("
               }
             ]
           }
@@ -55020,6 +55140,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "inputsOutputs": [
@@ -55034,6 +55158,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "identity": [
@@ -55052,6 +55180,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "ownership": [
@@ -55070,6 +55202,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "synchronization": [
@@ -55084,6 +55220,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "failure": [
@@ -55102,6 +55242,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "cancellation": [
@@ -55116,6 +55260,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "resources": [
@@ -55130,6 +55278,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "extension": [
@@ -55144,6 +55296,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
               }
             ],
             "verification": [
@@ -55162,6 +55318,46 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_waits_for_real_thread_exit_after_future_completion("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_keeps_one_confirmation_and_active_original_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_current_refusal_keeps_same_output_and_live_route("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_does_not_erase_original_failed_worker_for_saved_state("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_close_refusal_keeps_same_owner_and_saved_fallback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_closes_only_construction_associated_inputs("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_throw_keeps_original_output_and_retry_does_not_reconfirm("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_results.py",
+                "anchor": "def test_execution_constructor_association_moves_original_arrays_and_publication("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_worker_input_is_bound_before_original_driver_handoff("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_export_ack_precedes_task_and_pending_task_retries_same_original("
               }
             ]
           }
@@ -55606,8 +55802,7 @@
             "LocalProjectFilesCleanupPending",
             "OriginalLocalProjectConfiguration",
             "OriginalLocalProjectFiles",
-            "ProjectLocations",
-            "partial"
+            "ProjectLocations"
           ],
           "attributes": {
             "responsibility": [
@@ -56196,6 +56391,187 @@
               {
                 "path": "packages/python-sdk/tests/test_local_reference_index.py",
                 "anchor": "def test_registration_refusals_and_original_cleanup_chronology_are_unchanged("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_current_execution",
+            "InstalledLocalHost/_execution_for_run",
+            "InstalledLocalHost/_retire_original_execution",
+            "_OriginalExecution",
+            "_OriginalExecution/__call__",
+            "_OriginalExecution/input_cleanup"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class _OriginalExecution:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class _OriginalExecution:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class _OriginalExecution:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class _OriginalExecution:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class _OriginalExecution:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class _OriginalExecution:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class _OriginalExecution:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class _OriginalExecution:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "class _OriginalExecution:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_waits_for_real_thread_exit_after_future_completion("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_keeps_one_confirmation_and_active_original_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_current_refusal_keeps_same_output_and_live_route("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_does_not_erase_original_failed_worker_for_saved_state("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_close_refusal_keeps_same_owner_and_saved_fallback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_closes_only_construction_associated_inputs("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_throw_keeps_original_output_and_retry_does_not_reconfirm("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_results.py",
+                "anchor": "def test_execution_constructor_association_moves_original_arrays_and_publication("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_worker_input_is_bound_before_original_driver_handoff("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "def test_retirement_export_ack_precedes_task_and_pending_task_retries_same_original("
               }
             ]
           }
