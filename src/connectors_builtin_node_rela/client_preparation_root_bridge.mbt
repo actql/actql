@@ -2836,6 +2836,16 @@ pub fn client_program_prepare_request_original_explanation(
 }
 
 ///|
+#export_name("clientProgramRequestOriginalStaticPlanWire")
+pub fn client_program_request_original_static_plan_wire(
+  original : @client_local_host.ClientRequestOriginalExplanation[
+    ClientLocalPreparationInputOriginal,
+  ],
+) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue] {
+  @client_local_host.request_original_static_plan_wire(original)
+}
+
+///|
 #export_name("clientProgramAdoptRequestProgramWithExplanation")
 pub fn client_program_adopt_request_program_with_explanation(
   parent : @client_local_host.ClientRequestPreparation[

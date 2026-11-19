@@ -7193,3 +7193,36 @@ two-field outcome without preparing or submitting another Run. SDK/Python can
 display these already admitted open code values through their existing public
 presentation. This adds no Problem field, reason-schema variant, message text,
 owner, resource grant, cancellation rule or cleanup acknowledgment.
+
+### Static Plan reads on the original Request
+
+Static planning uses the compiler's original checked Program, parameter binding
+and retained Plan compilation on the same Request. It does not construct an
+execution module, invoke a provider, issue a Run or execute Source/Model/Effect.
+The result remains the existing closed Plan view; no new wire field or caller
+permission flag selects this private preparation path.
+
+The same producer retains its input before SDK snapshot/options processing and
+returns its original construction loan before Request retirement. The static
+read issues no submission identity, epoch or publication receipt. A CID, equal
+value or closed JSON shape never replaces the original compiler or read access.
+
+The read uses the existing original Plan/map/codec construction admission. Its
+conservative quotation also measures structural Facts, but this read emits no
+Facts and does not adopt a Run capture. The complete admitted debit stays held
+through projection and transport; no second Ledger or spare capacity is used.
+Before and after projection, the original working debit is reconciled at its
+unchanged extent through the parent-current check. The same owner fences reentry.
+
+Missing runtime methods or unsupported carrier construction return explicit
+operation unavailability. The current Node connection supplies source-free Pure
+compilation; this implementation boundary does not make other authored Programs
+invalid or establish their target coverage. A declined original construction
+admission cannot select a raw compiler fallback. Current loss and primary/read
+or cleanup failures remain failures, with their original owner and retry duty.
+
+Aborting a static read ends that read; it cannot cancel or create a Run. Failed
+return stays in the existing connection cleanup owner, without resnapshot,
+resubmit, recompile or a fabricated physical acknowledgement. An additional
+carrier must provide its actual same-parent construction and original projection
+before advertising support; execution cannot stand in for static planning.

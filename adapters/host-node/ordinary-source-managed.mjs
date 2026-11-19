@@ -371,13 +371,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     assertOriginal();
     return invocation;
   }
-  function prepareOriginalExplanation(state, producer, contracts, journal) {
+  function prepareOriginalExplanation(state, producer, contracts, journal, staticPlan) {
     const moon = state.context.runtime;
     // Old/unsupported installed profiles keep the existing Plan path. This
     // is selected facility support, not a public switch or capacity grant.
-    if (journal === undefined || typeof journal.supportsOriginalExplanation !== 'function' ||
-        !journal.supportsOriginalExplanation()) return;
-    assertOriginalClientRequestJournal(journal);
+    if (staticPlan === undefined) {
+      if (journal === undefined || typeof journal.supportsOriginalExplanation !== 'function' ||
+          !journal.supportsOriginalExplanation()) return;
+      assertOriginalClientRequestJournal(journal);
+    }
     const prepare = moon.clientProgramPrepareRequestOriginalExplanation;
     const adopt = moon.clientProgramAdoptRequestProgramWithExplanation;
     const capture = moon.clientProgramCaptureRequestOriginalExplanation;
@@ -396,8 +398,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           contracts.admission, state.context.retainedRelationOutput),
         moon.clientProgramRequestProgramModuleIssueCode);
     }
+    const limits = staticPlan ?? localContractLimits;
     const original = checked(Reflect.apply(prepare, moon, [state.parent, producer.receipt,
-      localContractLimits.maxWireBytes, localContractLimits.maxNodes, localContractLimits.maxDepth]));
+      limits.maxWireBytes, limits.maxNodes, limits.maxDepth]));
     if (original === undefined) return;
     // All additional retained wrappers follow the actual working admission.
     // The same per-producer holding owns failure before a Plan/ticket returns.
@@ -1139,7 +1142,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         return wire;
       });
     },
-    async fundedPreparation(request, environment, originalVerifier, signal, journal) {
+    async fundedPreparation(request, environment, originalVerifier, signal, journal, staticPlan) {
       current();
       const producer = producerForRequest(request);
       const state = producer?.preparation;
@@ -1157,6 +1160,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime;
+      // Only the installed static-plan service selects this private read.
+      // Capture the same loaded compiler method before policy verification can
+      // await. Its token still requires actual original working admission.
+      const readStaticPlan = staticPlan === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(moon, 'clientProgramRequestOriginalStaticPlanWire')?.value;
+      if (staticPlan !== undefined) {
+        if (typeof readStaticPlan !== 'function') fail('ClientOperationUnavailable');
+        if (state.staticPlanRead || state.holder !== undefined) fail('ForeignInstalledSourceProducer');
+        state.staticPlanRead = true;
+      }
       // This SAME receipt owns the detached Program/Query and Parameters.
       // Its Core entry retains Source/check/compiler originals and typed
       // failure. No serializer, raw preparation or second parent fallback.
@@ -1245,6 +1258,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           // Host caller. A logical compiler result cannot select a different
           // parent or claim that an unconstructed Plan is ready.
           if (state.compilationKind === 'effectful') {
+            if (staticPlan !== undefined) fail('ClientOperationUnavailable');
             // The actual typed Effect borrow reserves construction on this SAME
             // Request. Never cast it to a Program borrow or select a new Root.
             const names = ['clientProgramBorrowRequestEffectPlanInput',
@@ -1321,6 +1335,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             // inventory counts do not authorize an ordinary Pure module.
             state.compilationFamily = infers.length !== 0 ? 'model'
               : serializations.length !== 0 ? 'content' : 'pure';
+            if (staticPlan !== undefined && state.compilationFamily !== 'pure') {
+              fail('ClientOperationUnavailable');
+            }
             if (state.compilationFamily !== 'pure') {
               const select = moon[state.compilationFamily === 'model'
                 ? 'clientProgramBorrowRequestModelPlanInput' : 'clientProgramBorrowRequestContentPlanInput'];
@@ -1346,16 +1363,17 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             const count = moon.clientProgramAcquisitionCount(prepared);
             if (!Number.isSafeInteger(count) || count < 0) fail('InvalidHostRuntimeResult');
             state.acquisitionCount = count;
+            if (staticPlan !== undefined && count !== 0) fail('ClientOperationUnavailable');
             const requiresTime = moon.clientProgramRequiresQueryTime;
             state.requiresQueryTime = typeof requiresTime === 'function'
               ? checked(Reflect.apply(requiresTime, moon, [prepared, 100000, 100000])) : false;
             if (typeof state.requiresQueryTime !== 'boolean') fail('InvalidHostRuntimeResult');
             if (state.compilationFamily === 'pure' && count === 0) {
-              prepareOriginalExplanation(state, producer, contracts, journal);
+              prepareOriginalExplanation(state, producer, contracts, journal, staticPlan);
             }
             // A timed module needs the actual submission Request and first
             // bound Run. Keep this SAME borrower until that adoption caller.
-            if (state.compilationFamily === 'pure' && count === 0 && !state.requiresQueryTime) {
+            if (staticPlan === undefined && state.compilationFamily === 'pure' && count === 0 && !state.requiresQueryTime) {
               checkedRequestProgramPreparation(moon,
                 moon.clientProgramPrepareRequestProgramModuleBody(state.parent,
                   producer.receipt, contracts.admission, state.context.retainedRelationOutput, undefined,
@@ -1375,6 +1393,22 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         : state.effectBorrowMethods.clientProgramEffectPreparationInputRead(state.holder);
       if (prepared === undefined || state.prepared !== undefined && state.prepared !== prepared) {
         fail('ForeignInstalledSourceProducer');
+      }
+      if (staticPlan !== undefined) {
+        const original = state.originalExplanation;
+        if (original?.preparation === undefined) fail('ClientOperationUnavailable');
+        const wire = constructRequestDomain(state, () => {
+          const value = checked(Reflect.apply(readStaticPlan, moon, [original.preparation]));
+          current();
+          if (producerForRequest(request) !== producer || producer.preparation !== state ||
+              state.originalExplanation !== original || typeof value !== 'string') {
+            fail('ForeignInstalledSourceProducer');
+          }
+          return value;
+        });
+        // No submitted alias, module, invocation or Run was constructed.
+        // Existing producer retirement returns the SAME loan and inventory.
+        return wire;
       }
       state.prepared = prepared;
       if (!state.parameterMetadataLoaded) {

@@ -574,3 +574,83 @@ test "optional Node wrapper entry is backed before any admitted measuring prefix
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
 }
+
+///|
+test "static Request Plan read uses its admitted original without module provider or Run" {
+  let (parent, input, prepared) = request_program_body_fixture()
+  let provider_calls = Ref(0)
+  let artifact = prepare_request_program_compilation(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => {
+      provider_calls.val += 1
+      []
+    },
+  ).unwrap()
+  let spent = parent.program_artifact_work_spent
+  let loan = prepare_request_original_explanation(
+      parent, input, 65536, 8192, 64,
+    )
+    .unwrap()
+    .unwrap()
+  let held = @resources.ledger_usage(parent.ledger)
+  let wire = request_original_static_plan_wire(loan).unwrap()
+  assert_true(wire.contains("\"version\":\"actql-plan-view/0.1\""), msg=wire)
+  assert_true(wire.contains("\"observation\":\"static\""), msg=wire)
+  assert_true(wire.contains("\"provider_io\":0"), msg=wire)
+  assert_true(physical_equal(parent.compiled_program.unwrap(), prepared))
+  assert_true(physical_equal(parent.program_compilation.unwrap(), artifact))
+  assert_eq(parent.program_artifact_work_spent, spent)
+  assert_true(parent.phase == ProgramPlanReserved)
+  assert_true(parent.program_source_free is None)
+  assert_eq(provider_calls.val, 0)
+  assert_eq(@resources.ledger_usage(parent.ledger), held)
+  return_request_original_explanation(loan).unwrap() |> ignore
+  assert_true(request_original_static_plan_wire(loan) is Err(ForeignOriginal))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "static Request Plan read refuses retired original before projection" {
+  let live = Ref(true)
+  let provider_calls = Ref(0)
+  let (parent, input, _) = request_program_body_fixture(current=() => live.val)
+  prepare_request_program_compilation(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=_ => {
+      provider_calls.val += 1
+      []
+    },
+  ).unwrap()
+  |> ignore
+  let loan = prepare_request_original_explanation(
+      parent, input, 65536, 8192, 64,
+    )
+    .unwrap()
+    .unwrap()
+  let before = @resources.ledger_usage(parent.ledger)
+  live.val = false
+  match request_original_static_plan_wire(loan) {
+    Err(Capacity(Resource(@resources.ClosedReservation))) => ()
+    Err(issue) => fail(@debug.to_string(issue))
+    Ok(_) => fail("Retired original unexpectedly produced a static Plan")
+  }
+  assert_true(parent.phase == ProgramPlanReserved)
+  assert_true(parent.program_source_free is None)
+  assert_eq(provider_calls.val, 0)
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  live.val = true
+  return_request_original_explanation(loan).unwrap() |> ignore
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

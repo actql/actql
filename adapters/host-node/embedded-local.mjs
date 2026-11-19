@@ -2786,7 +2786,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     return original === undefined ? {} : {updateTargetPreparedOriginal: original};
   };
   const plan = installClientStaticPlan({moon, control, prepare: prepareSubmit,
-    authorize: hostConnection});
+    authorize: hostConnection,
+    readOriginal: request => preparation.readStaticPlan(request, environment,
+      verifyRequestValuePolicy, request.signal)});
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
@@ -7417,6 +7419,14 @@ async function openPreparedInstalledHost(options, initialEntry) {
         throw clientOperationError('ForeignInstalledEffectManagedRun');
       }
       return current;
+    },
+    readStaticPlan(request, environment, originalVerifier, signal) {
+      const manager = sourceManaged ?? computeManaged;
+      if (manager === undefined) throw clientOperationError('ClientOperationUnavailable');
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.fundedPreparation(originalSourceManagedHostRequest(originals, request),
+        environment, originalVerifier, signal, undefined, request);
     },
     fundedPreparation(request, environment, originalVerifier, signal, journal) {
       const manager = sourceManaged ?? computeManaged;

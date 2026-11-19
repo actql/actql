@@ -31,6 +31,26 @@ fn client_pure_compilation_original_plan(
 }
 
 ///|
+/// Read the SAME Request's retained compiler artifact before any Run exists.
+/// Its caller must already hold the original static projection construction.
+pub fn client_pure_compilation_static_plan_view(
+  compilation : ClientRunCompilation,
+  prepared : PreparedClientProgram,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientCompiledRunPlanIssue] {
+  let plan = match
+    client_pure_compilation_original_plan(prepared, compilation) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  issue_client_static_plan_view(
+    prepared, plan, max_bytes, max_nodes, max_depth, false,
+  ).map_err(issue => Projection(issue))
+}
+
+///|
 /// Capture the original logical map while its compiler-issued Run owner is
 /// still retained. This never compiles or executes another Program. Save the
 /// returned original with admission; historical lookup must read those bytes,

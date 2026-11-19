@@ -366,6 +366,89 @@ pub fn[I] prepare_request_original_explanation(
 }
 
 ///|
+/// Read only the Plan facet of this SAME working Request's admitted original.
+/// No Run, module/provider, Facts emission or adopted capture is constructed.
+/// The complete existing Plan/map/codec quotation remains held by this loan.
+pub fn[I] request_original_static_plan_wire(
+  value : ClientRequestOriginalExplanation[I],
+) -> Result[String, ClientOriginalExplanationCaptureIssue] {
+  guard value.original is Some((owner, input, prepared, artifact)) &&
+    value.adopted is None &&
+    value.holder is Some(holder) &&
+    owner.phase == ProgramPlanReserved &&
+    !@resources.preparation_body_retirement_started(holder) &&
+    @resources.preparation_body_borrow_value(holder) is Some(body) &&
+    physical_equal(body, prepared) else {
+    return Err(ForeignOriginal)
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      guard request_original_explanation_current(
+        owner, input, prepared, artifact,
+      ) else {
+        return Err(ForeignOriginal)
+      }
+      match refresh_request_original_static_plan(owner, input) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard value.original is Some(_) &&
+        request_original_explanation_current(owner, input, prepared, artifact) else {
+        return Err(ForeignOriginal)
+      }
+      let wire = match
+        @publication_host.client_pure_compilation_static_plan_view(
+          artifact,
+          prepared,
+          value.bytes,
+          value.nodes,
+          value.depth,
+        ) {
+        Err(issue) => return Err(Plan(issue))
+        Ok(value) => value
+      }
+      match refresh_request_original_static_plan(owner, input) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard value.original is Some(_) &&
+        value.holder is Some(current_holder) &&
+        physical_equal(current_holder, holder) &&
+        @resources.preparation_body_borrow_value(holder) is Some(current_body) &&
+        physical_equal(current_body, prepared) &&
+        request_original_explanation_current(owner, input, prepared, artifact) else {
+        return Err(ForeignOriginal)
+      }
+      Ok(wire)
+    },
+    () => if owner.phase == Selecting { owner.phase = ProgramPlanReserved },
+  )
+}
+
+///|
+// Revalidate this SAME held working debit before/after projection. Reconciling
+// to its actual existing extent checks the imported parent and fences reentry;
+// it supplies no allowance, quote, reservation or success-by-absence fallback.
+fn[I] refresh_request_original_static_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[Unit, ClientOriginalExplanationCaptureIssue] {
+  guard owner.program_capacity is Some(capacity) else {
+    return Err(ForeignOriginal)
+  }
+  let (r, e) = match
+    @resources.preparation_capacity_working_extents(capacity, input) {
+    Err(issue) => return Err(Capacity(issue))
+    Ok(value) => value
+  }
+  @resources.reconcile_current_working_preparation_phase(capacity, input, r, e).map_err(issue => {
+      ClientOriginalExplanationCaptureIssue::Capacity(issue)
+    },
+  )
+}
+
+///|
 /// Dispose this optional loan explicitly. No first durable ACK is implied.
 /// Lower pending cleanup remains on its original token/owner, never a retry of
 /// a consumed semantic context or a new capacity source.

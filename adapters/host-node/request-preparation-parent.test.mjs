@@ -2924,3 +2924,51 @@ for (const phase of ['Normalization', 'Authoring']) {
     }
   });
 }
+
+test('static Plan manager retains one admitted original and never constructs a module or Run', async t => {
+  for (const outcome of ['returned', 'quote-unavailable', 'read-failed']) {
+    const {f, request, events, environment} = await normalizationManagerFixture(t);
+    const moon = f.context.runtime, artifact = {}, loan = {};
+    const limits = Object.freeze({maxWireBytes: 2048, maxNodes: 256, maxDepth: 32});
+    const primary = Error('original static Plan read failure');
+    let compilation, reentry, reads = 0, returns = 0;
+    moon.clientProgramRequestProgramCompilationOriginal = (parent, receipt) => {
+      assert.strictEqual(parent, f.parent); return compilation;
+    };
+    moon.clientProgramPrepareRequestProgramCompilation = () => {
+      assert.equal(compilation, undefined); compilation = artifact;
+      events.push('plan-compile'); return ok(artifact);
+    };
+    moon.clientProgramPrepareRequestOriginalExplanation = (parent, receipt, ...bounds) => {
+      assert.strictEqual(parent, f.parent); assert.strictEqual(compilation, artifact);
+      assert.deepEqual(bounds, [2048, 256, 32]); events.push('plan-quote');
+      return ok(outcome === 'quote-unavailable' ? undefined : loan);
+    };
+    for (const name of ['clientProgramAdoptRequestProgramWithExplanation',
+      'clientProgramCaptureRequestOriginalExplanation', 'clientProgramOriginalExplanationPlanWire',
+      'clientProgramOriginalExplanationFactsWire', 'clientProgramReturnOriginalExplanationCapture',
+      'clientProgramPrepareRequestProgramModuleBody']) {
+      moon[name] = () => assert.fail('Static read must not enter ' + name);
+    }
+    moon.clientProgramReturnRequestOriginalExplanation = value => {
+      assert.strictEqual(value, loan); returns++; return ok(false);
+    };
+    moon.clientProgramRequestOriginalStaticPlanWire = value => {
+      assert.strictEqual(value, loan); reads++; events.push('plan-read');
+      reentry = f.view.fundedPreparation(request, environment, undefined, undefined, undefined, limits);
+      if (outcome === 'read-failed') throw primary;
+      // Explicit compiler wire port only. Core owns actual Plan/schema proof.
+      return ok('same original compiler Plan wire');
+    };
+    const pending = f.view.fundedPreparation(request, environment, undefined, undefined, undefined, limits);
+    if (outcome === 'returned') assert.equal(await pending, 'same original compiler Plan wire');
+    else await assert.rejects(pending, error => outcome === 'read-failed'
+      ? error === primary : error.code === 'ClientOperationUnavailable');
+    if (reentry) await assert.rejects(reentry, {code: 'ForeignInstalledSourceProducer'});
+    assert.equal(reads, outcome === 'quote-unavailable' ? 0 : 1);
+    assert.equal(returns, 0, 'Return belongs to the existing producer retirement');
+    assert(!events.includes('module'));
+    assert.deepEqual(events.slice(0, 5), ['compiled', 'normalization', 'plan-borrow', 'plan-compile', 'plan-quote']);
+    assert(!f.calls.includes('retire-registry-original'), 'No submitted preparation alias was issued');
+  }
+});

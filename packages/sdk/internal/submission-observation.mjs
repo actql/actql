@@ -192,7 +192,7 @@ export {RequestHeld};
 export function createSubmissionOperations(selected, confirmed, transport, execution, lifecycle) {
   const {exchange, responseValue, wasSubmissionDispatched, sourcePreparation} = transport;
   const {isClosed} = lifecycle;
-  const withSourceProducer = (kind, originalInput, originalOptions, run, acquire) => {
+  const withSourceProducer = (kind, originalInput, originalOptions, run, acquire, staticRead = false) => {
     // A closed SDK connection owns its local refusal. Do not reacquire a
     // producer from the already retired Host merely to reject this call.
     // The ordinary submit path retains its original identity/NotSent handling.
@@ -220,7 +220,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
         // presence separate from a successful result with no primary error.
         if (terminal === 'failed') return primary;
         const error = new ClientError('ClientCleanupPending', {cause, cleanupPending: true});
-        Object.defineProperty(error, 'execution', {value: originalResult});
+        if (!staticRead) Object.defineProperty(error, 'execution', {value: originalResult});
         retainQueryResult(originalResult, error);
         return error;
       }
@@ -235,7 +235,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       return result;
     }, cause => {throw finish('failed', cause);});
     retainQueryResult(original, pending);
-    if (producer.body !== undefined) {
+    if (!staticRead && producer.body !== undefined) {
       const publication = publishSnapshot(pending, producer.body);
       if (publication !== undefined) {
         try {sourcePreparation.publishSourceSnapshot(producer.receipt, producer.body, publication);}
@@ -478,6 +478,10 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
   };
   let client;
   client = Object.freeze({
+    // Private assembly port only. A static read shares original preparation
+    // and cleanup, but issues no submission identity/publication or Run.
+    withStaticPreparation: (kind, input, options, read) =>
+      withSourceProducer(kind, input, options, read, undefined, true),
     startSource, newSubmission,
     sql: (text, parameters, options) => sourceQuery(startSource, ClientError,
       retainQueryResult, retainQueryFailure, 'sql', text, parameters, options,

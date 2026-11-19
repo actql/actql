@@ -2251,6 +2251,8 @@ pub fn client_program_request_model_recovery_source_coordinates(@client_local_ho
 
 pub fn client_program_request_model_recovery_usage_isolated(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG) -> Bool
 
+pub fn client_program_request_original_static_plan_wire(@client_local_host.ClientRequestOriginalExplanation[ClientLocalPreparationInputOriginal]) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue]
+
 pub fn client_program_request_parameters_original(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal) -> Result[@decode_core.Cursor?, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_request_preparation_accounting(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal]) -> (Int64, Int64, Int64, Int64, Int64, Int64)
