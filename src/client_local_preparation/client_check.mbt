@@ -2887,6 +2887,19 @@ fn check_static_effect_type_issue(
   issue : @host.ClientEffectComputationIssue,
 ) -> CheckStop? {
   match issue {
+    Candidate(Computation(cause)) => {
+      // The ordinary Pure check stops at UnsupportedEffects before checking
+      // this computation. Keep a definite input failure from the SAME Effect
+      // candidate instead of replacing it with that earlier implementation
+      // limit. No generated cursor becomes an authored source location.
+      let diagnostic = @checked.construction_failure_diagnostic(cause)
+      if @checked.diagnostic_category(diagnostic) == InvalidInput {
+        findings.push(check_program_finding(diagnostic, None, None, None, None))
+        Some(Report)
+      } else {
+        None
+      }
+    }
     Static(MappingLiterals(issue)) =>
       match @effect_results.effect_mapping_literal_issue_kind(issue) {
         IncompatibleLiteral(_) | RejectedNull(_) => {
