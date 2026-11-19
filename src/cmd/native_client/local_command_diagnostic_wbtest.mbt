@@ -522,6 +522,98 @@ test "File Work primary keeps the actual closed reserve cause across cleanup" {
     ) &&
     original == "SYNTHETIC_PRIVATE_SOURCE",
   )
+  let open_cases : Array[(@local_host.NativeClientSourceWorkIssue, String)] = [
+    (Configuration, "LocalOriginalSourceWorkUnavailable:configuration"),
+    (OriginalRunNotCurrent, "LocalOriginalSourceWorkUnavailable:current"),
+    (
+      LocalExecution(UnsupportedGraph),
+      "LocalOriginalSourceWorkUnavailable:compute-unsupported-graph",
+    ),
+    (
+      LocalExecution(Driver(Configuration(ForeignPreparation))),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-foreign-preparation",
+    ),
+    (
+      LocalExecution(Driver(Configuration(ForeignRequest(987654321)))),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-foreign-request",
+    ),
+    (
+      LocalExecution(
+        Driver(Configuration(Guard(Execution(Rows(987654321, RowLimit))))),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-limit",
+    ),
+    (
+      LocalExecution(
+        Driver(
+          ExecutionCapacityRefusal(
+            @initial_resources.RetentionLimit,
+            987654321L,
+            987654321L,
+            987654321L,
+          ),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-retention",
+    ),
+    (
+      LocalExecution(
+        Driver(
+          Configuration(Execution(Rows(987654321, Comparison(InvalidOperand)))),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-invalid-operand",
+    ),
+    (
+      LocalExecution(
+        Driver(
+          Configuration(
+            Execution(Rows(987654321, Aggregation(ArithmeticFailure))),
+          ),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-arithmetic-failure",
+    ),
+    (
+      RelationFile(Resource(@initial_resources.RetentionLimit)),
+      "LocalOriginalSourceWorkUnavailable:source-retention",
+    ),
+    (
+      Preparation(
+        PublicationInvocation(
+          @publication.RunEvidenceReferenceMismatch("SYNTHETIC_PRIVATE_SOURCE"),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable",
+    ),
+  ]
+  for (original, expected) in open_cases {
+    let message = local_file_open_failure_message(original)
+    assert_eq(message, expected)
+    assert_false(message.contains("SYNTHETIC_PRIVATE_SOURCE"))
+    assert_false(message.contains("987654321"))
+    assert_eq(local_file_open_failure_message(original), message)
+  }
+  let evaluation_cases : Array[(@execution.EvalIssueKind, String)] = [
+    (
+      MissingValue,
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-missing-value",
+    ),
+    (
+      QueryEvaluationTimeUnavailable,
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-query-time-unavailable",
+    ),
+    (
+      Scalar(ComparisonDomainNotImplemented),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-comparison-domain-unimplemented",
+    ),
+  ]
+  for (kind, expected) in evaluation_cases {
+    let message = local_file_evaluation_kind_failure_message(kind)
+    assert_eq(message, expected)
+    assert_false(message.contains("SYNTHETIC_PRIVATE_SOURCE"))
+    assert_false(message.contains("987654321"))
+  }
 }
 
 ///|

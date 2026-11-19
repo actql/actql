@@ -227,9 +227,10 @@ class AsyncOperationLockTests(unittest.IsolatedAsyncioTestCase):
                 # Same original admission entry as the existing SDKStart
                 # assembly, not a fabricated Run or a public normal acceptance.
                 reference = {'epoch': host.profile()['submissionEpoch'], 'nonce': 'original'}
-                run, saved = host._accept_original(reference,
+                execution, saved = host._accept_original(reference,
                     operation_fixture.input_fixture.INTENT, run_id='original-run')
-                self.assertIsNotNone(run)
+                self.assertIsNotNone(execution)
+                run = execution.run
                 host._register_original_run_reference(run, saved)
                 body['ref'] = json.loads(saved)['ref']
                 work = OriginalLocalWork(hold, on_exit=core._finish_work_operation, owner=run)

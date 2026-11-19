@@ -41,10 +41,11 @@ async def main():
         reference = {'epoch': host.profile()['submissionEpoch'], 'nonce': 'active-task-cancel'}
         query = ('SELECT n FROM UNNEST([' + ','.join(str(n) for n in range(64)) + ']) AS n'
                  if active_provider else 'SELECT 41 AS n')
-        run, admission_raw = host._accept_original(reference,
+        execution, admission_raw = host._accept_original(reference,
             encode({'kind': 'aql', 'input': {'format': 'sql', 'text': query},
                     'parameters': None}), run_id='active-task-cancel')
-        assert run is not None
+        assert execution is not None
+        run = execution.run
         admission = json.loads(admission_raw)
         compute = host._configure_original_compute(run)
         preflight, publisher = host._prepare_original_publication(compute)

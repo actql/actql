@@ -25,10 +25,11 @@ class OriginalReferenceIndexTests(unittest.TestCase):
         self.addCleanup(fixture.doCleanups)
         host, core, events, _ = fixture.assembly(Path(directory))
         self.addCleanup(host.close)
-        run, saved = host._accept_original(
+        execution, saved = host._accept_original(
             {'epoch': host.profile()['submissionEpoch'], 'nonce': 'original'},
             append_fixture.INTENT, run_id='original-run')
-        self.assertIsNotNone(run)
+        self.assertIsNotNone(execution)
+        run = execution.run
         original = json.loads(saved)
         # Register unrelated keys backwards so the index must preserve order;
         # the selected real saved admission still comes last in both fixtures.

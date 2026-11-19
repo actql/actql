@@ -149,7 +149,7 @@ class _OriginalExecution:
     """
     host: 'InstalledLocalHost'
     run: _Run
-    reference: _OriginalRunReference
+    reference: _OriginalRunReference | None = None
     compute: _SourceFreeCompute | None = None
     preflight: _Output | None = None
     publisher: _Output | None = None
@@ -157,8 +157,14 @@ class _OriginalExecution:
     results: list[_ResultExport] | None = None
     publication: _Output | None = None
     state: _RunStateCustody | None = None
+    submission: _Output | None = None
+    rows_input: _Input | None = None
+    physical_start: _PhysicalStart | None = None
+    start_step: _Output | None = None
 
     def __call__(self) -> None:
+        if self.reference is None:
+            raise ValueError('Original execution has no admitted reference')
         self.host._execute_original_admitted_run(self.run)
 
     def input_cleanup(self) -> bool:
@@ -481,8 +487,9 @@ class InstalledLocalHost:
                         raise ValueError('Invalid original saved Local Submission response')
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
                 elif action == 'missing':
-                    run, admission = self._accept_original(body['submissionRef'],
+                    original, admission = self._accept_original(body['submissionRef'],
                         wire_bytes(intent), run_id='python-' + secrets.token_hex(16))  # type: ignore[no-untyped-call]
+                    run = None if original is None else original.run
                     saved = _object(admission, 1048576)
                     if run is None:
                         if (saved.get('kind') != 'preparation_failed'
@@ -505,8 +512,10 @@ class InstalledLocalHost:
                         raise ValueError('Invalid original Local Submission response')
                     raw = wire_bytes(value)  # type: ignore[no-untyped-call]
                     if run is not None:
+                        assert original is not None
                         reference = self._register_original_run_reference(run, admission)
-                        work = OriginalLocalWork(_OriginalExecution(self, run, reference),
+                        original.reference = reference
+                        work = OriginalLocalWork(original,
                             on_exit=self._core._finish_work_operation, owner=run)
                 else:
                     raise ValueError('Invalid original Local Submission action')
@@ -679,12 +688,24 @@ class InstalledLocalHost:
             if self._execution_for_run(original.run) is not original:
                 raise ValueError('Foreign original execution retirement')
             work = next(value for value in self._physical_work if value._invoke is original)
+            if original.reference is None:
+                raise ValueError('Original execution has no admitted reference')
             if (not work.stopped or self._state_observing
                     or getattr(self._core, '_host_retained_work', None) is not None):
                 return False
             publication = original.publication
             held = original.state
             live = any(value is original.reference for value in self._public_run_references)
+            if live and (original.run.handle in self._runs._run_restorations
+                    or not any(value is original.run.preparation for value in self._prepared_inputs)
+                    or any(value is not original.run and value.preparation is original.run.preparation
+                           for value in self._runs._runs.values())):
+                # Only this Host's fresh private preparation is selected.
+                # Shared/explicit and restored originals keep their owners.
+                return False
+            if (self._uncertain_ticket is not None or self._pending_run_write is not None
+                    or self._pending_start_write is not None or self._pending_binding_write is not None):
+                return False
             if live and self._original_work_failed(work):
                 # A confirmed business observation does not erase a physical
                 # invocation/exit/cleanup failure. Its original whole-Host
@@ -796,6 +817,8 @@ class InstalledLocalHost:
                                 raise LocalProductCleanupPending(self)
                             self._inputs.pop(index)
                         index -= 1
+                    if not self._retire_original_execution_parents(original):
+                        raise LocalProductCleanupPending(self)
                     if not self._core.close_input(original.reference.source):
                         raise LocalProductCleanupPending(self)
                     self._inputs.remove(original.reference.source)
@@ -805,6 +828,70 @@ class InstalledLocalHost:
                 if work._cleanup_error is None:
                     work._cleanup_error = error
                 raise
+
+    def _retire_original_execution_parents(self, original: _OriginalExecution) -> bool:
+        """Same selected ACK chain, never a scan for supposedly obsolete work.
+
+        The success reader selected this callable before child retirement.
+        A partial return retains it, including originals whose parents have
+        already acknowledged. Do not nominally reclose those retired handles.
+        """
+        run, prepared = original.run, original.run.preparation
+        if original.physical_start is not None:
+            start = original.physical_start
+            if not self._runs.close_physical_start(start):
+                return False
+            self._physical_starts.remove(start)
+            original.physical_start = None
+        if original.start_step is not None:
+            step = original.start_step
+            if not self._core.close_material(step):
+                return False
+            self._step_outputs.remove(step)
+            self._step_write_attempts.discard(step.ticket)
+            original.start_step = None
+        binding = next((value for owner, value in self._publication_bindings if owner is run), None)
+        if binding is not None:
+            if not self._core.close_material(binding):
+                return False
+            self._publication_bindings.remove((run, binding))
+            self._binding_write_attempts.discard(binding.ticket)
+        journal = self._admission_observations.get(run.handle)
+        if journal is not None:
+            if not self._core.close_journal_observation(journal):
+                return False
+            self._journal_outputs.remove(journal)
+            del self._admission_observations[run.handle]
+        rows = next((value for owner, value in self._run_rows if owner is run), None)
+        if rows is not None:
+            if not self._core.close_material(rows):
+                return False
+            self._row_outputs.remove(rows)
+            self._run_rows.remove((run, rows))
+            self._row_write_attempts.discard(rows.ticket)
+        if any(value is run for value in self._run_loans):
+            if not self._runs.close_run(run):
+                return False
+            self._run_loans.remove(run)
+        if any(value is prepared for value in self._prepared_inputs):
+            if not self._preparation.close_preparation(prepared):
+                return False
+            self._prepared_inputs.remove(prepared)
+        if original.submission is not None:
+            if not self._close_projection(original.submission):
+                return False
+            original.submission = None
+        if original.rows_input is not None:
+            if not self._core.close_input(original.rows_input):
+                return False
+            self._inputs.remove(original.rows_input)
+            original.rows_input = None
+        for source in (run.input, prepared.input):
+            if any(value is source for value in self._inputs):
+                if not self._core.close_input(source):
+                    return False
+                self._inputs.remove(source)
+        return True
 
     def _has_live_original_run_reference(self, reference: object) -> bool:
         """Locate existing live custody only; exact equality is not authority."""
@@ -1921,7 +2008,7 @@ class InstalledLocalHost:
         self._inputs.remove(prepared.input)
         return saved
 
-    def _accept_original(self, reference: object, intent: bytes, *, run_id: str) -> tuple[_Run | None, bytes]:
+    def _accept_original(self, reference: object, intent: bytes, *, run_id: str) -> tuple[_OriginalExecution | None, bytes]:
         """Join original preparation, finite issuance, same-TX write and lookup.
 
         Only Core supplies the Policy, row candidate and saved admission. The
@@ -1947,6 +2034,10 @@ class InstalledLocalHost:
             source = self._copy(wire_bytes({'run_id': run_id, 'now': self._now()}))  # type: ignore[no-untyped-call]
             run = self._runs.reserve(configuration, prepared, source)
             self._run_loans.append(run)
+            # Inert private custody, not a runnable Work or public reference.
+            # The existing inventories retain every partial constructor if a
+            # callback fails before this same callable reaches its worker.
+            original = _OriginalExecution(self, run, submission=observed)
             decisions: list[str] = []
             installation.binding.inspect(lambda _: decisions.append(self._runs.prepare_sdk(run, observed)))
             if decisions != ['prepared']:
@@ -1963,6 +2054,7 @@ class InstalledLocalHost:
             row_input = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
                 'reference': wire_bytes(captured_reference).decode('utf-8'),  # type: ignore[no-untyped-call]
                 'preparing': retained['body'], 'now': self._now()}))
+            original.rows_input = row_input
             # The copied row input now owns the consumed transport bytes.
             # Retire only the output before reserving another full row output;
             # Core retains the original record/input borrow for revalidation.
@@ -1981,7 +2073,7 @@ class InstalledLocalHost:
                 raise LocalProductCleanupPending(self)
             admission = self._read_original_saved_admission(run)
             self._pending_run_write = None
-            return run, admission
+            return original, admission
 
     def _read_original_saved_admission(self, run: _Run) -> bytes:
         """Reobserve the retained original rows without preparation, acceptance or dispatch.
@@ -2303,6 +2395,7 @@ class InstalledLocalHost:
             if self._pending_start_write is not None:
                 raise LocalStorageError('Original Local start requires lookup; new Compute is unavailable')
             self._bind_original_publication(run)
+            execution = self._current_execution()
             # Material five asks the existing Owner to retain this Plan's
             # checked normalization. Its transport is not a durable write or
             # dispatch grant; the same Run keeps the original after close.
@@ -2310,6 +2403,8 @@ class InstalledLocalHost:
                 output = self._reserve(lambda: self._core.reserve_material(
                     run.handle, kind, cleanup=lambda: True))
                 self._step_outputs.append(output)
+                if kind == 8 and execution is not None:
+                    execution.start_step = output
                 installation.binding.inspect(lambda _: self._core.produce_material(output))
                 if kind == 5:
                     if not self._core.close_material(output):
@@ -2324,10 +2419,14 @@ class InstalledLocalHost:
                     self._step_write_attempts.discard(output.ticket)
                 else:
                     starts: list[_PhysicalStart] = []
-                    installation.binding.inspect(lambda _: starts.append(
-                        self._runs.reserve_sdk_physical_start(run, output)))
+                    def retain_start(_: _Output) -> None:
+                        start = self._runs.reserve_sdk_physical_start(run, output)
+                        self._physical_starts.append(start)
+                        if execution is not None:
+                            execution.physical_start = start
+                        starts.append(start)
+                    installation.binding.inspect(retain_start)
                     start = starts[0]
-                    self._physical_starts.append(start)
                     installation.binding.inspect(lambda _: self._runs.confirm_physical_start(start))
                     if not self._core.retire_material_output(output):
                         raise LocalProductCleanupPending(self)
