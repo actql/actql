@@ -102433,7 +102433,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_diagnostic.mbt",
-      "sha256": "62c95e530fdc888b3712e73d13c0853f3b58e87995aee5516511aa63893b79df",
+      "sha256": "8ffa75a356261d2ff866a500af0aa354c2323dd8a9e1e9b8f292140885cc0735",
       "exports": [],
       "operations": [
         {

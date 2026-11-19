@@ -177,13 +177,18 @@ fn[T] command_preparation_result(
     Err(issue) => {
       // Closed caller-owned labels and the existing error-family projection
       // identify the failed boundary without exposing paths, keys or messages.
+      // Select the closed original constructor before the same existing
+      // joins. Never inspect its payload or replace the cleanup receiver.
+      let kind = match issue {
+        CommandRead(Domain(_)) => "read:Domain"
+        CommandRead(Child(_)) => "read:Child"
+        CommandRead(Read(_)) => "read:Read"
+        CommandRead(Buffer(_)) => "read:Buffer"
+        _ => command_preparation_cleanup_kind(issue)
+      }
       let message = match stage {
         None => "LocalCommandPreparationUnavailable"
-        Some(name) =>
-          "LocalCommandPreparationUnavailable:" +
-          name +
-          ":" +
-          command_preparation_cleanup_kind(issue)
+        Some(name) => "LocalCommandPreparationUnavailable:" + name + ":" + kind
       }
       let disclosed = match issue {
         CommandCapture(original) =>

@@ -33,6 +33,94 @@ fn command_diagnostic_fixture(
 }
 
 ///|
+test "Preparation stage tags retain the same original failure across Read return" {
+  let cases : Array[(@local_host.NativeClientSubmittedPreparationIssue, String)] = [
+    (
+      Preparation(Computation(EffectNotSupported("PRIVATE_SOURCE"))),
+      "Preparation:Computation",
+    ),
+    (
+      Preparation(EffectComputation(RequestValuePolicyConstruction)),
+      "Preparation:EffectComputation",
+    ),
+    (RequestPreparation(WrongPhase), "RequestPreparation"),
+  ]
+  for (original, tag) in cases {
+    local_command_diagnostic_reset()
+    let stopped = try {
+      local_stop_submitted_preparation(original)
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    let returned = command_preparation_read_return_issue(
+      Some(Err(stopped)),
+      CommandAdoption(@local_host.OriginalResourceScopePending),
+    )
+    guard returned is CommandApplication(retained) else {
+      fail(
+        "the failed return must preserve the same primary application failure",
+      )
+    }
+    assert_eq(retained, stopped)
+    let (code, message) = local_command_primary_diagnostic(retained)
+    assert_eq(code, "ACTQL_E_PREPARATION_FAILED")
+    assert_eq(
+      message,
+      "The original preparation could not be completed. [" + tag + "]",
+    )
+    assert_true(message.length() < 160)
+    let wire = local_command_failure_text(retained, true)
+    guard @json.parse(wire) is Object(fields) else {
+      fail("the original public diagnostic must remain an object")
+    }
+    assert_eq(fields.length(), 2)
+    assert_eq(fields.get("code"), Some(Json::string(code)))
+    assert_eq(fields.get("message"), Some(Json::string(message)))
+    assert_false(wire.contains("PRIVATE_SOURCE"))
+    assert_false(wire.contains("OriginalResourceScopePending"))
+  }
+  local_command_diagnostic_reset()
+}
+
+///|
+// This independently bounds every selected nullary presentation variant. It
+// does not fabricate the read-only Request/normalization error constructors.
+test "Closed preparation stages fit the unchanged diagnostic writer envelope" {
+  for
+    kind in [
+      PreparationFailed,
+      PreparationFailedFrontend,
+      PreparationFailedCheck,
+      PreparationFailedComputation,
+      PreparationFailedEffectComputation,
+      PreparationFailedRequest,
+      PreparationFailedRequestPreparation,
+      PreparationFailedNormalizationPreparation,
+      PreparationFailedNormalization,
+    ] {
+    local_command_diagnostic_reset()
+    command_preparation_diagnostic.val = kind
+    let (code, message) = local_command_primary_diagnostic("PRIVATE_IGNORED")
+    assert_eq(code, "ACTQL_E_PREPARATION_FAILED")
+    assert_true(
+      message.has_prefix("The original preparation could not be completed."),
+    )
+    assert_true(message.length() < 160)
+    let wire = local_command_failure_text("PRIVATE_IGNORED", true)
+    assert_true(@utf8.encode(wire).length() < 4096)
+    assert_false(wire.contains("PRIVATE_IGNORED"))
+    assert_false(wire.contains("…"))
+    guard @json.parse(wire) is Object(fields) else {
+      fail("the unchanged writer must retain the complete fixed message")
+    }
+    assert_eq(fields.length(), 2)
+    assert_eq(fields.get("message"), Some(Json::string(message)))
+  }
+  local_command_diagnostic_reset()
+}
+
+///|
 test "runtime requirements diagnostics preserve actual phase and proven dimension" {
   let cases : Array[
     (@local_values.ClientLocalRequirementsIssue, String, String),
