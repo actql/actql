@@ -52660,6 +52660,13 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_configure_original_compute/retain_start",
+          "parameters": [
+            "_"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_copy",
           "parameters": [
             "self",
@@ -53397,6 +53404,14 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_retire_original_execution_parents",
+          "parameters": [
+            "self",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_retire_original_tasks",
           "parameters": [
             "self",
@@ -53673,7 +53688,7 @@
           "async": false
         }
       ],
-      "sha256": "75f5298e9f4f7836ab58fc35c914803c8eb6edf5d74344e39aba20425f5c8b0f",
+      "sha256": "1f5a479728766f69b4456d548237ca9d29c7d4e3464589025335387bee52a636",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -53709,6 +53724,7 @@
             "InstalledLocalHost/_commit_original_run_rows",
             "InstalledLocalHost/_commit_original_run_rows/inspect",
             "InstalledLocalHost/_configure_original_compute",
+            "InstalledLocalHost/_configure_original_compute/retain_start",
             "InstalledLocalHost/_copy",
             "InstalledLocalHost/_ensure_original_publication_observation",
             "InstalledLocalHost/_execute_original_admitted_run",
@@ -53853,6 +53869,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def retain_start("
               }
             ],
             "inputsOutputs": [
@@ -53903,6 +53923,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def retain_start("
               }
             ],
             "identity": [
@@ -53957,6 +53981,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def retain_start("
               }
             ],
             "ownership": [
@@ -54011,6 +54039,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def retain_start("
               }
             ],
             "synchronization": [
@@ -54065,6 +54097,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def retain_start("
               }
             ],
             "failure": [
@@ -54119,6 +54155,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def retain_start("
               }
             ],
             "cancellation": [
@@ -54169,6 +54209,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def retain_start("
               }
             ],
             "resources": [
@@ -54223,6 +54267,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def retain_start("
               }
             ],
             "extension": [
@@ -54273,6 +54321,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Successful execution-child retirement"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def retain_start("
               }
             ],
             "verification": [
@@ -54431,6 +54483,18 @@
               {
                 "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
                 "anchor": "def test_retirement_export_ack_precedes_task_and_pending_task_retries_same_original("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def retain_start("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_start.py",
+                "anchor": "def test_real_active_cancellation_fixture_forwards_same_nominal_run_in_both_modes("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_start.py",
+                "anchor": "def test_post_current_failure_after_start_reserve_keeps_both_original_inventories("
               }
             ]
           }
@@ -56408,6 +56472,7 @@
             "InstalledLocalHost/_execution_for_run",
             "InstalledLocalHost/_original_work_failed",
             "InstalledLocalHost/_retire_original_execution",
+            "InstalledLocalHost/_retire_original_execution_parents",
             "_OriginalExecution",
             "_OriginalExecution/__call__",
             "_OriginalExecution/input_cleanup"
@@ -56430,6 +56495,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _original_work_failed("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution_parents("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
               }
             ],
             "inputsOutputs": [
@@ -56448,6 +56521,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _original_work_failed("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution_parents("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
               }
             ],
             "identity": [
@@ -56466,6 +56547,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _original_work_failed("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution_parents("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
               }
             ],
             "ownership": [
@@ -56484,6 +56573,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _original_work_failed("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution_parents("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
               }
             ],
             "synchronization": [
@@ -56502,6 +56599,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _original_work_failed("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution_parents("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
               }
             ],
             "failure": [
@@ -56520,6 +56625,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _original_work_failed("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution_parents("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
               }
             ],
             "cancellation": [
@@ -56538,6 +56651,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _original_work_failed("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution_parents("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
               }
             ],
             "resources": [
@@ -56556,6 +56677,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _original_work_failed("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution_parents("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
               }
             ],
             "extension": [
@@ -56574,6 +56703,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _original_work_failed("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution_parents("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
               }
             ],
             "verification": [
@@ -56628,6 +56765,42 @@
               {
                 "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
                 "anchor": "async def test_failed_worker_state_transport_false_ack_keeps_same_original_custody("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _retire_original_execution_parents("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "async def test_parent_constructor_retains_same_submission_and_rows_before_callbacks("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "async def test_parent_retirement_keeps_shared_restored_and_pending_originals("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "async def test_parent_retirement_keeps_original_unpublished_state_projection("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "async def test_parent_ack_order_and_retry_skip_only_acknowledged_originals("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "async def test_parent_retirement_returns_same_fresh_run_and_preparation_after_child_ack("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "For a fresh private Host submission, the same inert callable begins immediately"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_start.py",
+                "anchor": "def test_same_execution_retains_start_and_step_before_original_callbacks("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_finite_run.py",
+                "anchor": "def test_known_prepare_failure_keeps_partial_parents_without_starting_work("
               }
             ]
           }
@@ -85282,7 +85455,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "b5ee5d6037087d82c13f063e065a3defc56039dab45d795aa73e7394a675b994",
+      "sha256": "bec27a63dff95037b9652ddb93efd80e79e0a6ed0bf75e246e71e7b9f7cba3ff",
       "exports": [],
       "operations": [
         {
@@ -85316,6 +85489,10 @@
         {
           "name": "local_command_recovery_failure",
           "declaration": "local_command_recovery_failure ( message : String ) - > String"
+        },
+        {
+          "name": "local_file_open_failure_message",
+          "declaration": "local_file_open_failure_message ( issue : @ local_host . NativeClientSourceWorkIssue , ) - > String"
         },
         {
           "name": "local_file_publication_failure_message",
@@ -85372,7 +85549,8 @@
             "LocalCommandPreparationOriginal::execute_product_command",
             "LocalCommandPreparationOriginal::prepare_project_text_payload",
             "LocalCommandPreparationOriginal::retain_cancellation_recovery",
-            "local_file_publication_failure_message"
+            "local_file_publication_failure_message",
+            "local_file_open_failure_message"
           ],
           "exports": [],
           "attributes": {
@@ -88366,7 +88544,7 @@
           }
         }
       ],
-      "sha256": "a063ae90d3535f86956bed7224e653d1383ea477d00fb274c14adab17df4f327",
+      "sha256": "7e12c5abcfa96c21a309c792f4c10089a9674ff292a1c47ed87999c86e2aa15a",
       "exports": [],
       "operations": [
         {

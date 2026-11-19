@@ -15,7 +15,8 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_core import LocalCoreError, _Task, _ResultExport
-from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending, _OriginalExecution
+from actql_sdk._local_run import LocalRunCustody, _PhysicalStart
+from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending, _OriginalExecution, _RunStateCustody
 from actql_sdk._local_work import OriginalLocalWork
 from actql_sdk._local_storage import LocalStorageCommitUnknown
 from actql_sdk._values import wire_bytes
@@ -27,6 +28,204 @@ SAVED_STATE = b'{"opaque":"same original Core saved state","revision":0}'
 
 
 class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
+    async def test_parent_constructor_retains_same_submission_and_rows_before_callbacks(self):
+        originals = []
+        initialize = _OriginalExecution.__init__
+        prepare = LocalRunCustody.prepare_sdk
+        reserve_rows = LocalRunCustody.reserve_submitted_rows
+        def init(original, *args, **kwargs):
+            initialize(original, *args, **kwargs)
+            originals.append(original)
+        def before_prepare(custody, run, submission):
+            self.assertEqual(len(originals), 1)
+            original = originals[0]
+            self.assertIs(original.run, run)
+            self.assertIs(original.submission, submission)
+            self.assertIsNone(original.reference)
+            self.assertFalse(original.host._physical_work)
+            return prepare(custody, run, submission)
+        def before_rows(custody, run, current, source, **kwargs):
+            self.assertIs(originals[0].rows_input, source)
+            self.assertIs(originals[0].run, run)
+            return reserve_rows(custody, run, current, source, **kwargs)
+        with TemporaryDirectory() as directory:
+            with patch.object(_OriginalExecution, '__init__', init), patch.object(
+                    LocalRunCustody, 'prepare_sdk', before_prepare), patch.object(
+                    LocalRunCustody, 'reserve_submitted_rows', before_rows):
+                host, core, client, run, _, _, _, _, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            await asyncio.wait_for(host._physical_work[0].wait_stopped(), 2)
+            self.assertIs(original, originals[0])
+            self.assertIs(original.reference.run, run)
+            observe(lambda _: None)
+            self.assertIsNone(original.submission)
+            self.assertIsNone(original.rows_input)
+            await client.aclose()
+
+    async def test_parent_retirement_keeps_shared_restored_and_pending_originals(self):
+        for reason in ('shared', 'restored', 'pending'):
+            with self.subTest(reason=reason), TemporaryDirectory() as directory:
+                host, core, client, run, _, _, _, _, observe = await self.bridge(directory)
+                original = self.selected_execution(host, run)
+                work = host._physical_work[0]
+                await asyncio.wait_for(work.wait_stopped(), 2)
+                other = None
+                if reason == 'shared':
+                    source = host._copy(b'original second invocation input')
+                    other = host._runs.reserve(run.configuration, run.preparation, source)
+                    host._run_loans.append(other)
+                elif reason == 'restored':
+                    # Explicit negative inventory port, not actual restored
+                    # admission/material. Presence must never permit cleanup.
+                    host._runs._run_restorations[run.handle] = object()
+                else:
+                    host._pending_start_write = next(value for owner, value in host._run_rows if owner is run)
+                observe(lambda _: None)
+                self.assertIn(original.reference, host._public_run_references)
+                self.assertIn(run, host._run_loans)
+                self.assertIn(run.preparation, host._prepared_inputs)
+                self.assertIn(original.publication, host._publications)
+                self.assertIsNone(work._cleanup_error)
+                if other is not None:
+                    self.assertTrue(host._runs.close_run(other))
+                    host._run_loans.remove(other)
+                host._runs._run_restorations.pop(run.handle, None)
+                host._pending_start_write = None
+                await client.aclose()
+
+    async def test_parent_retirement_keeps_original_unpublished_state_projection(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, _, _, _, _, _ = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            work = host._physical_work[0]
+            await asyncio.wait_for(work.wait_stopped(), 2)
+            reference = json.loads(core._inputs[original.reference.source.ticket].payload)
+            source = host._copy(wire_bytes({**reference, 'run': run.handle,
+                'observed_at': '2026-11-18T00:00:00.000Z'}))
+            output = core.reserve_submission_projection(host._configuration.handle, source, 12,
+                cleanup=lambda: True)
+            host._projections.append(output)
+            host._append_sources[output.ticket] = source
+            held = _RunStateCustody(run, None, source, output=output)
+            host._run_state_custody[run.handle] = held
+            original.state = held
+            # A genuine constructor/nominal slot through explicit scalar
+            # ports, not a completed or physically pending write certificate.
+            with patch.object(core, 'close_unpublished_state', side_effect=AssertionError('Unpublished owner was discarded')):
+                self.assertFalse(host._retire_original_execution(original))
+            self.assertIs(host._run_state_custody[run.handle], held)
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertIn(original.reference, host._public_run_references)
+            self.assertIn(run, host._run_loans)
+            await client.aclose()
+
+    async def test_parent_ack_order_and_retry_skip_only_acknowledged_originals(self):
+        for boundary in ('start', 'run', 'preparation', 'rows_input'):
+            with self.subTest(boundary=boundary), TemporaryDirectory() as directory:
+                host, core, client, run, _, _, _, _, observe = await self.bridge(directory)
+                original = self.selected_execution(host, run)
+                work = host._physical_work[0]
+                await asyncio.wait_for(work.wait_stopped(), 2)
+                rows = next(value for owner, value in host._run_rows if owner is run)
+                submission, prepared, rows_input = original.submission, run.preparation, original.rows_input
+                previous = core._call
+                materials, events, declined = {}, [], [True]
+                def port(family, name, *args):
+                    if (family, name) == ('material', 'reserve'):
+                        handle = 6000000 + args[2]
+                        materials[handle] = (args[1], args[2])
+                        return handle
+                    label = None
+                    if (family, name) == ('run', 'close_physical_start'):
+                        label = 'start'
+                    elif (family, name) == ('material', 'close') and args[0] in materials:
+                        label = str(materials[args[0]][0])
+                    elif (family, name, args) == ('journal', 'close', (journal.handle,)):
+                        label = 'journal'
+                    elif (family, name, args) == ('material', 'close', (rows.handle,)):
+                        label = 'rows'
+                    elif (family, name, args) == ('run', 'close', (run.handle,)):
+                        label = 'run'
+                    elif (family, name, args) == ('program', 'close_preparation', (prepared.handle,)):
+                        label = 'preparation'
+                    elif (family, name, args) == ('submission', 'close', (submission.handle,)):
+                        label = 'submission'
+                    elif (family, name, args) == ('buffer', 'close', (rows_input.handle,)):
+                        label = 'rows_input'
+                    if label is not None:
+                        events.append(label)
+                        if label == boundary and declined[0]:
+                            return -9
+                    if (family, name) == ('run', 'close_physical_start'):
+                        return 0
+                    if (family, name) == ('material', 'close') and args[0] in materials:
+                        return core._cleanup(materials[args[0]][1])
+                    return previous(family, name, *args)
+                # Explicit original scalar Core ports, not actual physical
+                # start/Journal admission. Constructor capture is exercised
+                # separately through the imported start caller.
+                journal = core.reserve_journal_observation(rows, host._configuration.handle,
+                    store=host._installation._store, current=host._installation.binding._current_observer,
+                    cleanup=lambda: True)
+                host._journal_outputs.append(journal)
+                host._admission_observations[run.handle] = journal
+                with patch.object(core, '_call', side_effect=port):
+                    step = core.reserve_material(run.handle, 8, cleanup=lambda: True)
+                    binding = core.reserve_material(run.handle, 9, cleanup=lambda: True)
+                    host._step_outputs.append(step)
+                    host._publication_bindings.append((run, binding))
+                    original.start_step = step
+                    start = _PhysicalStart(host._runs._identity, 9900201, run, run.configuration, run.input)
+                    host._runs._starts[start.handle] = start
+                    host._physical_starts.append(start)
+                    original.physical_start = start
+                    with self.assertRaises(LocalProductCleanupPending) as failed:
+                        observe(lambda _: None)
+                    self.assertIn(work, host._physical_work)
+                    self.assertNotIn(original.reference, host._public_run_references)
+                    self.assertIs(work._cleanup_error, failed.exception)
+                    if boundary in ('preparation', 'rows_input'):
+                        self.assertNotIn(run.handle, host._runs._runs)
+                    if boundary == 'preparation':
+                        self.assertIn(prepared.handle, host._preparation._preparations)
+                    if boundary == 'rows_input':
+                        self.assertNotIn(prepared.handle, host._preparation._preparations)
+                        self.assertIs(original.rows_input, rows_input)
+                    declined[0] = False
+                    self.assertTrue(host._retire_original_execution(original))
+                expected = ['start', '8', '9', 'journal', 'rows', 'run', 'preparation', 'submission', 'rows_input']
+                expected.insert(expected.index(boundary), boundary)
+                self.assertEqual(events, expected)
+                self.assertNotIn(work, host._physical_work)
+                self.assertIsNone(original.physical_start)
+                self.assertIsNone(original.start_step)
+                self.assertIsNone(original.submission)
+                self.assertIsNone(original.rows_input)
+                await client.aclose()
+
+    async def test_parent_retirement_returns_same_fresh_run_and_preparation_after_child_ack(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, store, key, calls, _, observe = await self.bridge(directory)
+            original = self.selected_execution(host, run)
+            work = host._physical_work[0]
+            await asyncio.wait_for(work.wait_stopped(), 2)
+            preparation = run.preparation
+            configuration, environment = host._configuration, host._environment
+            observe(lambda _: None)
+            self.assertNotIn(run, host._run_loans)
+            self.assertNotIn(run.handle, host._runs._runs)
+            self.assertNotIn(preparation, host._prepared_inputs)
+            self.assertNotIn(preparation.handle, host._preparation._preparations)
+            self.assertNotIn(run.input.ticket, core._loans)
+            self.assertNotIn(preparation.input.ticket, core._loans)
+            self.assertFalse(host._run_rows)
+            self.assertNotIn(work, host._physical_work)
+            self.assertEqual(store.read(key).payload, SAVED_STATE)
+            self.assertEqual(calls.count('confirm_sdk_run_state'), 1)
+            self.assertIs(host._configuration, configuration)
+            self.assertIs(host._environment, environment)
+            await client.aclose()
+
     async def test_failed_worker_returns_confirmed_state_transport_before_read_admission(self):
         failure = LocalStorageCommitUnknown(object())
         with TemporaryDirectory() as directory:
@@ -291,7 +490,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(unrelated, host._inputs)
             self.assertIs(core._loans[unrelated.ticket], unrelated)
             self.assertEqual(core._inputs[unrelated.ticket].payload, b'independent-original')
-            self.assertIn(run, host._run_loans)  # Not full historical Host closure.
+            self.assertNotIn(run, host._run_loans)  # Only this fresh private Run's parents.
             with self.assertRaises(ValueError):
                 host._retire_original_execution(original)
             await client.aclose()
@@ -359,11 +558,13 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(original.tasks, [task])
             self.assertIs(core._task_loans[task.handle], task)
             self.assertIn(work, host._physical_work)
+            self.assertIn(run, host._run_loans)
             pending[0] = False
             self.assertTrue(host._retire_original_execution(original))
             self.assertEqual(returned, [result, task, task])
             self.assertNotIn(task.handle, core._task_loans)
             self.assertNotIn(work, host._physical_work)
+            self.assertNotIn(run, host._run_loans)
             await client.aclose()
 
     async def test_confirmed_response_guard_and_transfer_share_original_read_frame(self):

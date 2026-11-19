@@ -752,8 +752,9 @@ fn LocalCommandBusinessPreparation::open_file_work(
       work
     }
     Err(failure) => {
+      let primary = failure.issue()
       business.file_failure = Some(failure)
-      stop("LocalOriginalSourceWorkUnavailable")
+      stop(local_file_open_failure_message(primary))
     }
   }
 }

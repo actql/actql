@@ -3358,6 +3358,14 @@ Only an advancing original finite cleanup cursor permits further local cleanup
 steps. An external or unchanged pending cursor retains the original task without
 spinning, replacing the primary cause or acquiring another operation allowance.
 
+Private ABI88 task progress field5 also returns its existing `-1` sentinel for
+a valid, nonpending reserved task that has no provider operations. Reservation
+or a refused start can leave this original state. It means there is no local
+provider continuation, not that the task stopped or released its resources.
+The same close operation still checks dependent-task and Result pins and alone
+acknowledges task retirement. Missing or pending originals retain `-33`; field4
+and normal advance/current/cancellation checks are unchanged.
+
 Result export and publication preparation use the same bounded read-step owner.
 Each feed or advance keeps its existing 256-work quantum and original cursor,
 but ends its current frame and Store reader before releasing the Core lock.
@@ -4366,8 +4374,34 @@ remaining loans for cleanup-only retry. It does not restore the live route,
 replace the initiating failure, refresh consumed work, join a Thread while
 holding a lock, or infer physical ACK from an absent child.
 
-This closes an execution-child set, not every historical Host parent. Original
-Run/preparation/admission/start/row materials and copies outside that recorded
-construction set retain their existing owners until their own close. Fully
-bounded long-lived Host history and ordinary physical acceptance require
-separate evidence; successful child cleanup alone establishes neither.
+For a fresh private Host submission, the same inert callable begins immediately
+after the original Run reservation. Four fixed reference slots retain its
+observed submission, rows input, physical start and start material before their
+fallible callbacks. The first two are retained during acceptance; the worker
+retains the latter two. The admitted reference is bound only after the existing
+acceptance and registration, before creating its runnable physical Work. A
+partial constructor still leaves every loan on the existing Host inventories;
+an uninvoked worker is not added early as a substitute cleanup owner.
+The physical-start consume callback retains the constructor's same returned
+loan in both its existing Host inventory and the execution record before the
+binding performs any post-current, settings or fence check. A failed post-check
+keeps that original loan and initiating error; confirmation is not attempted.
+
+After the execution children acknowledge, the same record returns physical
+start, start material, publication-binding material, original Journal and rows,
+Run, and its private preparation, in that dependency order. Existing Core
+guards decide each return, including settling the Run's original row capacity.
+Only then may the original submission and its inputs return. Each field or
+inventory alias clears after the corresponding acknowledgment; a retry skips
+already returned nominal handles and retains the same remaining debt and first
+failure. The record and stopped Work remain until the selected parent returns
+complete. No pending write or unpublished-state holder is discarded to force
+that completion, and consumed work/attempts are not refreshed.
+
+Only the preparation created by this private fresh-submission factory is
+selected. A shared preparation borrower, restored Run or pending write blocks
+success retirement. Environment, configuration, installation and other explicit
+holders keep their independent owners. Inputs outside the recorded construction
+set are not globally pruned. Fully bounded long-lived Host history, ordinary
+physical acceptance and separately retained recovery/read operations require
+their own evidence; this finite selected set establishes none of them alone.
