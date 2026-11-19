@@ -620,16 +620,16 @@ fn retained_consumer_holder_case(
       () => true,
     )
     if effect.normalization is Some(_) {
-      // The ordinary Effect-free materials codec refuses an issued journal
-      // before preparing the Program. Keep that earlier admission boundary;
-      // never strip original normalization to reach a later Effect guard.
+      // Ordinary saved materials now restore admitted Pure/Model journals.
+      // This SAME Effect Program is refused by Effect-free preparation before
+      // journal restoration; keep the original journal and exact refusal.
       assert_true(
         denied
         is Err(
           @resident.Refused(
             @resident_protocol.MaterialsRejected(
-              @host.ClientValuesRunMaterialsIssue::MaterialsEvidence(
-                "normalization_journal"
+              @host.ClientValuesRunMaterialsIssue::MaterialsProgram(
+                @host.ClientProgramPreparationIssue::EffectNotSupported(_)
               )
             )
           )
