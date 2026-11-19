@@ -292,9 +292,14 @@ pub fn native_relation_files_work_control_capacity(
       // Read/acquisition tuples, option/Result handoffs and per-slot Source
       // wrappers; the fixed partial failure/capture/clock/cleanup closures.
       // The same managed-owner/count route pair adds H1/R1/W1.
-      record_headers: 33L + 12L * count.to_int64(),
-      reference_slots: 65L + 20L * count.to_int64(),
-      scalar_words: 49L + 12L * count.to_int64(),
+      // One additional original prepared-extent check after the once-only
+      // Ledger take: backed-original and binding Ok(Unit), holder Ok,
+      // extent pair/Ok, map_err closure and conservative mapped Ok.
+      // H7/R3/W9 = 208 logical bytes, summed without cleanup/GC reuse.
+      // The body Some is borrowed; owner-retired and scope checks are pure.
+      record_headers: 33L + 7L + 12L * count.to_int64(),
+      reference_slots: 65L + 3L + 20L * count.to_int64(),
+      scalar_words: 49L + 9L + 12L * count.to_int64(),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })

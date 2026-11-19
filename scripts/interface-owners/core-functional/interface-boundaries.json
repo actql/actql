@@ -110963,7 +110963,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "52ab3fa07ce74f8f2b4ce5733666cc182c7db3e11e3502850e9a899f4f84d825",
+      "sha256": "25d774a826c8af324f068713673b6566613086600c6697810941e14307caa449",
       "exports": [],
       "operations": [
         {
@@ -111760,7 +111760,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_work_capacity.mbt",
-      "sha256": "b72919b93b74b07b6af9fd30fd8feb5dbbf43aa38f522ca74798f1709bf83880",
+      "sha256": "fed121c93a2ed70a77b4015287efc94994f744e02d8810eb647ea007e95b3875",
       "exports": [],
       "operations": [
         {
@@ -113102,7 +113102,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_work_capacity.mbt",
-      "sha256": "4d825bd2d0d7b972b335f1e0eaa51149e598042cd587db2e6793e5501772c9a5",
+      "sha256": "767786a72446b8180349695a85470cbee7efaed4243f40415b8e3fea1e46b991",
       "exports": [],
       "operations": [
         {

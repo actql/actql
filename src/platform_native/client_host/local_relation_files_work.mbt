@@ -90,7 +90,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   let request = access.base.request
   if quantum <= 0 ||
     max_rounds <= 0 ||
-    !entry.arena.owns_only_control() ||
+    !entry.arena.matches_business_scope(false) ||
     !managed_relation_file_originals_match(access.source, prepared, request) ||
     @strategy.graph_result_count(@host.prepared_client_graph(prepared)) != 1 ||
     @strategy.graph_program_has_effects(@host.prepared_client_graph(prepared)) ||
