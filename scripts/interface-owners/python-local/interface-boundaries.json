@@ -1,5 +1,5 @@
 {
-  "source": "ddf942dea52412f30e3c939494ad13ea486969e6",
+  "source": "0bc674d1cb12c243bdfb8b1cb1f6c6c7cb913659",
   "syntaxProjectionSha256": "60a6ef5e050c42bbb53e0cc2f1088c70ba94aa1cd419e3872e21d85aef92c47a",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
@@ -53847,7 +53847,7 @@
           "async": false
         }
       ],
-      "sha256": "5201f4799f6485b03c2cd95a6998858278e18baeb58fbd2464433cf92f1e0e08",
+      "sha256": "1ce31ffe65a6556bcd0fd6b1e02c4be6ed776afad7e3f376c47607a7a9ea3c50",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -54032,6 +54032,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "inputsOutputs": [
@@ -54086,6 +54090,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "identity": [
@@ -54144,6 +54152,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "ownership": [
@@ -54202,6 +54214,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "synchronization": [
@@ -54260,6 +54276,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "failure": [
@@ -54318,6 +54338,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "cancellation": [
@@ -54372,6 +54396,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "resources": [
@@ -54430,6 +54458,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "extension": [
@@ -54484,6 +54516,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def retain_start("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Confirmed cancellation stop interest"
               }
             ],
             "verification": [
@@ -54654,6 +54690,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_sdk_start.py",
                 "anchor": "def test_post_current_failure_after_start_reserve_keeps_both_original_inventories("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_confirmed_cancel_between_gate_and_next_drive_selects_same_original_retirement("
               }
             ]
           }
@@ -57193,6 +57233,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
                 "anchor": "def test_entered_stop_gate_keeps_identity_without_scanning_unrelated_work("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_pending_cancel_readback_preserves_unrelated_live_run_lookup("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_cancellation_stop_interest.py",
+                "anchor": "def test_pending_cancel_readback_retains_same_original_stop_and_close_debt("
               }
             ]
           }
