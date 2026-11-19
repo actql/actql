@@ -53,9 +53,9 @@ fn original_explanation_capture_body(
 }
 
 ///|
-// Each phase describes complete coexistence. Retention is monotonic and the
-// fixed quotation/measurement controls remain live throughout the first ACK.
-// No observed progress shrinks/refills the same reservation or resets debt.
+// Each constructor phase describes complete coexistence. Retention is
+// monotonic. Only its returned measurement-name scratch has a separate,
+// success-only execution cut after the whole constructor frame has returned.
 fn reserve_original_explanation_capture(
   value : ClientOriginalExplanationCapture,
   retained : Int64,
@@ -231,6 +231,60 @@ fn construct_original_explanation_capture(
 }
 
 ///|
+// Both original reference-name measuring buffers have returned with the
+// constructor frame. Their maximum two UTF-16 names cost 4 * max_bytes;
+// parsed Plan/Facts, emitted wires, original tuple and all other quoted
+// controls remain charged. Subtract from CURRENT shared extents so a later
+// sibling increment is never discarded. This runs once per successful
+// constructor; failed/pending construction keeps its entire original debit.
+fn reconcile_original_explanation_measurement_scratch(
+  value : ClientOriginalExplanationCapture,
+  max_bytes : Int,
+) -> Result[Unit, ClientOriginalExplanationCaptureIssue] {
+  guard max_bytes > 0 &&
+    original_explanation_capture_body(value) is Some(body) &&
+    value.original is Some((run, _, _)) else {
+    return Err(ForeignOriginal)
+  }
+  // A pre-adoption capture owns a construction-input loan. Its adapter cannot
+  // mutate a running phase. Use the SAME Run's existing publication holder,
+  // exactly as construction growth does; acquire no additional body borrower.
+  let holder = match managed_run_publication_body(run, body) {
+    Err(_) => return Err(ForeignOriginal)
+    Ok(value) => value
+  }
+  let scratch = 4L * max_bytes.to_int64()
+  guard value.held_execution >= value.base_execution &&
+    value.held_execution - value.base_execution >= scratch else {
+    return Err(ConstructionUnavailable)
+  }
+  let (_, execution) = match
+    @resources.preparation_body_borrow_reserved_extents(holder) {
+    Err(issue) => return Err(Capacity(issue))
+    Ok(value) => value
+  }
+  if execution < value.held_execution {
+    return Err(ForeignOriginal)
+  }
+  let target = execution - scratch
+  match
+    @resources.reconcile_preparation_publication_execution(holder, body, target) {
+    Err(issue) => Err(Capacity(issue))
+    Ok(_) => {
+      // The original current callback may retire the capture's distinct
+      // construction-input loan while another Run holder remains live.
+      // Ending dead scratch does not authorize an output handoff afterward.
+      guard original_explanation_capture_body(value) is Some(current) &&
+        physical_equal(current, body) else {
+        return Err(ForeignOriginal)
+      }
+      value.held_execution = target
+      Ok(())
+    }
+  }
+}
+
+///|
 /// First ordinary Plan admission only. The existing adopted Run selects its
 /// own retained preparation, request association and actual compiler artifact;
 /// callers cannot substitute a bare borrow, Ledger, Boolean or byte allowance.
@@ -356,7 +410,7 @@ fn capture_installed_original_explanation(
     facts: None,
     dispatch_failure_observed: false,
   }
-  match
+  let constructed = match
     construct_original_explanation_capture(
       value,
       controls,
@@ -365,6 +419,10 @@ fn capture_installed_original_explanation(
       depth,
       retain_original~,
     ) {
+    Ok(_) => reconcile_original_explanation_measurement_scratch(value, bytes)
+    Err(issue) => Err(issue)
+  }
+  match constructed {
     Ok(_) => Ok(value)
     Err(primary) =>
       match return_installed_original_explanation_capture(value) {

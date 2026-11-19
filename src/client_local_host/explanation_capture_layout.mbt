@@ -27,7 +27,9 @@ let explanation_capture_control_bytes : Int64 = {
     static_plan_quote_units(16L, 24L, 12L),
     // Capture scope, original correspondence tuple/Some, current read/extent
     // Options, two geometry/failure cells, internal reservation callback and
-    // final original Plan/Facts tuple. No callback authority is exported.
+    // final original Plan/Facts tuple. The returned constructor's same
+    // fixed current/extent/sum controls also cover its sequential scratch cut;
+    // no extra stored fields or callback authority are introduced.
     static_plan_quote_units(24L, 64L, 48L),
     // Two mandatory body/complete validator quotations and ONE shared full
     // parse/emitter/hash/text/sort codec quotation, not a raw byte multiplier.

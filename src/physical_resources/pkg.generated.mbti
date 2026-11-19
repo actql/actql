@@ -522,6 +522,8 @@ pub fn[P, C, R] read_backed_original_child_window_bytes(BackedExecutionLiveProje
 
 pub fn[I, P] reconcile_current_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
+pub fn[P] reconcile_preparation_publication_execution(PreparationBodyBorrow[P], P, Int64) -> Result[Unit, PreparationCapacityIssue]
+
 pub fn reconcile_unborrowed_shared_allocation_after_cleanup(SharedCapacity, SharedAllocation, Int64, Int64) -> Result[Unit, LedgerIssue]
 
 pub fn[I, P] reconcile_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]

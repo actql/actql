@@ -76681,7 +76681,7 @@
           }
         }
       ],
-      "sha256": "7d28651915af7247ae3b9cca42f9b5d0cc9e6ca72d737034ed49b26e950027d4",
+      "sha256": "4222f3f8b38693ed5450f1ad72a51b771040fd8b4d17efa22e318f97ba6783d8",
       "exports": [],
       "operations": [
         {
@@ -77360,14 +77360,22 @@
     {
       "module": "src/physical_resources/preparation_publication_phase.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "316c4a1b78f264f7bccfe5cc5c16e9758334afa831e465d3752ef38e96bae490",
+      "sha256": "07ac41996a5797fa2b8e3bca29ec564e6b9ee1ab0142521c0ffb3331be45fc3d",
       "role": "common-semantics",
       "owner": "Existing Resource preparation and original body-borrow owner",
       "exports": [],
       "operations": [
         {
+          "name": "[I,P]reconcile_original_preparation_publication_execution",
+          "declaration": "[ I , P ] reconcile_original_preparation_publication_execution ( borrowed : PreparationCapacityBorrow [ I , P ] , body : P , execution : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
           "name": "[I,P]reserve_original_preparation_running_phase",
           "declaration": "[ I , P ] reserve_original_preparation_running_phase ( borrowed : PreparationCapacityBorrow [ I , P ] , body : P , retained_peak : Int64 , execution_peak : Int64 , purpose : PreparationBodyGrowth , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[P]reconcile_preparation_publication_execution",
+          "declaration": "[ P ] reconcile_preparation_publication_execution ( holder : PreparationBodyBorrow [ P ] , body : P , execution_bytes : Int64 , ) - > Result [ Unit , PreparationCapacityIssue ]"
         },
         {
           "name": "[P]reserve_preparation_publication_phase",
@@ -77493,6 +77501,83 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
                 "anchor": "test \"Native Work preflight grows backing without a logical debit before the Journal resize\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I,P]reconcile_original_preparation_publication_execution",
+            "[P]reconcile_preparation_publication_execution"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Successful first Plan/Facts construction ends its two temporary measuring-name"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_resources/preparation_publication_phase.mbt",
+                "anchor": "pub fn[P] reconcile_preparation_publication_execution("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_explanation_capture.mbt",
+                "anchor": "let holder = match managed_run_publication_body(run, body)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_resources/preparation_publication_phase.mbt",
+                "anchor": "!physical_equal(owner.reservation.reservation, token)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_resources/preparation_publication_phase.mbt",
+                "anchor": "owner.phase = Transferring"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/preparation_request_explanation.mbt",
+                "anchor": "Err(cleanup) => Err(Cleanup(primary, cleanup))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_resources/preparation_publication_phase.mbt",
+                "anchor": "match check_imported_child_admission_current(owner.ledger)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_explanation_capture.mbt",
+                "anchor": "let scratch = 4L * max_bytes.to_int64()"
+              },
+              {
+                "path": "src/client_local_host/explanation_capture_layout.mbt",
+                "anchor": "fixed current/extent/sum controls also cover its sequential scratch cut"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "This neither changes policy limits nor acknowledges durable or"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/preparation_publication_scratch_wbtest.mbt",
+                "anchor": "test \"returned publication scratch keeps original retention and exact execution admission\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_events_publication_identity_wbtest.mbt",
+                "anchor": "test \"original retained Events first dispatch coexists with its original explanation loan\""
               }
             ]
           }

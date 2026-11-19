@@ -601,7 +601,7 @@ pub fn[I] capture_request_original_explanation(
   value.holder = None
   value.original = None
   value.adopted = None
-  let result = match
+  let constructed = match
     construct_original_explanation_capture(
       capture,
       controls,
@@ -609,6 +609,11 @@ pub fn[I] capture_request_original_explanation(
       value.nodes,
       value.depth,
     ) {
+    Ok(_) =>
+      reconcile_original_explanation_measurement_scratch(capture, value.bytes)
+    Err(issue) => Err(issue)
+  }
+  let result = match constructed {
     Ok(_) => Ok(capture)
     Err(primary) =>
       match return_installed_original_explanation_capture(capture) {

@@ -461,7 +461,13 @@ test "pre-admitted Facts move once through SAME owner Run adoption without growi
   let capture = capture_request_original_explanation(loan, compiled, definition).unwrap()
   let after = @resources.ledger_usage(parent.ledger)
   assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
-  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  // The two returned UTF-16 measuring names used the original 65,536-byte
+  // input bound: independently 2 names * 2 bytes * 65,536 = 262,144 bytes.
+  // Original outputs, retention, work and all body borrowers remain live.
+  assert_eq(
+    after.reserved_execution_bytes,
+    before.reserved_execution_bytes - 262144L,
+  )
   assert_eq(after.live_reservations, before.live_reservations)
   assert_false(return_request_original_explanation(loan).unwrap())
   assert_true(

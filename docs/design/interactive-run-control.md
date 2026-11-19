@@ -417,6 +417,17 @@ Effect-free writers retain their original physical-fact validation.
 
 ### Original adaptive failure observation
 
+Successful first Plan/Facts construction ends its two temporary measuring-name
+buffers when the complete synchronous constructor returns. Their admitted
+execution extent is exactly four bytes per original `maxWireBytes` (two UTF-16
+names). The existing Run publication holder reconciles only that returned
+scratch on the same reservation, under its current/transition fence. A
+pre-adoption construction-input loan remains a lifetime link and does not gain
+running-phase growth permission. Plan/Facts outputs, original compiler/Run,
+retained extents, other shared increments and all failed/pending child debt
+remain held. This neither changes policy limits nor acknowledges durable or
+physical cleanup. A consumed capture cannot hand off outputs after current.
+
 The fixed Node dispatch can project the actual retained estimate-failure kind
 and task through the existing Request capture. Only `NoStrategy` also projects
 at most eight already-retained search assessments. Other estimate failures can
