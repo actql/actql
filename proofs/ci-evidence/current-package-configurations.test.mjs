@@ -297,7 +297,7 @@ test('current configuration entries bind exact authored Git inputs and literal d
 
 test('current Local JS review admits only reviewed fixture selectors and keeps every source bound', () => {
   const review = JSON.parse(readFileSync(new URL(
-    '../../docs/reviews/2026-11-19-session-local-current-fixture-selectors-review.json', import.meta.url)));
+    '../../docs/reviews/2026-11-19-session-local-whole-source-selector-review.json', import.meta.url)));
   const path = review.path;
   const entry = currentPackageConfigurations[path];
   const reviewedTree = gitTree(root, review.source);
@@ -367,6 +367,7 @@ test('current Local JS review admits only reviewed fixture selectors and keeps e
 test('the prior Local descriptor stays historical without admitting it as current', () => {
   const path = 'src/client_local_host/moon.pkg';
   for (const [revision, digest] of [
+    ['ea209b7776eef4934202b8a2924a07464a43bdd7', '6c3f796557c52242f7702c3cb66380d91eecd95f7531f0a1d8e5fb1c08c7cd03'],
     ['3cb1294bbc2c2c8f49580b99eda135c7140c9d40', 'b30ff1c30337f7ac7903f712f8768ba44d7b59194e3b1d20fa92627d208a6f6f'],
     ['24bf383caf9ad31fe921410ee6da2cd30ee4cb47', '6dbacda120b06ee3b75b7748c466e26e3ede49564cb296c89607513a009eccad'],
     ['8385cf48bbffd611f7fa62e872a21c764aa7787f', '497f93c3defd265ba83791d7a8c3290302f368406e1d348f04a5d5f1c472fefd'],

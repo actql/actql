@@ -130,9 +130,9 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-18-session-local-current-fixture-selectors-review.json.
   // One further Node-only Mock footprint fixture; all imports/options remain exact.
   // See docs/reviews/2026-11-18-session-local-mock-footprint-selector-review.json.
-  // Seven current JS fixture selectors retain their original helper dependencies.
-  // See docs/reviews/2026-11-19-session-local-current-fixture-selectors-review.json.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '6c3f796557c52242f7702c3cb66380d91eecd95f7531f0a1d8e5fb1c08c7cd03', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'ea209b7776eef4934202b8a2924a07464a43bdd7'}),
+  // Whole Request construction uses the existing JS-only provider/registration fixtures.
+  // See docs/reviews/2026-11-19-session-local-whole-source-selector-review.json.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '6b2aa1c8bc3f876e159e1f9726482044621716ad307a1fa0c5a5df182d9df8d9', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'd09d86404089834fa3529ee0deb203c0ea4f763e'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   // One literal timestamp-pattern dependency; existing JS/non-JS selectors unchanged.
   // See docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json.
