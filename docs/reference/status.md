@@ -18,32 +18,102 @@ The ceilings every Program runs under are on [Runtime limits](limits.md).
 | Feature | CLI | Node | Python | Remote Host | ActQL Cloud |
 | --- | --- | --- | --- | --- | --- |
 | SQL and Pipe queries over local values | ✔ | ✔ | ◐ | ✔ | ○ |
-| `check`, `explain`, `run`, `approve`, `status` (convenience commands) | ○ | — | — | — | — |
-| `explain --verbose`, `explain --run`, `actql-explanation/0.1` JSON | ○ | ○ | ○ | ○ | ○ |
+| `init` with a mock template (`deal-review-mock`, `churn-risk-mock`) | ◐ | — | — | — | — |
+| `run`, `approve`, `reject`, `status` | ◐ | — | — | — | — |
+| `check` | ◐ | ◐ | ○ | ○ | ○ |
+| `explain`, `explain --verbose`, `explain --run` (source-free Programs) | ◐ | ○ | ○ | ○ | ○ |
+| `actql-explanation/0.1` JSON | ○ | ○ | ○ | ○ | ○ |
 | `connect` / `startSource` / `wait` / `result` / `attach` | — | ✔ | ○ | ✔ | ○ |
-| Mock profile (`--profile mock`) | ○ | ○ | ○ | ○ | ○ |
+| Mock profile (`"profile": "mock"`, `--profile mock`) | ◐ | ◐ | ○ | ○ | ○ |
 | Pushdown to a Connector | ◐ | ◐ | ○ | ◐ | ○ |
 | Cross-source joins in DuckDB | ◐ | ◐ | ○ | ◐ | ○ |
 | `INFER` with a model task | ◐ | ◐ | ○ | ◐ | ○ |
 | `EFFECT … UPDATE TARGET … MAPPING …` (long form) | ◐ | ◐ | ○ | ◐ | ○ |
 | `EFFECT … COMMAND` postlude (long form) | ◐ | ◐ | ○ | ◐ | ○ |
 | `CREATE [OR REPLACE] TABLE` | ◐ | ◐ | ○ | ◐ | ○ |
-| `EFFECT UPDATE / UPSERT / DELETE … ID …` (short forms) | ○ | ○ | ○ | ○ | ○ |
+| `EFFECT UPDATE … ID …` (short form) | ◐ | ◐ | ○ | ○ | ○ |
+| `EFFECT UPSERT / DELETE … ID …` (short forms) | ○ | ○ | ○ | ○ | ○ |
 | `EFFECT INSERT`, `EFFECT STORE`, `EFFECT COMMAND … ID …` (short forms) | ○ | ○ | ○ | ○ | ○ |
-| `LIST_FILES`, `contents` sources (`content_ref`), `SERIALIZE`, `STORE` of content | ○ | ○ | ○ | ○ | ○ |
+| `contents` sources (`content_ref`) | ◐ | ◐ | ○ | ○ | ○ |
+| `LIST_FILES`, `SERIALIZE`, `STORE` of content | ○ | ○ | ○ | ○ | ○ |
 | SQL `INSERT` / `UPDATE` / `DELETE` statement Effects | ○ | ○ | ○ | ○ | ○ |
 | Checkpoints and approval | ◐ | ◐ | ○ | ◐ | ○ |
-| `--stop-before commit` / `stopBefore` | ○ | ○ | ○ | ○ | ○ |
+| `--stop-before commit` / `stopBefore` | ◐ | ◐ | ○ | ○ | ○ |
 | Reconciliation of unknown outcomes | ◐ | ◐ | ○ | ◐ | ○ |
-| Named Results and delivery | ✔ | ✔ | ◐ | ✔ | ○ |
+| Named Results and delivery | ◐ | ✔ | ◐ | ✔ | ○ |
 | `NEAREST` shorthand and vector functions | ○ | ○ | ○ | ○ | ○ |
-| Graph construction, `MATCH` and graph operations | ◐ | ◐ | ○ | ◐ | ○ |
-| Event operations | ◐ | ◐ | ○ | ◐ | ○ |
+| Graph construction, `MATCH` and graph operations | ○ | ◐ | ○ | ◐ | ○ |
+| Event operations | ○ | ◐ | ○ | ◐ | ○ |
 | Local Host (embedded) | ✔ | ✔ | ◐ | — | — |
 | Remote Host over HTTPS | — | ✔ | ✔ | ✔ | ○ |
 
 "Node" is the `@actql/node` package; "Python" is the `actql` package. The
 CLI column covers the native `actql` command.
+
+## v0.0.2, the Initial Developer Preview
+
+v0.0.2 publishes the `actql` CLI and the `@actql/node` library on npm for
+macOS arm64 and Linux x64/glibc. Python packages are not distributed in this
+preview, and ActQL Cloud is not part of it; the Python column above describes
+the repository, not a package you can install.
+
+The CLI and Node columns above were checked on 2026-11-18 against the
+published 0.0.2 packages on macOS (arm64) with Node 24, using the two mock
+templates and Programs that read no Connector. Live providers and Linux were
+not part of that check. The Remote Host and ActQL Cloud columns and the
+Connectors table describe the repository.
+
+### What runs
+
+- **Mock templates on the CLI.** `actql init --template deal-review-mock` and
+  `--template churn-risk-mock` create a project that needs no credentials.
+  `actql run` reads the mock Connectors, takes the mock answers for `INFER`
+  and stops at a Checkpoint with a Preview of the records about to change.
+  `approve` ends the Run `succeeded`, `reject` ends it `cancelled`, and
+  `actql result <run> --result updates` reads the named Result.
+- **The same from Node.** `connect({mode: 'local', profile: 'mock'})`,
+  `startSource` with `stopBefore: 'commit'`, `wait`, `approve` and
+  `result(name)` complete both templates. Read-only Programs over the mock
+  Connectors, including a join of two of them, run through `client.aql`.
+- **Programs that read no Connector.** `actql sql`, `actql aql`, `check`,
+  `explain` (also `--verbose`, `--json` and `--run`) and `run` work on the
+  CLI, and `sql`, `aql` and `check` from Node.
+
+### Known limits
+
+- **One model Run per CLI project.** After a project has run one Program with
+  `INFER`, the next such `actql run` in the same project fails with
+  `ACTQL_E_CLEANUP_PENDING`. Run `actql init` again in a new directory for
+  each Run. Programs without `INFER` keep working. ([#3637](https://github.com/actql/actql/issues/3637))
+- **`approve` from Node can answer `LocalSigningOriginalConflict`** when it
+  is called immediately after `wait()` returns `waiting_checkpoint`. Calling
+  `approve` again completes the Run. ([#3638](https://github.com/actql/actql/issues/3638))
+- **The CLI and `@actql/node` keep separate Local state.** A state directory
+  created by one cannot be opened by the other, so a Run started from code
+  cannot be approved from the CLI in this preview. After the CLI has applied
+  a write to a project's mock data, Runs from Node in that project end
+  `needs_reconciliation`; use separate projects for the two.
+  ([#3639](https://github.com/actql/actql/issues/3639), [#3641](https://github.com/actql/actql/issues/3641))
+- **`check` on Programs with an Effect.** On the mock profile `check` returns
+  `Undetermined` (`unresolved_protected`) for a Program with a short-form
+  `EFFECT`, the two templates included. Read-only Programs are verified.
+  ([#3640](https://github.com/actql/actql/issues/3640))
+- **`explain` and plans.** `explain` works for Programs that read no
+  Connector. Programs that read a Connector or contain an Effect are refused,
+  and `explain --run` has no plan for their Runs. `client.plan()` does not
+  return a plan in this preview. `explain --json` prints `actql-plan-view/0.1`.
+  ([#3643](https://github.com/actql/actql/issues/3643), [#3644](https://github.com/actql/actql/issues/3644))
+- **Effects on the mock profile.** Mock Connectors declare record `UPDATE`
+  only, and an `UPDATE` has to set every field the target declares. On the
+  CLI, Effects run in the template shape, `INFER` followed by `UPDATE`.
+- **Read-only Programs over mock Connectors** run from Node and do not run on
+  the CLI. ([#3642](https://github.com/actql/actql/issues/3642))
+- **Saved Results** can be read back when the Result is named `main`,
+  `answer` or `updates`. ([#3644](https://github.com/actql/actql/issues/3644))
+- **Graph operations and `sequence`** run from Node. The CLI refuses them.
+- **`actql init`** comes from the npm launcher and is not listed by
+  `actql --help`; `actql init --help` describes it. `actql status` needs a
+  Run ID. ([#3644](https://github.com/actql/actql/issues/3644))
 
 ## Native CLI platforms
 
