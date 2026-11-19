@@ -277,7 +277,8 @@ test('current configuration entries bind exact authored Git inputs and literal d
     const review = currentPackageConfigurationReviewFor(request(path, entry.digest));
     assert.equal(review?.revision, entry.revision ?? currentConfigurationReviewRevision);
     assert.equal(review?.rule, entry.rule);
-    if (['src/client_local_host/moon.pkg', 'src/platform_native/sqlite/moon.pkg'].includes(path)) {
+    if (['src/client_local_host/moon.pkg', 'src/platform_native/sqlite/moon.pkg',
+      'src/physical_resources/moon.pkg', 'src/connectors/local/driver/moon.pkg'].includes(path)) {
       // A shared local object database must not hide an unpublished review.
       execFileSync('git', ['merge-base', '--is-ancestor', review.revision, 'HEAD'], {cwd: root});
     }
@@ -431,48 +432,87 @@ test('current timestamp dependency review binds both literal imports and complet
   }
 });
 
-test('current physical Resource review binds platform VM selectors and refuses stale or changed input', () => {
-  const path = 'src/physical_resources/moon.pkg';
-  const revision = 'bf198225499436c26be2f7d763582b0efaeeae2b';
-  const reviewed = gitTree(root, revision);
-  const bytes = reviewed.read(path), body = bytes.toString();
-  const digest = '508d45513dd76478ece212cd3e9a2da45aa93f2e100d99c44076a31afa46be23';
-  assert.equal(hash(bytes), digest);
-  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
-  const arithmetic = '  "actql/actql/capacity_arithmetic" @preparation_counts,\n';
-  assert.equal(body.split(arithmetic).length, 2);
-  const selectorOnly = body.replace(arithmetic, '');
-  assert.equal(hash(selectorOnly), '23447fecf75b00a7f5f5828d0dd27c9711a4386d34d3e3320ae805950b4ccfeb');
-  assert.equal(selectorOnly, gitTree(root, '3484e0f43d8eee0013bb5fb8fba03e7fc873377f').read(path).toString());
-  const prior = gitTree(root, '14050e0d50b79a01dc07e52024b8ada85ab14203').read(path);
-  const selectors = '    "platform_vm_capacity_wasm.mbt": [ "wasm" ],\n' +
-    '    "platform_vm_capacity_unsupported.mbt": [ "not", "wasm" ],\n';
-  assert.equal(body.split(selectors).length, 2);
-  assert.equal(selectorOnly.replace(selectors, ''), prior.toString());
-  assert.deepEqual(packageImports(body).imports,
-    [...packageImports(prior.toString()).imports, 'actql/actql/capacity_arithmetic'].sort());
-  assert.deepEqual(currentPackageConfigurationReviewFor(request(path, digest)), {
-    revision, target: 'js', toolchainDigest,
-    moonRevision: packageConfigurationReview.moonRevision,
-    rule: 'literal-target-selectors-with-bound-source-membership',
-  });
-  const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
-  assert.deepEqual(head.read(path), bytes);
-  const selected = packageSourceInputs({tree: head, packages: ['src/physical_resources'], target: 'js'});
-  assert.deepEqual(selected.unresolved, []);
-  for (const member of ['platform_vm_capacity_wasm.mbt', 'platform_vm_capacity_unsupported.mbt']) {
-    const input = 'src/physical_resources/' + member;
-    assert(selected.paths.includes(input), 'Target clauses never hide original source membership');
-    assert.equal(head.entries.get(input).mode, '100644');
+test('current capacity observation review binds Native bridges and refuses stale or changed input', () => {
+  const review = JSON.parse(readFileSync(new URL(
+    '../../docs/reviews/2026-11-20-session-native-capacity-observation-review.json', import.meta.url)));
+  const reviewed = gitTree(root, review.source);
+  execFileSync('git', ['merge-base', '--is-ancestor', review.source, 'HEAD'], {cwd: root});
+  for (const config of review.configurations) {
+    const {path, rule} = config;
+    const bytes = reviewed.read(path), body = bytes.toString();
+    const previous = gitTree(root, config.previousRevision).read(path).toString();
+    assert.equal(hash(bytes), config.sha256);
+    assert.equal(bytes.length, config.bytes);
+    assert.equal(hash(previous), config.previousSha256);
+    assert.equal(Buffer.byteLength(previous), config.previousBytes);
+    assert.equal(currentTree.entries.get(path)?.mode, config.mode);
+    assert.deepEqual(currentTree.read(path), bytes);
+    assert.deepEqual(packageImports(body).imports, packageImports(previous).imports);
+    assert.deepEqual(currentPackageConfigurationReviewFor(request(path, config.sha256)), {
+      revision: review.source, target: 'js', toolchainDigest,
+      moonRevision: packageConfigurationReview.moonRevision, rule,
+    });
+    assert.deepEqual(config.addedSelectors, [
+      {file: 'capacity_observation_native.mbt', targets: ['native']},
+      {file: 'capacity_observation_unsupported.mbt', targets: ['not', 'native']},
+    ]);
+    const selectors = config.addedSelectors.map(({file, targets}) =>
+      `    "${file}": [ ${targets.map(value => JSON.stringify(value)).join(', ')} ],\n`).join('');
+    assert.equal(body.split(selectors).length, 2);
+    let reconstructed;
+    if (config.nativeStub !== null) {
+      assert.equal(config.nativeStub, 'capacity_observation_stub.c');
+      assert.equal(rule, 'literal-native-options-with-bound-source-membership');
+      const stub = `  "native-stub": [ "${config.nativeStub}" ],\n`;
+      assert.equal(body.split(stub).length, 2);
+      reconstructed = body.replace(stub, '').replace(selectors, '');
+    } else {
+      assert.equal(rule, 'literal-target-selectors-with-bound-source-membership');
+      reconstructed = body.replace(`\noptions(\n  targets: {\n${selectors}  },\n)\n`, '');
+    }
+    assert.equal(reconstructed, previous, 'Only the reviewed Native bridge/predicates changed');
+    const directory = path.slice(0, -9);
+    const selected = packageSourceInputs({tree: currentTree, packages: [directory], target: 'js'});
+    assert.deepEqual(selected.unresolved, []);
+    const members = [...currentTree.entries.keys()].filter(member => member.startsWith(directory + '/') &&
+      !member.slice(directory.length + 1).includes('/')).sort();
+    assert.deepEqual(selected.directories.find(entry => entry.path === directory + '/*').members, members);
+    for (const member of members) assert(selected.paths.includes(member));
+    for (const original of review.bridgeSources.filter(value => value.path.startsWith(directory + '/'))) {
+      assert.equal(hash(reviewed.read(original.path)), original.sha256);
+      assert.equal(reviewed.read(original.path).length, original.bytes);
+      assert.equal(reviewed.entries.get(original.path)?.mode, original.mode);
+      assert.equal(currentTree.entries.get(original.path)?.mode, original.mode);
+      assert(selected.paths.includes(original.path), 'Native/no-op/C bytes stay keyed on JS');
+    }
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(previous))), null);
+    const unreviewed = [body + '\noptions(pre_build: "unreviewed")\n',
+      body.replace('"capacity_observation_native.mbt": [ "native" ]',
+        '"capacity_observation_native.mbt": [ "js" ]')];
+    // The prior driver had only ordinary literal imports, which remain a
+    // supported input language; it does not inherit this current option review.
+    if (packageImports(previous).unknown) unreviewed.push(previous);
+    for (const changed of unreviewed) {
+      assert.notEqual(changed, body);
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+      const altered = {...currentTree, read: member => member === path ? Buffer.from(changed) : currentTree.read(member)};
+      assert(packageSourceInputs({tree: altered, packages: [directory], target: 'js'})
+        .unresolved.includes('Unreviewed package configuration: ' + path));
+    }
   }
-  for (const changed of [prior.toString(), selectorOnly, body + '\noptions(pre_build: {command: "unreviewed"})\n',
-    body.replace('"platform_vm_capacity_wasm.mbt": [ "wasm" ]',
-      '"platform_vm_capacity_wasm.mbt": [ "native" ]')]) {
-    assert.notEqual(changed, body);
-    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
-    const altered = {...head, read: member => member === path ? Buffer.from(changed) : head.read(member)};
-    assert(packageSourceInputs({tree: altered, packages: ['src/physical_resources'], target: 'js'})
-      .unresolved.includes('Unreviewed package configuration: ' + path));
+  const nativeTest = review.testPackage.configuration;
+  assert.equal(review.testPackage.supportedTarget, 'native');
+  assert.equal(review.testPackage.JSConfigurationAdmitted, false);
+  assert.equal(hash(reviewed.read(nativeTest.path)), nativeTest.sha256);
+  const nativeTestDirectory = nativeTest.path.slice(0, -9);
+  const parentJS = packageSourceInputs({tree: currentTree, packages: ['src/physical_resources'], target: 'js'});
+  assert(!parentJS.paths.some(path => path.startsWith(nativeTestDirectory + '/')));
+  assert.equal(currentPackageConfigurationReviewFor(request(nativeTest.path, nativeTest.sha256)), null);
+  const directJS = packageSourceInputs({tree: currentTree, packages: [nativeTestDirectory], target: 'js'});
+  assert(directJS.unresolved.includes('Unreviewed package configuration: ' + nativeTest.path));
+  for (const original of review.testPackage.sources) {
+    assert.equal(hash(reviewed.read(original.path)), original.sha256);
+    assert.equal(reviewed.entries.get(original.path)?.mode, original.mode);
   }
 });
 
