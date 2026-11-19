@@ -866,7 +866,7 @@ fn request_numeric_100000_profile_fixture(
     let prepared = parent.compiled_program.unwrap()
     let quote = request_original_normalization_audit_extent_cost(prepared).unwrap()
     let base = @resources.preparation_capacity_working_extents(
-      parent.capacity,
+      parent.program_capacity.unwrap(),
       input,
     ).unwrap()
     let normalized = match
