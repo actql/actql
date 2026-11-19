@@ -171,6 +171,9 @@ struct ClientProgramCheckPreparation[I, P] {
   mut compiled_program : @publication_host.PreparedClientProgram?
   mut effect_limits : @publication_host.ClientEffectComputationLimits?
   mut effect_candidate : @checked.EffectComputationCandidate?
+  // Static checking retains only the original publication and its complete
+  // Mapping result. This is DATA, never a compiled body, Run or apply permit.
+  mut static_effect_check : ClientStaticEffectCheckData?
   mut compiled_effect : @publication_host.PreparedClientEffectComputation?
   mut effect_targets : (
     @update_targets.UpdateTargetPublication?,
@@ -194,6 +197,18 @@ struct ClientProgramCheckPreparation[I, P] {
   base_execution : Int64
   mut busy : Bool
   mut phase : ProgramCheckPreparationPhase
+}
+
+///|
+// One retained static-call input/result on the existing checker holder. The
+// publication is kept BEFORE a declined quote, and the result before report
+// construction. Missing or failed DATA never authorizes another compiler.
+priv struct ClientStaticEffectCheckData {
+  publication : @source_publication.PreparedPublishedQueryEnvironment
+  mut result : Result[
+    @checked.EffectProgramStaticCandidate,
+    @publication_host.ClientEffectComputationIssue,
+  ]?
 }
 
 ///|
@@ -318,6 +333,7 @@ fn[I, P] new_program_check_preparation(
     compiled_program: None,
     effect_limits: None,
     effect_candidate: None,
+    static_effect_check: None,
     compiled_effect: None,
     effect_targets: None,
     compilation_known_work: 0L,
@@ -425,6 +441,7 @@ fn[I, P] transfer_program_check_input(
   owner.compiled_program = None
   owner.effect_limits = None
   owner.effect_candidate = None
+  owner.static_effect_check = None
   owner.compiled_effect = None
   owner.effect_targets = None
   owner.compilation_known_work = 0L

@@ -793,6 +793,28 @@ non-abort exceptions from that owner all hide those names before checking;
 their number cannot revoke the admitted whole check binding. With that binding,
 the common checker returns a completed report containing independent safe
 violations and the public unresolved coverage boundary for protected resolution.
+Installed short UPDATE names follow the same metadata-read boundary, using
+their original Effect installation and complete Mapping inventory. This is
+neither an Effect approval nor a write grant. Missing or refused decisions hide
+only those names; the Host rechecks its original publication and Account
+configuration across awaited disclosure. Filtered Native publications do not
+replace the unfiltered execution publication or cache a previous Allow.
+
+The Native static Request retains its original checked Effect candidate and
+Mapping result before observation. It reserves the existing variable compilation
+envelope before static Mapping construction, but does not call the compiler or
+construct a module, provider, Plan or Run. Its additional fixed holder costs
+5 headers, 7 reference slots and 4 scalar words (168 bytes); report construction
+retains its own proportional findings/output admission on the same parent,
+including both a resolution-budget finding and a protected obligation when
+they coexist for one original header.
+Clear and failed construction keep the original Request's cleanup duties.
+Only a typed Mapping failure for a disclosed original target can become a
+public type violation. Unknown targets remain protected obligations. Authored
+WITH bindings may be checked as the real unfinished prefix before returning
+that obligation, using the existing shared prefix-work allowance; no synthetic
+target or second parsed Program supplies authority.
+
 Required bound values remain missing-value limits and typed Requirements.
 Caller aborts still propagate, and connection authorization failures still
 refuse the operation before checking. The common `unavailable` outcome remains

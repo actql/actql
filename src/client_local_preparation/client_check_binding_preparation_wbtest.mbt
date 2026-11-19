@@ -300,3 +300,33 @@ test "Source STORE target omission stays undetermined without namespace authorit
     assert_true(!report.contains("check_internal"), msg=report)
   }
 }
+
+///|
+test "independent authored type failure is not hidden by an unresolved UPDATE target" {
+  for format in ["aql-text", "sql"] {
+    let unknown = binding_check_report(
+      "SELECT 1 AS id |> RESULT out |> EFFECT UPDATE hidden.Account FROM RESULT out ID id SET (Name = 1)",
+      format,
+    )
+    assert_true(unknown.contains("\"verdict\":\"undetermined\""), msg=unknown)
+    assert_true(unknown.contains("unresolved_protected"), msg=unknown)
+    let lawful = binding_check_report(
+      "WITH unused AS (SELECT 1 + 2 AS valid) SELECT 1 AS id |> RESULT out |> EFFECT UPDATE hidden.Account FROM RESULT out ID id SET (Name = 1)",
+      format,
+    )
+    assert_true(lawful.contains("\"verdict\":\"undetermined\""), msg=lawful)
+    assert_true(lawful.contains("unresolved_protected"), msg=lawful)
+    assert_true(!lawful.contains("check_internal"), msg=lawful)
+    let invalid = binding_check_report(
+      "WITH unused AS (SELECT 1 + 'text' AS invalid) SELECT 1 AS id |> RESULT out |> EFFECT UPDATE hidden.Account FROM RESULT out ID id SET (Name = 1)",
+      format,
+    )
+    assert_true(invalid.contains("\"verdict\":\"invalid\""), msg=invalid)
+    assert_true(
+      invalid.contains("\"code\":\"expression_domain_mismatch\""),
+      msg=invalid,
+    )
+    assert_true(!invalid.contains("expected_type"), msg=invalid)
+    assert_true(!invalid.contains("check_unclassified"), msg=invalid)
+  }
+}

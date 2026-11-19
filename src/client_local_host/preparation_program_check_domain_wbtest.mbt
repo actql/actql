@@ -60,9 +60,9 @@ test "later Catalog domain preserves Source-only packet and funds every original
   let initial = program_check_preparation_initial_inventory()
   assert_eq(
     (initial.record_headers, initial.reference_slots, initial.scalar_words),
-    (1328L, 699L, 2643L),
+    (1333L, 706L, 2647L),
   )
-  assert_eq(program_check_initial_control_bytes, 47984L)
+  assert_eq(program_check_initial_control_bytes, 48152L)
   assert_eq(program_check_input_observer_bytes, 568L)
   let (owner, ledger, capacity, input) = catalog_domain_fixture()
   let arguments = owner.arguments.unwrap()
@@ -78,8 +78,8 @@ test "later Catalog domain preserves Source-only packet and funds every original
   assert_eq(
     (r, e),
     (
-      owner.base_retained + 47984L + 9888L,
-      owner.base_execution + 47984L + 9888L,
+      owner.base_retained + 48152L + 9888L,
+      owner.base_execution + 48152L + 9888L,
     ),
   )
   prepare_program_check_prelude(owner).unwrap() |> ignore
@@ -124,8 +124,8 @@ test "later Catalog domain preserves Source-only packet and funds every original
 test "binding one-short preserves the original observation and quote without refilling closed work" {
   for retention in [true, false] {
     let (owner, ledger, capacity, input) = catalog_domain_fixture()
-    let r = owner.base_retained + 47984L + 9888L
-    let e = owner.base_execution + 47984L + 9888L
+    let r = owner.base_retained + 48152L + 9888L
+    let e = owner.base_execution + 48152L + 9888L
     let limits = @resources.ledger_limits(ledger)
     let blocker = @resources.reserve_capacity(
       ledger,
@@ -237,14 +237,14 @@ test "later Catalog packet one-short refuses before constructing controls and ad
     let blocker = @resources.reserve_capacity(
       ledger,
       if retention {
-        limits.retained_bytes - r - 47984L + 1L
+        limits.retained_bytes - r - 48152L + 1L
       } else {
         0L
       },
       if retention {
         0L
       } else {
-        limits.execution_bytes - e - 47984L + 1L
+        limits.execution_bytes - e - 48152L + 1L
       },
     ).unwrap()
     let attempt = begin_program_check_preparation(
@@ -279,7 +279,7 @@ test "later Catalog packet one-short refuses before constructing controls and ad
     ).unwrap()
     assert_eq(
       @resources.preparation_capacity_working_extents(capacity, input),
-      Ok((r + 47984L, e + 47984L)),
+      Ok((r + 48152L, e + 48152L)),
     )
     clear_program_check_preparation(owner).unwrap()
     assert_true(

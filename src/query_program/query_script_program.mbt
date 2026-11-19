@@ -519,19 +519,6 @@ fn compile_query_script_with_source(
         )
       None => None
     }
-    // Complete authoritative target selection before the existing Relation
-    // lowerer resolves ID/SET or builds a private UPDATE capture.
-    let update_target = match @query.terminal_effect(root) {
-      Some(effect) =>
-        Some(
-          resolve_update_effect_target(
-            effect,
-            update_targets,
-            limits.max_expression_work,
-          ),
-        )
-      None => None
-    }
     let command_target = match @query.terminal_short_command_effect(root) {
       Some(clause) =>
         Some(
@@ -556,6 +543,47 @@ fn compile_query_script_with_source(
       steps,
       reserved,
     )
+    // Independent authored bindings do not depend on private UPDATE metadata.
+    // Select the original target before resolving ID/SET or building its capture.
+    let update_target = try {
+      match @query.terminal_effect(root) {
+        Some(effect) =>
+          Some(
+            resolve_update_effect_target(
+              effect,
+              update_targets,
+              limits.max_expression_work,
+            ),
+          )
+        None => None
+      }
+    } catch {
+      Abort(
+        UpdateTargetBinding(
+          UnresolvedTarget
+          | AmbiguousTarget
+          | UnresolvedMapping
+          | AmbiguousMapping
+        ) as issue
+      ) => {
+        if has_bindings {
+          // Check the real unfinished prefix, not a second parsed Program or
+          // a fabricated target. Its existing shared budget is spent once.
+          let _ = checked_query_prefix_pipeline(
+            construction,
+            root,
+            context,
+            sources.stages + sources.prior_stages,
+            sources.declarations,
+            steps,
+            limits,
+            construction.infer_budget,
+          )
+        }
+        raise Abort(issue)
+      }
+      Abort(issue) => raise Abort(issue)
+    }
     let (root, known) = lower_script_relation_primary(
       construction, root, known, context, sources, limits, steps, reserved,
     )

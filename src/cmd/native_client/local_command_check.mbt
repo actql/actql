@@ -535,6 +535,17 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           stop("LocalConfigurationChanged")
         }
         let body = if operation == "check" {
+          // Bind only the original declaration/Runtime metadata. This does not
+          // read Source payloads, invoke a Model or prepare/apply an Effect.
+          // Its existing file implementation also supplies the lookup profile
+          // that drive.contents needs during ordinary static checking.
+          self.bind_project_mock_runtime(
+            self.runtime.unwrap_or_else(() => {
+              stop("LocalBusinessOriginalUnavailable")
+            }),
+            capture,
+            settings.principal,
+          )
           let context = local_check_context(
             host,
             crypto,

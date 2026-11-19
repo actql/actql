@@ -8,7 +8,8 @@ import {verifyInstalledConnectorBindings}
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
 import {contentCid} from './local-account-config.mjs';
-import {composeInstalledRowEffectOwners, installedRowEffectOwnerBinding} from './installed-row-effect.mjs';
+import {composeInstalledRowEffectOwners, installedRowEffectOwnerBinding,
+  installedRowEffectUpdateTargetReadAccess} from './installed-row-effect.mjs';
 
 const fail = code => { throw Object.assign(new TypeError(code), {code}); };
 const text = value => typeof value === 'string' && value.length > 0;
@@ -171,6 +172,56 @@ export function installedUpdateTargets(effect, aliases, environmentWire = effect
     }
     return Object.freeze({...alias, installationBindingCid, installationOwnerCid});
   }));
+}
+
+// Checking discloses metadata under the original target's read scope. It does
+// not request Effect approval, issue a credential/grant or execute a provider.
+// The Host supplies the same publication's current fence across every await.
+export function installedUpdateTargetDisclosure(effect, targets, principalId, assertCurrent) {
+  if (!Array.isArray(targets) || targets.length > 1024 ||
+      typeof assertCurrent !== 'function') fail('InvalidInstalledUpdateTargets');
+  const owners = effect === undefined ? [] : effect.effects ?? [effect];
+  return Object.freeze({async visibleFor({principalId: actual, signal}) {
+    if (actual !== principalId) return [];
+    assertCurrent();
+    const visible = [];
+    for (const target of targets) {
+      signal?.throwIfAborted();
+      let access;
+      for (const owner of owners) {
+        const candidate = installedRowEffectUpdateTargetReadAccess(owner, target);
+        if (candidate === undefined) continue;
+        if (access !== undefined) return [];
+        access = candidate;
+      }
+      if (access === undefined) continue;
+      const {authorization, connection, resources} = access;
+      const authorize = Object.getOwnPropertyDescriptor(authorization, 'authorize')?.value;
+      const current = Object.getOwnPropertyDescriptor(authorization, 'assertConfigurationCurrent')?.value;
+      if (typeof authorize !== 'function' || typeof current !== 'function') continue;
+      let allowed = true;
+      for (const resource of resources) {
+        assertCurrent();
+        let decision;
+        try {
+          Reflect.apply(current, authorization, []);
+          decision = await Reflect.apply(authorize, authorization, ['acquisition',
+            {connection, resource, operation: 'read'},
+            {subjectCid: target.installationOwnerCid, signal, allowDeferral: false}]);
+          Reflect.apply(current, authorization, []);
+        } catch (cause) {
+          if (signal?.aborted) throw cause;
+          allowed = false;
+        }
+        signal?.throwIfAborted();
+        assertCurrent();
+        if (!allowed || decision?.action !== 'dispatch') {allowed = false; break;}
+      }
+      if (allowed) visible.push(target);
+    }
+    assertCurrent();
+    return visible;
+  }});
 }
 
 // The loader records each returned child before validating it. A module that

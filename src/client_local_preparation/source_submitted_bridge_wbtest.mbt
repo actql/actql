@@ -109,3 +109,68 @@ test "source submitted bridge does not promote Effect computation into Pure prep
     @host.client_submitted_intent_wire(intent),
   )
 }
+
+///|
+test "static UPDATE check retains the original Mapping literal type refusal" {
+  let environment = source_bridge_effect_environment()
+  let wire = source_bridge_effect_publication(environment)
+  let publication = @publication.prepare_published_query_environment(
+    environment, wire,
+  ).unwrap()
+  let text = "SELECT 'original-id' AS id, 1 AS value |> RESULT out |> EFFECT UPDATE salesforce.Account ID id SET (Name = 'wrong-type')"
+  let (lowered, _) = @publication.lower_prepared_published_query(
+    publication,
+    environment,
+    text,
+    @frontend.Text,
+    None,
+    public_primary=true,
+  ).unwrap()
+  let parsed = lowered.program.unwrap()
+  guard @host.prepare_parsed_client_effect_computation(
+      parsed,
+      environment,
+      None,
+      [],
+      @host.client_standard_effect_computation_limits(),
+      update_targets=lowered.update_targets,
+    )
+    is Err(Static(MappingLiterals(issue))) else {
+    fail("the actual static Effect owner must retain the original type refusal")
+  }
+  assert_eq(
+    @effect_results.effect_mapping_literal_issue_kind(issue),
+    IncompatibleLiteral("Name"),
+  )
+  let report = client_program_check_source(
+    text,
+    "aql-text",
+    environment,
+    wire,
+    None,
+    None,
+    "ctx:static-update",
+    "rev:" + "a".repeat(64),
+    None,
+    None,
+    "corr:static-update",
+    "bound_input",
+    None,
+  )
+  assert_true(report.contains("\"verdict\":\"invalid\""), msg=report)
+  assert_true(report.contains("\"code\":\"query_invalid\""), msg=report)
+  assert_true(report.contains("\"requirements\":[]"), msg=report)
+  let structured = client_program_check_program(
+    lowered.document,
+    environment,
+    wire,
+    None,
+    "ctx:static-program",
+    "rev:" + "b".repeat(64),
+    None,
+    "corr:static-program",
+    "bound_input",
+    None,
+  )
+  assert_true(structured.contains("\"verdict\":\"invalid\""), msg=structured)
+}

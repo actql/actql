@@ -281,6 +281,29 @@ export function installedRowEffectOwnerBinding(adapter) {
   return owner === undefined || Array.isArray(owner) ? undefined : ownerBinding(owner);
 }
 
+// Borrow only the actual installed owner's metadata-read scopes. Target names
+// and equal CIDs cannot manufacture an adapter, Account or execution grant.
+export function installedRowEffectUpdateTargetReadAccess(adapter, target) {
+  const retained = rowInstallations.get(adapter);
+  const owners = retained === undefined ? [] : Array.isArray(retained) ? retained : [retained];
+  let selected;
+  for (const owner of owners) {
+    if (ownerBinding(owner).cid !== target.installationOwnerCid ||
+        owner.bindingCid !== target.installationBindingCid) continue;
+    if (selected !== undefined) return undefined;
+    selected = owner;
+  }
+  if (selected === undefined) return undefined;
+  const resources = [];
+  for (const mapping of selected.installed) {
+    if (mapping.target === target.targetRef && !resources.includes(mapping.resource)) {
+      resources.push(mapping.resource);
+    }
+  }
+  if (resources.length === 0) return undefined;
+  return {authorization: selected.authorization, connection: selected.connection, resources};
+}
+
 const selectionChanged = cause => {
   throw refusedEffectPreparation(Object.assign(
     new Error('InstalledRowEffectInstallationChanged', {cause}),

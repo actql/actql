@@ -135,7 +135,8 @@ import {installedRunWaitDecision, issueInstalledRunObservationKey,
 import {installedEffectIdentity, installedEffectPaths, loadInstalledEffects,
   publishInstalledEffectProfile} from
   './installed-effect.mjs';
-import {composeInstalledEffects, installedEffectFor, installedUpdateTargets} from './installed-effect-inventory.mjs';
+import {composeInstalledEffects, installedEffectFor, installedUpdateTargets,
+  installedUpdateTargetDisclosure} from './installed-effect-inventory.mjs';
 import {installedRowEffectDescriptors, validateInstalledUpdateOwnerSelections}
   from './installed-row-effect.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
@@ -2679,8 +2680,16 @@ async function openInstalledHost(originalInstallation, preparation) {
     authorizeRun: ({ref, principalId: actual}) =>
       actual === principalId && ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid});
+  const checkingPublicationOriginal = sourceAliasPublicationOriginal(moon, environment, sourcePublication);
   const checkSource = installNodeClientCheck({moon, environment,
     publication: sourcePublication,
+    updateTargetDisclosure: installedUpdateTargetDisclosure(installedEffect,
+      sourcePublication?.updateTargets ?? [], principalId, () => {
+        if (checkingPublicationOriginal === undefined ||
+            sourceAliasPublicationOriginal(moon, environment, sourcePublication) !== checkingPublicationOriginal) {
+          throw clientOperationError('ForeignInstalledCheckPublication');
+        }
+      }),
     ...(sourceNamespace === undefined && sourceSelectorNamespace === undefined ? {} : {
       // Re-read current account configuration for every metadata inspection.
       // This gate cannot defer or persist diagnostic approval.

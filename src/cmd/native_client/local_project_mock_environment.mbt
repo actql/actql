@@ -315,6 +315,7 @@ fn LocalProjectMockDeclarations::prepare_source_environment(
 // publication owner checks path syntax, complete schema and request contracts.
 fn LocalProjectMockDeclarations::source_aliases(
   self : Self,
+  visible? : ((LocalProjectMockSourceDeclaration, String) -> Bool)? = None,
 ) -> Array[Json] raise ClientStop {
   let result = []
   for source in self.sources {
@@ -331,6 +332,9 @@ fn LocalProjectMockDeclarations::source_aliases(
         }
       }
       let view = selected.unwrap_or_else(() => stop("InvalidProjectBindings"))
+      if visible is Some(disclose) && !disclose(source, view.resource) {
+        continue
+      }
       let projected : Map[String, Json] = Map([
         ("sourceRef", Json::string(view.source_ref)),
         ("sourceViewContractCid", Json::string(view.view_cid)),
@@ -353,6 +357,7 @@ fn LocalProjectMockDeclarations::source_aliases(
 fn LocalProjectMockDeclarations::prepare_source_publication(
   self : Self,
   environment : @checked.CheckEnvironment,
+  visible? : ((LocalProjectMockSourceDeclaration, String) -> Bool)? = None,
 ) -> Result[
   (@source_publication.PreparedPublishedQueryEnvironment, String),
   LocalProjectMockModelIssue,
@@ -364,7 +369,7 @@ fn LocalProjectMockDeclarations::prepare_source_publication(
     physical_equal(original, environment) else {
     return Err(ForeignOriginal)
   }
-  if self.publication is Some((original, wire, prepared)) {
+  if visible is None && self.publication is Some((original, wire, prepared)) {
     return if physical_equal(original, environment) {
       Ok((prepared, wire))
     } else {
@@ -376,8 +381,8 @@ fn LocalProjectMockDeclarations::prepare_source_publication(
       "environmentCid": Json::string(
         @checked.checking_environment_cid(environment),
       ),
-      "aliases": Json::array(self.source_aliases()),
-      "updateTargets": Json::array(self.update_aliases()),
+      "aliases": Json::array(self.source_aliases(visible~)),
+      "updateTargets": Json::array(self.update_aliases(visible~)),
     }
     let wire = local_project_mock_relation_wire(body).unwrap_or_else(() => {
       stop("InvalidProjectBindings")
@@ -392,7 +397,9 @@ fn LocalProjectMockDeclarations::prepare_source_publication(
   }
   match result {
     Ok((prepared, wire)) =>
-      self.publication = Some((environment, wire, prepared))
+      if visible is None {
+        self.publication = Some((environment, wire, prepared))
+      }
     Err(issue) => self.model_failure = Some(issue)
   }
   result
@@ -401,6 +408,7 @@ fn LocalProjectMockDeclarations::prepare_source_publication(
 ///|
 fn local_command_project_publication(
   environment : @checked.CheckEnvironment,
+  checking? : (@local_host.NativeLocalJournalCapture, String)? = None,
 ) -> (@source_publication.PreparedPublishedQueryEnvironment, String) raise ClientStop {
   if command_preparation_invocation.val is Some(original) &&
     original.project is Some(project) &&
@@ -408,7 +416,24 @@ fn local_command_project_publication(
     if original.closing || original.closed {
       stop("LocalBusinessOriginalUnavailable")
     }
-    match mock.prepare_source_publication(environment) {
+    let visible = checking.map(pair => {
+      let (capture, principal) = pair
+      fn(
+        source : LocalProjectMockSourceDeclaration,
+        resource : String,
+      ) -> Bool {
+        !original.closing &&
+        !original.closed &&
+        capture.authorize_in_original_read({
+          principal,
+          connection: source._retained_connection,
+          resource,
+          operation: "read",
+        })
+        is Ok(@authorization.Allow(_))
+      }
+    })
+    match mock.prepare_source_publication(environment, visible~) {
       Ok(value) => return value
       Err(issue) => {
         original.retain_primary(CommandProjectMock(issue))

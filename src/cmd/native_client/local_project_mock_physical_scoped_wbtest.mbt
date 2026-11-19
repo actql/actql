@@ -134,6 +134,7 @@ fn native_project_mock_model_backed_read(
   pure_file_boundary? : Bool = false,
   pure_file_budget_refusal? : Bool = false,
   pure_file_query? : String? = None,
+  static_disclosure? : Bool = false,
 ) -> Unit raise {
   // Reuse the existing real Native facility entry, as in Request/Effect's
   // physical component. This supplies no Command platform/Journal/Account.
@@ -239,8 +240,8 @@ fn native_project_mock_model_backed_read(
     native_mock_lookup_policy_in_original_read()
   } else if file_references {
     native_project_mock_file_references_in_original_read()
-  } else if write_mapping {
-    native_project_mock_write_mapping_in_original_read()
+  } else if write_mapping || static_disclosure {
+    native_project_mock_write_mapping_in_original_read(static_disclosure~)
   } else if file_facts {
     native_project_mock_file_facts_in_original_read()
   } else if file_bindings {
@@ -681,7 +682,9 @@ test "Native Project Mock actual backed Read binds File facts to original schema
 // Explicit immutable installation DATA ports exercise the SAME pure projection
 // used after the normal Runtime/Account observations. They are not a Host,
 // Account/capture, Runtime acquisition or normal installation qualification.
-fn native_project_mock_write_mapping_in_original_read() -> Unit raise {
+fn native_project_mock_write_mapping_in_original_read(
+  static_disclosure? : Bool = false,
+) -> Unit raise {
   let original = native_project_mock_model_fixture("deal-review-missing")
   defer original.retire()
   original.prepare_source_declarations().unwrap()
@@ -740,6 +743,42 @@ fn native_project_mock_write_mapping_in_original_read() -> Unit raise {
     .unwrap()
   assert_true(wire.contains(projected[0].binding))
   assert_true(wire.contains(projected[0].owner.0))
+  if static_disclosure {
+    let mut observations = 0
+    let mut originals = true
+    let (_, hidden) = original
+      .prepare_source_publication(
+        environment,
+        visible=Some((selected, resource) => {
+          originals = originals &&
+            original.sources.any(source => physical_equal(source, selected)) &&
+            !resource.is_empty()
+          observations += 1
+          false
+        }),
+      )
+      .unwrap()
+    assert_true(observations > 0)
+    assert_true(originals)
+    guard local_project_mock_json(hidden) is Object(body) else {
+      fail("original filtered publication")
+    }
+    assert_eq(body.get("aliases"), Some(Json::array([])))
+    assert_eq(body.get("updateTargets"), Some(Json::array([])))
+    let (_, disclosed) = original
+      .prepare_source_publication(environment, visible=Some((_, _) => true))
+      .unwrap()
+    assert_eq(disclosed, wire)
+    let (same, same_wire) = original
+      .prepare_source_publication(environment)
+      .unwrap()
+    assert_true(physical_equal(same, publication))
+    assert_eq(same_wire, wire)
+    original.retire_originals().unwrap() |> ignore
+    assert_true(original.write_installations is None)
+    assert_true(original.update_aliases().is_empty())
+    return
+  }
   let document = local_project_required_declaration(
     original._retained_project,
     Some("deal-review.aql"),
@@ -1477,4 +1516,11 @@ extern "C" fn native_approval_counter_raw(tag : Int) -> Int64 = "actql_native_ti
 ///|
 fn native_approval_counter(tag : Int) -> Int64 {
   native_approval_counter_raw(tag)
+}
+
+///|
+// The callback is explicit metadata-disclosure DATA, not an Account Allow.
+// The real original Read and Mapping constructor still own their lifetimes.
+test "Native static Source and UPDATE disclosure preserves unfiltered original publication and retirement" {
+  native_project_mock_model_backed_read(false, static_disclosure=true)
 }

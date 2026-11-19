@@ -3423,6 +3423,28 @@ this boundary observation is distinct from a durable `not_accepted` receipt or
 an accepted Run's terminal failure. Missing public receipts alone do not prove
 the boundary, and diagnostic loss remains incomplete evidence.
 
+### Optional Request preparation diagnostics
+
+The existing failed-admission catch retains its original error, requested
+identity, prepared Program and Source-refusal association before optional
+observer delivery. The local `preparation_failed` event with boundary
+`request_admission` describes this catch observation only. It is not a durable
+submission status, nonacceptance witness, retry permission or cleanup ACK.
+It does not select a Program family or invoke another Core/current check.
+
+Only the existing original capacity association, closed dispatch snapshot and
+unchanged bounded code-site projection may supply diagnostic DATA. Code sites
+omit absolute installation prefixes and function names; arbitrary exception
+text, stack, cause chains, getters and payloads never cross the callback.
+Missing projections stay explicitly unavailable. The same bounded best-effort
+observer owns delivery; synchronous or asynchronous callback failure cannot
+replace the first primary (including thrown `undefined`), change cancellation
+or delay the caller's original cleanup. No new Owner, reservation, allowance,
+public error shape or persistent record is introduced. Imported helper and
+scalar-projection controls qualify this boundary only; the inner cause of an
+older normal failure remains unobserved until a new selected matching caller
+actually delivers it.
+
 
 ### Run-held original compilation
 

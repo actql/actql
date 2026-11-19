@@ -191,9 +191,12 @@ fn[I, P] finish_effect_program_check_preparation_owned(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  let calls = Ref(0L)
   let (result, spent, complete) = @checked.observe_finish_parsed_effect_check_registry(
     original,
+    calls_out=Some(calls),
   )
+  owner._observed_semantic_check_calls += calls.val
   let charged = @resources.spend_preparation_phase_work64(
     work,
     spent.to_int64(),
