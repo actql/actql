@@ -1637,13 +1637,17 @@ fn native_pure_file_request_payload(
           let single_source_tag = 16L + 8L + 8L
           assert_eq(
             @execution.execution_capacity_retained_bytes(quoted),
-            203150L + single_source_tag +
-            (8L * 16L + 11L * 8L + 10L * 8L) + task_loop,
+            203150L +
+            single_source_tag +
+            (8L * 16L + 11L * 8L + 10L * 8L) +
+            task_loop,
           )
           assert_eq(
             @execution.execution_capacity_execution_bytes(quoted),
-            203150L + single_source_tag +
-            (8L * 16L + 11L * 8L + 10L * 8L) + task_loop,
+            203150L +
+            single_source_tag +
+            (8L * 16L + 11L * 8L + 10L * 8L) +
+            task_loop,
           )
           assert_eq(@initial_resources.ledger_usage(physical), before_quote)
           let admission = @local_values.installed_managed_preparation_admission_original(

@@ -661,8 +661,10 @@ fn retained_consumer_holder_case(
                   _ => "saved-output:materials-evidence:unreported-name"
                 }
               @host.MaterialsAdmission(_) => "saved-output:materials-admission"
-              @host.MaterialsDefinition(_) => "saved-output:materials-definition"
-              @host.MaterialsRunMismatch => "saved-output:materials-run-mismatch"
+              @host.MaterialsDefinition(_) =>
+                "saved-output:materials-definition"
+              @host.MaterialsRunMismatch =>
+                "saved-output:materials-run-mismatch"
               @host.MaterialsBinding(_) => "saved-output:materials-binding"
               @host.MaterialsConstructionRefused(_) =>
                 "saved-output:materials-construction-refused"
