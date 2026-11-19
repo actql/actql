@@ -133,6 +133,8 @@ pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host
 
 pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]
 
+pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool
+
 pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]
 
 pub fn cleanup_row_capture(RowRun) -> Result[Bool, RowHostIssue]

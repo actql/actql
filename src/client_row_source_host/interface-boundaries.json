@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "3f9816825560c5ea2810a4bf373742c6738f11f3d647aa0181183972912332c3",
+      "sha256": "209fe638f53c1b9d1f9c591dd0ce7036d332eceb3e0e6930ff9f3eeea5ccf31e",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -416,6 +416,7 @@
         "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]",
+        "pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool",
         "pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
         "pub fn cleanup_row_capture(RowRun) -> Result[Bool, RowHostIssue]",
         "pub fn close_accounted_row_run(RowRun) -> Result[Unit, RowHostIssue]",
@@ -849,6 +850,10 @@
         {
           "name": "check_row_keyed_acquisition_original",
           "declaration": "pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "check_row_query_capture_run",
+          "declaration": "pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool"
         },
         {
           "name": "check_row_run_response_borrow_current",
@@ -4634,10 +4639,12 @@
         },
         {
           "operations": [
-            "check_row_capture_compute_binding"
+            "check_row_capture_compute_binding",
+            "check_row_query_capture_run"
           ],
           "exports": [
-            "pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool"
+            "pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool",
+            "pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool"
           ],
           "attributes": {
             "responsibility": [
@@ -7782,7 +7789,7 @@
     {
       "module": "src/client_row_source_host/captured_compute_binding.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "7fae0b47fe046d56a11464ff19f4edf6d28f456f82a2f92e0b096c48a299bfc3",
+      "sha256": "b531273275c25516c249a74adf85cdd932b9f304d03d8388852b291302b72852",
       "role": "common-semantics",
       "owner": "Existing Common original Row capture and physical custody owner; read-only exact DAG binding",
       "exports": [],
@@ -7790,13 +7797,18 @@
         {
           "name": "check_row_capture_compute_binding",
           "declaration": "check_row_capture_compute_binding ( capture : RowSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Bool"
+        },
+        {
+          "name": "check_row_query_capture_run",
+          "declaration": "check_row_query_capture_run ( capture : RowSourceCapture , run : RowRun , ) - > Bool"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "check_row_capture_compute_binding"
+            "check_row_capture_compute_binding",
+            "check_row_query_capture_run"
           ],
           "exports": [],
           "attributes": {

@@ -144,7 +144,7 @@
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "608013c89a6fde30b56c1baefda9603760f5e419fb5b123c1f4f892e01bc2afd",
+      "sha256": "b53df919cd1557d28b9660ffce8a9e72d0c569a93ed38702000f4e7090bbfeeb",
       "role": "common-semantics",
       "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
       "exports": [],
@@ -162,6 +162,10 @@
           "declaration": "execute_captured_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , capture : @ row_source_host . RowSourceCapture , requirements : ClientLocalRequirements , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
         },
         {
+          "name": "execute_installed_captured_local_tasks_guarded",
+          "declaration": "execute_installed_captured_local_tasks_guarded ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , captures : Array [ @ row_source_host . RowSourceCapture ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
+        },
+        {
           "name": "execute_installed_whole_source_values_guarded",
           "declaration": "execute_installed_whole_source_values_guarded ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
         },
@@ -176,6 +180,14 @@
         {
           "name": "execute_source_free_local_tasks_guarded",
           "declaration": "execute_source_free_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
+        },
+        {
+          "name": "installed_captured_local_tasks_current",
+          "declaration": "installed_captured_local_tasks_current ( owner : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedDAG , captures : Array [ @ row_source_host . RowSourceCapture ] , ) - > Bool"
+        },
+        {
+          "name": "installed_captured_local_tasks_nominal",
+          "declaration": "installed_captured_local_tasks_nominal ( owner : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedDAG , captures : Array [ @ row_source_host . RowSourceCapture ] , ) - > Bool"
         }
       ],
       "contracts": [
@@ -185,10 +197,13 @@
             "captured_local_tasks_current",
             "close_local_values_tasks",
             "execute_captured_local_tasks_guarded",
-            "execute_local_tasks_guarded",
-            "execute_source_free_local_tasks_guarded",
+            "execute_installed_captured_local_tasks_guarded",
             "execute_installed_whole_source_values_guarded",
-            "execute_retained_effect_local_tasks_guarded"
+            "execute_local_tasks_guarded",
+            "execute_retained_effect_local_tasks_guarded",
+            "execute_source_free_local_tasks_guarded",
+            "installed_captured_local_tasks_current",
+            "installed_captured_local_tasks_nominal"
           ],
           "exports": [],
           "attributes": {
@@ -196,6 +211,10 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Installed finite Query captures"
               }
             ],
             "inputsOutputs": [
@@ -214,6 +233,10 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Installed finite Query captures"
               }
             ],
             "synchronization": [
@@ -238,6 +261,10 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Installed finite Query captures"
               }
             ],
             "extension": [
@@ -250,6 +277,10 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Installed finite Query captures"
               }
             ]
           }
@@ -259,7 +290,7 @@
     {
       "module": "src/client_local_host/captured_tasks_control_inventory.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "5a6c2d1512d23faf4af17d33a506c9d7134681c5e4d9dee552dd9703de901786",
+      "sha256": "ab939e22de2b3806cc0863cd9c148b0992211e0e157e2b6965ae7af4ac90960e",
       "role": "common-semantics",
       "owner": "Existing checked Local task, original captured Source, physical Resource and retained-output owners",
       "exports": [],
@@ -267,6 +298,14 @@
         {
           "name": "captured_local_tasks_control_capacity",
           "declaration": "captured_local_tasks_control_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "captured_task_completion_control_capacity",
+          "declaration": "captured_task_completion_control_capacity ( graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_captured_local_tasks_control_capacity",
+          "declaration": "installed_captured_local_tasks_control_capacity ( graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "local_tasks_control_capacity",
@@ -286,6 +325,8 @@
           "operations": [
             "<module>",
             "captured_local_tasks_control_capacity",
+            "captured_task_completion_control_capacity",
+            "installed_captured_local_tasks_control_capacity",
             "local_tasks_control_capacity",
             "retained_effect_local_tasks_control_capacity",
             "source_input_local_tasks_control_capacity"
@@ -300,6 +341,10 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "## Captured entry control constructors"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Installed finite Query captures"
               }
             ],
             "inputsOutputs": [
@@ -322,6 +367,10 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "## Captured entry control constructors"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Installed finite Query captures"
               }
             ],
             "synchronization": [
@@ -362,6 +411,10 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "## Captured entry control constructors"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Installed finite Query captures"
               }
             ],
             "extension": [
@@ -382,6 +435,10 @@
               {
                 "path": "src/client_local_host/captured-tasks-interface.md",
                 "anchor": "## Captured entry control constructors"
+              },
+              {
+                "path": "src/client_local_host/captured-tasks-interface.md",
+                "anchor": "## Installed finite Query captures"
               }
             ]
           }
