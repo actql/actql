@@ -1613,7 +1613,7 @@ test('large CI plans launch both original portable Core step command sequences',
       assert.deepEqual(observed[1].args, ['test', '--target', 'wasm', '--release', '--build-only',
         '--deny-warn', '-j', '2', 'src/client_host_wasm', '--filter', '*exported validation reaches*']);
       const requiredCases = ['saved_lookup_validation_dispatch_wbtest.mbt',
-        'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt', 'sdk_row_original_wbtest.mbt'];
+        'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt', 'sdk_row_original_wbtest.mbt', 'journal_decode_originals_wbtest.mbt'];
       assert.deepEqual(observed.slice(2).map(entry => entry.args), requiredCases.map(name => [
         'scripts/test-python-local-metadata-wasm.mjs',
         '_build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm',

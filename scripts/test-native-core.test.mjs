@@ -977,7 +977,7 @@ test('Native Core retains admitted Darwin profiles and selects Linux for common 
 // than pinning how many physical invocations an earlier workflow happened to use.
 function coreInvocationRoles(records, target) {
   const wasmCases = ['saved_lookup_validation_dispatch_wbtest.mbt',
-    'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt', 'sdk_row_original_wbtest.mbt'];
+    'non_sdk_source_restore_wbtest.mbt', 'managed_task_current_wbtest.mbt', 'sdk_row_original_wbtest.mbt', 'journal_decode_originals_wbtest.mbt'];
   const requireFullSelection = args => {
     assert.equal(classifyMoon('test', args).classification, 'full');
     // The cost classifier deliberately treats case filters as full builds.

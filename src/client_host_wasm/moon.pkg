@@ -38,6 +38,7 @@ options(
     "non_sdk_source_restore_wbtest.mbt": [ "release" ],
     "managed_task_current_wbtest.mbt": [ "release" ],
     "sdk_row_original_wbtest.mbt": [ "release" ],
+    "journal_decode_originals_wbtest.mbt": [ "release" ],
   },
   link: {
     "wasm": {

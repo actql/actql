@@ -1503,6 +1503,8 @@ pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_tr
 
 pub fn client_run_journal_append_rows(ClientRunJournalAppend) -> (String, Bytes, Int64, Bytes)
 
+pub fn client_run_journal_decode_construction(ClientRunJournalConstruction) -> (Int64, Int64)?
+
 pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?, run_observation_originals? : String?, before_construction? : ((Int, Int, Int) -> Result[Unit, ClientJournalEncodingIssue])?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_run_journal_row_original_matches(ClientRunJournalRowOriginal, Bytes) -> Bool

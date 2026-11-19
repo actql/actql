@@ -53,7 +53,7 @@ priv struct StoredJournalObservation {
   slot : @buffers.BufferSlot
   mut invoked : Bool
   mut closing : Bool
-  mut outcome : Result[@local_run.LocalSavedSubmissionObservation, Int]?
+  mut outcome : StoredJournalObservationOutcome?
   mut admission_produced : Bool
 }
 
@@ -294,6 +294,18 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
   let read = (table_name, key) => {
     journal_query_row(value, child, plan, 1, table_name, key)
   }
+  let frame = open_journal_decode_frame(
+    value,
+    handle,
+    child,
+    @host.client_request_scope_cid(@local_run.local_run_request(plan)),
+  )
+  let inspect_run = row => {
+    match frame {
+      None => submission_append_run_inspection(row)
+      Some(frame) => journal_decode_run_inspection(value, child, frame, row)
+    }
+  }
   let outcome = @local_run.inspect_local_saved_submission(
     rows,
     plan,
@@ -301,7 +313,7 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
     1024,
     scan,
     read,
-    submission_append_run_inspection,
+    inspect_run,
     () => submission_cancellation_inventory(scan, read),
     -31,
   ).map_err(issue => {
@@ -312,14 +324,59 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
       Rows(_) => -31
     }
   })
-  match journal_current(value, child, plan) {
-    Ok(_) => ()
-    Err(code) => {
-      child.outcome = Some(Err(code))
-      return code
+  let outcome = match journal_current(value, child, plan) {
+    Ok(_) => outcome
+    Err(code) => Err(code)
+  }
+  let keep_selected = outcome is Ok(_)
+  let retained_frame = match frame {
+    None => None
+    Some(frame) => {
+      let code = dispose_journal_decode_rows(value, frame, keep_selected)
+      if code != 0 {
+        // The original inspection failure stays primary; all exact pending
+        // tokens remain reachable under this child's normal cleanup.
+        let outcome = match outcome {
+          Err(original) => Err(original)
+          Ok(_) => Err(code)
+        }
+        child.outcome = Some(Observed(outcome, Some(frame)))
+        return match outcome {
+          Ok(_) => 0
+          Err(code) => code
+        }
+      }
+      if frame.selected is Some(_) {
+        // All foreign cells have retired; the selected pure result and its
+        // distinct fresh row copy now belong to this SAME child's outcome.
+        guard journal_decode_frame_capacity() is Some(retention) &&
+          @resources.shrink_capacity_reservation(
+            value.root,
+            frame.capacity,
+            retention,
+            0L,
+          )
+          is Ok(_) else {
+          child.outcome = Some(Observed(Err(-4), Some(frame)))
+          return -4
+        }
+        Some(frame)
+      } else {
+        match @resources.settle_capacity(value.root, frame.capacity) {
+          Err(_) => {
+            let failure = match outcome {
+              Err(original) => original
+              Ok(_) => -4
+            }
+            child.outcome = Some(Observed(Err(failure), Some(frame)))
+            return failure
+          }
+          Ok(_) => None
+        }
+      }
     }
   }
-  child.outcome = Some(outcome)
+  child.outcome = Some(Observed(outcome, retained_frame))
   match outcome {
     Ok(_) => 0
     Err(code) => code
@@ -335,7 +392,7 @@ pub fn journal_observation_revision(
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) &&
     !child.closing &&
-    child.outcome is Some(Ok(observed)) &&
+    child.outcome is Some(Observed(Ok(observed), _)) &&
     value.materials.get(child.material) is Some(material) &&
     material.submission is Some({ rows: Some(rows), .. }) &&
     value.runs.get(material.run) is Some(record) &&
@@ -365,7 +422,7 @@ pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) &&
     !child.closing &&
-    child.outcome is Some(Ok(observed)) &&
+    child.outcome is Some(Observed(Ok(observed), _)) &&
     value.materials.get(child.material) is Some(material) &&
     material.submission is Some({ rows: Some(rows), .. }) &&
     value.runs.get(material.run) is Some(record) &&
@@ -409,6 +466,16 @@ pub fn close_journal_observation(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   child.closing = true
+  let cleanup = match child.outcome {
+    Some(ReservingDecode(capacity)) =>
+      @resources.settle_capacity(value.root, capacity).map(_ => 0).unwrap_or(-4)
+    Some(Decoding(frame)) | Some(Observed(_, Some(frame))) =>
+      close_journal_decode_frame(value, frame)
+    _ => 0
+  }
+  if cleanup != 0 {
+    return cleanup
+  }
   child.outcome = None
   let result = status(@buffers.close_buffer(value.pool, child.slot))
   if result == 0 {

@@ -57,6 +57,9 @@ test "Run decode construction refuses impossible measured geometry" {
     ] {
     assert_true(journal_run_decode_working(stage) is None)
   }
-  assert_true(journal_run_request_construction() is Some(_))
-  assert_true(journal_run_definition_construction() is Some(_))
+  assert_true(journal_run_decode_working(@host.RunJournalParse(1)) is Some(_))
+  assert_true(
+    journal_run_decode_working(@host.RunJournalCanonical(1, 2L, 1, 1))
+    is Some(_),
+  )
 }
