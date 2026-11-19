@@ -1,6 +1,6 @@
 {
   "source": "d8f083a32a7a58a94cdb8f3fc975c71d39434f0a",
-  "syntaxProjectionSha256": "100a2a04135b3fdd718bb284c801988957ddf677444757a0d197668718d3a36b",
+  "syntaxProjectionSha256": "b01380142ae243ed212349486c1c835aa46fce75b874d54fa31d7272f2578ac0",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -885,7 +885,7 @@
     {
       "module": "packages/native-cli/lib/local-runtime.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0f9b52ee72e883a635bd7dddf41300649aac6682a911c927ac8f87f553947553",
+      "sha256": "3362f64680d2f4f923c9ec534195824305af5bcd51168eb5f09dd9d2ced73f33",
       "exports": [
         "LOCAL_RUNTIME_MAX_BYTES",
         "admitInstalledLocalRuntime",
@@ -84822,7 +84822,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "9c7d70c293a92bf90aa22efa951892a3a20952a8d8dde0d45ed7c5bb1caf71b7",
+      "sha256": "7d8acb5c335ea493358ac49e6eea6400634b6bf7388b583a764550b3c2b6e108",
       "exports": [],
       "operations": [
         {
@@ -84919,6 +84919,10 @@
               {
                 "path": "src/cmd/native_client/local_command_check.mbt",
                 "anchor": "fn[T] command_preparation_result("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "inputsOutputs": [
@@ -84929,6 +84933,10 @@
               {
                 "path": "src/cmd/native_client/local_command_check.mbt",
                 "anchor": "fn[T] command_preparation_result("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "identity": [
@@ -84939,6 +84947,10 @@
               {
                 "path": "src/cmd/native_client/local_command_check.mbt",
                 "anchor": "fn[T] command_preparation_result("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "ownership": [
@@ -84949,6 +84961,10 @@
               {
                 "path": "src/cmd/native_client/local_command_check.mbt",
                 "anchor": "fn[T] command_preparation_result("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "synchronization": [
@@ -84959,6 +84975,10 @@
               {
                 "path": "src/cmd/native_client/local_command_check.mbt",
                 "anchor": "fn[T] command_preparation_result("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "failure": [
@@ -84969,6 +84989,10 @@
               {
                 "path": "src/cmd/native_client/local_command_check.mbt",
                 "anchor": "fn[T] command_preparation_result("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "cancellation": [
@@ -84979,6 +85003,10 @@
               {
                 "path": "src/cmd/native_client/local_command_check.mbt",
                 "anchor": "fn[T] command_preparation_result("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "resources": [
@@ -84989,6 +85017,10 @@
               {
                 "path": "src/cmd/native_client/local_command_check.mbt",
                 "anchor": "fn[T] command_preparation_result("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "extension": [
@@ -84999,6 +85031,10 @@
               {
                 "path": "src/cmd/native_client/local_command_check.mbt",
                 "anchor": "fn[T] command_preparation_result("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "verification": [
@@ -85009,6 +85045,10 @@
               {
                 "path": "scripts/native-local-cleanup-order.test.mjs",
                 "anchor": "test('Native Host settings runs original staged decoding"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ]
           }
@@ -85017,7 +85057,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "6618a5470e8731070f1ba43e96e26aeddbfb8e14834bb40d374e21043b7f6f4f",
+      "sha256": "226bd6352275d78b3fd3e9d5794c9657b2ff957a7c532f4cfbf71f6be836eadf",
       "exports": [],
       "operations": [
         {
@@ -85034,7 +85074,7 @@
         },
         {
           "name": "local_command_initial_read_budget",
-          "declaration": "local_command_initial_read_budget ( profile : LocalCommandPreparationProfile , ) - > @ initial_arena . InstalledArenaOriginalReadBudget"
+          "declaration": "local_command_initial_read_budget ( profile : LocalCommandPreparationProfile , ) - > @ initial_arena . InstalledArenaOriginalReadBudget ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::acquire",
@@ -85058,7 +85098,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::initial_read_budget",
-          "declaration": "LocalCommandPreparationOriginal : : initial_read_budget ( self : LocalCommandPreparationOriginal , ) - > @ initial_arena . InstalledArenaOriginalReadBudget"
+          "declaration": "LocalCommandPreparationOriginal : : initial_read_budget ( self : LocalCommandPreparationOriginal , ) - > @ initial_arena . InstalledArenaOriginalReadBudget ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::leave",
@@ -85144,6 +85184,10 @@
               {
                 "path": "src/cmd/native_client/local_command_preparation.mbt",
                 "anchor": "fn prepare_local_command_preparation_original("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "inputsOutputs": [
@@ -85154,6 +85198,10 @@
               {
                 "path": "src/cmd/native_client/local_command_preparation.mbt",
                 "anchor": "fn prepare_local_command_preparation_original("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "identity": [
@@ -85164,6 +85212,10 @@
               {
                 "path": "src/cmd/native_client/local_command_preparation.mbt",
                 "anchor": "fn prepare_local_command_preparation_original("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "ownership": [
@@ -85174,6 +85226,10 @@
               {
                 "path": "src/cmd/native_client/local_command_preparation.mbt",
                 "anchor": "fn prepare_local_command_preparation_original("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "synchronization": [
@@ -85184,6 +85240,10 @@
               {
                 "path": "src/cmd/native_client/local_command_preparation.mbt",
                 "anchor": "fn prepare_local_command_preparation_original("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "failure": [
@@ -85194,6 +85254,10 @@
               {
                 "path": "src/cmd/native_client/local_command_preparation.mbt",
                 "anchor": "fn prepare_local_command_preparation_original("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "cancellation": [
@@ -85204,6 +85268,10 @@
               {
                 "path": "src/cmd/native_client/local_command_preparation.mbt",
                 "anchor": "fn prepare_local_command_preparation_original("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "resources": [
@@ -85214,6 +85282,10 @@
               {
                 "path": "src/cmd/native_client/local_command_preparation.mbt",
                 "anchor": "fn prepare_local_command_preparation_original("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "extension": [
@@ -85224,6 +85296,10 @@
               {
                 "path": "src/cmd/native_client/local_command_preparation.mbt",
                 "anchor": "fn prepare_local_command_preparation_original("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ],
             "verification": [
@@ -85234,6 +85310,10 @@
               {
                 "path": "scripts/native-local-cleanup-order.test.mjs",
                 "anchor": "test('Native Host settings runs original staged decoding"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ]
           }
@@ -91966,6 +92046,92 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/cmd/native_client/local_command_query_assets_capacity.mbt",
+      "sha256": "e44ba39a6b5496adaccd98621cd093223c69bd6f6734ba72237f210a6c695c33",
+      "exports": [],
+      "operations": [
+        {
+          "name": "local_command_query_assets_capacity",
+          "declaration": "local_command_query_assets_capacity ( diagnostic_ceiling : Int , ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Native initial command Read and product/adoption owners; constructor funding on the same original, no new authority or cleanup owner",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "local_command_query_assets_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Initial Read constructor quantity/source checks only; not physical acquisition, Native runtime, cleanup or installed acceptance."
     }
   ],
   "syntaxProjectionBasis": "SHA256 of UTF-8 JSON.stringify over sorted declared {module,operations,exports,imports}; source inventory only."

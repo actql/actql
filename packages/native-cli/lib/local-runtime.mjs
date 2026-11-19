@@ -9,7 +9,8 @@ export const LOCAL_RUNTIME_MAX_BYTES = 64 * 1024 * 1024;
 const MANIFEST_MAX_BYTES = 65536;
 const DATA_MAX_BYTES = 65536;
 const LICENSE_MAX_BYTES = 1024 * 1024;
-const roles = ['environment', 'registry', 'values', 'fragment', 'ordered', 'result-policy'];
+const roles = ['environment', 'registry', 'values', 'fragment', 'ordered', 'result-policy',
+  'query', 'query-evidence'];
 const systems = {
   'darwin-arm64': new Set(['/usr/lib/libSystem.B.dylib', '/usr/lib/libz.1.dylib']),
   'linux-x64-gnu': new Set(['libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0', 'librt.so.1', 'ld-linux-x86-64.so.2']),
@@ -55,7 +56,7 @@ export function validateLocalRuntimeManifest(value, {sourceSha, platform}) {
   assert.equal(value.sourceSha, sourceSha);
   assert(systems[platform]); assert.equal(value.platform, platform);
   assert(Array.isArray(value.libraries) && value.libraries.length >= 2 && value.libraries.length <= 8);
-  assert(Array.isArray(value.assets) && value.assets.length >= 5 && value.assets.length <= 6);
+  assert(Array.isArray(value.assets) && value.assets.length >= 5 && value.assets.length <= 8);
   assert(Array.isArray(value.licenses) && value.licenses.length >= 1 && value.licenses.length <= 8);
   const paths = new Set(), libraryNames = new Set(), libraryRoles = new Set(), assetRoles = new Set();
   let bytes = 0;
@@ -98,6 +99,9 @@ export function validateLocalRuntimeManifest(value, {sourceSha, platform}) {
     assert.equal(item.path, `data/${item.role}.json`); member(item, 'data/', DATA_MAX_BYTES);
   }
   for (const role of ['environment', 'registry', 'values', 'fragment', 'result-policy']) assert(assetRoles.has(role));
+  // The existing old five/six-member profile remains valid. New Query support
+  // requires BOTH original protocol members, never a partial/default contract.
+  assert.equal(assetRoles.has('query'), assetRoles.has('query-evidence'));
   // Every packaged notice must apply to an actual bundled library.
   assert(value.licenses.every(item => value.libraries.some(library => library.license === item.path)));
   return value;

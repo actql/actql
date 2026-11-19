@@ -4,6 +4,10 @@
 // a scope exchange does not free those aliases or acknowledge their domains.
 priv enum NativeLocalWorkSourceOriginal {
   SourceFree
+  ManagedRelationFiles(
+    @local.ClientInstalledManagedRun,
+    Array[NativeRelationFileQuerySource]
+  )
   RelationFile(
     @rows.RowDeclaration,
     @planning.QueryRequirement,
@@ -171,7 +175,9 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
           _ => Ok(())
         }
       })
-    RelationFile(_, _, _) | WholeRelationFile(_, _, _, _, _, _) =>
+    RelationFile(_, _, _)
+    | WholeRelationFile(_, _, _, _, _, _)
+    | ManagedRelationFiles(_, _) =>
       captured.with_current_adoption_material_in_original_read((
         host,
         material,
@@ -575,6 +581,29 @@ fn NativeLocalValuesOriginalAccess::source_allowed_in_original_read(
 ) -> Bool {
   match source {
     SourceFree => true
+    ManagedRelationFiles(_, sources) => {
+      for source in sources {
+        let requirement = @rows.row_acquisition_requirement(source.acquisition)
+        guard @rows.check_row_acquisition_original(
+            source.acquisition,
+            source.declaration,
+            requirement,
+          )
+          is Ok(_) &&
+          captured.operation_account(host, material, {
+            principal: self.principal,
+            connection: source.declaration.connector_id,
+            resource: @rows.row_query_acquisition_target_resource(
+              source.acquisition,
+            ),
+            operation: "read",
+          })
+          is Ok(@authorization.Allow(_)) else {
+          return false
+        }
+      }
+      !sources.is_empty()
+    }
     RelationFile(declaration, requirement, acquisition) => {
       guard @rows.check_row_acquisition_original(
           acquisition, declaration, requirement,

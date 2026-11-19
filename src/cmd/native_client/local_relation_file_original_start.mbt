@@ -121,7 +121,7 @@ fn local_execute_original_publish_file_source(
       computation_contract_cid: @publication.publication_contract_identity(
         @run_host.client_compiled_run_plan(compiled),
       ),
-      input_relation_cids: [input],
+      input_relation_cids: input,
       scope_cid: @publication.publication_contract_identity(definition),
       effective_data_policy_cid: policy,
       store_authority_cid: run.store_authority_cid,

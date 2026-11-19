@@ -123,6 +123,8 @@ pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_pla
 
 pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool
 
+pub fn check_row_capture_compute_original(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool
+
 pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]
@@ -132,6 +134,8 @@ pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, Row
 pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_keyed_acquisition_original(RowKeyedAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]
+
+pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool
 
 pub fn check_row_run_response_borrow_current(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]
 
@@ -460,6 +464,10 @@ pub fn row_original_capture_export_facts(RowOriginalCaptureExport) -> (String, S
 pub fn row_original_input_capacity() -> (Int64, Int64)
 
 pub fn row_original_input_query_capacity(@query_planning.QueryRequirement) -> (Int64, Int64)?
+
+pub fn row_query_acquisition_completion_limits(RowAcquisition) -> RowCompletionLimits
+
+pub fn row_query_acquisition_target_resource(RowAcquisition) -> String
 
 pub fn row_run_attempt(RowRun) -> RowAttempt
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {nativeFileSourceQueries, observeNativeFileSourceQuery} from './fixtures/native-file-source-queries.mjs';
+import {nativeFileSourceQueries, nativeReadonlyMockQueries, nativeInstalledSourceQueries, observeNativeFileSourceQuery} from './fixtures/native-file-source-queries.mjs';
 import {nativeLocalDefaultAssets} from './native-cli-default-assets.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
 import {finishSourceFreeObservations} from './test-native-cli-source-free-install.mjs';
@@ -853,7 +853,7 @@ async function fileQueryHarness(t, {name='projection', rows=[{trend:'flat'},{tre
   stop, changeInput=false, throwOriginal=false, runnable=true}={}) {
   const parent=await mkdtemp(join(tmpdir(),'actql-file-query-harness-'));
   t.after(()=>rm(parent,{recursive:true,force:true}));
-  const fixture=nativeFileSourceQueries.find(value=>value.name===name),calls=[];
+  const fixture=nativeInstalledSourceQueries.find(value=>value.name===name),calls=[];
   const originalError=new Error('original CLI port failure');
   const data=JSON.stringify({snowflake:{usage_30d:{rows:[
     {account_id:'001Acme',active_users:4,trend:'down'},
@@ -934,4 +934,16 @@ test('original File query failure and changed input retain the same primary sepa
   await assert.rejects(actor.observe(),error=>error instanceof AggregateError&&
     error.errors[0]===actor.originalError&&error.errors.length===2);
   assert.equal(actor.calls.filter(value=>value.args[0]==='sql').length,1);
+});
+
+// Explicit CLI ports verify only fixture transport/full-row oracles. They do
+// not simulate a Native reader or qualify the unbuilt Source continuation.
+test('read-only Mock Query fixtures retain full rows and one original submission',async t=>{
+  for(const fixture of nativeReadonlyMockQueries){
+    const actor=await fileQueryHarness(t,{name:fixture.name,rows:fixture.rows});
+    const result=await actor.observe();
+    assert.deepEqual(result.rows,fixture.rows);
+    assert.deepEqual(actor.calls.map(call=>call.args[0]),['init','check','sql']);
+    assert.equal(actor.calls.filter(call=>call.args[0]==='sql').length,1);
+  }
 });

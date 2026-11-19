@@ -22,6 +22,19 @@ export const nativeFileSourceQueries = Object.freeze([
   {name: 'average', sql: "SELECT AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d", rows: [{average: 8}]},
   {name: 'combined-control', sql: "SELECT SUM(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS total, AVG(CASE WHEN trend = 'down' THEN 4 ELSE 12 END) AS average FROM snowflake.usage_30d", rows: [{total: 16, average: 8}]},
 ]);
+// Existing read-only Mock contract: a legal WHERE and two original logical
+// JOIN occurrences in the SAME physical file. Native execution is required;
+// these independent full-row oracles are not planning/metadata acceptance.
+export const nativeReadonlyMockQueries = Object.freeze([
+  {name: 'readonly-filter', sql: "SELECT account_id, trend FROM snowflake.usage_30d WHERE trend = 'down'",
+    rows: [{account_id: '001Acme', trend: 'down'}]},
+  {name: 'readonly-join', sql: 'SELECT u.account_id, a.name AS account_name, u.trend FROM snowflake.usage_30d u JOIN salesforce.accounts a ON u.account_id = a.id',
+    rows: [{account_id: '001Acme', account_name: 'Acme Corp', trend: 'down'},
+      {account_id: '001Globex', account_name: 'Globex Inc', trend: 'flat'}]},
+]);
+export const nativeInstalledSourceQueries = Object.freeze([
+  ...nativeFileSourceQueries, ...nativeReadonlyMockQueries,
+]);
 const multiset = rows => rows.map(canonicalText).sort();
 const requireSuccess = result => {
   assert.ifError(result.error);
@@ -31,7 +44,7 @@ const requireSuccess = result => {
 };
 
 export async function observeNativeFileSourceQuery({parent, fixture, cli}) {
-  assert(nativeFileSourceQueries.includes(fixture), 'Select an original File query');
+  assert(nativeInstalledSourceQueries.includes(fixture), 'Select an original installed Source query');
   const project = join(parent, fixture.name);
   requireSuccess(await cli(['init', '--template', 'churn-risk-mock', project], parent));
   const path = join(project, 'mock/data.json'), original = await readFile(path);

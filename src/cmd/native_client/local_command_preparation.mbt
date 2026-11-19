@@ -47,6 +47,10 @@ priv enum LocalCommandPreparationIssue {
   CommandBusinessSourceIdentity(LocalNativeMockSourceIdentityIssue)
   CommandBusinessModel(@local_host.NativeClientMockModelIssue)
   CommandBusinessModelGraph(@local_values.ClientRequestProgramPlanIssue)
+  CommandBusinessQueryPlan(@local_values.ClientRequestProgramPlanIssue)
+  CommandBusinessQueryRequirement(@local_values.ClientLocalQueryIssue)
+  CommandBusinessQueryRow(@row_host.RowHostIssue)
+  CommandBusinessQueryCapture(@local_values.ClientInstalledManagedRunIssue)
   CommandBusinessEffectProposals(LocalNativeMockEffectProposalIssue)
   CommandBusinessEffectAcceptance(
     @local_host.NativeClientSubmittedEffectMaterialsIssue
@@ -363,7 +367,7 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     let profile = self.profile
     // Preserve the immutable maximum profile. The initial Read funds only
     // the existing first processing block and its actually coheld originals.
-    let read_budget = self.initial_read_budget()
+    let read_budget = command_preparation_option(self.initial_read_budget())
     let initial_pool = command_preparation_value(
       native_storage_sum([
         read_budget.bootstrap_retained,
@@ -598,7 +602,7 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
     // consuming block. Later constructors acquire backing before Read resize.
     let consumer_execution = Int64::min(
       profile.consumer_execution_bytes,
-      self.initial_read_budget().read_execution,
+      command_preparation_option(self.initial_read_budget()).read_execution,
     )
     let consumer = command_preparation_value(
       host
@@ -1473,7 +1477,7 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
 ///|
 fn LocalCommandPreparationOriginal::initial_read_budget(
   self : LocalCommandPreparationOriginal,
-) -> @initial_arena.InstalledArenaOriginalReadBudget {
+) -> @initial_arena.InstalledArenaOriginalReadBudget? {
   local_command_initial_read_budget(self.profile)
 }
 
@@ -1492,13 +1496,38 @@ fn[T] command_preparation_option(
 // Native component consumers. This projection issues no platform original.
 fn local_command_initial_read_budget(
   profile : LocalCommandPreparationProfile,
-) -> @initial_arena.InstalledArenaOriginalReadBudget {
+) -> @initial_arena.InstalledArenaOriginalReadBudget? {
   let budget = profile.read_budget
-  {
-    ..budget,
-    read_execution: Int64::min(
-      budget.read_execution,
-      Int64::max(budget.bootstrap_execution, budget.workspace_execution),
-    ),
+  guard local_command_query_assets_capacity(profile.diagnostic_ceiling)
+    is Some((assets_r, assets_e)) &&
+    @execution.checked_preparation_add_product(
+      budget.read_retained,
+      assets_r,
+      1L,
+    )
+    is Some(read_retained) &&
+    @execution.checked_preparation_add_product(
+      Int64::min(
+        budget.read_execution,
+        Int64::max(budget.bootstrap_execution, budget.workspace_execution),
+      ),
+      assets_e,
+      1L,
+    )
+    is Some(read_execution) &&
+    native_storage_sum([budget.bootstrap_retained, read_retained])
+    is Ok(retained) &&
+    native_storage_sum([
+      budget.bootstrap_execution,
+      budget.workspace_execution,
+      read_execution,
+    ])
+    is Ok(execution) &&
+    retained <= profile.read_domain_limits.retained_bytes &&
+    execution <= profile.read_domain_limits.execution_bytes else {
+    return None
   }
+  // Compose after the old startup clipping. Query construction cannot vanish
+  // behind min/max, consume presumed free bootstrap space or raise a ceiling.
+  Some({ ..budget, read_retained, read_execution, })
 }

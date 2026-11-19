@@ -190,6 +190,158 @@ fn captured_local_tasks_current(
 }
 
 ///|
+// No caller-provided skip count: the original Plan owns every captured task.
+// Recheck both the acquisition's RowRun and that exact capture's DAG input;
+// equal rows/schema or another capture of the same declaration are insufficient.
+fn installed_captured_local_tasks_nominal(
+  owner : ClientInstalledManagedRun,
+  plan : ClientInstalledManagedCapturePlan,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  run : @strategy.CapturedDAG,
+  captures : Array[@row_source_host.RowSourceCapture],
+) -> Bool {
+  let first = @strategy.graph_captured_prefix(plan.graph)
+  guard first > 0 &&
+    !@strategy.graph_program_has_effects(plan.graph) &&
+    plan.whole_sources.is_empty() &&
+    plan.captures.length() == first &&
+    captures.length() == first &&
+    owner.reads.length() == first &&
+    owner.original is Some(original_owner) &&
+    physical_equal(original_owner, owner) &&
+    owner.preparation is Some(PureManaged(_, original_prepared)) &&
+    physical_equal(original_prepared, prepared) &&
+    owner.captured_preparation is Some(original) &&
+    physical_equal(original, plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    physical_equal(owner.request, request) &&
+    owner.source_free_captured is Some(original_run) &&
+    physical_equal(original_run, run) &&
+    physical_equal(plan.graph, @strategy.captured_dag_graph(run)) &&
+    owner.ledger is Some(ledger) &&
+    physical_equal(ledger, @strategy.captured_dag_ledger(run)) else {
+    return false
+  }
+  for index in 0..<first {
+    guard plan.captures[index].acquisition is Some(acquisition) &&
+      owner.reads[index] is Some(read) &&
+      read.acquisition is Some(original_acquisition) &&
+      physical_equal(original_acquisition, acquisition) &&
+      read.managed_run is Some((original_owner, occurrence)) &&
+      physical_equal(original_owner, owner) &&
+      occurrence == index &&
+      read.ledger is Some(original_ledger) &&
+      physical_equal(original_ledger, ledger) &&
+      read.run is Some(row_run) &&
+      @row_source_host.check_row_query_capture_run(captures[index], row_run) &&
+      @row_source_host.check_row_capture_compute_original(
+        captures[index],
+        run,
+        index,
+      ) else {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn installed_captured_local_tasks_current(
+  owner : ClientInstalledManagedRun,
+  plan : ClientInstalledManagedCapturePlan,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  run : @strategy.CapturedDAG,
+  captures : Array[@row_source_host.RowSourceCapture],
+) -> Bool {
+  if !installed_captured_local_tasks_nominal(
+      owner, plan, prepared, request, run, captures,
+    ) {
+    return false
+  }
+  for index in 0..<captures.length() {
+    if !@row_source_host.check_row_capture_compute_binding(
+        captures[index],
+        run,
+        index,
+      ) {
+      return false
+    }
+  }
+  // A later Source verifier can synchronously retire/replace an earlier read.
+  // Recheck the complete original inventory without another callback, not only
+  // the last successful Source. This does not replace the Account/current gate.
+  installed_captured_local_tasks_nominal(
+    owner, plan, prepared, request, run, captures,
+  )
+}
+
+///|
+/// Continue the original finite Query captures on their SAME installed Plan.
+/// The caller retains physical readers and the separately quoted loop controls
+/// through execution/failure cleanup. This neither starts a Source nor claims
+/// a Run, and never skips a task selected by a caller-supplied index.
+pub fn execute_installed_captured_local_tasks_guarded(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  captures : Array[@row_source_host.RowSourceCapture],
+  finalization_quantum : Int,
+  max_finalization_rounds : Int,
+  require_current : () -> Bool,
+  require_live? : (() -> Bool)? = None,
+) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  guard owner.captured_preparation is Some(plan) &&
+    captures.length() == plan.captures.length() &&
+    captures.length() == @strategy.graph_captured_prefix(plan.graph) &&
+    !captures.is_empty() else {
+    return Err(failed_local_values_execution(UnsupportedGraph))
+  }
+  // Snapshot only the bounded reference vector, before any Source/current
+  // callback. Its actual allocation is in this entry's existing control quote;
+  // rows, readers and acquisition originals are borrowed, never reconstructed.
+  let captures = captures.copy()
+  guard installed_captured_local_tasks_current(
+    owner, plan, prepared, request, run, captures,
+  ) else {
+    return Err(failed_local_values_execution(UnsupportedGraph))
+  }
+  // Retain the finite input snapshot; each callback-return check binds every
+  // entry again to the Plan/read/DAG originals before dispatch or publication.
+  let current = () => {
+    require_current() &&
+    installed_captured_local_tasks_current(
+      owner, plan, prepared, request, run, captures,
+    )
+  }
+  let live = match require_live {
+    None => None
+    Some(check) =>
+      Some(() => {
+        check() &&
+        installed_captured_local_tasks_current(
+          owner, plan, prepared, request, run, captures,
+        )
+      })
+  }
+  execute_local_tasks_guarded(
+    setup,
+    finalization_quantum,
+    max_finalization_rounds,
+    current,
+    require_live=live,
+    first=@strategy.graph_captured_prefix(plan.graph),
+    captured_source=Some(plan),
+  )
+}
+
+///|
 fn execute_local_tasks_guarded(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   finalization_quantum : Int,
@@ -199,6 +351,7 @@ fn execute_local_tasks_guarded(
   first~ : Int,
   retained_effect? : @strategy.CapturedEffectRunDAG? = None,
   whole_source? : ClientInstalledManagedCapturePlan? = None,
+  captured_source? : ClientInstalledManagedCapturePlan? = None,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   if finalization_quantum <= 0 || max_finalization_rounds <= 0 {
     return Err(failed_local_values_execution(InvalidLimits))
@@ -311,7 +464,8 @@ fn execute_local_tasks_guarded(
         inputs.push(@local_driver.local_managed_captured_relation_input())
         continue
       }
-      if first == 1 && producer == 0 {
+      if (first == 1 && producer == 0) ||
+        (captured_source is Some(_) && producer >= 0 && producer < first) {
         inputs.push(@local_driver.local_managed_captured_relation_input())
         continue
       }
@@ -348,7 +502,7 @@ fn execute_local_tasks_guarded(
     // Commit its actual managed candidate only after preparing this next
     // Task with its real inputs; no whole-Run future DATA reservation is
     // needed. The start boundary still admits its complete simultaneous cost.
-    if continuation || first == 0 {
+    if continuation || first == 0 || captured_source is Some(_) {
       match
         @strategy.select_captured_managed_registration(
           run,
@@ -507,4 +661,43 @@ fn execute_local_tasks_guarded(
     available,
     tasks: Some((lookup, cleanup)),
   })
+}
+
+///|
+/// Cleanup only the SAME retained Query prefix's original DAG ports, including
+/// a failed Host binding that returned no setup. This neither retires Source
+/// readers nor reports physical stop. Actual pending task/resource/pin custody
+/// refuses completion; no current/availability callback can substitute for it.
+pub fn retire_installed_query_capture_ports(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> Bool {
+  guard owner.original is Some(original) &&
+    physical_equal(original, owner) &&
+    owner.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    physical_equal(owner.request, request) &&
+    owner.preparation is Some(PureManaged(_, original_prepared)) &&
+    physical_equal(original_prepared, prepared) &&
+    !@strategy.graph_program_has_effects(plan.graph) &&
+    plan.whole_sources.is_empty() &&
+    !plan.captures.is_empty() &&
+    !owner.source_free_opening else {
+    return false
+  }
+  match owner.source_free_captured {
+    None => true
+    Some(run) => {
+      guard physical_equal(plan.graph, @strategy.captured_dag_graph(run)) &&
+        owner.ledger is Some(ledger) &&
+        physical_equal(ledger, @strategy.captured_dag_ledger(run)) else {
+        return false
+      }
+      close_local_values_tasks(run, []) &&
+      !@strategy.captured_task_retirement_pending(run) &&
+      !@strategy.captured_task_boundary_cleanup_pending(run)
+    }
+  }
 }

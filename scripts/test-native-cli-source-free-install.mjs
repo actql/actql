@@ -18,7 +18,7 @@ import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
-import {nativeFileSourceQueries} from './fixtures/native-file-source-queries.mjs';
+import {nativeInstalledSourceQueries} from './fixtures/native-file-source-queries.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {nativeLauncherEnvelope} from './native-cli-mock-scenario.mjs';
 import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
@@ -949,7 +949,7 @@ export async function preserveOrdinaryFailureWithDiagnostic(primary, diagnose) {
 export function nativeInstalledIngressSelection() {
   return {files: ['./test-native-local-cli.test.mjs', './test-native-file-source-queries.test.mjs']
     .map(path => fileURLToPath(new URL(path, import.meta.url))),
-  expectedTests: 13 + nativeFileSourceQueries.length};
+  expectedTests: 13 + nativeInstalledSourceQueries.length};
 }
 
 async function observeInstalledSourceFree(input, observationPath) {

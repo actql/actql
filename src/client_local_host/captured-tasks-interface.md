@@ -2,7 +2,9 @@
 
 - Responsibility: the existing Local adapter advances the checked DAG and its
   installed managed operations. The source-free entrance retains its zero-Source
-  guard; the captured entrance accepts exactly one original Row Query capture.
+  guard; the legacy captured entrance accepts exactly one original Row Query
+  capture. The installed captured entrance requires the original finite Query
+  Plan and its complete captured prefix, without a caller-supplied skip index.
   The Whole task entrance instead requires the same retained managed
   Plan, Prepared, Request and configured DAG with its original complete input.
 - Inputs and outputs: the captured entrance consumes the configured retained
@@ -31,7 +33,9 @@
   DAG Ledger and provider reservations. No replacement Ledger or free imported
   Source is constructed. The Row custody observer allocates no inventory and
   issues no capacity, token, ownership or cleanup acknowledgement.
-- Extension: extra Sources, Model and Effect work are outside this entrance.
+- Extension: extra Sources remain outside the legacy single-capture entrance.
+  Installed finite Query captures use the same loop and original managed Plan;
+  Model and Effect work retain their separate existing entrances.
   Captured inputs without existing cell access and Carrier
   snapshots are not reconstructed here. Native Account/Journal orchestration,
   actual file capture, publication and CLI admission stay with their owners;
@@ -115,3 +119,45 @@ A stopped DAG still exposes an unretired original capture for identity checks;
 stop alone is not port retirement. A retired port fences the Common observer
 and cannot advance a Compute attempt. Downstream cleanup and caller-owned
 Source cleanup retain their existing order and separate responsibilities.
+
+## Installed finite Query captures
+
+`execute_installed_captured_local_tasks_guarded` binds the SAME managed Run,
+Prepared, Request, retained Query Plan and configured DAG. Every prefix slot
+must retain its original acquisition and read, the exact RowRun capture, the
+same Ledger and the corresponding DAG Source port. A duplicate capture cannot
+supply another original read. The checked Plan determines the complete prefix;
+no count or caller flag can skip a non-captured task. Each Source availability
+check retains its original verifier, followed by a callback-free check of the
+whole nominal read inventory and each SAME live original DAG port/Row custody
+so a later verifier cannot hide earlier retirement, including port-only closure
+while the independent RowRun remains live. This census invokes no verifier.
+Account authorization, physical claims and Source opening remain Host-owned.
+
+The entry bounds and copies only the capture-reference vector before callbacks.
+The shared exact array representation covers its backing and construction
+overlap; rows, schemas, readers and acquisition originals are borrowed. This
+snapshot and the current/live guard closures are composed with the existing
+task/port loop control by `installed_captured_local_tasks_control_capacity`.
+The caller reserves that complete quote before entry, through execution and
+failure cleanup. This is distinct from every still-live Source/provider debt
+and the existing managed Plan's Compute/output reservations. Bounds and quote
+DATA do not provide backing, a new grant or a capacity increase.
+
+Only original captured predecessors enter the existing captured-input union;
+the same loop selects each actual installed Compute registration once. Failure
+closes the dependent operations and DAG outputs before the caller retires its
+original Source reads. No independent evaluator, synthetic completion, second
+Run or fresh permission is introduced. The focused Query controls cover exact
+JOIN rows, reordered/missing/foreign/current refusal, callback-array mutation,
+cross-Source Row retirement, independent DAG-port retirement, and exact/one-short
+control reservations. They do not
+qualify a Native physical reader, ordinary CLI installation, publication or
+cross-Host acceptance.
+
+`retire_installed_query_capture_ports` is the cleanup-only counterpart for the
+same Pure Query Plan. It closes that retained DAG's original ports even if
+Host binding failed before returning a setup. It refuses foreign preparation,
+request or still-opening custody and requires actual task/resource/pin and
+boundary retirement. This is not Source reader, physical-stop or Host cleanup
+acknowledgement; the caller retains every independent child until its own close.

@@ -443,3 +443,24 @@ The old JS schema/CID/canonical-body constructors are removed from this path's
 Host recipe, while alias/data/write/File checks and their holdings remain.
 Later native restores, Request/RowRun charge, Source evidence, currentness and
 physical cleanup keep their original owners and require their own backing.
+
+The Query capture/Compute observer accepts only an actual task in that DAG's
+checked captured prefix. It keeps QueryObservation/Direct provenance, the
+original opaque Source, same Ledger/holding/reservation and callback-return
+custody checks. `check_row_query_capture_run` is a callback-free necessary
+nominal RowRun/captured-observation check, not transport or Account currentness,
+permission, transfer, or physical-stop acknowledgement. A managed plural caller
+must additionally bind every slot to its original Plan acquisition/read and DAG
+input; a single capture/holding cannot stand in for another original task.
+`check_row_capture_compute_original` checks that SAME live DAG port and original
+Row physical custody without calling a Source verifier. The complete inventory
+is checked again after all Source callbacks: a later verifier can retire an
+earlier DAG port while its independent RowRun remains live. Availability and
+Account/current checks remain separate; this predicate creates no pin or grant.
+
+The Query acquisition's original completion limits and logical target are
+available as immutable DATA through `row_query_acquisition_completion_limits`
+and `row_query_acquisition_target_resource`. They neither re-derive an
+acquisition nor supply a Result's possibly smaller bounds. Native publication
+uses those same input limits; its original Account/current check still admits
+the exact logical target, independently of this callback-free observation.
