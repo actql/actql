@@ -441,6 +441,10 @@ pub fn client_carrier_measurement_variable_layout(ClientCarrierMeasurementConstr
 
 pub fn client_check_environment_wrapper_construction_extent(Bool) -> @check_environment.RegistryConstructionExtent
 
+pub fn client_checkpoint_journal_row_body(ClientCheckpointJournalRecord) -> Result[String, ClientCheckpointJournalIssue]
+
+pub fn client_checkpoint_resume_row_body(@checkpoint_runtime.ResumeIntentView) -> String raise @encode_core.EncodeFailure
+
 pub fn client_compilation_barrier_manifest_cid(ClientCompilationManifests) -> String
 
 pub fn client_compilation_grammar_manifest_cid(ClientCompilationManifests) -> String
@@ -1800,6 +1804,10 @@ pub fn confirm_client_saved_run_state_update(ClientSavedRunStateUpdate, ClientSa
 pub fn consume_client_model_resource_invalidation(@physical_resources.OriginalResourceInvalidationRequest[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn decode_client_cancellation_journal_row(ClientJournalPhysicalRow) -> Result[ClientCancellationJournalEncoding, ClientJournalDecodingIssue]
+
+pub fn decode_client_checkpoint_journal_row(String, @run_publication.PublicationContract, @checkpoint_runtime.WireLimits) -> Result[ClientCheckpointJournalRecord, ClientCheckpointJournalIssue]
+
+pub fn decode_client_checkpoint_resume_row(String, @checkpoint_runtime.ResumeBinding) -> @checkpoint_runtime.ResumeIntentView?
 
 pub fn decode_client_run_journal_row(Bytes, before_construction? : ((ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue])?) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue]
 
@@ -3173,6 +3181,25 @@ pub(all) struct ClientCarrierMeasurementVariableLayout {
   graph_edge_sort_items : Int
   presence_fields : Int?
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ClientCheckpointJournalIssue {
+  InvalidMaterial
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientCheckpointJournalRecord {
+  artifact : @checkpoint_runtime.SealedCheckpoint
+  declared_results : Array[String]
+  unknown_effects : Array[String]
+  updated_at : String
+  state : @checkpoint_runtime.RunStateView
+  resolution_cid : String?
+  verified_wire : String?
+  resume_intent_id : String?
+  resume_intent : @checkpoint_runtime.ResumeIntentView?
+  settlement_only : Bool
+  effect_ledger : Array[@effect_application.EffectLedgerEntry]
+  binding : @checkpoint_runtime.ResumeBinding
+}
 
 pub(all) enum ClientCompilationManifestIssue {
   InvalidBudget

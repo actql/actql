@@ -94,3 +94,36 @@ The same immutable installed Host and CLI candidate must establish:
 Success in one process with multiple SDK objects is not this multi-process
 acceptance. Source design, component checks, ordinary installed behavior and
 main adoption remain separate requirements.
+
+## Canonical checkpoint row codec
+
+The portable `run_publication_host/client_checkpoint_journal.mbt` codec owns
+encoding and readmission of the existing Native checkpoint row envelope. Native
+Journal callers delegate to that codec with their original Effect ledger limits;
+the persistent version, field order, nested wires and constructor limits stay
+unchanged. This is an in-place codec connection, not a storage migration or a
+second durable projection.
+
+The complete record retains the original sealed artifact, Run state, declared
+Results, unknown Effects, update time, authorization/environment binding,
+verified Resolution, resume identity/state and ordered Effect ledger. Decoding
+requires the admitted original Definition and checks its Run/Definition identity,
+authorization context, exact lifecycle state, Resolution preimages, resume
+binding, ledger chain and byte-for-byte canonical rewrite. Preparation subjects
+cannot be assigned an invented Run. Completed resume history still requires its
+separate original completion/publication owner; a claim row cannot manufacture
+those facts.
+
+These functions return DATA or their existing bounded refusal. They acquire no
+Account authority, physical journal, current observation, signature, lease or
+permission to dispatch. The calling Journal keeps its original transaction,
+revision, capacity/current brackets and retained cleanup. Cancellation and
+Unknown recovery remain with that owner; a codec result is never a physical
+stop or cleanup acknowledgement. Future existing-format adapters must supply
+the complete original material and their actual admitted construction backing,
+not infer either from a matching row or profile.
+
+Portable tests cover exact resume decimal framing, canonical and range refusal,
+the complete waiting envelope, and changed original authority/state/material.
+Native retains its consuming wrapper and existing physical checkpoint tests;
+portable tests alone do not establish cross-frontend or installed acceptance.

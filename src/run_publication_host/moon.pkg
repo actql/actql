@@ -17,6 +17,7 @@ import {
   "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/json",
+  "moonbitlang/core/string",
   "actql/actql/run_publication" @publication,
   "actql/actql/program_check" @checked,
   "actql/actql/query_program" @update_targets,

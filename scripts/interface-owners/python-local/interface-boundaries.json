@@ -92132,6 +92132,153 @@
         }
       ],
       "referenceQualification": "Initial Read constructor quantity/source checks only; not physical acquisition, Native runtime, cleanup or installed acceptance."
+    },
+    {
+      "module": "src/run_publication_host/client_checkpoint_journal.mbt",
+      "sha256": "25015ec0df96dba7aa9ff17a21213a64b3148ae1f996b5c8f3c7e872519cf30d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_checkpoint_cursor",
+          "declaration": "client_checkpoint_cursor ( wire : String ) - > @ decode . Cursor ?"
+        },
+        {
+          "name": "client_checkpoint_journal_limits",
+          "declaration": "client_checkpoint_journal_limits ( ) - > @ checkpoint . WireLimits"
+        },
+        {
+          "name": "client_checkpoint_journal_row_body",
+          "declaration": "client_checkpoint_journal_row_body ( record : ClientCheckpointJournalRecord , ) - > Result [ String , ClientCheckpointJournalIssue ]"
+        },
+        {
+          "name": "client_checkpoint_ledger_head",
+          "declaration": "client_checkpoint_ledger_head ( entries : Array [ @ effect . EffectLedgerEntry ] , locator_cid : String , ) - > @ effect . EffectLedgerEntry ?"
+        },
+        {
+          "name": "client_checkpoint_optional_text",
+          "declaration": "client_checkpoint_optional_text ( object : @ decode . ObjectView , key : String , ) - > Result [ String ? , ClientCheckpointJournalIssue ]"
+        },
+        {
+          "name": "client_checkpoint_resume_row_body",
+          "declaration": "client_checkpoint_resume_row_body ( intent : @ checkpoint . ResumeIntentView , ) - > String raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "client_checkpoint_text",
+          "declaration": "client_checkpoint_text ( object : @ decode . ObjectView , key : String ) - > String ?"
+        },
+        {
+          "name": "client_checkpoint_texts",
+          "declaration": "client_checkpoint_texts ( object : @ decode . ObjectView , key : String , ) - > Array [ String ] ?"
+        },
+        {
+          "name": "client_checkpoint_wrapper_identity_valid",
+          "declaration": "client_checkpoint_wrapper_identity_valid ( wire : String ) - > Bool"
+        },
+        {
+          "name": "decode_client_checkpoint_journal_row",
+          "declaration": "decode_client_checkpoint_journal_row ( wire : String , definition : @ publication . PublicationContract , ledger_limits : @ checkpoint . WireLimits , ) - > Result [ ClientCheckpointJournalRecord , ClientCheckpointJournalIssue ]"
+        },
+        {
+          "name": "decode_client_checkpoint_resume_row",
+          "declaration": "decode_client_checkpoint_resume_row ( wire : String , binding : @ checkpoint . ResumeBinding , ) - > @ checkpoint . ResumeIntentView ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Checkpoint and original Journal/Run/Definition/Resolution owners; exact portable row codec only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_checkpoint_cursor",
+            "client_checkpoint_journal_limits",
+            "client_checkpoint_journal_row_body",
+            "client_checkpoint_ledger_head",
+            "client_checkpoint_optional_text",
+            "client_checkpoint_resume_row_body",
+            "client_checkpoint_text",
+            "client_checkpoint_texts",
+            "client_checkpoint_wrapper_identity_valid",
+            "decode_client_checkpoint_journal_row",
+            "decode_client_checkpoint_resume_row"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "## Canonical checkpoint row codec"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "## Canonical checkpoint row codec"
+              },
+              {
+                "path": "src/run_publication_host/client_checkpoint_journal.mbt",
+                "anchor": "pub(all) struct ClientCheckpointJournalRecord {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "## Canonical checkpoint row codec"
+              },
+              {
+                "path": "src/run_publication_host/client_checkpoint_journal.mbt",
+                "anchor": "pub fn decode_client_checkpoint_journal_row("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "## Canonical checkpoint row codec"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "## Canonical checkpoint row codec"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "## Canonical checkpoint row codec"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "## Canonical checkpoint row codec"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "## Canonical checkpoint row codec"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "## Canonical checkpoint row codec"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "## Canonical checkpoint row codec"
+              },
+              {
+                "path": "src/run_publication_host/client_checkpoint_journal_wbtest.mbt",
+                "anchor": "test \"portable checkpoint row refuses changed original authority state and absent resume material\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "syntaxProjectionBasis": "SHA256 of UTF-8 JSON.stringify over sorted declared {module,operations,exports,imports}; source inventory only."

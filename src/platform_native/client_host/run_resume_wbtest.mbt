@@ -563,14 +563,14 @@ test "Native resume custody rejects missing inconsistent or noncanonical retaine
       is Err(InvalidMaterial),
     )
   }
-  let wire = checkpoint_resume_body({
+  let wire = @host.client_checkpoint_resume_row_body({
     state: @checkpoint.ResumeClaimed,
     generation: 1L,
     claimant: "host",
     lease_expires_ms: 1100L,
   })
   assert_eq(
-    read_checkpoint_resume(
+    @host.decode_client_checkpoint_resume_row(
       wire.replace_all(old="\"generation\":\"1\"", new="\"generation\":\"01\""),
       resume_test_binding(),
     ),
