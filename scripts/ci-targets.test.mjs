@@ -1884,10 +1884,13 @@ test('REST demand controls have one prepared public package owner without narrow
     for (const name of ['host', 'client-distribution']) {
       assert.equal(runInNewContext(jobs[name].if.slice(3, -2), values, {timeout: 100}), full);
     }
-    if (full) for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
-      assert.throws(() => verifyGate(plan(selection),
-        {...results(selection), 'client-distribution': {result}},
-        {...context, event: selection.event}));
+    if (full) {
+      verifyGate(plan(selection), results(selection), {...context, event: selection.event});
+      for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+        assert.throws(() => verifyGate(plan(selection),
+          {...results(selection), 'client-distribution': {result}},
+          {...context, event: selection.event}));
+      }
     }
   }
 });
