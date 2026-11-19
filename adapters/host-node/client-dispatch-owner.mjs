@@ -675,7 +675,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       if (beforeDispatch !== undefined) await beforeDispatch(claim.ref);
       if (entry.abort.signal.aborted) return;
       if (held.plan === undefined) {
-        held.plan = planFor(submission, accepted.runDefinition.wire);
+        held.plan = planFor(submission, accepted.runDefinition.wire, requested);
       }
       const acquiring = sourceProfile !== undefined &&
         moon.clientProgramAcquisitionCount(preparedProgram) > 0;

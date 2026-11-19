@@ -17,6 +17,7 @@ import {runtimeCore, ledgerUsageSnapshotHasPendingResources} from '../host-commo
 import {createInProcessExecutionSite, executionSiteDescription,
   installExecutionSites, prepareExecutionSitePolicy} from '../host-common/execution-sites.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import './client-dispatch-retained-request.test.mjs';
 // Reuse the existing distribution-client gate for bounded two-source owners.
 import './two-source-capture-boundaries.test.mjs';
 import './two-source-public-host.test.mjs';

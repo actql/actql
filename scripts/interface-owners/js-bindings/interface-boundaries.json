@@ -41372,6 +41372,14 @@
               {
                 "path": "adapters/host-node/installed-managed-source.test.mjs",
                 "anchor": "test('dispatch retains an unreturned original Source preparation after physical cleanup'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-retained-request.test.mjs",
+                "anchor": "test('retained dispatch forwards the same request into its original timed-plan validator'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-retained-request.test.mjs",
+                "anchor": "test('retained dispatch cannot substitute a copied request for the timed-plan original'"
               }
             ]
           }
@@ -42700,7 +42708,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "e5f3b3e727d1cb715ee420a5dddf50f3b144ca7a882840ebb43c2bd124f609d8",
+      "sha256": "ac4777e9c6abdffac5a3fb9baa1f7fd54cc269bb4d98fb63d953878025e5495a",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
