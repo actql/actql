@@ -568,15 +568,20 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
     assert.equal(this, services);assert.equal(options.sourceInitialization, initialization);
     assert.equal(options.installation, installation);events.push('Site');throw stop;
   }});
-  // Actual entire installer and shared Site helper; only initial constructor
-  // and Site service ports are explicit. No native Common, grant or I/O Site.
+  const providerMoon = Object.freeze({installedStandardCreateHttpLimits() {
+    assert.equal(this, providerMoon);
+    events.push('native-http-limits');return [300000, 100000, 10000, 32];
+  }, githubRepositoryAccessValid(owner, repo) {
+    assert.equal(this, providerMoon);assert.equal(owner, site.owner);assert.equal(repo, site.repo);
+    events.push('repository-validation');return true;
+  }});
+  // Actual entire installer and shared Site helper; constructor, repository
+  // predicate and Site ports are explicit. No native Common, grant or I/O Site.
   await assert.rejects(loadInstalledGitHubEffect(profile, {root: '/UNOPENED/root', principalId: 'authored',
-    moon: {}, providerMoon: {installedStandardCreateHttpLimits() {
-      events.push('native-http-limits');return [300000, 100000, 10000, 32];
-    }}, baseEnvironmentWire: '{}', runtimeBundleCid: 'sha256:' + 'b'.repeat(64),
+    moon: {}, providerMoon, baseEnvironmentWire: '{}', runtimeBundleCid: 'sha256:' + 'b'.repeat(64),
     ledgerRoot: '/UNOPENED/ledger', installation, installationServices: services,
     sourceInitialization: initialization, configurationReader: reader}), cause => cause === stop);
-  assert.deepEqual(events, ['native-http-limits', 'site-json', 'publication-json', 'source-views.json', 'declaration', 'writes.json', 'mappings', 'Site']);
+  assert.deepEqual(events, ['native-http-limits', 'site-json', 'repository-validation', 'publication-json', 'source-views.json', 'declaration', 'writes.json', 'mappings', 'Site']);
 });
 
 
