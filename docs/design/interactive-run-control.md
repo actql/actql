@@ -439,6 +439,11 @@ It never reruns search, implementation estimation, policy or admission. The
 collapsed decision and feasible-candidate count are not retained and remain
 explicitly unavailable. Report completeness and bounded truncation are separate.
 The same Ledger refusal spelling is used by the existing strategy explanation.
+The capture's pre-adoption construction-input loan remains a lifetime link.
+Failure DATA growth uses the same adopted Run's existing publication holder,
+under the original current fence; the constructor loan does not gain Run-phase
+growth permission. The selected holder/Result controls are prepaid before
+observation, without another body borrower or a changed failure wire.
 
 Journal payload acknowledgement drops committed Plan/Facts aliases while the
 same capture borrower remains in the existing manager until its original cleanup.

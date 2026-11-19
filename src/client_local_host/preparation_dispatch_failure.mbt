@@ -9,11 +9,14 @@
 // Some+task/issue tuples (4H/4R/4W), four issue/kind reference roots and two
 // report-eligibility/recheck words (4R/2W). These fixed 176 bytes are paid
 // BEFORE either accessor, by the same original capture construction.
+// The SAME Run publication-holder lookup retains its selected reference and
+// Result alternatives across current (2H/3R/2W = 72 bytes). A pre-adoption
+// construction-input loan remains lifetime-only, never a running grow port.
 // Sequential alternatives are conservatively co-counted, not refunded.
 let original_dispatch_failure_entry_bytes : Int64 = @execution.preparation_representation_cost({
-    record_headers: 24L,
-    reference_slots: 21L,
-    scalar_words: 34L,
+    record_headers: 26L,
+    reference_slots: 24L,
+    scalar_words: 36L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
@@ -65,6 +68,14 @@ pub fn observe_installed_original_dispatch_failure(
   guard require_installed_managed_run(run) is Ok(_) else {
     return Err(ForeignOriginal)
   }
+  // The normal manager retained this capture before adoption. Its original
+  // construction-input holder observes lifetime, but intentionally cannot
+  // grow a running phase. Use the SAME Run's existing publication body;
+  // neither another borrower nor a replacement preparation is issued here.
+  let holder = match managed_run_publication_body(run, prepared) {
+    Err(_) => return Err(ForeignOriginal)
+    Ok(value) => value
+  }
   let kind = match failure {
     NoStrategy => "no_strategy"
     InvalidConfiguration => "invalid_configuration"
@@ -85,7 +96,7 @@ pub fn observe_installed_original_dispatch_failure(
   let count = Int::min(8, total)
   let complete = has_report && @strategy.strategy_report_complete(captured)
   let (retained, execution) = match
-    @resources.preparation_body_borrow_reserved_extents(value.holder) {
+    @resources.preparation_body_borrow_reserved_extents(holder) {
     Err(issue) => return Err(Capacity(issue))
     Ok(extents) => extents
   }
@@ -102,12 +113,7 @@ pub fn observe_installed_original_dispatch_failure(
   // Later phases share this holder. Grow its CURRENT extents; never reuse a
   // stale base/max that could overlap a sibling's still-live material.
   match
-    @resources.reserve_preparation_publication_phase(
-      value.holder,
-      prepared,
-      r,
-      e,
-    ) {
+    @resources.reserve_preparation_publication_phase(holder, prepared, r, e) {
     Err(issue) => return Err(Capacity(issue))
     Ok(_) => ()
   }
