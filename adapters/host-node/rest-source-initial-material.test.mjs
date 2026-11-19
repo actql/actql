@@ -331,6 +331,10 @@ test('REST target DATA uses the same Source original quote before construction a
   const f=demandFixture(authored),probe=await observeDemand(f,{beforeConfiguration({initialization,moon}) {
     initialization.prepareReadTarget=()=>assert.fail('No replacement Source constructor');
     moon.clientProgramInstalledSourceConstructionCapacity=()=>assert.fail('No replacement capacity method');
+    for (const name of ['clientProgramRowSourceAdmitGetRead',
+      'clientProgramComposeInstalledSourceConstructionCapacity', 'clientProgramRowSourceGetReadPage']) {
+      moon[name]=()=>assert.fail('No replacement original GET method after configuration await');
+    }
   }});
   await probe.run();const o=probe.observations();
   // Independently counted TWO originals:56 capsule/closure slots +12 vector
@@ -346,6 +350,9 @@ test('REST target DATA uses the same Source original quote before construction a
     assert.equal(request.pairs,1);assert.equal(request.headers,1);
     assert(Object.isFrozen(request));assert.equal(typeof request.page,'function');
     assert.equal(typeof request.capacityOption,'function');
+    assert.deepEqual(request.page(3,2,'original-cursor'),{method:'GET',
+      path:JSON.parse(f.definition.sources[index].readWire).path,
+      query:[['after','original-cursor']],headers:[['accept','application/json']],responseHeaders:[]});
   }
   assert(Object.isFrozen(o.retainedTarget.requests));
   assert(o.implementation.requestConstruction.capacity);
