@@ -1846,6 +1846,52 @@ test('automatic main integration remains full without cumulative evidence', () =
   }
 });
 
+test('REST demand controls have one prepared public package owner without narrowing CI admission', () => {
+  const file = 'adapters/host-node/rest-source-initial-material.test.mjs';
+  const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
+  assert.equal(scripts['test:remote-site-runtime'].split(/\s+/u).includes(file), false);
+  const recipes = scripts['check:distribution-client'].split(' && ')
+    .filter(command => command.split(/\s+/u).includes(file));
+  assert.equal(recipes.length, 1);
+  assert.equal(recipes[0].split(/\s+/u).filter(argument => argument === file).length, 1);
+  const steps = jobs['client-distribution'].steps;
+  const owners = steps.filter(step => step.run === recipes[0]);
+  assert.equal(owners.length, 1);
+  const [owner] = owners;
+  assert.equal(owner.name, 'Test source-backed distribution contracts');
+  assert.equal(owner.if, "${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}");
+  assert.equal(owner['continue-on-error'], undefined);
+  assert(jobs['client-distribution'].needs.includes('client-packages'));
+  const runtime = steps.findIndex(step => step.run === 'node scripts/build-runtime-packages.mjs local-node run-host-core');
+  const adapters = steps.findIndex(step => step.run === 'node scripts/build-local-node-adapters.mjs');
+  const prepared = steps.findIndex(step => step.id === 'distribution-preparation');
+  assert(runtime >= 0 && runtime < adapters && adapters < prepared && prepared < steps.indexOf(owner));
+  assert.equal(Object.values(jobs).flatMap(job => job.steps ?? [])
+    .filter(step => step.run?.split(/\s+/u).includes(file)).length, 1);
+
+  for (const options of [{draft: false}, {draft: false, focusedTests: {}, focusedChanges: {}},
+    {draft: true}, {draft: true, focusedTests: {}, focusedChanges: {}}, {event: 'push'}]) {
+    const selection = selectTargets([file], options);
+    const full = options.draft !== true;
+    assert.equal(selection.profile, full ? 'full' : 'draft');
+    assert.equal(gateJobRequired(selection, 'client-distribution'), full);
+    // The prior Host owner and new prepared owner retain the SAME runtime
+    // applicability. Draft preparation is not silently promoted to acceptance.
+    assert.equal(gateJobRequired(selection, 'host'), full);
+    const values = {github: {event: {repository: {visibility: 'public', private: false}}},
+      inputs: {performance_matrix: false, packed_query_evidence_probe: false},
+      needs: {'select-targets': {outputs: {profile: selection.profile}}}, toJSON: JSON.stringify};
+    for (const name of ['host', 'client-distribution']) {
+      assert.equal(runInNewContext(jobs[name].if.slice(3, -2), values, {timeout: 100}), full);
+    }
+    if (full) for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+      assert.throws(() => verifyGate(plan(selection),
+        {...results(selection), 'client-distribution': {result}},
+        {...context, event: selection.event}));
+    }
+  }
+});
+
 test('distribution isolates pinned provider tests with their required GC recipe', () => {
   const scripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
   // client-ci executes this same recipe to check type-gate ordering and refusal.
