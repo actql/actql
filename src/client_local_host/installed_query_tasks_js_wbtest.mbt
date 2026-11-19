@@ -22,6 +22,7 @@ fn installed_query_tasks_fixture(
   request_protocols? : Bool = false,
   original_filter? : Bool = false,
   retained_provider? : Bool = false,
+  compiled_body? : Bool = false,
 ) -> InstalledQueryTasksFixture raise {
   let declaration = if original_filter {
     let catalogue = @row_source_host.prepare_mock_churn_risk_catalogue({
@@ -178,6 +179,7 @@ fn installed_query_tasks_fixture(
   } else {
     None
   }
+  let factory = _ => []
   let plan = prepare_installed_managed_capture_plan(
     prepared,
     request,
@@ -195,10 +197,22 @@ fn installed_query_tasks_fixture(
     fragment,
     ordered,
     retained_output=!original_filter,
-    provider_factory=_ => [],
+    provider_factory=factory,
     runtime_admission=true,
   ).unwrap()
-  complete_request_capture_preparation(parent, input, plan).unwrap()
+  if compiled_body {
+    prepare_request_capture_module_body(
+      parent,
+      input,
+      plan,
+      manifests=request_program_module_manifests(),
+      compilation_limits=request_program_compilation_limits(parent, input).unwrap(),
+      provider_factory=factory,
+    ).unwrap()
+    assert_true(plan.compilation is Some(_))
+  } else {
+    complete_request_capture_preparation(parent, input, plan).unwrap()
+  }
   let owner = begin_request_capture_managed_run(parent, request).unwrap()
   let captures = []
   let provider_pages : Array[Ref[Bytes?]] = []
@@ -596,10 +610,12 @@ test "installed filtered SQL read keeps its actual checked acquisition route" {
 // no Native file, Account, physical cleanup or installed CLI is simulated.
 fn installed_original_filter_driver_case(
   retained_provider : Bool,
+  compiled_body? : Bool = false,
 ) -> Unit raise {
   let value = installed_query_tasks_fixture(
     original_filter=true,
     retained_provider~,
+    compiled_body~,
   )
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(value.setup),
@@ -678,6 +694,11 @@ test "installed original readonly filter executes SAME Query capture and Local d
 ///|
 test "installed original readonly filter retains declared provider beside Local driver" {
   installed_original_filter_driver_case(true)
+}
+
+///|
+test "installed original readonly filter retains compiled body and provider beside Local driver" {
+  installed_original_filter_driver_case(true, compiled_body=true)
 }
 
 ///|
