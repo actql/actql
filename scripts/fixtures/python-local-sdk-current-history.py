@@ -8,6 +8,7 @@ task selection/drive and physical Journal import are measured.
 import asyncio
 from collections import Counter
 from contextlib import nullcontext
+from ctypes import byref
 from dataclasses import dataclass
 import hashlib
 import json
@@ -334,6 +335,33 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                         detail = {'type': type(cause).__name__}
                         if type(cause) is LocalCoreError:
                             detail.update(operation=cause.operation, code=cause.code)
+                        try:
+                            frame = cause.__traceback__
+                            for _ in range(32):
+                                if frame is None:
+                                    break
+                                if (frame.tb_frame.f_code is LocalCore._call.__code__
+                                        and frame.tb_frame.f_locals.get('self') is core):
+                                    detail['sdkFrame'] = 'LocalCore._call'
+                                    operation = frame.tb_frame.f_locals.get('export_name')
+                                    if type(operation) is str and operation in core._exports:
+                                        detail['abiOperation'] = operation
+                                    break
+                                frame = frame.tb_next
+                            for runtime_name in ('wasmtime', 'actql_local_runtime._wasmtime'):
+                                runtime = sys.modules.get(runtime_name)
+                                ffi = sys.modules.get(runtime_name + '._ffi')
+                                if runtime is None or ffi is None or type(cause) is not runtime.Trap:
+                                    continue
+                                # Read the closed C code: the public TrapCode
+                                # enum may omit a code from the same runtime.
+                                code = ffi.wasmtime_trap_code_t()
+                                detail['trapCode'] = (code.value if ffi.wasmtime_trap_code(
+                                    cause.ptr(), byref(code)) else None)
+                                break
+                        except BaseException:
+                            # Diagnostic failure cannot replace the original.
+                            detail['diagnosticUnavailable'] = True
                         failures.append(detail)
         print(json.dumps({'completedHistory': completed_history,
                           'acceptedPendingHistory': accepted_pending_history,
