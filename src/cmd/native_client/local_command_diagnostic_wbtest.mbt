@@ -530,6 +530,33 @@ test "File Work primary keeps the actual closed reserve cause across cleanup" {
       "LocalOriginalSourceWorkUnavailable:compute-unsupported-graph",
     ),
     (
+      LocalExecution(Driver(Configuration(ForeignPreparation))),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-foreign-preparation",
+    ),
+    (
+      LocalExecution(Driver(Configuration(ForeignRequest(987654321)))),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-foreign-request",
+    ),
+    (
+      LocalExecution(
+        Driver(Configuration(Guard(Execution(Rows(987654321, RowLimit))))),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-limit",
+    ),
+    (
+      LocalExecution(
+        Driver(
+          ExecutionCapacityRefusal(
+            @initial_resources.RetentionLimit,
+            987654321L,
+            987654321L,
+            987654321L,
+          ),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-retention",
+    ),
+    (
       RelationFile(Resource(@initial_resources.RetentionLimit)),
       "LocalOriginalSourceWorkUnavailable:source-retention",
     ),
@@ -546,6 +573,7 @@ test "File Work primary keeps the actual closed reserve cause across cleanup" {
     let message = local_file_open_failure_message(original)
     assert_eq(message, expected)
     assert_false(message.contains("SYNTHETIC_PRIVATE_SOURCE"))
+    assert_false(message.contains("987654321"))
     assert_eq(local_file_open_failure_message(original), message)
   }
 }

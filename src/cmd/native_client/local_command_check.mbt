@@ -1162,8 +1162,8 @@ fn local_file_open_failure_message(
       "LocalOriginalSourceWorkUnavailable:compute-unsupported-graph"
     LocalExecution(MissingLocalModule) =>
       "LocalOriginalSourceWorkUnavailable:compute-missing-module"
-    LocalExecution(Driver(_)) =>
-      "LocalOriginalSourceWorkUnavailable:compute-driver"
+    LocalExecution(Driver(original)) =>
+      local_file_driver_failure_message(original)
     LocalExecution(Estimate(_)) =>
       "LocalOriginalSourceWorkUnavailable:compute-estimate"
     LocalExecution(FinalizationLimit) =>
@@ -1218,5 +1218,312 @@ fn local_file_open_failure_message(
     InputLogical(_) => "LocalOriginalSourceWorkUnavailable:logical"
     Normalization(_) => "LocalOriginalSourceWorkUnavailable:normalization"
     _ => "LocalOriginalSourceWorkUnavailable"
+  }
+}
+
+///|
+// Preserve the driver's existing typed branch while borrowing its original
+// cause. Static full labels only: no quantities, operation indices, Error
+// contents, Source identities or provider strings are copied or formatted.
+fn local_file_driver_failure_message(
+  issue : @local_driver.LocalDispatchIssue,
+) -> String {
+  match issue {
+    Configuration(original) =>
+      local_file_fixed_compute_failure_message(original)
+    Preparation(Candidate(original)) =>
+      local_file_fixed_compute_failure_message(original)
+    Preparation(Execution(original)) =>
+      local_file_fixed_compute_failure_message(original)
+    Preparation(NotSelected) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-preparation-not-selected"
+    Preparation(Capacity) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-preparation-capacity"
+    Preparation(Materializing(_)) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-preparation-materializing"
+    Dispatch(_) => "LocalOriginalSourceWorkUnavailable:compute-driver-dispatch"
+    Execution(Compute(original)) =>
+      local_file_fixed_compute_failure_message(original)
+    Execution(Physical(original)) =>
+      local_file_driver_capacity_failure_message(original)
+    Execution(UnsupportedGraph) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-unsupported-graph"
+    Execution(ForeignCapture) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-foreign-capture"
+    Execution(NotReady) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-not-ready"
+    Execution(Stopped) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-stopped"
+    Execution(ForeignCandidate) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-foreign-candidate"
+    Execution(PreviewWorkLimit) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-preview-work"
+    Execution(MissingOutput) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-missing-output"
+    Execution(Capture(_)) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-capture"
+    Execution(Binding(_)) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-binding"
+    Execution(Read(_)) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-read"
+    Execution(Implementation(_)) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-implementation-unclassified"
+    Execution(ActivationNotAuthorized) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-execution-not-authorized"
+    Search(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-search-unclassified"
+    ManagedValues(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-managed-values-unclassified"
+    ManagedCopy(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-managed-copy-unclassified"
+    ManagedRetention(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-managed-retention-unclassified"
+    ManagedCompletion(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-managed-completion-unclassified"
+    IdentityExport(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-identity-export-unclassified"
+    CarrierSnapshot(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-carrier-snapshot-unclassified"
+    ControlWorkLimit(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-control-work"
+    LogicalWorkLimit(_, _, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-logical-work"
+    ExecutionCapacityRefusal(original, _, _, _) =>
+      local_file_driver_capacity_failure_message(original)
+  }
+}
+
+///|
+// These same typed FixedCompute leaves can arrive through configuration,
+// module preparation or Compute execution. Their outer primary stays retained;
+// no wrapper or diagnostic parser is constructed to classify the leaf.
+fn local_file_fixed_compute_failure_message(
+  issue : @compute_sdk.FixedComputeIssue,
+) -> String {
+  match issue {
+    UnsupportedInputShape =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-input-shape"
+    InputUnavailable =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-input-unavailable"
+    ForeignPreparation =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-foreign-preparation"
+    ForeignRequest(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-foreign-request"
+    ForeignCapability(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-foreign-capability"
+    CapabilityClosed =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-capability-closed"
+    ComputeUnsupported =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-unsupported-compute"
+    NotSelected =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-not-selected"
+    InvalidLimits =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-invalid-limits"
+    CapacityContract =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-capacity-contract"
+    CommonInputRows =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-input-rows"
+    CommonFragmentUnsupported =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-unsupported-fragment"
+    LogicalIdentityUnsupported =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-logical-identity"
+    PlanningLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-planning-limit"
+    NegativeQuantity =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-negative-quantity"
+    ControlWorkLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-fixed-control-work"
+    Execution(original) => local_file_sequence_failure_message(original)
+    Cost(original) => local_file_cost_failure_message(original)
+    Guard(original) => local_file_guard_failure_message(original)
+  }
+}
+
+///|
+fn local_file_driver_capacity_failure_message(
+  issue : @initial_resources.LedgerIssue,
+) -> String {
+  match issue {
+    RetentionLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-retention"
+    ExecutionLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-execution"
+    InvalidLimits =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-invalid-limits"
+    PlanningLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-planning"
+    AttemptLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-attempt"
+    HoldingLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-holding"
+    TransferLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-transfer"
+    ForeignOwner =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-foreign-owner"
+    ClosedReservation =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-closed-reservation"
+    ClosedHolding =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-closed-holding"
+    InvalidCharge =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-invalid-charge"
+    IdentityOverflow =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-identity-overflow"
+    TokenLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-token"
+    CostLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-cost"
+    DurationLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-duration"
+    ResourceParked =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-parked"
+    ChildFundingUnavailable =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-child-funding"
+  }
+}
+
+///|
+fn local_file_cost_failure_message(issue : @cost.CostIssue) -> String {
+  match issue {
+    InvalidLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-cost-invalid-limit"
+    PlanningLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-cost-planning-limit"
+    EmptyCoverage(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-cost-empty-coverage"
+    InvalidSlot(_, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-cost-invalid-slot"
+    DuplicateSlot(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-cost-duplicate-slot"
+    NegativeDuration(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-cost-negative-duration"
+    DurationOverflow =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-cost-duration-overflow"
+    InvalidPreference =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-cost-invalid-preference"
+  }
+}
+
+///|
+fn local_file_guard_failure_message(
+  issue : @execution.FixedInputGuardIssue,
+) -> String {
+  match issue {
+    InvalidLimits =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-guard-invalid-limits"
+    ForeignInput =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-guard-foreign-input"
+    MeasurementWork =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-guard-measurement-work"
+    Measurement(_, _, _, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-guard-measurement-unclassified"
+    ValueBytes(_, _, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-guard-value-bytes"
+    InvalidLayout =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-guard-invalid-layout"
+    InputRows =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-guard-input-rows"
+    OutputRows =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-guard-output-rows"
+    MissingOutput =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-guard-missing-output"
+    InputRepresentationRequired(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-guard-representation-required"
+    Execution(original) => local_file_sequence_failure_message(original)
+  }
+}
+
+///|
+fn local_file_sequence_failure_message(
+  issue : @execution.SequenceRunIssue,
+) -> String {
+  match issue {
+    InvalidLimits =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-invalid-limits"
+    InputOwnership =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-input-ownership"
+    InputSet =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-input-set"
+    InputExecutionEvidencePending(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-input-evidence-pending"
+    InputRepresentationRequired(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-input-representation-required"
+    InputLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-input-limit"
+    InputKey(_, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-input-key-unclassified"
+    InputScore(_, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-input-score-unclassified"
+    Wiring(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-wiring-unclassified"
+    Capture(_, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-capture-unclassified"
+    Store(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-store-unclassified"
+    OrderedContext(_, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-ordered-context-unclassified"
+    FragmentContext(_, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-fragment-context-unclassified"
+    MissingFragmentContext(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-fragment-context-missing"
+    MixedExecutionConfiguration =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-mixed-configuration"
+    UnsupportedRowComparison(_, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-sequence-row-comparison-unsupported"
+    Rows(_, original) => local_file_row_failure_message(original)
+  }
+}
+
+///|
+fn local_file_row_failure_message(issue : @execution.RowIssue) -> String {
+  match issue {
+    OwnerMismatch =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-owner-mismatch"
+    InputMismatch =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-input-mismatch"
+    InvalidRows =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-invalid-rows"
+    RowLimit => "LocalOriginalSourceWorkUnavailable:compute-driver-row-limit"
+    InvalidRowLimits =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-invalid-limits"
+    MissingOrderedResourceContext =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-ordered-context-missing"
+    LogicalRows(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-logical-budget-unclassified"
+    Evaluation(_, _, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-evaluation-unclassified"
+    Comparison(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-comparison-unclassified"
+    Aggregation(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-aggregation-unclassified"
+    DedupeTopTie(_, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-dedupe-top-tie"
+    DedupeIdentityCollision =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-dedupe-collision"
+    AssertionPredicate(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-assertion-predicate"
+    AssertionNullKey(_, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-assertion-null-key"
+    AssertionDuplicate(_, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-assertion-duplicate"
+    JoinNullKey(_, _, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-join-null-key"
+    JoinDuplicateKey(_, _, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-join-duplicate-key"
+    AsOfTopTie(_, _, _) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-asof-top-tie"
+    WindowTime(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-window-time"
+    WindowArithmetic(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-window-arithmetic"
+    AnalyticEnvelope(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-analytic-envelope-unclassified"
+    NestItemLimitRequired =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-nest-limit-required"
+    NestItemLimit(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-nest-item-limit"
+    NestEnvelope(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-nest-envelope-unclassified"
+    TemporalPrecisionUnavailable =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-row-temporal-precision"
   }
 }

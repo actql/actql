@@ -85455,7 +85455,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "bec27a63dff95037b9652ddb93efd80e79e0a6ed0bf75e246e71e7b9f7cba3ff",
+      "sha256": "a33a16be225da4e6d9039f70e2075ff5baa41225ff7e8ddea7bcaa08a9969a46",
       "exports": [],
       "operations": [
         {
@@ -85491,12 +85491,40 @@
           "declaration": "local_command_recovery_failure ( message : String ) - > String"
         },
         {
+          "name": "local_file_cost_failure_message",
+          "declaration": "local_file_cost_failure_message ( issue : @ cost . CostIssue ) - > String"
+        },
+        {
+          "name": "local_file_driver_capacity_failure_message",
+          "declaration": "local_file_driver_capacity_failure_message ( issue : @ initial_resources . LedgerIssue , ) - > String"
+        },
+        {
+          "name": "local_file_driver_failure_message",
+          "declaration": "local_file_driver_failure_message ( issue : @ local_driver . LocalDispatchIssue , ) - > String"
+        },
+        {
+          "name": "local_file_fixed_compute_failure_message",
+          "declaration": "local_file_fixed_compute_failure_message ( issue : @ compute_sdk . FixedComputeIssue , ) - > String"
+        },
+        {
+          "name": "local_file_guard_failure_message",
+          "declaration": "local_file_guard_failure_message ( issue : @ execution . FixedInputGuardIssue , ) - > String"
+        },
+        {
           "name": "local_file_open_failure_message",
           "declaration": "local_file_open_failure_message ( issue : @ local_host . NativeClientSourceWorkIssue , ) - > String"
         },
         {
           "name": "local_file_publication_failure_message",
           "declaration": "local_file_publication_failure_message ( issue : @ local_host . NativeClientSourceWorkIssue ? , ) - > String"
+        },
+        {
+          "name": "local_file_row_failure_message",
+          "declaration": "local_file_row_failure_message ( issue : @ execution . RowIssue ) - > String"
+        },
+        {
+          "name": "local_file_sequence_failure_message",
+          "declaration": "local_file_sequence_failure_message ( issue : @ execution . SequenceRunIssue , ) - > String"
         },
         {
           "name": "local_finish_command_preparation",
@@ -85550,7 +85578,14 @@
             "LocalCommandPreparationOriginal::prepare_project_text_payload",
             "LocalCommandPreparationOriginal::retain_cancellation_recovery",
             "local_file_publication_failure_message",
-            "local_file_open_failure_message"
+            "local_file_open_failure_message",
+            "local_file_cost_failure_message",
+            "local_file_driver_capacity_failure_message",
+            "local_file_driver_failure_message",
+            "local_file_fixed_compute_failure_message",
+            "local_file_guard_failure_message",
+            "local_file_row_failure_message",
+            "local_file_sequence_failure_message"
           ],
           "exports": [],
           "attributes": {
