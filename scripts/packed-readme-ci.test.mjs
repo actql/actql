@@ -1394,11 +1394,21 @@ test('completed original collection Saved is independent of a later capture case
 });
 
 
+function assertSmallLintProfiles(step) {
+  const condition = (step.if ?? 'true').replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+    .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, key) => `needs[${JSON.stringify(key)}]`);
+  assert(!/\b(?:always|failure|cancelled)\s*\(/u.test(condition), 'Keep the implicit success prerequisite');
+  assert.equal(step['continue-on-error'], undefined);
+  for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused', 'documentation'])
+    assert.equal(runInNewContext(condition, {needs: {'select-targets': {outputs: {profile}}}}, {timeout: 100}),
+      profile !== 'documentation', profile);
+}
+
 test('small policy and oracle units run during Draft while normal required gates remain intact', () => {
   const steps = workflow.jobs.lint.steps;
   for (const name of ['Test collection budget and required packed README selection',
     'Test ordinary operation performance policy oracles', 'Test plain-init Native numeric result and refusal oracles']) {
-    const step = steps.find(value => value.name === name); assert(step); assert.equal(step.if, undefined);
+    const step = steps.find(value => value.name === name); assert(step); assertSmallLintProfiles(step);
   }
   const collection = steps.find(value => value.name === 'Test collection budget and required packed README selection');
   for (const file of ['local-result-read-policy', 'client-result-collection-policy', 'request-memory-policy'])
@@ -1436,7 +1446,7 @@ test('small original Model failure and preclose units run once in Draft lint wit
     'scripts/owner-fault-mutations.test.mjs'];
   const step = workflow.jobs.lint.steps.find(value => value.name === 'Test original Model failure and workflow observation');
   assert(step, 'The actual small original failure cases must have a CI caller');
-  assert.equal(step.if, undefined);
+  assertSmallLintProfiles(step);
   assert(!workflow.jobs.lint.if.includes('draft'));
   assert.equal(step.run, `node --test ${files.join(' ')}`);
   const commands = Object.values(workflow.jobs).flatMap(value => value.steps ?? [])

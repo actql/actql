@@ -515,7 +515,12 @@ test('required lint directly selects Native preparation controls and both worklo
     const selected=actions.filter(action=>action.origin==='workflow'&&action.job==='lint'&&
       action.invocation?.kind==='node-test'&&action.invocation.argv.includes(file));
     assert.equal(selected.length,1,`Required Native preparation control: ${file}`);
-    assert.equal(selected[0].condition.step,null,'Drafts require these source/port controls too');
+    const condition=(selected[0].condition.step??'true').replace(/^\$\{\{\s*|\s*\}\}$/gu,'')
+      .replace(/needs\.([a-z][a-z0-9-]*)/gu,(_,key)=>`needs[${JSON.stringify(key)}]`);
+    assert(!/\b(?:always|failure|cancelled)\s*\(/u.test(condition));
+    for(const profile of ['full','maintenance','focused-tests','draft','draft-focused','documentation'])
+      assert.equal(runInNewContext(condition,{needs:{'select-targets':{outputs:{profile}}}},{timeout:100}),
+        profile!=='documentation',file+':'+profile);
     assert.equal(selected[0].condition.continueOnError,false);
   }
   const core=workflow.jobs['core-darwin'].steps;
