@@ -26,7 +26,7 @@ priv struct StoredJournalDecodeFrame {
 
 ///|
 priv enum StoredJournalObservationOutcome {
-  ReservingDecode(@resources.CapacityReservation)
+  ReservingDecode(@resources.CapacityReservation, Int)
   Decoding(StoredJournalDecodeFrame)
   Observed(
     Result[@local_run.LocalSavedSubmissionObservation, Int],
@@ -101,7 +101,7 @@ fn open_journal_decode_frame(
     Err(_) => return None
   }
   // Make the exact token reachable before constructing the frame.
-  child.outcome = Some(ReservingDecode(capacity))
+  child.outcome = Some(ReservingDecode(capacity, 0))
   let frame : StoredJournalDecodeFrame = {
     nonce: value.nonce,
     handle,
@@ -335,16 +335,4 @@ fn dispose_journal_decode_rows(
   frame.selected = selected
 
   0
-}
-
-///|
-fn close_journal_decode_frame(
-  value : Instance,
-  frame : StoredJournalDecodeFrame,
-) -> Int {
-  let code = dispose_journal_decode_rows(value, frame, false)
-  if code != 0 {
-    return code
-  }
-  settle_journal_decode_original(value, frame.capacity)
 }

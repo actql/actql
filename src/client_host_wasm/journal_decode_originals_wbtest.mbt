@@ -296,9 +296,10 @@ test "journal same-frame partial cleanup retains only exact pending tokens and o
 
 ///|
 test "journal same-frame one-short frame admission preserves unmodified pure inspection" {
-  let (value, child, frame, parent) = journal_decode_fixture()
-  assert_eq(close_journal_decode_frame(value, frame), 0)
-  child.outcome = None
+  let (value, child, _, parent) = journal_decode_fixture()
+  assert_eq(prepare_journal_observation_close(value, child), 0)
+  assert_eq(settle_journal_observation_close_capacity(value, child), 0)
+  child.closing = false
   let row = journal_decode_fixture_row()
   let usage = @resources.ledger_usage(value.root)
   let available = @resources.ledger_limits(value.root).retained_bytes -
@@ -364,7 +365,11 @@ test "journal close resumes exact completed token settlement before pointer unli
       frame.pending = Some(pending)
       @resources.settle_capacity(value.root, pending).unwrap()
     } else {
-      @resources.settle_capacity(value.root, frame.capacity).unwrap()
+      assert_eq(prepare_journal_observation_close(value, child), 0)
+      guard child.outcome is Some(ReservingDecode(capacity, _)) else {
+        fail("Expected token-only debt, no frame before its settlement")
+      }
+      @resources.settle_capacity(value.root, capacity).unwrap()
     }
     assert_eq(close_journal_observation(value.nonce, 73), 0)
     sdk_row_original_fixture_close(value, parent)
@@ -403,7 +408,8 @@ test "journal close drops success payload before selected settlement and later f
   // Observed(Ok(...)) payload borrowing its now-unfunded request/Definition.
   assert_false(@resources.capacity_reservation_open(selected_token))
   assert_true(
-    child.outcome is Some(Decoding(debt)) && physical_equal(debt, wrong_frame),
+    child.outcome is Some(ReservingDecode(token, 0)) &&
+    physical_equal(token, foreign_token),
   )
   assert_true(wrong_frame.selected is None && wrong_frame.rows is None)
   // Restore only the explicit foreign-token fixture. The SAME original frame
@@ -446,7 +452,9 @@ test "journal close never skips foreign spent tokens or loses error across physi
   assert_true(close_journal_observation(value.nonce, 73) != 0)
   assert_false(@resources.capacity_reservation_open(original.capacity))
   assert_false(@resources.capacity_reservation_open(frame.capacity))
-  assert_true(child.outcome is Some(Decoding(debt)) && debt.issue == -42)
+  // Even though physical cleanup is pending, NO frame/controller remains
+  // reachable under its spent token: only the existing scalar error survives.
+  assert_true(child.outcome is Some(Observed(Err(-42), None)))
   ready.val = true
   assert_eq(close_journal_observation(value.nonce, 73), 0)
   sdk_row_original_fixture_close(value, parent)

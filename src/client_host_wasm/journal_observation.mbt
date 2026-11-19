@@ -490,19 +490,62 @@ fn begin_journal_observation_close(child : StoredJournalObservation) -> Unit {
 }
 
 ///|
+// Drop the actual frame while its SAME controller token still covers it.
+// No frame reference escapes this helper's return; pending close then owns
+// only the existing token/scalar debt phase, never an unfunded controller.
+fn prepare_journal_observation_close(
+  value : Instance,
+  child : StoredJournalObservation,
+) -> Int {
+  begin_journal_observation_close(child)
+  match child.outcome {
+    Some(Decoding(frame)) => {
+      let code = dispose_journal_decode_rows(value, frame, false)
+      if code != 0 {
+        return code
+      }
+      child.outcome = Some(ReservingDecode(frame.capacity, frame.issue))
+      0
+    }
+    Some(Observed(_, Some(_))) => -4
+    _ => 0
+  }
+}
+
+///|
+fn settle_journal_observation_close_capacity(
+  value : Instance,
+  child : StoredJournalObservation,
+) -> Int {
+  match child.outcome {
+    Some(ReservingDecode(capacity, issue)) => {
+      let code = settle_journal_decode_original(value, capacity)
+      if code != 0 {
+        return code
+      }
+      child.outcome = if issue == 0 {
+        None
+      } else {
+        Some(Observed(Err(issue), None))
+      }
+      0
+    }
+    _ => 0
+  }
+}
+
+///|
 pub fn close_journal_observation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) else {
     return -2
   }
-  begin_journal_observation_close(child)
-  let cleanup = match child.outcome {
-    Some(ReservingDecode(capacity)) =>
-      settle_journal_decode_original(value, capacity)
-    Some(Decoding(frame)) => close_journal_decode_frame(value, frame)
-    Some(Observed(_, Some(_))) => -4
-    _ => 0
+  let prepared = prepare_journal_observation_close(value, child)
+  if prepared != 0 {
+    return prepared
   }
+  // The prior helper returned with NO successful payload or frame loan.
+  let cleanup = settle_journal_observation_close_capacity(value, child)
   if cleanup != 0 {
     return cleanup
   }
