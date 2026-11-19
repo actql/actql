@@ -2205,6 +2205,7 @@ class InstalledLocalHost:
             return self._original_compute_read_step(compute, work)
 
         owned: list[_Task] = [] if retained_tasks is None else retained_tasks
+        results: list[_ResultExport] | None = None
         try:
             while True:
                 def select_task() -> _Task | None:
@@ -2220,14 +2221,18 @@ class InstalledLocalHost:
                 while not step(lambda: self._core.drive_task(task, _EXECUTION_WORK_QUANTUM)):
                     pass
             count = step(lambda: self._core.publication_preflight_result_count(preflight, configuration.handle))
-            results: list[_ResultExport] = []
+            selected_results: list[_ResultExport] = []
+            results = selected_results
             for index in range(count):
                 def select_result() -> _ResultExport:
                     result = self._core.reserve_result_from_compute(compute.core, index, configuration.handle)
                     self._result_exports.append(result)
+                    # Keep this SAME list's original before post-current can
+                    # fail; a later constructor may also leave earlier exports.
+                    selected_results.append(result)
                     return result
-                results.append(step(select_result))
-            return tuple(results)
+                step(select_result)
+            return tuple(selected_results)
 
         except BaseException:
             # Same-original physical retirement never replaces the initiating
@@ -2238,6 +2243,13 @@ class InstalledLocalHost:
                 # present for actual stop/state observation and later cleanup.
                 if self._core.close_native_compute(compute.core):
                     raise ValueError('Original Compute observation custody disappeared before its child')
+                if results is not None:
+                    # An export pins its producer. Only an acknowledged return
+                    # removes the original; refusal keeps both child and task.
+                    for result in reversed(results):
+                        if not self._core.close_result_export(result):
+                            raise LocalProductCleanupPending(self)
+                        self._result_exports.remove(result)
                 self._retire_original_tasks(tuple(reversed(owned)))
             except BaseException as cleanup:
                 work = next((work for work in self._physical_work

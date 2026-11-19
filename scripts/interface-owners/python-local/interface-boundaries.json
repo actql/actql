@@ -53622,7 +53622,7 @@
           "async": false
         }
       ],
-      "sha256": "ffc2f7de6409d9966325c109a72da249f4321533e610a02cc6fb1a3beebf6f13",
+      "sha256": "003ba4e28c971a0fb363594650e7a8303de71970548fa9190b716bcae9ae13ea",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -54292,6 +54292,18 @@
               {
                 "path": "packages/python-sdk/tests/test_local_product_operation_port.py",
                 "anchor": "async def test_rejected_worker_handoff_leaves_no_uninvoked_host_entry_or_replay("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_results.py",
+                "anchor": "def test_post_current_failure_returns_selected_result_before_its_tasks("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_results.py",
+                "anchor": "def test_later_result_constructor_failure_returns_only_prior_original_results("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_results.py",
+                "anchor": "def test_partial_result_cleanup_refusal_keeps_original_primary_and_children("
               }
             ]
           }

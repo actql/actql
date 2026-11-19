@@ -3416,6 +3416,16 @@ its explicit unavailable-port refusal instead of spinning, inventing a resume or
 publishing a Run outcome. Closing, cancellation and failed retirement keep the
 same task, first failure, finite operation fuel and physical cleanup duties.
 
+During pre-publication Result selection, the same local Result array retains
+each original before the reader's post-current check. If that check or a later
+constructor fails, cleanup seals the original Compute, returns only those
+selected exports, then retires their original tasks. A declined or throwing
+child close retains its child and producer custody and never replaces the
+initiating failure. The existing array and allowance are reused; no separate
+registry, owner or successful-publication retirement is introduced. Once a
+publication pins those exports, its existing child and reader lifetimes still
+govern their later close.
+
 Native continues through its existing Common guarded runner. Node's asynchronous
 pause, snapshot and carrier callbacks remain distinct physical integration points;
 the Wasm entry is not a replacement Node scheduler or a requirement to execute

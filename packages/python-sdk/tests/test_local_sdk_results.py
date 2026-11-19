@@ -9,6 +9,7 @@ from unittest.mock import patch
 from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_product import LocalProductCleanupPending
 from actql_sdk._local_storage import LocalStorageError
+from actql_sdk._local_work import OriginalLocalWork
 import test_local_sdk_preflight as preflight_fixture
 import test_local_sdk_start as start_fixture
 from local_abi_declaration_fixture import original_byte_fixture_port
@@ -286,6 +287,47 @@ class SDKResultAssemblyTests(unittest.TestCase):
             self.assertEqual(sum((family, name) == ('result', 'close')
                                  for family, name, _ in calls), 1)
             self.assertFalse(any(family == 'publication' for family, _, _ in calls))
+
+    def test_partial_result_cleanup_refusal_keeps_original_primary_and_children(self):
+        for throws in (False, True):
+            with self.subTest(throws=throws), TemporaryDirectory(prefix='actql-sdk-results-') as directory:
+                host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
+                validate_current = core.validate_host_current
+                primary = LocalStorageError('Current changed after original Result selection')
+                cleanup = LocalCoreError('close_result', -33)
+                work = OriginalLocalWork(lambda: None, owner=compute.start.run)
+                host._physical_work.append(work)
+                revoked = False
+
+                def validate(value):
+                    nonlocal revoked
+                    if core._result_loans and not revoked:
+                        revoked = True
+                        raise primary
+                    return validate_current(value)
+
+                try:
+                    with (patch.object(core, 'validate_host_current', side_effect=validate),
+                          patch.object(core, 'close_result_export',
+                                       side_effect=cleanup if throws else None, return_value=False)):
+                        with self.assertRaises(LocalStorageError) as failed:
+                            host._execute_original_tasks(compute, preflight, publisher)
+                    self.assertIs(failed.exception, primary)
+                    if throws:
+                        self.assertIs(work._cleanup_error, cleanup)
+                    else:
+                        self.assertIsInstance(work._cleanup_error, LocalProductCleanupPending)
+                    self.assertEqual(len(host._result_exports), 1)
+                    result = host._result_exports[0]
+                    self.assertIs(core._result_loans[result.handle], result)
+                    self.assertEqual(len(host._tasks), 2)
+                    self.assertTrue(all(core._task_loans[task.handle] is task for task in host._tasks))
+                    self.assertFalse(any((family, name) == ('task', 'close') for family, name, _ in calls))
+                    self.assertFalse(any(family == 'publication' for family, _, _ in calls))
+                finally:
+                    # This fixture never invokes or starts its physical Work.
+                    self.assertFalse(work._invoked)
+                    host._physical_work.remove(work)
 
     def test_bounded_steps_share_reader_but_loan_and_cleanup_boundaries_do_not(self):
         with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
