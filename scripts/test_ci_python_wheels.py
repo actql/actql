@@ -941,6 +941,28 @@ class FailureLocationTests(unittest.TestCase):
         self.assertIsNone(same_frame(original, dict(reference, namespaceId='foreign')))
         self.assertIsNone(same_frame(dict(original, kind='private-kind-secret'), reference))
 
+    def test_rejected_wait_declines_foreign_tables_forwarded_with_the_original_validator(self):
+        diagnostics = load('ci_wait_foreign_tables', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        self.rejected_wait_fixture()
+        from actql_sdk._async import wire
+        original = vars(wire)
+        foreign = dict(original)
+        foreign['SCHEMAS'] = dict(original['SCHEMAS'])
+        state = dict(foreign['SCHEMAS']['run_state'])
+        properties = dict(state['properties'])
+        properties['status'] = {'enum': ['private-status-secret']}
+        state['properties'] = properties
+        foreign['SCHEMAS']['run_state'] = state
+        result = diagnostics.rejected_wait_shape(
+            {'status': 'private-status-secret'}, {'since': None}, foreign)
+        self.assertIsNone(result['wait_status'])
+        self.assertIsNone(result['wait_state_schema_valid'])
+        self.assertNotIn('private-status-secret', json.dumps(result))
+        foreign = dict(original)
+        foreign['CONTRACT'] = dict(original['CONTRACT'])
+        self.assertIsNone(diagnostics.rejected_wait_shape(
+            {}, {'since': None}, foreign)['wait_state_schema_valid'])
+
     def test_rejected_wait_pending_work_is_not_waited_or_invoked(self):
         diagnostics = load('ci_rejected_wait_pending', SCRIPTS / 'fixtures/ci-python-installed-run.py')
         failure, _, work, _, _, _, invoked, _ = self.rejected_wait_fixture(completed=False)

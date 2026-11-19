@@ -60,12 +60,14 @@ def bounded_json_data(value):
 
 
 def own_schema_validator(wire_fields):
-    """Only the same generated pure codec; never a replaced diagnostic port."""
+    """Only the same generated pure codec and tables, never forwarded copies."""
     codec = sys.modules.get('actql_sdk._wire_codec')
     fields = vars(codec) if type(codec) is ModuleType else {}
     validator = fields.get('valid')
     if (type(validator) is FunctionType and validator.__globals__ is fields
-            and wire_fields.get('valid') is validator):
+            and wire_fields.get('valid') is validator
+            and wire_fields.get('SCHEMAS') is fields.get('SCHEMAS')
+            and wire_fields.get('CONTRACT') is fields.get('CONTRACT')):
         return validator
     return None
 
