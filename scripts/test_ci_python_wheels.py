@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 import zipfile
 
 SCRIPTS = Path(__file__).resolve().parent
@@ -783,12 +783,119 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
 
 
 class FailureLocationTests(unittest.TestCase):
-    def local_work_fixture(self, *, completed=True, same_reference=True, operation='status'):
+    def rejected_wait_fixture(self, *, completed=True, same_reference=True, task_drive_code=None):
+        import asyncio
+        (_, host, work, original, cleanup, exited,
+         invoked) = self.local_work_fixture(completed=completed, task_drive_code=task_drive_code)
+        from actql_sdk._async import AsyncClient, AsyncExecution, wire
+        from actql_sdk import ClientError
+
+        reference = {'namespaceId': 'private-reference-secret' if same_reference else 'foreign'}
+        state = {'version': 'actql-run-state/0.1', 'run_id': 'original-run',
+                 'revision': 7, 'status': 'running',
+                 'updated_at': '2026-10-16T10:00:00.000Z',
+                 'next_action': {'kind': 'none'}, 'result_available': False,
+                 'result_availability': {},
+                 'control': {'revision': 2, 'cancellation_requested': False,
+                             'physical_stop': 'unknown'}}
+        self.assertTrue(wire.valid(state, 'run_state'))
+        self.assertFalse(wire.valid_run_wait(state, None))
+
+        async def observe():
+            client = AsyncClient._from_local_host(host)
+            execution = AsyncExecution(client, {'ref': reference})
+            # Only this Source/port control injects a response. The installed
+            # diagnostic never replaces a Client, Host or runtime method.
+            with patch.object(client, '_request', new=AsyncMock(return_value=state)) as request:
+                try:
+                    await execution.wait()
+                except ClientError as failure:
+                    self.assertEqual(failure.code, 'InvalidHostRunState')
+                    request.assert_awaited_once_with('wait', {'ref': reference, 'until': None, 'since': None})
+                    return failure, execution
+            self.fail('A running state cannot satisfy the existing wait contract')
+
+        failure, execution = asyncio.run(observe())
+        return failure, host, work, original, cleanup, exited, invoked, execution
+
+    def test_rejected_wait_reports_same_completed_original_without_private_values(self):
+        diagnostics = load('ci_rejected_wait_original', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, host, work, original, cleanup, exited, invoked, _ = self.rejected_wait_fixture()
+        future = work._future
+        stream = io.StringIO()
+        diagnostics.report_contexts(failure, stream)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        selected = next(record['local_work'] for record in records if 'local_work' in record)
+        self.assertTrue(selected['selected'])
+        self.assertTrue(selected['future_done'])
+        self.assertTrue(selected['rejected_wait'])
+        self.assertTrue(selected['wait_status_known'])
+        self.assertFalse(selected['wait_status_stable'])
+        self.assertEqual([record.get('failure_role') for record in records[1:]],
+                         ['physical-original', 'physical-cleanup', 'physical-exit'])
+        self.assertIs(work._future, future)
+        self.assertIs(future.exception(timeout=0), original)
+        self.assertIs(work._cleanup_error, cleanup)
+        self.assertIs(work._exit_error, exited)
+        self.assertIs(host._physical_work[0], work)
+        self.assertEqual(invoked, [work._owner])
+        self.assertNotIn('private-reference-secret', stream.getvalue())
+        self.assertNotIn('original-run', stream.getvalue())
+
+    def test_rejected_wait_pending_work_is_not_waited_or_invoked(self):
+        diagnostics = load('ci_rejected_wait_pending', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, _, work, _, _, _, invoked, _ = self.rejected_wait_fixture(completed=False)
+        selected, errors = diagnostics.selected_local_work(failure)
+        self.assertTrue(selected['selected'])
+        self.assertFalse(selected['future_done'])
+        self.assertEqual(errors, [])
+        self.assertEqual(invoked, [])
+        self.assertFalse(work._future.done())
+
+    def test_rejected_wait_foreign_run_does_not_reveal_physical_failure(self):
+        diagnostics = load('ci_rejected_wait_foreign_run', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, _, work, original, _, _, invoked, _ = self.rejected_wait_fixture(same_reference=False)
+        selected = diagnostics.selected_local_work(failure)
+        if selected is not None:
+            self.assertFalse(selected[0]['selected'])
+            self.assertEqual(selected[1], [])
+        self.assertIs(work._future.exception(timeout=0), original)
+        self.assertEqual(invoked, [work._owner])
+
+    def test_rejected_wait_foreign_client_cannot_invoke_callbacks(self):
+        diagnostics = load('ci_rejected_wait_foreign_client', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, _, _, _, _, _, _, execution = self.rejected_wait_fixture()
+        accessed = []
+        class ForeignClient:
+            def __getattribute__(self, name):
+                accessed.append(name)
+                raise AssertionError('A diagnostic cannot inspect a foreign Client')
+        execution._client = ForeignClient()
+        self.assertIsNone(diagnostics.selected_local_work(failure))
+        self.assertEqual(accessed, [])
+
+    def test_rejected_wait_reports_original_task_drive_status_without_outcome(self):
+        diagnostics = load('ci_rejected_wait_drive_status', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, _, work, original, _, _, invoked, _ = self.rejected_wait_fixture(task_drive_code=-35)
+        stream = io.StringIO()
+        diagnostics.report_contexts(failure, stream)
+        records = [json.loads(line) for line in stream.getvalue().splitlines()]
+        physical = next(record for record in records if record.get('failure_role') == 'physical-original')
+        self.assertEqual(physical['exception_type'], 'LocalCoreError')
+        self.assertEqual(physical['core_task_drive_code'], -35)
+        self.assertNotIn('core_buffer_seal_code', physical)
+        self.assertNotIn('outcome', physical)
+        self.assertIs(work._future.exception(timeout=0), original)
+        self.assertEqual((original.operation, original.code), ('task_drive', -35))
+        self.assertEqual(invoked, [work._owner])
+        self.assertNotIn('private-reference-secret', stream.getvalue())
+
+    def local_work_fixture(self, *, completed=True, same_reference=True, operation='status', task_drive_code=None):
         import asyncio
         sdk = SCRIPTS.parent / 'packages/python-sdk/src'
         sys.path.insert(0, str(sdk))
         try:
-            from actql_sdk._local_core import LocalCore, _Input, _PhysicalInput
+            from actql_sdk._local_core import LocalCore, LocalCoreError, _Input, _PhysicalInput
             from actql_sdk._local_product import InstalledLocalHost, _OriginalRunReference
             from actql_sdk._local_work import OriginalLocalWork
         finally:
@@ -798,7 +905,9 @@ class FailureLocationTests(unittest.TestCase):
             def __str__(self):
                 raise AssertionError('Never format the retained physical cause')
 
-        original, cleanup, exited = OpaqueOriginalError(), OpaqueOriginalError(), OpaqueOriginalError()
+        original = (OpaqueOriginalError() if task_drive_code is None
+                    else LocalCoreError('task_drive', task_drive_code))
+        cleanup, exited = OpaqueOriginalError(), OpaqueOriginalError()
         core = object.__new__(LocalCore)
         core._identity, core._closing = object(), True
         reference = {'namespaceId': 'private-reference-secret'}

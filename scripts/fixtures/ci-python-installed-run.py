@@ -1,10 +1,10 @@
 """Observe suppressed failure locations without changing installed consumer behavior.
 
 Only CI copies this wrapper outside the repository. It never prints exception
-messages, locals, reference values, source lines, or full paths. The known Core
-buffer seal failure may report its original signed ABI status, without decoding
-it into a business outcome. Public Unknown semantics and the original exception
-are retained; no operation is repeated.
+messages, locals, reference values, source lines, or full paths. Known Core
+buffer seal and selected original task-drive failures may report their signed
+ABI status without decoding a business outcome. Public Unknown semantics and the
+original exception are retained; no operation is repeated.
 """
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from pathlib import Path
 import runpy
 import sys
 import traceback
+from types import FunctionType, MappingProxyType, ModuleType
 
 
 MAX_CONTEXTS = 16
@@ -41,16 +42,42 @@ def selected_local_work(failure: BaseException):
     if not all(type(value) is type for value in
                (host_type, reference_type, core_type, input_type, physical_type, work_type)):
         return None
+    async_module = sys.modules.get('actql_sdk._async')
+    async_fields = vars(async_module) if type(async_module) is ModuleType else {}
+    execution_type, client_type = (async_fields.get('AsyncExecution'), async_fields.get('AsyncClient'))
+    observe = vars(execution_type).get('_observe') if type(execution_type) is type else None
+    observe_code = observe.__code__ if type(observe) is FunctionType else None
     frames = deque(traceback.walk_tb(failure.__traceback__), maxlen=MAX_FRAMES)
     for frame, _ in frames:
-        if frame.f_code is not host_type.open.__code__:
+        admission = None
+        if frame.f_code is host_type.open.__code__:
+            host, payload = frame.f_locals.get('self'), frame.f_locals.get('payload')
+            operation = frame.f_locals.get('operation')
+            if (type(payload) is not bytes or len(payload) > MAX_SELECTION_BYTES
+                    or type(operation) is not str
+                    or operation not in ('status', 'wait', 'cancel', 'lookup-cancellation')):
+                continue
+        elif observe_code is not None and frame.f_code is observe_code:
+            execution = frame.f_locals.get('self')
+            operation, body = frame.f_locals.get('operation'), frame.f_locals.get('body')
+            if (type(execution) is not execution_type or type(client_type) is not type
+                    or type(operation) is not str or operation != 'wait'
+                    or type(body) is not dict or body.get('since') is not None
+                    or frame.f_locals.get('accepted') is not False):
+                continue
+            client = vars(execution).get('_client')
+            if type(client) is not client_type:
+                continue
+            client_fields = vars(client)
+            host = client_fields.get('_local_host')
+            if client_fields.get('_transport') is not host:
+                continue
+            admission = vars(execution).get('_admission')
+            if type(admission) is not MappingProxyType:
+                continue
+        else:
             continue
-        host, payload = frame.f_locals.get('self'), frame.f_locals.get('payload')
-        operation = frame.f_locals.get('operation')
-        if (type(host) is not host_type or type(payload) is not bytes
-                or len(payload) > MAX_SELECTION_BYTES
-                or type(operation) is not str
-                or operation not in ('status', 'wait', 'cancel', 'lookup-cancellation')):
+        if type(host) is not host_type:
             continue
         fields = vars(host)
         core = fields.get('_core')
@@ -67,7 +94,48 @@ def selected_local_work(failure: BaseException):
         if (type(references) is not list or type(works) is not list or type(inputs) is not dict
                 or len(references) > MAX_WORK_RECORDS or len(works) > MAX_WORK_RECORDS):
             return bits, []
-        requested = json.loads(payload).get('ref')
+        if admission is None:
+            requested = json.loads(payload).get('ref')
+        else:
+            # The same SDK constructor froze this admission. Its reference is
+            # only a bounded locator for the retained original below, never
+            # authority from the rejected response or a replacement Run.
+            reference = admission.get('ref')
+            if type(reference) is not MappingProxyType or not 0 < len(reference) <= MAX_WORK_RECORDS:
+                return bits, []
+            requested = {}
+            selection_characters = 0
+            for key, value in reference.items():
+                if (type(key) is not str or type(value) is not str
+                        or len(key) > MAX_LABEL or len(value) > 4096):
+                    return bits, []
+                selection_characters += len(key) + len(value)
+                if selection_characters > 4096:
+                    return bits, []
+                requested[key] = value
+            encoded_reference = json.dumps(requested, ensure_ascii=False)
+            if len(encoded_reference) > 4096 or len(encoded_reference.encode('utf-8')) > 4096:
+                return bits, []
+            bits.update(rejected_wait=True, wait_status_known=None, wait_status_stable=None)
+            # Observe only the existing rejected result and contract enums.
+            # Do not repeat validation, inspect the payload, or invoke a port.
+            value = frame.f_locals.get('value')
+            wire = async_fields.get('wire')
+            wire_fields = vars(wire) if type(wire) is ModuleType else {}
+            contract, schemas = wire_fields.get('CONTRACT'), wire_fields.get('SCHEMAS')
+            rules = contract.get('request_response_rules') if type(contract) is dict else None
+            rule = rules.get('run_wait') if type(rules) is dict else None
+            stable = rule.get('stableStatuses') if type(rule) is dict else None
+            schema = schemas.get('run_state') if type(schemas) is dict else None
+            properties = schema.get('properties') if type(schema) is dict else None
+            status_schema = properties.get('status') if type(properties) is dict else None
+            known = status_schema.get('enum') if type(status_schema) is dict else None
+            status = value.get('status') if type(value) is dict else None
+            if type(status) is str and len(status) <= MAX_LABEL:
+                for label, choices in (('wait_status_known', known), ('wait_status_stable', stable)):
+                    if (type(choices) is list and len(choices) <= MAX_WORK_RECORDS
+                            and all(type(item) is str and len(item) <= MAX_LABEL for item in choices)):
+                        bits[label] = status in choices
         if type(requested) is not dict:
             return bits, []
         matches = []
@@ -137,10 +205,12 @@ def report_contexts(failure: BaseException, stream) -> None:
         if (type(current).__module__ == 'actql_sdk._local_core'
                 and type(current).__name__ == 'LocalCoreError'
                 and type(fields.get('operation')) is str
-                and fields.get('operation') == 'seal'
                 and type(fields.get('code')) is int
                 and -(1 << 31) <= fields['code'] < (1 << 31)):
-            record['core_buffer_seal_code'] = fields['code']
+            if fields['operation'] == 'seal':
+                record['core_buffer_seal_code'] = fields['code']
+            elif role == 'physical-original' and fields['operation'] == 'task_drive':
+                record['core_task_drive_code'] = fields['code']
         wire = json.dumps(record) + '\n'
         emitted += len(wire.encode('utf-8'))
         if emitted > MAX_OUTPUT_BYTES:
