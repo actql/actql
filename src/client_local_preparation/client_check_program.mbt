@@ -684,7 +684,22 @@ pub fn client_program_project_original_static_effect_check(
   for index in 0..<@syntax.effect_header_count(headers) {
     let header = @syntax.effect_header_at(headers, index).unwrap()
     if @syntax.effect_header_kind(header) != "update" {
-      findings.push(Limit("implementation_limit"))
+      // This header retains its original Program stage, not a lowered Query
+      // position. Only authored structured input may expose that effects node.
+      findings.push(
+        ProgramLimit(
+          "implementation_limit",
+          if input_kind == "program" {
+            Some(
+              "/stages/" +
+              @syntax.effect_header_stage(header).to_string() +
+              "/effects",
+            )
+          } else {
+            None
+          },
+        ),
+      )
       continue
     }
     let visible = match update {
