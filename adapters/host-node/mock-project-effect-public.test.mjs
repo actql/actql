@@ -105,13 +105,18 @@ test('terminal explicit operator Content selects only its authored finite Accoun
     assert.deepEqual(Object.keys(installation.authorization).sort(),['accountConfiguration','observe','siteKey']);
     assert.equal(typeof installation.authorization.observe,'function');
     const configuration = JSON.parse(installation.authorization.accountConfiguration);
+    assert.deepEqual(Object.keys(configuration).sort(),['account_id','entries','version']);
     assert.equal(configuration.version,'actql-execution-account-config/0.1');
     assert.equal(configuration.account_id,'terminal-content-explicit-operator');
+    assert.deepEqual(configuration.entries.map(entry => entry.entry_id),
+      ['operator-request','operator-result-file','operator-run']);
     assert.deepEqual(configuration.entries.map(entry => [entry.resource.any_of,entry.operation.any_of]),[
       [['installed-multi-acquired'],['write']],[['result/file'],['read']],
       [['run'],['cancel','publish','read','resolve','submit']],
     ]);
     for (const entry of configuration.entries) {
+      assert.deepEqual(Object.keys(entry).sort(),
+        ['connection','entry_id','exclusions','operation','outcome','principal','resource']);
       assert.equal(entry.outcome,'allow');assert.deepEqual(entry.principal,{any_of:[userInfo().username]});
       assert.deepEqual(entry.connection,{any_of:['local-mock']});assert.deepEqual(entry.exclusions,[]);
       assert.equal(JSON.stringify(entry).includes('"all"'),false);
@@ -126,8 +131,18 @@ test('terminal explicit operator Content selects only its authored finite Accoun
       sourceAcquisitionStarts:0,modelCallStarts:0,effectReplacementReturns:0})})};
   await assert.rejects(runTerminalMockWorkflow(options),error => error.cause === primary &&
     error.observation.accountScenario === 'explicit-operator-content');
-  await assert.rejects(runTerminalMockWorkflow({...options,variant:'terminal-infer'}));
+  await assert.rejects(runTerminalMockWorkflow({...options,variant:'terminal-infer'}),{code:'ERR_ASSERTION'});
+  await assert.rejects(runTerminalMockWorkflow({...options,accountScenario:'unsupported'}),{code:'ERR_ASSERTION'});
   assert.equal(connections,1);
+  const {accountScenario, ...omitted} = options;
+  assert.equal(accountScenario,'explicit-operator-content');
+  await assert.rejects(runTerminalMockWorkflow({...omitted,directory:await terminalScratch(t),
+    async connect({mode,profile,installation}) {
+      connections++;assert.equal(mode,'local');assert.equal(profile,'mock');
+      assert.deepEqual(Object.keys(installation.authorization),['observe']);
+      assert.equal(typeof installation.authorization.observe,'function');throw primary;
+    }}),error => error.cause === primary && !Object.hasOwn(error.observation,'accountScenario'));
+  assert.equal(connections,2);
 });
 
 test('terminal preparation failure projection accepts only closed source locations and original capacity scalars', () => {
