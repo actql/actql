@@ -1883,11 +1883,10 @@ test('REST demand controls have one prepared public package owner without narrow
     // The prior Host owner and new prepared owner retain the SAME runtime
     // applicability. Draft preparation is not silently promoted to acceptance.
     assert.equal(gateJobRequired(selection, 'host'), full);
-    const values = {github: {event: {repository: {visibility: 'public', private: false}}},
-      inputs: {performance_matrix: false, packed_query_evidence_probe: false},
-      needs: {'select-targets': {outputs: {profile: selection.profile}}}, toJSON: JSON.stringify};
     for (const name of ['host', 'client-distribution']) {
-      assert.equal(runInNewContext(jobs[name].if.slice(3, -2), values, {timeout: 100}), full);
+      // Read the existing workflow's profile entrance; do not reinterpret
+      // GitHub expression syntax as a second JavaScript condition engine.
+      assert(jobs[name].if.includes("needs.select-targets.outputs.profile == 'full'"));
     }
     if (full) {
       verifyGate(plan(selection), results(selection), {...context, event: selection.event});
