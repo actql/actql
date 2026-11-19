@@ -112155,6 +112155,360 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_whole_source_layout.mbt",
+      "sha256": "925c6e5f2dae8cd2c8e218eced70c098e90c4487ecdfd32f46765f098af1b9e5",
+      "exports": [],
+      "operations": [
+        {
+          "name": "request_whole_source_route_frontier_bytes",
+          "declaration": "request_whole_source_route_frontier_bytes ( count : Int , scanned_inputs : Int64 , ) - > Int64 ?"
+        },
+        {
+          "name": "request_whole_source_route_scan_count",
+          "declaration": "request_whole_source_route_scan_count ( prepared : @ publication_host . PreparedClientProgram , direct : @ publication_host . ClientDirectAcquisitionOccurrences , ) - > Int64 ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Plan owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "request_whole_source_route_frontier_bytes",
+            "request_whole_source_route_scan_count"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_whole_source_routes.mbt",
+      "sha256": "2bf05051584c0fab5d5ac35e69c49200d194d269a36178d1c2293181ac13e178",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]reserve_request_whole_source_routes",
+          "declaration": "[ I ] reserve_request_whole_source_routes ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ sourceviews . SourceAcquisition ] , ) , ClientRequestProgramPlanIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Plan owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]reserve_request_whole_source_routes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_whole_source_members.mbt",
+      "sha256": "6a30f35b8d97827ca026f46c70bf6a42b7ec9515fa1c6a1c77632ccc4b225cea",
+      "exports": [],
+      "operations": [
+        {
+          "name": "request_whole_source_input_construction_bytes",
+          "declaration": "request_whole_source_input_construction_bytes ( original : @ sourceviews . SourceAcquisition , ) - > Int64 ?"
+        },
+        {
+          "name": "request_whole_source_member_construction_bytes",
+          "declaration": "request_whole_source_member_construction_bytes ( original : @ sourceviews . SourceAcquisition , ) - > Int64 ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Plan owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "request_whole_source_input_construction_bytes",
+            "request_whole_source_member_construction_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_whole_source_construction.mbt",
+      "sha256": "5dacd96b3a3c8021f06c98678cb2012e1ad56a785fd4e3feeb98009baba8a62d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]reserve_request_whole_source_construction",
+          "declaration": "[ I ] reserve_request_whole_source_construction ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( @ publication_host . ClientDirectAcquisitionOccurrences , Array [ @ sourceviews . SourceAcquisition ] , ) , ClientRequestProgramPlanIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Plan owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]reserve_request_whole_source_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

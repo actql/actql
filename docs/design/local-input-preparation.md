@@ -7272,6 +7272,29 @@ before advertising support; execution cannot stand in for static planning.
 
 ### Native finite Query Source continuation
 
+The existing Request also has a separate complete-input construction frontier.
+`reserve_request_whole_source_construction` accepts the same original input and
+Request identity in the already reserved Plan phase. It extends the existing
+direct-occurrence selector inventory from the original checked Source-execution
+count before selection: complete inputs can share a compute task and need not
+have captured-prefix cardinality. This does not create another selector grant.
+After selection, the same reservation grows for the ordered Source/Native
+locator/capacity/transport arrays and then the actual RowInput and Catalog
+evidence-member construction. Original schema/sequence/AST payloads remain
+under the original Plan-input debit; no numerical budget, tariff or Owner is
+introduced by the domain entry.
+
+The complete-input constructor retains the original stage/input association,
+never a Query requirement derived from an unsupported shape. A real Query
+selection or error cannot enter this Whole-only constructor. The existing
+Query entry remains independent. The current managed Plan accepts a complete
+Whole inventory or a complete Query capture inventory; it does not admit a
+mixed inventory by converting either family. Every physical input still needs
+its own same-original acquisition, Account/current observation, read and
+cleanup. On a failed grow or callback retirement, the original pending state
+and reservation remain cleanup-owned. The constructor cannot restore a former
+normal phase, issue a Run or acknowledge physical retirement.
+
 The installed Native read-only path keeps the original checked direct Source
 inventory, rather than identifying a Query by one resource or a fixed task
 index. The Project supplies its existing declaration, physical locator and
