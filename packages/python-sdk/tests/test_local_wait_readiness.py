@@ -194,7 +194,9 @@ class LocalWaitReadinessTests(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaises(OpaqueError) as failed:
                     self.observe(host, reference)
                 self.assertIs(failed.exception, primary)
-                self.assertEqual(events, ['authorized-original'])
+                self.assertEqual(events[0], 'authorized-original')
+                self.assertLess(events.index('authorize-run-read'), events.index('confirm'))
+                self.assertEqual(events[-1], 'close')
                 self.assertFalse(streams)
                 self.assertIs(work._cleanup_error, primary if kind == 'cleanup' else cleanup)
                 refused = ValueError('Original authorization refused')
@@ -218,10 +220,50 @@ class LocalWaitReadinessTests(unittest.IsolatedAsyncioTestCase):
                 self.observe(host, reference)
             self.assertIs(failed.exception, denial)
             result.assert_not_called()
-        self.assertEqual(events[:2], ['authorized-original', 'authorize-run-read'])
+        self.assertLess(events.index('authorized-original'), events.index('authorize-run-read'))
         self.assertIs(work._future.exception(), primary)
         self.assertFalse(streams)
         self.assertIs(host._physical_work[0], work)
+
+    async def test_published_read_and_post_current_refusals_precede_original_worker_error(self):
+        for phase in ('run-read', 'post-current', 'allowed'):
+            with self.subTest(phase=phase):
+                host, core, run, reference, _, events, streams = self.bridge(CANCELLED)
+                primary, denial = RuntimeError('opaque physical primary'), ValueError('Protected read refused')
+                work = self.work(host, run, primary=primary)
+                publication = object()
+                projection = SimpleNamespace(_configuration=host._configuration.handle, _publication=publication)
+                host._run_publications = [(run, publication)]
+                host._commit_projections = [projection]
+                # Nominal publication binding is deliberately allowed. Only
+                # the existing actual state supplier's protected read can admit.
+                core.validate_publication_run = lambda *args: events.append('nominal-publication')
+                host._ensure_original_publication_observation = lambda _: None
+
+                def project(original, candidate, consume):
+                    self.assertIs(original, run)
+                    self.assertIs(candidate, projection)
+                    events.append('authorize-run-read')
+                    if phase == 'run-read':
+                        raise denial
+                    consume(wire_bytes(CANCELLED))
+                    events.append('post-current')
+                    if phase == 'post-current':
+                        raise denial
+
+                host._project_original_sdk_run_state = project
+                with patch.object(work._future, 'result', wraps=work._future.result) as result:
+                    with self.assertRaises(RuntimeError if phase == 'allowed' else ValueError) as failed:
+                        self.observe(host, reference)
+                    self.assertIs(failed.exception, primary if phase == 'allowed' else denial)
+                    if phase == 'allowed':
+                        result.assert_called_once()
+                        self.assertEqual(events[-1], 'post-current')
+                    else:
+                        result.assert_not_called()
+                self.assertFalse(streams)
+                self.assertIs(work._future.exception(), primary)
+                self.assertIs(host._physical_work[0], work)
 
     async def test_status_still_returns_nonstable_common_data_despite_worker_error(self):
         host, _, run, reference, _, _, streams = self.bridge()

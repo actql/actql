@@ -560,19 +560,6 @@ class InstalledLocalHost:
                     stream._attached = True
                     return response
                 run, _ = self._select_original_run(body['ref'])
-                if operation == 'wait':
-                    original = self._execution_for_run(run)
-                    if original is not None:
-                        work = next(value for value in self._physical_work if value._invoke is original)
-                        if not work.stopped:
-                            raise LocalProductCleanupPending(self)
-                        # Authorization above precedes this SAME worker's
-                        # independent physical cause. Never format or replace it.
-                        work._future.result()
-                        if work._exit_error is not None:
-                            raise work._exit_error
-                        if work._cleanup_error is not None:
-                            raise work._cleanup_error
                 live = any(work._owner is run and not work.stopped for work in self._physical_work)
                 publications = [publication for original, publication in self._run_publications if original is run]
                 projections = [projection for projection in self._commit_projections
@@ -1039,6 +1026,24 @@ class InstalledLocalHost:
             raise ValueError('Original Local Run observation is unavailable')
         return projections[0]
 
+    def _raise_original_wait_failure(self, run: _Run) -> None:
+        """Only after Common's protected Run-read/current observation returns.
+
+        Saved admission/Activation and nominal publication binding alone are
+        not read authority. Never select, format or replace this physical cause
+        before the existing state supplier completes its actual read checks.
+        """
+        original = self._execution_for_run(run)
+        if original is not None:
+            work = next(value for value in self._physical_work if value._invoke is original)
+            if not work.stopped:
+                raise LocalProductCleanupPending(self)
+            work._future.result()
+            if work._exit_error is not None:
+                raise work._exit_error
+            if work._cleanup_error is not None:
+                raise work._cleanup_error
+
     def _check_original_wait_state(self, raw: bytes) -> None:
         """Readiness of exact Common DATA, never a physical-stop inference."""
         if not wire.valid_run_wait(_object(raw, 1048576), None):  # type: ignore[no-untyped-call]
@@ -1056,14 +1061,18 @@ class InstalledLocalHost:
         if configuration is None or projection._configuration != configuration.handle:
             raise ValueError('Foreign original Local Run observation')
         streams: list[OriginalLocalResponseStream] = []
+        wait_states: list[bytes] = []
         def consume(raw: bytes) -> None:
             # The existing Core guard prevents a different Run's publication
             # being routed under this reference. Its zero is no read grant.
             self._core.validate_publication_run(projection._publication,
                 run.handle, configuration.handle)
             if wait:
-                self._check_original_wait_state(raw)
-            streams.append(OriginalLocalResponseStream(self, raw))
+                if wait_states:
+                    raise ValueError('Incomplete original Local Run observation')
+                wait_states.append(raw)
+            else:
+                streams.append(OriginalLocalResponseStream(self, raw))
         try:
             installation.binding.inspect(lambda _:
                 self._core.validate_publication_run(projection._publication,
@@ -1073,6 +1082,14 @@ class InstalledLocalHost:
                 self._project_original_sdk_run_state(run, projection, consume)
             else:
                 self._project_original_run_state(projection, consume)
+            if wait:
+                if len(wait_states) != 1:
+                    raise ValueError('Incomplete original Local Run observation')
+                # The actual Run-read supplier and its post-current checks
+                # have returned; nominal publication binding is insufficient.
+                self._raise_original_wait_failure(run)
+                self._check_original_wait_state(wait_states[0])
+                streams.append(OriginalLocalResponseStream(self, wait_states[0]))
         except BaseException:
             # Unattached transport never reaches the Client. The original
             # buffer Owner decides cleanup; failure retains this same stream.
@@ -1182,6 +1199,9 @@ class InstalledLocalHost:
                 held.output = None
                 del self._run_state_custody[run.handle]
                 if wait:
+                    # Confirmation completed the protected Common Run-read
+                    # and existing post-current frame before error selection.
+                    self._raise_original_wait_failure(run)
                     self._check_original_wait_state(raw)
                     streams.append(OriginalLocalResponseStream(self, raw))
                 response = httpx.Response(200, headers={'content-type': 'application/json',

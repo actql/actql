@@ -4445,9 +4445,11 @@ their own evidence; this finite selected set establishes none of them alone.
 
 #### Local wait readiness
 
-Physical Work termination is not a stable Run observation. After fresh
-same-Run authorization, a Local wait preserves the original worker, exit and
-cleanup causes without formatting or replacing them. Only Common's exact
+Physical Work termination is not a stable Run observation. Only after the
+existing Common Run-read supplier and its post-current verification return
+may a Local wait select the original worker, exit and cleanup causes without
+formatting or replacing them. Saved admission/Activation or nominal publication
+binding alone is not Run-read authority. Only Common's exact
 observation accepted by the unchanged generated `valid_run_wait` predicate may
 be attached as a wait response, including saved and published observations.
 Status retains its separate nonstable observation route.

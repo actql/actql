@@ -1,6 +1,6 @@
 {
   "source": "b6e7a0077d1e266ec2de4cb20bc3c8bf373d0f11",
-  "syntaxProjectionSha256": "d2860646947a3dd57a11099bd1135b275da620179c0533579a843ae8e680f4d8",
+  "syntaxProjectionSha256": "9d4aabe986f670808469370c7bf514762b1adcb3264128dd03aa5bd044f23a50",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -53404,6 +53404,14 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_raise_original_wait_failure",
+          "parameters": [
+            "self",
+            "run"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_read_original_reference",
           "parameters": [
             "self",
@@ -53857,7 +53865,7 @@
           "async": false
         }
       ],
-      "sha256": "60b3a2590435c2b3ebbe1fc8ddb6a4b6c0d2846b66f984bfcc40efff2e920d52",
+      "sha256": "b516a5950f8a6d79aa6900770a72a2d87e601fee753b8ab206741fb637368918",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -57257,7 +57265,8 @@
         },
         {
           "operations": [
-            "InstalledLocalHost/_check_original_wait_state"
+            "InstalledLocalHost/_check_original_wait_state",
+            "InstalledLocalHost/_raise_original_wait_failure"
           ],
           "exports": [],
           "attributes": {
@@ -57363,6 +57372,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_wait_readiness.py",
                 "anchor": "async def test_cancelled_wait_releases_core_lock_and_retains_original_worker("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_wait_readiness.py",
+                "anchor": "async def test_denied_run_read_precedes_failed_future_after_activation_selection("
               }
             ]
           }
