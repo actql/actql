@@ -311,6 +311,7 @@ pub fn native_relation_files_work_control_capacity(
     guard @row_file.native_relation_file_caller_preparation_inventory(
         input.selection,
         input.limits,
+        prepared_provider=Some(input.provider),
       )
       is Some(units) &&
       @execution.preparation_representation_cost(units) is Some(bytes) &&

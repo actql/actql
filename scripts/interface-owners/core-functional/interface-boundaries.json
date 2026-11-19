@@ -111760,7 +111760,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_work_capacity.mbt",
-      "sha256": "fed121c93a2ed70a77b4015287efc94994f744e02d8810eb647ea007e95b3875",
+      "sha256": "31eeb8693c0f95b1905c722c281878ff5c4495996157a913ffce402e8f3dc761",
       "exports": [],
       "operations": [
         {
@@ -113490,7 +113490,7 @@
     },
     {
       "module": "src/platform_native/row_source/caller_preparation_capacity.mbt",
-      "sha256": "6e5639cdb9686a0b32ad4ebee0fefed09de12d3a08749f28397226685bde44b3",
+      "sha256": "b2cd63d9f4c57ac0025e64e6f3990a42711ecf55524659e0bf1ffdfd2f1d52bd",
       "exports": [],
       "operations": [
         {
