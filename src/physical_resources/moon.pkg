@@ -12,7 +12,10 @@ import {
 } for "wbtest"
 
 options(
+  "native-stub": [ "capacity_observation_stub.c" ],
   targets: {
+    "capacity_observation_native.mbt": [ "native" ],
+    "capacity_observation_unsupported.mbt": [ "not", "native" ],
     "original_inventory_index_js_wbtest.mbt": [ "js" ],
     "preparation_inventory_backing_nonjs_wbtest.mbt": [ "not", "js" ],
     "node_managed_run_admission.mbt": [ "js" ],

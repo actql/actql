@@ -58913,7 +58913,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "109dcc2d4c401f375bb486b5edcb4c9bf9d1147db825cfc19e9677af16b0c7f8",
+      "sha256": "54b49b6443167cd7e2139ba35f08688367c37da34463ac999a493f9fdb4f6906",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -76005,7 +76005,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Resource original reservation owner",
-      "sha256": "182438403c6e7bcb79520f9a46c78ace445c63ac489b707ff7f17855a161cd8b",
+      "sha256": "273625dc307e25fa62fdb63a559a41d4b95504986ed86d505d5e9f53f702252d",
       "exports": [],
       "operations": [
         {
@@ -76021,6 +76021,14 @@
           "declaration": "reduce_execution_reservation ( ledger : Ledger , reservation : Reservation , remaining_execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
+          "name": "reduce_execution_reservation_capacity",
+          "declaration": "reduce_execution_reservation_capacity ( ledger : Ledger , reservation : Reservation , remaining_retention : Int64 , remaining_execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "reduce_execution_reservation_capacity_current",
+          "declaration": "reduce_execution_reservation_capacity_current ( ledger : Ledger , reservation : Reservation , remaining_retention : Int64 , remaining_execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
           "name": "reduce_execution_reservation_current",
           "declaration": "reduce_execution_reservation_current ( ledger : Ledger , reservation : Reservation , remaining_execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
         }
@@ -76030,7 +76038,9 @@
           "operations": [
             "<module>",
             "reduce_execution_reservation",
-            "reduce_execution_reservation_current"
+            "reduce_execution_reservation_current",
+            "reduce_execution_reservation_capacity",
+            "reduce_execution_reservation_capacity_current"
           ],
           "exports": [],
           "attributes": {
@@ -76104,6 +76114,10 @@
               {
                 "path": "adapters/host-node/installed-effect-credential-operation.test.mjs",
                 "anchor": "test('response projection completion keeps the original preparing latch through reentrant release'"
+              },
+              {
+                "path": "src/physical_resources/native_observation_test/capacity_reduction_test.mbt",
+                "anchor": "test \"actual original Resource reduction updates diagnostic before later refusal\""
               }
             ]
           }
@@ -76181,6 +76195,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "src/physical_resources/native_observation_test/capacity_reduction_test.mbt",
+                "anchor": "test \"actual original Resource reduction updates diagnostic before later refusal\""
               }
             ]
           }
@@ -91351,7 +91369,8 @@
             "settle_completed_output_reservation",
             "settle_execution_reservation",
             "settle_reservation",
-            "settle_reservation_current"
+            "settle_reservation_current",
+            "charge_planning_current"
           ],
           "exports": [],
           "attributes": {
@@ -91458,11 +91477,15 @@
           }
         }
       ],
-      "sha256": "451d05a9b038043417b86dcb4a9d2585a03b0704a2cf05bf5253a3e9615b29db",
+      "sha256": "b80c915960bf4c62a6912cc5d8b27ac12d57478790054539f7cbe7246562183c",
       "operations": [
         {
           "name": "charge_planning",
           "declaration": "charge_planning ( ledger : Ledger , work : Int , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "charge_planning_current",
+          "declaration": "charge_planning_current ( ledger : Ledger , work : Int , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "charge_transfer",
@@ -91703,7 +91726,7 @@
           }
         }
       ],
-      "sha256": "88643fadb611e042d270484fd7cff2e9801ae957debadd032d0fcd654d4b374f",
+      "sha256": "277bedd4b754ae0aebe175b1b465065d064d79cf4dc2331384ee812d5001bc63",
       "operations": [
         {
           "name": "[P,C]issue_platform_vm_preparation_region",
@@ -91936,7 +91959,7 @@
           }
         }
       ],
-      "sha256": "c4da21074a84dd1ad924686c4e6efb02759d11cf86a3d353467b6b08588162a3",
+      "sha256": "d871f81105b9f565866d0beec5b86d03db13359bafb2cf98a707e088c810a73f",
       "operations": [
         {
           "name": "back_reservation_bytes_current",
@@ -110963,7 +110986,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "25d774a826c8af324f068713673b6566613086600c6697810941e14307caa449",
+      "sha256": "49ebc4800c5c4d5705b24ff28c34643c9f66dc16e6cd809f6b49ca5b84256463",
       "exports": [],
       "operations": [
         {
@@ -113788,6 +113811,572 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/capacity_observation_native.mbt",
+      "sha256": "1ce214dbd25c711bf6016f72657849d11bfe824403a6fc58272527847438e198",
+      "role": "observation-presentation",
+      "owner": "Existing Resource reservation and Native File Work/timing owners; diagnostic only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Source/strict compiler and bounded recorder/link controls only; no actual Native File capacity or physical cleanup measurement.",
+      "operations": [
+        {
+          "name": "capacity_observation",
+          "declaration": "capacity_observation ( ledger : Ledger , kind : Int , serial : Int , requested : Int64 , capacity : Int64 , limit : Int64 , reserved : Int64 , ) - > Unit"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capacity_observation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/test_native_timings.py",
+                "anchor": "def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope"
+              },
+              {
+                "path": "src/physical_resources/native_observation_test/capacity_reduction_test.mbt",
+                "anchor": "test \"actual original Resource reduction updates diagnostic before later refusal\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/capacity_observation_unsupported.mbt",
+      "sha256": "558cfdaec244f87348a45d9fe7d98296d1a73acf492c1ee5e13c65c9fe731bfe",
+      "role": "observation-presentation",
+      "owner": "Existing Resource reservation and Native File Work/timing owners; diagnostic only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Source/strict compiler and bounded recorder/link controls only; no actual Native File capacity or physical cleanup measurement.",
+      "operations": [
+        {
+          "name": "capacity_observation",
+          "declaration": "capacity_observation ( _ledger : Ledger , _kind : Int , _serial : Int , _requested : Int64 , _capacity : Int64 , _limit : Int64 , _reserved : Int64 , ) - > Unit"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capacity_observation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/test_native_timings.py",
+                "anchor": "def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope"
+              },
+              {
+                "path": "src/physical_resources/native_observation_test/capacity_reduction_test.mbt",
+                "anchor": "test \"actual original Resource reduction updates diagnostic before later refusal\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/local/driver/capacity_observation_native.mbt",
+      "sha256": "f538f76427c237ccda5a9dd686ab390d6a134637fca7736a94569023a1e3a345",
+      "role": "observation-presentation",
+      "owner": "Existing Resource reservation and Native File Work/timing owners; diagnostic only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Source/strict compiler and bounded recorder/link controls only; no actual Native File capacity or physical cleanup measurement.",
+      "operations": [
+        {
+          "name": "capacity_observation",
+          "declaration": "capacity_observation ( ledger : @ resources . Ledger , kind : Int , serial : Int , requested : Int64 , capacity : Int64 , limit : Int64 , reserved : Int64 , ) - > Unit"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capacity_observation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/test_native_timings.py",
+                "anchor": "def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope"
+              },
+              {
+                "path": "src/physical_resources/native_observation_test/capacity_reduction_test.mbt",
+                "anchor": "test \"actual original Resource reduction updates diagnostic before later refusal\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/local/driver/capacity_observation_unsupported.mbt",
+      "sha256": "42c857cc08da2fee2ddea7c4aaf3595c6337fb49bd70a53943134dfebd4a8f06",
+      "role": "observation-presentation",
+      "owner": "Existing Resource reservation and Native File Work/timing owners; diagnostic only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Source/strict compiler and bounded recorder/link controls only; no actual Native File capacity or physical cleanup measurement.",
+      "operations": [
+        {
+          "name": "capacity_observation",
+          "declaration": "capacity_observation ( _ledger : @ resources . Ledger , _kind : Int , _serial : Int , _requested : Int64 , _capacity : Int64 , _limit : Int64 , _reserved : Int64 , ) - > Unit"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capacity_observation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/test_native_timings.py",
+                "anchor": "def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope"
+              },
+              {
+                "path": "src/physical_resources/native_observation_test/capacity_reduction_test.mbt",
+                "anchor": "test \"actual original Resource reduction updates diagnostic before later refusal\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/native_timings.mbt",
+      "sha256": "ad787db84277d04f6ba84b098a9d629226144de0e03a8c4052d8127ce0a249a7",
+      "role": "observation-presentation",
+      "owner": "Existing Resource reservation and Native File Work/timing owners; diagnostic only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Source/strict compiler and bounded recorder/link controls only; no actual Native File capacity or physical cleanup measurement.",
+      "operations": [
+        {
+          "name": "native_acceptance_enabled",
+          "declaration": "native_acceptance_enabled ( ) - > Bool"
+        },
+        {
+          "name": "native_acceptance_identity",
+          "declaration": "native_acceptance_identity ( tag : Int , ordinal : Int , identity : String , ) - > Unit"
+        },
+        {
+          "name": "native_acceptance_identity_raw",
+          "declaration": "native_acceptance_identity_raw ( tag : Int , ordinal : Int , identity : String , length : Int , ) - > Unit"
+        },
+        {
+          "name": "native_acceptance_incomplete",
+          "declaration": "native_acceptance_incomplete ( ) - > Unit"
+        },
+        {
+          "name": "native_file_capacity_observation",
+          "declaration": "native_file_capacity_observation ( ledger : @ resources . Ledger , kind : Int , serial : Int , requested : Int64 , capacity : Int64 , limit : Int64 , reserved : Int64 , ) - > Unit"
+        },
+        {
+          "name": "native_timing_begin",
+          "declaration": "native_timing_begin ( tag : Int ) - > Unit"
+        },
+        {
+          "name": "native_timing_count",
+          "declaration": "native_timing_count ( tag : Int ) - > Unit"
+        },
+        {
+          "name": "native_timing_counter_value",
+          "declaration": "native_timing_counter_value ( tag : Int ) - > Int64"
+        },
+        {
+          "name": "native_timing_end",
+          "declaration": "native_timing_end ( tag : Int ) - > Unit"
+        }
+      ],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_acceptance_enabled",
+            "native_acceptance_identity",
+            "native_acceptance_identity_raw",
+            "native_acceptance_incomplete",
+            "native_file_capacity_observation",
+            "native_timing_begin",
+            "native_timing_count",
+            "native_timing_counter_value",
+            "native_timing_end"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/test_native_timings.py",
+                "anchor": "def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/native_observation_test/pkg.generated.mbti",
+      "sha256": "8ae018a21179f4778a7e59c7e349f0f34b0a924b0f857d5707e0993126f55a75",
+      "role": "observation-presentation",
+      "owner": "Existing Resource reservation and Native File Work/timing owners; diagnostic only",
+      "responsibilityFacet": "primary",
+      "referenceQualification": "Source/strict compiler and bounded recorder/link controls only; no actual Native File capacity or physical cleanup measurement.",
+      "operations": [],
+      "exports": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Native File continuation may select a private first-capacity-refusal"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/test_native_timings.py",
+                "anchor": "def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope"
               }
             ]
           }

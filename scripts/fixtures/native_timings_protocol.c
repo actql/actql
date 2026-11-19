@@ -41,7 +41,35 @@ int main(int argc, char **argv) {
   /* Registered before the timing report: verify after its actual emission. */
   assert(atexit(verify_original_signal_state) == 0);
   errno = EDOM; actql_native_timing_begin(ACTQL_NATIVE_PHASE_STARTUP); assert(errno == EDOM);
-  if (strncmp(argv[1], "acceptance", 10) == 0) {
+  if (strncmp(argv[1], "file-capacity", 13) == 0) {
+    int ledger = 0, foreign = 0;
+    extern void actql_resource_capacity_observation(const void *, int32_t, int32_t,
+      int64_t, int64_t, int64_t, int64_t);
+#define OBS(l,k,s,r,c,m,u) actql_resource_capacity_observation(l,k,s,r,c,m,u)
+    errno = EDOM;
+    OBS(&ledger, 0, 1, 0, 0, 0, 100);
+    OBS(&ledger, 3, 0, 0, 200, 0, 0); /* actual serial zero is valid */
+    OBS(&ledger, 4, 0, 0, 180, 0, 0);
+    OBS(&ledger, 2, 0, 0, 0, 0, 280);
+    if (strcmp(argv[1], "file-capacity-window") != 0) OBS(&ledger, 3, 1, 0, 50, 0, 0);
+    if (strcmp(argv[1], "file-capacity-reentry") == 0) OBS(&ledger, 0, 1, 0, 0, 0, 330);
+    if (strcmp(argv[1], "file-capacity-foreign") == 0) OBS(&foreign, 11, 1, 80, 50, 400, 330);
+    if (strcmp(argv[1], "file-capacity-fork") == 0) {
+      pid_t child = fork(); assert(child >= 0);
+      if (child == 0) { OBS(&ledger, 11, 1, 999, 50, 400, 330); exit(0); }
+      int status; assert(waitpid(child, &status, 0) == child); assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+    }
+    if (strcmp(argv[1], "file-capacity-closed") == 0) OBS(&ledger, 1, 0, 0, 0, 0, 0);
+    if (strcmp(argv[1], "file-capacity-closed-stderr") == 0) close(STDERR_FILENO);
+    OBS(&ledger, strcmp(argv[1], "file-capacity-window") == 0 ? 15 : 12,
+      -1, 80, 500, 400, 330);
+    OBS(&ledger, 11, 1, 999, 50, 400, 330); /* first observation wins */
+    OBS(&ledger, 1, 0, 0, 0, 0, 0);
+    if (strcmp(argv[1], "file-capacity-reentry") == 0) OBS(&ledger, 1, 0, 0, 0, 0, 0);
+    assert(actql_file_capacity.depth == 0 && actql_file_capacity.ledger == NULL);
+    assert(errno == EDOM);
+#undef OBS
+  } else if (strncmp(argv[1], "acceptance", 10) == 0) {
     uint16_t identity[71];
     const char *text = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
     for (int index = 0; index < 71; index++) identity[index] = text[index];

@@ -13,6 +13,8 @@ const launcher = process.env.ACTQL_TEST_NATIVE_CLIENT_LAUNCHER;
 const binary = process.env.ACTQL_TEST_NATIVE_CLIENT_BINARY;
 assert(launcher && binary, 'Select the same actual installed Native launcher and binary');
 const originalBinary = await readFile(binary);
+const capacityObserving = process.env.ACTQL_NATIVE_TIMINGS === '1' &&
+  process.env.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS === '1';
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-file-queries-',
   label: 'Installed Native original File Source queries'});
 const emptyPath = join(scratch.path, 'empty-path');
@@ -30,7 +32,8 @@ for (const fixture of nativeInstalledSourceQueries) test(`Native installed File 
   const cli = async (args, cwd) => {
     const startedAt = new Date().toISOString();
     const result = spawnSync(process.execPath, [launcher, ...args], {cwd,
-      env: {PATH: emptyPath, HOME: home, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8'},
+      env: {PATH: emptyPath, HOME: home, LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8',
+        ...(capacityObserving ? {ACTQL_NATIVE_TIMINGS: '1', ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS: '1'} : {})},
       timeout: 30_000, maxBuffer: 1024 * 1024, encoding: 'utf8'});
     const name = fixture.name + '-' + ordinal++;
     // Preserve the original result before any assertion, including timeouts,

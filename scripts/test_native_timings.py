@@ -92,6 +92,7 @@ class NativeTimingProtocol(unittest.TestCase):
                         '-Wextra', '-Werror', '-pthread',
                         '-I', str(ROOT / 'src/platform_native/filesystem'),
                         str(ROOT / 'scripts/fixtures/native_timings_protocol.c'),
+                        str(ROOT / 'src/physical_resources/capacity_observation_stub.c'),
                         '-lsqlite3', '-o', str(cls.binary)], check=True, timeout=60)
 
     def run_protocol(self,mode,selection,acceptance=None):
@@ -104,8 +105,39 @@ class NativeTimingProtocol(unittest.TestCase):
         self.assertEqual(result.stdout,'')
         rows=[]
         for line in result.stderr.splitlines():
-            prefix,body=line.split(' ',1);self.assertIn(prefix,('ACTQL_NATIVE_TIMINGS','ACTQL_NATIVE_PHASE','ACTQL_NATIVE_COUNTER','ACTQL_NATIVE_ACCEPTANCE_BEGIN','ACTQL_NATIVE_ACCEPTANCE_EVENT','ACTQL_NATIVE_ACCEPTANCE_END'));rows.append((prefix,json.loads(body)))
+            prefix,body=line.split(' ',1);self.assertIn(prefix,('ACTQL_NATIVE_TIMINGS','ACTQL_NATIVE_PHASE','ACTQL_NATIVE_COUNTER','ACTQL_NATIVE_ACCEPTANCE_BEGIN','ACTQL_NATIVE_ACCEPTANCE_EVENT','ACTQL_NATIVE_ACCEPTANCE_END','ACTQL_NATIVE_FILE_CAPACITY'));rows.append((prefix,json.loads(body)))
         return rows
+    def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope(self):
+        for timing, acceptance in ((None,'1'),('1',None),('1','true'),('0','1')):
+            self.assertFalse(any(k=='ACTQL_NATIVE_FILE_CAPACITY' for k,x in
+                                 self.run_protocol('file-capacity',timing,acceptance)))
+        for mode in ('file-capacity','file-capacity-fork'):
+            rows=[x for k,x in self.run_protocol(mode,'1','1') if k=='ACTQL_NATIVE_FILE_CAPACITY']
+            self.assertEqual(rows,[{'phase':12,'compute':True,'requested_execution':80,
+                'task_capacity':50,'limit_execution':400,'reserved_execution':330,
+                'entry_singleton_execution':100,'row_execution':180}])
+        for mode in ('file-capacity-reentry','file-capacity-foreign','file-capacity-closed',
+                     'file-capacity-closed-stderr'):
+            self.assertFalse(any(k=='ACTQL_NATIVE_FILE_CAPACITY' for k,x in self.run_protocol(mode,'1','1')))
+
+    def test_file_capacity_window_without_observed_task_is_unmeasured_not_zero(self):
+        rows=[x for k,x in self.run_protocol('file-capacity-window','1','1')
+              if k=='ACTQL_NATIVE_FILE_CAPACITY']
+        self.assertEqual(len(rows),1)
+        self.assertEqual(rows[0]['phase'],15)
+        self.assertEqual(rows[0]['task_capacity'],-1)
+        self.assertEqual(rows[0]['row_execution'],180)
+
+    def test_file_capacity_standalone_core_has_no_filesystem_link_dependency(self):
+        source=Path(self.temporary.name)/'standalone.c'
+        source.write_text('#include <stdint.h>\n#include <errno.h>\n#include <assert.h>\nextern void actql_resource_capacity_observation(const void*,int32_t,int32_t,int64_t,int64_t,int64_t,int64_t);\nint main(void) { int ledger; errno=EDOM; actql_resource_capacity_observation(&ledger,10,0,1,0,0,0); assert(errno==EDOM); return 0; }\n')
+        binary=Path(self.temporary.name)/'standalone'
+        subprocess.run([os.environ.get('CC','cc'),'-std=c11','-Wall','-Wextra','-Werror',
+            str(source),str(ROOT/'src/physical_resources/capacity_observation_stub.c'),
+            '-o',str(binary)],check=True,timeout=60)
+        result=subprocess.run([str(binary)],capture_output=True,timeout=10)
+        self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
+
     def test_acceptance_is_opt_in_bounded_metadata_with_owned_original_identity(self):
         for selection in (None,'0','true','01'):
             rows=self.run_protocol('acceptance','1',selection)
