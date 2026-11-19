@@ -66961,6 +66961,235 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_request_original_static_plan_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Static planning uses the compiler's original checked Program, parameter binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Identity domains"
+              },
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "value or closed JSON shape never replaces the original compiler or read access."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "## Publication, retention and authorization"
+              },
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The same producer retains its input before SDK snapshot/options processing and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
+              },
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "unchanged extent through the parent-current check. The same owner fences reentry."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Expiry is an admission restriction, not proof of nonexecution."
+              },
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "or cleanup failures remain failures, with their original owner and retry duty."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "cannot discharge Model, Effect,"
+              },
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "## Delivery profile and bounds"
+              },
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The read uses the existing original Plan/map/codec construction admission."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/client-workspace-connections.md",
+                "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
+              },
+              {
+                "path": "packages/sdk/internal/plan.mjs",
+                "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "carrier must provide its actual same-parent construction and original projection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/sdk/index.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_read_request_checked_static_plan",
+            "client_program_request_checked_static_plan_issue_code"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Effect read projects the existing closed Effectful static Plan envelope from"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "pub fn[I] request_prepared_static_plan_view("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_native_computation.mbt",
+                "anchor": "pub fn[I] request_prepared_computation_kind("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "its same checked Effect owner. The original semantic check and compiler finish"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The existing Request Plan construction quote and bounded output writer are"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "issuer's existing finite policy. The same owner fences reentry, and the installed"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "                current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "has no execution fallback; manifest, current, capacity and original read failures"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "fn[I, P] reserve_native_static_plan_capacity("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "reserved before construction, on that same Effect capacity. Tighter requested"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "retain their own typed cause and cleanup. Unavailable captured prefixes or"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_body_js_wbtest.mbt",
+                "anchor": "test \"static Effect Request Plan uses the same checked compiler without body Run or recheck\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_body_js_wbtest.mbt",
+                "anchor": "test \"static Effect Request Plan refuses foreign or noncurrent originals before projection\""
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
+              }
+            ]
+          }
         }
       ],
       "exports": [],
@@ -67438,6 +67667,10 @@
           "declaration": "client_program_prepared_request_query_lowering ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ ( @ source_frontend . Lowered , @ program_check . PreparedSourceCatalog , @ source_frontend . DiagnosticSource , ) , @ client_local_host . ClientRequestQueryLoweringIssue , ]"
         },
         {
+          "name": "client_program_read_request_checked_static_plan",
+          "declaration": "client_program_read_request_checked_static_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientRequestStaticPlanBridgeIssue ]"
+        },
+        {
           "name": "client_program_read_request_explanation",
           "declaration": "client_program_read_request_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , definition_wire : String , plan_wire : String ? , plan_view_wire : String ? , facts_wire : String ? , program_cid : String , parameters_cid : String , namespace_id : String , authority_scope_cid : String , definition_cid : String , stored_bytes : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ client_local_host . ClientRequestExplanationReadIssue ]"
         },
@@ -67482,6 +67715,10 @@
           "declaration": "client_program_reconcile_program_json_preparation_structure ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
         },
         {
+          "name": "client_program_request_checked_static_plan_issue_code",
+          "declaration": "client_program_request_checked_static_plan_issue_code ( result : Result [ String , ClientRequestStaticPlanBridgeIssue ] , ) - > String ?"
+        },
+        {
           "name": "client_program_request_explanation_read_issue_code",
           "declaration": "client_program_request_explanation_read_issue_code ( issue : @ client_local_host . ClientRequestExplanationReadIssue , ) - > String"
         },
@@ -67496,6 +67733,10 @@
         {
           "name": "client_program_request_model_recovery_usage_isolated",
           "declaration": "client_program_request_model_recovery_usage_isolated ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , captured : @ strategy . CapturedDAG , ) - > Bool"
+        },
+        {
+          "name": "client_program_request_original_static_plan_wire",
+          "declaration": "client_program_request_original_static_plan_wire ( original : @ client_local_host . ClientRequestOriginalExplanation [ ClientLocalPreparationInputOriginal , ] , ) - > Result [ String , @ client_local_host . ClientOriginalExplanationCaptureIssue ]"
         },
         {
           "name": "client_program_request_parameters_original",
@@ -67618,7 +67859,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "d573ba9bf65122f233c4cc0ea89aa449cea07ff244b91a7a90e1e4c46d4c649f"
+      "sha256": "19b99ec67dd7c7f168440592f5c52c6b90cae582735ba46566ed20e6b6304944"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -98096,7 +98337,7 @@
       "operations": [
         {
           "name": "[I,P]reserve_native_static_plan_capacity",
-          "declaration": "[ I , P ] reserve_native_static_plan_capacity ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , graph : @ strategy . CheckedDAG , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+          "declaration": "[ I , P ] reserve_native_static_plan_capacity ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , graph : @ strategy . CheckedDAG , bytes : Int , nodes : Int , depth : Int , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]prepare_request_native_document_check",
@@ -98109,6 +98350,10 @@
         {
           "name": "[I]request_native_static_plan_view",
           "declaration": "[ I ] request_native_static_plan_view ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , manifests : @ publication_host . ClientCompilationManifests , ) - > Result [ String , ClientRequestTerminalIssue ]"
+        },
+        {
+          "name": "[I]request_prepared_static_plan_view",
+          "declaration": "[ I ] request_prepared_static_plan_view ( owner : ClientRequestPreparation [ I ] , input : I , manifests : @ publication_host . ClientCompilationManifests , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , ClientRequestTerminalIssue ]"
         },
         {
           "name": "[I]reserve_request_native_document_read",
@@ -98357,10 +98602,102 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "[I]request_prepared_static_plan_view"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Effect read projects the existing closed Effectful static Plan envelope from"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "pub fn[I] request_prepared_static_plan_view("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_native_computation.mbt",
+                "anchor": "pub fn[I] request_prepared_computation_kind("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "its same checked Effect owner. The original semantic check and compiler finish"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The existing Request Plan construction quote and bounded output writer are"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "issuer's existing finite policy. The same owner fences reentry, and the installed"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "                current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "has no execution fallback; manifest, current, capacity and original read failures"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "fn[I, P] reserve_native_static_plan_capacity("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "reserved before construction, on that same Effect capacity. Tighter requested"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "retain their own typed cause and cleanup. Unavailable captured prefixes or"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_effect_body_js_wbtest.mbt",
+                "anchor": "test \"static Effect Request Plan uses the same checked compiler without body Run or recheck\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_body_js_wbtest.mbt",
+                "anchor": "test \"static Effect Request Plan refuses foreign or noncurrent originals before projection\""
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('static Effect Plan failures preserve the original cause and decline missing capability without execution fallback'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
-      "sha256": "e5e51db6d0f1c042b223536ff257bf79d70a043b55a750e48701a64bffd6552b"
+      "sha256": "4af982cc2f6bcca3f27e76e00aed819da73c8abb375f4b37b51940dad51dc40e"
     },
     {
       "module": "src/stage_syntax/preparation_data.mbt",
