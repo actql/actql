@@ -138,7 +138,10 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json.
   'src/execution_relation/moon.pkg': Object.freeze({digest: '58e075b724106152e31ae7dfb9c39394b5840e5169d3e4449fe842bc63651f11', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'eb441ff1ed3c42bd243730306d883d1ddee41d45'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
-  'src/physical_resources/moon.pkg': Object.freeze({digest: '508d45513dd76478ece212cd3e9a2da45aa93f2e100d99c44076a31afa46be23', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'bf198225499436c26be2f7d763582b0efaeeae2b'}),
+  // Exact Native-only observation bridge; no Native execution is admitted on JS.
+  // See docs/reviews/2026-11-20-session-native-capacity-observation-review.json.
+  'src/physical_resources/moon.pkg': Object.freeze({digest: 'bca70a8ea7f3d4f7f3967755eec6a4407e38b732ce3a06a5aa81ac11d19a141d', rule: 'literal-native-options-with-bound-source-membership', revision: '68dee887cad197b143c3551956597f9724490cbc'}),
+  'src/connectors/local/driver/moon.pkg': Object.freeze({digest: '055d7fefa3b737bffcc718e07d42895e2211ed55fc05e40c44057cc22ccb8784', rule: 'literal-target-selectors-with-bound-source-membership', revision: '68dee887cad197b143c3551956597f9724490cbc'}),
   'src/platform_native/bounded_files/moon.pkg': Object.freeze({digest: '9dcccf37816250ccb794c1467658f3cd4c2ff239ed752b36e59ef167a40553a5', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/filesystem/moon.pkg': Object.freeze({digest: 'ccbef60792340068be1ef431d1f8a7336a842dcd1021a84a816c3582a7c6b08b', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/http_client/moon.pkg': Object.freeze({digest: '67cf437063d4a099acc9d33736d48fb3cfbff4cd4efa3235dc0239121ee6455e', rule: 'literal-native-options-with-bound-source-membership', revision: '14050e0d50b79a01dc07e52024b8ada85ab14203'}),
