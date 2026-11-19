@@ -518,10 +518,10 @@ test "Values normalization control bound excludes rows and keeps non-Values cons
       assert_eq(demand.authored_literal_rows, rows)
       assert_eq(demand.authored_literal_cells, rows)
       if filtering {
-        assert_true(nodes > 3)
+        assert_true(nodes > 4)
       } else {
-        // One original Values step + one Stage Result + one fixed inventory.
-        assert_eq(nodes, 3)
+        // One Values step + one Stage Result + one public export + inventory.
+        assert_eq(nodes, 4)
       }
       let original = prepare_request_program_normalization(parent, input).unwrap()
       assert_true(

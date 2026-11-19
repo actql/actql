@@ -7038,7 +7038,7 @@ conservative variable-data estimate comes from the same observed Program,
 Catalog and checked-input material; it is not an allocation of a codec maximum.
 For a structurally Values-only Program with no external input, Effect member
 or checked Source execution, the existing syntax-constructor metadata bounds
-new audit controls by its operation count, Stage Result count and one inventory
+new audit controls by its operation count, Result/export count and one inventory
 frame. Checked Values cells remain borrowed: their full source/tree and row
 retention stays in the original Request/compiler baseline. Other Programs keep
 the conservative original node envelope. This construction-only distinction
