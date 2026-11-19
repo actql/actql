@@ -99,6 +99,84 @@ test "relation file preflight quotes the same complete constructor overlap witho
 }
 
 ///|
+test "completed Native Query keeps its full original typed projection and initial peak" {
+  let declaration = capture_fixture_declaration()
+  let limits = capture_fixture_limits()
+  let selection : NativeRelationFileSelection = {
+    directory: "/fixture",
+    name: "rows.json",
+    resource: "records",
+    items_path: ["items"],
+    key_path: None,
+    primary_identity: "id",
+  }
+  let provider = prepare_native_relation_file_provider(
+    declaration,
+    selection,
+    limits,
+    response_measured=true,
+  ).unwrap()
+  let contract = @rows.relation_document_prepared_contract(
+    provider.prepared_contract,
+  )
+  // The numeric field is not the closed Text-only narrowing profile. Keep
+  // the original whole projection bound, including all shared Values/text
+  // and conservative construction controls, for either response length.
+  let projection = @rows.relation_document_projection_construction_inventory(
+    {
+      original: contract,
+      items_path_depth: 1,
+      key_path_depth: None,
+      writable_fields: 0,
+    },
+    limits.page,
+  ).unwrap()
+  let projected = @execution.preparation_representation_cost(projection).unwrap()
+  let initial = provider.capacity()
+  for bytes in [62, limits.page.max_bytes] {
+    let remaining = file_provider_completed_query_capacity(provider, bytes).unwrap()
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(remaining),
+      projected,
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(remaining),
+      projected,
+    )
+    let full = file_capture_provider_capacity(
+      selection,
+      limits,
+      contract,
+      prepared_contract=Some(provider.prepared_contract),
+      response_bytes=Some(bytes),
+    ).unwrap()
+    let raw = @rows.relation_document_raw_construction_inventory(
+      file_capture_response_backing_page(limits.page, Some(bytes)).unwrap(),
+    ).unwrap()
+    let transport = file_capture_transport_capacity(
+      selection,
+      limits,
+      @files.native_filesystem_read_layout().unwrap(),
+    ).unwrap()
+    let full_bytes = @execution.execution_capacity_execution_bytes(full)
+    assert_eq(@execution.execution_capacity_retained_bytes(full), full_bytes)
+    assert_eq(
+      full_bytes,
+      projected +
+      @execution.preparation_representation_cost(raw).unwrap() +
+      transport,
+    )
+    assert_true(full_bytes > projected)
+  }
+  assert_true(file_provider_completed_query_capacity(provider, -1) is None)
+  assert_true(
+    file_provider_completed_query_capacity(provider, limits.page.max_bytes + 1)
+    is None,
+  )
+  assert_true(physical_equal(provider.capacity(), initial))
+}
+
+///|
 test "relation file preflight rejects equivalent declaration foreign requirement and wrong resource" {
   let (declaration, requirement, acquisition) = capture_fixture_logical()
   let (other, other_requirement, _) = capture_fixture_logical()

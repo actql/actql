@@ -1596,6 +1596,25 @@ fn NativeRelationFileCapture::advance_original(
           self.result = Some(capture)
           self.phase = Captured
           match self.acquisition {
+            Some(FileQueryAcquisition(_))
+            | Some(ManagedFileQueryAcquisition(_, _, _)) =>
+              if self.response_provider is Some(provider) {
+                // The SAME prepared Contract and actual completed response
+                // select the retained projection recipe. Values/text remain
+                // funded even though they now also belong to the Row input.
+                // The Common cut independently confirms the original reader
+                // observer and both current fences; fields/EOF are not ACKs.
+                let remaining = file_provider_completed_query_capacity(
+                  provider,
+                  self.offset,
+                ).unwrap_or_else(() => raise FileCaptureStop(Capacity))
+                file_require(
+                  @rows.complete_row_run_response_construction_capacity(
+                    self.responses.unwrap(),
+                    remaining,
+                  ).map_err(issue => Row(issue)),
+                )
+              }
             Some(FileInputAcquisition(_))
             | Some(ManagedFileInputAcquisition(_, _, _, _)) =>
               // The original transport and document/target constructors have

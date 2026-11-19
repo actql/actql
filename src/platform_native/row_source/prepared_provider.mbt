@@ -117,3 +117,30 @@ fn file_provider_projection_inventory(
     page,
   )
 }
+
+///|
+// Preserve the ENTIRE original projection constructor, including immutable
+// Values/text shared with the Row and conservative projection controls. Only
+// the raw parser/index/Bytes and physical transport constructors are absent
+// after the original reader's retirement fence. Initial full R/E is unchanged.
+// These are logical implementation units, not an allocator/RSS or stop proof.
+fn file_provider_completed_query_capacity(
+  provider : NativeRelationFilePreparedProvider,
+  response_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  if response_bytes < 0 || response_bytes > provider.limits.page.max_bytes {
+    return None
+  }
+  file_provider_projection_inventory(
+    provider,
+    response_bytes=if provider.response_measured {
+      Some(response_bytes)
+    } else {
+      None
+    },
+  ).bind(units => {
+    @execution.preparation_representation_cost(units).bind(bytes => {
+      @execution.execution_capacity(bytes, bytes)
+    })
+  })
+}
