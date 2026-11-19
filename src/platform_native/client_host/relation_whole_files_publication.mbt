@@ -1,4 +1,28 @@
 ///|
+// Resolve DATA from the SAME original acquisition and prepared Program. The
+// physical Source-input graph preserves these task numbers/owners; this is
+// neither a completion, a current observation nor permission to read again.
+fn native_whole_source_publication_task(
+  prepared : @host.PreparedClientProgram,
+  original : @sourceviews.SourceAcquisition,
+) -> Int? {
+  let stage = @sourceviews.declaration(
+      @sourceviews.mode_input(@sourceviews.source_acquisition_mode(original)),
+    ).stage_index
+  let source_index = @sourceviews.source_acquisition_source_index(original)
+  if !@host.client_source_acquisition_matches_program(
+      prepared, stage, source_index, original,
+    ) {
+    return None
+  }
+  @strategy.graph_stage_operation_task(
+    @host.prepared_client_graph(prepared),
+    stage,
+    0,
+  )
+}
+
+///|
 // Exact complete-input originals for EVERY capture, never Query substitutes.
 // One synchronous identity scan is retained before each fallible advance;
 // already-completed evidence coexists in the same quoted metadata frontier.
@@ -37,9 +61,14 @@ fn NativeClientRelationFileWork::managed_whole_publication_invocation(
   // Two original artifacts per Source plus observation/invocation/retention;
   // the independently funded Work vectors and source/scan payloads stay live.
   guard @execution.preparation_representation_cost({
-      record_headers: 12L,
-      reference_slots: 24L,
-      scalar_words: 16L,
+      // Per Source, same-original Stage requests Some H1/R1/W1 plus
+      // graph_stage_operation_task H8/R4/W10: unit get/map Some+closure,
+      // Step tag, Stage-task and task gets, owner get and returned Some.
+      // Sum H9/R5/W11 = 272 logical bytes per original, before allocation;
+      // no cursor/metadata phase or GC reuse supplies these products.
+      record_headers: 12L + 9L * sources.length().to_int64(),
+      reference_slots: 24L + 5L * sources.length().to_int64(),
+      scalar_words: 16L + 11L * sources.length().to_int64(),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -171,12 +200,18 @@ fn NativeClientRelationFileWork::managed_whole_publication_invocation(
       Ok(value) => value
     }
     self.identity_scan = None
+    let task = match
+      native_whole_source_publication_task(self.prepared, original) {
+      None => return Err(InputLogical(@host.ForeignPrepared))
+      Some(value) => value
+    }
     let logical = match
       @host.issue_captured_whole_source_input_logical(
         @strategy.captured_dag_graph(self.run),
         input,
         identity,
         original,
+        task~,
       ) {
       Err(issue) => return Err(InputLogical(issue))
       Ok(value) => value

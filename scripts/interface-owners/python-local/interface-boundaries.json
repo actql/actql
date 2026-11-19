@@ -85455,7 +85455,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "b5ee5d6037087d82c13f063e065a3defc56039dab45d795aa73e7394a675b994",
+      "sha256": "bec27a63dff95037b9652ddb93efd80e79e0a6ed0bf75e246e71e7b9f7cba3ff",
       "exports": [],
       "operations": [
         {
@@ -85489,6 +85489,10 @@
         {
           "name": "local_command_recovery_failure",
           "declaration": "local_command_recovery_failure ( message : String ) - > String"
+        },
+        {
+          "name": "local_file_open_failure_message",
+          "declaration": "local_file_open_failure_message ( issue : @ local_host . NativeClientSourceWorkIssue , ) - > String"
         },
         {
           "name": "local_file_publication_failure_message",
@@ -85545,7 +85549,8 @@
             "LocalCommandPreparationOriginal::execute_product_command",
             "LocalCommandPreparationOriginal::prepare_project_text_payload",
             "LocalCommandPreparationOriginal::retain_cancellation_recovery",
-            "local_file_publication_failure_message"
+            "local_file_publication_failure_message",
+            "local_file_open_failure_message"
           ],
           "exports": [],
           "attributes": {

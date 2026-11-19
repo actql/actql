@@ -110423,7 +110423,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "3d8b6b95182dd74c92e38fc391d01b3c1c1f0779f588c5c30e48d7a805b56cb0",
+      "sha256": "439ac3e35e6205951e55c1a4c1e36889fcd5e8d7bed776d4a833e3c64deae2f0",
       "exports": [],
       "operations": [
         {
@@ -113025,9 +113025,13 @@
     },
     {
       "module": "src/platform_native/client_host/relation_whole_files_publication.mbt",
-      "sha256": "30daaee653a9acf9b1586486e4a421cdd1d7ba373a6876b5bf32ba1f539ce294",
+      "sha256": "638423c6bf8a0c5ddc47b0ff8a390a5917f9ccbe9db92a61a11d3df94a8073ec",
       "exports": [],
       "operations": [
+        {
+          "name": "native_whole_source_publication_task",
+          "declaration": "native_whole_source_publication_task ( prepared : @ host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , ) - > Int ?"
+        },
         {
           "name": "NativeClientRelationFileWork::managed_whole_publication_invocation",
           "declaration": "NativeClientRelationFileWork : : managed_whole_publication_invocation ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileWholeSource ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
@@ -113041,7 +113045,8 @@
         {
           "operations": [
             "<module>",
-            "NativeClientRelationFileWork::managed_whole_publication_invocation"
+            "NativeClientRelationFileWork::managed_whole_publication_invocation",
+            "native_whole_source_publication_task"
           ],
           "exports": [],
           "attributes": {
@@ -113103,6 +113108,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/platform_native/client_host/local_relation_files_snapshot_wbtest.mbt",
+                "anchor": "test \"Whole publication selects original task coordinates and refuses equal-wire foreign preparation\" {"
               }
             ]
           }
