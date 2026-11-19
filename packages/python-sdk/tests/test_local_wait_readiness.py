@@ -206,6 +206,40 @@ class LocalWaitReadinessTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(response.stream, streams[0])
         self.assertEqual(json.loads(streams[0].raw), RUNNING)
 
+    async def test_saved_and_published_wait_routes_apply_the_same_generated_readiness(self):
+        for route in ('saved', 'published'):
+            for state in (RUNNING, CANCELLED):
+                with self.subTest(route=route, status=state['status']):
+                    host, core, run, reference, _, events, streams = self.bridge(state)
+                    if route == 'saved':
+                        host._has_live_original_run_reference = lambda _: False
+
+                        def read(candidate, *, kind):
+                            self.assertIs(candidate, reference)
+                            self.assertEqual(kind, 7)
+                            events.append('authorized-saved')
+                            return wire_bytes(state)
+
+                        host._read_original_reference = read
+                    else:
+                        publication = object()
+                        projection = SimpleNamespace(_configuration=host._configuration.handle,
+                            _publication=publication)
+                        host._run_publications = [(run, publication)]
+                        host._commit_projections = [projection]
+                        core.validate_publication_run = lambda *args: events.append('validate-publication')
+                        host._ensure_original_publication_observation = lambda _: None
+                        host._project_original_sdk_run_state = lambda original, candidate, consume: consume(wire_bytes(state))
+                    if state is RUNNING:
+                        with self.assertRaisesRegex(ValueError, 'wait condition supplier is unavailable'):
+                            self.observe(host, reference)
+                        self.assertFalse(streams)
+                    else:
+                        response = self.observe(host, reference)
+                        self.assertIs(response.stream, streams[0])
+                        self.assertEqual(streams[0].raw, wire_bytes(state))
+                    self.assertTrue(events)
+
     async def test_current_refusal_and_partial_close_keep_same_candidate_without_a_response(self):
         host, _, run, reference, options, events, streams = self.bridge(CANCELLED)
         self.work(host, run)

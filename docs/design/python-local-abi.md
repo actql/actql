@@ -4442,3 +4442,20 @@ holders keep their independent owners. Inputs outside the recorded construction
 set are not globally pruned. Fully bounded long-lived Host history, ordinary
 physical acceptance and separately retained recovery/read operations require
 their own evidence; this finite selected set establishes none of them alone.
+
+#### Local wait readiness
+
+Physical Work termination is not a stable Run observation. After fresh
+same-Run authorization, a Local wait preserves the original worker, exit and
+cleanup causes without formatting or replacing them. Only Common's exact
+observation accepted by the unchanged generated `valid_run_wait` predicate may
+be attached as a wait response, including saved and published observations.
+Status retains its separate nonstable observation route.
+
+There is no generic unpublished cleanup wakeup supplier in this assembly. A
+valid nonstable observation therefore refuses the unavailable wait condition
+in one finite turn; it does not imply terminal state or start a polling loop.
+Original metadata CAS/Unknown and partial-close custody remain with the same
+Host owners. The observation releases its Core/current scopes before any
+await; coroutine cancellation does not cancel the physical worker or Run.
+Explicit Host cleanup remains available for the same retained originals.
