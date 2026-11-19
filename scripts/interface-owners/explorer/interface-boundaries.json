@@ -4532,7 +4532,7 @@
     {
       "module": "packages/explorer/browser-source.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "77187cfcbdc05d1f5c31c6a510493ccd0e028221f18713ad5d6c1d01d1019179",
+      "sha256": "7087a879b922734e79e81ccf5543e285751a3b0fe6cab72f6300ffdf14da8ad7",
       "exports": [
         "ExplorerCapabilities",
         "createExplorerBrowserSource"
@@ -4543,7 +4543,7 @@
           "parameters": [
             "options: Readonly<{\n  origin: string; fetch?: typeof fetch; now?: () => number;\n}>"
           ],
-          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
+          "result": "Readonly<{\n  connect(bootstrap: string): Promise<ExplorerCapabilities>;\n  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |\n    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;\n  plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;\n  inspect(ref: RunReference): Promise<WireRunView>;\n  observe(ref: RunReference): Promise<RunObservationModel>;\n  runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;\n  explain(ref: RunReference): Promise<WireRunExplanationView>;\n  runPresentation(ref: RunReference, options?: {locale?: 'en' | 'ja'}): Promise<OriginalRunPresentationReadModel>;\n  describe(ref: RunReference, name: string): Promise<ResultDescription>;\n  cancel(original: OriginalCancellation): Promise<CancellationObservation>;\n  lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;\n  checkpoints():Promise<CheckpointPageModel>;\n  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;\n  close(): void;\n}>"
         },
         {
           "name": "createExplorerBrowserSource/<call>",
@@ -4581,6 +4581,13 @@
             "name: string"
           ],
           "result": "Promise<ResultDescription>"
+        },
+        {
+          "name": "createExplorerBrowserSource/explain",
+          "parameters": [
+            "ref: RunReference"
+          ],
+          "result": "Promise<WireRunExplanationView>"
         },
         {
           "name": "createExplorerBrowserSource/inspect",
@@ -4629,6 +4636,14 @@
             "ref: RunReference"
           ],
           "result": "Promise<OriginalRunPlanReadModel>"
+        },
+        {
+          "name": "createExplorerBrowserSource/runPresentation",
+          "parameters": [
+            "ref: RunReference",
+            "options?: {locale?: 'en' | 'ja'}"
+          ],
+          "result": "Promise<OriginalRunPresentationReadModel>"
         }
       ],
       "imports": [
@@ -4757,6 +4772,150 @@
               {
                 "path": "packages/explorer/cancellation.test.mjs",
                 "anchor": "lost or malformed cancellation replies"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createExplorerBrowserSource/explain"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The browser source's `explain(ref)` reads retained structural Facts through"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer/gateway.test.mjs",
+                "anchor": "test('Gateway explanation read keeps original session Origin CSRF and closed reference before SDK I/O'"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createExplorerBrowserSource/runPresentation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/explorer/README.md",
+                "anchor": "The private Run presentation read obtains retained Facts and, when projected,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "test('original presentation BrowserSource traverses one bounded Gateway slot through both original reads'"
+              },
+              {
+                "path": "packages/explorer-ui/read-model.test.mjs",
+                "anchor": "test('original explanation read refuses stale scope and propagates original Owner refusal without repair'"
               }
             ]
           }
