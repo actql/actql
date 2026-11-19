@@ -2592,6 +2592,9 @@ jobs:
           def retain_original(original, destination):
               # Retry the same immutable GET within its original input budget.
               assert 0 < original['bytes'] <= 5 * 1024 * 1024
+              request = urllib.request.Request(original['url'], headers={
+                  'User-Agent': 'ActQL-component-input/0.1 (+https://github.com/actql/actql)',
+              })
               deadline = time.monotonic() + 60
               last_failure = None
               for attempt in range(3):
@@ -2601,7 +2604,7 @@ jobs:
                           raise last_failure
                       raise TimeoutError('Original component download budget exhausted')
                   try:
-                      with urllib.request.urlopen(original['url'], timeout=remaining) as response:
+                      with urllib.request.urlopen(request, timeout=remaining) as response:
                           data = response.read(original['bytes'] + 1)
                       break
                   except (urllib.error.URLError, ConnectionResetError, TimeoutError) as error:
@@ -2610,6 +2613,7 @@ jobs:
                       if (isinstance(error, urllib.error.HTTPError)
                               or not isinstance(reason, (ConnectionResetError, TimeoutError))
                               or attempt == 2 or delay >= deadline - time.monotonic()):
+                          error.add_note(f"Original component archive: {destination.name} ({original['url']})")
                           raise
                       last_failure = error
                       time.sleep(delay)
