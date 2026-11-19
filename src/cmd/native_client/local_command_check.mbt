@@ -1123,3 +1123,100 @@ fn local_file_publication_failure_message(
     _ => "LocalSourcePublicationEvidenceUnavailable"
   }
 }
+
+///|
+// The failed Work already owns this exact typed primary and cleanup. Project
+// only static closed constructor labels: no take, retry/current call, new
+// wrapper, Source/path/amount formatting or permission is introduced.
+fn local_file_open_failure_message(
+  issue : @local_host.NativeClientSourceWorkIssue,
+) -> String {
+  match issue {
+    Configuration => "LocalOriginalSourceWorkUnavailable:configuration"
+    OriginalRunNotCurrent => "LocalOriginalSourceWorkUnavailable:current"
+    NeedsOriginalReconciliation =>
+      "LocalOriginalSourceWorkUnavailable:reconciliation"
+    AuthorizationDenied => "LocalOriginalSourceWorkUnavailable:authorization"
+    FileWorkSourceBinding => "LocalOriginalSourceWorkUnavailable:source-binding"
+    FileWorkControlQuote => "LocalOriginalSourceWorkUnavailable:control-quote"
+    FileWorkEntry(_) => "LocalOriginalSourceWorkUnavailable:entry"
+    FileWorkPreparedCapacity(_) =>
+      "LocalOriginalSourceWorkUnavailable:prepared-capacity"
+    InstalledRead(ForeignOriginal) =>
+      "LocalOriginalSourceWorkUnavailable:read-foreign-original"
+    InstalledRead(AlreadyBound) =>
+      "LocalOriginalSourceWorkUnavailable:read-already-bound"
+    InstalledRead(AlreadyStarted) =>
+      "LocalOriginalSourceWorkUnavailable:read-already-started"
+    InstalledRead(Unbound) => "LocalOriginalSourceWorkUnavailable:read-unbound"
+    InstalledRead(Retired) => "LocalOriginalSourceWorkUnavailable:read-retired"
+    InstalledRead(CleanupPending) =>
+      "LocalOriginalSourceWorkUnavailable:read-cleanup-pending"
+    InstalledRead(_) => "LocalOriginalSourceWorkUnavailable:read"
+    InstalledCapture(_) => "LocalOriginalSourceWorkUnavailable:capture-host"
+    LocalExecution(InvalidLimits) =>
+      "LocalOriginalSourceWorkUnavailable:compute-invalid-limits"
+    LocalExecution(Fenced) =>
+      "LocalOriginalSourceWorkUnavailable:compute-fenced"
+    LocalExecution(UnsupportedGraph) =>
+      "LocalOriginalSourceWorkUnavailable:compute-unsupported-graph"
+    LocalExecution(MissingLocalModule) =>
+      "LocalOriginalSourceWorkUnavailable:compute-missing-module"
+    LocalExecution(Driver(_)) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver"
+    LocalExecution(Estimate(_)) =>
+      "LocalOriginalSourceWorkUnavailable:compute-estimate"
+    LocalExecution(FinalizationLimit) =>
+      "LocalOriginalSourceWorkUnavailable:compute-finalization-limit"
+    LocalExecution(MissingOutput) =>
+      "LocalOriginalSourceWorkUnavailable:compute-missing-output"
+    RelationFile(InvalidInput) =>
+      "LocalOriginalSourceWorkUnavailable:source-invalid-input"
+    RelationFile(Unavailable) =>
+      "LocalOriginalSourceWorkUnavailable:source-unavailable"
+    RelationFile(ForeignOriginal) =>
+      "LocalOriginalSourceWorkUnavailable:source-foreign-original"
+    RelationFile(Capacity) =>
+      "LocalOriginalSourceWorkUnavailable:source-capacity"
+    RelationFile(FileLimit) =>
+      "LocalOriginalSourceWorkUnavailable:source-file-limit"
+    RelationFile(Filesystem(_)) =>
+      "LocalOriginalSourceWorkUnavailable:source-filesystem"
+    RelationFile(Execution(_)) =>
+      "LocalOriginalSourceWorkUnavailable:source-execution"
+    RelationFile(Resource(RetentionLimit)) =>
+      "LocalOriginalSourceWorkUnavailable:source-retention"
+    RelationFile(Resource(ExecutionLimit)) =>
+      "LocalOriginalSourceWorkUnavailable:source-execution-limit"
+    RelationFile(Resource(InvalidLimits)) =>
+      "LocalOriginalSourceWorkUnavailable:source-invalid-limits"
+    RelationFile(Resource(_)) =>
+      "LocalOriginalSourceWorkUnavailable:source-resource"
+    RelationFile(Row(_)) => "LocalOriginalSourceWorkUnavailable:source-row"
+    RelationFile(Document(_)) =>
+      "LocalOriginalSourceWorkUnavailable:source-document"
+    RelationFile(Mapping(_)) =>
+      "LocalOriginalSourceWorkUnavailable:source-mapping"
+    RelationFile(ManagedRead(_)) =>
+      "LocalOriginalSourceWorkUnavailable:source-managed-read"
+    RelationFile(_) => "LocalOriginalSourceWorkUnavailable:source"
+    InstalledRun(Resource(Resource(RetentionLimit))) =>
+      "LocalOriginalSourceWorkUnavailable:run-retention"
+    InstalledRun(Resource(Resource(ExecutionLimit))) =>
+      "LocalOriginalSourceWorkUnavailable:run-execution"
+    InstalledRun(Resource(Resource(InvalidLimits))) =>
+      "LocalOriginalSourceWorkUnavailable:run-invalid-limits"
+    InstalledRun(Resource(Resource(ChildFundingUnavailable))) =>
+      "LocalOriginalSourceWorkUnavailable:run-funding-unavailable"
+    InstalledRun(Resource(_)) =>
+      "LocalOriginalSourceWorkUnavailable:run-original"
+    InstalledRun(_) => "LocalOriginalSourceWorkUnavailable:run"
+    OriginalOperation(_) =>
+      "LocalOriginalSourceWorkUnavailable:original-operation"
+    Journal(_) => "LocalOriginalSourceWorkUnavailable:journal"
+    CaptureIdentity(_) => "LocalOriginalSourceWorkUnavailable:capture-identity"
+    InputLogical(_) => "LocalOriginalSourceWorkUnavailable:logical"
+    Normalization(_) => "LocalOriginalSourceWorkUnavailable:normalization"
+    _ => "LocalOriginalSourceWorkUnavailable"
+  }
+}

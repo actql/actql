@@ -522,6 +522,32 @@ test "File Work primary keeps the actual closed reserve cause across cleanup" {
     ) &&
     original == "SYNTHETIC_PRIVATE_SOURCE",
   )
+  let open_cases : Array[(@local_host.NativeClientSourceWorkIssue, String)] = [
+    (Configuration, "LocalOriginalSourceWorkUnavailable:configuration"),
+    (OriginalRunNotCurrent, "LocalOriginalSourceWorkUnavailable:current"),
+    (
+      LocalExecution(UnsupportedGraph),
+      "LocalOriginalSourceWorkUnavailable:compute-unsupported-graph",
+    ),
+    (
+      RelationFile(Resource(@initial_resources.RetentionLimit)),
+      "LocalOriginalSourceWorkUnavailable:source-retention",
+    ),
+    (
+      Preparation(
+        PublicationInvocation(
+          @publication.RunEvidenceReferenceMismatch("SYNTHETIC_PRIVATE_SOURCE"),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable",
+    ),
+  ]
+  for (original, expected) in open_cases {
+    let message = local_file_open_failure_message(original)
+    assert_eq(message, expected)
+    assert_false(message.contains("SYNTHETIC_PRIVATE_SOURCE"))
+    assert_eq(local_file_open_failure_message(original), message)
+  }
 }
 
 ///|
