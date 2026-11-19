@@ -3358,6 +3358,14 @@ Only an advancing original finite cleanup cursor permits further local cleanup
 steps. An external or unchanged pending cursor retains the original task without
 spinning, replacing the primary cause or acquiring another operation allowance.
 
+Private ABI88 task progress field5 also returns its existing `-1` sentinel for
+a valid, nonpending reserved task that has no provider operations. Reservation
+or a refused start can leave this original state. It means there is no local
+provider continuation, not that the task stopped or released its resources.
+The same close operation still checks dependent-task and Result pins and alone
+acknowledges task retirement. Missing or pending originals retain `-33`; field4
+and normal advance/current/cancellation checks are unchanged.
+
 Result export and publication preparation use the same bounded read-step owner.
 Each feed or advance keeps its existing 256-work quantum and original cursor,
 but ends its current frame and Store reader before releasing the Core lock.

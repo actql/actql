@@ -286,6 +286,12 @@ pub fn managed_task_progress(nonce : Int64, handle : Int, field : Int) -> Int64 
     !record.pending else {
     return -33L
   }
+  // A valid reserved task may not have reached provider activation. It has no
+  // provider-local continuation; only close can acknowledge its retirement.
+  // Missing/pending originals above still refuse, as does field4 without ops.
+  if field == 5 && record.operations is None {
+    return -1L
+  }
   if field == 4 || field == 5 {
     guard record.operations is Some(operations) else { return -33L }
     // Existing original finite retirement cursor, never a physical ACK or a
