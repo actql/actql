@@ -5,14 +5,16 @@ import importlib.util
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 import unittest
 import sys
 from unittest.mock import patch
 
-from actql_sdk._local_core import LocalCoreError
+from actql_sdk._local_core import LocalCoreError, _Input, _Output, _PhysicalInput, _Workspace
+from actql_sdk._local_journal_port import _JournalCallbacks
 from actql_sdk._local_product import InstalledLocalHost, _OriginalExecution
 from actql_sdk._local_work import OriginalLocalWork
-from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageError
+from actql_sdk._local_storage import LocalByteStore, LocalStorageCommitUnknown, LocalStorageError
 import test_local_finite_run as fixture
 import test_local_submission_append as append_fixture
 from local_abi_declaration_fixture import original_byte_fixture_port
@@ -23,6 +25,51 @@ CLAIM = b'{"opaque":"original Core physical claim e\xcc\x81/~","null":null}'
 
 
 class SDKStartAssemblyTests(unittest.TestCase):
+    def test_imported_three_live_journal_census_handles_mixed_loans_and_current(self):
+        source = Path(__file__).resolve().parents[3] / 'scripts/fixtures/python-local-public-success-abi.py'
+        spec = importlib.util.spec_from_file_location('original_three_live_fixture', source)
+        module = importlib.util.module_from_spec(spec)
+        with patch.object(sys, 'path', [str(source.parent), *sys.path]), patch.object(
+                asyncio, 'run', side_effect=lambda coroutine: coroutine.close()):
+            spec.loader.exec_module(module)
+        with TemporaryDirectory() as directory:
+            store = LocalByteStore(Path(directory) / 'census.sqlite', max_records=8,
+                max_record_bytes=8192, max_payload_bytes=65536)
+            try:
+                owner = object()
+                current = _Output(owner, 3, 30, 64, 'current')
+                callbacks = _JournalCallbacks(lambda: None, store)
+                current_input = _PhysicalInput(b'', lambda: True, lambda _: True, journal=callbacks)
+                core = SimpleNamespace(
+                    _loans={1: _Input(owner, 1, 10, 1),
+                        2: _Workspace(owner, 2, 20), 3: current},
+                    _inputs={3: current_input})
+                host = SimpleNamespace(_core=core, _admission_observations={}, _journal_outputs=[])
+                observer = object.__new__(module.ParentReturnTrace)
+                observer.host = host
+                run = SimpleNamespace(handle=50)
+                self.assertFalse(any(observer.journal_inventory(run).values()))
+                journal = _Output(owner, 4, 40, 64, 'journal')
+                core._loans[4] = journal
+                core._inputs[4] = _PhysicalInput(b'', lambda: True, lambda _: True, journal=callbacks)
+                inventory = observer.journal_inventory(run)
+                self.assertTrue(inventory['core_journal_loans'])
+                self.assertTrue(inventory['core_journal_inputs'])
+                del core._loans[4]
+                inventory = observer.journal_inventory(run)
+                self.assertFalse(inventory['core_journal_loans'])
+                self.assertTrue(inventory['core_journal_inputs'])  # Orphan remains visible.
+                del core._inputs[4]
+                self.assertFalse(any(observer.journal_inventory(run).values()))
+                # Only an actual original _Output can exempt a current ticket.
+                core._loans[3] = SimpleNamespace(ticket=3, family='current')
+                self.assertTrue(observer.journal_inventory(run)['core_journal_inputs'])
+                core._loans[3] = current
+                self.assertIs(core._inputs[3], current_input)
+                self.assertIs(core._loans[3], current)
+            finally:
+                store.close()
+
     def test_post_current_failure_after_start_reserve_keeps_both_original_inventories(self):
         originals = []
         initialize = _OriginalExecution.__init__

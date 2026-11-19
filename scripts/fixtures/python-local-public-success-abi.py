@@ -18,7 +18,7 @@ from python_local_task_drive_trace import MixedTaskDriveTrace
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk import AsyncClient, ClientError
-from actql_sdk._local_core import LocalCore, LocalCoreError, _NORMAL_HOST_OPERATION_FUEL
+from actql_sdk._local_core import LocalCore, LocalCoreError, _Output, _NORMAL_HOST_OPERATION_FUEL
 from actql_sdk._local_product import InstalledLocalHost, _ordinary_core_limits
 from actql_sdk._local_storage import LocalStorageCommitUnknown
 
@@ -39,11 +39,125 @@ def new_core(raw, digest):
         slots=128, resources=_ordinary_core_limits(), fuel=_NORMAL_HOST_OPERATION_FUEL)
 
 
+class ParentReturnTrace:
+    """Passive, fixed-three fixture observations of the original close ports.
+
+    No constructor, retirement, Work wait or confirmation is supplied here.
+    Each wrapper returns the actual original result unchanged.
+    """
+    def __init__(self, host, stack):
+        self.host = host
+        self.records = []
+        accept = host._accept_original
+        def observe_accept(*args, **kwargs):
+            original, admission = accept(*args, **kwargs)
+            assert original is not None and len(self.records) < 3
+            run = original.run
+            # This successful original call already ACK-closed its admission
+            # Journal. With this fixture's sequential calls there is no other
+            # Journal borrower at the accept/return boundary.
+            with host._core._lock:
+                journal_inventory = self.journal_inventory(run)
+                assert not any(journal_inventory.values()), journal_inventory
+            self.records.append({'original': original, 'run': run,
+                'prepared': run.preparation, 'submission': original.submission,
+                'rows_input': original.rows_input,
+                'submission_input': host._append_sources[original.submission.ticket],
+                'rows': next(value for owner, value in host._run_rows if owner is run),
+                'journal_inventory_after_accept': journal_inventory,
+                'acks': [], 'loans': {}})
+            return original, admission
+        stack.enter_context(patch.object(host, '_accept_original', side_effect=observe_accept))
+        ports = ((host._runs, 'close_physical_start', 'start'),
+            (host._core, 'close_material', 'material'),
+            (host._runs, 'close_run', 'run'),
+            (host._preparation, 'close_preparation', 'preparation'),
+            (host, '_close_projection', 'submission'),
+            (host._core, 'close_input', 'input'))
+        for owner, name, kind in ports:
+            method = getattr(owner, name)
+            def observe(loan, *, method=method, kind=kind):
+                selected = []
+                for record in self.records:
+                    original, run = record['original'], record['run']
+                    candidates = {
+                        'start': (('physical_start', original.physical_start),),
+                        'material': (('start_step', original.start_step), ('rows', record['rows']),
+                            ('binding', next((value for parent, value in host._publication_bindings
+                                              if parent is run), None))),
+                        'run': (('run', run),),
+                        'preparation': (('preparation', record['prepared']),),
+                        'submission': (('submission', record['submission']),),
+                        'input': (('submission_input', record['submission_input']),
+                            ('rows_input', record['rows_input']), ('run_input', run.input),
+                            ('preparation_input', record['prepared'].input)),
+                    }[kind]
+                    for label, parent in candidates:
+                        if loan is parent:
+                            selected.append((record, label))
+                result = method(loan)
+                for record, label in selected:
+                    record['acks'].append({'parent': label, 'returned': result is True})
+                    record['loans'][label] = loan
+                return result
+            stack.enter_context(patch.object(owner, name, side_effect=observe))
+
+    def journal_inventory(self, run):
+        # The Host-current constructor intentionally retains journal callbacks
+        # for the whole Host. Exclude only its actual nominal output tickets;
+        # an unassociated Journal input still counts as retained here.
+        current_tickets = {value.ticket for value in self.host._core._loans.values()
+            if type(value) is _Output and value.family == 'current'}
+        return {
+            'host_selected_journal': run.handle in self.host._admission_observations,
+            'host_journal_outputs': bool(self.host._journal_outputs),
+            'core_journal_loans': any(type(value) is _Output and value.family == 'journal'
+                for value in self.host._core._loans.values()),
+            'core_journal_inputs': any(ticket not in current_tickets and value.journal is not None
+                for ticket, value in self.host._core._inputs.items()),
+        }
+
+    def assert_returned(self, index):
+        record = self.records[index]
+        original, run, prepared = record['original'], record['run'], record['prepared']
+        expected = {'physical_start', 'start_step', 'binding', 'rows', 'run',
+            'preparation', 'submission', 'submission_input', 'rows_input', 'run_input',
+            'preparation_input'}
+        with self.host._core._lock:
+            acks = record['acks']
+            inventory = {
+                'host_run': any(value is run for value in self.host._run_loans),
+                'core_run': self.host._runs._runs.get(run.handle) is run,
+                'host_preparation': any(value is prepared for value in self.host._prepared_inputs),
+                'core_preparation': self.host._preparation._preparations.get(prepared.handle) is prepared,
+                'host_submission': any(value is record['submission'] for value in self.host._projections),
+                'host_work': any(work._invoke is original for work in self.host._physical_work),
+                'selected_start': original.physical_start is not None,
+                'selected_start_step': original.start_step is not None,
+                **self.journal_inventory(run),
+            }
+            for label, source in (('submission_input', record['submission_input']),
+                    ('rows_input', record['rows_input']), ('run_input', run.input),
+                    ('preparation_input', prepared.input)):
+                inventory['host_' + label] = any(value is source for value in self.host._inputs)
+                inventory['core_' + label] = source.ticket in self.host._core._inputs
+            observation = {'execution': index + 1, 'original_parent_acks': list(acks),
+                'journal_inventory_after_accept': record['journal_inventory_after_accept'],
+                'selected_parent_inventory_retained': inventory}
+            print(json.dumps({'parent_return_before_host_close': observation}), file=sys.stderr)
+            assert len(acks) == len(expected) and {item['parent'] for item in acks} == expected
+            assert all(item['returned'] for item in acks)
+            assert not any(inventory.values()), inventory
+            assert original.physical_start is original.start_step is original.submission is original.rows_input is None
+            return observation
+
+
 async def main():
-    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] not in ('commit-unknown', 'task-drive-mixed')):
+    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] not in ('commit-unknown', 'task-drive-mixed', 'repeat-live-three')):
         raise ValueError('Expected original module, fresh scratch and optional COMMIT-loss control')
     commit_unknown = len(sys.argv) == 4 and sys.argv[3] == 'commit-unknown'
     task_drive = len(sys.argv) == 4 and sys.argv[3] == 'task-drive-mixed'
+    repeat_live = len(sys.argv) == 4 and sys.argv[3] == 'repeat-live-three'
     trace = MixedTaskDriveTrace() if task_drive else None
     def phase(name):
         if trace is not None:
@@ -65,6 +179,9 @@ async def main():
             observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
         client = await AsyncClient._connect_local(host)
         phase('first-host-ready')
+        parent_trace = ParentReturnTrace(host, driver_checks) if repeat_live else None
+        parent_observations = []
+        references = []
         if task_drive:
             original_drive = core.drive_task
             def scheduled_original_quantum(task, quantum):
@@ -138,37 +255,46 @@ async def main():
                 raise lost_reply  # Actual SQLite COMMIT returned; only its reply is lost.
             return result
         with patch.object(store, 'store_publication_projected_inspected', side_effect=observe_original_transaction) as commit_calls:
-            phase('execution-begin')
-            execution = await client.start_source(
-                ('WITH seed AS (SELECT 1 AS n) FROM seed AS l |> JOIN seed AS r ON l.n = r.n '
-                 'MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS n |> RESULT answer' if task_drive else
-                 'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer'), format='aql')
-            phase('submission-returned')
-            if commit_unknown:
-                assert len(host._physical_work) == 1
-                work = host._physical_work[0]
-                await work.wait_stopped()
-                assert work._future.exception() is lost_reply and work._exit_error is None
-                retained = host._pending_publication_write
-                assert retained is publication_writes[0] and retained in host._commit_projections
-                assert host._pending_publication_publisher is not None and core._compute_loans
-                original_call = core._call
-                def only_lookup(family, name, *args):
-                    if family in ('program', 'run', 'compute', 'task'):
-                        raise AssertionError('Uncertain publication lookup reissued execution')
-                    return original_call(family, name, *args)
-                with patch.object(core, '_call', side_effect=only_lookup):
+            for execution_index in range(3 if repeat_live else 1):
+                phase('execution-begin')
+                execution = await client.start_source(
+                    ('WITH seed AS (SELECT 1 AS n) FROM seed AS l |> JOIN seed AS r ON l.n = r.n '
+                     'MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS n |> RESULT answer' if task_drive else
+                     'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer'), format='aql')
+                phase('submission-returned')
+                if repeat_live:
+                    print(json.dumps({'live_execution_started': execution_index + 1,
+                        'original_ref_before_wait': dict(execution.ref)}), file=sys.stderr)
+                if commit_unknown:
+                    assert len(host._physical_work) == 1
+                    work = host._physical_work[0]
+                    await work.wait_stopped()
+                    assert work._future.exception() is lost_reply and work._exit_error is None
+                    retained = host._pending_publication_write
+                    assert retained is publication_writes[0] and retained in host._commit_projections
+                    assert host._pending_publication_publisher is not None and core._compute_loans
+                    original_call = core._call
+                    def only_lookup(family, name, *args):
+                        if family in ('program', 'run', 'compute', 'task'):
+                            raise AssertionError('Uncertain publication lookup reissued execution')
+                        return original_call(family, name, *args)
+                    with patch.object(core, '_call', side_effect=only_lookup):
+                        final = (await execution.wait(until='terminal')).to_dict()
+                    assert host._pending_publication_write is None
+                else:
                     final = (await execution.wait(until='terminal')).to_dict()
-                assert host._pending_publication_write is None
-            else:
-                final = (await execution.wait(until='terminal')).to_dict()
-            phase('terminal-returned')
-            assert final['status'] == 'succeeded' and final['result_available']
-            assert await execution.result('answer').all(schema=Row, max_rows=2) == [Row(n=expected_n)]
-            assert (await execution.status()).to_dict() == final
-            phase('result-checked')
-            reference = dict(execution.ref)
-            assert len(publication_writes) == 1
+                phase('terminal-returned')
+                assert final['status'] == 'succeeded' and final['result_available']
+                assert await execution.result('answer').all(schema=Row, max_rows=2) == [Row(n=expected_n)]
+                assert (await execution.status()).to_dict() == final
+                phase('result-checked')
+                reference = dict(execution.ref)
+                assert len(publication_writes) == execution_index + 1
+                if repeat_live:
+                    assert len(parent_trace.records) == execution_index + 1
+                    parent_observations.append(parent_trace.assert_returned(execution_index))
+                    assert reference not in references
+                    references.append(reference)
         # Result delivery evidence uses this SAME physical primitive too.
         # Every observed final validation must exclude another writer; an
         # arbitrary private callback count is not a publication contract.
@@ -220,6 +346,18 @@ async def main():
             print('Original succeeded-path failure retained; physical cleanup remains pending', file=sys.stderr)
     assert core._closed
     phase('first-cleanup-returned')
+
+    if repeat_live:
+        assert len(references) == len(parent_observations) == 3
+        print(json.dumps({'success': True, 'actualCases': 1,
+            'case': 'public_three_live_successes_original_parent_returns_and_first_close',
+            'module_sha256': digest, 'state': str(state),
+            'completed_distinct_executions': len(references),
+            'same_live_host': True, 'first_core_closed': core._closed,
+            'atomic_precommit_writer_exclusion': True,
+            'parent_returns': parent_observations,
+            'qualification': 'actual source SDK/raw Wasm/SQLite; not normal distribution, bare-wait population, warm100 or performance'}))
+        return
 
     # The old manifested Saved path remains executable-read free. No cancelled
     # state, absent Manifest or replacement invocation substitutes for success.
