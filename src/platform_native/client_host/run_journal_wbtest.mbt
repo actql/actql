@@ -193,6 +193,9 @@ fn journal_test_preparation_issue(
     Binding(_) => "Binding"
     Graph(_) => "Graph"
     ValuesProfileUnsupported => "ValuesProfileUnsupported"
+    DebugGraph(_) => "DebugGraph"
+    DebugProfileUnsupported => "DebugProfileUnsupported"
+    DebugGraphConstructionOverflow => "DebugGraphConstructionOverflow"
   }
 }
 

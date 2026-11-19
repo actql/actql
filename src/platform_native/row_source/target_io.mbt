@@ -155,8 +155,12 @@ pub fn native_relation_file_target_io_capacity(
   // Original receive/document storage is already in `construction`. Add the
   // submitted replacement and actual Writer+lock native storage beside it.
   // The FS Owner statically proves its lock payload fits its Writer layout.
-  // Target/lock UTF8 copies, the terminated lock suffix, and the original
-  // <=64-unit staging name. Additional diagnostics retain C error/close-error,
+  // At replacement the four concurrent name extents are the MoonBit target
+  // UTF8, C target copy, retained exclusive-lock C name and temporary lock
+  // comparison C name. Each is <=4 bytes per source UTF16 unit; the two lock
+  // copies also retain the fixed suffix. The existing two staging-name extents
+  // and terminators remain alongside them. This is live overlap, not spare
+  // funding or a new allowance. Additional diagnostics retain C error/close-error,
   // the returned Bytes and decoded refusal text beside existing read storage.
   let names = 16L * selection.name.length().to_int64() +
     8L * 64L +
@@ -322,7 +326,10 @@ fn NativeRelationFileTargetIO::open(self : Self) -> Unit raise FileCaptureStop {
   }
   self.root = Some(root)
   if self.update is Some(_) && self.before_response is None {
-    match root.acquire_lock_with_custody(selection.name + ".actql-write.lock") {
+    match
+      root.acquire_exclusive_lock_with_custody(
+        selection.name + ".actql-write.lock",
+      ) {
       Ok(value) => self.lock = Some(value)
       Err(failure) => {
         self.rejected_lock = Some(failure)
@@ -368,7 +375,9 @@ fn NativeRelationFileTargetIO::open(self : Self) -> Unit raise FileCaptureStop {
       // No external callback runs with this lock held. A fresh observation
       // after acquiring it must match the size/generation used for backing.
       match
-        root.acquire_lock_with_custody(selection.name + ".actql-write.lock") {
+        root.acquire_exclusive_lock_with_custody(
+          selection.name + ".actql-write.lock",
+        ) {
         Ok(value) => self.lock = Some(value)
         Err(failure) => {
           self.rejected_lock = Some(failure)

@@ -30,7 +30,9 @@ test "operator Host original follows its physical file not the Product copy" {
   assert_eq(selected.files[0].generation, original.generation)
   selected.check_source(source) |> material_choice_ok("operator current")
   let operator_root = capture.roots[2]
-  let lock = operator_root.acquire_lock("host.json.actql-write.lock").unwrap()
+  let lock = operator_root
+    .acquire_exclusive_lock_with_custody("host.json.actql-write.lock")
+    .unwrap()
   let replacement = operator_root
     .create_writer("replacement.stage", 65536L)
     .unwrap()
