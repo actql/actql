@@ -690,7 +690,15 @@ test "same original 100000 Plan leaves its selected task execution allowance ava
 }
 
 ///|
-fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise {
+test "original numeric 100000 enters normalization before its Program borrow" {
+  request_numeric_100000_profile_fixture(false, normalization_only=true)
+}
+
+///|
+fn request_numeric_100000_profile_fixture(
+  check_execution : Bool,
+  normalization_only? : Bool = false,
+) -> Unit raise {
   // Match the ordinary installation default: retained-file output is an
   // explicit separate consumer, not required to retain all completed rows.
   let retained_file_output = false
@@ -853,6 +861,39 @@ fn request_numeric_100000_profile_fixture(check_execution : Bool) -> Unit raise 
     Err(Publication(_)) => fail("Original100000 Publication")
     Err(QuerySyntax(_)) => fail("Original100000 QuerySyntax")
     Err(QueryLowering(_)) => fail("Original100000 QueryLowering")
+  }
+  if normalization_only {
+    let prepared = parent.compiled_program.unwrap()
+    let quote = request_original_normalization_audit_extent_cost(prepared).unwrap()
+    let base = @resources.preparation_capacity_working_extents(
+      parent.capacity,
+      input,
+    ).unwrap()
+    let normalized = match
+      prepare_request_program_normalization(parent, input) {
+      Ok(value) => value
+      Err(issue) =>
+        fail(
+          "Original100000 normalization: " +
+          @debug.to_string(issue) +
+          "; auditQuote=" +
+          quote.to_string() +
+          "; baselineR=" +
+          base.0.to_string() +
+          "; baselineE=" +
+          base.1.to_string(),
+        )
+    }
+    assert_true(
+      physical_equal(
+        normalized,
+        @publication_host.prepared_client_local_normalization_original(prepared).unwrap(),
+      ),
+    )
+    assert_eq(@resources.ledger_limits(parent.ledger), original_limits)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    return
   }
   let module_base = @resources.ledger_usage(parent.ledger).reserved_execution_bytes
   let module_contracts = request_program_module_contracts()
