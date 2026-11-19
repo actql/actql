@@ -56,8 +56,15 @@ for (const entry of WebAssembly.Module.imports(module)) {
 instance = new WebAssembly.Instance(module, imports);
 instance.exports._start();
 const info = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
-const tests = info.tests[selected];
-assert.ok(Array.isArray(tests) && tests.length >= 2);
+const declared = info.tests[selected];
+assert.ok(Array.isArray(declared) && declared.length >= 2);
+// Optional exact names select real compiler-declared controls; default CI
+// still executes the complete original file. Unknown/duplicate/zero refuse.
+const names = process.argv.slice(5);
+assert.equal(new Set(names).size, names.length, 'Duplicate pure control name');
+const tests = names.length ? declared.filter(row => names.includes(row.name)) : declared;
+assert.ok(tests.length > 0, 'No actual pure controls selected');
+if (names.length) assert.equal(tests.length, names.length, 'Unknown or ambiguous pure control name');
 for (const {index} of tests) {
   instance.exports.moonbit_test_driver_internal_execute(selected, index);
 }

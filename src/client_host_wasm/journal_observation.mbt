@@ -460,25 +460,55 @@ pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
+// A close debt contains NO successful T payload. The same function is used
+// for the actual saved observation; returning ends its temporary payload loan
+// before the caller may settle selected backing. It grants no operation.
+fn[T] journal_close_payload(
+  observed : Result[T, Int],
+  frame : StoredJournalDecodeFrame,
+) -> StoredJournalObservationOutcome {
+  frame.active = false
+  match observed {
+    Err(issue) => frame.issue = issue
+    Ok(_) => ()
+  }
+  Decoding(frame)
+}
+
+///|
+fn begin_journal_observation_close(child : StoredJournalObservation) -> Unit {
+  child.closing = true
+  match child.outcome {
+    Some(Observed(observed, Some(frame))) =>
+      child.outcome = Some(journal_close_payload(observed, frame))
+    Some(Observed(Ok(_), None)) => child.outcome = None
+    Some(Decoding(frame)) => frame.active = false
+    _ => ()
+  }
+  // No successful snapshot remains in the child, or in this helper's stack
+  // after return. Exact pending tokens/original error remain in the frame.
+}
+
+///|
 pub fn close_journal_observation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) else {
     return -2
   }
-  child.closing = true
+  begin_journal_observation_close(child)
   let cleanup = match child.outcome {
     Some(ReservingDecode(capacity)) =>
-      @resources.settle_capacity(value.root, capacity).map(_ => 0).unwrap_or(-4)
-    Some(Decoding(frame)) | Some(Observed(_, Some(frame))) =>
-      close_journal_decode_frame(value, frame)
+      settle_journal_decode_original(value, capacity)
+    Some(Decoding(frame)) => close_journal_decode_frame(value, frame)
+    Some(Observed(_, Some(_))) => -4
     _ => 0
   }
   if cleanup != 0 {
     return cleanup
   }
-  child.outcome = None
   let result = status(@buffers.close_buffer(value.pool, child.slot))
   if result == 0 {
+    child.outcome = None
     value.journal_observations.remove(handle) |> ignore
     value.copies.remove(handle) |> ignore
   }

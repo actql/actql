@@ -1,14 +1,16 @@
 ///|
 // Pure closed decoder/real Ledger controls. No Store, Account grant, dispatch,
 // normal Host or fuel qualification is supplied by this fixture.
-fn journal_decode_fixture() -> (
+fn journal_decode_fixture(
+  cleanup? : () -> Bool = () => true,
+) -> (
   Instance,
   StoredJournalObservation,
   StoredJournalDecodeFrame,
   @buffers.BufferSlot,
 ) raise {
   let (value, _, parent) = sdk_row_original_fixture(33554432L)
-  let slot = @buffers.reserve_output_buffer(value.pool, 2, 0L, () => true).unwrap()
+  let slot = @buffers.reserve_output_buffer(value.pool, 2, 0L, cleanup).unwrap()
   let row = submission_append_run_inspection(
     submission_identity_row(@utf8.encode(submission_identity_wire)),
   ).unwrap()
@@ -280,7 +282,11 @@ test "journal same-frame partial cleanup retains only exact pending tokens and o
   assert_true(@resources.capacity_reservation_open(tail.capacity))
   assert_true(@resources.capacity_reservation_open(foreign_token))
   assert_true(physical_equal(frame.rows.unwrap(), wrong))
-  assert_true(child.outcome is Some(Observed(Err(-42), _)))
+  assert_true(
+    child.outcome is Some(Decoding(debt)) &&
+    physical_equal(debt, frame) &&
+    debt.issue == -42,
+  )
   // Restore this explicit foreign-token corruption fixture, not business state.
   frame.rows = Some(tail)
   assert_eq(close_journal_observation(value.nonce, 73), 0)
@@ -329,6 +335,119 @@ test "journal same-frame outer codec reuse never skips the original SDK purpose 
   assert_true(
     journal_decode_run_inspection(value, child, frame, row) is Err(-42),
   )
+  assert_eq(close_journal_observation(value.nonce, 73), 0)
+  sdk_row_original_fixture_close(value, parent)
+}
+
+///|
+test "journal close resumes exact completed token settlement before pointer unlink" {
+  for position in ["row", "frame", "pending"] {
+    let (value, child, frame, parent) = journal_decode_fixture()
+    if position == "row" {
+      ignore(
+        journal_decode_run_inspection(
+          value,
+          child,
+          frame,
+          journal_decode_fixture_row(),
+        ).unwrap(),
+      )
+      let cell = frame.rows.unwrap()
+      cell.decoded = None
+      cell.row = None
+      frame.selected = None
+      // Execute the ACTUAL trusted settlement, then leave its link intact:
+      // precisely the completed-settlement / pre-unlink interruption boundary.
+      @resources.settle_capacity(value.root, cell.capacity).unwrap()
+    } else if position == "pending" {
+      let pending = @resources.reserve_capacity(value.root, 1L, 0L).unwrap()
+      frame.pending = Some(pending)
+      @resources.settle_capacity(value.root, pending).unwrap()
+    } else {
+      @resources.settle_capacity(value.root, frame.capacity).unwrap()
+    }
+    assert_eq(close_journal_observation(value.nonce, 73), 0)
+    sdk_row_original_fixture_close(value, parent)
+  }
+}
+
+///|
+test "journal close drops success payload before selected settlement and later frame failure" {
+  let (value, child, frame, parent) = journal_decode_fixture()
+  let row = journal_decode_fixture_row()
+  let foreign = @resources.create_ledger({
+    planning_work: 1,
+    attempts: 1,
+    holdings: 1,
+    transfer_bytes: 0L,
+    retained_bytes: 1024L,
+    execution_bytes: 1024L,
+  }).unwrap()
+  let foreign_token = @resources.reserve_capacity(foreign, 1L, 0L).unwrap()
+  ignore(journal_decode_run_inspection(value, child, frame, row).unwrap())
+  let selected_token = frame.selected.unwrap().capacity
+  let wrong_frame = { ..frame, capacity: foreign_token, }
+  // Exercise the ACTUAL payload-to-debt function with a real selected codec
+  // alias. Production instantiates this same function with its opaque saved
+  // observation. The returned variant cannot retain any successful T value.
+  child.outcome = Some(
+    journal_close_payload(
+      Ok(journal_decode_run_inspection(value, child, frame, row).unwrap()),
+      wrong_frame,
+    ),
+  )
+  assert_true(child.outcome is Some(Decoding(_)))
+  assert_true(@resources.capacity_reservation_open(selected_token))
+  assert_eq(close_journal_observation(value.nonce, 73), -4)
+  // The selected token really settled; later frame failure must leave NO
+  // Observed(Ok(...)) payload borrowing its now-unfunded request/Definition.
+  assert_false(@resources.capacity_reservation_open(selected_token))
+  assert_true(
+    child.outcome is Some(Decoding(debt)) && physical_equal(debt, wrong_frame),
+  )
+  assert_true(wrong_frame.selected is None && wrong_frame.rows is None)
+  // Restore only the explicit foreign-token fixture. The SAME original frame
+  // still has its already-spent cell linked, which close must recognize.
+  child.outcome = Some(Decoding(frame))
+  assert_eq(close_journal_observation(value.nonce, 73), 0)
+  @resources.settle_capacity(foreign, foreign_token).unwrap()
+  sdk_row_original_fixture_close(value, parent)
+}
+
+///|
+test "journal close never skips foreign spent tokens or loses error across physical pending" {
+  let ready = Ref(false)
+  let (value, child, frame, parent) = journal_decode_fixture(cleanup=() => {
+    ready.val
+  })
+  let row = journal_decode_fixture_row()
+  ignore(journal_decode_run_inspection(value, child, frame, row).unwrap())
+  let original = frame.rows.unwrap()
+  let foreign = @resources.create_ledger({
+    planning_work: 1,
+    attempts: 1,
+    holdings: 1,
+    transfer_bytes: 0L,
+    retained_bytes: 1024L,
+    execution_bytes: 1024L,
+  }).unwrap()
+  let foreign_spent = @resources.reserve_capacity(foreign, 1L, 0L).unwrap()
+  @resources.settle_capacity(foreign, foreign_spent).unwrap()
+  assert_false(@resources.capacity_reservation_open(foreign_spent))
+  let wrong = { ..original, capacity: foreign_spent, }
+  frame.rows = Some(wrong)
+  child.outcome = Some(Observed(Err(-42), Some(frame)))
+  assert_eq(close_journal_observation(value.nonce, 73), -4)
+  assert_true(child.outcome is Some(Decoding(debt)) && debt.issue == -42)
+  assert_true(@resources.capacity_reservation_open(original.capacity))
+  // A false open Bool was not sufficient: the trusted same-Ledger settlement
+  // refused the foreign token. Restore the negative fixture's original debt.
+  frame.rows = Some(original)
+  assert_true(close_journal_observation(value.nonce, 73) != 0)
+  assert_false(@resources.capacity_reservation_open(original.capacity))
+  assert_false(@resources.capacity_reservation_open(frame.capacity))
+  assert_true(child.outcome is Some(Decoding(debt)) && debt.issue == -42)
+  ready.val = true
   assert_eq(close_journal_observation(value.nonce, 73), 0)
   sdk_row_original_fixture_close(value, parent)
 }

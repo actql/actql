@@ -38,9 +38,9 @@ priv enum StoredJournalObservationOutcome {
 fn journal_decode_frame_capacity() -> Int64? {
   // Frame: selected-key/token/head/selected references, three original scalar
   // identities and active/busy/issue words. Include phase/Option carriers and
-  // one transient disposal carrier; there is no Array/Map backing.
+  // old/new close-debt carriers during payload retirement; no Array/Map backing.
   @execution.preparation_representation_cost({
-    record_headers: 5L,
+    record_headers: 6L,
     reference_slots: 13L,
     scalar_words: 9L,
     owned_utf16_units: 0L,
@@ -275,6 +275,24 @@ fn journal_decode_run_inspection(
 }
 
 ///|
+// Only original byte tokens already reachable from THIS journal child enter
+// this close-only port. The trusted settlement checks SAME Ledger identity
+// before ClosedReservation; the opaque token must also actually be spent.
+// Neither a false coverage Bool nor a foreign/other refusal is an ACK.
+fn settle_journal_decode_original(
+  value : Instance,
+  capacity : @resources.CapacityReservation,
+) -> Int {
+  match @resources.settle_capacity(value.root, capacity) {
+    Ok(_) => 0
+    Err(@resources.ClosedReservation) if !@resources.capacity_reservation_open(
+        capacity,
+      ) => 0
+    Err(_) => -4
+  }
+}
+
+///|
 fn dispose_journal_decode_rows(
   value : Instance,
   frame : StoredJournalDecodeFrame,
@@ -282,10 +300,11 @@ fn dispose_journal_decode_rows(
 ) -> Int {
   frame.active = false
   if frame.pending is Some(capacity) {
-    match @resources.settle_capacity(value.root, capacity) {
-      Err(_) => return -4
-      Ok(_) => frame.pending = None
+    let code = settle_journal_decode_original(value, capacity)
+    if code != 0 {
+      return code
     }
+    frame.pending = None
   }
   let selected = if keep_selected { frame.selected } else { None }
   let mut previous : StoredJournalRunOriginal? = None
@@ -300,9 +319,9 @@ fn dispose_journal_decode_rows(
       if frame.selected is Some(original) && physical_equal(original, cell) {
         frame.selected = None
       }
-      match @resources.settle_capacity(value.root, cell.capacity) {
-        Err(_) => return -4
-        Ok(_) => ()
+      let code = settle_journal_decode_original(value, cell.capacity)
+      if code != 0 {
+        return code
       }
       // Remove only the actually settled cell. A failed later settlement
       // therefore retries only the SAME still-pending tokens.
@@ -327,7 +346,5 @@ fn close_journal_decode_frame(
   if code != 0 {
     return code
   }
-  @resources.settle_capacity(value.root, frame.capacity)
-  .map(_ => 0)
-  .unwrap_or(-4)
+  settle_journal_decode_original(value, frame.capacity)
 }
