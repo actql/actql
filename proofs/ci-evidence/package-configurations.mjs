@@ -130,7 +130,9 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-18-session-local-current-fixture-selectors-review.json.
   // One further Node-only Mock footprint fixture; all imports/options remain exact.
   // See docs/reviews/2026-11-18-session-local-mock-footprint-selector-review.json.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: 'b30ff1c30337f7ac7903f712f8768ba44d7b59194e3b1d20fa92627d208a6f6f', rule: 'literal-target-selectors-with-bound-source-membership', revision: '3cb1294bbc2c2c8f49580b99eda135c7140c9d40'}),
+  // Seven current JS fixture selectors retain their original helper dependencies.
+  // See docs/reviews/2026-11-19-session-local-current-fixture-selectors-review.json.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '6c3f796557c52242f7702c3cb66380d91eecd95f7531f0a1d8e5fb1c08c7cd03', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'ea209b7776eef4934202b8a2924a07464a43bdd7'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   // One literal timestamp-pattern dependency; existing JS/non-JS selectors unchanged.
   // See docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json.
@@ -149,7 +151,9 @@ export const currentPackageConfigurations = Object.freeze({
   'src/platform_native/result_access/moon.pkg': Object.freeze({digest: '3857eed803af513e307d4f6a8f3450edbed4f94e830e38af3b3a88ab5d448697', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/runtime_bundle/moon.pkg': Object.freeze({digest: '1d8c003fea820e24835d1b6539d0e42e5908103e8d776a7c91b525b64dee02e4', rule: 'literal-native-options-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),
   'src/platform_native/signature/moon.pkg': Object.freeze({digest: '0d1a2b5edbd15f8f19232819cdf6e7947ce3d5c53491b25397e61c51ba25f872', rule: 'literal-native-options-with-bound-source-membership', revision: 'f86f409e62d39511380497cb0fe5639d5259f191'}),
-  'src/platform_native/sqlite/moon.pkg': Object.freeze({digest: 'c28caf8bc62627196f85a4c1fd729a19a02f08c7ed2bd66f7c0316ede17b4e5f', rule: 'literal-native-options-with-bound-source-membership', revision: 'bddee734fca915cfca815562d1407ceb73d0e087'}),
+  // One current Native-only key-capacity fixture; imports/native options unchanged.
+  // See docs/reviews/2026-11-19-session-sqlite-key-capacity-selector-review.json.
+  'src/platform_native/sqlite/moon.pkg': Object.freeze({digest: 'a0daf570148be64164de728248ed8f4b3df02262b9d4873cd04e2445c3b40281', rule: 'literal-native-options-with-bound-source-membership', revision: '24bf383caf9ad31fe921410ee6da2cd30ee4cb47'}),
   'src/platform_native/trusted_clock/moon.pkg': Object.freeze({digest: '19f2c6b1beb2a401a9152b82e679f0df352d11da6efeb1bc79f56ab516537ab0', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/query_integration/moon.pkg': Object.freeze({digest: '85c6a9e865217e88e0322ca57208d43cc60742d508da3f04d5be00c724f8c15b', rule: 'literal-native-options-with-bound-source-membership', revision: 'd0a65454c66690c3725c9cfbcc31ee84fdd4c3f1'}),
   'src/connectors/kintone/host/moon.pkg': Object.freeze({digest: '85ba3f07ed79308b595b1c00cf085a87f2d7ec9f9f40c88be4ffc1c264d216bd', rule: 'literal-target-selectors-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),

@@ -15,6 +15,8 @@ const toolchainDigest = packageConfigurationReview.toolchainDigest;
 const report = JSON.parse(readFileSync(new URL('../../docs/reviews/2026-10-25-session-current-configuration-review.json', import.meta.url)));
 const nativePublicationReview = JSON.parse(readFileSync(new URL(
   '../../docs/reviews/2026-11-17-session-native-publication-constructor-selector-review.json', import.meta.url)));
+const sqliteCapacityReview = JSON.parse(readFileSync(new URL(
+  '../../docs/reviews/2026-11-19-session-sqlite-key-capacity-selector-review.json', import.meta.url)));
 const request = (path, digest) => ({path, digest, target: 'js', toolchainDigest});
 
 test('archived review retains exact authored preimages without promoting them to current evidence', () => {
@@ -46,16 +48,18 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
     const selectedTree = gitTree(root, entry.revision ?? currentConfigurationReviewRevision);
     const body = selectedTree.read(path).toString();
     if (path === 'src/platform_native/sqlite/moon.pkg') {
-      assert.equal(entry.revision, 'bddee734fca915cfca815562d1407ceb73d0e087');
-      const prior = tree.read(path).toString();
-      const selectors = ['    "owned_body_extent_native.mbt": [ "native" ],\n',
-        '    "owned_body_extent_unsupported.mbt": [ "not", "native" ],\n'];
+      assert.equal(entry.revision, sqliteCapacityReview.source);
+      assert.equal(hash(body), sqliteCapacityReview.sha256);
+      const prior = gitTree(root, sqliteCapacityReview.previousRevision).read(path).toString();
+      assert.equal(hash(prior), sqliteCapacityReview.previousSha256);
       let reconstructed = body;
-      for (const selector of selectors) {
-        assert.equal(body.split(selector).length, 2);
-        reconstructed = reconstructed.replace(selector, '');
+      for (const selector of sqliteCapacityReview.addedSelectors) {
+        assert.deepEqual(selector.targets, ['native']);
+        const line = `    "${selector.file}": [ "native" ],\n`;
+        assert.equal(body.split(line).length, 2);
+        reconstructed = reconstructed.replace(line, '');
       }
-      assert.equal(reconstructed, prior, 'only the paired Native/unsupported body-extent selectors changed');
+      assert.equal(reconstructed, prior, 'Only the reviewed Native key-capacity selector changed');
       assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
       assert.equal(currentTree.read(path).toString(), body);
       assert.equal(currentPackageConfigurationReviewFor(request(path, hash(prior))), null);
@@ -65,6 +69,12 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
         assert(selected.paths.includes(source));
         assert.equal(currentTree.entries.get(source)?.kind, 'blob');
         assert.equal(currentTree.entries.get(source)?.mode, '100644');
+      }
+      for (const fixture of sqliteCapacityReview.fixtures) {
+        assert.equal(hash(selectedTree.read(fixture.path)), fixture.sha256);
+        assert.equal(selectedTree.read(fixture.path).length, fixture.bytes);
+        assert.equal(selectedTree.entries.get(fixture.path)?.mode, fixture.mode);
+        assert(selected.paths.includes(fixture.path));
       }
     }
     if (path === 'src/platform_native/publication_store/moon.pkg') {
@@ -267,7 +277,7 @@ test('current configuration entries bind exact authored Git inputs and literal d
     const review = currentPackageConfigurationReviewFor(request(path, entry.digest));
     assert.equal(review?.revision, entry.revision ?? currentConfigurationReviewRevision);
     assert.equal(review?.rule, entry.rule);
-    if (path === 'src/client_local_host/moon.pkg') {
+    if (['src/client_local_host/moon.pkg', 'src/platform_native/sqlite/moon.pkg'].includes(path)) {
       // A shared local object database must not hide an unpublished review.
       execFileSync('git', ['merge-base', '--is-ancestor', review.revision, 'HEAD'], {cwd: root});
     }
@@ -287,7 +297,7 @@ test('current configuration entries bind exact authored Git inputs and literal d
 
 test('current Local JS review admits only reviewed fixture selectors and keeps every source bound', () => {
   const review = JSON.parse(readFileSync(new URL(
-    '../../docs/reviews/2026-11-18-session-local-mock-footprint-selector-review.json', import.meta.url)));
+    '../../docs/reviews/2026-11-19-session-local-current-fixture-selectors-review.json', import.meta.url)));
   const path = review.path;
   const entry = currentPackageConfigurations[path];
   const reviewedTree = gitTree(root, review.source);
@@ -313,9 +323,15 @@ test('current Local JS review admits only reviewed fixture selectors and keeps e
   assert.equal(priorReview.source, review.previousRevision);
   assert.equal(priorReview.sha256, review.previousSha256);
   assert.equal(priorReview.bytes, review.previousBytes);
-  assert.equal(hash(reviewedTree.read(review.fixture.path)), review.fixture.sha256);
-  assert.equal(reviewedTree.read(review.fixture.path).length, review.fixture.bytes);
-  assert.equal(reviewedTree.entries.get(review.fixture.path)?.mode, review.fixture.mode);
+  for (const fixture of [...review.fixtures, ...review.fixtureDependencies]) {
+    assert.equal(hash(reviewedTree.read(fixture.path)), fixture.sha256);
+    assert.equal(reviewedTree.read(fixture.path).length, fixture.bytes);
+    assert.equal(reviewedTree.entries.get(fixture.path)?.mode, fixture.mode);
+  }
+  for (const fixture of review.fixtures) for (const dependency of fixture.jsFixtureDependencies) {
+    assert(body.includes(`    "${dependency}": [ "js" ],\n`),
+      `Original JS fixture dependency: ${dependency}`);
+  }
   assert.deepEqual(packageImports(body).imports, packageImports(previous).imports);
   const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
   assert(!selected.unresolved.includes('Unreviewed package configuration: ' + path));
@@ -351,6 +367,8 @@ test('current Local JS review admits only reviewed fixture selectors and keeps e
 test('the prior Local descriptor stays historical without admitting it as current', () => {
   const path = 'src/client_local_host/moon.pkg';
   for (const [revision, digest] of [
+    ['3cb1294bbc2c2c8f49580b99eda135c7140c9d40', 'b30ff1c30337f7ac7903f712f8768ba44d7b59194e3b1d20fa92627d208a6f6f'],
+    ['24bf383caf9ad31fe921410ee6da2cd30ee4cb47', '6dbacda120b06ee3b75b7748c466e26e3ede49564cb296c89607513a009eccad'],
     ['8385cf48bbffd611f7fa62e872a21c764aa7787f', '497f93c3defd265ba83791d7a8c3290302f368406e1d348f04a5d5f1c472fefd'],
     ['942da5f7cff320f37489be12498fee6f742c40c3', 'b0d5e68d9e82221e6ae49e364de6175ca92377e8227443eafa84149e5ee25b23'],
     ['776746d359ec107cf3172d90016d07e009384fc9', '8c60608fabbcc3310000730ac92fb17768d5b87796e189a192dd1bee513f3ce8'],
