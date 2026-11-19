@@ -1,6 +1,7 @@
 // Copied as authored fixture logic into the installed RC consumer. All product
 // imports resolve only the ordinary installed public package, never checkout.
 import {connect} from '@actql/node';
+import {getCheckInput} from '@actql/sdk';
 import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
@@ -11,6 +12,7 @@ const [requestPath, responsePath] = process.argv.slice(2);
 const request = JSON.parse(await readFile(requestPath, 'utf8'));
 const work = workflowWorkObservation({trackOriginal: true});
 const response = await runReleaseProjectNodeAction({request,
+  getCheckInput,
   connect: options => connect({...options, installation: {...options.installation, observation: work.connection}}),
   readProgram: () => readFile(request.program, 'utf8'),
   retainAccepted: value => writeFile(responsePath + '.accepted', JSON.stringify(value) + '\n', {flag: 'wx', mode: 0o600}),

@@ -2,8 +2,35 @@
 // prove sequencing/error custody, not installed Host or Native execution.
 import assert from 'node:assert/strict';
 
+export function projectStaticCheckControls(program, source) {
+  const variable = {'churn-risk.aql': 'risk', 'deal-review.aql': 'review'}[program];
+  assert(variable, 'Use an existing authored Mock template');
+  const original = variable + ".outcome = 'ok'";
+  assert.equal(source.split(original).length, 2, 'Use one exact original published comparison');
+  return [
+    {name: 'known-outcome-type-error', text: source.replace(original, variable + '.outcome = 1')},
+    {name: 'unknown-update-target', text: 'SELECT 1 AS id |> RESULT out |> EFFECT UPDATE private.unknown FROM RESULT out ID id SET (Name = 1)'},
+  ];
+}
+
+export function assertProjectStaticCheckControls(controls) {
+  assert.deepEqual(controls?.map(value => value.name), ['known-outcome-type-error', 'unknown-update-target']);
+  for (const {check} of controls) {
+    assert.equal(check.outcome, 'completed');
+    assert.equal(check.report?.scope?.kind, 'bound_input');
+    assert(!JSON.stringify(check).includes('check_unclassified'));
+  }
+  const invalid = controls[0].check.report, unknown = controls[1].check.report;
+  assert.equal(invalid.verdict, 'invalid');
+  assert(invalid.reasons.some(value => value.code === 'expression_domain_mismatch' &&
+    value.facts?.domain === 'key_comparable_operands'));
+  assert.equal(invalid.requirements.length, 0, 'A known type error must not fabricate a policy/value Requirement');
+  assert.equal(unknown.verdict, 'undetermined');
+  assert(JSON.stringify(unknown.coverage).includes('unresolved_protected'));
+}
+
 export async function runReleaseProjectNodeAction({connect, request, readProgram, retainAccepted,
-  assertPendingTarget, retainClose}) {
+  assertPendingTarget, retainClose, getCheckInput}) {
   assert(['static', 'start', 'resolve', 'status', 'result'].includes(request.kind));
   assert(request.decision === undefined || ['approved', 'rejected'].includes(request.decision));
   let client, primary, failed = false, closeFailure, closeFailed = false, response;
@@ -15,6 +42,15 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
       const source = await readProgram();
       response = {check: await client.check(source, {format: 'aql'}),
         plan: await client.plan(source, {format: 'aql'})};
+      response.staticChecks = [];
+      for (const control of projectStaticCheckControls(request.program, source)) {
+        const check = await client.check(control.text, {kind: 'text', format: 'aql', scope: 'bound_input'});
+        const received = getCheckInput(check, 'source');
+        assert.equal(received?.kind, 'text');
+        assert.equal(received.text, control.text, 'Preserve the original public check text');
+        response.staticChecks.push({name: control.name, check});
+      }
+      assertProjectStaticCheckControls(response.staticChecks);
     } else {
       let execution, original = request.original;
       if (request.kind === 'start') {
