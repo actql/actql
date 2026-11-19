@@ -21,6 +21,8 @@ from actql_sdk._local_core import LocalCore, LocalCoreError, _NORMAL_HOST_OPERAT
 from actql_sdk._local_product import InstalledLocalHost, _ordinary_core_limits
 from actql_sdk._local_journal_port import _JournalCallbacks
 from actql_sdk._local_storage import StoredBytes
+from actql_sdk._values import thaw, wire_bytes
+from actql_sdk import _wire
 
 # Missing a Run referenced by an existing submitted row is the saved reader's
 # custody refusal; it is not the separate missing-submission (-35) branch.
@@ -44,6 +46,8 @@ class Trace:
         self.enabled = False
         self.active = None
         self.target = None
+        self.target_body = None
+        self.target_revision = None
         self.steps = []
         self.refusal = None
 
@@ -65,10 +69,14 @@ class Trace:
             print(json.dumps({'continuationObservation': observed}), flush=True)
         assert counts.get('historyScans', 0) == 0, observed
         assert counts.get('unrelatedRunRows', 0) == 0, observed
+        assert counts.get('unrelatedTaskRows', 0) == 0, observed
+        assert counts.get('unrelatedEffectRows', 0) == 0, observed
+        assert counts.get('changedTargetRows', 0) == 0, observed
         return result
 
 
-async def population(raw, digest, scratch, history, fault=None, persisted=False):
+async def population(raw, digest, scratch, history, fault=None, persisted=False, pending=False):
+    assert not (persisted and pending)
     trace = Trace()
     original_header = LocalCore._journal_query_header
     original_current = LocalCore._journal_current
@@ -141,11 +149,24 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False)
                     counts['historyScans'] += 1
             if code == 0:
                 counts['returnedRows'] += 1
+                row = core._journal_callbacks(ticket).row
                 if namespace == 'client_runs':
                     counts['returnedRunRows'] += 1
-                    row = core._journal_callbacks(ticket).row
                     if row[0] != trace.target.encode('utf-8'):
                         counts['unrelatedRunRows'] += 1
+                    elif row[1].payload != trace.target_body or row[1].generation != trace.target_revision:
+                        counts['changedTargetRows'] += 1
+                elif namespace.startswith('client_task'):
+                    counts['returnedTaskRows'] += 1
+                    # The existing material writer keys chunks by this exact
+                    # original Run scope. No other task namespace is inferred.
+                    prefix = trace.target.encode('utf-8') + b':'
+                    if namespace != 'client_task_run_materials' or not row[0].startswith(prefix):
+                        counts['unrelatedTaskRows'] += 1
+                elif namespace.startswith('client_effect'):
+                    # This authored Values/JOIN target has no Effect members.
+                    counts['returnedEffectRows'] += 1
+                    counts['unrelatedEffectRows'] += 1
             elif code == 1:
                 counts['misses'] += 1
         return code
@@ -169,6 +190,9 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False)
     client = host = core = None
     primary = None
     completed_history = 0
+    accepted_pending_history = 0
+    closed_pending_history = 0
+    pending_references = set()
     cleanup = []
     try:
         with patch.object(LocalCore, '_journal_query_header', query), \
@@ -180,25 +204,51 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False)
             host = InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
                 observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
             client = await AsyncClient._connect_local(host)
-            for _ in range(history):
-                original = await client.start_source(
-                    'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer', format='aql')
-                assert (await original.wait(until='terminal')).to_dict()['status'] == 'succeeded'
-                assert await original.result('answer').all(schema=Row, max_rows=2) == [Row(41)]
-                completed_history += 1
-                print(json.dumps({'completedHistory': completed_history}), flush=True)
-                if persisted:
-                    # Successful child-first close only. The same fresh case's
-                    # actual durable rows remain at their original paths; no
-                    # failed/uncertain Run is reopened or reconstructed here.
+            for index in range(history):
+                if pending:
+                    # Stop at the original accepting owner, before its outer
+                    # submit consumer constructs or starts physical work.
+                    name = f'history-{history}-{index}'
+                    reference = thaw(client.new_submission(nonce=name))
+                    intent = wire_bytes({'kind': 'aql', 'input': {
+                        'text': 'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer',
+                        'format': 'aql'}, 'parameters': None})
+                    run, admission = host._accept_original(reference, intent, run_id=name)
+                    saved = json.loads(admission)
+                    assert run is not None and _wire.negotiated(saved, 'admission', thaw(client._selected))
+                    assert saved['ref']['authorityScopeCid'] == reference['epoch']['authorityScopeCid']
+                    key = wire_bytes(saved['ref'])
+                    assert key not in pending_references
+                    pending_references.add(key)
+                    assert not host._physical_work and not host._physical_starts
+                    assert not host._source_free_computes and not host._tasks
+                    accepted_pending_history += 1
+                    print(json.dumps({'acceptedPendingHistory': accepted_pending_history}), flush=True)
+                else:
+                    original = await client.start_source(
+                        'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer', format='aql')
+                    assert (await original.wait(until='terminal')).to_dict()['status'] == 'succeeded'
+                    assert await original.result('answer').all(schema=Row, max_rows=2) == [Row(41)]
+                    completed_history += 1
+                    print(json.dumps({'completedHistory': completed_history}), flush=True)
+                if persisted or pending:
+                    # Original child-first close only. Pending mode has an
+                    # acknowledged admission, not a successfully executed Run.
+                    # Keep this fresh case's durable originals in place.
                     await client.aclose()
                     await host.aclose()
                     assert core.close() is True
+                    if pending:
+                        closed_pending_history += 1
+                        print(json.dumps({'closedPendingHistory': closed_pending_history}), flush=True)
                     core = LocalCore(raw, digest=digest, transfer_capacity=12 * 1024 * 1024,
                         slots=128, resources=_ordinary_core_limits(), fuel=_NORMAL_HOST_OPERATION_FUEL)
                     host = InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
                         observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
                     client = await AsyncClient._connect_local(host)
+
+            if pending:
+                assert accepted_pending_history == closed_pending_history == len(pending_references) == history
 
             read_start = core.read_sdk_start_step
             select_task = core.reserve_next_sdk_task
@@ -210,6 +260,10 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False)
                 if record['kind'] == 'claim':
                     assert trace.target is None or trace.target == record['key']
                     trace.target = record['key']  # Labelling only, never claim acceptance.
+                    # Correlate returned bytes with this original claim DATA;
+                    # unchanged Core validators still decide current/authority.
+                    trace.target_body = record['body'].encode('utf-8')
+                    trace.target_revision = int(record['revision']) + 1
                 return wire
 
             def select(*args, **kwargs):
@@ -238,6 +292,9 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False)
             for step in trace.steps:
                 assert step['counts'].get('historyScans', 0) == 0, step
                 assert step['counts'].get('unrelatedRunRows', 0) == 0, step
+                assert step['counts'].get('unrelatedTaskRows', 0) == 0, step
+                assert step['counts'].get('unrelatedEffectRows', 0) == 0, step
+                assert step['counts'].get('changedTargetRows', 0) == 0, step
                 assert step['counts'].get('returnedRunRows', 0) > 0, step
     except BaseException as error:
         primary = error
@@ -252,6 +309,8 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False)
                             detail.update(operation=cause.operation, code=cause.code)
                         failures.append(detail)
         print(json.dumps({'completedHistory': completed_history,
+                          'acceptedPendingHistory': accepted_pending_history,
+                          'closedPendingHistory': closed_pending_history,
                           'originalWorkFailures': failures}), flush=True)
         if fault is None:
             raise
@@ -283,7 +342,10 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False)
             # failed/pending cleanup to first-close success.
             print(json.dumps({'cleanupFailures': [type(error).__name__ for error in cleanup]}), file=sys.stderr)
     return {'history': history, 'fault': fault, 'steps': trace.steps,
-            'populationMode': 'persisted-history-fresh-live-target' if persisted else 'same-live-host',
+            'populationMode': 'accepted-pending-durable-history/live-target' if pending else
+                'persisted-history-fresh-live-target' if persisted else 'same-live-host',
+            'completedHistory': completed_history, 'acceptedPendingHistory': accepted_pending_history,
+            'closedPendingHistory': closed_pending_history,
             'refusal': None if trace.refusal is None else trace.refusal.code,
             'firstCloseReturned': not cleanup,
             'cleanupFailures': [type(error).__name__ for error in cleanup]}
@@ -298,11 +360,13 @@ async def main():
     fault = sys.argv[3][6:] if len(sys.argv) == 4 and sys.argv[3].startswith('fault:') else None
     assert fault is None or fault in FAULTS
     persisted = len(sys.argv) == 4 and sys.argv[3].startswith('persisted:')
-    sizes = [0] if fault is not None else [int(sys.argv[3][10:] if persisted else sys.argv[3])] if len(sys.argv) == 4 else [1, 10, 100]
+    pending = len(sys.argv) == 4 and (sys.argv[3] == 'pending' or sys.argv[3].startswith('pending:'))
+    sizes = [0] if fault is not None else [1, 10, 100] if len(sys.argv) == 3 or sys.argv[3] == 'pending' else [
+        int(sys.argv[3][10:] if persisted else sys.argv[3][8:] if pending else sys.argv[3])]
     assert fault is not None or all(size in (1, 10, 100) for size in sizes)
     observations = []
     for size in sizes:
-        observed = await population(raw, digest, scratch, size, fault, persisted)
+        observed = await population(raw, digest, scratch, size, fault, persisted, pending)
         if observations:
             assert observed['steps'] == observations[0]['steps'], 'Target counters changed with unrelated history'
         observations.append(observed)
