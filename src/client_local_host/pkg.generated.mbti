@@ -1253,6 +1253,8 @@ pub fn prepared_installed_managed_serialization_prefix_requirements(ClientInstal
 
 pub fn prepared_installed_managed_source_free_requirements(ClientInstalledManagedSourceFreePreparation) -> Array[Int64]
 
+pub fn prepared_installed_managed_whole_source_capacity(ClientInstalledManagedCapturePlan, Int) -> ClientInstalledWholeSourceCapacity?
+
 pub fn prepared_request_model_input_prefix(ClientInstalledManagedCapturePlan) -> Result[@execution_relation.GeneratedSequence, ClientInstalledManagedRunIssue]
 
 pub fn prepared_request_model_input_suffix(ClientInstalledManagedCapturePlan) -> Result[@execution_relation.GeneratedSequence?, ClientInstalledManagedRunIssue]
@@ -1520,6 +1522,8 @@ pub fn retire_installed_query_capture_ports(ClientInstalledManagedRun, @run_publ
 pub fn[I, S] retire_installed_source_material(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I) -> Result[Bool, @physical_resources.PreparationCapacityIssue]
 
 pub fn retire_installed_source_read(ClientInstalledSourceRead) -> Result[Unit, ClientInstalledSourceReadIssue]
+
+pub fn retire_installed_whole_source_ports(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Bool
 
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 

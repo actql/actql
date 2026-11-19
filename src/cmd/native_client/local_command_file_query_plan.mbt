@@ -54,6 +54,19 @@ fn[I] prepare_local_native_file_request_module(
   LocalCommandFileSources,
 ) raise ClientStop {
   let count = @run_host.prepared_client_acquisition_count(prepared)
+  if count != 1 {
+    let route = @local_values.select_installed_source_input(
+      prepared, request, 0, 0,
+    ).unwrap_or_else(() => stop("LocalSourceInputSelectionUnavailable"))
+    if route is @sourceviews.WholeInputRoute(_) {
+      return (
+        None,
+        prepare_local_native_whole_files_request_module(
+          control, parent, input, prepared, request, original, contracts, assets,
+        ),
+      )
+    }
+  }
   if count == 1 {
     let route = @local_values.select_installed_source_input(
       prepared, request, 0, 0,

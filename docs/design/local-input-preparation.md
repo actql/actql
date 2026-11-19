@@ -7282,7 +7282,15 @@ After selection, the same reservation grows for the ordered Source/Native
 locator/capacity/transport arrays and then the actual RowInput and Catalog
 evidence-member construction. Original schema/sequence/AST payloads remain
 under the original Plan-input debit; no numerical budget, tariff or Owner is
-introduced by the domain entry.
+introduced by the domain entry. Before entering that frontier, the original
+Plan reservation includes the fixed quotation-constructor controls selected
+by its immutable checked Source inventory. The member-observer quantity is
+precomputed from fixed representation units at module initialization; it
+does not allocate its own evaluator on the Request it is about to grow.
+Actual member-observation scratch is charged by the first domain grow,
+before observing Catalog members. A later reservation cannot retroactively
+fund an earlier quote evaluation. Both terms use the shared representation
+tariff and original reservation, never spare policy capacity.
 
 The complete-input constructor retains the original stage/input association,
 never a Query requirement derived from an unsupported shape. A real Query
@@ -7347,6 +7355,18 @@ physical read; the common captured-prefix loop performs its original checked
 Compute tail. Neither path opens another Run, reclaims a dispatch or uses a
 caller-provided skip index. Current cancellation, claim and no-resend rules
 remain at the original Journal/operation boundary.
+
+The complete-input branch uses that same relation-file Work engine. Its
+ordered physical inputs retain the exact Whole capacities stored in the same
+Plan; an indexed DATA accessor does not select another acquisition or grant
+a read. Each read uses the existing Whole input capture and guarded Whole
+Compute executor. Publication uses the complete ordered original Whole
+acquisition/evidence vector, not Query requirements or a first-file surrogate.
+The Whole-only DAG-port retirement entry checks the same owner, Plan, Request,
+Ledger and complete nonempty input inventory before dependent ports retire.
+The Query predicate remains separate. Neither entry acknowledges physical
+Source retirement; captures, managed reads and the original Work remain
+cleanup-owned until their actual existing release predicates succeed.
 
 Publication scans every actual retained Query capture under that acquisition's
 completion/measurement bounds, independent of smaller aggregate Result bounds.

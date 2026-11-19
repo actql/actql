@@ -150,6 +150,23 @@ fn[I] request_program_plan_quote(
       is Some(e) else {
       return Err(Policy)
     }
+    // The checked Program, never caller DATA, selects this fixed quotation
+    // scratch. It must be in the ORIGINAL Plan reservation: the first Whole
+    // domain grow cannot retroactively back its own layout evaluation.
+    let whole_quotation = if @checked.source_execution_count(
+        @strategy.graph_program(graph),
+      ) >
+      0 {
+      request_whole_source_initial_quotation_bytes
+    } else {
+      0L
+    }
+    guard @execution.checked_preparation_add_product(r, whole_quotation, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(e, whole_quotation, 1L)
+      is Some(e) else {
+      return Err(Policy)
+    }
     guard @publication_host.prepared_client_composed_infer_count(
         owner.compiled_program.unwrap(),
       )

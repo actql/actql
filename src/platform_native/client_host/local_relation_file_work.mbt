@@ -11,7 +11,7 @@ priv enum NativeRelationFileSources {
 priv enum NativeRelationFileExecutionPlan {
   QueryFileExecution(@local.ClientLocalRequirements)
   WholeFileExecution(@execution.RetainedRowDecodeLimits, Int, Int)
-  ManagedQueryFileExecution(@execution.RetainedRowDecodeLimits, Int, Int)
+  ManagedSourceFileExecution(@execution.RetainedRowDecodeLimits, Int, Int)
 }
 
 ///|
@@ -618,7 +618,8 @@ fn open_original_relation_file_work_selected(
           () => access.require_start_current(start) is Ok(_),
           require_live=Some(() => access.poll_execution_original(start)),
         )
-      ManagedQueryFileExecution(_, _, _) => return Err(unstarted(Configuration))
+      ManagedSourceFileExecution(_, _, _) =>
+        return Err(unstarted(Configuration))
       WholeFileExecution(_, _, _) => {
         // A complete Source is the original root's supplied input, not a
         // source-free root. Use the existing task loop that keeps

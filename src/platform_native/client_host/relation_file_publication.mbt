@@ -14,7 +14,11 @@ pub fn NativeClientRelationFileWork::publication_limits(
         self.prepared,
         max_payload_bytes,
       ).map(limits => (rows, limits))
-    (ManagedQueryFileExecution(rows, _, _), ManagedRelationFiles(owner, _)) =>
+    (ManagedSourceFileExecution(rows, _, _), ManagedRelationFiles(owner, _))
+    | (
+      ManagedSourceFileExecution(rows, _, _),
+      ManagedWholeRelationFiles(owner, _),
+    ) =>
       @local.installed_managed_publication_limits(
         owner,
         self.prepared,
@@ -32,7 +36,8 @@ pub fn NativeClientRelationFileWork::publication_entry_limits(
     QueryFileExecution(requirements) =>
       requirements.publication_entry_limits(self.prepared)
     WholeFileExecution(_, bridge, evidence)
-    | ManagedQueryFileExecution(_, bridge, evidence) => Some((bridge, evidence))
+    | ManagedSourceFileExecution(_, bridge, evidence) =>
+      Some((bridge, evidence))
   }
 }
 
@@ -51,7 +56,8 @@ fn NativeClientRelationFileWork::grow_publication_identity(
   }
   guard (match self.access.source {
       WholeRelationFile(_, _, _, owner, _, _)
-      | ManagedRelationFiles(owner, _) => Some(owner)
+      | ManagedRelationFiles(owner, _)
+      | ManagedWholeRelationFiles(owner, _) => Some(owner)
       _ => None
     })
     is Some(owner) &&
@@ -176,6 +182,11 @@ fn NativeClientRelationFileWork::publication_invocation_original(
   }
   if self.access.source is ManagedRelationFiles(owner, sources) {
     return self.managed_query_publication_invocation(
+      owner, sources, max_wire_bytes, max_nodes, max_depth,
+    )
+  }
+  if self.access.source is ManagedWholeRelationFiles(owner, sources) {
+    return self.managed_whole_publication_invocation(
       owner, sources, max_wire_bytes, max_nodes, max_depth,
     )
   }
@@ -426,7 +437,8 @@ pub fn NativeClientRelationFileWork::prepare_local_publication(
   guard results.length() == 1 &&
     (match self.access.source {
       WholeRelationFile(_, _, _, owner, _, _)
-      | ManagedRelationFiles(owner, _) => Some(owner)
+      | ManagedRelationFiles(owner, _)
+      | ManagedWholeRelationFiles(owner, _) => Some(owner)
       _ => None
     })
     is Some(owner) &&

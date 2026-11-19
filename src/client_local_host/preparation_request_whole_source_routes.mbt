@@ -39,15 +39,20 @@ fn[I] reserve_request_whole_source_routes(
     installed_direct_occurrences_layout(@strategy.graph_captured_prefix(graph))
     is Some((old_retained, old_execution)) &&
     installed_direct_occurrences_layout(bound)
-    is Some((new_retained, new_execution)) else {
+    is Some((new_retained, new_execution)) &&
+    request_whole_source_observer_bytes() is Some(observer) else {
     return Err(Preparation(Policy))
   }
   // Extend the SAME already-funded selector slot, rather than charge a second
   // selector or credit any completed scratch/GC/child return as free capacity.
-  let additional = Int64::max(
+  let selector = Int64::max(
     Int64::max(0L, new_retained - old_retained),
     Int64::max(0L, new_execution - old_execution),
   )
+  guard @execution.checked_preparation_add_product(selector, observer, 1L)
+    is Some(additional) else {
+    return Err(Preparation(Policy))
+  }
   owner.phase = Selecting
   match
     reserve_request_domain_graph_construction(

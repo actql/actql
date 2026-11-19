@@ -3,6 +3,7 @@ priv enum LocalCommandFileSources {
   Project(LocalProjectMockDeclarations)
   Whole(LocalProjectMockSourceDeclaration, LocalProjectMockRowBinding)
   Query(Array[@local_host.NativeRelationFileQuerySource])
+  WholeSet(Array[@local_host.NativeRelationFileWholeSource])
 }
 
 ///|

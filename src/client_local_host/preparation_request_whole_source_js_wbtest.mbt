@@ -5,6 +5,7 @@ let request_whole_source_document : String =
 ///|
 fn request_whole_source_fixture(
   current? : () -> Bool = () => true,
+  reserve_plan? : Bool = true,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -25,13 +26,72 @@ fn request_whole_source_fixture(
     @publication_host.client_standard_program_preparation_limits(),
   ).unwrap()
   continue_request_program_preparation(parent, input).unwrap() |> ignore
-  reserve_request_program_plan(parent, input).unwrap()
+  if reserve_plan {
+    reserve_request_program_plan(parent, input).unwrap()
+  }
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
     "same-original-whole-join",
   ).unwrap()
   (parent, input, prepared, request)
+}
+
+///|
+test "Request Whole quotation scratch is reserved before its first domain grow" {
+  // Independent fixed constructor inventory: H232/R104/W468 under the
+  // existing16/8/8 logical representation tariff, not a policy allowance.
+  assert_eq(request_whole_source_initial_quotation_bytes, 8288L)
+  for axis in 0..<2 {
+    for shortage in [0L, 1L] {
+      let (parent, input, _, _) = request_whole_source_fixture(
+        reserve_plan=false,
+      )
+      let (r, e) = request_program_plan_quote(parent, input).unwrap()
+      let (old_r, old_e) = @resources.preparation_capacity_working_extents(
+        parent.program_capacity.unwrap(),
+        input,
+      ).unwrap()
+      let additional = if axis == 0 { r - old_r } else { e - old_e }
+      assert_true(additional >= request_whole_source_initial_quotation_bytes)
+      let usage = @resources.ledger_usage(parent.ledger)
+      let limits = @resources.ledger_limits(parent.ledger)
+      let available = if axis == 0 {
+        limits.retained_bytes -
+        usage.held_bytes -
+        usage.reserved_retention_bytes
+      } else {
+        limits.execution_bytes - usage.reserved_execution_bytes
+      }
+      let blocker = @resources.reserve_capacity(
+        parent.ledger,
+        if axis == 0 {
+          available - additional + shortage
+        } else {
+          0L
+        },
+        if axis == 1 {
+          available - additional + shortage
+        } else {
+          0L
+        },
+      ).unwrap()
+      let result = reserve_request_program_plan(parent, input)
+      if shortage == 0L {
+        assert_true(result is Ok(_))
+        assert_true(parent.phase == ProgramPlanReserved)
+      } else {
+        assert_true(result is Err(Capacity(_)))
+        assert_true(parent.phase == ProgramPlanQuoted)
+      }
+      assert_true(parent.program_domain_quote is None)
+      assert_true(!parent.program_body_attempted)
+      @resources.settle_capacity(parent.ledger, blocker).unwrap()
+      abort_request_preparation_after_cleanup(parent).unwrap()
+      assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+      assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    }
+  }
 }
 
 ///|
@@ -93,7 +153,34 @@ test "Request Whole domain retains each original route before its plural Plan" {
   ).unwrap()
   assert_eq(plan.whole_sources.length(), 2)
   assert_eq(plan.captures.length(), 0)
-  abort_request_preparation_after_cleanup(parent).unwrap()
+  for index in 0..<capacities.length() {
+    assert_true(
+      physical_equal(
+        prepared_installed_managed_whole_source_capacity(plan, index).unwrap(),
+        capacities[index],
+      ),
+    )
+    assert_true(
+      prepared_installed_managed_capture_acquisition(plan, index) is None,
+    )
+  }
+  assert_true(
+    prepared_installed_managed_whole_source_capacity(plan, -1) is None,
+  )
+  assert_true(
+    prepared_installed_managed_whole_source_capacity(plan, capacities.length())
+    is None,
+  )
+  complete_request_capture_preparation(parent, input, plan).unwrap()
+  let owner = begin_request_capture_managed_run(parent, request).unwrap()
+  // No DAG was opened and no physical Source exists in this component. Port
+  // retirement may report that narrow absence; it must not accept Query's
+  // distinct purpose or retire/reissue the managed Run/request itself.
+  assert_true(owner.source_free_captured is None)
+  assert_true(retire_installed_whole_source_ports(owner, prepared, request))
+  assert_false(retire_installed_query_capture_ports(owner, prepared, request))
+  assert_true(owner.original is Some(_))
+  retire_installed_managed_run(owner).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
@@ -121,6 +208,7 @@ test "Request Whole domain exact and one-short keep the same original reservatio
         Int64::max(0L, new_r - old_r),
         Int64::max(0L, new_e - old_e),
       )
+      bytes += request_whole_source_observer_bytes().unwrap()
       bytes += request_whole_source_route_frontier_bytes(
         count,
         request_whole_source_route_scan_count(prepared, direct).unwrap(),

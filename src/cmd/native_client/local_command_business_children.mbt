@@ -587,6 +587,10 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
       )
     Query(sources) =>
       @local_host.native_relation_files_entry_read_capacity(sources, graph)
+    WholeSet(sources) =>
+      @local_host.native_relation_whole_files_entry_read_capacity(
+        sources, graph,
+      )
     Project(_) => None
   }).unwrap_or_else(() => stop("LocalSourceReadCapacityUnavailable"))
   let r = @execution.execution_capacity_retained_bytes(read_capacity)
@@ -615,6 +619,10 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
         )
       Query(sources) =>
         @local_host.native_relation_files_work_control_capacity(sources, graph)
+      WholeSet(sources) =>
+        @local_host.native_relation_whole_files_work_control_capacity(
+          sources, graph,
+        )
       Project(_) => None
     }).unwrap_or_else(() => stop("LocalSourceWorkCapacityUnavailable"))
     let admission = @local_values.installed_managed_preparation_admission_original(
@@ -671,6 +679,18 @@ fn LocalCommandBusinessPreparation::prepare_file_work_entry(
         managed,
         sources,
       )
+    WholeSet(sources) =>
+      self.host.prepare_original_managed_whole_relation_files_work_entry(
+        operation,
+        self.principal,
+        self.connection,
+        request,
+        prepared,
+        compiled,
+        definition,
+        managed,
+        sources,
+      )
     Project(_) => None
   }).unwrap_or_else(() => stop("LocalSourceWorkEntryUnavailable"))
   match outcome {
@@ -711,7 +731,7 @@ fn LocalCommandBusinessPreparation::open_file_work(
       self.host.open_original_whole_relation_file_source_work(
         operation, entry, occurrence, 16, 100000, local_utc_now,
       )
-    Some(Query(_)) =>
+    Some(Query(_) | WholeSet(_)) =>
       self.host.open_original_managed_relation_files_source_work(
         operation, entry, occurrence, 16, 100000, local_utc_now,
       )

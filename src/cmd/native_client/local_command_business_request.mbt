@@ -304,7 +304,8 @@ fn LocalCommandBusinessPreparation::adopt_request_run(
           },
         )
       }
-      Some(Whole(_, _) | Query(_)) => stop("LocalBusinessOriginalUnavailable")
+      Some(Whole(_, _) | Query(_) | WholeSet(_)) =>
+        stop("LocalBusinessOriginalUnavailable")
       None => {
         @local_values.prepare_request_program_module_body(
           parent,

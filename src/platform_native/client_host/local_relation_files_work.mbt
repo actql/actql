@@ -31,9 +31,13 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   current_time : () -> String,
 ) -> Result[NativeClientRelationFileWork, NativeClientRelationFileWorkFailure] {
   guard entry.access is Some(access) &&
-    access.source is ManagedRelationFiles(managed, inputs) &&
     entry.payload is Some((prepared, compiled, definition)) else {
     return entry.unavailable
+  }
+  let (managed, count) = match access.source {
+    ManagedRelationFiles(owner, inputs) => (owner, inputs.length())
+    ManagedWholeRelationFiles(owner, inputs) => (owner, inputs.length())
+    _ => return entry.unavailable
   }
   let ledger = match entry.take_entered_ledger(self, operation) {
     None => return entry.unavailable
@@ -47,11 +51,22 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   let sources : Array[@row_file.NativeRelationFileCapture] = []
   let pending : Ref[@row_file.NativeRelationFileFailure?] = Ref(None)
   let cleanup = () => {
-    if !@local.retire_installed_query_capture_ports(
-        managed,
-        prepared,
-        access.base.request,
-      ) {
+    let ports_closed = match access.source {
+      ManagedRelationFiles(_, _) =>
+        @local.retire_installed_query_capture_ports(
+          managed,
+          prepared,
+          access.base.request,
+        )
+      ManagedWholeRelationFiles(_, _) =>
+        @local.retire_installed_whole_source_ports(
+          managed,
+          prepared,
+          access.base.request,
+        )
+      _ => false
+    }
+    if !ports_closed {
       return false
     }
     if pending.val is Some(failure) {
@@ -76,7 +91,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   if quantum <= 0 ||
     max_rounds <= 0 ||
     !entry.arena.owns_only_control() ||
-    !managed_relation_file_sources_match(managed, prepared, request, inputs) ||
+    !managed_relation_file_originals_match(access.source, prepared, request) ||
     @strategy.graph_result_count(@host.prepared_client_graph(prepared)) != 1 ||
     @strategy.graph_program_has_effects(@host.prepared_client_graph(prepared)) ||
     @host.client_compiled_run_has_infers(compiled) {
@@ -116,27 +131,59 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   }
   // These are original Plan reads, not physical transport starts. The SAME
   // managed Owner retains each read before its tuple crosses this boundary.
-  for index in 0..<inputs.length() {
-    let input = inputs[index]
-    let (read, _, acquisition, capacity) = match
-      @local.begin_installed_managed_capture_source_read(
-        managed,
-        prepared,
-        request,
-        input.declaration,
-        index,
-      ) {
-      Err(issue) => return refuse(InstalledRun(issue))
-      Ok(value) => value
-    }
-    reads.push(read)
-    if !physical_equal(acquisition, input.acquisition) ||
-      !@local.installed_provider_row_capture_capacity_matches(
-        capacity,
-        acquisition,
-        input.provider.capacity(),
-      ) {
-      return refuse(Configuration)
+  for index in 0..<count {
+    match access.source {
+      ManagedRelationFiles(_, inputs) => {
+        let input = inputs[index]
+        let (read, _, acquisition, capacity) = match
+          @local.begin_installed_managed_capture_source_read(
+            managed,
+            prepared,
+            request,
+            input.declaration,
+            index,
+          ) {
+          Err(issue) => return refuse(InstalledRun(issue))
+          Ok(value) => value
+        }
+        reads.push(read)
+        if !physical_equal(acquisition, input.acquisition) ||
+          !@local.installed_provider_row_capture_capacity_matches(
+            capacity,
+            acquisition,
+            input.provider.capacity(),
+          ) {
+          return refuse(Configuration)
+        }
+      }
+      ManagedWholeRelationFiles(_, inputs) => {
+        let input = inputs[index]
+        let (read, original, acquisition, capacity) = match
+          @local.begin_installed_managed_whole_source_read_at(
+            managed,
+            prepared,
+            request,
+            input.declaration,
+            index,
+          ) {
+          Err(issue) => return refuse(InstalledRun(issue))
+          Ok(value) => value
+        }
+        reads.push(read)
+        if !physical_equal(capacity, input.capacity) ||
+          !physical_equal(
+            original,
+            @local.installed_whole_source_original(input.capacity),
+          ) ||
+          !@local.check_installed_whole_source_capacity(
+            capacity,
+            acquisition,
+            input.provider.capacity(),
+          ) {
+          return refuse(Configuration)
+        }
+      }
+      _ => return refuse(Configuration)
     }
   }
   let start = match access.claim() {
@@ -154,25 +201,45 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   }
   let captures : Array[@rows.RowSourceCapture] = []
   let captured_inputs : Array[@execution_query.CapturedInputSource] = []
-  for index in 0..<inputs.length() {
+  for index in 0..<count {
     match access.require_start_current(start) {
       Err(issue) => return refuse(OriginalOperation(issue))
       Ok(_) => ()
     }
-    let input = inputs[index]
-    let source = match
-      @row_file.prepare_native_managed_relation_file_query_capture(
-        entry.original.host,
-        execution,
-        input.declaration,
-        reads[index],
-        input.acquisition,
-        input.provider.capacity(),
-        occurrence,
-        input.selection,
-        input.limits,
-        prepared_provider=Some(input.provider),
-      ) {
+    let outcome = match access.source {
+      ManagedRelationFiles(_, inputs) => {
+        let input = inputs[index]
+        @row_file.prepare_native_managed_relation_file_query_capture(
+          entry.original.host,
+          execution,
+          input.declaration,
+          reads[index],
+          input.acquisition,
+          input.provider.capacity(),
+          occurrence,
+          input.selection,
+          input.limits,
+          prepared_provider=Some(input.provider),
+        )
+      }
+      ManagedWholeRelationFiles(_, inputs) => {
+        let input = inputs[index]
+        @row_file.prepare_native_managed_relation_file_input_capture(
+          entry.original.host,
+          execution,
+          input.declaration,
+          reads[index],
+          input.capacity,
+          input.provider.capacity(),
+          occurrence,
+          input.selection,
+          input.limits,
+          prepared_provider=Some(input.provider),
+        )
+      }
+      _ => return refuse(Configuration)
+    }
+    let source = match outcome {
       Err(failure) => {
         pending.val = Some(failure)
         return refuse(RelationFile(failure.issue()))
@@ -224,17 +291,31 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
   }
   let run = @driver.dispatch_driver_run(@builtin.configured_host_driver(setup))
   let computed = match
-    @local.execute_installed_captured_local_tasks_guarded(
-      managed,
-      prepared,
-      request,
-      setup,
-      captures,
-      quantum,
-      max_rounds,
-      () => access.require_start_current(start) is Ok(_),
-      require_live=Some(() => access.poll_execution_original(start)),
-    ) {
+    (match access.source {
+      ManagedRelationFiles(_, _) =>
+        @local.execute_installed_captured_local_tasks_guarded(
+          managed,
+          prepared,
+          request,
+          setup,
+          captures,
+          quantum,
+          max_rounds,
+          () => access.require_start_current(start) is Ok(_),
+          require_live=Some(() => access.poll_execution_original(start)),
+        )
+      ManagedWholeRelationFiles(_, _) =>
+        @local.execute_installed_whole_source_values_guarded(
+          managed,
+          prepared,
+          request,
+          setup,
+          quantum,
+          max_rounds,
+          () => access.require_start_current(start) is Ok(_),
+        )
+      _ => return refuse(Configuration)
+    }) {
     Err(failure) =>
       return Err(
         relation_file_work_failure(
@@ -280,7 +361,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     run,
     source_usage,
     execution: computed,
-    plan: ManagedQueryFileExecution(rows, entries, evidence_entries),
+    plan: ManagedSourceFileExecution(rows, entries, evidence_entries),
     entry,
     output_bridge: None,
     capture_times: Some((started, completed)),

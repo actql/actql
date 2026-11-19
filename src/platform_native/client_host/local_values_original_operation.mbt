@@ -8,6 +8,10 @@ priv enum NativeLocalWorkSourceOriginal {
     @local.ClientInstalledManagedRun,
     Array[NativeRelationFileQuerySource]
   )
+  ManagedWholeRelationFiles(
+    @local.ClientInstalledManagedRun,
+    Array[NativeRelationFileWholeSource]
+  )
   RelationFile(
     @rows.RowDeclaration,
     @planning.QueryRequirement,
@@ -177,7 +181,8 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
       })
     RelationFile(_, _, _)
     | WholeRelationFile(_, _, _, _, _, _)
-    | ManagedRelationFiles(_, _) =>
+    | ManagedRelationFiles(_, _)
+    | ManagedWholeRelationFiles(_, _) =>
       captured.with_current_adoption_material_in_original_read((
         host,
         material,
@@ -596,6 +601,30 @@ fn NativeLocalValuesOriginalAccess::source_allowed_in_original_read(
             resource: @rows.row_query_acquisition_target_resource(
               source.acquisition,
             ),
+            operation: "read",
+          })
+          is Ok(@authorization.Allow(_)) else {
+          return false
+        }
+      }
+      !sources.is_empty()
+    }
+    ManagedWholeRelationFiles(_, sources) => {
+      for source in sources {
+        let original = @local.installed_whole_source_original(source.capacity)
+        let acquisition = @local.installed_whole_source_acquisition(
+          source.capacity,
+        )
+        guard @rows.check_row_input_acquisition_original(
+            acquisition,
+            source.declaration,
+            original,
+          )
+          is Ok(_) &&
+          captured.operation_account(host, material, {
+            principal: self.principal,
+            connection: source.declaration.connector_id,
+            resource: @rows.row_input_acquisition_target_resource(acquisition),
             operation: "read",
           })
           is Ok(@authorization.Allow(_)) else {

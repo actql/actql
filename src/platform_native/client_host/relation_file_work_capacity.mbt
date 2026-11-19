@@ -291,9 +291,10 @@ pub fn native_relation_files_work_control_capacity(
     @execution.preparation_representation_cost({
       // Read/acquisition tuples, option/Result handoffs and per-slot Source
       // wrappers; the fixed partial failure/capture/clock/cleanup closures.
-      record_headers: 32L + 12L * count.to_int64(),
-      reference_slots: 64L + 20L * count.to_int64(),
-      scalar_words: 48L + 12L * count.to_int64(),
+      // The same managed-owner/count route pair adds H1/R1/W1.
+      record_headers: 33L + 12L * count.to_int64(),
+      reference_slots: 65L + 20L * count.to_int64(),
+      scalar_words: 49L + 12L * count.to_int64(),
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })

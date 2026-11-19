@@ -38019,7 +38019,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "adb026517de7fdb12f35b4252125f18a1f53232847e9b462afc7d0646e1d7e81",
+      "sha256": "27ebcad213c37016ec8b7697f4a6fc02ca634070423323f782850afc75e1a88f",
       "exports": [],
       "operations": [
         {
@@ -38077,6 +38077,10 @@
         {
           "name": "prepared_installed_managed_capture_requirements",
           "declaration": "prepared_installed_managed_capture_requirements ( original : ClientInstalledManagedCapturePlan , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "prepared_installed_managed_whole_source_capacity",
+          "declaration": "prepared_installed_managed_whole_source_capacity ( original : ClientInstalledManagedCapturePlan , occurrence : Int , ) - > ClientInstalledWholeSourceCapacity ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -38337,6 +38341,74 @@
               {
                 "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
                 "anchor": "test \"managed keyed Host retains the original configuration and rejects a foreign Ledger\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepared_installed_managed_whole_source_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
               }
             ]
           }
@@ -52137,7 +52209,7 @@
           "exports": []
         }
       ],
-      "sha256": "9839aeb37a3a902fad41db8157958305c11c1a5d899cb600eea176cc1d84573f",
+      "sha256": "3fad7bdbd63ee81e18151f8728b937238de55aa4b990d79775d335b4b664817e",
       "exports": [],
       "operations": [
         {
@@ -102337,7 +102409,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "af18c0fc91c4b2d6bb67fdbc9e74002ff9775c7814c32334cf7e93e805e04952",
+      "sha256": "67da869657eff336ea1565ed1fa231c9d62f9bf6ab677daeebc2e91f2e428bd2",
       "exports": [],
       "operations": [
         {
@@ -103832,7 +103904,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "32a54db54a4aa4b843400e96ea441344d8c36796f9f1d3829cb308bb7fadea1e",
+      "sha256": "0b9a5ff1a98258b7a89ad9321589948cb1b04e48afd23ae9ebf419afe577ea1d",
       "exports": [],
       "operations": [
         {
@@ -110247,7 +110319,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_file_query_plan.mbt",
-      "sha256": "2f6b2fd32c5358e834d7c8d9515ba79abf7b7ea61ba952bce323f4009746d6c1",
+      "sha256": "ded1937260fa272e3ab430e5417058c7d34e66807e70f8ea58339355e909e58b",
       "exports": [],
       "operations": [
         {
@@ -110343,7 +110415,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "b985ffccea58c0775ea238dab17994ac946b1255029eab85159d66072f710abc",
+      "sha256": "0e796d890621824db19b5ebd92e234ba40cec69dbc7f59f98094c0ad7187ba35",
       "exports": [],
       "operations": [
         {
@@ -110883,7 +110955,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "b3aa784b98a6b9d725a6547497420b14c73f8c037ed4887f09e248be077ce319",
+      "sha256": "52ab3fa07ce74f8f2b4ce5733666cc182c7db3e11e3502850e9a899f4f84d825",
       "exports": [],
       "operations": [
         {
@@ -111060,7 +111132,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_file_entry.mbt",
-      "sha256": "0b5c0aa617f7384b48ec5ed2caf894fc6c22d9948cd68e35bcbcceb8871f67b0",
+      "sha256": "16eee7069f7e02b69d57759af0f3e19bdd9aab37481cbfa0d530dec9a379ab7d",
       "exports": [],
       "operations": [
         {
@@ -111186,7 +111258,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_file_work.mbt",
-      "sha256": "12f87609ec85ab59c39e65df057f31afe8967abfb11259a7e71844a9ff8a9af2",
+      "sha256": "3b1511f06a7e82d5e21a93b27cbc229b36e1c1d7d4307708ceb2f0cff9eb0d34",
       "exports": [],
       "operations": [
         {
@@ -111322,7 +111394,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_values_original_operation.mbt",
-      "sha256": "169115f7a554722410f34d5da589539f086e995d9758b0c2b8478e8262ea4fae",
+      "sha256": "a8a3f0eff3d01e426de2aaf3a0d6949fbbc174812b2d6b03ddf801f9f1c7b5a2",
       "exports": [],
       "operations": [
         {
@@ -111473,7 +111545,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_publication.mbt",
-      "sha256": "7a17d4b62d1aa37e0b9273b0f2412c67e553f3c2c96792fd806ab54f57e0ebd7",
+      "sha256": "6e519c85f497e373c40efc2176f5e84c9f84f128955fb888cc38a1cee3650399",
       "exports": [],
       "operations": [
         {
@@ -111589,7 +111661,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_result_export.mbt",
-      "sha256": "18dfde81bdfe73c3d77e108c8346c3a96022ee911d7cfe5dbf425974f6ed7ba4",
+      "sha256": "b263a36481456b402b2e1e072428da83707fc017ce4dd4bb38aa1e9de5622d95",
       "exports": [],
       "operations": [
         {
@@ -111680,7 +111752,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_work_capacity.mbt",
-      "sha256": "7793c578a26a20d4b160f45d71d595b62b977ed9c86c93fdf0f5534fb803cff0",
+      "sha256": "b72919b93b74b07b6af9fd30fd8feb5dbbf43aa38f522ca74798f1709bf83880",
       "exports": [],
       "operations": [
         {
@@ -112249,7 +112321,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_whole_source_routes.mbt",
-      "sha256": "2bf05051584c0fab5d5ac35e69c49200d194d269a36178d1c2293181ac13e178",
+      "sha256": "0e3397ed73b35c560a35facf3016d5232812d227fde2ccb046740478438c9dfc",
       "exports": [],
       "operations": [
         {
@@ -112443,6 +112515,607 @@
           "operations": [
             "<module>",
             "[I]reserve_request_whole_source_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/execute_source_free_tasks.mbt",
+      "sha256": "698f01a8ccb014bcb0bcbecd2c84e1b42e5c38de6058cbf12cc91dd82c9391a9",
+      "exports": [],
+      "operations": [
+        {
+          "name": "captured_local_tasks_current",
+          "declaration": "captured_local_tasks_current ( run : @ strategy . CapturedDAG , capture : @ row_source_host . RowSourceCapture , requirements : ClientLocalRequirements , ) - > Bool"
+        },
+        {
+          "name": "close_local_values_tasks",
+          "declaration": "close_local_values_tasks ( run : @ strategy . CapturedDAG , tasks : Array [ LocalValuesTaskExecution ? ] , ) - > Bool"
+        },
+        {
+          "name": "execute_captured_local_tasks_guarded",
+          "declaration": "execute_captured_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , capture : @ row_source_host . RowSourceCapture , requirements : ClientLocalRequirements , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
+        },
+        {
+          "name": "execute_installed_captured_local_tasks_guarded",
+          "declaration": "execute_installed_captured_local_tasks_guarded ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , captures : Array [ @ row_source_host . RowSourceCapture ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
+        },
+        {
+          "name": "execute_installed_whole_source_values_guarded",
+          "declaration": "execute_installed_whole_source_values_guarded ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , ) - > Result [ LocalValuesExecution , LocalValuesExecutionFailure ]"
+        },
+        {
+          "name": "execute_local_tasks_guarded",
+          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , retained_effect ? : @ strategy . CapturedEffectRunDAG ?"
+        },
+        {
+          "name": "execute_retained_effect_local_tasks_guarded",
+          "declaration": "execute_retained_effect_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , captured : @ strategy . CapturedEffectRunDAG , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
+        },
+        {
+          "name": "execute_source_free_local_tasks_guarded",
+          "declaration": "execute_source_free_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ? : ( ( ) - > Bool ) ?"
+        },
+        {
+          "name": "installed_captured_local_tasks_current",
+          "declaration": "installed_captured_local_tasks_current ( owner : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedDAG , captures : Array [ @ row_source_host . RowSourceCapture ] , ) - > Bool"
+        },
+        {
+          "name": "installed_captured_local_tasks_nominal",
+          "declaration": "installed_captured_local_tasks_nominal ( owner : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , run : @ strategy . CapturedDAG , captures : Array [ @ row_source_host . RowSourceCapture ] , ) - > Bool"
+        },
+        {
+          "name": "retire_installed_capture_ports",
+          "declaration": "retire_installed_capture_ports ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , whole : Bool , ) - > Bool"
+        },
+        {
+          "name": "retire_installed_query_capture_ports",
+          "declaration": "retire_installed_query_capture_ports ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Bool"
+        },
+        {
+          "name": "retire_installed_whole_source_ports",
+          "declaration": "retire_installed_whole_source_ports ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Plan owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captured_local_tasks_current",
+            "close_local_values_tasks",
+            "execute_captured_local_tasks_guarded",
+            "execute_installed_captured_local_tasks_guarded",
+            "execute_installed_whole_source_values_guarded",
+            "execute_local_tasks_guarded",
+            "execute_retained_effect_local_tasks_guarded",
+            "execute_source_free_local_tasks_guarded",
+            "installed_captured_local_tasks_current",
+            "installed_captured_local_tasks_nominal",
+            "retire_installed_capture_ports",
+            "retire_installed_query_capture_ports",
+            "retire_installed_whole_source_ports"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_whole_source_observer.mbt",
+      "sha256": "29f0a6a489ff544a0968126f1d8b6577c8a2ffb8f2b497f82c1303e201485652",
+      "exports": [],
+      "operations": [
+        {
+          "name": "request_whole_source_observer_bytes",
+          "declaration": "request_whole_source_observer_bytes ( ) - > Int64 ?"
+        },
+        {
+          "name": "request_whole_source_observer_inventory_bytes",
+          "declaration": "request_whole_source_observer_inventory_bytes ( ) - > Int64 ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Request preparation and installed Plan owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "request_whole_source_observer_bytes",
+            "request_whole_source_observer_inventory_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/cmd/native_client/local_command_whole_files_plan.mbt",
+      "sha256": "4f95177a8376f03eafa704553fc75902bf58383dda66e2869785ae3642255a96",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]prepare_local_native_whole_files_request_module",
+          "declaration": "[ I ] prepare_local_native_whole_files_request_module ( control : LocalCommandPreparationOriginal , parent : @ local_values . ClientRequestPreparation [ I ] , input : I , prepared : @ run_host . PreparedClientProgram , request : @ run_host . ClientRequestIdentity , original : LocalProjectMockDeclarations , contracts : @ local_values . ClientInstalledSequenceContracts , assets : @ run_host . ClientLocalProductAssets , ) - > LocalCommandFileSources raise ClientStop"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]prepare_local_native_whole_files_request_module"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/local_relation_whole_files_entry.mbt",
+      "sha256": "4e0173e0a3b60a2590eddc3afb7f28bd9892117b8774a84d6c65fd662a2c9fdc",
+      "exports": [],
+      "operations": [
+        {
+          "name": "managed_relation_file_originals_match",
+          "declaration": "managed_relation_file_originals_match ( original : NativeLocalWorkSourceOriginal , prepared : @ host . PreparedClientProgram , request : @ host . ClientRequestIdentity , ) - > Bool"
+        },
+        {
+          "name": "managed_whole_relation_file_sources_match",
+          "declaration": "managed_whole_relation_file_sources_match ( managed : @ local . ClientInstalledManagedRun , prepared : @ host . PreparedClientProgram , request : @ host . ClientRequestIdentity , sources : Array [ NativeRelationFileWholeSource ] , ) - > Bool"
+        },
+        {
+          "name": "NativeLocalHostConnection::prepare_original_managed_whole_relation_files_work_entry",
+          "declaration": "NativeLocalHostConnection : : prepare_original_managed_whole_relation_files_work_entry ( self : NativeLocalHostConnection , operation : NativeLocalStoreOperation , principal : String , connection : String , request : @ host . ClientRequestIdentity , prepared : @ host . PreparedClientProgram , compiled : @ host . ClientCompiledRun , definition : @ publication . PublicationContract , managed : @ local . ClientInstalledManagedRun , inputs : Array [ NativeRelationFileWholeSource ] , ) - > Result [ NativeClientRelationFileWorkEntry , NativeClientRelationFileWorkFailure , ] ?"
+        },
+        {
+          "name": "snapshot_managed_whole_relation_file_sources",
+          "declaration": "snapshot_managed_whole_relation_file_sources ( inputs : Array [ NativeRelationFileWholeSource ] , ) - > Array [ NativeRelationFileWholeSource ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "managed_relation_file_originals_match",
+            "managed_whole_relation_file_sources_match",
+            "NativeLocalHostConnection::prepare_original_managed_whole_relation_files_work_entry",
+            "snapshot_managed_whole_relation_file_sources"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/relation_whole_files_publication.mbt",
+      "sha256": "30daaee653a9acf9b1586486e4a421cdd1d7ba373a6876b5bf32ba1f539ce294",
+      "exports": [],
+      "operations": [
+        {
+          "name": "NativeClientRelationFileWork::managed_whole_publication_invocation",
+          "declaration": "NativeClientRelationFileWork : : managed_whole_publication_invocation ( self : NativeClientRelationFileWork , owner : @ local . ClientInstalledManagedRun , sources : Array [ NativeRelationFileWholeSource ] , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "NativeClientRelationFileWork::managed_whole_publication_invocation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native finite Query Source continuation"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/platform_native/client_host/relation_whole_files_work_capacity.mbt",
+      "sha256": "3f5f7143cb25af7436ef19d29a4772584877cce6864e86d354b16b66f52b074c",
+      "exports": [],
+      "operations": [
+        {
+          "name": "native_relation_whole_files_entry_read_capacity",
+          "declaration": "native_relation_whole_files_entry_read_capacity ( sources : Array [ NativeRelationFileWholeSource ] , graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "native_relation_whole_files_work_control_capacity",
+          "declaration": "native_relation_whole_files_work_control_capacity ( sources : Array [ NativeRelationFileWholeSource ] , graph : @ strategy . CheckedDAG , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Native Local command, relation-file Work and physical Runtime owners",
+      "referenceQualification": "Source contract and focused compiler/component assertions only; not installed Native I/O/stop/Saved or runtime acceptance.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "native_relation_whole_files_entry_read_capacity",
+            "native_relation_whole_files_work_control_capacity"
           ],
           "exports": [],
           "attributes": {

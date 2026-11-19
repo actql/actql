@@ -673,6 +673,27 @@ pub fn retire_installed_query_capture_ports(
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Bool {
+  retire_installed_capture_ports(owner, prepared, request, false)
+}
+
+///|
+/// Retire only the SAME complete-input DAG ports before original physical
+/// Source children return. This is not a Source/reader/Host retirement ACK.
+pub fn retire_installed_whole_source_ports(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> Bool {
+  retire_installed_capture_ports(owner, prepared, request, true)
+}
+
+///|
+fn retire_installed_capture_ports(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  whole : Bool,
+) -> Bool {
   guard owner.original is Some(original) &&
     physical_equal(original, owner) &&
     owner.captured_preparation is Some(plan) &&
@@ -682,8 +703,15 @@ pub fn retire_installed_query_capture_ports(
     owner.preparation is Some(PureManaged(_, original_prepared)) &&
     physical_equal(original_prepared, prepared) &&
     !@strategy.graph_program_has_effects(plan.graph) &&
-    plan.whole_sources.is_empty() &&
-    !plan.captures.is_empty() &&
+    (if whole {
+      plan.captures.is_empty() &&
+      !plan.whole_sources.is_empty() &&
+      plan.direct_occurrences is Some(direct) &&
+      @publication_host.client_direct_acquisition_occurrence_count(direct) ==
+      plan.whole_sources.length()
+    } else {
+      plan.whole_sources.is_empty() && !plan.captures.is_empty()
+    }) &&
     !owner.source_free_opening else {
     return false
   }
