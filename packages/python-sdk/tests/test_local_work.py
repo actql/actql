@@ -10,6 +10,65 @@ from actql_sdk._local_work import OriginalLocalWork
 
 
 class LocalWorkTests(unittest.TestCase):
+    def test_control_turn_withdrawn_before_worker_entry_cannot_lose_a_wakeup(self):
+        finished = Event()
+        owner = object()
+        work = OriginalLocalWork(lambda: (work._yield_to_control(), finished.set()), owner=owner)
+        with work._control_turn():
+            self.assertEqual(work._control_waiters, 1)
+        work.start()
+        self.assertTrue(finished.wait(1))
+        asyncio.run(asyncio.wait_for(work.wait(), 2))
+        self.assertIs(work._owner, owner)
+        self.assertEqual(work._control_waiters, 0)
+
+    def test_worker_waits_for_both_original_control_turns_and_base_exception_withdraws(self):
+        entered, finished = Event(), Event()
+        owner = object()
+
+        def invoke():
+            entered.set()
+            work._yield_to_control()
+            finished.set()
+
+        work = OriginalLocalWork(invoke, owner=owner)
+        original = BaseException('original control failure')
+        with self.assertRaises(BaseException) as failed:
+            with work._control_turn():
+                with work._control_turn():
+                    work.start()
+                    self.assertTrue(entered.wait(1))
+                    self.assertFalse(finished.wait(0.02))
+                    self.assertEqual(work._control_waiters, 2)
+                self.assertFalse(finished.wait(0.02))
+                self.assertEqual(work._control_waiters, 1)
+                raise original
+        self.assertIs(failed.exception, original)
+        self.assertTrue(finished.wait(1))
+        asyncio.run(asyncio.wait_for(work.wait(), 2))
+        self.assertIs(work._owner, owner)
+        self.assertEqual(work._control_waiters, 0)
+
+    def test_worker_failure_keeps_original_owner_and_cause_after_control_handoff(self):
+        original = RuntimeError('original producer failure')
+        owner = object()
+        entered = Event()
+
+        def invoke():
+            entered.set()
+            work._yield_to_control()
+            raise original
+
+        work = OriginalLocalWork(invoke, owner=owner)
+        with work._control_turn():
+            work.start()
+            self.assertTrue(entered.wait(1))
+        with self.assertRaises(RuntimeError) as failed:
+            asyncio.run(asyncio.wait_for(work.wait(), 2))
+        self.assertIs(failed.exception, original)
+        self.assertIs(work._owner, owner)
+        self.assertEqual(work._control_waiters, 0)
+
     def test_original_invocation_runs_once_and_copies_have_no_custody(self):
         invoke = Mock()
         work = OriginalLocalWork(invoke)

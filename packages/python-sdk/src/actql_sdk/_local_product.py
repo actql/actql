@@ -6,11 +6,12 @@ No bootstrap/profile/epoch result is an admission or execution permission.
 """
 from __future__ import annotations
 
-from collections.abc import Callable
-from contextlib import ExitStack
+from collections.abc import AsyncIterator, Callable
+from contextlib import ExitStack, asynccontextmanager, nullcontext
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import partial
+import asyncio
 import hashlib
 import os
 import secrets
@@ -351,6 +352,23 @@ class InstalledLocalHost:
         if self._original is not self:
             raise ValueError('Copied installed Local Host')
 
+    @asynccontextmanager
+    async def _operation_lock(self, work: OriginalLocalWork | None = None) -> AsyncIterator[None]:
+        """Wait before acquisition, then retain this thread's original RLock.
+
+        No queued callback or executor can acquire custody after cancellation.
+        The synchronous operation body never awaits while holding this lock.
+        """
+        with work._control_turn() if work is not None else nullcontext():
+            lock = self._core._lock
+            while not lock.acquire(blocking=False):
+                await asyncio.sleep(0.001)
+            try:
+                self._active()
+                yield
+            finally:
+                lock.release()
+
     async def open(self, operation: str, payload: bytes) -> httpx.Response:
         self._active()
         body = _object(payload, 1048576)
@@ -362,7 +380,8 @@ class InstalledLocalHost:
             # Reference equality locates the retained original only. Core still
             # checks this operation's actual Account, journal and Run originals.
             reference = wire_bytes(body.get('ref'))  # type: ignore[no-untyped-call]
-            with self._core._lock:
+            async with self._operation_lock(active if operation in (
+                    'status', 'cancel', 'lookup-cancellation') else None):
                 original = None
                 for held in self._public_run_references:
                     if held.run is active._owner:
@@ -370,21 +389,27 @@ class InstalledLocalHost:
                         if self._core._inputs[held.source.ticket].payload == reference:
                             original = held
                             break
-            if original is None:
-                raise ValueError('Original Local physical invocation is still active')
+                if original is None:
+                    raise ValueError('Original Local physical invocation is still active')
+                if operation in ('status', 'cancel', 'lookup-cancellation'):
+                    with self._core._borrow_work_operation(active) as borrowed:
+                        if borrowed:
+                            return self._open_operation_locked(operation, body)
             if operation in ('read', 'wait', 'delivery-attempt'):
                 await active.wait_stopped()
             elif operation in ('status', 'cancel', 'lookup-cancellation'):
-                with self._core._borrow_work_operation(active) as borrowed:
-                    if borrowed:
-                        return await self._open_operation(operation, body)
                 await active.wait_stopped()
             else:
                 raise ValueError('Original Local physical invocation is still active')
-        with self._core._host_operation():
-            return await self._open_operation(operation, body)
+        async with self._operation_lock():
+            with self._core._host_operation():
+                return self._open_operation_locked(operation, body)
 
     async def _open_operation(self, operation: str, body: dict[str, Any]) -> httpx.Response:
+        async with self._operation_lock():
+            return self._open_operation_locked(operation, body)
+
+    def _open_operation_locked(self, operation: str, body: dict[str, Any]) -> httpx.Response:
         """Use the existing SDK's closed operation wire without HTTP or a token.
 
         Profile/admission and completed original Run observations use their
@@ -2152,14 +2177,7 @@ class InstalledLocalHost:
                 not any(original is publisher for original in self._publishers)):
             raise ValueError('Foreign original Local task/publication custody')
         def step(work: Callable[[], _T]) -> _T:
-            # Each quantum has its own real current reader. No transaction or
-            # Core lock spans a later quantum or a same-Run control operation.
-            with self._core._lock:
-                self._runs._compute(compute)
-                values: list[_T] = []
-                installation.binding.inspect(lambda current: values.append(
-                    self._checked_original_read(current, work)))
-                return values[0]
+            return self._original_compute_read_step(compute, work)
 
         owned: list[_Task] = [] if retained_tasks is None else retained_tasks
         try:
@@ -2222,6 +2240,27 @@ class InstalledLocalHost:
                     if after < 0 or before >= 0 and after <= before:
                         break
 
+    def _original_compute_read_step(self, compute: _SourceFreeCompute,
+                                     work: Callable[[], _T]) -> _T:
+        """One same-owner quantum; its current/Store reader ends before unlock.
+
+        Original Compute/export/publication cursors remain owned between calls.
+        No guest view, current frame or reusable permission leaves this unit.
+        """
+        with self._core._lock:
+            installation = self._active()
+            self._runs._compute(compute)
+            values: list[_T] = []
+            installation.binding.inspect(lambda current: values.append(
+                self._checked_original_read(current, work)))
+            retained = getattr(self._core, '_host_retained_work', None)
+            physical = retained[0] if retained is not None and retained[0]._owner is compute.start.run else None
+        # A control waiter cannot observe this unit's guest/current frame.
+        # Only the actual retained worker yields, without any Core/Store lock.
+        if physical is not None:
+            physical._yield_to_control()
+        return values[0]
+
     def _capture_original_results(self, compute: _SourceFreeCompute, preflight: _Output,
                                   results: tuple[_ResultExport, ...]) -> _Output:
         """Finish original exports and Receipt; Store commit/ACK is separate.
@@ -2237,33 +2276,36 @@ class InstalledLocalHost:
                 not any(original is preflight for original in self._publication_preflights) or
                 any(not any(original is result for original in self._result_exports) for result in results)):
             raise ValueError('Foreign original Local Result/publication custody')
-        with self._core._lock:
-            self._runs._compute(compute)
-            for result in results:
-                def prepare_result(current: _Output) -> None:
-                    def checked(work: Callable[[], _T]) -> _T:
-                        return self._checked_original_read(current, work)
-                    checked(lambda: self._core.start_result_export(result))
-                    while not checked(lambda: self._core.feed_result_export(result, _EXECUTION_WORK_QUANTUM)):
-                        pass
-                    while not checked(lambda: self._core.advance_result_export(
-                            result, _EXECUTION_WORK_QUANTUM)).ready:
-                        pass
-                    checked(lambda: self._core.finish_result_export_preparation(result))
-                installation.binding.inspect(prepare_result)
-                while True:
+        def step(work: Callable[[], _T]) -> _T:
+            return self._original_compute_read_step(compute, work)
+
+        for result in results:
+            step(lambda: self._core.start_result_export(result))
+            while not step(lambda: self._core.feed_result_export(result, _EXECUTION_WORK_QUANTUM)):
+                pass
+            while not step(lambda: self._core.advance_result_export(
+                    result, _EXECUTION_WORK_QUANTUM)).ready:
+                pass
+            step(lambda: self._core.finish_result_export_preparation(result))
+            while True:
+                def reserve_chunk() -> _Output:
                     chunk = self._reserve(lambda: self._core.reserve_result_chunk(result, cleanup=lambda: True))
                     self._result_chunks.append(chunk)
-                    final: list[bool] = []
-                    def produce_chunk(current: _Output) -> None:
-                        self._checked_original_read(current, lambda: self._core.produce_result_chunk(chunk))
-                        final.append(self._checked_original_read(current,
-                            lambda: self._core.result_chunk_finished(chunk)))
-                    installation.binding.inspect(produce_chunk)
+                    return chunk
+                chunk = step(reserve_chunk)
+
+                step(lambda: self._core.produce_result_chunk(chunk))
+                final = step(lambda: self._core.result_chunk_finished(chunk))
+                # Cleanup is a separate same-token boundary, not fresh normal
+                # work/current admission. A declined return retains the chunk.
+                with self._core._lock:
                     if not self._core.close_result_chunk(chunk):
                         raise LocalProductCleanupPending(self)
                     self._result_chunks.remove(chunk)
-                    if final[0]: break
+                if final:
+                    break
+
+        def reserve_publication() -> _Output:
             source = next(original for owner, original in self._source_free_invocations if owner is compute)
             # Preserve the existing private export limits, not a new unlimited
             # scan or a broader admitted profile. Core shares this work budget
@@ -2276,15 +2318,14 @@ class InstalledLocalHost:
                 source, request, cleanup=lambda: True))
             self._publications.append(publication)
             self._run_publications.append((compute.start.run, publication))
-            def capture(current: _Output) -> None:
-                def checked(work: Callable[[], _T]) -> _T:
-                    return self._checked_original_read(current, work)
-                checked(lambda: self._core.prepare_publication(publication, configuration.handle))
-                while not checked(lambda: self._core.advance_publication(
-                        publication, configuration.handle, _PUBLICATION_WORK_QUANTUM)).ready:
-                    pass
-                checked(lambda: self._core.finish_publication(publication, configuration.handle))
-            installation.binding.inspect(capture)
+            return publication
+        publication = step(reserve_publication)
+        step(lambda: self._core.prepare_publication(publication, configuration.handle))
+        while not step(lambda: self._core.advance_publication(
+                publication, configuration.handle, _PUBLICATION_WORK_QUANTUM)).ready:
+            pass
+        step(lambda: self._core.finish_publication(publication, configuration.handle))
+        with self._core._lock:
             if not self._core.retire_publication_output(publication):
                 raise LocalProductCleanupPending(self)
             return publication
