@@ -6,6 +6,7 @@ let request_whole_source_document : String =
 fn request_whole_source_fixture(
   current? : () -> Bool = () => true,
   reserve_plan? : Bool = true,
+  text? : String = request_whole_source_document,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -14,7 +15,7 @@ fn request_whole_source_fixture(
 ) raise {
   let declaration = pure_provider_declaration()
   let (parent, child, _, input) = registration_parent_fixture(
-    text=request_whole_source_document,
+    text~,
     environment=Some(pure_provider_environment(declaration)),
     current~,
   )
@@ -35,6 +36,41 @@ fn request_whole_source_fixture(
     "same-original-whole-join",
   ).unwrap()
   (parent, input, prepared, request)
+}
+
+///|
+test "Request Whole inputs preserve distinct input coordinates sharing one Compute" {
+  let text =
+    #|{"version":"actql/0.1","id":"same-task-whole-join","stages":[{"id":"joined","inputs":{"left":{"connector":"pure-provider","resource":"records"},"right":{"connector":"pure-provider","resource":"records"}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"},"max_output_rows":4},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"rows":{"from":{"stage":"joined","result":"rows"}}}}
+  let (parent, input, prepared, request) = request_whole_source_fixture(text~)
+  let (direct, sources) = reserve_request_whole_source_construction(
+    parent, input, request,
+  ).unwrap()
+  assert_eq(sources.length(), 2)
+  let left = @publication_host.client_direct_acquisition_occurrence_at(
+    direct, 0,
+  ).unwrap()
+  let right = @publication_host.client_direct_acquisition_occurrence_at(
+    direct, 1,
+  ).unwrap()
+  assert_eq(left.0, right.0)
+  assert_eq(left.2, right.2)
+  assert_true(left.1 != right.1)
+  for index in 0..<sources.length() {
+    let (stage, source_index, _) = @publication_host.client_direct_acquisition_occurrence_at(
+      direct, index,
+    ).unwrap()
+    assert_true(
+      @publication_host.client_source_acquisition_matches_program(
+        prepared,
+        stage,
+        source_index,
+        sources[index],
+      ),
+    )
+  }
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|
