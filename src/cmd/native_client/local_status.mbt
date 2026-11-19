@@ -7,16 +7,7 @@ fn normalize_native_status_arguments(
 ) -> Unit raise ClientStop {
   guard matches.subcommand is Some(("status", child)) else { return }
   ignore(local_status_watch_options(child))
-  guard optional(child, "run") is Some(id) else {
-    if optional(child, "run-id") is None &&
-      optional(child, "ref-file") is None &&
-      optional(child, "submission-ref-file") is None {
-      stop(
-        "status requires a Run ID or original reference; use actql status <run-id> or actql status --ref-file <file>. See actql status --help.",
-      )
-    }
-    return
-  }
+  guard optional(child, "run") is Some(id) else { return }
   for name in ["run-id", "ref-file", "submission-ref-file"] {
     if optional(child, name) is Some(_) {
       stop("ConflictingLocalStatusSelection")

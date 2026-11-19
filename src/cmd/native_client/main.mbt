@@ -1456,6 +1456,11 @@ fn command() -> @argparse.Command {
       @argparse.Command(
         "status",
         about="Show a Run state or watch for changes",
+        groups=[
+          @argparse.ArgGroup("run-reference", required=true, args=[
+            "run", "run-id", "ref-file", "submission-ref-file",
+          ]),
+        ],
         flags=[
           @argparse.FlagArg(
             "json",

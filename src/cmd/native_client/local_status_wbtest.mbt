@@ -166,7 +166,6 @@ test "status normalization leaves original reference and other command shapes un
 
 ///|
 test "status without an original selector reports usage before project or Host initialization" {
-  let expected = "status requires a Run ID or original reference; use actql status <run-id> or actql status --ref-file <file>. See actql status --help."
   for
     argv in [
       ["status"],
@@ -174,23 +173,18 @@ test "status without an original selector reports usage before project or Host i
       ["status", "--watch"],
       ["--mode", "local", "--config", "MUST-NOT-OPEN.json", "status"],
     ] {
-    let parsed = command().parse(argv=argv[:], env=Map([]))
     let issue = try {
-      ignore(execute_native_project_selection(parsed))
-      "unexpected success"
+      ignore(command().parse(argv=argv[:], env=Map([])))
+      fail("status requires an original selector before command execution")
     } catch {
-      ClientStop(message) => message
+      error => error.to_string()
     }
-    assert_eq(issue, expected)
+    assert_true(issue.contains("required arguments were not provided"))
+    assert_true(issue.contains("Usage: actql status"))
+    assert_true(issue.contains("--run-id"))
+    assert_true(issue.contains("--ref-file"))
+    assert_false(issue.contains("NativeLocalSignatureUnavailable"))
   }
-  let remote = command().parse(argv=["status"], env=Map([]))
-  let issue = try {
-    ignore(execute(remote))
-    "unexpected success"
-  } catch {
-    ClientStop(message) => message
-  }
-  assert_eq(issue, expected)
 }
 
 ///|
