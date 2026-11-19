@@ -440,3 +440,103 @@ test "Effect Request retains typed original lowering refusal and its claimed wor
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "static Effect Request Plan uses the same checked compiler without body Run or recheck" {
+  let action : Ref[(() -> Unit)?] = Ref(None)
+  let reentry = Ref(0)
+  let (parent, input, prepared) = request_effect_compile_fixture(current=() => {
+    if action.val is Some(run) {
+      run()
+    }
+    true
+  })
+  let checks = parent._observed_semantic_check_calls
+  let compiles = parent._observed_program_compile_calls
+  action.val = Some(() => {
+    if request_prepared_static_plan_view(
+        parent,
+        input,
+        request_program_module_manifests(),
+        65536,
+        8192,
+        64,
+      )
+      is Err(Preparation(WrongPhase)) {
+      reentry.val += 1
+    }
+  })
+  let wire = request_prepared_static_plan_view(
+    parent,
+    input,
+    request_program_module_manifests(),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  action.val = None
+  assert_true(reentry.val > 0)
+  assert_true(wire.contains("actql-effectful-static-plan-view/0.1"), msg=wire)
+  assert_true(wire.contains("\"provider_io\":0"), msg=wire)
+  assert_true(wire.contains("\"reason\":\"not_sealed\""), msg=wire)
+  assert_true(wire.contains("\"state\":\"unknown\""), msg=wire)
+  assert_true(!wire.contains("run_ref"))
+  assert_true(parent.phase == EffectCompiled)
+  assert_true(parent.submitted_intent is None)
+  assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+  assert_eq(parent._observed_semantic_check_calls, checks)
+  assert_eq(parent._observed_program_compile_calls, compiles)
+  assert_true(
+    request_prepared_static_plan_view(
+      parent,
+      input,
+      request_program_module_manifests(),
+      16,
+      8192,
+      64,
+    )
+    is Err(Preparation(Policy)),
+  )
+  assert_true(parent.phase == EffectCompiled)
+  assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+  assert_eq(parent._observed_program_compile_calls, compiles)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "static Effect Request Plan refuses foreign or noncurrent originals before projection" {
+  let current = Ref(true)
+  let (parent, input, prepared) = request_effect_compile_fixture(current=() => {
+    current.val
+  })
+  let before = @resources.ledger_usage(parent.ledger)
+  assert_true(
+    request_prepared_static_plan_view(
+      parent,
+      input.copy(),
+      request_program_module_manifests(),
+      65536,
+      8192,
+      64,
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger), before)
+  current.val = false
+  assert_true(
+    request_prepared_static_plan_view(
+      parent,
+      input,
+      request_program_module_manifests(),
+      65536,
+      8192,
+      64,
+    )
+    is Err(Preparation(Capacity(_))),
+  )
+  assert_true(parent.phase == EffectCompiled)
+  assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

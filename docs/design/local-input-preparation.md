@@ -7207,6 +7207,8 @@ returns its original construction loan before Request retirement. The static
 read issues no submission identity, epoch or publication receipt. A CID, equal
 value or closed JSON shape never replaces the original compiler or read access.
 
+The following Plan/map/codec loan is the Pure route.
+
 The read uses the existing original Plan/map/codec construction admission. Its
 conservative quotation also measures structural Facts, but this read emits no
 Facts and does not adopt a Run capture. The complete admitted debit stays held
@@ -7216,10 +7218,25 @@ unchanged extent through the parent-current check. The same owner fences reentry
 
 Missing runtime methods or unsupported carrier construction return explicit
 operation unavailability. The current Node connection supplies source-free Pure
-compilation; this implementation boundary does not make other authored Programs
+and checked source-free Effect computation; this implementation boundary does not make other authored Programs
 invalid or establish their target coverage. A declined original construction
 admission cannot select a raw compiler fallback. Current loss and primary/read
 or cleanup failures remain failures, with their original owner and retry duty.
+
+The Effect read projects the existing closed Effectful static Plan envelope from
+its same checked Effect owner. The original semantic check and compiler finish
+once, then the existing static issuer reads that retained compiler before any
+Effect execution-material borrow, provider callback, approval, Preview or Run.
+The existing Request Plan construction quote and bounded output writer are
+reserved before construction, on that same Effect capacity. Tighter requested
+read limits apply to the complete envelope; a larger request cannot enlarge the
+issuer's existing finite policy. The same owner fences reentry, and the installed
+Host checks current again before returning the read. A missing original method
+has no execution fallback; manifest, current, capacity and original read failures
+retain their own typed cause and cleanup. Unavailable captured prefixes or
+other carrier construction remain implementation boundaries, never proof that
+an otherwise legal Program is invalid. Unobserved target, permission, gate and
+approval facts stay unknown; the static envelope does not invent a sealed Preview.
 
 Aborting a static read ends that read; it cannot cancel or create a Run. Failed
 return stays in the existing connection cleanup owner, without resnapshot,

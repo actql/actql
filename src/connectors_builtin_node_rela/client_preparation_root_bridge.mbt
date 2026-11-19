@@ -2836,6 +2836,47 @@ pub fn client_program_prepare_request_original_explanation(
 }
 
 ///|
+pub suberror ClientRequestStaticPlanBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Preparation(@client_local_host.ClientRequestTerminalIssue)
+}
+
+///|
+/// The already-finished original Request, before any Effect body borrow.
+#export_name("clientProgramReadRequestCheckedStaticPlan")
+pub fn client_program_read_request_checked_static_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientRequestStaticPlanBridgeIssue] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.request_prepared_static_plan_view(
+    parent, input, manifests, max_bytes, max_nodes, max_depth,
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+/// Only the original terminal verdict is a classified request refusal.
+/// Manifest/current/capacity failures remain unclassified original failures.
+#export_name("clientProgramRequestCheckedStaticPlanIssueCode")
+pub fn client_program_request_checked_static_plan_issue_code(
+  result : Result[String, ClientRequestStaticPlanBridgeIssue],
+) -> String? {
+  match result {
+    Err(Preparation(issue)) =>
+      client_program_request_preparation_issue_code(Err(issue))
+    _ => None
+  }
+}
+
+///|
 #export_name("clientProgramRequestOriginalStaticPlanWire")
 pub fn client_program_request_original_static_plan_wire(
   original : @client_local_host.ClientRequestOriginalExplanation[

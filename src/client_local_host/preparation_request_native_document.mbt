@@ -430,9 +430,34 @@ pub fn[I] request_native_static_plan_view(
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   manifests : @publication_host.ClientCompilationManifests,
 ) -> Result[String, ClientRequestTerminalIssue] {
-  let kind = match
+  match
     finish_request_checked_computation(owner, input, environment, publication) {
     Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  request_prepared_static_plan_view(owner, input, manifests, 65536, 8192, 64)
+}
+
+///|
+/// Read the same already-checked compiler on its existing Request capacity.
+/// No semantic checker, invocation, provider or executable body is entered.
+/// The caller's read bounds can tighten the original finite issuer policy.
+pub fn[I] request_prepared_static_plan_view(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  manifests : @publication_host.ClientCompilationManifests,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, ClientRequestTerminalIssue] {
+  if max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(Preparation(Policy))
+  }
+  let bytes = Int::min(max_bytes, 65536)
+  let nodes = Int::min(max_nodes, 8192)
+  let depth = Int::min(max_depth, 64)
+  let kind = match request_prepared_computation_kind(owner, input) {
+    Err(issue) => return Err(Preparation(issue))
     Ok(value) => value
   }
   let data = match owner.program_data {
@@ -452,6 +477,9 @@ pub fn[I] request_native_static_plan_view(
             @publication_host.prepared_client_graph(
               owner.compiled_program.unwrap(),
             ),
+            bytes,
+            nodes,
+            depth,
           )
         Effect =>
           reserve_native_static_plan_capacity(
@@ -463,6 +491,9 @@ pub fn[I] request_native_static_plan_view(
                 owner.compiled_effect.unwrap(),
               ),
             ),
+            bytes,
+            nodes,
+            depth,
           )
       }
       match reserved {
@@ -482,9 +513,9 @@ pub fn[I] request_native_static_plan_view(
               @publication_host.prepared_client_values_sequence_limits(prepared),
               1000,
               1000,
-              65536,
-              8192,
-              64,
+              bytes,
+              nodes,
+              depth,
             ) {
             Err(_) => return Err(Preparation(Policy))
             Ok(value) => value
@@ -492,9 +523,9 @@ pub fn[I] request_native_static_plan_view(
           @publication_host.client_task_static_plan_view(
             prepared,
             compiled,
-            65536,
-            8192,
-            64,
+            bytes,
+            nodes,
+            depth,
             inspect_installed=false,
           ).map_err(_ => Preparation(Policy))
         }
@@ -517,15 +548,15 @@ pub fn[I] request_native_static_plan_view(
               @publication_host.client_standard_values_sequence_limits(),
               1000,
               1000,
-              65536,
-              8192,
-              64,
+              bytes,
+              nodes,
+              depth,
             ) {
             Err(_) => return Err(Preparation(Policy))
             Ok(value) => value
           }
           @publication_host.client_effectful_static_plan_view(
-            prepared, compiled, 65536, 8192, 64,
+            prepared, compiled, bytes, nodes, depth,
           ).map_err(_ => Preparation(Policy))
         }
       }
@@ -541,6 +572,9 @@ fn[I, P] reserve_native_static_plan_capacity(
   input : I,
   data : @checked.ParsedCheckDataEstimate,
   graph : @strategy.CheckedDAG,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
   guard installed_text_bound_views_layout(graph) is Some(text_bound_views) else {
     return Err(Policy)
@@ -557,13 +591,13 @@ fn[I, P] reserve_native_static_plan_capacity(
   }
   // Static Plan output uses its existing writer policy, separate from the
   // check-report writer. Back that one actual output before its constructor.
-  guard @encode.text_writer_construction_inventory(65536, 8192, 64)
+  guard @encode.text_writer_construction_inventory(bytes, nodes, depth)
     is Some(writer) &&
     @execution.preparation_representation_cost({
       record_headers: writer.record_headers,
       reference_slots: writer.reference_slots,
       scalar_words: writer.scalar_words,
-      owned_utf16_units: writer.owned_utf16_units + 65536L,
+      owned_utf16_units: writer.owned_utf16_units + bytes.to_int64(),
       owned_wire_bytes: 0L,
     })
     is Some(output) &&
