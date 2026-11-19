@@ -1,6 +1,6 @@
 {
-  "source": "1bec8cf0c78d192d8a9b767ba4c8a63b8661f7a4",
-  "syntaxProjectionSha256": "5893c0932e1f7f793ba0e4aca6017513a3d9df089271be78e3a9259b1c96366d",
+  "source": "b27e4ddb32d392741b10cb9ad73007318db31357",
+  "syntaxProjectionSha256": "c9f33dad893483dbc0122a5128a1befb2998defb98efecdc4427133351585dd7",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -52207,6 +52207,7 @@
     {
       "exports": [
         "Any",
+        "AsyncIterator",
         "ByteFence",
         "ByteWrite",
         "Callable",
@@ -52257,12 +52258,15 @@
         "TYPE_CHECKING",
         "TypeVar",
         "annotations",
+        "asynccontextmanager",
+        "asyncio",
         "content_cid",
         "dataclass",
         "datetime",
         "hashlib",
         "httpx",
         "installed_local_components",
+        "nullcontext",
         "os",
         "partial",
         "secrets",
@@ -52301,6 +52305,7 @@
         "._local_worker_funding",
         "._values",
         "__future__",
+        "asyncio",
         "collections.abc",
         "contextlib",
         "dataclasses",
@@ -52319,12 +52324,11 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "InstalledLocalHost",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/__init__",
           "parameters": [
             "self",
@@ -52336,361 +52340,343 @@
             "_native_store",
             "_project_directory",
             "_project_profile"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/__init__/configure",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_accept_original",
           "parameters": [
             "self",
             "reference",
             "intent",
             "run_id"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_acquire_original_payload_file",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_acquire_original_payload_file/acquire",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_acquire_original_payload_file/writer",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_active",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_advance_original_commit_candidate",
           "parameters": [
             "self",
             "publication"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_advance_original_payload_copy",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_advance_original_payload_copy/copy",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_advance_original_payload_reader",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_advance_original_payload_reader/advance",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_advance_original_payload_sealing",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_advance_original_payload_sealing/advance",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_advance_original_payload_staging",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_advance_original_payload_staging/advance",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_advance_original_store_observation",
           "parameters": [
             "self",
             "projection"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_attach_original_run",
           "parameters": [
             "self",
             "reference"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_bind_original_publication",
           "parameters": [
             "self",
             "run"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_bind_original_publication/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_bind_original_publication/produce",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_cancel_original",
           "parameters": [
             "self",
             "body"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_cancel_original/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_cancel_original/prepare",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_capture_original_results",
           "parameters": [
             "self",
             "compute",
             "preflight",
             "results"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
-          "name": "InstalledLocalHost/_capture_original_results/capture",
-          "parameters": [
-            "current"
-          ]
+          "name": "InstalledLocalHost/_capture_original_results/reserve_chunk",
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
-          "name": "InstalledLocalHost/_capture_original_results/capture/checked",
-          "parameters": [
-            "work"
-          ]
+          "name": "InstalledLocalHost/_capture_original_results/reserve_publication",
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
-          "name": "InstalledLocalHost/_capture_original_results/prepare_result",
-          "parameters": [
-            "current"
-          ]
-        },
-        {
-          "async": false,
-          "name": "InstalledLocalHost/_capture_original_results/prepare_result/checked",
+          "name": "InstalledLocalHost/_capture_original_results/step",
           "parameters": [
             "work"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
-          "name": "InstalledLocalHost/_capture_original_results/produce_chunk",
-          "parameters": [
-            "current"
-          ]
-        },
-        {
-          "async": false,
           "name": "InstalledLocalHost/_capture_project",
           "parameters": [
             "self",
             "directory",
             "profile"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_checked_original_read",
           "parameters": [
             "self",
             "current",
             "work"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_checked_original_read/unchanged",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_close_original_allocation_child",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_close_original_publications",
           "parameters": [
             "self",
             "originals"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_close_original_publications/selected",
           "parameters": [
             "publication"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_close_originals",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_close_projection",
           "parameters": [
             "self",
             "output"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_commit_original_run_rows",
           "parameters": [
             "self",
             "output"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_commit_original_run_rows/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_commit_preparation_failure",
           "parameters": [
             "self",
             "reference",
             "intent",
             "failure"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_commit_preparation_failure/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_commit_preparation_failure/observe",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_configure_original_compute",
           "parameters": [
             "self",
             "run"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_copy",
           "parameters": [
             "self",
             "raw"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_ensure_original_publication_observation",
           "parameters": [
             "self",
             "projection"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_execute_original_admitted_run",
           "parameters": [
             "self",
             "run"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_execute_original_tasks",
           "parameters": [
             "self",
@@ -52698,200 +52684,226 @@
             "preflight",
             "publisher",
             "retained_tasks"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_execute_original_tasks/select_result",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_execute_original_tasks/select_task",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_execute_original_tasks/step",
           "parameters": [
             "work"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_has_live_original_run_reference",
           "parameters": [
             "self",
             "reference"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_lookup_original_cancellation",
           "parameters": [
             "self",
             "reference",
             "cancel_id",
             "expected_revision"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_lookup_original_submission",
           "parameters": [
             "self",
             "reference"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_nominal",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_observe_original_allocation",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_observe_original_allocation/consume",
           "parameters": [
             "actual"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_observe_original_payload_capacity",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_observe_original_payload_capacity/consume",
           "parameters": [
             "actual"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_observe_original_payload_intent",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_observe_original_payload_intent/consume",
           "parameters": [
             "actual"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_observe_original_payload_reserved",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_observe_original_payload_transition",
           "parameters": [
             "self",
             "held",
             "child",
             "confirm"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_observe_original_payload_transition/consume",
           "parameters": [
             "actual"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_observe_original_payload_writing",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "InstalledLocalHost/_open_operation",
           "parameters": [
             "self",
             "operation",
             "body"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
+          "name": "InstalledLocalHost/_open_operation_locked",
+          "parameters": [
+            "self",
+            "operation",
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_open_original_payload_area",
           "parameters": [
             "self",
             "held",
             "root"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_open_original_payload_reader",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_open_original_payload_reader/acquire",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
+          "name": "InstalledLocalHost/_operation_lock",
+          "parameters": [
+            "self",
+            "work"
+          ],
+          "async": true
+        },
+        {
           "name": "InstalledLocalHost/_original_check_environment",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_check_environment/install",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_commit_reader_facts",
           "parameters": [
             "self",
             "projection"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_commit_reader_facts/select",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
+          "name": "InstalledLocalHost/_original_compute_read_step",
+          "parameters": [
+            "self",
+            "compute",
+            "work"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_original_delivery_lookup_response",
           "parameters": [
             "self",
@@ -52899,68 +52911,68 @@
             "projection",
             "result_name",
             "attempt_id"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_run_projection",
           "parameters": [
             "self",
             "run"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_run_response",
           "parameters": [
             "self",
             "run",
             "projection"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_run_response/consume",
           "parameters": [
             "raw"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_sdk_delivery_clock",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_sdk_delivery_store",
           "parameters": [
             "self",
             "run",
             "projection"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_sdk_read_evidence",
           "parameters": [
             "self",
             "run",
             "projection"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_sdk_read_observation",
           "parameters": [
             "self",
             "run",
             "projection"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_original_sdk_read_response",
           "parameters": [
             "self",
@@ -52969,176 +52981,176 @@
             "result_name",
             "format",
             "attempt_id"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_payload_original",
           "parameters": [
             "self",
             "held",
             "pending_confirmation"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_persist_original_sdk_delivery",
           "parameters": [
             "self",
             "run",
             "projection",
             "request"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_persist_original_sdk_read_evidence",
           "parameters": [
             "self",
             "run",
             "projection",
             "request"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original",
           "parameters": [
             "self",
             "reference",
             "intent"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original/check",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original/install",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original_allocation",
           "parameters": [
             "self",
             "held",
             "kind"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original_allocation/consume",
           "parameters": [
             "actual"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original_commit_candidate",
           "parameters": [
             "self",
             "publication",
             "preflight"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original_commit_candidate/project",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original_payload",
           "parameters": [
             "self",
             "publication",
             "index"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original_payload_writing",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original_publication",
           "parameters": [
             "self",
             "compute"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_prepare_original_store_observation",
           "parameters": [
             "self",
             "projection",
             "publisher"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_profile",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_profile/original_scope",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_project_epoch",
           "parameters": [
             "self",
             "kind",
             "raw"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_project_epoch/project",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_project_original_observed_index",
           "parameters": [
             "self",
             "projection",
             "consume"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_project_original_run_state",
           "parameters": [
             "self",
             "projection",
             "consume"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_project_original_sdk_read_grant",
           "parameters": [
             "self",
@@ -53146,41 +53158,41 @@
             "projection",
             "request",
             "consume"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_project_original_sdk_run_state",
           "parameters": [
             "self",
             "run",
             "projection",
             "consume"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_project_original_sdk_run_state/confirm_and_consume",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_project_original_sdk_run_state/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_project_original_sdk_run_state/inspect/validate",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_read_original_reference",
           "parameters": [
             "self",
@@ -53188,207 +53200,207 @@
             "kind",
             "intent",
             "intent_cid"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_read_original_reference/observe",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_read_original_saved_admission",
           "parameters": [
             "self",
             "run"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_read_original_saved_admission/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_read_original_saved_admission/inspect/consume",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_register_original_run_reference",
           "parameters": [
             "self",
             "run",
             "admission"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_require_project_execution_environment",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_reserve",
           "parameters": [
             "self",
             "acquire"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_reserve_original_payload_capacity",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_reserve_original_payload_capacity/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_reserve_original_payload_capacity/inspect/validate",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_restore_original_run",
           "parameters": [
             "self",
             "reference"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_restore_original_run/install",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_restore_original_run/observe",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_retain_intent",
           "parameters": [
             "self",
             "reference",
             "intent"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_retain_intent/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_retain_intent/observe",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_retain_original_result_read",
           "parameters": [
             "self",
             "reference",
             "result_name"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_retain_original_result_read/inspect",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_retire_original_tasks",
           "parameters": [
             "self",
             "tasks"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_retry_original_area_sync",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_retry_original_area_sync/sync",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_save_original_allocation",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_save_original_allocation/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_save_original_payload_intent",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_save_original_payload_intent/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_save_original_payload_reserved",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_save_original_payload_transition",
           "parameters": [
             "self",
@@ -53396,55 +53408,55 @@
             "child",
             "read",
             "begin"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_save_original_start_step",
           "parameters": [
             "self",
             "output"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_save_original_start_step/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_select_original_run",
           "parameters": [
             "self",
             "reference"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_stage_original_payload_file",
           "parameters": [
             "self",
             "held"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_stage_original_payload_file/adopt",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_stage_original_payload_file/prepare",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_store_original_commit",
           "parameters": [
             "self",
@@ -53452,59 +53464,59 @@
             "facts",
             "originals",
             "publisher"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_store_original_commit/before_commit",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_store_original_commit/inspect_count",
           "parameters": [
             "_"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_unpublished_run_response",
           "parameters": [
             "self",
             "run",
             "reference"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_unpublished_run_response/confirm",
           "parameters": [
             "current"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/_unpublished_run_response/inspect",
           "parameters": [
             "reader"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "InstalledLocalHost/aclose",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/close",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/installed",
           "parameters": [
             "cls",
@@ -53513,78 +53525,79 @@
             "_initial_preparation",
             "_discover_project",
             "_project_profile"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "InstalledLocalHost/open",
           "parameters": [
             "self",
             "operation",
             "payload"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "InstalledLocalHost/profile",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalProductCleanupPending",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "LocalProductCleanupPending/__init__",
           "parameters": [
             "self",
             "host"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_OriginalRunReference",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_PayloadCustody",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_RunStateCustody",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_default_directory",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_ordinary_core_limits",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "_private_state_directory",
           "parameters": [
             "directory"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_state_directory_option",
           "parameters": [
             "value"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "34dc7d8849cb9b776b04fc64d99407912a7e19fca857acfdcd6243da7f65ccd8",
+      "sha256": "5a25d54ba4704e603a2fb75b45c4c88227d668d1c4a9398d6b4c667a7f0a16d1",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -53612,11 +53625,6 @@
             "InstalledLocalHost/_bind_original_publication/inspect",
             "InstalledLocalHost/_bind_original_publication/produce",
             "InstalledLocalHost/_capture_original_results",
-            "InstalledLocalHost/_capture_original_results/capture",
-            "InstalledLocalHost/_capture_original_results/capture/checked",
-            "InstalledLocalHost/_capture_original_results/prepare_result",
-            "InstalledLocalHost/_capture_original_results/prepare_result/checked",
-            "InstalledLocalHost/_capture_original_results/produce_chunk",
             "InstalledLocalHost/_checked_original_read",
             "InstalledLocalHost/_checked_original_read/unchanged",
             "InstalledLocalHost/_close_original_allocation_child",
@@ -55844,6 +55852,120 @@
               {
                 "path": "scripts/fixtures/python-local-public-success-abi.py",
                 "anchor": "'public_commit_reply_loss_original_lookup_same_result_without_reexecution'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_capture_original_results/reserve_chunk",
+            "InstalledLocalHost/_capture_original_results/reserve_publication",
+            "InstalledLocalHost/_capture_original_results/step",
+            "InstalledLocalHost/_open_operation_locked",
+            "InstalledLocalHost/_operation_lock",
+            "InstalledLocalHost/_original_compute_read_step"
+          ],
+          "exports": [
+            "AsyncIterator",
+            "asynccontextmanager",
+            "asyncio",
+            "nullcontext"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_compute_read_step("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_compute_read_step("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_compute_read_step("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_compute_read_step("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "async def _operation_lock("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_compute_read_step("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_compute_read_step("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "These fixed thread-coordination objects use the existing trusted"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_compute_read_step("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _original_compute_read_step("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_async_operation_lock.py",
+                "anchor": "async def test_continuing_result_worker_allows_actual_same_run_control_with_real_lock("
               }
             ]
           }
@@ -67889,81 +68011,100 @@
     {
       "exports": [
         "Callable",
+        "Condition",
         "Future",
+        "Iterator",
         "OriginalLocalWork",
         "Thread",
         "annotations",
-        "asyncio"
+        "asyncio",
+        "contextmanager",
+        "current_thread"
       ],
       "imports": [
         "__future__",
         "asyncio",
         "collections.abc",
         "concurrent.futures",
+        "contextlib",
         "threading"
       ],
       "module": "packages/python-sdk/src/actql_sdk/_local_work.py",
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "OriginalLocalWork",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalLocalWork/__init__",
           "parameters": [
             "self",
             "invoke",
             "on_exit",
             "owner"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
+          "name": "OriginalLocalWork/_control_turn",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
           "name": "OriginalLocalWork/_nominal",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalLocalWork/_run",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
+          "name": "OriginalLocalWork/_yield_to_control",
+          "parameters": [
+            "self"
+          ],
+          "async": false
+        },
+        {
           "name": "OriginalLocalWork/start",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "OriginalLocalWork/stopped",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "OriginalLocalWork/wait",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": true,
           "name": "OriginalLocalWork/wait_stopped",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         }
       ],
-      "sha256": "78ee4fb51cb6dc813033357178dfaf69bd91f9a25c1c8b18c4478ff39cb9891d",
+      "sha256": "05b330cd54502e5db08466ee3004ac66d529fb33cdc6c01798533b175f1f168a",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -68220,6 +68361,116 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
                 "anchor": "\"\"\"One physical Host invocation; no Run state, outcome or cancellation Owner.\"\"\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "OriginalLocalWork/_control_turn",
+            "OriginalLocalWork/_yield_to_control"
+          ],
+          "exports": [
+            "Condition",
+            "Iterator",
+            "contextmanager",
+            "current_thread"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
+                "anchor": "def _control_turn("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
+                "anchor": "def _control_turn("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
+                "anchor": "def _control_turn("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
+                "anchor": "def _control_turn("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
+                "anchor": "def _yield_to_control("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
+                "anchor": "def _control_turn("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
+                "anchor": "def _control_turn("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "These fixed thread-coordination objects use the existing trusted"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
+                "anchor": "def _control_turn("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Unlocking alone does not give a polling control waiter a turn before a worker"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_work.py",
+                "anchor": "def _control_turn("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_work.py",
+                "anchor": "class LocalWorkTests"
               }
             ]
           }
