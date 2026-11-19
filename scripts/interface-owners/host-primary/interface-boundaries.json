@@ -28062,7 +28062,8 @@
           "name": "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
           "parameters": [
             "parent",
-            "input"
+            "input",
+            "content"
           ],
           "async": false
         },
@@ -29099,7 +29100,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "ba2bb9b1e437b2b1e45070158fa0b08b4d0d4ee2431a55c3f87d8e7e85220d2e"
+      "sha256": "2e190975f263adfcd26a68af38ee07b3c20a53b6b908447fd99e0d963bf8eb3b"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

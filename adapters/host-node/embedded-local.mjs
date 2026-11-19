@@ -7652,8 +7652,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.prepareSerializationOutputDemand(prepared,
-        originalSourceManagedHostRequest(originals, prepared), (parent, input) =>
-          runtimeCore(runtime).contentGenerationControl.prepareRequestOutputDemand(
+        originalSourceManagedHostRequest(originals, prepared), (parent, input, content) =>
+          content.prepareRequestOutputDemand(
             parent, input, compiled, selection, generation, reference, contract, output, identitySlots));
     },
     prepareManagedSerializationRun(runtime, prepared, request, plan, limits, workspace, contentPreparation) {

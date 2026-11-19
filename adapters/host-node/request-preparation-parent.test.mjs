@@ -4,7 +4,7 @@ import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-manage
 import resources from './ordinary-node-resource-runtime.cjs';
 import {openRequestPreparation, cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
-import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {runtimeCore, contentGenerationControl} from '../host-common/runtime-core.mjs';
 import {connectInProcess, getSubmissionInput, getSubmissionOutcome, getSubmissionAttempt}
   from '../../packages/sdk/index.mjs';
 import {sourceFreeValuesPlan, inferTaskRunAdmission, serializationTaskRunAdmission,
@@ -88,6 +88,130 @@ async function fixture({beginFailure, environment, observe, sourceFreeMaxWork, v
   },false);
   return {view,calls,shapes,context,originals,get parent(){return parent;},get original(){return admission?.original;}};
 }
+
+// Actual imported manager and facade, with the existing original Resource.
+// Typed Common ports isolate the facade handoff from demand arithmetic/ABI.
+async function serializationDemandFixture(family, validate = () => {}) {
+  const f = await fixture({validate}), moon = f.context.runtime;
+  const prepared = {}, inventory = {}, holder = {}, request = {}, compiled = {}, graph = {}, capacity = {};
+  const generation = {maxRows:1,maxBytes:64,maxValueNodes:4,maxValueDepth:8,maxFrames:1};
+  const reference = {maxBytes:64,maxNodes:8,maxDepth:8};
+  let receipt, calls = 0, releases = 0, aborted = false;
+  f.originals.installation = {sequenceContractOriginal:{moon,admission:{}}};
+  moon.clientProgramPrepareRequestNativeComputation = () => ok(undefined);
+  moon.clientProgramBorrowRequestProgramPlanInput = () => ok(inventory);
+  moon.clientProgramComposedInferOccurrences = () => ok(family === 'model' ? [{}] : []);
+  moon.clientProgramSerializationOccurrences = () => [{}];
+  moon.clientProgramBorrowRequestModelPlanInput = moon.clientProgramBorrowRequestContentPlanInput = () => ok(holder);
+  moon.clientProgramPreparationBorrowRead = actual => {
+    assert(actual === inventory || actual === holder); return prepared;
+  };
+  moon.clientProgramPreparationBorrowReturn = actual => {
+    assert(actual === inventory || actual === holder); return ok(actual === holder);
+  };
+  moon.clientProgramPreparationBorrowRetirementStarted = actual => {assert.equal(actual,holder);return true;};
+  moon.clientProgramRequestParametersOriginal = () => ok(undefined);
+  const abort = moon.clientProgramAbortRequestPreparation;
+  moon.clientProgramAbortRequestPreparation = function(parent) {
+    if (aborted) return ok(undefined);
+    const result = Reflect.apply(abort,moon,[parent]); aborted = true; return result;
+  };
+  const publications = {
+    prepareRequestSerializationOutputDemand(parent,input,c,g) {
+      assert.deepEqual([parent,input,c,g],[f.parent,receipt,compiled,graph]); calls++;
+      return {_0:capacity,_1:1,_2:64,_3:1,_4:4,_5:3,_6:6,_7:1,_8:152};
+    },
+    prepareCheckedClientRequestSerializationPlan(parent,input,r,c,d,l,w) {
+      assert.deepEqual([parent,input,r,c,w],[f.parent,receipt,request,compiled,capacity]); return d;
+    },
+    prepareCheckedClientRequestModelSerializationPlan(parent,input,r,c,d,l,w,q) {
+      assert.deepEqual([parent,input,r,c,w,q],[f.parent,receipt,request,compiled,capacity,graph]); return d;
+    },
+  };
+  moon.clientProgramPrepareRequestSerializationOutputDemand = () => assert.fail('Nominal publication port only');
+  moon.clientProgramSerializationCapacityBytes = actual => {assert.equal(actual,capacity);return {_0:123n,_1:456n};};
+  const control = contentGenerationControl(moon,publications), foreign = contentGenerationControl(moon,publications);
+  const original = input();
+  receipt = f.view.beforeSourceSnapshot('program',original,{},connection);
+  const body = f.view.captureSourceSnapshot(receipt,{kind:'program',input:original,parameters:{}},snapshotClientRequest);
+  f.view.bindSourceSnapshot(receipt,body); f.view.bindSourceRequest(receipt,body,request);
+  assert.equal((await f.view.fundedPreparation(request)).prepared,prepared);
+  const retained = {prepared,contentControl:control,releaseAliases(_run,actual) {
+    assert.equal(this,retained); assert.equal(actual,holder); this.retired = true; releases++;
+  }};
+  f.view.retainContentPreparation(prepared,request,retained);
+  const select = construct => f.view.prepareSerializationOutputDemand(prepared,request,construct);
+  return {view:f.view,retained,control,foreign,prepared,request,compiled,graph,
+    get calls() {return calls;},
+    demand(parent,input,actual) {
+      assert.equal(actual,control);
+      return actual.prepareRequestOutputDemand(parent,input,compiled,graph,generation,
+        reference,localContractLimits,localOutputLimits,4000800);
+    },
+    select,
+    prefix(actual,selected) {
+      const definition = {};
+      assert.equal(family === 'model'
+        ? actual.prepareModelRequestPrefix(f.parent,receipt,request,compiled,definition,{},selected.workspace,graph)
+        : actual.prepareRequestPrefix(f.parent,receipt,request,compiled,definition,{},selected.workspace),definition);
+    },
+    async close() {
+      f.view.finishSourceProducer(receipt,'returned');
+      assert.equal((await f.view.close()).pending,false);
+      assert.equal(releases,1);
+      assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped,true);
+    },
+  };
+}
+
+test('Request output demand carries its retained Content facade into terminal and Model prefixes', async () => {
+  for (const family of ['content','model']) {
+    const f = await serializationDemandFixture(family);
+    try {
+      const selected = f.select(f.demand);
+      assert.equal(f.calls,1);
+      assert.throws(() => f.prefix(f.foreign,selected),/Foreign Content workspace capacity/);
+      f.prefix(f.control,selected);
+      assert.equal(f.calls,1);
+    } finally {await f.close();}
+    assert.throws(() => f.select(() => assert.fail('Retired Request cannot construct')),
+      {code:'SourceManagedPreparationUnavailable'});
+  }
+});
+
+test('Request output demand fences retired or changed Content originals after constructor and current callbacks', async () => {
+  for (const mode of ['retired-before','retired-during','control-during','retired-current']) {
+    let afterConstruct = false, f;
+    f = await serializationDemandFixture('content',() => {
+      if (mode === 'retired-current' && afterConstruct) f.retained.retired = true;
+    });
+    try {
+      if (mode === 'retired-before') f.retained.retired = true;
+      assert.throws(() => f.select((parent,input,control) => {
+        const selected = f.demand(parent,input,control);
+        if (mode === 'retired-during') f.retained.retired = true;
+        if (mode === 'control-during') f.retained.contentControl = f.foreign;
+        afterConstruct = true; return selected;
+      }),{code:'ForeignInstalledSourceProducer'});
+      assert.equal(f.calls,mode === 'retired-before' ? 0 : 1);
+    } finally {await f.close();}
+  }
+});
+
+test('Request output demand preserves its first constructor failure including thrown undefined', async () => {
+  for (const primary of [new Error('Original constructor refused'),undefined]) {
+    const f = await serializationDemandFixture('model'); let attempts = 0;
+    try {
+      for (let index = 0; index < 2; index++) {
+        let threw = false;
+        try {f.select(() => {attempts++;throw primary;});}
+        catch (cause) {threw = true;assert.equal(cause,primary);}
+        assert.equal(threw,true);
+      }
+      assert.equal(attempts,1); assert.equal(f.calls,0);
+    } finally {await f.close();}
+  }
+});
 
 test('actual manager preserves synchronous Model Graph ports and forwards only the installed admitted Provider role', async () => {
   // Actual imported manager and Resource owner; explicit Core ports isolate

@@ -23,6 +23,10 @@ test('Content demand facade retains the same funded capacity and bounded DATA fo
       assert.deepEqual([p,i,r,c,d,w],[parent,input,request,compiled,definition,capacity]);
       return l;
     },
+    prepareCheckedClientRequestModelSerializationPlan(p,i,r,c,d,l,w,q) {
+      assert.deepEqual([p,i,r,c,d,w,q],[parent,input,request,compiled,definition,capacity,graph]);
+      return l;
+    },
   };
   const moon = {clientProgramPrepareRequestSerializationOutputDemand() {assert.fail('Only the nominal publication owner calls Common');},
     clientProgramSerializationCapacityBytes(actual) {assert.equal(actual,capacity);return {_0:123n,_1:456n};}};
@@ -36,6 +40,10 @@ test('Content demand facade retains the same funded capacity and bounded DATA fo
   assert.equal(selected.outputLimits.maxValueNodes,4); assert.equal(selected.identitySlots,152);
   const prefix = {};
   assert.equal(control.prepareRequestPrefix(parent,input,request,compiled,definition,prefix,selected.workspace),prefix);
+  assert.equal(control.prepareModelRequestPrefix(parent,input,request,compiled,definition,prefix,selected.workspace,graph),prefix);
+  const foreign = contentGenerationControl(moon,publications);
+  assert.throws(() => foreign.prepareRequestPrefix(parent,input,request,compiled,definition,prefix,selected.workspace),/Foreign Content workspace/);
+  assert.throws(() => foreign.prepareModelRequestPrefix(parent,input,request,compiled,definition,prefix,selected.workspace,graph),/Foreign Content workspace/);
   assert.throws(() => control.prepareRequestPrefix(parent,input,request,compiled,definition,prefix,{...selected.workspace}),/Foreign Content workspace/);
   const primary = new Error('Original Request refused'); refusal = primary;
   assert.throws(() => control.prepareRequestOutputDemand(parent,input,compiled,graph,generation,

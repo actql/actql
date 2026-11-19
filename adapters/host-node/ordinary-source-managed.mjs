@@ -2206,11 +2206,23 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (state === undefined || state.prepared !== prepared ||
           !['content', 'model'].includes(state.compilationFamily) || state.holder === undefined ||
           state.preparing || state.adopting || typeof construct !== 'function') fail('ForeignInstalledSourceProducer');
+      const original = state.contentPreparation, holder = state.holder, moon = state.context.runtime;
+      const content = original === undefined ? undefined
+        : Object.getOwnPropertyDescriptor(original, 'contentControl')?.value;
+      if (original?.prepared !== prepared || original.retired || original.inputHolder !== holder ||
+          content === undefined || moon.clientProgramPreparationBorrowRead(holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
       return constructRequestDomain(state, () => {
-        const selected = construct(state.parent, producer.receipt);
+        // The retained Content record owns this facade and its paired
+        // publication control. A fresh facade cannot consume its workspace.
+        const selected = construct(state.parent, producer.receipt, content);
         current();
         if (producerForRequest(request) !== producer || producer.preparation !== state ||
-            state.prepared !== prepared || state.context.runtime.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+            state.prepared !== prepared || state.holder !== holder || state.context.runtime !== moon ||
+            state.contentPreparation !== original || original.prepared !== prepared || original.retired ||
+            original.inputHolder !== holder || Object.getOwnPropertyDescriptor(original, 'contentControl')?.value !== content ||
+            moon.clientProgramPreparationBorrowRead(holder) !== prepared) {
           fail('ForeignInstalledSourceProducer');
         }
         return selected;
