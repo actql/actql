@@ -21,12 +21,45 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk import AsyncClient, ClientError
 from actql_sdk._local_core import LocalCore, LocalCoreError, LocalTaskProgress, _NORMAL_HOST_OPERATION_FUEL
-from actql_sdk._local_product import InstalledLocalHost, _LOCAL_SELECTION, _ordinary_core_limits
+from actql_sdk._local_product import (
+    InstalledLocalHost, _OriginalExecution, _LOCAL_SELECTION, _ordinary_core_limits,
+)
 from actql_sdk._local_storage import LocalStorageCommitUnknown
 
 
 def encode(value):
     return json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode()
+
+
+def assert_original_cancellation_worker(work, host, *, precommit):
+    """Check the selected physical exit; terminal Run/cleanup assertions follow."""
+    work._nominal()
+    failure = work._future.exception()
+    original = work._invoke
+    same_stop = (type(original) is _OriginalExecution and original.host is host
+                 and original.run is work._owner and original.stop_interest is not None)
+    name = None if failure is None else type(failure).__name__
+    detail = {'workerSucceeded': failure is None,
+              'workerFailureType': name if name is None or (
+                  name.isascii() and name.isidentifier() and len(name) <= 80) else 'unprojected',
+              'sameOriginalStopInterest': same_stop}
+    if isinstance(failure, LocalCoreError):
+        operation, code = failure.operation, failure.code
+        detail.update(operation=operation if type(operation) is str and (
+            operation.isascii() and operation.isidentifier() and len(operation) <= 80) else 'unprojected',
+            code=code if type(code) is int and -(2**31) <= code < 2**31 else None)
+    print(json.dumps({'latePublicationObservation' if precommit else
+                      'managedCancellationObservation': detail}), file=sys.stderr)
+    if precommit:
+        # This barrier is after task retirement and immediately before actual
+        # publication. The original publication guard must still refuse.
+        assert isinstance(failure, LocalCoreError) and failure.code == -35
+    else:
+        # Acknowledged managed cancellation selects the SAME invocation's
+        # original stop/retirement path, not an artificial normal-drive error.
+        # A genuine worker failure remains a failure even with stop interest.
+        assert same_stop
+        assert failure is None
 
 
 class OriginalQuantumBarrier:
@@ -225,14 +258,7 @@ async def main():
             assert not work.stopped
             barrier.resume.set()
             await work.wait_stopped()
-            failure = work._future.exception()
-            if precommit:
-                detail = {'workerSucceeded': failure is None,
-                          'workerFailureType': None if failure is None else type(failure).__name__}
-                if isinstance(failure, LocalCoreError):
-                    detail.update(operation=failure.operation, code=failure.code)
-                print(json.dumps({'latePublicationObservation': detail}), file=sys.stderr)
-            assert isinstance(failure, LocalCoreError) and failure.code == -35
+            assert_original_cancellation_worker(work, host, precommit=precommit)
             assert work._exit_error is None and work._cleanup_error is None
             # The actual close port returned zero only after its SAME provider's
             # stopped, settled and cleanup observations. This inventory check
@@ -326,4 +352,5 @@ async def main():
                           if default_state else 'actual public SDK/raw Wasm/SQLite with controlled physical thread scheduling; explicit revision only, no status/terminal or installed normal acceptance')}))
 
 
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())
