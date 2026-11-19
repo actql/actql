@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {runReleaseProjectSequences, assertProjectSequenceRows, assertTemplateStatic, assertProjectNodeWork} from './release-project-sequences.mjs';
+import {runReleaseProjectSequences, assertProjectSequenceRows, assertTemplateStatic, assertProjectNodeWork,
+  assertProjectResultDescription} from './release-project-sequences.mjs';
 import {readFileSync} from 'node:fs';
 import {observeNativeMockHarnessPhase} from './native-approval-performance.mjs';
 import {requireNativeMockWork} from './native-cli-mock-scenario.mjs';
@@ -22,7 +23,35 @@ const sourceData = template => template === 'churn-risk-mock' ? {
   {name: 'Globex expansion', content_utf8: 'Independent Globex notes\n'},
 ]}}};
 
-function fixture({failApproval = false, replaceRun = false, mutateSavedRows = false, mutateUnrelated = false} = {}) {
+// Independently authored descriptions for explicit ports, not compiler output.
+function describedColumns(template) {
+  const string = {type: 'string', nullable: false};
+  const key = {type: 'object', nullable: false, additional_properties: false, fields: {id: string}};
+  if (template === 'churn-risk-mock') return [
+    {name: 'id', contract: string}, {name: 'notes', contract: string},
+    {name: 'active_users', contract: {type: 'int64', nullable: false}}, {name: 'trend', contract: string},
+    {name: 'risk', contract: {type: 'object', nullable: false, additional_properties: false, fields: {
+      input_key: key, outcome: string,
+      value: {type: 'object', nullable: false, additional_properties: false, fields: {
+        level: {type: 'string', nullable: false, enum: ['low', 'medium', 'high']}, reason: string,
+      }},
+    }}},
+  ];
+  return [
+    {name: 'id', contract: string}, {name: 'StageName', contract: string},
+    {name: 'NextStep', contract: {type: 'string', nullable: true}},
+    {name: 'notes', contract: {type: 'content_ref', nullable: false, media_type: 'text/plain'}},
+    {name: 'review', contract: {type: 'object', nullable: false, additional_properties: false, fields: {
+      input_key: key, outcome: string,
+      value: {type: 'object', nullable: false, additional_properties: false, fields: {
+        changed: {type: 'boolean', nullable: false}, stage: string, next_step: string,
+      }},
+    }}},
+  ];
+}
+
+function fixture({failApproval = false, replaceRun = false, mutateSavedRows = false, mutateUnrelated = false,
+  mutateInitialContract = false} = {}) {
   const projects = new Map(), records = [], calls = [], failure = new Error('original Unknown approval');
   let ordinal = 0, pid = 100;
   const plan = {version: 'actql-effectful-static-plan-view/0.1', observation: 'static', provider_io: 0,
@@ -61,7 +90,7 @@ function fixture({failApproval = false, replaceRun = false, mutateSavedRows = fa
     const before = mutateSavedRows ? value.data : run.before;
     if (value.template === 'churn-risk-mock') return before.salesforce.Account.rows.map((row, i) => ({
       id: row.id, notes: row.description, active_users: before.snowflake.usage_30d.rows[i].active_users,
-      trend: before.snowflake.usage_30d.rows[i].trend, risk: {outcome: 'ok', value: {level: 'high', reason: i === 0
+      trend: before.snowflake.usage_30d.rows[i].trend, risk: {input_key: {id: row.id}, outcome: 'ok', value: {level: 'high', reason: i === 0
         ? 'falling usage and a competitor evaluation' : 'support tickets about pricing'}},
     }));
     return before.salesforce.Opportunity.rows.map((row, i) => {
@@ -70,7 +99,7 @@ function fixture({failApproval = false, replaceRun = false, mutateSavedRows = fa
         notes: {$actql_ref: 'content', media_type: 'text/plain', metadata: {
           content_cid: 'sha256:' + createHash('sha256').update(notes).digest('hex'),
           size_bytes: Buffer.byteLength(notes), truncated: false}},
-        review: {outcome: 'ok', value: {changed: true, stage: i === 0 ? 'Negotiation' : 'Closed Lost',
+        review: {input_key: {id: row.id}, outcome: 'ok', value: {changed: true, stage: i === 0 ? 'Negotiation' : 'Closed Lost',
           next_step: i === 0 ? 'Send revised pricing by Friday' : 'Revisit next fiscal year'}}};
     });
   }
@@ -104,12 +133,16 @@ function fixture({failApproval = false, replaceRun = false, mutateSavedRows = fa
       return {code: 0, signal: null, pid: ++pid, stdout: JSON.stringify(reply)};
     },
     async node(request, project, label) {
+      assert.equal(label.family, 'node-sequential', 'Node never opens a Native family Store');
       calls.push({surface: 'node', kind: request.kind, project, ...label});
       const counts = {sourceAcquisitionStarts: request.kind === 'start' ? 2 : 0,
         modelCallStarts: request.kind === 'start' ? 2 : 0, effectReplacementReturns: request.decision === 'approved' ? 2 : 0};
       const value = projects.get(project), base = {pid: ++pid, firstClose: {attempted: true, returned: true},
         workObservation: {...counts, totals: {...counts}, complete: true}};
-      if (request.kind === 'static') return {...base, check, plan};
+      if (request.kind === 'static') {
+        assert.equal(value.runs.length, 0, 'Node check/plan precedes its first Run');
+        return {...base, check, plan};
+      }
       let run;
       if (request.kind === 'start') {
         run = start(project);
@@ -120,31 +153,67 @@ function fixture({failApproval = false, replaceRun = false, mutateSavedRows = fa
       if (request.kind === 'result') {
         result.rows = rows(value, run);
         result.description = {ref: run.original.ref, resultName: 'updates',
-          columns: Object.keys(result.rows[0]).map(name => ({name, contract: {type: 'fixture-only'}})),
-          resultArtifactCid: 'independent-original-artifact-' + run.original.runId};
+          columns: describedColumns(value.template), programDefinitionCid: 'sha256:' + '1'.repeat(64),
+          resultDefinitionCid: 'sha256:' + '2'.repeat(64), resultSchemaCid: 'sha256:' + '3'.repeat(64),
+          resultArtifactCid: run.original.ref.runDefinitionCid};
+        if (mutateInitialContract) result.description.columns[0].contract = {type: 'string', nullable: true};
       }
       return result;
     },
   }};
 }
 
-test('RC sequences retain one project for new Run2/3 and exclusive CLI/Node round trips', async () => {
+test('RC sequences retain independent owner-local projects for check/plan and new Run2/3', async () => {
   const f = fixture(), cases = await runReleaseProjectSequences(f.options);
   for (const template of ['churn-risk-mock', 'deal-review-mock']) for (const family of [
-    'native-while-waiting', 'native-after-approve', 'native-after-reject', 'node-sequential', 'exclusive-cli-node-roundtrip']) {
+    'native-while-waiting', 'native-after-approve', 'native-after-reject', 'node-sequential']) {
     const entry = cases.find(row => row.template === template && row.family === family); assert(entry?.complete);
     const calls = f.calls.filter(row => row.project === entry.project);
     assert.equal(calls.filter(row => row.args?.[0] === 'init').length, 1);
     assert.equal(new Set(entry.runs.map(run => run.original.runId)).size, entry.runs.length);
     if (family.startsWith('native-')) assert.equal(entry.runs.length, 3);
-    if (family === 'exclusive-cli-node-roundtrip') {
-      assert(calls.some(row => row.surface === 'node' && row.kind === 'resolve'));
-      assert(calls.some(row => row.surface === 'cli' && row.args?.[0] === 'approve'));
-      assert(calls.some(row => row.surface === 'node' && row.kind === 'result'));
+    if (family === 'node-sequential') {
+      assert.equal(entry.runs.length, 3);
+      assert(calls.filter(row => row.surface === 'cli').every(row => row.args[0] === 'init'));
+      const staticAt = calls.findIndex(row => row.kind === 'static');
+      assert(staticAt >= 0 && staticAt < calls.findIndex(row => row.kind === 'start'));
+    } else {
+      assert(!calls.some(row => row.surface === 'node'));
     }
     assert(entry.phases.some(row => row.phase === 'result') || family.includes('reject') || family.includes('waiting'));
   }
   assert(f.records.every(row => row.complete));
+  assert(!cases.some(row => row.family === 'exclusive-cli-node-roundtrip'), 'Deferred interoperability is unselected');
+});
+
+test('RC first Result description requires independently authored ordered complete contracts', () => {
+  const ref = {namespaceId: 'original', authorityScopeCid: 'sha256:' + 'a'.repeat(64),
+    runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
+  for (const template of ['churn-risk-mock', 'deal-review-mock']) {
+    const description = {ref, resultName: 'updates', columns: describedColumns(template),
+      programDefinitionCid: 'sha256:' + '1'.repeat(64), resultDefinitionCid: 'sha256:' + '2'.repeat(64),
+      resultArtifactCid: 'sha256:' + '3'.repeat(64), resultSchemaCid: 'sha256:' + '4'.repeat(64)};
+    assert.doesNotThrow(() => assertProjectResultDescription(template, description, ref));
+    for (const change of [
+      value => value.columns.reverse(),
+      value => {value.columns[0].contract.nullable = true;},
+      value => {delete value.columns.at(-1).contract.fields.input_key;},
+      value => {value.columns.at(-1).contract.fields.value.nullable = true;},
+      value => {value.resultArtifactCid = 'not-an-original-cid';},
+    ]) {
+      const wrong = structuredClone(description); change(wrong);
+      assert.throws(() => assertProjectResultDescription(template, wrong, ref));
+    }
+  }
+});
+
+test('RC initial wrong schema cannot become an oracle merely by repeating on Saved reads', async () => {
+  const f = fixture({mutateInitialContract: true});
+  await assert.rejects(runReleaseProjectSequences(f.options), AggregateError);
+  for (const entry of f.records.filter(row => row.family === 'node-sequential')) {
+    assert.equal(entry.complete, false);
+    assert.equal(f.calls.filter(row => row.project === entry.project && row.kind === 'result').length, 1);
+  }
 });
 
 test('RC uncertain approval stops that project without replay or hiding independent case failures', async () => {

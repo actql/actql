@@ -9,8 +9,43 @@ import {mockTemplates, expectedChanges} from './native-cli-mock-scenario.mjs';
 const cid = /^sha256:[0-9a-f]{64}$/u;
 export const releaseProjectFamilies = Object.freeze([
   'native-while-waiting', 'native-after-approve', 'native-after-reject',
-  'node-sequential', 'exclusive-cli-node-roundtrip',
+  'node-sequential',
 ]);
+
+// Independent expectations from the authored Catalog, ModelTask and SELECT.
+// These are not learned from a first Result or emitted by the product compiler.
+const text = {type: 'string', nullable: false};
+const modelResult = fields => ({type: 'object', nullable: false, additional_properties: false, fields: {
+  input_key: {type: 'object', nullable: false, additional_properties: false, fields: {id: text}},
+  outcome: text,
+  value: {type: 'object', nullable: false, additional_properties: false, fields},
+}});
+const expectedColumns = {
+  'churn-risk-mock': [
+    {name: 'id', contract: text}, {name: 'notes', contract: text},
+    {name: 'active_users', contract: {type: 'int64', nullable: false}},
+    {name: 'trend', contract: text},
+    {name: 'risk', contract: modelResult({
+      level: {...text, enum: ['low', 'medium', 'high']}, reason: text,
+    })},
+  ],
+  'deal-review-mock': [
+    {name: 'id', contract: text}, {name: 'StageName', contract: text},
+    {name: 'NextStep', contract: {type: 'string', nullable: true}},
+    {name: 'notes', contract: {type: 'content_ref', nullable: false, media_type: 'text/plain'}},
+    {name: 'review', contract: modelResult({changed: {type: 'boolean', nullable: false},
+      stage: text, next_step: text})},
+  ],
+};
+
+export function assertProjectResultDescription(template, description, ref) {
+  assert(expectedColumns[template], 'Unknown authored template');
+  assert.equal(description.resultName, 'updates');
+  assert.deepEqual(description.ref, ref);
+  assert.deepEqual(description.columns, expectedColumns[template], 'Complete ordered original Result contracts');
+  for (const field of ['programDefinitionCid', 'resultDefinitionCid', 'resultArtifactCid', 'resultSchemaCid'])
+    assert(cid.test(description[field]), field);
+}
 
 export async function projectTargetSnapshot(project) {
   const path = join(project, 'mock/data.json'), info = await stat(path, {bigint: true});
@@ -158,11 +193,10 @@ export async function runReleaseProjectSequences({root, cli, node, snapshot = pr
       } else {
         const value = await nodeCommand({kind: 'result', original: run.original}, ordinal);
         state(value.state, run.original, 'succeeded'); rows = value.rows; description = value.description;
-        assert.equal(description.resultName, 'updates'); assert.deepEqual(description.ref, run.original.ref);
+        assertProjectResultDescription(template, description, run.original.ref);
       }
-      const columns = assertProjectSequenceRows(template, rows, run.before);
+      assertProjectSequenceRows(template, rows, run.before);
       if (description) {
-        assert.deepEqual(description.columns.map(column => column.name).sort(), [...columns].sort());
         if (run.description) assert.deepEqual(description, run.description, 'Original Result schema/artifact on reread');
         else run.description = description;
       }
@@ -178,6 +212,9 @@ export async function runReleaseProjectSequences({root, cli, node, snapshot = pr
         const check = JSON.parse((await cliCommand(['check', program, '--json'])).stdout);
         const plan = JSON.parse((await cliCommand(['explain', program, '--json'])).stdout);
         assertTemplateStatic(check, plan);
+        assert.deepEqual(await snapshot(project), before, 'Static template analysis must not write');
+      } else if (family === 'node-sequential') {
+        const before = await snapshot(project);
         const observed = await nodeCommand({kind: 'static', program});
         assertTemplateStatic(observed.check, observed.plan);
         assert.deepEqual(await snapshot(project), before, 'Static template analysis must not write');

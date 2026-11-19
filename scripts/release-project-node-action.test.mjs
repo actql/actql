@@ -38,7 +38,7 @@ function ports({decisionFailure, closeFailure, closeObservationFailure, foreignC
     async close() {calls.push('close'); if (closeFailure) throw closeFailure;},
   };
   return {original, calls, closes, accepted, setStatus: value => {status = value;},
-    config: {async connect(options) {assert.deepEqual(options, {mode: 'local', installation: {directory: '.actql'}, profile: 'mock'}); calls.push('connect'); return client;},
+    config: {async connect(options) {assert.deepEqual(options, {mode: 'local', installation: {directory: '.actql-node'}, profile: 'mock'}); calls.push('connect'); return client;},
       async readProgram() {calls.push('read-source'); return 'authored source';},
       async retainAccepted(value) {calls.push('retain-accepted'); accepted.push(value);},
       assertPendingTarget() {calls.push('pending-target');},

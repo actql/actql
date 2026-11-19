@@ -8,7 +8,9 @@ export async function runReleaseProjectNodeAction({connect, request, readProgram
   assert(request.decision === undefined || ['approved', 'rejected'].includes(request.decision));
   let client, primary, failed = false, closeFailure, closeFailed = false, response;
   try {
-    client = await connect({mode: 'local', installation: {directory: '.actql'}, profile: 'mock'});
+    // CLI init already adopts .actql. This independent Node owner never opens
+    // or converts that Native Store, including during static analysis.
+    client = await connect({mode: 'local', installation: {directory: '.actql-node'}, profile: 'mock'});
     if (request.kind === 'static') {
       const source = await readProgram();
       response = {check: await client.check(source, {format: 'aql'}),
