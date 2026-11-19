@@ -875,7 +875,18 @@ fn request_numeric_100000_profile_fixture(
       Err(issue) =>
         fail(
           "Original100000 normalization: " +
-          @debug.to_string(issue) +
+          (match issue {
+            Preparation(Capacity(inner)) =>
+              "Capacity " + @debug.to_string(inner)
+            Preparation(Work(_)) => "Work"
+            Preparation(Policy) => "Policy"
+            Preparation(ForeignOriginal) => "ForeignOriginal"
+            Preparation(WrongPhase) => "WrongPhase"
+            Preparation(_) => "OtherPreparation"
+            Normalization(CommonInventory(inner)) =>
+              "CommonInventory " + @debug.to_string(inner)
+            Normalization(_) => "OtherNormalization"
+          }) +
           "; auditQuote=" +
           quote.to_string() +
           "; baselineR=" +
