@@ -19,45 +19,123 @@ priv struct InstalledQueryTasksFixture {
 ///|
 fn installed_query_tasks_fixture(
   request_protocols? : Bool = false,
+  original_filter? : Bool = false,
 ) -> InstalledQueryTasksFixture raise {
-  let declaration = pure_provider_declaration()
-  let environment = pure_provider_environment(declaration)
-  let (parent, child, _, input) = registration_parent_fixture(
-    text=installed_query_tasks_document,
-    environment=Some(environment),
-  )
-  guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
-    fail("original Query fixture must check")
+  let declaration = if original_filter {
+    let catalogue = @row_source_host.prepare_mock_churn_risk_catalogue({
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_views: 10,
+      max_fields: 100,
+    }).unwrap()
+    let (name, original) = @row_source_host.mock_churn_risk_query_alias_at(
+      catalogue, 1,
+    ).unwrap()
+    assert_eq(name, "snowflake.usage_30d")
+    original
+  } else {
+    pure_provider_declaration()
   }
-  let prepared = compile_program_check_preparation(
-    child,
-    @publication_host.client_standard_program_preparation_limits(),
-  ).unwrap()
-  assert_true(
-    physical_equal(
-      continue_request_program_preparation(parent, input).unwrap(),
-      prepared,
-    ),
+  let environment = pure_provider_environment(
+    declaration,
+    numeric_profile_cid=if original_filter {
+      Some(
+        "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+      )
+    } else {
+      None
+    },
   )
+  let (parent, prepared, input) = if original_filter {
+    let view = declaration.views[0]
+    let wire : Json = {
+      "environmentCid": Json::string(
+        @checked.checking_environment_cid(environment),
+      ),
+      "aliases": [
+        {
+          "name": "snowflake.usage_30d",
+          "sourceRef": Json::string(view.source_ref),
+          "sourceViewContractCid": Json::string(view.view_cid),
+          "schemaContractCid": Json::string(view.carrier_schema_cid),
+        },
+      ],
+    }
+    let publication = @source_publication.prepare_published_query_environment(
+      environment,
+      wire.stringify(),
+    ).unwrap()
+    let captured : Json = {
+      "format": "sql",
+      "text": "SELECT account_id, trend FROM snowflake.usage_30d WHERE trend = 'down'",
+    }
+    let captured = captured.stringify()
+    let (parent, input) = native_driver_parent(captured)
+    assert_true(
+      prepare_request_native_source_computation(
+        parent,
+        input,
+        request_native_test_value(captured),
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+      ).unwrap()
+      is Pure,
+    )
+    (parent, parent.compiled_program.unwrap(), input)
+  } else {
+    let (parent, child, _, input) = registration_parent_fixture(
+      text=installed_query_tasks_document,
+      environment=Some(environment),
+    )
+    guard finish_program_check_preparation(child).unwrap()
+      is @checked.Checked(_) else {
+      fail("original Query fixture must check")
+    }
+    let prepared = compile_program_check_preparation(
+      child,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        continue_request_program_preparation(parent, input).unwrap(),
+        prepared,
+      ),
+    )
+    (parent, prepared, input)
+  }
   reserve_request_program_plan(parent, input).unwrap()
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
     "same-original-query-join",
   ).unwrap()
+  let count = if original_filter { 1 } else { 2 }
+  let assets = @publication_host.client_local_product_assets()
+  let (registry, values, fragment, ordered) = if original_filter {
+    (assets.registry, assets.values, Some(assets.fragment), assets.ordered)
+  } else {
+    (
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+    )
+  }
   let contracts = prepare_installed_sequence_contracts(
-    source_query_original_registry,
-    source_query_original_values,
-    Some(source_query_original_fragment),
-    None,
+    registry, values, fragment, ordered,
   ).unwrap()
-  let original_protocols = if request_protocols {
+  let original_protocols = if request_protocols || original_filter {
     let (protocols, direct) = admit_request_query_acquisition_contracts(
       parent, input, original_row_query_contract_fixture, original_row_evidence_contract_fixture,
     ).unwrap()
     assert_eq(
       @publication_host.client_direct_acquisition_occurrence_count(direct),
-      2,
+      count,
     )
     assert_true(
       @publication_host.client_direct_acquisition_occurrences_match_program(
@@ -68,15 +146,9 @@ fn installed_query_tasks_fixture(
   } else {
     None
   }
-  let acquisitions = [0, 1].map(stage => {
+  let acquisitions = Array::makei(count, stage => {
     let requirement = prepare_local_query_requirement(
-      prepared,
-      stage,
-      0,
-      contracts,
-      source_query_original_values,
-      Some(source_query_original_fragment),
-      None,
+      prepared, stage, 0, contracts, values, fragment, ordered,
     ).unwrap()
     match original_protocols {
       None =>
@@ -97,21 +169,23 @@ fn installed_query_tasks_fixture(
     acquisitions.map(acquisition => {
       installed_row_capture_capacity(acquisition).unwrap()
     }),
-    [4096L, 4096L],
-    [4096L, 4096L],
+    Array::make(count, 4096L),
+    Array::make(count, 4096L),
     contracts,
-    source_query_original_values,
-    Some(source_query_original_fragment),
-    None,
-    retained_output=true,
+    values,
+    fragment,
+    ordered,
+    retained_output=!original_filter,
     provider_factory=_ => [],
     runtime_admission=true,
   ).unwrap()
   complete_request_capture_preparation(parent, input, plan).unwrap()
   let owner = begin_request_capture_managed_run(parent, request).unwrap()
   let captures = []
-  let verify_hooks : Array[Ref[(() -> Unit)?]] = [Ref(None), Ref(None)]
-  for index in 0..<2 {
+  let verify_hooks : Array[Ref[(() -> Unit)?]] = Array::makei(count, _ => {
+    Ref(None)
+  })
+  for index in 0..<count {
     let (read, _, acquisition, _) = begin_installed_managed_capture_source_read(
       owner, prepared, request, declaration, index,
     ).unwrap()
@@ -135,7 +209,11 @@ fn installed_query_tasks_fixture(
     @row_source_host.accept_row_run_page(
       source,
       @utf8.encode(
-        if index == 0 {
+        if original_filter {
+          // Schema-directed int64 wire after Native's document projection.
+          // This page is scan DATA, not a fabricated filtered output.
+          "[{\"account_id\":\"001Acme\",\"active_users\":\"4\",\"trend\":\"down\"},{\"account_id\":\"001Globex\",\"active_users\":\"12\",\"trend\":\"flat\"}]"
+        } else if index == 0 {
           "[{\"id\":1},{\"id\":2}]"
         } else {
           "[{\"id\":2},{\"id\":3}]"
@@ -449,6 +527,81 @@ test "installed filtered SQL read keeps its actual checked acquisition route" {
   assert_true(route is @sourceviews.QueryRoute(_))
   assert_eq(@publication_host.prepared_client_acquisition_count(prepared), 1)
   assert_true(@strategy.graph_result_count(graph) == 1)
+}
+
+///|
+// Node-admitted common driver diagnostic only. Query scan/capture and the
+// receiving LocalDispatch/FixedCompute suffix retain their actual originals;
+// no Native file, Account, physical cleanup or installed CLI is simulated.
+test "installed original readonly filter executes SAME Query capture and Local driver" {
+  let value = installed_query_tasks_fixture(original_filter=true)
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(value.setup),
+  )
+  assert_eq(@strategy.graph_captured_prefix(value.plan.graph), 1)
+  assert_eq(@strategy.next_captured_task(run), Some(1))
+  let result = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    value.captures,
+    1,
+    10000,
+    () => true,
+  )
+  match result {
+    Ok(execution) => {
+      let rows = execution.rows().unwrap()
+      assert_eq(rows, ["{\"account_id\":\"001Acme\",\"trend\":\"down\"}"])
+      assert_true(execution.close())
+      close_installed_query_tasks_fixture(value)
+    }
+    Err(failure) => {
+      // Retain the actual closed typed cause from this original attempt.
+      let original = local_values_execution_failure_issue(failure)
+      let cleaned = retry_local_values_execution_failure_cleanup(failure)
+      if cleaned {
+        close_installed_query_tasks_fixture(value)
+      }
+      let cause = match original {
+        Driver(Configuration(original))
+        | Driver(Preparation(Candidate(original)))
+        | Driver(Preparation(Execution(original)))
+        | Driver(Execution(Compute(original))) =>
+          match original {
+            UnsupportedInputShape => "FixedCompute.UnsupportedInputShape"
+            InputUnavailable => "FixedCompute.InputUnavailable"
+            ForeignPreparation => "FixedCompute.ForeignPreparation"
+            ForeignRequest(_) => "FixedCompute.ForeignRequest"
+            ForeignCapability(_) => "FixedCompute.ForeignCapability"
+            CapabilityClosed => "FixedCompute.CapabilityClosed"
+            ComputeUnsupported => "FixedCompute.ComputeUnsupported"
+            NotSelected => "FixedCompute.NotSelected"
+            InvalidLimits => "FixedCompute.InvalidLimits"
+            CapacityContract => "FixedCompute.CapacityContract"
+            CommonInputRows => "FixedCompute.CommonInputRows"
+            CommonFragmentUnsupported =>
+              "FixedCompute.CommonFragmentUnsupported"
+            LogicalIdentityUnsupported =>
+              "FixedCompute.LogicalIdentityUnsupported"
+            PlanningLimit => "FixedCompute.PlanningLimit"
+            NegativeQuantity => "FixedCompute.NegativeQuantity"
+            ControlWorkLimit => "FixedCompute.ControlWorkLimit"
+            Execution(_) => "FixedCompute.Execution"
+            Cost(_) => "FixedCompute.Cost"
+            Guard(_) => "FixedCompute.Guard"
+          }
+        Driver(Preparation(_)) => "Driver.Preparation"
+        Driver(Execution(_)) => "Driver.Execution"
+        Driver(ExecutionCapacityRefusal(_, _, _, _)) =>
+          "Driver.ExecutionCapacityRefusal"
+        Driver(_) => "Driver.Unclassified"
+        _ => "LocalExecution.Unclassified"
+      }
+      fail("original filter Local driver: " + cause)
+    }
+  }
 }
 
 ///|
