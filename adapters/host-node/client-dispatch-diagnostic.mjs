@@ -211,7 +211,23 @@ export function dispatchFailureSnapshot(error) {
     ...(cleanupDiagnostic === undefined ? {} : {cleanupDiagnostic})});
 }
 
-export function publicBudgetFailureMessage(error) {
+// The installed Common catalogue returns only presentation DATA. Never infer
+// a cause from exception text, or turn a missing/foreign renderer into a new
+// failure. The existing complete terminal-message envelope remains 512 units.
+const rowFailureHeaderUnits =
+  'Execution failed: phase=local_managed_advance; task=2147483647; step=2147483647; cause='.length +
+  96 + '. Original execution failure; resource quantities were not retained.'.length;
+const rowFailureExplanationUnits = 512 - rowFailureHeaderUnits - 1;
+function failureCauseExplanation(cause, describeCause) {
+  if (typeof describeCause !== 'function') return undefined;
+  try {
+    const value = describeCause(cause);
+    return typeof value === 'string' && value.length > 0 && value.length <= rowFailureExplanationUnits
+      ? value : undefined;
+  } catch { return undefined; }
+}
+
+export function publicBudgetFailureMessage(error, describeCause) {
   const data = dispatchFailureSnapshot(error)?.primaryDiagnostic;
   if (data?.phase !== 'local_managed_advance') return undefined;
   if (data.kind === 'logical_work') {
@@ -219,8 +235,10 @@ export function publicBudgetFailureMessage(error) {
       'Runtime logical work; requested and remaining quantities were not retained.';
   }
   if (data.kind === 'row_failure') {
-    return `Execution failed: phase=${data.phase}; task=${data.task}; step=${data.step}; cause=${data.cause}. ` +
-      'Original execution failure; resource quantities were not retained.';
+    const explanation = failureCauseExplanation(data.cause, describeCause);
+    // One complete bounded string, not a prefix copy followed by a second
+    // full message. The optional separator and catalogue text are borrowed.
+    return `Execution failed: phase=${data.phase}; task=${data.task}; step=${data.step}; cause=${data.cause}. Original execution failure; resource quantities were not retained.${explanation === undefined ? '' : ' '}${explanation ?? ''}`;
   }
   if (data.kind === 'local_issue') {
     return `Execution failed: phase=${data.phase}; task=${data.task}; cause=${data.cause}. ` +
@@ -242,7 +260,7 @@ export function publicBudgetFailureMessage(error) {
       : 'Runtime work, not Program parsing/checking. A lower bound does not give the complete UTF8 demand.');
 }
 
-export function retainedBudgetFailureMessage(key, state, runId, control) {
+export function retainedBudgetFailureMessage(key, state, runId, control, describeCause) {
   if (typeof key !== 'string' || state.status !== 'failed' ||
       state.terminal_error?.code !== 'ACTQL_E_UNPUBLISHED_RUN' ||
       control.physical_stop !== 'confirmed') return undefined;
@@ -257,9 +275,15 @@ export function retainedBudgetFailureMessage(key, state, runId, control) {
   const message = previous.terminal_error.message;
   if (typeof message !== 'string') return undefined;
   const cause = message.length <= 512 &&
-    /^Execution failed: phase=local_managed_advance; task=(0|[1-9][0-9]{0,9}); (?:step=(0|[1-9][0-9]{0,9}); )?cause=([a-z_]+(?:\.[a-z_]+)*)\. Original execution failure; resource quantities were not retained\.$/u.exec(message);
+    /^Execution failed: phase=local_managed_advance; task=(0|[1-9][0-9]{0,9}); (?:step=(0|[1-9][0-9]{0,9}); )?cause=([a-z_]+(?:\.[a-z_]+)*)\. Original execution failure; resource quantities were not retained\.(?: (.*))?$/u.exec(message);
   if (cause && Number(cause[1]) <= 2147483647 &&
-      (cause[2] === undefined || Number(cause[2]) <= 2147483647) && cause[3].length <= 96) return message;
+      (cause[2] === undefined || Number(cause[2]) <= 2147483647) && cause[3].length <= 96) {
+    // Keep immutable old bare messages verbatim. A new suffix is accepted only
+    // when it exactly matches this installed Common catalogue; arbitrary
+    // stored text or another cause cannot become a canonical conversion fact.
+    if (cause[4] === undefined || cause[2] !== undefined &&
+        cause[4] === failureCauseExplanation(cause[3], describeCause)) return message;
+  }
   const logical = /^Budget exceeded: phase=local_managed_advance; task=(0|[1-9][0-9]{0,9}); step=(0|[1-9][0-9]{0,9}); dimension=logical_work; requested_delta=unavailable; remaining=unavailable; policy=(0|[1-9][0-9]{0,18}); unit=work_units; setting=(?:installation\.sourceFreeMaxWork|unavailable)\. Runtime logical work; requested and remaining quantities were not retained\.$/u.exec(message);
   if (message.length <= 512 && logical && Number(logical[1]) <= 2147483647 &&
       Number(logical[2]) <= 2147483647 && BigInt(logical[3]) <= 9223372036854775807n) return message;

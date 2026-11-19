@@ -5060,6 +5060,8 @@ pub fn local_managed_dispatch(@connectors_builtin.ConfiguredComputeHost[@physica
 
 pub fn local_managed_duration(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> Int64?
 
+pub fn local_managed_failure_explanation(String) -> String?
+
 pub fn local_managed_has_prepared_relation_input(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int) -> Bool
 
 pub fn local_managed_relation_output(@execution_relation.ManagedCompletedOutput[Int]) -> @actql/actql/connectors/local/driver.LocalManagedAvailableOutput[Int]

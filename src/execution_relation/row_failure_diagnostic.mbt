@@ -128,3 +128,18 @@ fn row_logical_failure_diagnostic_cause(issue : LogicalBudgetIssue) -> String {
       }
   }
 }
+
+///|
+/// Presentation DATA for an existing closed execution cause, not evidence
+/// that a failure occurred. Never inspect or echo the rejected input value.
+/// The canonical TIMESTAMP conversion boundary owns this fixed explanation;
+/// pattern-based PARSE/FORMAT keep their separate existing grammar.
+pub fn row_failure_diagnostic_explanation(cause : String) -> String? {
+  if cause == "evaluation.timestamp_canonical_required" {
+    Some(
+      "Expected a canonical UTC TIMESTAMP such as 2026-01-02T03:04:05.123Z: use T, Z and 3-9 fractional digits, with no redundant trailing zeros beyond 3 digits; no spaces or offsets.",
+    )
+  } else {
+    None
+  }
+}

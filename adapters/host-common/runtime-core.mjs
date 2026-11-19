@@ -1927,6 +1927,7 @@ function publicationControl(moon) {
   const returnExplanationCapture = moon.clientProgramReturnOriginalExplanationCapture;
   const acknowledgeExplanationCapture = moon.clientProgramAcknowledgeOriginalExplanationCapture;
   const observeOriginalDispatchFailure = moon.clientProgramObserveOriginalDispatchFailure;
+  const describeExecutionFailure = moon.strategyModule_local_ManagedFailureExplanation;
   const prepareLogicalObservation = moon.clientProgramPrepareLogicalObservation;
   const originalInferRunTokens = new WeakMap();
   const restoredInferRuns = new WeakSet();
@@ -2401,6 +2402,14 @@ function publicationControl(moon) {
     }
   };
   control = Object.freeze({
+    executionFailureExplanation(cause) {
+      if (typeof cause !== 'string' || cause.length > 96 ||
+          typeof describeExecutionFailure !== 'function') return undefined;
+      // Reuse the original Common export captured with this control. This is
+      // inert catalogue DATA, never an original failure or read permission.
+      const value = Reflect.apply(describeExecutionFailure, moon, [cause]);
+      return typeof value === 'string' ? value : undefined;
+    },
     seal(name, bodyWire, limits) {
       limits = captureContractLimits(limits, 'publication contract');
       return inspect(checked(moon.strategyPublicationSeal(

@@ -3864,7 +3864,7 @@ export function openClientRequestJournal(directory, {
         });
       const runId = publicationControl.runDefinitionRunId(frame.runDefinition);
       const originalMessage = retainedBudgetFailureMessage(expected.state_observation_key,
-        state, runId, control);
+        state, runId, control, publicationControl.executionFailureExplanation);
       const projection = prepareInstalledRunStateObservation(requestControl, {
         state: {...state, ...(originalMessage === undefined ? {} : {
           terminal_error: {...state.terminal_error, message: originalMessage},

@@ -2887,6 +2887,8 @@ pub fn local_managed_dispatch(@connectors_builtin.ConfiguredComputeHost[@physica
 
 pub fn local_managed_duration(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> Int64?
 
+pub fn local_managed_failure_explanation(String) -> String?
+
 pub fn local_managed_start(@actql/actql/connectors/local/driver.LocalManagedDispatchConfiguration[Int]) -> @actql/actql/connectors/local/driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure
 
 pub fn local_registration(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]) -> @connector_sdk.CapabilityRegistration

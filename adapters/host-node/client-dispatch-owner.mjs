@@ -235,7 +235,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   const operation = ref => current(ref)?.promise;
   const failureMessage = ref => {
     const entry = current(ref);
-    return entry === undefined ? undefined : publicBudgetFailureMessage(entry.primaryFailure);
+    return entry === undefined ? undefined : publicBudgetFailureMessage(
+      entry.primaryFailure, control?.executionFailureExplanation);
   };
 
   async function acquireSource(entry, preparedProgram, preparedSource, sourceAccess,
@@ -415,7 +416,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   }
 
   function retainBudgetFailureObservation(entry) {
-    const message = publicBudgetFailureMessage(entry.primaryFailure);
+    const message = publicBudgetFailureMessage(entry.primaryFailure,
+      control?.executionFailureExplanation);
     if (message === undefined || !entry.stopObserved) return;
     const frame = journal.lookupRunDefinition(entry.ref, moon, control);
     if (frame?.physicalCloseConfirmed !== true || frame.observedTerminalOutcome !== 'failed') return;

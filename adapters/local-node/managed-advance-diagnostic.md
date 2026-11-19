@@ -231,6 +231,26 @@ or parse an exception message. A generic operand failure stays generic, and
 foreign or copied Host errors do not become an original typed cause. This adds
 no public Problem field, phase transition, value text, or resource quantity.
 
+The Common catalogue maps only that exact closed cause to one fixed expected
+form and example: canonical UTC with `T`, `Z` and 3–9 fractional digits, with
+no redundant trailing zeros beyond three digits. This is presentation DATA,
+not a failed Result, an authenticated diagnosis or a new conversion rule.
+Pattern-based PARSE/FORMAT retain their separate existing grammars. Unknown
+codes and arbitrary caller text return no explanation; rejected input values
+are never inspected, normalized or echoed by this catalogue.
+
+The installed publication control captures the original Common getter and
+receiver. The dispatch owner can append its bounded text only after the
+existing typed row-failure projection. The complete message still fits the
+existing 512-unit terminal envelope, including maximal Task/step ordinals;
+the renderer borrows the static explanation and constructs one complete
+message. There is no extra retained error, collection, holder or allowance.
+An absent, throwing or oversized optional catalogue preserves the original
+bare message. Existing same-Run, failed-state and confirmed-stop gates still
+precede cold rendering. Old bare messages stay unchanged; a retained suffix
+must match the installed Common catalogue exactly and cannot manufacture an
+original cause or replace physical cleanup evidence.
+
 The non-row cases pass actual typed Core results through the compiled getter
 and imported Node helper, including the same failed confirmed-stop Journal
 message. Optional/frozen/malformed/foreign controls preserve the primary and
