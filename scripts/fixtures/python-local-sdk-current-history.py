@@ -353,8 +353,8 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                     counts['returnedTaskRows'] += 1
                     # The existing material writer keys chunks by this exact
                     # original Run scope. No other task namespace is inferred.
-                    prefix = trace.target.encode('utf-8') + b':'
-                    if namespace != 'client_task_run_materials' or not row[0].startswith(prefix):
+                    task_prefix = trace.target.encode('utf-8') + b':'
+                    if namespace != 'client_task_run_materials' or not row[0].startswith(task_prefix):
                         counts['unrelatedTaskRows'] += 1
                 elif namespace.startswith('client_effect'):
                     # This authored Values/JOIN target has no Effect members.
