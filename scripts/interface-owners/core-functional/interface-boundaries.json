@@ -77574,7 +77574,7 @@
     },
     {
       "module": "src/physical_strategy_host/captured_dag.mbt",
-      "sha256": "7eb28765226e5bdb17447ca0d8a25e58cc4fe5b66a6070bd8e052912dd55dc2f",
+      "sha256": "64a602c89dec1fa0312f4d376abc6344206d8165652f4a38e912808aa85a2ffa",
       "exports": [],
       "operations": [
         {
@@ -77628,6 +77628,10 @@
         {
           "name": "captured_dag_strategy",
           "declaration": "captured_dag_strategy ( run : CapturedDAG ) - > StrategyRevision ?"
+        },
+        {
+          "name": "captured_dag_strategy_revision",
+          "declaration": "captured_dag_strategy_revision ( run : CapturedDAG ) - > Int"
         },
         {
           "name": "captured_effect_keyed_completed_input_matches",
@@ -77794,6 +77798,10 @@
           "declaration": "captured_task_source_matches ( run : CapturedDAG , task : Int , source : @ query . CapturedInputSource , ) - > Bool"
         },
         {
+          "name": "captured_task_source_original_matches",
+          "declaration": "captured_task_source_original_matches ( run : CapturedDAG , task : Int , source : @ query . CapturedInputSource , ) - > Bool"
+        },
+        {
           "name": "captured_task_target",
           "declaration": "captured_task_target ( run : CapturedDAG , task : Int ) - > @ pipeline . Target ?"
         },
@@ -77836,6 +77844,10 @@
         {
           "name": "next_captured_task",
           "declaration": "next_captured_task ( run : CapturedDAG ) - > Int ?"
+        },
+        {
+          "name": "next_captured_task_ungated",
+          "declaration": "next_captured_task_ungated ( run : CapturedDAG ) - > Int ?"
         },
         {
           "name": "open_captured_dag",
@@ -78019,7 +78031,10 @@
             "source_inputs_original_reads",
             "stop_captured_dag",
             "task_done",
-            "valid_source_free_root"
+            "valid_source_free_root",
+            "captured_task_source_original_matches",
+            "captured_dag_strategy_revision",
+            "next_captured_task_ungated"
           ],
           "exports": [],
           "attributes": {
@@ -78129,6 +78144,10 @@
               {
                 "path": "src/client_local_host/captured_source_reentry_wbtest.mbt",
                 "anchor": "test \"captured binding rechecks DAG Source port after original verifier callback\""
+              },
+              {
+                "path": "src/client_local_host/installed_query_tasks_js_wbtest.mbt",
+                "anchor": "installed plural Query continuation fences earlier DAG port retirement from a later Source callback"
               }
             ]
           }

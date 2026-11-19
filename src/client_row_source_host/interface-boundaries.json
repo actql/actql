@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "209fe638f53c1b9d1f9c591dd0ce7036d332eceb3e0e6930ff9f3eeea5ccf31e",
+      "sha256": "fb8474ad0848fb7e489230c5cc0b1fdbcaa1b94315a95ea57a8c917becf5c178",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -411,6 +411,7 @@
         "pub fn check_native_row_input_original(RowRun, RowInputAcquisition) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool",
+        "pub fn check_row_capture_compute_original(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool",
         "pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]",
@@ -830,6 +831,10 @@
         {
           "name": "check_row_capture_compute_binding",
           "declaration": "pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool"
+        },
+        {
+          "name": "check_row_capture_compute_original",
+          "declaration": "pub fn check_row_capture_compute_original(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool"
         },
         {
           "name": "check_row_input_acquisition_declaration",
@@ -4640,11 +4645,13 @@
         {
           "operations": [
             "check_row_capture_compute_binding",
-            "check_row_query_capture_run"
+            "check_row_query_capture_run",
+            "check_row_capture_compute_original"
           ],
           "exports": [
             "pub fn check_row_capture_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool",
-            "pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool"
+            "pub fn check_row_query_capture_run(RowSourceCapture, RowRun) -> Bool",
+            "pub fn check_row_capture_compute_original(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Bool"
           ],
           "attributes": {
             "responsibility": [
@@ -4705,6 +4712,10 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_query_tasks_js_wbtest.mbt",
+                "anchor": "installed plural Query continuation fences earlier DAG port retirement from a later Source callback"
               }
             ]
           }
@@ -7789,7 +7800,7 @@
     {
       "module": "src/client_row_source_host/captured_compute_binding.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b531273275c25516c249a74adf85cdd932b9f304d03d8388852b291302b72852",
+      "sha256": "f3b4e816fda9da97daa56cc59a9d1972b02921327802a7fca73aea5d0249f112",
       "role": "common-semantics",
       "owner": "Existing Common original Row capture and physical custody owner; read-only exact DAG binding",
       "exports": [],
@@ -7797,6 +7808,10 @@
         {
           "name": "check_row_capture_compute_binding",
           "declaration": "check_row_capture_compute_binding ( capture : RowSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Bool"
+        },
+        {
+          "name": "check_row_capture_compute_original",
+          "declaration": "check_row_capture_compute_original ( capture : RowSourceCapture , dag : @ strategy . CapturedDAG , task : Int , ) - > Bool"
         },
         {
           "name": "check_row_query_capture_run",
@@ -7808,7 +7823,8 @@
           "operations": [
             "<module>",
             "check_row_capture_compute_binding",
-            "check_row_query_capture_run"
+            "check_row_query_capture_run",
+            "check_row_capture_compute_original"
           ],
           "exports": [],
           "attributes": {
@@ -7870,6 +7886,10 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/installed_query_tasks_js_wbtest.mbt",
+                "anchor": "installed plural Query continuation fences earlier DAG port retirement from a later Source callback"
               }
             ]
           }

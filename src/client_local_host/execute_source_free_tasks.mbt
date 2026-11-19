@@ -235,7 +235,12 @@ fn installed_captured_local_tasks_nominal(
       read.ledger is Some(original_ledger) &&
       physical_equal(original_ledger, ledger) &&
       read.run is Some(row_run) &&
-      @row_source_host.check_row_query_capture_run(captures[index], row_run) else {
+      @row_source_host.check_row_query_capture_run(captures[index], row_run) &&
+      @row_source_host.check_row_capture_compute_original(
+        captures[index],
+        run,
+        index,
+      ) else {
       return false
     }
   }

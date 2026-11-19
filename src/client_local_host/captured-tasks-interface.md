@@ -129,7 +129,9 @@ same Ledger and the corresponding DAG Source port. A duplicate capture cannot
 supply another original read. The checked Plan determines the complete prefix;
 no count or caller flag can skip a non-captured task. Each Source availability
 check retains its original verifier, followed by a callback-free check of the
-whole nominal read inventory so a later verifier cannot hide earlier retirement.
+whole nominal read inventory and each SAME live original DAG port/Row custody
+so a later verifier cannot hide earlier retirement, including port-only closure
+while the independent RowRun remains live. This census invokes no verifier.
 Account authorization, physical claims and Source opening remain Host-owned.
 
 The entry bounds and copies only the capture-reference vector before callbacks.
@@ -148,6 +150,7 @@ closes the dependent operations and DAG outputs before the caller retires its
 original Source reads. No independent evaluator, synthetic completion, second
 Run or fresh permission is introduced. The focused Query controls cover exact
 JOIN rows, reordered/missing/foreign/current refusal, callback-array mutation,
-cross-Source retirement, and exact/one-short control reservations. They do not
+cross-Source Row retirement, independent DAG-port retirement, and exact/one-short
+control reservations. They do not
 qualify a Native physical reader, ordinary CLI installation, publication or
 cross-Host acceptance.

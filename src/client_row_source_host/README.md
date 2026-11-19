@@ -452,3 +452,8 @@ nominal RowRun/captured-observation check, not transport or Account currentness,
 permission, transfer, or physical-stop acknowledgement. A managed plural caller
 must additionally bind every slot to its original Plan acquisition/read and DAG
 input; a single capture/holding cannot stand in for another original task.
+`check_row_capture_compute_original` checks that SAME live DAG port and original
+Row physical custody without calling a Source verifier. The complete inventory
+is checked again after all Source callbacks: a later verifier can retire an
+earlier DAG port while its independent RowRun remains live. Availability and
+Account/current checks remain separate; this predicate creates no pin or grant.

@@ -326,6 +326,54 @@ test "installed plural Query continuation fences earlier reader retirement from 
 }
 
 ///|
+test "installed plural Query continuation fences earlier DAG port retirement from a later Source callback" {
+  let value = installed_query_tasks_fixture()
+  let dag = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(value.setup),
+  )
+  let row_run = value.owner.reads[0].unwrap().run.unwrap()
+  let retired = Ref(false)
+  let row_live = Ref(false)
+  value.verify_hooks[1].val = Some(() => {
+    @strategy.close_captured_task_output(dag, 0)
+    retired.val = true
+    row_live.val = @row_source_host.check_row_query_capture_run(
+      value.captures[0],
+      row_run,
+    )
+  })
+  let before = @resources.ledger_usage(value.ledger)
+  let current = installed_captured_local_tasks_current(
+    value.owner,
+    value.plan,
+    value.plan.prepared,
+    value.plan.request,
+    dag,
+    value.captures,
+  )
+  assert_true(retired.val)
+  assert_true(row_live.val)
+  assert_false(current)
+  value.verify_hooks[1].val = None
+  let failure = execute_installed_captured_local_tasks_guarded(
+    value.owner,
+    value.plan.prepared,
+    value.plan.request,
+    value.setup,
+    value.captures,
+    1,
+    10000,
+    () => true,
+  ).unwrap_err()
+  assert_true(retired.val)
+  assert_true(row_live.val)
+  assert_true(local_values_execution_failure_issue(failure) is UnsupportedGraph)
+  assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts)
+  assert_true(retry_local_values_execution_failure_cleanup(failure))
+  close_installed_query_tasks_fixture(value)
+}
+
+///|
 test "installed plural Query continuation refuses duplicate capture custody before compute" {
   let value = installed_query_tasks_fixture()
   let before = @resources.ledger_usage(value.ledger)
@@ -343,4 +391,32 @@ test "installed plural Query continuation refuses duplicate capture custody befo
   assert_eq(@resources.ledger_usage(value.ledger).attempts, before.attempts)
   assert_true(retry_local_values_execution_failure_cleanup(failure))
   close_installed_query_tasks_fixture(value)
+}
+
+///|
+test "installed filtered SQL read keeps its actual checked acquisition route" {
+  let prepared = set_output_expression_prepared(
+    text="SELECT id FROM records WHERE id > 1",
+  )
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "actual-filtered-read-route",
+  ).unwrap()
+  let route = select_installed_source_input(prepared, request, 0, 0).unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  println(
+    "actual-filtered-read-route=" +
+    @debug.to_string(
+      (
+        @strategy.graph_task_count(graph),
+        @strategy.graph_captured_prefix(graph),
+        @strategy.graph_result_task(graph, 0),
+        route is @sourceviews.QueryRoute(_),
+      ),
+    ),
+  )
+  assert_true(route is @sourceviews.QueryRoute(_))
+  assert_eq(@publication_host.prepared_client_acquisition_count(prepared), 1)
+  assert_true(@strategy.graph_result_count(graph) == 1)
 }
