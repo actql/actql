@@ -165,6 +165,35 @@ test "status normalization leaves original reference and other command shapes un
 }
 
 ///|
+test "status without an original selector reports usage before project or Host initialization" {
+  let expected = "status requires a Run ID or original reference; use actql status <run-id> or actql status --ref-file <file>. See actql status --help."
+  for
+    argv in [
+      ["status"],
+      ["status", "--json"],
+      ["status", "--watch"],
+      ["--mode", "local", "--config", "MUST-NOT-OPEN.json", "status"],
+    ] {
+    let parsed = command().parse(argv=argv[:], env=Map([]))
+    let issue = try {
+      ignore(execute_native_project_selection(parsed))
+      "unexpected success"
+    } catch {
+      ClientStop(message) => message
+    }
+    assert_eq(issue, expected)
+  }
+  let remote = command().parse(argv=["status"], env=Map([]))
+  let issue = try {
+    ignore(execute(remote))
+    "unexpected success"
+  } catch {
+    ClientStop(message) => message
+  }
+  assert_eq(issue, expected)
+}
+
+///|
 test "public status does not interpret a dash-prefixed original ID as an input file" {
   let parsed = command().parse(
     argv=["--mode", "local", "status", "--", "--original-run"],

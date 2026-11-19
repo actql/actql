@@ -911,6 +911,13 @@ fn command() -> @argparse.Command {
       ),
     ],
     subcommands=[
+      // Project creation belongs to the installed Node launcher. Native
+      // advertises that public entrance but never adopts an empty init call.
+      @argparse.Command(
+        "init",
+        about="Create a project through the actql launcher",
+        arg_required_else_help=true,
+      ),
       @argparse.Command(
         "project-init-support",
         about="Report project binding implementation availability",
