@@ -111,7 +111,8 @@ async function loaderFixture({changeAfterRead = false, implementationFailure, re
     assert.equal(views[0].resource, 'users');assert.equal(views[0].resource_kind, 'notion_users');
     return {declaration: {}, declared: {views: [{fields: ['id', 'name']}]}, environment: {wire: 'original'}};
   },prepareReadTarget(projection){
-    assert.equal(this,sourceInitialization);events.push('request.reserve');projection.capacity();
+    assert.equal(this,sourceInitialization);assert(Object.isFrozen(projection));
+    events.push('request.reserve');projection.capacity();
     if(requestFailure)throw requestFailure;
     events.push('request.project');return projection.project();
   }};
@@ -148,10 +149,44 @@ async function loaderFixture({changeAfterRead = false, implementationFailure, re
     }
     return siteProfile;
   }, readText() {assert.fail('No CA selected');}};
-  const options = {moon: {clientProgramInstalledSourceConstructionCapacity(...units){
-    assert.equal(units.length,6);assert(units.every(value=>typeof value==='bigint'&&value>=0n));
-    return {$tag:1,_0:{}};
-  }}, installation: {}, sourceInitialization, installationServices: services,
+  // Explicit constructor-only Core ports. These tokens exercise captured
+  // originals, not actual Core admission, funding, page I/O or opaque issuance.
+  const read = {}, readQuote = {}, pageCapacity = {}, requestCapacity = {}, constructions = new Set();
+  const moon = {
+    clientProgramInstalledSourceConstructionCapacity(...units) {
+      assert.equal(this,moon);assert.equal(units.length,6);
+      assert(units.every(value=>typeof value==='bigint'&&value>=0n));
+      const capacity = {};constructions.add(capacity);return {$tag:1,_0:capacity};
+    },
+    clientProgramComposeInstalledSourceConstructionCapacity(original, quotes) {
+      assert.equal(this,moon);assert(constructions.has(original));
+      assert.deepEqual(quotes,[readQuote]);return {$tag:1,_0:original};
+    },
+    clientProgramRowSourceGetReadCapacity(bounds) {
+      assert.equal(this,moon);assert.equal(bounds.length,8);return readQuote;
+    },
+    clientProgramRowSourceAdmitGetRead(bytes, present, cursor, bounds) {
+      assert.equal(this,moon);assert(Buffer.isBuffer(bytes));assert.equal(bounds.length,8);
+      assert.equal(present,true);assert.equal(cursor,'start_cursor');
+      assert.equal(JSON.parse(bytes.toString('utf8')).path,'/v1/users');
+      return {$tag:1,_0:read};
+    },
+    clientProgramRowSourceGetReadMetadata(original) {
+      assert.equal(this,moon);assert.equal(original,read);
+      return {$tag:1,_0:{_0:'/v1/users',_1:true,_2:100,_3:2,_4:1}};
+    },
+    clientProgramRowSourceGetPageCapacity(original) {
+      assert.equal(this,moon);assert.equal(original,read);return pageCapacity;
+    },
+    clientProgramRowSourceGetRequestCapacity(transport, originals) {
+      assert.equal(this,moon);assert(constructions.has(transport));
+      assert.deepEqual(originals,[pageCapacity]);return requestCapacity;
+    },
+    clientProgramRowSourceGetReadPage() {assert.fail('No page in constructor scope');},
+    clientProgramRowSourceGetPageFrame() {assert.fail('No page frame in constructor scope');},
+    clientProgramRowSourceGetReadIssueCode() {assert.fail('No Core refusal in this constructor fixture');},
+  };
+  const options = {moon, installation: {}, sourceInitialization, installationServices: services,
     providerMoon: provider, configurationReader, resolveSecret() {assert.fail('No credential resolution');}};
   return {events, options, sentinel, get readerInput() {return readerInput;},
     get implementationInput() {return implementationInput;}, load: overrides =>
@@ -161,14 +196,15 @@ async function loaderFixture({changeAfterRead = false, implementationFailure, re
 test('Notion constructor captures original services and provider before configuration await', async () => {
   const f = await loaderFixture({changeAfterRead: true});
   await assert.rejects(f.load(), cause => cause.primaryFailure === f.sentinel);
-  assert.deepEqual(f.events, ['configuration', 'policy', 'implementation', 'schema', 'declaration',
-    'request.reserve', 'request.project', 'site', 'reader', 'site.close']);
+  assert.deepEqual(f.events, ['configuration', 'policy', 'schema', 'declaration',
+    'request.reserve', 'request.project', 'implementation', 'site', 'reader', 'site.close']);
   assert.equal(f.readerInput.operation, 'notion:users:list');
   assert.throws(() => f.readerInput.preparePageReader({resource: 'foreign', columns: []}, () => {}),
     {code: 'UndeclaredNotionResource'});
   // This existing full-envelope plugin keeps the legacy JSON representation;
   // the row-only REST cursor mode is not selected by a Program or this adapter.
   assert.equal(f.implementationInput.cursorProgress, undefined);
+  assert(Object.isFrozen(f.implementationInput.requestConstruction));
 });
 
 test('Notion constructor refuses unavailable original methods before configuration', async () => {
@@ -184,17 +220,17 @@ test('Notion constructor keeps the original implementation refusal before any Si
   const original = Object.assign(new Error('OriginalImplementationPending'), {cleanupPending: true});
   const f = await loaderFixture({implementationFailure: original});
   await assert.rejects(f.load(), cause => cause === original);
-  assert.deepEqual(f.events, ['configuration', 'policy', 'implementation']);
+  assert.deepEqual(f.events, ['configuration', 'policy', 'schema', 'declaration',
+    'request.reserve', 'request.project', 'implementation']);
 });
 
 test('Notion declarative request reservation refuses before snapshot Site and page construction', async () => {
   const original=new Error('original Source request reservation refused');
   const f=await loaderFixture({requestFailure:original});
   await assert.rejects(f.load(),cause=>cause===original);
-  assert.deepEqual(f.events,['configuration','policy','implementation','schema','declaration','request.reserve']);
+  assert.deepEqual(f.events,['configuration','policy','schema','declaration','request.reserve']);
   assert.equal(f.readerInput,undefined);
-  assert(Object.isFrozen(f.implementationInput.requestConstruction));
-  assert.equal(f.implementationInput.cursorProgress,undefined);
+  assert.equal(f.implementationInput,undefined);
 });
 
 test('finite provider-page foreign capacity refuses publication and retires only the returned reader', async () => {
