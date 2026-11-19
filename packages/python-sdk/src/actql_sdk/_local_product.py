@@ -50,7 +50,7 @@ from ._local_saved_read import OriginalSavedResultRead
 from ._local_check import OriginalLocalCheck
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
 from ._local_native_store import _OriginalNativeStoreSelection
-from ._values import content_cid, wire_bytes
+from ._values import canonical_bytes as _canonical_bytes, content_cid, wire_bytes
 
 _T = TypeVar('_T')
 _LOCAL_SELECTION = {'mode': 'local', 'owner': 'local', 'durability': 'durable',
@@ -379,17 +379,11 @@ class InstalledLocalHost:
         if active is not None:
             # Reference equality locates the retained original only. Core still
             # checks this operation's actual Account, journal and Run originals.
-            reference = wire_bytes(body.get('ref'))  # type: ignore[no-untyped-call]
+            reference = _canonical_bytes(body.get('ref'), data_keys=True)  # type: ignore[no-untyped-call]
             async with self._operation_lock(active if operation in (
                     'status', 'cancel', 'lookup-cancellation') else None):
-                original = None
-                for held in self._public_run_references:
-                    if held.run is active._owner:
-                        self._core._owned_input(held.source)
-                        if self._core._inputs[held.source.ticket].payload == reference:
-                            original = held
-                            break
-                if original is None:
+                original = self._find_original_run_reference(reference)
+                if original is None or original.run is not active._owner:
                     raise ValueError('Original Local physical invocation is still active')
                 if operation in ('status', 'cancel', 'lookup-cancellation'):
                     with self._core._borrow_work_operation(active) as borrowed:
@@ -556,38 +550,68 @@ class InstalledLocalHost:
 
     def _register_original_run_reference(self, run: _Run, admission: bytes) -> None:
         """Hold only a Core-issued reference for routing to its nominal Run loan."""
-        self._runs._run(run)
-        if not any(original is run for original in self._run_loans):
-            raise ValueError('Foreign original Local Run')
-        saved = _object(admission, 4096)
-        if not wire.negotiated(saved, 'admission', _LOCAL_SELECTION):  # type: ignore[no-untyped-call]
-            raise ValueError('Invalid original Local admission reference')
-        raw = wire_bytes(saved['ref'])  # type: ignore[no-untyped-call]
-        if len(raw) > 4096:
-            raise ValueError('Invalid bounded original Local reference')
-        for original in self._public_run_references:
-            self._core._owned_input(original.source)
-            held = self._core._inputs[original.source.ticket].payload
-            if original.run is run:
-                if held != raw:
-                    raise ValueError('Original Local Run reference changed')
-                return
-            if held == raw:
-                raise ValueError('Ambiguous original Local Run reference')
-        self._public_run_references.append(_OriginalRunReference(run, self._copy(raw)))
+        with self._core._lock:
+            self._runs._run(run)
+            if not any(original is run for original in self._run_loans):
+                raise ValueError('Foreign original Local Run')
+            saved = _object(admission, 4096)
+            if not wire.negotiated(saved, 'admission', _LOCAL_SELECTION):  # type: ignore[no-untyped-call]
+                raise ValueError('Invalid original Local admission reference')
+            raw = _canonical_bytes(saved['ref'], data_keys=True)  # type: ignore[no-untyped-call]
+            if len(raw) > 4096:
+                raise ValueError('Invalid bounded original Local reference')
+            position = len(self._public_run_references)
+            for index, original in enumerate(self._public_run_references):
+                self._core._owned_input(original.source)
+                held = self._core._inputs[original.source.ticket].payload
+                if original.run is run:
+                    if held != raw:
+                        raise ValueError('Original Local Run reference changed')
+                    return
+                if held == raw:
+                    raise ValueError('Ambiguous original Local Run reference')
+                if held > raw and position == len(self._public_run_references):
+                    position = index
+            # This is the existing vector and original accounted input, not a
+            # parallel Map/key copy. Registration and cleanup retain all loans;
+            # only this routing vector's internal order changes.
+            self._public_run_references.insert(position, _OriginalRunReference(run, self._copy(raw)))
+
+    def _find_original_run_reference(self, captured: bytes) -> _OriginalRunReference | None:
+        """Locate an original only; a hit never supplies saved/current authority.
+
+        Keys are private canonical copies of Core-issued ref DATA, not wire
+        serialization or authority. They are sealed immutable _Input bytes.
+        Supported input
+        methods never replace that payload (_read_output requires _Output).
+        Registration inserts in order; removal preserves order before those
+        input loans retire. No sortedness/permission cache or history scan is
+        needed on lookup. Arbitrary private-state mutation is not supported.
+        """
+        if len(captured) > 4096:
+            raise ValueError('Invalid original Local Run reference')
+        with self._core._lock:
+            low, high = 0, len(self._public_run_references)
+            while low < high:
+                middle = (low + high) // 2
+                original = self._public_run_references[middle]
+                self._core._owned_input(original.source)
+                held = self._core._inputs[original.source.ticket].payload
+                if held == captured:
+                    return original
+                if held < captured:
+                    low = middle + 1
+                else:
+                    high = middle
+            return None
 
     def _has_live_original_run_reference(self, reference: object) -> bool:
         """Locate existing live custody only; exact equality is not authority."""
-        captured = wire_bytes(reference)  # type: ignore[no-untyped-call]
-        if len(captured) > 4096:
-            raise ValueError('Invalid original Local Run reference')
-        for original in self._public_run_references:
-            self._core._owned_input(original.source)
-            if self._core._inputs[original.source.ticket].payload == captured:
-                # A restored typed Run supplies no live publication/Result
-                # custody. Its public reads retain the saved-reader path.
-                return original.run.handle not in self._runs._run_restorations
-        return False
+        captured = _canonical_bytes(reference, data_keys=True)  # type: ignore[no-untyped-call]
+        original = self._find_original_run_reference(captured)
+        # A restored typed Run supplies no live publication/Result custody.
+        # Its public reads retain the saved-reader path.
+        return original is not None and original.run.handle not in self._runs._run_restorations
 
     def _select_original_run(self, reference: object) -> tuple[_Run, bytes]:
         """Route a reference, then reobserve its original actual saved admission.
@@ -597,14 +621,15 @@ class InstalledLocalHost:
         This performs no preparation, adoption, dispatch or new acceptance.
         """
         self._active()
-        requested = _object(wire_bytes(reference), 4096)  # type: ignore[no-untyped-call]
+        captured = _canonical_bytes(reference, data_keys=True)  # type: ignore[no-untyped-call]
+        requested = _object(captured, 4096)
         if not wire.valid(requested, 'run_ref'):  # type: ignore[no-untyped-call]
             raise ValueError('Invalid original Local Run reference')
-        for original in self._public_run_references:
-            self._core._owned_input(original.source)
+        original = self._find_original_run_reference(captured)
+        if original is not None:
             held = self._core._inputs[original.source.ticket].payload
             if _object(held, 4096) != requested:
-                continue
+                raise ValueError('Original Local Run reference changed')
             saved = (self._attach_original_run(requested)
                      if original.run.handle in self._runs._run_restorations
                      else self._read_original_saved_admission(original.run))

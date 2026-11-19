@@ -1,6 +1,6 @@
 {
-  "source": "d8f083a32a7a58a94cdb8f3fc975c71d39434f0a",
-  "syntaxProjectionSha256": "100a2a04135b3fdd718bb284c801988957ddf677444757a0d197668718d3a36b",
+  "source": "308ff1a6cb356210051f5b7a20b4266580f15178",
+  "syntaxProjectionSha256": "89b8205573587f6e5b95a23f24112de498904863d4590bb34a215b8a4b0c571a",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -52705,6 +52705,14 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_find_original_run_reference",
+          "parameters": [
+            "self",
+            "captured"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_handoff_original_step",
           "parameters": [
             "self",
@@ -53606,7 +53614,7 @@
           "async": false
         }
       ],
-      "sha256": "04a1cd5ef8b3a3e129c0ea723c6bdff23a97dc2e42fb3e7c989e9368e26392a8",
+      "sha256": "ffc2f7de6409d9966325c109a72da249f4321533e610a02cc6fb1a3beebf6f13",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -56056,6 +56064,118 @@
               {
                 "path": "packages/python-sdk/tests/test_local_async_operation_lock.py",
                 "anchor": "async def test_store_observation_worker_hands_same_original_to_control_between_real_reader_quanta("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_find_original_run_reference"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Run reference routing"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _find_original_run_reference("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Run reference routing"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _find_original_run_reference("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Run reference routing"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _find_original_run_reference("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Run reference routing"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _find_original_run_reference("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Run reference routing"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _find_original_run_reference("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Run reference routing"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _find_original_run_reference("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Run reference routing"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _find_original_run_reference("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Run reference routing"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _find_original_run_reference("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Original Run reference routing"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _find_original_run_reference("
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_reference_index.py",
+                "anchor": "def test_original_selector_probes_and_parses_are_bounded_for_1_10_100_references("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_reference_index.py",
+                "anchor": "def test_actual_account_current_and_typed_saved_refusal_still_follow_index_hit("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_reference_index.py",
+                "anchor": "def test_registration_refusals_and_original_cleanup_chronology_are_unchanged("
               }
             ]
           }

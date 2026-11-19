@@ -4259,3 +4259,30 @@ reader/cursor, pending write and full-chain observation stay with their existing
 Owner; no handoff is a close, commit, cancellation or publication acknowledgement.
 Physical I/O and indivisible CAS/COMMIT are not interrupted, and this supplies no
 wall-clock latency bound or fairness promise between unrelated workers.
+
+## Original Run reference routing
+
+The existing retained reference vector is ordered by private canonical bytes
+from its original Core-issued ref DATA and searched by binary probes. It stores the same two-reference record
+and already-accounted sealed `_Input`, without another Map, retained key copy, receipt,
+permission cache or state cache. The existing `canonical_bytes(data_keys=True)`
+replaces the private routing copy/lookup encoding; public `wire_bytes` and the
+original admission remain unchanged. Field order is not reference identity and
+no reference values or identity preimages are rewritten. Core accepts only immutable `bytes` for such
+inputs; the output payload writer requires an exact `_Output`. Supported input
+fill/seal operations do not replace the held Python payload. Registration is
+the only insertion path, and removal preserves order before those source loans
+retire. This invariant concerns supported private methods, not arbitrary Python
+mutation of internal dictionaries.
+
+A probe validates the original input loan. A hit routes only to the same Run;
+the original saved admission, current Account/Store frame and Core ownership
+checks still decide availability. A miss retains the existing saved-reference
+path and never authorizes new preparation or execution. Same-Run reference
+changes and ambiguous references still refuse. Run/input cleanup order remains
+chronological; only the routing aliases are sorted. Registration retains its
+existing linear membership check. Physical-work, saved-admission and projection
+history scans and full resource retirement are separate; this is not an overall
+Host constant-time or memory-retirement claim. The logical growing vector and
+bounded request bytes are unchanged; binary loop/call controls use existing
+fixed Host overhead, without a larger policy or another reservation.
