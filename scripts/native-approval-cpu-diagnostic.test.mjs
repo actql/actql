@@ -4,6 +4,7 @@ import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {inventory} from './verification-actions.mjs';
 import {approvalPerfDsoMembers, approvalPerfSamples, decodeApprovalPerf,
@@ -156,7 +157,12 @@ test('CPU mode is explicit and false by default while all unrelated jobs exclude
   const unit = actions.find(action => action.origin === 'workflow' && action.job === 'lint' &&
     action.invocation?.kind === 'node-test' && action.invocation.argv.includes('scripts/native-approval-cpu-diagnostic.test.mjs'));
   assert(unit, 'CPU decoder regressions must run in the required lint job');
-  assert.equal(unit.condition.step, null, 'Small decoder tests also run during Draft preparation');
+  const lintCondition = (unit.condition.step ?? 'true').replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+    .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, key) => `needs[${JSON.stringify(key)}]`);
+  assert(!/\b(?:always|failure|cancelled)\s*\(/u.test(lintCondition));
+  for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused', 'documentation'])
+    assert.equal(runInNewContext(lintCondition, {needs: {'select-targets': {outputs: {profile}}}}, {timeout: 100}),
+      profile !== 'documentation', profile);
   assert.equal(unit.condition.continueOnError, false);
   for (const event of ['workflow_dispatch', 'workflow_call']) {
     assert.deepEqual(workflow.on[event].inputs['native-approval-cpu-diagnostic'].default, false);
