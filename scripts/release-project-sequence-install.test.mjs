@@ -86,27 +86,12 @@ test('RC companion checks payload/lock on both sides of the original child and p
   await assert.rejects(prepared.node({kind: 'start'}, prepared.projects, label), value => value === primary);
 });
 
-test('RC actual command selects Mac Node24 companion once without extending ordinary/formal campaigns', async t => {
+test('RC actual command preserves failures and leaves project sequences explicitly opt-in', async t => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/release-candidate.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs['native-installed'];
-  assert(job.needs.includes('node-packages') && job.needs.includes('native-packages'));
-  const download = job.steps.find(step => step.with?.path?.endsWith('/native-installed/node-companion'));
-  assert(download); assert.equal(download.with['artifact-ids'], '${{ needs.node-packages.outputs.artifact-id }}');
-  const inputGuard = job.steps.find(step => step.env?.NODE_ARTIFACT_ID);
-  assert(inputGuard && job.steps.indexOf(inputGuard) < job.steps.indexOf(download));
-  assert.equal(inputGuard.env.NODE_ARTIFACT_ID, '${{ needs.node-packages.outputs.artifact-id }}');
-  for (const nodeArtifact of ['456', '', '0', 'foreign']) {
-    const guarded = spawnSync('bash', ['-eo', 'pipefail', '-c', inputGuard.run], {encoding: 'utf8', timeout: 5000,
-      env: {...process.env, SELECTED_PLATFORM: 'darwin-arm64', ARTIFACT_ID: '123', NODE_ARTIFACT_ID: nodeArtifact}});
-    assert.equal(guarded.error, undefined); assert.equal(guarded.status === 0, nodeArtifact === '456');
-  }
-  const node24 = job.steps.find(step => step.uses?.startsWith('actions/setup-node@') && step.with?.['node-version'] === '24');
-  assert(node24 && node24.if === download.if);
+  assert(job.needs.includes('native-packages'));
   const functional = job.steps.find(step => step.run?.includes('node scripts/test-native-cli-mock-install.mjs'));
-  const binding = job.steps.find(step => step.env?.NODE_MANIFEST_SHA256);
-  assert(binding && job.steps.indexOf(binding) < job.steps.indexOf(node24));
-  assert.equal(binding.env.NODE_MANIFEST_SHA256, '${{ needs.node-packages.outputs.manifest-sha256 }}');
-  assert(job.steps.indexOf(node24) < job.steps.indexOf(functional));
+  assert(functional);
   assert(!functional['continue-on-error']);
   const scratch = await mkdtemp(join(tmpdir(), 'actql-rc-command-port-'));
   t.after(() => rm(scratch, {recursive: true, force: true}));
@@ -120,15 +105,14 @@ test('RC actual command selects Mac Node24 companion once without extending ordi
     const args = (await readFile(calls, 'utf8')).trim().split('\n');
     assert.equal(args[0], 'scripts/test-native-cli-mock-install.mjs');
     assert(args.includes('--measure-approval-resources'));
-    const selected = args.indexOf('--release-project-sequences');
-    assert.equal(selected >= 0, platform === 'darwin-arm64');
-    if (selected >= 0) assert.equal(args[selected + 1], join(scratch, 'native-installed/node-companion/node-release-rc'));
+    // The optional Source harness is not an already selected installed RC
+    // campaign. Its source/version/payload guards are exercised above.
+    assert(!args.includes('--release-project-sequences'));
   }
   const ordinary = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const formal = readFileSync(new URL('../scripts/test-native-approval-performance.mjs', import.meta.url), 'utf8');
   assert(!ordinary.includes('--release-project-sequences') && !formal.includes('--release-project-sequences'));
   const outputs = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@')).with.path;
-  assert(outputs.includes('/sequence-cases/*.json') && outputs.includes('*.response.json.close'));
   for (const forbidden of ['sequence-consumer', 'node_modules', '.actql', '*.request.json', 'keys/', '*.db'])
     assert(!outputs.includes(forbidden), forbidden);
 });
