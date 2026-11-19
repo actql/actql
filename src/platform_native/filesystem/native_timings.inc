@@ -272,10 +272,13 @@ void actql_native_file_capacity_observe(const void *ledger, int32_t kind,
     if (--scope->depth == 0) *scope = (actql_file_capacity_scope){0};
     goto done;
   }
-  if (scope->ledger != ledger) { scope->invalid = true; goto done; }
   if (scope->invalid) goto done;
-  if (kind == 2) { scope->compute = true; goto done; }
+  const bool same_ledger = scope->ledger == ledger;
+  if (kind == 2) { if (same_ledger) scope->compute = true; goto done; }
   if (kind == 3 || kind == 4) {
+    /* Original Read accounting can run inside this non-reentered Work. Its
+     * successful events neither mutate nor invalidate this Ledger's tracking. */
+    if (!same_ledger) goto done;
     if (!scope->compute && kind == 3 && serial >= 0) {
       if (scope->row_seen && scope->row_serial != serial) scope->row_ambiguous = true;
       else { scope->row_seen = true; scope->row_serial = serial; scope->row_execution = capacity; }
@@ -296,22 +299,25 @@ void actql_native_file_capacity_observe(const void *ledger, int32_t kind,
       &expected, true, memory_order_relaxed, memory_order_relaxed)) goto done;
   /* Private observation only: not the public error/packet schema, no identities,
    * paths, payloads or serialized pointers. Missing/truncated is unmeasured.
+   * First refusal is overall within this lexical Work, not automatically its
+   * public primary. Numeric demand/usage belongs to the actual issuing Ledger;
+   * foreign Role attribution is unavailable, never borrowed from the scope.
    * For prechecks, task_capacity is the one observed live suffix token, or -1
    * if unavailable/ambiguous. Resize uses its actual pre-grow token; reserve
    * starts at zero. entry_singleton_execution is unavailable after any
    * unclassified resize: it is never a subtraction of unrelated usage. */
   char body[768];
   int bytes = snprintf(body, sizeof(body),
-    "ACTQL_NATIVE_FILE_CAPACITY {\"phase\":%d,\"compute\":%s,"
+    "ACTQL_NATIVE_FILE_CAPACITY {\"phase\":%d,\"scope_ledger_match\":%s,\"compute\":%s,"
     "\"requested_execution\":%" PRId64 ",\"task_capacity\":%" PRId64 ","
     "\"limit_execution\":%" PRId64 ",\"reserved_execution\":%" PRId64 ","
     "\"entry_singleton_execution\":%" PRId64 ",\"row_execution\":%" PRId64 "}\n",
-    kind, scope->compute ? "true" : "false", requested,
-    kind == 12 || kind == 13 || kind == 15 || kind == 16
+    kind, same_ledger ? "true" : "false", scope->compute ? "true" : "false", requested,
+    !same_ledger ? -1 : kind == 12 || kind == 13 || kind == 15 || kind == 16
       ? (scope->task_seen && !scope->task_ambiguous ? scope->task_execution : -1)
       : capacity, limit,
-    reserved, scope->body_execution,
-    scope->row_seen && !scope->row_ambiguous ? scope->row_execution : -1);
+    reserved, same_ledger ? scope->body_execution : -1,
+    same_ledger && scope->row_seen && !scope->row_ambiguous ? scope->row_execution : -1);
   if (bytes > 0 && (size_t)bytes < sizeof(body)) actql_timing_emit(body, (size_t)bytes);
 done:
   errno = saved_errno;

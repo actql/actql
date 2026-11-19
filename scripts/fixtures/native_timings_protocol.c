@@ -50,10 +50,12 @@ int main(int argc, char **argv) {
     OBS(&ledger, 0, 1, 0, 0, 0, 100);
     OBS(&ledger, 3, 0, 0, 200, 0, 0); /* actual serial zero is valid */
     OBS(&ledger, 4, 0, 0, 180, 0, 0);
+    if (strcmp(argv[1], "file-capacity-foreign-success") == 0) OBS(&foreign, 3, 999, 0, 999, 0, 0);
     OBS(&ledger, 2, 0, 0, 0, 0, 280);
     if (strcmp(argv[1], "file-capacity-window") != 0) OBS(&ledger, 3, 1, 0, 50, 0, 0);
     if (strcmp(argv[1], "file-capacity-reentry") == 0) OBS(&ledger, 0, 1, 0, 0, 0, 330);
-    if (strcmp(argv[1], "file-capacity-foreign") == 0) OBS(&foreign, 11, 1, 80, 50, 400, 330);
+    if (strcmp(argv[1], "file-capacity-foreign-success") == 0) OBS(&foreign, 4, 999, 0, 888, 0, 0);
+    if (strcmp(argv[1], "file-capacity-foreign") == 0) OBS(&foreign, 11, 1, 77, 50, 900, 850);
     if (strcmp(argv[1], "file-capacity-fork") == 0) {
       pid_t child = fork(); assert(child >= 0);
       if (child == 0) { OBS(&ledger, 11, 1, 999, 50, 400, 330); exit(0); }

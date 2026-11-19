@@ -50,17 +50,20 @@ export function nativeFileSourceQueryEnvironment({fixture, args, emptyPath, home
 // The complete original stderr remains in the existing case-owned file.
 // Tee only one complete closed numeric row into the installed owner's command
 // record, never arbitrary diagnostics/payloads/IDs. Missing/duplicate/truncated
-// rows or a failed write stay unmeasured and cannot replace the primary.
+// rows, false foreign Role attribution or failed writes stay unmeasured and
+// cannot replace the primary. Scope match is observation DATA, never permission.
 export function retainNativeFileCapacityStderr(environment, stderr, write = body => writeSync(2, body)) {
   if (environment.ACTQL_NATIVE_TIMINGS !== '1' ||
     environment.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS !== '1' || typeof stderr !== 'string') return;
   const natural = '(?:0|[1-9][0-9]{0,18})', observed = `(?:-1|${natural})`;
-  const row = new RegExp('^ACTQL_NATIVE_FILE_CAPACITY \\{"phase":1[0-6],"compute":(?:true|false),' +
+  const row = new RegExp('^ACTQL_NATIVE_FILE_CAPACITY \\{"phase":1[0-6],"scope_ledger_match":(true|false),"compute":(?:true|false),' +
     `"requested_execution":${natural},"task_capacity":${observed},` +
     `"limit_execution":${natural},"reserved_execution":${natural},` +
     `"entry_singleton_execution":${observed},"row_execution":${observed}\\}\\n`, 'gmu');
   const matches = [...stderr.matchAll(row)];
-  if (matches.length === 1) {
+  if (matches.length === 1 && (matches[0][1] === 'true' ||
+    matches[0][0].includes('"task_capacity":-1,') &&
+    matches[0][0].includes('"entry_singleton_execution":-1,"row_execution":-1}'))) {
     try { write(matches[0][0]); } catch { /* Diagnostic loss is not execution failure. */ }
   }
 }

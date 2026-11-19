@@ -7287,13 +7287,20 @@ observation only when both existing timing and acceptance observation flags
 are exactly `1`. A lexical scope borrows the same entered Ledger through the
 existing Work call and clears it on every return. The observer never dereferences
 that identity, exposes it, supplies a current check, or owns its lifetime.
-Nested or foreign-ledger events invalidate the scope; forked children decline.
-Only the first refusal emits, using the existing bounded errno/SIGPIPE-preserving
+Nested Work/reentry invalidates the scope; forked children decline. Ordinary
+Read accounting may occur within that same non-reentered Work. Its successful
+foreign-Ledger events decline tracking rather than poisoning the Work scope.
+Only the first observed typed refusal emits, using the existing bounded errno/SIGPIPE-preserving
 writer. A missing or truncated row remains unmeasured, never a zero or an ACK.
 
 The fixed numeric observation distinguishes reserve, grow, pure driver precheck,
 and imported-window refusal. It reports the original request/delta and the
-same Ledger's execution limit and already-reserved execution before cleanup.
+actual issuing Ledger's execution limit and already-reserved execution before
+cleanup. `scope_ledger_match` says whether that issuer is the entered Work
+Ledger; it is not currentness or permission. For a foreign issuer all task,
+Row and entry-body attribution is unavailable (`-1`), with no cross-Ledger
+sum or inferred role. `compute` describes the original Work's stage only.
+The first observed refusal is not automatically the final public primary.
 A live Row token is followed by its existing serial and committed Resource
 updates, including response-workspace retirement and actual settlement. Multiple
 Row tokens make that quantity unavailable rather than replacing their total
