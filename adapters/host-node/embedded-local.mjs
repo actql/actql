@@ -193,7 +193,7 @@ import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from
   '../local-node/retained-store.mjs';
 import {installHostRunAcceptance} from './client-checkpoints.mjs';
-import {createLocalCheckpointAnswer} from './local-checkpoint-answer.mjs';
+import {createLocalCheckpointAnswer, createLocalSigningOriginalReader} from './local-checkpoint-answer.mjs';
 import {installClientOwnerObservations} from './client-owner-observations.mjs';
 import {installClientStaticPlan} from './client-interactive-plan.mjs';
 import {installClientRunInspect} from './client-run-inspect.mjs';
@@ -4493,57 +4493,10 @@ async function openInstalledHost(originalInstallation, preparation) {
         assertCurrent() {
           assertProjectRuntime(); preparation.assertResultPublicationCurrent();
         },
-        async loadRunOriginal(view, signal, consume) {
-          if (typeof consume !== 'function') throw clientOperationError('LocalSigningOriginalConflict');
-          const ref = {namespaceId, authorityScopeCid, runDefinitionCid: view.runDefinitionCid};
-          const retained = journal.lookupRunDefinition(ref, moon, control);
-          if (retained === undefined || retained.cancellationRequested) {
-            throw clientOperationError('LocalSigningOriginalConflict');
-          }
-          let restored = await restoreEffectManagedPreparation(ref, signal);
-          let recovered = await recoverEffectCapture(ref, signal, restored.managedEffect, undefined, restored.original);
-          localSigningRecoveries.add(recovered);
-          let originalFailure, failed = false;
-          try {
-            if (recovered.materials === undefined || recovered.originalSubmittedIntent === undefined ||
-                control.effectComputationPreviewSemanticCid(recovered.computation.preview) !== view.requiredArtifact.cid) {
-              throw clientOperationError('LocalSigningOriginalConflict');
-            }
-            const current = () => {
-              if (recovered === undefined) throw clientOperationError('LocalSigningOriginalConflict');
-              assertProjectRuntime(); preparation.assertResultPublicationCurrent();
-              recovered.originalSubmittedIntent.assertCurrent();
-              recovered.assertUpdateSelectionCurrent?.();
-              const next = journal.lookupRunDefinition(ref, moon, control);
-              if (next === undefined || next.cancellationRequested || next.revision !== retained.revision ||
-                  next.runDefinition.wire !== retained.runDefinition.wire) {
-                throw clientOperationError('LocalSigningOriginalConflict');
-              }
-            };
-            current();
-            // Consume while SAME original capture/Request backing remains live.
-            // Returning metadata and closing here would strand its consumer.
-            return await Reflect.apply(consume, undefined, [Object.freeze({materials: recovered.materials,
-              requestIdentity: recovered.requestIdentity,
-              referenceWire: recovered.originalSubmittedIntent.referenceWire,
-              invocation: recovered.computation.invocation, assertCurrent: current})]);
-          } catch (cause) {originalFailure = cause; failed = true; throw cause;}
-          finally {
-            let original = recovered;
-            recovered = restored = undefined;
-            try {
-              const release = releaseLocalSigningRecovery(original);
-              original = undefined;
-              await release;
-            }
-            catch (cleanup) {
-              if (failed) throw Object.assign(new AggregateError([originalFailure, cleanup],
-                'Original signing capture and cleanup failed', {cause: originalFailure}),
-              {code: 'LocalSigningCaptureCleanupPending', cleanupPending: true});
-              throw cleanup;
-            }
-          }
-        }});
+        loadRunOriginal: createLocalSigningOriginalReader({namespaceId, authorityScopeCid, moon, control, journal,
+          restoreEffectManagedPreparation, recoverEffectCapture, localSigningRecoveries,
+          assertCurrent() {assertProjectRuntime(); preparation.assertResultPublicationCurrent();},
+          releaseLocalSigningRecovery, clientOperationError})});
     }
     return localCheckpointAnswer(summary, decision, signal);
   };

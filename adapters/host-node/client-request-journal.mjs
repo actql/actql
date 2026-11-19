@@ -3737,6 +3737,23 @@ export function openClientRequestJournal(directory, {
         Object.keys(old).length===Object.keys(next).length&&
         Object.keys(old).every(key=>key==='state_revision'||key==='state_observation_key'||old[key]===next[key]);
     },
+    // Signing may overlap this Journal owner's completed physical-stop write.
+    // This is reobservation of the SAME admitted Run, never stop authority or
+    // permission to accept another control, publication or identity change.
+    canReinspectRunAfterPhysicalClose(beforeFrame, afterFrame) {
+      ensureOpen();
+      const before = runStateFrames.get(beforeFrame), after = runStateFrames.get(afterFrame);
+      if (before === undefined || after === undefined || beforeFrame === afterFrame ||
+          before.requestControl !== after.requestControl || before.publicationControl !== after.publicationControl) return false;
+      const old = before.row, next = after.row;
+      return Number.isSafeInteger(old.revision) && old.revision >= 0 &&
+        Number.isSafeInteger(next.revision) && next.revision === old.revision + 1 &&
+        old.physical_start_reserved === 1 && old.physical_close_confirmed === 0 &&
+        next.physical_close_confirmed === 1 && old.cancellation_requested === 0 &&
+        old.observed_terminal_outcome === null &&
+        Object.keys(old).length === Object.keys(next).length &&
+        Object.keys(old).every(key => key === 'revision' || key === 'physical_close_confirmed' || old[key] === next[key]);
+    },
     // Private original-content projection for this journal's admitted Run.
     // It grants neither current authorization nor a physical/resume claim.
     // Historical unselected Runs remain readable without a new reference;
