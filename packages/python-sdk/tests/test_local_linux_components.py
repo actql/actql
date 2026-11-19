@@ -39,7 +39,7 @@ class LinuxComponentTests(unittest.TestCase):
         self.image = b'\x7fELF\x02\x01\x01' + b'\0' * 11 + b'\x3e\x00' + b'\0' * 44
         self.body = {
             'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'platform': 'linux-x64',
-            'core_abi': 88, 'wasmtime_version': '38.0.0', 'duckdb_version': 'v1.4.3', 'notices': {},
+            'core_abi': 89, 'wasmtime_version': '38.0.0', 'duckdb_version': 'v1.4.3', 'notices': {},
         }
         for name, key, value in (
                 ('client_host_wasm.wasm', 'module', b'Independent non-executable Wasm fixture'),
@@ -48,7 +48,7 @@ class LinuxComponentTests(unittest.TestCase):
             self.body[key] = {'file': name, 'bytes': len(value), 'sha256': sha256(value).hexdigest()}
         self.body['compiled_image'] = {
             'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
-            'module_sha256': self.body['module']['sha256'], 'core_abi': 88,
+            'module_sha256': self.body['module']['sha256'], 'core_abi': 89,
             'wasmtime_version': '38.0.0', 'runtime_library_sha256': sha256(self.library).hexdigest(),
             'provider_library_sha256': None, 'platform': 'linux-x64', 'engine_body': self.engine,
             'engine_sha256': sha256(json.dumps(self.engine, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
@@ -84,14 +84,14 @@ class LinuxComponentTests(unittest.TestCase):
         self.assertEqual(selected.source_sha, 'a' * 40)
 
     def test_release_and_image_each_refuse_independent_stale_abi_without_native_load(self):
-        # Independent fixed expectations: current 88 is not derived from the
-        # product constant, and historical 87 remains explicitly incompatible.
-        for release_abi, image_abi in ((87, 88), (88, 87), (87, 87)):
+        # Independent fixed expectations: declared ABI89 is the current cohort;
+        # prior ABI88 remains incompatible in either release or image metadata.
+        for release_abi, image_abi in ((88, 89), (89, 88), (88, 88)):
             with self.subTest(release_abi=release_abi, image_abi=image_abi):
                 self.body['core_abi'] = release_abi
                 self.body['compiled_image']['core_abi'] = image_abi
                 self.write()
-                expected = ('release cohort is incompatible' if release_abi == 87
+                expected = ('release cohort is incompatible' if release_abi == 88
                             else 'image does not match the selected recipe')
                 with patch('actql_sdk._local_distribution.sys.platform', 'linux'), \
                      patch('actql_sdk._local_distribution.platform.machine', return_value='x86_64'), \
