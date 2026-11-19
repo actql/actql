@@ -10,7 +10,8 @@ import {workflowWorkObservation, workflowObservationComplete} from './fixtures/w
 import {mockProjectWorkflowChecks, startMockProjectSource} from './fixtures/mock-project-effect-protocol.fixture.mjs';
 import {multipleTargetMockProjectFiles, multipleTargetMockExpectedBytes, multipleTargetMockWriteCount} from './fixtures/mock-multiple-targets.fixture.mjs';
 import {terminalMockScenario, checkTerminalMockRows, checkTerminalMockSavedRows, assertTerminalMockObservation,
-  runTerminalMockWorkflow} from './fixtures/mock-project-terminal-public.mjs';
+  runTerminalMockWorkflow, terminalMockFailureDiagnostic} from './fixtures/mock-project-terminal-public.mjs';
+import {createDiagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import * as terminalFs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -92,6 +93,43 @@ async function terminalScratch(t) {
   await terminalFs.mkdir(join(root, 'mock'));
   return root;
 }
+
+test('terminal Content existing authorization callback retains only bounded original failure scalars before first close', async t => {
+  const root = await terminalScratch(t), path = join(root, 'handoff.json');
+  await terminalFs.writeFile(join(root, 'terminal.program.json'), terminalMockScenario('terminal-content').source);
+  const primary = Object.assign(Error('private public error text'), {code: 'SubmissionUnknown'});
+  let getterCalls = 0, delivery, starts = 0, closes = 0;
+  const cause = {$tag: 7, _0: {$tag: 3}};
+  Object.defineProperty(cause, 'message', {get() {getterCalls++;throw Error('Private getter');}});
+  const detail = {code: 'MoonBitHostFailure', boundary: 'task_compilation', cause,
+    primaryDiagnostic: {phase: 'dispatch', kind: 'code_site', message: 'private prompt and key'},
+    reference: 'private-original', body: 'private-input'};
+  const expected = {event: 'content_preparation_rejected', code: 'MoonBitHostFailure', boundary: 'task_compilation',
+    primary: {phase: 'dispatch', kind: 'code_site'}, issueTag: 7, nestedIssueTag: 3};
+  assert.deepEqual(terminalMockFailureDiagnostic('content_preparation_rejected', detail), expected);
+  assert.equal(terminalMockFailureDiagnostic('authorization_allowed', detail), undefined);
+  const ports = {phase: 'capture', variant: 'terminal-content', directory: root, handoffPath: path,
+    observeDescriptors: async () => ({pid: process.pid, openPaths: []}),
+    createWorkObservation: () => ({connection: {}, snapshot: () => ({complete: true,
+      sourceAcquisitionStarts: 0, modelCallStarts: 0, effectReplacementReturns: 0})}),
+    async connect({installation}) {
+      delivery = createDiagnosticObserver(installation.authorization.observe);
+      return {newSubmission: () => ({request: 'original-before-start'}),
+        async startSource() {starts++;delivery('content_preparation_rejected', detail);throw primary;},
+        async close() {
+          closes++;
+          const original = JSON.parse(await terminalFs.readFile(join(root, 'capture.primary.json'), 'utf8'));
+          assert.deepEqual(original, {publicCode: 'SubmissionUnknown', thrownUndefined: false, originalDiagnostics: [expected]});
+          delivery.close();
+        }};
+    }};
+  await assert.rejects(runTerminalMockWorkflow(ports), error => error.cause === primary);
+  assert.equal(starts, 1); assert.equal(closes, 1); assert.equal(getterCalls, 0);
+  const original = JSON.parse(await terminalFs.readFile(join(root, 'capture.pending.json'), 'utf8'));
+  assert.deepEqual(original.originalDiagnostics, [expected]);
+  assert.deepEqual(original.firstClose, {attempted: true, returned: true, calls: 1});
+  await assert.rejects(terminalFs.access(path + '.started'), {code: 'ENOENT'});
+});
 
 test('terminal imported consumer preserves ref before wait, Saved first and thrown undefined at first close', async t => {
   for (const phase of ['capture', 'recover', 'from-started', 'unknown-start', 'failure']) {

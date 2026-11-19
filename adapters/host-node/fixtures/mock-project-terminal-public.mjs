@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {access, mkdir, readFile, realpath, writeFile} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {types as nodeTypes} from 'node:util';
 import {workflowWorkObservation} from './work-observation.fixture.mjs';
 import {assertInstalledFamilyCompleteContent} from './installed-family-content.fixture.mjs';
 import {observeRecordApprovalDescriptors} from '../../../scripts/fixtures/record-approval/scoped-fds.fixture.mjs';
@@ -14,6 +15,37 @@ const inferRows = [
   {id: '001Acme', risk: {input_key: {id: '001Acme'}, outcome: 'ok', value: {level: 'high', reason: 'falling usage and a competitor evaluation'}}},
   {id: '001Globex', risk: {input_key: {id: '001Globex'}, outcome: 'ok', value: {level: 'high', reason: 'support tickets about pricing'}}},
 ];
+
+const ownDiagnosticData = (value, key) => {
+  if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) return undefined;
+  const field = Object.getOwnPropertyDescriptor(value, key);
+  return field !== undefined && Object.hasOwn(field, 'value') ? field.value : undefined;
+};
+
+// Caller-owned projection of the existing optional callback. Never copy an
+// exception message, stack, input, reference, arbitrary member or secret.
+export function terminalMockFailureDiagnostic(event, detail) {
+  if (!['content_preparation_rejected', 'dispatch_failed'].includes(event)) return undefined;
+  const record = {event}, code = ownDiagnosticData(detail, 'code');
+  if (typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/u.test(code)) record.code = code;
+  const boundary = ownDiagnosticData(detail, 'boundary');
+  if (boundary === 'task_compilation') record.boundary = boundary;
+  const primary = ownDiagnosticData(detail, 'primaryDiagnostic');
+  for (const key of ['phase', 'kind']) {
+    const value = ownDiagnosticData(primary, key);
+    if (typeof value === 'string' && value.length <= 96 && /^[a-z_]+(?:\.[a-z_]+)*$/u.test(value)) {
+      (record.primary ??= {})[key] = value;
+    }
+  }
+  let issue = ownDiagnosticData(detail, 'cause');
+  for (const key of ['issueTag', 'nestedIssueTag', 'leafIssueTag']) {
+    const supplied = ownDiagnosticData(detail, key);
+    const tag = supplied ?? (typeof issue === 'number' ? issue : ownDiagnosticData(issue, '$tag'));
+    if (Number.isSafeInteger(tag) && tag >= 0 && tag <= 65535) record[key] = tag;
+    issue = ownDiagnosticData(issue, '_0');
+  }
+  return record;
+}
 
 export function terminalMockScenario(variant) {
   assert(['terminal-infer', 'terminal-content'].includes(variant));
@@ -101,11 +133,18 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
     {mode: 0o600, ...(exclusive ? {flag: 'wx'} : {})});
   let client, failed = false, primary, closeFailed = false, closeFailure;
   const work = createWorkObservation();
+  report.originalDiagnostics = [];
+  const observe = (event, detail) => {
+    const selected = terminalMockFailureDiagnostic(event, detail);
+    if (selected === undefined) return;
+    if (report.originalDiagnostics.length === 2) {report.diagnosticOverflow = true;return;}
+    report.originalDiagnostics.push(selected);
+  };
   try {
     await mkdir(state, {recursive: true});
     const before = await observeDescriptors(roots);assert.equal(before.pid, process.pid);assert.equal(before.openPaths.length, 0);
     client = await connect({mode: 'local', profile: 'mock',
-      installation: {directory: state, observation: work.connection}});
+      installation: {directory: state, observation: work.connection, authorization: {observe}}});
     if (phase === 'capture') {
       const submissionRef = client.newSubmission({nonce: variant});
       await save(handoffPath + '.submission', {variant, submissionRef, pid: process.pid}, true);
@@ -141,6 +180,13 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
       report.capturedPid = original.pid;
     }
   } catch (cause) {failed = true;primary = cause;}
+  if (failed) {
+    const code = ownDiagnosticData(primary, 'code');
+    try {await save(resolve(directory, `${recordPhase}.primary.json`), {
+      publicCode: typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/u.test(code) ? code : null,
+      thrownUndefined: primary === undefined, originalDiagnostics: report.originalDiagnostics,
+    }, true);} catch { /* The diagnostic cannot replace the original failure. */ }
+  }
   if (client !== undefined) {report.firstClose.attempted = true;report.firstClose.calls++;}
   // Persist pending BEFORE the first close. Exit never acknowledges cleanup.
   try {await save(resolve(directory, `${recordPhase}.pending.json`), report);}
