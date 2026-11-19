@@ -84822,7 +84822,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "f8eb7b024ddc781bc76c037014154243f6d54e04d483adf7d5b7d5b6127b4ab0",
+      "sha256": "dc2697b2706c6119279afa00b689722fb29dc6a43ed477b61167c9deecb7eeed",
       "exports": [],
       "operations": [
         {
