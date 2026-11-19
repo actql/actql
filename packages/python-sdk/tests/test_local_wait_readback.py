@@ -5,11 +5,14 @@ publication exception handler and existing ensure/advance/read response callers
 are imported intact; index/current/read admission remain explicit ports.
 """
 from concurrent.futures import Future
+import copy
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from actql_sdk import _wire as wire
 from actql_sdk._local_storage import LocalStorageCommitUnknown
+from actql_sdk._local_product import LocalProductCleanupPending
 from actql_sdk._values import wire_bytes
 import test_local_wait_readiness as readiness_fixture
 
@@ -116,3 +119,82 @@ class LocalWaitReadbackTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(work._cleanup_error, blocked_cleanup)
         self.assertIs(host._commit_projections[0], projection)
         self.assertIs(host._physical_work[0], work)
+
+    async def test_action_without_original_index_and_failed_index_never_resolve_reply_loss(self):
+        for phase in ('action-only', 'index-refused'):
+            with self.subTest(phase=phase):
+                (fixture, host, _, _, reference, projection, _, work,
+                 lost_reply, blocked_cleanup, options, _, streams) = self.bridge()
+                refusal = ValueError('Original index export refused')
+                if phase == 'action-only':
+                    options['action'] = 'confirm_uncommitted_failure'
+                else:
+                    options['index_error'] = refusal
+                with self.assertRaises(LocalStorageCommitUnknown if phase == 'action-only' else ValueError) as failed:
+                    fixture.observe(host, reference)
+                self.assertIs(failed.exception, lost_reply if phase == 'action-only' else refusal)
+                self.assertIs(host._pending_publication_write, projection)
+                self.assertIs(work._future.exception(), lost_reply)
+                self.assertIs(work._cleanup_error, blocked_cleanup)
+                self.assertFalse(streams)
+
+    async def test_exact_attempt_error_store_projection_publisher_and_cleanup_identity_are_required(self):
+        for changed in ('missing', 'projection', 'publisher', 'error', 'marker', 'store', 'cleanup'):
+            with self.subTest(changed=changed):
+                (fixture, host, _, _, reference, _, _, work,
+                 lost_reply, _, _, _, streams) = self.bridge()
+                original = work._invoke
+                held = original.publication_reply_loss
+                self.assertIs(held[2], lost_reply)
+                if changed == 'missing':
+                    original.publication_reply_loss = None
+                elif changed in ('projection', 'publisher', 'error', 'marker'):
+                    values = list(held)
+                    slot = {'projection': 0, 'publisher': 1, 'error': 2, 'marker': 3}[changed]
+                    values[slot] = (copy.copy(held[0]) if changed == 'projection' else
+                        LocalStorageCommitUnknown(lost_reply.cleanup_store) if changed == 'error' else
+                        LocalProductCleanupPending(host) if changed == 'marker' else object())
+                    original.publication_reply_loss = tuple(values)
+                elif changed == 'store':
+                    lost_reply.cleanup_store = object()
+                else:
+                    work._cleanup_error = LocalProductCleanupPending(host)
+                genuine_cleanup = work._cleanup_error
+                with self.assertRaises(LocalStorageCommitUnknown) as failed:
+                    fixture.observe(host, reference)
+                self.assertIs(failed.exception, lost_reply)
+                self.assertIs(work._future.exception(), lost_reply)
+                self.assertIs(work._cleanup_error, genuine_cleanup)
+                self.assertFalse(streams)
+
+    async def test_protected_read_post_current_and_independent_exit_error_are_not_suppressed(self):
+        for phase in ('read', 'post-current', 'exit'):
+            with self.subTest(phase=phase):
+                (fixture, host, _, _, reference, _, _, work,
+                 lost_reply, blocked_cleanup, options, _, streams) = self.bridge()
+                refusal = RuntimeError('Original independent refusal')
+                if phase == 'exit':
+                    work._exit_error = refusal
+                else:
+                    options['read_error' if phase == 'read' else 'post_error'] = refusal
+                with patch.object(work._future, 'result', wraps=work._future.result) as result:
+                    with self.assertRaises(RuntimeError) as failed:
+                        fixture.observe(host, reference)
+                    self.assertIs(failed.exception, refusal)
+                    result.assert_not_called()
+                self.assertIs(work._future.exception(), lost_reply)
+                self.assertIs(work._cleanup_error, blocked_cleanup)
+                self.assertFalse(streams)
+
+    async def test_unpublished_state_cannot_resolve_even_the_same_reply_loss(self):
+        (fixture, host, _, _, reference, projection, _, work,
+         lost_reply, blocked_cleanup, _, events, streams) = self.bridge()
+        host._run_publications = []
+        host._commit_projections = []
+        with self.assertRaises(LocalStorageCommitUnknown) as failed:
+            fixture.observe(host, reference)
+        self.assertIs(failed.exception, lost_reply)
+        self.assertIs(host._pending_publication_write, projection)
+        self.assertNotIn('full-original-index', events)
+        self.assertIs(work._cleanup_error, blocked_cleanup)
+        self.assertFalse(streams)
