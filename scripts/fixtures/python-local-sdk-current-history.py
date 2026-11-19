@@ -4,15 +4,22 @@ Raw mode uses explicit fixture authority. Isolated installed-image mode uses
 the real owning factory and operation allowance; it is not equivalent raw fuel.
 Neither is normal Host, latency or physical-stop acceptance. Only the existing
 task selection/drive and physical Journal import are measured.
+
+The optional prepare-pending:100 and target-pending:100 phases separate genuine
+setup from a fresh owning target. The external guard must finish preparation,
+first close and both byte/input audits before passing its final JSON report to
+target mode. That report routes a namespace; it never replaces current/full
+admission. No budget or automatic phase launch is implemented by this fixture.
 """
 import asyncio
 from collections import Counter
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from ctypes import byref
 from dataclasses import dataclass
 import hashlib
 import json
 from pathlib import Path
+import stat
 import sys
 from tempfile import mkdtemp
 from unittest.mock import patch
@@ -80,6 +87,144 @@ class Trace:
         return result
 
 
+def history_phase(selection):
+    phases = {'prepare-pending:100': 'prepare', 'target-pending:100': 'target'}
+    if selection in phases:
+        return phases[selection]
+    if selection is not None and selection.startswith(('prepare-', 'target-')):
+        raise ValueError('Unsupported history phase selection')
+    return None
+
+
+def history_state_identity(state):
+    observed = state.lstat()
+    if not stat.S_ISDIR(observed.st_mode):
+        raise ValueError('Expected original case directory, never a link')
+    return {'path': str(state.resolve()), 'dev': observed.st_dev, 'inode': observed.st_ino}
+
+
+def ready_history_state(document, scratch, source, fixture_sha):
+    """Route successful setup DATA; actual Host/Core still validate the Store.
+
+    The external guard must also complete its input proofs and byte audits
+    before selecting this target. This report cannot grant current authority.
+    """
+    if (type(document) is not dict or document.get('phase') != 'prepare'
+            or document.get('fixtureSha256') != fixture_sha
+            or type(document.get('installedCohort')) is not dict
+            or document['installedCohort'].get('sourceSha') != source):
+        raise ValueError('Foreign preparation source or fixture')
+    histories = document.get('histories')
+    if type(histories) is not list or len(histories) != 1:
+        raise ValueError('Expected one completed preparation phase')
+    prepared = histories[0]
+    if (type(prepared) is not dict or any(type(prepared.get(field)) is not int for field in (
+            'history', 'acceptedPendingHistory', 'retiredPendingParentLoans',
+            'closedPendingHistory', 'completedHistory'))
+            or prepared.get('history') != 100 or prepared.get('acceptedPendingHistory') != 100
+            or prepared.get('retiredPendingParentLoans') != 100
+            or prepared.get('closedPendingHistory') != 0
+            or prepared.get('completedHistory') != 0 or prepared.get('steps') != []
+            or prepared.get('coreMode') != 'installed-image/ordinary-operation-owner'
+            or prepared.get('fault') is not None
+            or prepared.get('firstCloseReturned') is not True
+            or prepared.get('cleanupFailures') != [] or prepared.get('refusal') is not None):
+        raise ValueError('Preparation counts or original close incomplete')
+    identity = prepared.get('stateIdentity')
+    if (type(identity) is not dict or set(identity) != {'path', 'dev', 'inode'}
+            or type(identity['path']) is not str
+            or type(identity['dev']) is not int or type(identity['inode']) is not int):
+        raise ValueError('Missing original successful namespace locator')
+    state = Path(identity['path'])
+    if state.parent != scratch.resolve() or history_state_identity(state) != identity:
+        raise ValueError('Changed preparation directory or foreign namespace')
+    return state, document['installedCohort']
+
+
+def correlate_history_cohort(observed, expected):
+    if expected is not None and (type(expected) is not dict or observed.keys() != expected.keys()
+            or any(type(expected[key]) is not type(value) or expected[key] != value
+                   for key, value in observed.items())):
+        raise ValueError('Prepared namespace belongs to a different installed cohort')
+
+
+class PrefixObservation:
+    """Bounded first normal retain observation; no validation or permission."""
+    def __init__(self):
+        self.active = self.entered = self.complete = self.eof = self.invalid = False
+        self.keys = set()
+        self.core = self.store = None
+
+    def observe(self, core, ticket, mode, namespace, code):
+        if not self.active or core is not self.core or mode != 0 or namespace != 'client_runs':
+            return
+        try:
+            callbacks = core._journal_callbacks(ticket)
+            if callbacks is None or callbacks.store is not self.store:
+                self.invalid = True
+            elif code == 1 and callbacks.row is None:
+                self.eof = True
+            elif code == 0 and callbacks.row is not None and type(callbacks.row[0]) is bytes:
+                key = callbacks.row[0]
+                if key not in self.keys:
+                    if len(self.keys) == 100:
+                        self.invalid = True
+                    else:
+                        self.keys.add(key)
+            else:
+                self.invalid = True
+        except Exception:
+            self.invalid = True
+
+    @contextmanager
+    def bind(self, host, core):
+        if self.core is not None:
+            raise ValueError('Prefix observation is one-use, not a retained permission')
+        original = InstalledLocalHost._retain_intent
+        self.core, self.store = core, host._installation._store
+
+        def retain(receiver, *args, **kwargs):
+            if receiver is not host or self.entered:
+                return original(receiver, *args, **kwargs)
+            self.entered = self.active = True
+            try:
+                result = original(receiver, *args, **kwargs)
+            finally:
+                self.active = False
+            # An original failure bypasses this diagnostic assertion, retaining
+            # its exact primary. No return/output or callback is substituted.
+            assert not self.invalid and self.eof and len(self.keys) == 100, 'Incomplete actual prefix observation'
+            self.complete = True
+            return result
+
+        with patch.object(InstalledLocalHost, '_retain_intent', retain):
+            yield
+
+    def report(self):
+        return {'complete': self.complete, 'observedRunRows': len(self.keys), 'scanEnded': self.eof}
+
+
+async def close_history_owners(client, host, core, primary):
+    cleanup = []
+    for original in (client, host):
+        if original is not None:
+            try:
+                await original.aclose()
+            except BaseException as error:
+                cleanup.append(error)
+    if core is not None:
+        try:
+            if not core.close():
+                raise RuntimeError('Original component Core cleanup remains pending')
+        except BaseException as error:
+            cleanup.append(error)
+    if cleanup:
+        if primary is None:
+            raise cleanup[0]
+        print(json.dumps({'cleanupFailures': [type(error).__name__ for error in cleanup]}), file=sys.stderr)
+    return cleanup
+
+
 def retire_pending_original_parents(host, original):
     """Return one fresh admission's private loans, never close or stop its Run.
 
@@ -113,9 +258,11 @@ def retire_pending_original_parents(host, original):
                 raise LocalProductCleanupPending(host)
 
 
-async def population(raw, digest, scratch, history, fault=None, persisted=False, pending=False, installed=False):
+async def population(raw, digest, scratch, history, fault=None, persisted=False, pending=False, installed=False,
+                     phase=None, existing_state=None):
     assert not (persisted and pending)
     trace = Trace()
+    prefix = PrefixObservation() if phase == 'target' else None
     original_header = LocalCore._journal_query_header
     original_current = LocalCore._journal_current
     original_operation = LocalCore._journal_current_operation
@@ -174,6 +321,14 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
             namespace = bytes(memory.read(caller, namespace_offset, namespace_offset + namespace_bytes)).decode('utf-8')
         code = original_header(core, caller, ticket, mode, namespace_offset, namespace_bytes,
                                key_offset, key_bytes, header_offset)
+        if prefix is not None and prefix.active:
+            try:
+                memory = core._bulk_memory(caller, namespace_offset, namespace_bytes)
+                selected_namespace = bytes(memory.read(
+                    caller, namespace_offset, namespace_offset + namespace_bytes)).decode('utf-8')
+                prefix.observe(core, ticket, mode, selected_namespace, code)
+            except Exception:
+                prefix.invalid = True  # Never mask the original query/primary.
         if counts is not None:
             counts['queries'] += 1
             counts['scanQueries' if mode == 0 else 'pointQueries'] += 1
@@ -224,7 +379,13 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                 return failed_callbacks._fail(injected_primary)
         return original_operation(core, ticket)
 
-    state = Path(mkdtemp(prefix=f'history-{history}-', dir=scratch))
+    if phase not in (None, 'prepare', 'target') or phase is not None and (not installed or not pending or history != 100):
+        raise ValueError('Split phases require the selected installed pending100 case')
+    if phase == 'target' and existing_state is None:
+        raise ValueError('Target requires its completed original preparation namespace')
+    state = existing_state if phase == 'target' else Path(mkdtemp(prefix=f'history-{history}-', dir=scratch))
+    if phase == 'prepare':
+        state = state.resolve()  # The first owning factory and later route use the same path.
     client = host = core = None
     primary = None
     completed_history = 0
@@ -263,7 +424,7 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                 patch.object(LocalCore, '_journal_current_operation', operation), \
                 patch.object(_JournalCallbacks, 'query', queried):
             await open_original()
-            for index in range(history):
+            for index in range(0 if phase == 'target' else history):
                 if pending:
                     # Stop at the original accepting owner, before its outer
                     # submit consumer constructs or starts physical work.
@@ -311,56 +472,60 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                     assert core.close() is True
                     await open_original()
 
-            if pending:
+            if pending and phase != 'target':
                 assert accepted_pending_history == retired_pending_parent_loans == len(pending_references) == history
                 assert closed_pending_history == 0
 
-            read_start = core.read_sdk_start_step
-            select_task = core.reserve_next_sdk_task
-            drive_task = core.drive_task
+            if phase != 'prepare':
+                read_start = core.read_sdk_start_step
+                select_task = core.reserve_next_sdk_task
+                drive_task = core.drive_task
 
-            def original_claim(*args, **kwargs):
-                wire = read_start(*args, **kwargs)
-                record = json.loads(wire)
-                if record['kind'] == 'claim':
-                    assert trace.target is None or trace.target == record['key']
-                    trace.target = record['key']  # Labelling only, never claim acceptance.
-                    # Correlate returned bytes with this original claim DATA;
-                    # unchanged Core validators still decide current/authority.
-                    trace.target_body = record['body'].encode('utf-8')
-                    trace.target_revision = int(record['revision']) + 1
-                return wire
+                def original_claim(*args, **kwargs):
+                    wire = read_start(*args, **kwargs)
+                    record = json.loads(wire)
+                    if record['kind'] == 'claim':
+                        assert trace.target is None or trace.target == record['key']
+                        trace.target = record['key']  # Labelling only, never claim acceptance.
+                        # Correlate returned bytes with this original claim DATA;
+                        # unchanged Core validators still decide current/authority.
+                        trace.target_body = record['body'].encode('utf-8')
+                        trace.target_revision = int(record['revision']) + 1
+                    return wire
 
-            def select(*args, **kwargs):
-                return trace.call('select', lambda: select_task(*args, **kwargs))
+                def select(*args, **kwargs):
+                    return trace.call('select', lambda: select_task(*args, **kwargs))
 
-            def drive(task, quantum):
-                assert quantum > 0
-                # A fixed test input exercises multiple real bounded quanta.
-                # It does not change a result, retry a failure or classify state.
-                return trace.call('drive', lambda: drive_task(task, 1))
+                def drive(task, quantum):
+                    assert quantum > 0
+                    # A fixed test input exercises multiple real bounded quanta.
+                    # It does not change a result, retry a failure or classify state.
+                    return trace.call('drive', lambda: drive_task(task, 1))
 
-            with patch.object(core, 'read_sdk_start_step', original_claim), \
-                    patch.object(core, 'reserve_next_sdk_task', select), \
-                    patch.object(core, 'drive_task', drive):
-                trace.enabled = True
-                execution = await client.start_source(
-                    'WITH seed AS (SELECT 1 AS n) FROM seed AS l |> JOIN seed AS r ON l.n = r.n '
-                    'MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS n |> RESULT answer', format='aql')
-                final = (await execution.wait(until='terminal')).to_dict()
-                assert final['status'] == 'succeeded' and final['result_available']
-                assert await execution.result('answer').all(schema=Row, max_rows=2) == [Row(2)]
-                assert (await execution.status()).to_dict() == final
-            assert fault is None, 'A changed original reached successful execution'
-            assert sum(step['phase'] == 'drive' for step in trace.steps) > 1
-            assert trace.steps
-            for step in trace.steps:
-                assert step['counts'].get('historyScans', 0) == 0, step
-                assert step['counts'].get('unrelatedRunRows', 0) == 0, step
-                assert step['counts'].get('unrelatedTaskRows', 0) == 0, step
-                assert step['counts'].get('unrelatedEffectRows', 0) == 0, step
-                assert step['counts'].get('changedTargetRows', 0) == 0, step
-                assert step['counts'].get('returnedRunRows', 0) > 0, step
+                with patch.object(core, 'read_sdk_start_step', original_claim), \
+                        patch.object(core, 'reserve_next_sdk_task', select), \
+                        patch.object(core, 'drive_task', drive), \
+                        prefix.bind(host, core) if prefix is not None else nullcontext():
+                    trace.enabled = True
+                    execution = await client.start_source(
+                        'WITH seed AS (SELECT 1 AS n) FROM seed AS l |> JOIN seed AS r ON l.n = r.n '
+                        'MAX_OUTPUT_ROWS 1 |> SELECT l.n + r.n AS n |> RESULT answer', format='aql')
+                    if prefix is not None:
+                        assert prefix.complete, 'Normal target did not complete its full prefix scope'
+                    final = (await execution.wait(until='terminal')).to_dict()
+                    assert final['status'] == 'succeeded' and final['result_available']
+                    assert await execution.result('answer').all(schema=Row, max_rows=2) == [Row(2)]
+                    assert (await execution.status()).to_dict() == final
+                assert fault is None, 'A changed original reached successful execution'
+                assert sum(step['phase'] == 'drive' for step in trace.steps) > 1
+                assert trace.steps
+                for step in trace.steps:
+                    assert step['counts'].get('historyScans', 0) == 0, step
+                    assert step['counts'].get('unrelatedRunRows', 0) == 0, step
+                    assert step['counts'].get('unrelatedTaskRows', 0) == 0, step
+                    assert step['counts'].get('unrelatedEffectRows', 0) == 0, step
+                    assert step['counts'].get('changedTargetRows', 0) == 0, step
+                    assert step['counts'].get('returnedRunRows', 0) > 0, step
     except BaseException as error:
         primary = error
         failures = []
@@ -416,25 +581,8 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
         if fault == 'reentry':
             assert type(failed_callbacks.failure) is RuntimeError
     finally:
-        for original in (client, host):
-            if original is not None:
-                try:
-                    await original.aclose()
-                except BaseException as error:
-                    cleanup.append(error)
-        if core is not None:
-            try:
-                if not core.close():
-                    raise RuntimeError('Original component Core cleanup remains pending')
-            except BaseException as error:
-                cleanup.append(error)
-        if cleanup:
-            if primary is None:
-                raise cleanup[0]
-            # Keep the same initiating error; disclose rather than promote a
-            # failed/pending cleanup to first-close success.
-            print(json.dumps({'cleanupFailures': [type(error).__name__ for error in cleanup]}), file=sys.stderr)
-    return {'history': history, 'fault': fault, 'steps': trace.steps,
+        cleanup = await close_history_owners(client, host, core, primary)
+    result = {'history': history, 'fault': fault, 'steps': trace.steps,
             'coreMode': 'installed-image/ordinary-operation-owner' if installed else 'raw-component/initial-fuel',
             'populationMode': 'accepted-pending-durable-history/private-parent-retirement/live-target' if pending else
                 'persisted-history-fresh-live-target' if persisted else 'same-live-host',
@@ -444,18 +592,31 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
             'refusal': None if trace.refusal is None else trace.refusal.code,
             'firstCloseReturned': not cleanup,
             'cleanupFailures': [type(error).__name__ for error in cleanup]}
+    if phase is not None:
+        result.update(stateIdentity=history_state_identity(state), phase=phase,
+                      prefixObservation=None if prefix is None else prefix.report())
+        result['populationMode'] = ('accepted-pending-preparation-only' if phase == 'prepare' else
+                                    'same-completed-namespace/full-normal-target')
+    return result
 
 
 async def main():
     image_identity = None
+    expected_cohort = None
+    existing_state = None
+    phase = None
+    fixture_sha = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     resolver = nullcontext()
     if INSTALLED_IMAGE:
-        if len(sys.argv) != 5 or not sys.flags.isolated:
+        if len(sys.argv) not in (5, 6) or not sys.flags.isolated:
             raise ValueError('Expected isolated installed Python, --installed source SHA, fresh scratch and selection')
-        expected_source, scratch, selection = sys.argv[2:]
+        expected_source, scratch, selection = sys.argv[2:5]
+        phase = history_phase(selection)
+        if len(sys.argv) != (6 if phase == 'target' else 5):
+            raise ValueError('Only target phase takes its completed preparation report')
         if len(expected_source) != 40 or any(c not in '0123456789abcdef' for c in expected_source):
             raise ValueError('Expected exact installed cohort source SHA')
-        if not (selection == 'pending' or selection.startswith(('pending:', 'fault:'))):
+        if phase is None and not (selection == 'pending' or selection.startswith(('pending:', 'fault:'))):
             raise ValueError('Installed image selection is pending history or its original current/refusal control')
         from actql_sdk import _local_product
         original_resolver = _local_product.installed_local_components
@@ -470,6 +631,7 @@ async def main():
                 'moduleSha256': components.module_sha256, 'imageSha256': components.image_sha256,
                 'imageBytes': components.image_bytes, 'engineRecipeSha256': components.engine_recipe_sha256,
                 'duckdbSha256': components.duckdb_sha256, 'duckdbVersion': components.duckdb_version}
+            correlate_history_cohort(observed, expected_cohort)
             if image_identity is None:
                 image_identity = observed
             else:
@@ -486,27 +648,38 @@ async def main():
         scratch = sys.argv[2]
         selection = sys.argv[3] if len(sys.argv) == 4 else None
     scratch = Path(scratch); scratch.mkdir(parents=True, exist_ok=True)
+    if phase == 'target':
+        report_path = Path(sys.argv[5])
+        metadata = report_path.lstat()
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > 65536:
+            raise ValueError('Expected bounded regular preparation control report')
+        existing_state, expected_cohort = ready_history_state(
+            json.loads(report_path.read_bytes()), scratch, expected_source, fixture_sha)
     fault = selection[6:] if selection is not None and selection.startswith('fault:') else None
     assert fault is None or fault in FAULTS
     persisted = selection is not None and selection.startswith('persisted:')
-    pending = selection is not None and (selection == 'pending' or selection.startswith('pending:'))
-    sizes = [0] if fault is not None else [1, 10, 100] if selection in (None, 'pending') else [
+    pending = phase is not None or selection is not None and (selection == 'pending' or selection.startswith('pending:'))
+    sizes = [100] if phase is not None else [0] if fault is not None else [1, 10, 100] if selection in (None, 'pending') else [
         int(selection[10:] if persisted else selection[8:] if pending else selection)]
     assert fault is not None or all(size in (1, 10, 100) for size in sizes)
     observations = []
     with resolver:
         for size in sizes:
-            observed = await population(raw, digest, scratch, size, fault, persisted, pending, INSTALLED_IMAGE)
+            observed = await population(raw, digest, scratch, size, fault, persisted, pending, INSTALLED_IMAGE,
+                                        phase, existing_state)
             if observations:
                 assert observed['steps'] == observations[0]['steps'], 'Target counters changed with unrelated history'
             observations.append(observed)
-    print(json.dumps({'qualification': 'installed image/real ordinary operation component; not raw fuel equivalence or normal/stop/latency acceptance'
+    result = {'qualification': 'installed image/real ordinary operation component; not raw fuel equivalence or normal/stop/latency acceptance'
         if INSTALLED_IMAGE else 'raw same-source component, no latency/normal/stop claim',
         'fuelMode': {'owner': 'ordinary Host operation' if INSTALLED_IMAGE else 'raw initial allowance',
             'sourceDeclaredLimit': _NORMAL_HOST_OPERATION_FUEL, 'consumedFuel': 'unmeasured'},
         'wasmSha256': image_identity['moduleSha256'] if INSTALLED_IMAGE else digest,
         'installedCohort': image_identity, 'histories': observations,
-        'unmeasured': ['Core internal parse/hash counts', 'latency', 'physical ACK/FD']}, sort_keys=True))
+        'unmeasured': ['Core internal parse/hash counts', 'latency', 'physical ACK/FD']}
+    if phase is not None:
+        result.update(phase=phase, fixtureSha256=fixture_sha)
+    print(json.dumps(result, sort_keys=True))
 
 
 if __name__ == '__main__':
