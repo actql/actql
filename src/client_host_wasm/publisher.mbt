@@ -322,7 +322,11 @@ pub fn authorize_publisher(
       // Request and final Commit reobserve the SAME saved start claim. The
       // physical Host invokes Commit within its original write transaction.
       // ReturnCommitted and retained lookup cannot become a new write grant.
-      let code = validate_sdk_start_claim(value, step, plan)
+      let code = if original_run.restoration is None {
+        validate_live_sdk_started_run_current(value, step, plan)
+      } else {
+        validate_sdk_start_claim(value, step, plan)
+      }
       if code != 0 {
         return code
       }
