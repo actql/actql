@@ -85455,7 +85455,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "a33a16be225da4e6d9039f70e2075ff5baa41225ff7e8ddea7bcaa08a9969a46",
+      "sha256": "7fdfc0a0d68cec27d24797e7e06b8fbe270fbaf75b2e1a24e99ddb22096735a5",
       "exports": [],
       "operations": [
         {
@@ -85503,6 +85503,10 @@
           "declaration": "local_file_driver_failure_message ( issue : @ local_driver . LocalDispatchIssue , ) - > String"
         },
         {
+          "name": "local_file_evaluation_kind_failure_message",
+          "declaration": "local_file_evaluation_kind_failure_message ( kind : @ execution . EvalIssueKind , ) - > String"
+        },
+        {
           "name": "local_file_fixed_compute_failure_message",
           "declaration": "local_file_fixed_compute_failure_message ( issue : @ compute_sdk . FixedComputeIssue , ) - > String"
         },
@@ -85521,6 +85525,10 @@
         {
           "name": "local_file_row_failure_message",
           "declaration": "local_file_row_failure_message ( issue : @ execution . RowIssue ) - > String"
+        },
+        {
+          "name": "local_file_scalar_failure_message",
+          "declaration": "local_file_scalar_failure_message ( issue : @ execution . ScalarIssue ) - > String"
         },
         {
           "name": "local_file_sequence_failure_message",
@@ -85585,7 +85593,9 @@
             "local_file_fixed_compute_failure_message",
             "local_file_guard_failure_message",
             "local_file_row_failure_message",
-            "local_file_sequence_failure_message"
+            "local_file_sequence_failure_message",
+            "local_file_evaluation_kind_failure_message",
+            "local_file_scalar_failure_message"
           ],
           "exports": [],
           "attributes": {

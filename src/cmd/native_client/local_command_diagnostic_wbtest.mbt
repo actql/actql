@@ -557,6 +557,24 @@ test "File Work primary keeps the actual closed reserve cause across cleanup" {
       "LocalOriginalSourceWorkUnavailable:compute-driver-capacity-retention",
     ),
     (
+      LocalExecution(
+        Driver(
+          Configuration(Execution(Rows(987654321, Comparison(InvalidOperand)))),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-invalid-operand",
+    ),
+    (
+      LocalExecution(
+        Driver(
+          Configuration(
+            Execution(Rows(987654321, Aggregation(ArithmeticFailure))),
+          ),
+        ),
+      ),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-arithmetic-failure",
+    ),
+    (
       RelationFile(Resource(@initial_resources.RetentionLimit)),
       "LocalOriginalSourceWorkUnavailable:source-retention",
     ),
@@ -575,6 +593,26 @@ test "File Work primary keeps the actual closed reserve cause across cleanup" {
     assert_false(message.contains("SYNTHETIC_PRIVATE_SOURCE"))
     assert_false(message.contains("987654321"))
     assert_eq(local_file_open_failure_message(original), message)
+  }
+  let evaluation_cases : Array[(@execution.EvalIssueKind, String)] = [
+    (
+      MissingValue,
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-missing-value",
+    ),
+    (
+      QueryEvaluationTimeUnavailable,
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-query-time-unavailable",
+    ),
+    (
+      Scalar(ComparisonDomainNotImplemented),
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-comparison-domain-unimplemented",
+    ),
+  ]
+  for (kind, expected) in evaluation_cases {
+    let message = local_file_evaluation_kind_failure_message(kind)
+    assert_eq(message, expected)
+    assert_false(message.contains("SYNTHETIC_PRIVATE_SOURCE"))
+    assert_false(message.contains("987654321"))
   }
 }
 

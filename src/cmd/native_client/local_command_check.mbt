@@ -1489,12 +1489,10 @@ fn local_file_row_failure_message(issue : @execution.RowIssue) -> String {
       "LocalOriginalSourceWorkUnavailable:compute-driver-row-ordered-context-missing"
     LogicalRows(_) =>
       "LocalOriginalSourceWorkUnavailable:compute-driver-row-logical-budget-unclassified"
-    Evaluation(_, _, _) =>
-      "LocalOriginalSourceWorkUnavailable:compute-driver-row-evaluation-unclassified"
-    Comparison(_) =>
-      "LocalOriginalSourceWorkUnavailable:compute-driver-row-comparison-unclassified"
-    Aggregation(_) =>
-      "LocalOriginalSourceWorkUnavailable:compute-driver-row-aggregation-unclassified"
+    Evaluation(_, _, original) =>
+      local_file_evaluation_kind_failure_message(original.kind)
+    Comparison(original) | Aggregation(original) =>
+      local_file_scalar_failure_message(original)
     DedupeTopTie(_, _) =>
       "LocalOriginalSourceWorkUnavailable:compute-driver-row-dedupe-top-tie"
     DedupeIdentityCollision =>
@@ -1525,5 +1523,50 @@ fn local_file_row_failure_message(issue : @execution.RowIssue) -> String {
       "LocalOriginalSourceWorkUnavailable:compute-driver-row-nest-envelope-unclassified"
     TemporalPrecisionUnavailable =>
       "LocalOriginalSourceWorkUnavailable:compute-driver-row-temporal-precision"
+  }
+}
+
+///|
+// EvalIssue exposes this existing readonly kind; its expression stays private
+// to the retained original. No diagnostic object or expression copy is needed.
+fn local_file_evaluation_kind_failure_message(
+  kind : @execution.EvalIssueKind,
+) -> String {
+  match kind {
+    InvalidControlLimits =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-invalid-control-limits"
+    ControlLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-control-limit"
+    WorkspaceLimit =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-workspace-limit"
+    MissingValue =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-missing-value"
+    Scalar(original) => local_file_scalar_failure_message(original)
+    LogicalEntry(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-logical-entry-unclassified"
+    LogicalValue(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-logical-value-unclassified"
+    QueryEvaluationTimeUnavailable =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-query-time-unavailable"
+    TextBounds(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-text-bounds-unclassified"
+    NumberConversion(_) =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-number-conversion-unclassified"
+    TimestampCanonicalRequired =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-evaluation-timestamp-canonical-required"
+  }
+}
+
+///|
+// Evaluation, comparison and aggregation retain their original outer primary;
+// these three closed scalar leaves contain no diagnostic values or expressions.
+fn local_file_scalar_failure_message(issue : @execution.ScalarIssue) -> String {
+  match issue {
+    InvalidOperand =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-invalid-operand"
+    ArithmeticFailure =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-arithmetic-failure"
+    ComparisonDomainNotImplemented =>
+      "LocalOriginalSourceWorkUnavailable:compute-driver-scalar-comparison-domain-unimplemented"
   }
 }
