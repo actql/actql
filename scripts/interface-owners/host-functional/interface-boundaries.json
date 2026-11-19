@@ -24911,7 +24911,7 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1d0959cc6544bc19de0948428135693eac0b76727372c2325b7415486770ae73",
+      "sha256": "ac6bfabc78f377a2b113f6dca562e48f5de95c2fcd2edc52596f35a348073b35",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -24924,7 +24924,8 @@
             "moon",
             "control",
             "prepare",
-            "authorize"
+            "authorize",
+            "readOriginal"
           ],
           "async": false
         },
@@ -24948,44 +24949,56 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize}) {"
-              },
-              {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "# Negotiated Interactive Run Control boundaries"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Static planning uses the compiler's original checked Program, parameter binding"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize}) {"
-              },
-              {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Negotiated Interactive Run Control contracts"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize}) {"
-              },
-              {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Negotiated Interactive Run Control contracts"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "value or closed JSON shape never replaces the original compiler or read access."
               }
             ],
             "ownership": [
@@ -25000,13 +25013,13 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The same producer retains its input before SDK snapshot/options processing and"
               }
             ],
             "synchronization": [
-              {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize}) {"
-              },
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "# Negotiated Interactive Run Control boundaries"
@@ -25014,6 +25027,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "unchanged extent through the parent-current check. The same owner fences reentry."
               }
             ],
             "failure": [
@@ -25028,6 +25049,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "or cleanup failures remain failures, with their original owner and retry duty."
               }
             ],
             "cancellation": [
@@ -25042,6 +25067,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Negotiated Interactive Run Control contracts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
               }
             ],
             "resources": [
@@ -25056,6 +25085,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "# Negotiated Interactive Run Control boundaries"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The read uses the existing original Plan/map/codec construction admission."
               }
             ],
             "extension": [
@@ -25070,6 +25103,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Negotiated Interactive Run Control contracts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "carrier must provide its actual same-parent construction and original projection"
               }
             ],
             "verification": [
@@ -25080,6 +25117,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
               }
             ]
           }
@@ -25092,44 +25133,44 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize}) {"
-              },
-              {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "# Negotiated Interactive Run Control boundaries"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize}) {"
-              },
-              {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Negotiated Interactive Run Control contracts"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize}) {"
-              },
-              {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "## Negotiated Interactive Run Control contracts"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
               }
             ],
             "ownership": [
@@ -25148,16 +25189,16 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mjs",
-                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize}) {"
-              },
-              {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "# Negotiated Interactive Run Control boundaries"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.mjs",
+                "anchor": "export function installClientStaticPlan({moon, control, prepare, authorize, readOriginal}) {"
               }
             ],
             "failure": [
@@ -26415,7 +26456,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8c8ede5015d10a6d3c9457f3f43748a04228f3fd8e05fc6670f6298b12cdc8e3",
+      "sha256": "88c7667a2a8441ae822dd02f9de73e8815e76c870217a716e040636d555ea236",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -26424,7 +26465,8 @@
         "installNodeClientProgramPreparation",
         "requestProgramCapacityRefusal",
         "requestProgramPreparationProblemCode",
-        "requestProgramPreparationRefusalCode"
+        "requestProgramPreparationRefusalCode",
+        "retainPreparedSubmissionFailure"
       ],
       "operations": [
         {
@@ -26576,6 +26618,18 @@
           "name": "requestProgramPreparationRefusalCode",
           "parameters": [
             "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainPreparedSubmissionFailure",
+          "parameters": [
+            "failures",
+            "submission",
+            "error",
+            "requested",
+            "sourceRefusal",
+            "observe"
           ],
           "async": false
         }
@@ -27896,11 +27950,13 @@
             "requestProgramCapacityRefusal",
             "capacityRefusalValue/amounts/amounts",
             "capacityRefusalValue/capacityRefusalValue",
-            "checkedRequestSnapshotPreparation"
+            "checkedRequestSnapshotPreparation",
+            "retainPreparedSubmissionFailure"
           ],
           "exports": [
             "requestProgramCapacityRefusal",
-            "checkedRequestSnapshotPreparation"
+            "checkedRequestSnapshotPreparation",
+            "retainPreparedSubmissionFailure"
           ],
           "attributes": {
             "responsibility": [
@@ -27911,6 +27967,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "inputsOutputs": [
@@ -27921,6 +27981,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "identity": [
@@ -27931,6 +27995,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "ownership": [
@@ -27941,6 +28009,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "synchronization": [
@@ -27951,6 +28023,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "failure": [
@@ -27961,6 +28037,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "cancellation": [
@@ -27975,6 +28055,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "resources": [
@@ -27993,6 +28077,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "extension": [
@@ -28003,6 +28091,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "verification": [
@@ -28017,6 +28109,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "An actual Request snapshot grow can separately retain its original typed"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
+              },
+              {
+                "path": "adapters/host-node/client-preparation-disclosure.test.mjs",
+                "anchor": "test('prepared submission catch retains original first and observer throw cannot replace primary or touch cleanup'"
               }
             ]
           }
@@ -28154,7 +28254,9 @@
       "imports": [
         "../../packages/client-wire/index.mjs",
         "../host-common/compiler-binding.generated.mjs",
-        "../host-common/runtime-result.mjs"
+        "../host-common/runtime-result.mjs",
+        "./client-dispatch-diagnostic.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -62825,12 +62927,13 @@
     {
       "module": "adapters/host-node/installed-effect-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d93b5daee22d91e72e666b888278fab9ad6fa0b524fc9492a4bddd6ed6d8e6ef",
+      "sha256": "73a113f6c3320a675409e80ee60e34d1aa114294277183c968fdd144faa3aee2",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
         "composeInstalledEffects",
         "installedEffectFor",
+        "installedUpdateTargetDisclosure",
         "installedUpdateTargets",
         "validPluralEffectPaths"
       ],
@@ -62912,6 +63015,24 @@
             "selector"
           ],
           "async": false
+        },
+        {
+          "name": "installedUpdateTargetDisclosure",
+          "parameters": [
+            "effect",
+            "targets",
+            "principalId",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedUpdateTargetDisclosure/init:visibleFor/init:visibleFor",
+          "parameters": [
+            "actual",
+            "signal"
+          ],
+          "async": true
         },
         {
           "name": "installedUpdateTargets",
@@ -63644,6 +63765,81 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedUpdateTargetDisclosure",
+            "installedUpdateTargetDisclosure/init:visibleFor/init:visibleFor"
+          ],
+          "exports": [
+            "installedUpdateTargetDisclosure"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Installed short UPDATE names follow the same metadata-read boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_preparation/client_check_program.mbt",
+                "anchor": "pub fn client_program_project_original_static_effect_check("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "physical_equal(selected.publication, publication)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const retained = rowInstallations.get(adapter);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "physical_equal(current_result, result)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_preparation/client_check.mbt",
+                "anchor": "fn check_static_effect_type_issue("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_program_check_layout.mbt",
+                "anchor": "5H/7R/4W = 168 bytes"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "record_headers: 12L * count"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "no synthetic"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document_js_wbtest.mbt",
+                "anchor": "test \"static Native UPDATE keeps one original semantic check"
               }
             ]
           }
@@ -109460,7 +109656,8 @@
             "prepareOrdinaryManagedInstallation/view/init:publishSourceSnapshot/init:publishSourceSnapshot",
             "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
             "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:submittedIntentOriginal/init:submittedIntentOriginal"
+            "prepareOrdinaryManagedInstallation/view/init:submittedIntentOriginal/init:submittedIntentOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/wire/wire"
           ],
           "exports": [],
           "attributes": {
@@ -109496,6 +109693,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Static planning uses the compiler's original checked Program, parameter binding"
               }
             ],
             "inputsOutputs": [
@@ -109530,6 +109731,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
               }
             ],
             "identity": [
@@ -109568,6 +109773,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "value or closed JSON shape never replaces the original compiler or read access."
               }
             ],
             "ownership": [
@@ -109606,6 +109815,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The same producer retains its input before SDK snapshot/options processing and"
               }
             ],
             "synchronization": [
@@ -109640,6 +109853,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "unchanged extent through the parent-current check. The same owner fences reentry."
               }
             ],
             "failure": [
@@ -109674,6 +109891,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "or cleanup failures remain failures, with their original owner and retry duty."
               }
             ],
             "cancellation": [
@@ -109708,6 +109929,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
               }
             ],
             "resources": [
@@ -109742,6 +109967,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The read uses the existing original Plan/map/codec construction admission."
               }
             ],
             "extension": [
@@ -109776,6 +110005,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "carrier must provide its actual same-parent construction and original projection"
               }
             ],
             "verification": [
@@ -109826,6 +110059,10 @@
               {
                 "path": "docs/design/check-sdk.md",
                 "anchor": "## Original Request authoring context in the Node publication path"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
               }
             ]
           }
@@ -113811,7 +114048,8 @@
             "environment",
             "originalVerifier",
             "signal",
-            "journal"
+            "journal",
+            "staticPlan"
           ],
           "async": true
         },
@@ -113856,6 +114094,11 @@
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/wire/wire",
+          "parameters": [],
           "async": false
         },
         {
@@ -114695,7 +114938,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "3f0e6d36117e646edf940002c65143daafaa08c0b8cef9e53005b1f757d478d1"
+      "sha256": "cc1011452cfc3c3eaedfdd837f99d798530407aa17e4a733fbc0f2d5d8bdac8b"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

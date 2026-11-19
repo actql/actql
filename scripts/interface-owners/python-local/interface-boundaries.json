@@ -84702,7 +84702,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "22526df2f00444dba9ce6d40545d48995686e7efbca817c8506518e77e3ea18b",
+      "sha256": "9c7d70c293a92bf90aa22efa951892a3a20952a8d8dde0d45ed7c5bb1caf71b7",
       "exports": [],
       "operations": [
         {

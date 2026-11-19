@@ -9148,7 +9148,7 @@
     {
       "module": "packages/sdk/internal/client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "262c901e1543da6842d0e58f4ac19cbe4418a255a355c67d8f196a884ea299e7",
+      "sha256": "6e6eac93c89ae8874046881be18dac9b1eb4fc71e56967cd9eda75f6e249df9e",
       "exports": [
         "connectSelected"
       ],
@@ -10068,7 +10068,7 @@
     {
       "module": "packages/sdk/internal/plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fda04146bc4163f6bcb37a6293b32e66dd1153137e496733cb0a86f1a45129b3",
+      "sha256": "a68b8a5dd91e0e74647f45335d02c8f415e4bf96064b8b56fb2a3f97839bc4d9",
       "exports": [
         "createPlan"
       ],
@@ -10078,7 +10078,9 @@
           "parameters": [
             "connection",
             "exchange",
-            "responseValue"
+            "responseValue",
+            "withStaticPreparation",
+            "sourcePreparation"
           ],
           "async": false
         },
@@ -10086,9 +10088,24 @@
           "name": "createPlan/createPlan",
           "parameters": [
             "input",
-            "options"
+            "originalOptions"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPlan/createPlan/createPlan",
+          "parameters": [
+            "producer"
           ],
           "async": true
+        },
+        {
+          "name": "createPlan/createPlan/createPlan/snapshot/snapshot",
+          "parameters": [
+            "value",
+            "observe"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -10107,7 +10124,9 @@
           "operations": [
             "<module>",
             "createPlan",
-            "createPlan/createPlan"
+            "createPlan/createPlan",
+            "createPlan/createPlan/createPlan",
+            "createPlan/createPlan/createPlan/snapshot/snapshot"
           ],
           "exports": [
             "createPlan"
@@ -10117,12 +10136,20 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Static planning uses the compiler's original checked Program, parameter binding"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
               }
             ],
             "identity": [
@@ -10133,6 +10160,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "value or closed JSON shape never replaces the original compiler or read access."
               }
             ],
             "ownership": [
@@ -10143,6 +10174,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The same producer retains its input before SDK snapshot/options processing and"
               }
             ],
             "synchronization": [
@@ -10153,6 +10188,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "unchanged extent through the parent-current check. The same owner fences reentry."
               }
             ],
             "failure": [
@@ -10163,6 +10202,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "or cleanup failures remain failures, with their original owner and retry duty."
               }
             ],
             "cancellation": [
@@ -10173,6 +10216,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
               }
             ],
             "resources": [
@@ -10183,6 +10230,10 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The read uses the existing original Plan/map/codec construction admission."
               }
             ],
             "extension": [
@@ -10193,12 +10244,20 @@
               {
                 "path": "packages/sdk/internal/plan.mjs",
                 "anchor": "// Read-only static compiler projection through the existing wire validator."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "carrier must provide its actual same-parent construction and original projection"
               }
             ],
             "verification": [
               {
                 "path": "packages/sdk/index.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
               }
             ]
           }
@@ -12158,7 +12217,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6174b9b8a8ed140ed2d0792ce78d04320ccfde7992b88c6da49e5b8ca28a44cd",
+      "sha256": "141ac746366c178bc072c3e752ea80ca27c18234f09c7c99a6049d38b9910ef0",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -12219,9 +12278,10 @@
         {
           "name": "createSubmissionOperations/createSubmissionOperations",
           "parameters": [
-            "text",
-            "parameters",
-            "options"
+            "kind",
+            "input",
+            "options",
+            "read"
           ],
           "async": false
         },
@@ -12259,13 +12319,22 @@
         {
           "name": "createSubmissionOperations/createSubmissionOperations#3",
           "parameters": [
+            "text",
+            "parameters",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSubmissionOperations/createSubmissionOperations#4",
+          "parameters": [
             "submissionRef",
             "signal"
           ],
           "async": true
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations#4",
+          "name": "createSubmissionOperations/createSubmissionOperations#5",
           "parameters": [
             "program",
             "options"
@@ -12273,7 +12342,7 @@
           "async": false
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations#5",
+          "name": "createSubmissionOperations/createSubmissionOperations#6",
           "parameters": [
             "ref",
             "signal"
@@ -12281,7 +12350,7 @@
           "async": true
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations#6",
+          "name": "createSubmissionOperations/createSubmissionOperations#7",
           "parameters": [
             "requestId",
             "signal"
@@ -12289,14 +12358,14 @@
           "async": true
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations#7",
+          "name": "createSubmissionOperations/createSubmissionOperations#8",
           "parameters": [
             "observationOrTarget"
           ],
           "async": false
         },
         {
-          "name": "createSubmissionOperations/createSubmissionOperations#8",
+          "name": "createSubmissionOperations/createSubmissionOperations#9",
           "parameters": [
             "requestId",
             "signal"
@@ -12630,7 +12699,8 @@
             "recoveryData/recoveryData/recoveryData",
             "recoveryData/recoveryData/recoveryData#2",
             "submissionNotSent/submissionNotSent",
-            "submissionUnknown/submissionUnknown"
+            "submissionUnknown/submissionUnknown",
+            "createSubmissionOperations/createSubmissionOperations#9"
           ],
           "exports": [
             "RequestHeld",
@@ -12662,6 +12732,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "raw argument capture, not only a later Host request. The private SDK captures"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Static planning uses the compiler's original checked Program, parameter binding"
               }
             ],
             "inputsOutputs": [
@@ -12680,6 +12754,10 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "beforeResultRead"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
               }
             ],
             "identity": [
@@ -12710,6 +12788,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "## Scoped durable request names"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "value or closed JSON shape never replaces the original compiler or read access."
               }
             ],
             "ownership": [
@@ -12740,6 +12822,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "Its public snapshot shares those exact input and parameter"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The same producer retains its input before SDK snapshot/options processing and"
               }
             ],
             "synchronization": [
@@ -12762,6 +12848,10 @@
               {
                 "path": "packages/sdk/original-result-intake.test.mjs",
                 "anchor": "selected omitted Result inputs stay omitted across all internal defaults"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "unchanged extent through the parent-current check. The same owner fences reentry."
               }
             ],
             "failure": [
@@ -12788,6 +12878,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "## Scoped durable request names"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "or cleanup failures remain failures, with their original owner and retry duty."
               }
             ],
             "cancellation": [
@@ -12810,6 +12904,10 @@
               {
                 "path": "packages/sdk/original-result-intake.test.mjs",
                 "anchor": "query read refuses changed current original after await without sending a read"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
               }
             ],
             "resources": [
@@ -12840,6 +12938,10 @@
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
                 "anchor": "// The body is already SDK-deep-frozen."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The read uses the existing original Plan/map/codec construction admission."
               }
             ],
             "extension": [
@@ -12858,6 +12960,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "options stay backend Unavailable before traversal, not invalid public input."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "carrier must provide its actual same-parent construction and original projection"
               }
             ],
             "verification": [
@@ -12900,6 +13006,10 @@
               {
                 "path": "packages/sdk/source-preparation-submission.test.mjs",
                 "anchor": "external shallow freeze cannot skip deep protection of mutable descendants"
+              },
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
               }
             ]
           }

@@ -4288,7 +4288,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "39ac34f3e10a01350d4d7e1db74b16ecfda837a565aa45d7f97fb9e9fcca86fd",
+      "sha256": "197030beb6a1583b17e48a2556a85b2b1da9dde8104e762f1bc85cb4563fdee8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4302,6 +4302,7 @@
         "installedRowEffectUnit",
         "installedRowEffectUpdateObservation",
         "installedRowEffectUpdateObservations",
+        "installedRowEffectUpdateTargetReadAccess",
         "resolveInstalledRowEffectConstruction",
         "retainInstalledRowEffectAdapter",
         "validateInstalledUpdateOwnerSelections"
@@ -6277,6 +6278,14 @@
           "name": "installedRowEffectUpdateObservations",
           "parameters": [
             "adapter"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowEffectUpdateTargetReadAccess",
+          "parameters": [
+            "adapter",
+            "target"
           ],
           "async": false
         },
@@ -11417,6 +11426,80 @@
               {
                 "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
                 "anchor": "composed UPDATE"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedRowEffectUpdateTargetReadAccess"
+          ],
+          "exports": [
+            "installedRowEffectUpdateTargetReadAccess"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Installed short UPDATE names follow the same metadata-read boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_preparation/client_check_program.mbt",
+                "anchor": "pub fn client_program_project_original_static_effect_check("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "physical_equal(selected.publication, publication)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const retained = rowInstallations.get(adapter);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "physical_equal(current_result, result)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_preparation/client_check.mbt",
+                "anchor": "fn check_static_effect_type_issue("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_program_check_layout.mbt",
+                "anchor": "5H/7R/4W = 168 bytes"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "record_headers: 12L * count"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "no synthetic"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document_js_wbtest.mbt",
+                "anchor": "test \"static Native UPDATE keeps one original semantic check"
               }
             ]
           }
@@ -19626,7 +19709,7 @@
       "module": "adapters/host-node/installed-effect-plan.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "D \u2014 existing installed Effect constructor, physical operation and provider protocol DATA",
+      "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
@@ -21465,7 +21548,7 @@
       "module": "adapters/connectors/kintone/site/kintone-create-execution.mjs",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
-      "owner": "D \u2014 existing installed Effect constructor, physical operation and provider protocol DATA",
+      "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
         "createMappedKintoneCreateWrite",
         "prepareMappedKintoneCreate",

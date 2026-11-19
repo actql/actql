@@ -45437,7 +45437,7 @@
     },
     {
       "module": "src/client_local_host/preparation_program_check_domain.mbt",
-      "sha256": "d7094333470d167ce2dd7a8624445914c4f32b517323d0ba93129a7505ec8b4c",
+      "sha256": "1a8575e8ee0209efab42624c683de49fcd1b8ccfb88a3905e82c8cb800046950",
       "exports": [],
       "operations": [
         {
@@ -46890,7 +46890,7 @@
     {
       "module": "src/client_local_host/preparation_request_check_observation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "595e6dbd6ef4fd7a7439ce736300be3d3162b0ed5bde0957f1dba06cebc3d703",
+      "sha256": "6c8988c94baf403ca0025f307abce988c48fe610afb8a79f08d97c4493c7e066",
       "role": "common-semantics",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -46906,6 +46906,10 @@
         {
           "name": "[I]project_request_semantic_check_observation",
           "declaration": "[ I ] project_request_semantic_check_observation ( owner : ClientRequestPreparation [ I ] , input : I , original : @ checked . CheckOutcome , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : @ local_preparation . ClientCheckSourceSelectorNamespace ? , original_parameters ? : String ?"
+        },
+        {
+          "name": "[I]project_request_static_effect_observation",
+          "declaration": "[ I ] project_request_static_effect_observation ( owner : ClientRequestPreparation [ I ] , input : I , publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , ) - > Result [ String ? , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]project_request_structural_check_observation",
@@ -47013,6 +47017,78 @@
               {
                 "path": "src/client_local_host/preparation_request_supplied_observation_js_wbtest.mbt",
                 "anchor": "test \"Request original supplied locations"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]project_request_static_effect_observation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Installed short UPDATE names follow the same metadata-read boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_preparation/client_check_program.mbt",
+                "anchor": "pub fn client_program_project_original_static_effect_check("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "physical_equal(selected.publication, publication)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const retained = rowInstallations.get(adapter);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "physical_equal(current_result, result)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_preparation/client_check.mbt",
+                "anchor": "fn check_static_effect_type_issue("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_program_check_layout.mbt",
+                "anchor": "5H/7R/4W = 168 bytes"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "record_headers: 12L * count"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "no synthetic"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document_js_wbtest.mbt",
+                "anchor": "test \"static Native UPDATE keeps one original semantic check"
               }
             ]
           }
@@ -48444,7 +48520,7 @@
     {
       "module": "src/client_local_host/preparation_request_native_computation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "52f03120f0a6be0955c8edaf436a309c259c58234359b1f6874730399a722432",
+      "sha256": "ebbbdcd6ee8a85d58ef30dff52ac2b422233c59984316b4951029737ed44519c",
       "role": "common-semantics",
       "owner": "Existing Request Source/check/compiler driver and actual normal Native caller",
       "exports": [],
@@ -48479,7 +48555,7 @@
         },
         {
           "name": "[I]prepare_request_original_computation_check_owned",
-          "declaration": "[ I ] prepare_request_original_computation_check_owned ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , catalog : @ checked . PreparedSourceCatalog , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , static_check ? : Bool"
+          "declaration": "[ I ] prepare_request_original_computation_check_owned ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , catalog : @ checked . PreparedSourceCatalog , evidence : Array [ @ context . StageCapacityInput ] , program_limits : @ publication_host . ClientProgramPreparationLimits , effect_limits : @ publication_host . ClientEffectComputationLimits , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
         },
         {
           "name": "[I]request_original_query_check_limits",
@@ -53960,7 +54036,7 @@
     {
       "module": "src/client_local_preparation/client_check_program.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "8cc8fc6f775bd17b1f67b1220a02751078894b3355a6b1ef448b51feca525fa1",
+      "sha256": "8dbaf226d7fff3b4b4c6e5612fcdbb5da5a38e5e54dce7d084a83c0016e54d53",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -53992,6 +54068,10 @@
         {
           "name": "client_program_check_program_with_format",
           "declaration": "client_program_check_program_with_format ( document : String , format : String , environment : @ checked . CheckEnvironment , visible_publication : String , parameters : String ? , context_ref : String , program_revision : String , parameters_revision : String ? , correlation_ref : String , scope : String , selector_namespace : ClientCheckSourceSelectorNamespace ? , ) - > String"
+        },
+        {
+          "name": "client_program_project_original_static_effect_check",
+          "declaration": "client_program_project_original_static_effect_check ( candidate : @ checked . EffectComputationCandidate , result : Result [ @ checked . EffectProgramStaticCandidate , @ host . ClientEffectComputationIssue , ] , environment : @ checked . CheckEnvironment , publication : @ publication . PreparedPublishedQueryEnvironment , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , ) - > String"
         }
       ],
       "contracts": [
@@ -54114,6 +54194,78 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
                 "anchor": "test \"Request original observation bridge"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_project_original_static_effect_check"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Installed short UPDATE names follow the same metadata-read boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_preparation/client_check_program.mbt",
+                "anchor": "pub fn client_program_project_original_static_effect_check("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "physical_equal(selected.publication, publication)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const retained = rowInstallations.get(adapter);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "physical_equal(current_result, result)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_preparation/client_check.mbt",
+                "anchor": "fn check_static_effect_type_issue("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_program_check_layout.mbt",
+                "anchor": "5H/7R/4W = 168 bytes"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "record_headers: 12L * count"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "no synthetic"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document_js_wbtest.mbt",
+                "anchor": "test \"static Native UPDATE keeps one original semantic check"
               }
             ]
           }
@@ -88446,7 +88598,7 @@
           }
         }
       ],
-      "sha256": "93648a75b22487237ebeae1d4ac98d51c8458e21f598f23076a876002f3d2ce1",
+      "sha256": "1a868444ac84cec5466edc84c03607aec18e694533be17069a35e258d060c964",
       "operations": [
         {
           "name": "program_check_preparation_initial_inventory",
@@ -97951,6 +98103,10 @@
           "declaration": "[ I ] prepare_request_native_document_check ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , parameters : String ? , declarations : String ? , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , static_check ? : Bool"
         },
         {
+          "name": "[I]prepare_request_static_effect_check",
+          "declaration": "[ I ] prepare_request_static_effect_check ( owner : ClientRequestPreparation [ I ] , input : I , publication : @ source_publication . PreparedPublishedQueryEnvironment , ) - > Result [ Unit , ClientRequestTerminalIssue ]"
+        },
+        {
           "name": "[I]request_native_static_plan_view",
           "declaration": "[ I ] request_native_static_plan_view ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , manifests : @ publication_host . ClientCompilationManifests , ) - > Result [ String , ClientRequestTerminalIssue ]"
         },
@@ -98129,10 +98285,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "[I]prepare_request_static_effect_check"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Installed short UPDATE names follow the same metadata-read boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_preparation/client_check_program.mbt",
+                "anchor": "pub fn client_program_project_original_static_effect_check("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "physical_equal(selected.publication, publication)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const retained = rowInstallations.get(adapter);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "physical_equal(current_result, result)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_preparation/client_check.mbt",
+                "anchor": "fn check_static_effect_type_issue("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_program_check_layout.mbt",
+                "anchor": "5H/7R/4W = 168 bytes"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "record_headers: 12L * count"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "no synthetic"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document_js_wbtest.mbt",
+                "anchor": "test \"static Native UPDATE keeps one original semantic check"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Original same-Request raw/generated preparation selection and typed checking only; not installed Result-read, reopen or normal runtime acceptance.",
-      "sha256": "14739722c43116650ab0d2ae67a91d7498bb5a8f0f2ff8aaaae062f8946aa332"
+      "sha256": "e5e51db6d0f1c042b223536ff257bf79d70a043b55a750e48701a64bffd6552b"
     },
     {
       "module": "src/stage_syntax/preparation_data.mbt",
@@ -105249,13 +105477,23 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-diagnostic.mjs",
-      "sha256": "879beea10ca5313469a5dde89a581fc0aa98a2bab7263f9ab7edbb6c3b89ce1b",
+      "sha256": "81551a4a6fd8f7c086e79cd9a7a0ad5f7d46e9f7bd778777c8b55389bc3d8775",
       "exports": [
+        "dispatchFailureCodeSite",
         "dispatchFailureSnapshot",
         "publicBudgetFailureMessage",
         "retainedBudgetFailureMessage"
       ],
       "operations": [
+        {
+          "name": "dispatchFailureCodeSite",
+          "parameters": [
+            "error",
+            "errorType",
+            "formatter"
+          ],
+          "async": false
+        },
         {
           "name": "dispatchFailureSnapshot",
           "parameters": [
@@ -105296,7 +105534,8 @@
         }
       ],
       "imports": [
-        "../host-common/dispatch-failure-observation.mjs"
+        "../host-common/dispatch-failure-observation.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -105312,66 +105551,104 @@
             "dispatchFailureSnapshot/dispatchFailureSnapshot",
             "publicBudgetFailureMessage",
             "retainedBudgetFailureMessage",
-            "retainedBudgetFailureMessage/retainedBudgetFailureMessage"
+            "retainedBudgetFailureMessage/retainedBudgetFailureMessage",
+            "dispatchFailureCodeSite"
           ],
           "exports": [
             "dispatchFailureSnapshot",
             "publicBudgetFailureMessage",
-            "retainedBudgetFailureMessage"
+            "retainedBudgetFailureMessage",
+            "dispatchFailureCodeSite"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "identity": [
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "failure": [
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "resources": [
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "extension": [
               {
                 "path": "adapters/local-node/managed-advance-diagnostic.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
               }
             ],
             "verification": [
@@ -105382,6 +105659,14 @@
               {
                 "path": "adapters/local-node/managed-row-cause-diagnostic.test.mjs",
                 "anchor": "test('original typed row cause reaches"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Optional Request preparation diagnostics"
+              },
+              {
+                "path": "adapters/host-node/client-preparation-disclosure.test.mjs",
+                "anchor": "test('prepared submission catch retains original first and observer throw cannot replace primary or touch cleanup'"
               }
             ]
           }

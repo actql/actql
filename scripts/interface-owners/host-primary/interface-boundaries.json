@@ -4669,12 +4669,13 @@
         "./installed-source.mjs",
         "./local-values-plan.mjs",
         "./ordinary-source-binding.mjs",
-        "node:util"
+        "node:util",
+        "./logical-task-observation.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "69d17551a6d7660c7974e0e24d39f70f00d854b83d03fa030026429304532120",
+      "sha256": "fbed381ffd34aac1dce55a64c7b24a4e839803619a1d36b30dc8bbc98c406918",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -24819,6 +24820,147 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "Installed short UPDATE names follow the same metadata-read boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_preparation/client_check_program.mbt",
+                "anchor": "pub fn client_program_project_original_static_effect_check("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document.mbt",
+                "anchor": "physical_equal(selected.publication, publication)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const retained = rowInstallations.get(adapter);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "physical_equal(current_result, result)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_preparation/client_check.mbt",
+                "anchor": "fn check_static_effect_type_issue("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-inventory.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/preparation_program_check_layout.mbt",
+                "anchor": "5H/7R/4W = 168 bytes"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_check_observation.mbt",
+                "anchor": "record_headers: 12L * count"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "no synthetic"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_native_document_js_wbtest.mbt",
+                "anchor": "test \"static Native UPDATE keeps one original semantic check"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/plan/plan",
+            "openPreparedInstalledHost/preparation/init:readStaticPlan/init:readStaticPlan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Static planning uses the compiler's original checked Program, parameter binding"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The result remains the existing closed Plan view; no new wire field or caller"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "value or closed JSON shape never replaces the original compiler or read access."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The same producer retains its input before SDK snapshot/options processing and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "unchanged extent through the parent-current check. The same owner fences reentry."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "or cleanup failures remain failures, with their original owner and retry duty."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The read uses the existing original Plan/map/codec construction admission."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "carrier must provide its actual same-parent construction and original projection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-interactive-plan.test.mjs",
+                "anchor": "test('installed static service reads its held original and never re-enters raw preparation or compilation'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -25324,6 +25466,11 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource#2",
           "parameters": [
             "actual"
           ],
@@ -25838,6 +25985,13 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/plan/plan",
+          "parameters": [
+            "request"
+          ],
           "async": false
         },
         {
@@ -27953,6 +28107,16 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:readStaticPlan/init:readStaticPlan",
+          "parameters": [
+            "request",
+            "environment",
+            "originalVerifier",
+            "signal"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:requestPreparation/init:requestPreparation",
           "parameters": [],
           "async": false
@@ -28895,7 +29059,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "72c18c8f5751bf923622ba99fdfd20f78c9b122cf19d8fd1a232f5a4071c0610"
+      "sha256": "08d4151b5b9050a333a4de2f0d728f7ab4e66e440af53a278039e77c73349168"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
