@@ -972,7 +972,7 @@ test('installed File capacity raw forwarding excludes private text and unselecte
     PATH: '/foreign', HOME: '/foreign', ACTQL_NATIVE_MAX_EXECUTION_BYTES: '999999',
     NODE_OPTIONS: '--import=foreign', LD_PRELOAD: '/foreign'};
   const base = {PATH: '/empty', HOME: '/fresh-home', LANG: 'C.UTF-8', LC_ALL: 'C.UTF-8'};
-  const numeric = 'ACTQL_NATIVE_FILE_CAPACITY {"phase":12,"compute":true,"requested_execution":80,"task_capacity":50,"limit_execution":400,"reserved_execution":330,"entry_singleton_execution":100,"row_execution":180}\n';
+  const numeric = 'ACTQL_NATIVE_FILE_CAPACITY {"phase":12,"scope_ledger_match":true,"compute":true,"requested_execution":80,"task_capacity":50,"limit_execution":400,"reserved_execution":330,"entry_singleton_execution":100,"row_execution":180}\n';
   const raw = 'private original error control text\n' + numeric + 'original typed refusal\n';
   for (const fixture of nativeInstalledSourceQueries) for (const args of [['init'], ['check'], ['sql']]) {
     const environment = nativeFileSourceQueryEnvironment({fixture, args, emptyPath:base.PATH,
@@ -994,6 +994,17 @@ test('installed File capacity raw forwarding excludes private text and unselecte
   for(const unmeasured of [numeric.slice(0,-1),numeric+numeric,numeric.replace('\"phase\":12','\"privatePayload\":12')]) {
     const retained=[];retainNativeFileCapacityStderr(diagnostic,unmeasured,body=>retained.push(body));
     assert.deepEqual(retained,[]);
+  }
+  const foreign = numeric.replace('"scope_ledger_match":true','"scope_ledger_match":false')
+    .replace('"task_capacity":50','"task_capacity":-1')
+    .replace('"entry_singleton_execution":100','"entry_singleton_execution":-1')
+    .replace('"row_execution":180','"row_execution":-1');
+  const retained=[];retainNativeFileCapacityStderr(diagnostic,foreign,body=>retained.push(body));
+  assert.deepEqual(retained,[foreign]);
+  for(const invalid of [numeric.replace('"scope_ledger_match":true,',''),
+    numeric.replace('"scope_ledger_match":true','"scope_ledger_match":false'),
+    foreign.replace('"row_execution":-1','"row_execution":0')]) {
+    const rejected=[];retainNativeFileCapacityStderr(diagnostic,invalid,body=>rejected.push(body));assert.deepEqual(rejected,[]);
   }
   const fixture = nativeReadonlyMockQueries.find(value => value.name === 'readonly-filter');
   for (const environment of [{}, {ACTQL_NATIVE_TIMINGS:'1'}, {ACTQL_NATIVE_TIMINGS:'1',ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS:'true'}])
