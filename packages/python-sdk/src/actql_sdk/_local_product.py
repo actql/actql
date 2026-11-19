@@ -2697,8 +2697,17 @@ class InstalledLocalHost:
 
     def _check_original_stop_interest(self, run: _Run) -> None:
         """Caller holds Core: no stale check may race a confirmed cancel CAS."""
-        original = self._current_execution()
-        if type(original) is _OriginalExecution and original.run is run and original.stop_interest is not None:
+        retained = getattr(self._core, '_host_retained_work', None)
+        if retained is None:
+            return
+        work = retained[0]
+        if work._thread is not _current_thread():
+            return
+        work._nominal()
+        original = work._invoke
+        if (type(original) is _OriginalExecution and original.host is self
+                and original.run is run and work._owner is run
+                and original.stop_interest is not None):
             raise _OriginalCancellationStop(original)
 
     def _capture_original_results(self, compute: _SourceFreeCompute, preflight: _Output,

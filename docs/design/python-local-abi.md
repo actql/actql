@@ -3326,8 +3326,10 @@ Python dispatches that observation to the same retained physical invocation
 before closing the projection. Confirmation, dispatch and the next normal
 task-drive gate hold the same Core lock. A control handoff releases that lock
 before waiting and rechecks the original invocation after reacquiring it. No
-stale outside-lock flag authorizes another quantum, and no thread join occurs
-while holding the Core/Store locks.
+stale outside-lock flag authorizes another quantum. The gate selects the
+already-entered physical worker with its original thread, Host, Run and owner
+checks; it does not search unrelated work history. No thread join occurs while
+holding the Core/Store locks.
 
 Stop interest is neither permission to work nor a cancellation outcome. The
 private invocation signal only selects existing Compute sealing and original

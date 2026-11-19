@@ -1,13 +1,14 @@
 """Actual caller/locks with explicit scalar/current ports; no Core/Run/ACK acceptance."""
 import asyncio
 import json
-from threading import Event, RLock
+from threading import Event, RLock, current_thread
 from types import MethodType, SimpleNamespace
 import unittest
 
 from actql_sdk._local_core import LocalCore, LocalCoreError
 from actql_sdk._local_product import (
-    InstalledLocalHost, LocalProductCleanupPending, _OriginalExecution, _LOCAL_SELECTION,
+    InstalledLocalHost, LocalProductCleanupPending, _OriginalExecution,
+    _OriginalCancellationStop, _LOCAL_SELECTION,
 )
 from actql_sdk._local_work import OriginalLocalWork
 
@@ -190,3 +191,27 @@ class CancellationStopInterestTests(unittest.TestCase):
             asyncio.run(host.aclose())
         self.assertEqual(calls, ['first-close'])
         self.assertTrue(core._task_loans)
+
+    def test_entered_stop_gate_keeps_identity_without_scanning_unrelated_work(self):
+        host, core, original, work, *_ = self.fixture(1)
+
+        class UnrelatedWork:
+            def __iter__(self):
+                raise AssertionError('A quantum cannot enumerate unrelated physical work')
+
+        host._physical_work = UnrelatedWork()
+        original.stop_interest = object()
+        # Explicit entered-worker/current-thread ports only: no physical Run
+        # or stop acknowledgment is constructed by this gate component.
+        work._thread = current_thread()
+        with core._lock:
+            with self.assertRaises(_OriginalCancellationStop) as selected:
+                host._check_original_stop_interest(original.run)
+            self.assertIs(selected.exception.original, original)
+            host._check_original_stop_interest(object())
+            work._owner = object()
+            host._check_original_stop_interest(original.run)
+            work._owner = original.run
+            work._original = object()
+            with self.assertRaisesRegex(ValueError, 'Copied original'):
+                host._check_original_stop_interest(original.run)
