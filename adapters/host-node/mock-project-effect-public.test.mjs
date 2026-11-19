@@ -13,7 +13,7 @@ import {terminalMockScenario, checkTerminalMockRows, checkTerminalMockSavedRows,
   runTerminalMockWorkflow, terminalMockFailureDiagnostic} from './fixtures/mock-project-terminal-public.mjs';
 import {createDiagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import * as terminalFs from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 
@@ -93,6 +93,42 @@ async function terminalScratch(t) {
   await terminalFs.mkdir(join(root, 'mock'));
   return root;
 }
+
+test('terminal explicit operator Content selects only its authored finite Account and unchanged Program', async t => {
+  const root = await terminalScratch(t), primary = new Error('Stop before product initialization');
+  const program = terminalMockScenario('terminal-content');
+  await terminalFs.writeFile(join(root,program.path),program.source);
+  let connections = 0;
+  const connect = async ({mode,profile,installation}) => {
+    connections++;assert.equal(mode,'local');assert.equal(profile,'mock');
+    assert.equal(installation.authorization.siteKey,'local-mock');
+    assert.deepEqual(Object.keys(installation.authorization).sort(),['accountConfiguration','observe','siteKey']);
+    assert.equal(typeof installation.authorization.observe,'function');
+    const configuration = JSON.parse(installation.authorization.accountConfiguration);
+    assert.equal(configuration.version,'actql-execution-account-config/0.1');
+    assert.equal(configuration.account_id,'terminal-content-explicit-operator');
+    assert.deepEqual(configuration.entries.map(entry => [entry.resource.any_of,entry.operation.any_of]),[
+      [['installed-multi-acquired'],['write']],[['result/file'],['read']],
+      [['run'],['cancel','publish','read','resolve','submit']],
+    ]);
+    for (const entry of configuration.entries) {
+      assert.equal(entry.outcome,'allow');assert.deepEqual(entry.principal,{any_of:[userInfo().username]});
+      assert.deepEqual(entry.connection,{any_of:['local-mock']});assert.deepEqual(entry.exclusions,[]);
+      assert.equal(JSON.stringify(entry).includes('"all"'),false);
+    }
+    assert.equal(await terminalFs.readFile(join(root,program.path),'utf8'),program.source);
+    throw primary;
+  };
+  const options = {phase:'capture',variant:'terminal-content',accountScenario:'explicit-operator-content',
+    handoffPath:join(root,'handoff.json'),directory:root,connect,
+    observeDescriptors:async () => ({pid:process.pid,openPaths:[]}),
+    createWorkObservation:() => ({connection:{},snapshot:() => ({complete:true,
+      sourceAcquisitionStarts:0,modelCallStarts:0,effectReplacementReturns:0})})};
+  await assert.rejects(runTerminalMockWorkflow(options),error => error.cause === primary &&
+    error.observation.accountScenario === 'explicit-operator-content');
+  await assert.rejects(runTerminalMockWorkflow({...options,variant:'terminal-infer'}));
+  assert.equal(connections,1);
+});
 
 test('terminal preparation failure projection accepts only closed source locations and original capacity scalars', () => {
   const sites = 'adapters/host-common/runtime-result.mjs:8:25\nadapters/host-node/embedded-local.mjs:5500:9';

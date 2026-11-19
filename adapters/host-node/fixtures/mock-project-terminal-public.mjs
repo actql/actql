@@ -5,6 +5,7 @@ import {access, mkdir, readFile, realpath, writeFile} from 'node:fs/promises';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {types as nodeTypes} from 'node:util';
+import {userInfo} from 'node:os';
 import {workflowWorkObservation} from './work-observation.fixture.mjs';
 import {assertInstalledFamilyCompleteContent} from './installed-family-content.fixture.mjs';
 import {observeRecordApprovalDescriptors} from '../../../scripts/fixtures/record-approval/scoped-fds.fixture.mjs';
@@ -139,10 +140,33 @@ export function assertTerminalMockObservation(value, {variant, phase, pid, captu
   } else assert.equal(phase, 'capture');
 }
 
+// Explicit operator-authored Account DATA for this pure Content scenario only.
+// The existing Common Account gate still evaluates every original tuple.
+// This neither extends the default Mock profile nor grants Source/Model/Effect.
+function terminalContentOperatorAuthorization() {
+  const principal = userInfo().username;
+  return {siteKey:'local-mock',accountConfiguration:JSON.stringify({
+    version:'actql-execution-account-config/0.1',account_id:'terminal-content-explicit-operator',
+    entries:[
+      {entry_id:'operator-request',outcome:'allow',principal:{any_of:[principal]},
+        connection:{any_of:['local-mock']},resource:{any_of:['installed-multi-acquired']},
+        operation:{any_of:['write']},exclusions:[]},
+      {entry_id:'operator-result-file',outcome:'allow',principal:{any_of:[principal]},
+        connection:{any_of:['local-mock']},resource:{any_of:['result/file']},
+        operation:{any_of:['read']},exclusions:[]},
+      {entry_id:'operator-run',outcome:'allow',principal:{any_of:[principal]},
+        connection:{any_of:['local-mock']},resource:{any_of:['run']},
+        operation:{any_of:['cancel','publish','read','resolve','submit']},exclusions:[]},
+    ],
+  })};
+}
+
 export async function runTerminalMockWorkflow({phase, variant, handoffPath, connect,
-  fromStarted = false, directory = process.cwd(), createWorkObservation = workflowWorkObservation,
+  fromStarted = false, accountScenario = 'default', directory = process.cwd(), createWorkObservation = workflowWorkObservation,
   observeDescriptors = observeRecordApprovalDescriptors}) {
   assert(['capture', 'recover'].includes(phase));
+  assert(['default','explicit-operator-content'].includes(accountScenario));
+  if (accountScenario !== 'default') assert.equal(variant,'terminal-content');
   assert.equal(typeof fromStarted, 'boolean');
   if (fromStarted) {assert.equal(phase, 'recover');assert.equal(variant, 'terminal-infer');}
   const selected = terminalMockScenario(variant), state = resolve(directory, '.actql');
@@ -150,6 +174,10 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
   const report = {phase, variant, pid: process.pid, status: 'running', complete: false,
     submits: 0, resultReads: 0, originalRefBeforeWait: false, savedFirst: false, lookupOriginal: false,
     firstClose: {attempted: false, returned: false, calls: 0}};
+  const accountLabel = accountScenario === 'default' ? {} : {accountScenario};
+  Object.assign(report,accountLabel);
+  if (accountScenario !== 'default') report.qualification =
+    'Explicit operator Account Content lifecycle only; not default Mock/#3644 or TypeScript acceptance';
   const recordPhase = fromStarted ? 'recover-from-started' : phase;
   if (fromStarted) Object.assign(report, {recoveryOrigin: 'started', originalRowsCompared: false,
     normalCaptureComplete: false, qualification: 'SAME started original Saved only; independent complete rows, not a successful capture handoff'});
@@ -168,25 +196,27 @@ export async function runTerminalMockWorkflow({phase, variant, handoffPath, conn
     await mkdir(state, {recursive: true});
     const before = await observeDescriptors(roots);assert.equal(before.pid, process.pid);assert.equal(before.openPaths.length, 0);
     client = await connect({mode: 'local', profile: 'mock',
-      installation: {directory: state, observation: work.connection, authorization: {observe}}});
+      installation: {directory: state, observation: work.connection, authorization: accountScenario === 'default'
+        ? {observe} : {...terminalContentOperatorAuthorization(),observe}}});
     if (phase === 'capture') {
       const submissionRef = client.newSubmission({nonce: variant});
-      await save(handoffPath + '.submission', {variant, submissionRef, pid: process.pid}, true);
+      await save(handoffPath + '.submission', {variant, submissionRef, pid: process.pid,...accountLabel}, true);
       report.submissionRecordedBeforeStart = true;
       report.submits++;
       const run = await client.startSource(await readFile(resolve(directory, selected.path), 'utf8'),
         {format: selected.format, submissionRef});
-      await save(handoffPath + '.started', {variant, ref: run.ref, submissionRef, pid: process.pid}, true);
+      await save(handoffPath + '.started', {variant, ref: run.ref, submissionRef, pid: process.pid,...accountLabel}, true);
       report.originalRefBeforeWait = true;
       assert.equal((await run.wait()).status, 'succeeded');
       const rows = await run.result(selected.result).all();report.resultReads++;
       checkTerminalMockRows(variant, rows);
       const lookup = await client.lookupSubmission(submissionRef);
       assert.equal(lookup.kind, 'ready');assert.deepEqual(lookup.admission.ref, run.ref);report.lookupOriginal = true;
-      await save(handoffPath, {variant, ref: run.ref, submissionRef, rows, pid: process.pid}, true);
+      await save(handoffPath, {variant, ref: run.ref, submissionRef, rows, pid: process.pid,...accountLabel}, true);
     } else {
       const original = JSON.parse(await readFile(handoffPath + (fromStarted ? '.started' : ''), 'utf8'));
       assert.equal(original.variant, variant);
+      assert.equal(original.accountScenario ?? 'default',accountScenario);
       await assert.rejects(access(resolve(directory, selected.path)), {code: 'ENOENT'});
       await assert.rejects(access(resolve(directory, 'mock/churn-risk.v1.answers.yaml')), {code: 'ENOENT'});
       report.originalInputsAbsent = true;
@@ -248,8 +278,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const modules = await realpath(resolve('node_modules'));
   const original = await resolveInstalledCompletionModules(dirname(modules), {observation: true});
   const {connect} = await import(pathToFileURL(original.node));
-  const [selectedPhase, variant, handoffPath] = process.argv.slice(2);
+  const [selectedPhase, variant, handoffPath, accountScenario = 'default'] = process.argv.slice(2);
   const fromStarted = selectedPhase === 'recover-from-started', phase = fromStarted ? 'recover' : selectedPhase;
-  try {console.log(JSON.stringify(await runTerminalMockWorkflow({phase, variant, handoffPath, connect, fromStarted})));}
+  try {console.log(JSON.stringify(await runTerminalMockWorkflow({phase, variant, handoffPath, connect, fromStarted, accountScenario})));}
   catch (cause) {if (cause.observation) console.log(JSON.stringify(cause.observation));throw cause;}
 }
