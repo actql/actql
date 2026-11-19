@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import {readFile, stat} from 'node:fs/promises';
 import {join} from 'node:path';
 import {mockTemplates, expectedChanges} from './native-cli-mock-scenario.mjs';
+import {assertProjectStaticCheckControls} from './release-project-node-action.mjs';
 
 const cid = /^sha256:[0-9a-f]{64}$/u;
 export const releaseProjectFamilies = Object.freeze([
@@ -217,6 +218,7 @@ export async function runReleaseProjectSequences({root, cli, node, snapshot = pr
         const before = await snapshot(project);
         const observed = await nodeCommand({kind: 'static', program});
         assertTemplateStatic(observed.check, observed.plan);
+        assertProjectStaticCheckControls(observed.staticChecks);
         assert.deepEqual(await snapshot(project), before, 'Static template analysis must not write');
       }
       const population = family === 'exclusive-cli-node-roundtrip' ? 2 : 3;

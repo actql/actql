@@ -51,7 +51,7 @@ function describedColumns(template) {
 }
 
 function fixture({failApproval = false, replaceRun = false, mutateSavedRows = false, mutateUnrelated = false,
-  mutateInitialContract = false} = {}) {
+  mutateInitialContract = false, missingStaticControls = false} = {}) {
   const projects = new Map(), records = [], calls = [], failure = new Error('original Unknown approval');
   let ordinal = 0, pid = 100;
   const plan = {version: 'actql-effectful-static-plan-view/0.1', observation: 'static', provider_io: 0,
@@ -141,7 +141,15 @@ function fixture({failApproval = false, replaceRun = false, mutateSavedRows = fa
         workObservation: {...counts, totals: {...counts}, complete: true}};
       if (request.kind === 'static') {
         assert.equal(value.runs.length, 0, 'Node check/plan precedes its first Run');
-        return {...base, check, plan};
+        const staticChecks = [
+          {name: 'known-outcome-type-error', check: {outcome: 'completed', report: {
+            scope: {kind: 'bound_input'}, verdict: 'invalid', requirements: [],
+            reasons: [{code: 'expression_domain_mismatch', facts: {domain: 'key_comparable_operands'}}]}}},
+          {name: 'unknown-update-target', check: {outcome: 'completed', report: {
+            scope: {kind: 'bound_input'}, verdict: 'undetermined',
+            coverage: {limits: [{code: 'unresolved_protected'}]}}}},
+        ];
+        return {...base, check, plan, ...(missingStaticControls ? {} : {staticChecks})};
       }
       let run;
       if (request.kind === 'start') {
@@ -184,6 +192,16 @@ test('RC sequences retain independent owner-local projects for check/plan and ne
   }
   assert(f.records.every(row => row.complete));
   assert(!cases.some(row => row.family === 'exclusive-cli-node-roundtrip'), 'Deferred interoperability is unselected');
+});
+
+test('RC Node static controls must be present before the first original Run', async () => {
+  const f = fixture({missingStaticControls: true});
+  await assert.rejects(runReleaseProjectSequences(f.options), AggregateError);
+  for (const entry of f.records.filter(row => row.family === 'node-sequential')) {
+    assert.equal(entry.complete, false); assert.equal(entry.failedPhase, 'static');
+    assert.equal(entry.runs.length, 0);
+    assert(!f.calls.some(row => row.project === entry.project && row.kind === 'start'));
+  }
 });
 
 test('RC first Result description requires independently authored ordered complete contracts', () => {
