@@ -1484,3 +1484,108 @@ pub fn client_program_admit_serialization_whole_captured_input(
     completed_at,
   )
 }
+
+///|
+/// Fixed template DATA enters the SAME Request before its checked demand read.
+/// No JSON body, execution authority or independent Resource crosses this port.
+#export_name("clientProgramPrepareRequestSerializationOutputDemand")
+pub fn client_program_prepare_request_serialization_output_demand(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  compiled : @publication_host.ClientCompiledRun,
+  component : @publication_host.ClientSerializationPlanGraph,
+  generation_rows : Int,
+  generation_bytes : Int,
+  generation_nodes : Int,
+  generation_depth : Int,
+  generation_frames : Int,
+  identity_slots : Int,
+  reference_bytes : Int,
+  reference_nodes : Int,
+  reference_depth : Int,
+  contract_bytes : Int,
+  contract_nodes : Int,
+  contract_depth : Int,
+  max_result_fields : Int,
+  max_result_mapping_work : Int,
+  max_result_order_work : Int,
+  max_result_workspace_entries : Int,
+  max_rows : Int,
+  max_value_nodes : Int,
+  max_value_text_bytes : Int,
+  max_value_depth : Int,
+  max_value_work : Int,
+  max_wire_bytes : Int,
+  max_wire_nodes : Int,
+  max_wire_depth : Int,
+  max_columns : Int,
+  max_order_work : Int,
+  max_logical_wire_bytes : Int,
+  max_logical_wire_nodes : Int,
+  max_logical_wire_depth : Int,
+  max_schema_fields : Int,
+  max_schema_bytes : Int,
+  max_schema_nodes : Int,
+  max_schema_depth : Int,
+  max_batch_bytes : Int,
+) -> Result[
+  (@execution.ExecutionCapacity, Int, Int, Int, Int, Int, Int, Int, Int),
+  @client_local_host.ClientRequestPreparationIssue,
+] {
+  let demand = match
+    @client_local_host.prepare_request_serialization_output_limits(
+      parent,
+      input,
+      compiled,
+      component,
+      generation_rows,
+      () => {
+        guard client_program_effect_input_export_limits(
+            max_result_fields, max_result_mapping_work, max_result_order_work, max_result_workspace_entries,
+            max_rows, max_value_nodes, max_value_text_bytes, max_value_depth, max_value_work,
+            max_wire_bytes, max_wire_nodes, max_wire_depth, max_columns, max_order_work,
+            max_logical_wire_bytes, max_logical_wire_nodes, max_logical_wire_depth,
+            max_schema_fields, max_schema_bytes, max_schema_nodes, max_schema_depth,
+            max_batch_bytes,
+          )
+          is Some(export_limits) else {
+          return None
+        }
+        Some({
+          generation_bytes,
+          generation_nodes,
+          generation_depth,
+          generation_frames,
+          identity_slots,
+          reference_bytes,
+          reference_nodes,
+          reference_depth,
+          contract_bytes,
+          contract_nodes,
+          contract_depth,
+          export_limits,
+        })
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let selected = demand.limits
+  let capacity = demand.capacity
+  let output = selected.export_limits
+  Ok(
+    (
+      capacity,
+      demand.generation_rows,
+      selected.generation_bytes,
+      output.max_rows,
+      output.values.max_nodes,
+      output.payload_wire.max_nodes,
+      output.logical_wire.max_nodes,
+      output.payload_wire.max_columns,
+      selected.identity_slots,
+    ),
+  )
+}

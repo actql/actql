@@ -4094,6 +4094,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     assertRunCurrent: preparation.assertContentRunCurrent.bind(preparation),
     retainPreparation: (prepared, original) => preparation.retainManagedContentPreparation(moon, prepared, original),
     prepareModelManagedRun: (prepared, request, model) => preparation.prepareManagedModelRun(moon, prepared, request, model),
+    prepareSerializationOutputDemand: (prepared, compiled, selection, generation, reference, contract, output, identitySlots) =>
+      preparation.prepareManagedSerializationOutputDemand(moon, prepared, compiled, selection,
+        generation, reference, contract, output, identitySlots),
     prepareSerializationManagedRun: (prepared, request, plan, limits, workspace, original) => preparation.prepareManagedSerializationRun(
       moon, prepared, request, plan, limits, workspace, original),
     prepareKeyedManagedRun: (prepared, request, graph, recipe, original) => {
@@ -7640,6 +7643,18 @@ async function openPreparedInstalledHost(options, initialEntry) {
         return run;
       } catch (cause) {run.failure = cause; throw cause;}
       finally {run.selecting = false;}
+    },
+    prepareManagedSerializationOutputDemand(runtime, prepared, compiled, selection, generation, reference, contract, output, identitySlots) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || typeof manager?.prepareSerializationOutputDemand !== 'function') {
+        throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.prepareSerializationOutputDemand(prepared,
+        originalSourceManagedHostRequest(originals, prepared), (parent, input) =>
+          runtimeCore(runtime).contentGenerationControl.prepareRequestOutputDemand(
+            parent, input, compiled, selection, generation, reference, contract, output, identitySlots));
     },
     prepareManagedSerializationRun(runtime, prepared, request, plan, limits, workspace, contentPreparation) {
       const manager = sourceManaged ?? computeManaged;

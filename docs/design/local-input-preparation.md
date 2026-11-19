@@ -6034,6 +6034,32 @@ execution does not repeat selection. A current callback retiring that record
 refuses before another Host child, and a constructor failure stays latched on
 that original record.
 
+Terminal Serialization and Model Content use one Common demand constructor.
+The original Request admits its fixed profile, scalar-result and Host wrapper
+controls before constructing the template or reading the checked input shape.
+It checks the same compiled Program, Task compilation and serialization Graph,
+then checks the original imported current predicate before and after projection.
+An unchanged reservation extent is not a substitute for that current check.
+Foreign owners, phase/reentry changes and checked arithmetic overflow refuse;
+a failed constructor retains its existing Request cleanup responsibility.
+
+The original generation-row ceiling remains a separate scalar in the demand.
+A lower caller ceiling cannot grow to the Graph or export-row ceiling; recursive
+inputs still keep their full export profile while the generation bound refuses
+too many actual input rows.
+
+The schema-limits DTO built by the bridge remains shared in the selected
+export profile. Its header and scalar fields belong to retained construction
+backing, transferred from scratch without a second peak charge; it is not the
+borrowed original checked schema.
+
+The Host forwards the fixed installation ceilings and consumes the returned
+capacity and bounded scalars. It does not parse Graph wire, duplicate the node
+formula, cap required capacity to admitted bytes, or replace an unavailable
+workspace with None. The same retained selection reaches prefix preparation
+and execution. Text, wire bytes, schema, ordering/work and input-prefix quotas
+keep their separate existing ceilings; no row observation supplies a quota.
+
 For an input schema proved entirely Number, Boolean or Text by the existing
 checked leaf proof, the complete original input column count `C` and Serialize
 row bound `R` give conservative quotas `1 + R*(1+C)` for payload nodes and

@@ -1195,6 +1195,8 @@ pub fn[I] prepare_request_serialization_compilation(ClientRequestPreparation[I],
 
 pub fn[I] prepare_request_serialization_graph(ClientRequestPreparation[I], I, Int, Int, String, String, Int, Int, Bool, ClientInstalledSequenceContracts, manifests~ : @run_publication_host.ClientCompilationManifests, compilation_limits~ : @run_publication_host.ClientPureCompilationLimits, model_occurrence? : @run_publication_host.ClientInferOccurrence?) -> Result[@run_publication_host.ClientSerializationPlanGraph, ClientRequestProgramPlanIssue]
 
+pub fn[I] prepare_request_serialization_output_limits(ClientRequestPreparation[I], I, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationPlanGraph, Int, () -> ClientSerializationWorkspaceLimits?) -> Result[ClientSerializationOutputDemand, ClientRequestPreparationIssue]
+
 pub fn[I] prepare_request_serialization_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledManagedSerializationPreparation, ClientInstalledManagedRunIssue]
 
 pub fn[I] prepare_request_source_input(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, String) -> Result[Unit, ClientRequestPreparationIssue]
@@ -2118,6 +2120,12 @@ pub struct ClientRetainedContentOutput {
   descriptor_wire : String
   rows : Array[String]
   available : () -> Bool
+}
+
+pub(all) struct ClientSerializationOutputDemand {
+  limits : ClientSerializationWorkspaceLimits
+  capacity : @execution_relation.ExecutionCapacity
+  generation_rows : Int
 }
 
 type ClientSerializationPrefix

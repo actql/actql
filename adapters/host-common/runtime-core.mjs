@@ -3208,6 +3208,15 @@ function publicationControl(moon) {
       serializationPlanTokens.set(selected, graph);
       return selected;
     },
+    prepareRequestSerializationOutputDemand(parent, input, compiled, selection, fields, output) {
+      const graph = serializationPlanTokens.get(selection);
+      if (graph === undefined) throw new TypeError('Foreign Content compilation graph');
+      // Nominal map lookup only; actual same-Graph/Task and current checks are
+      // performed after the original Request funds its Common constructor.
+      return checked(moon.clientProgramPrepareRequestSerializationOutputDemand(
+        parent, input, compiledContent(compiled), graph, ...fields,
+        ...resultOutputLimitFields.map(name => output[name])));
+    },
     checkedClientSerializationInputRows(compiled, selection) {
       const value = compiledContent(compiled), graph = serializationPlanTokens.get(selection);
       if (graph === undefined || moon.clientProgramCompiledRunSerializationGraph(value) !== graph) {
@@ -8368,6 +8377,31 @@ export function contentGenerationControl(moon, publications) {
         throw new TypeError('Content capacity overflow');
       }
       return Object.freeze({retainedBytes, executionBytes});
+    },
+    prepareRequestOutputDemand(parent, input, compiled, selection, generation, reference, contract, output, identitySlots) {
+      const method = moon.clientProgramPrepareRequestSerializationOutputDemand;
+      const fields = [generation?.maxRows, generation?.maxBytes, generation?.maxValueNodes, generation?.maxValueDepth,
+        generation?.maxFrames, identitySlots, reference?.maxBytes, reference?.maxNodes,
+        reference?.maxDepth, contract?.maxWireBytes, contract?.maxNodes, contract?.maxDepth];
+      if (typeof method !== 'function' || !fields.every(value => quantity(value)) ||
+          !validResultOutputLimits(output)) throw new TypeError('Content demand unavailable');
+      // Only the same compiled token enters the funded Request constructor.
+      // The template is fixed DATA; no Graph wire, parser or Host formula runs.
+      const selected = publications.prepareRequestSerializationOutputDemand(
+        parent, input, compiled, selection, fields, output);
+      const capacity = runtimeField(selected, 0);
+      const quantities = Array.from({length: 8}, (_, index) => runtimeField(selected, index + 1));
+      if (!quantities.every(value => quantity(value))) throw new TypeError('Invalid Content output demand');
+      const [generationRows, generationBytes, outputRows, valueNodes, wireNodes, logicalNodes, columns, slots] = quantities;
+      const bytes = moon.clientProgramSerializationCapacityBytes(capacity);
+      const workspace = Object.freeze({retainedBytes: runtimeField(bytes, 0), executionBytes: runtimeField(bytes, 1)});
+      workspaces.set(workspace, capacity);
+      return Object.freeze({
+        generationLimits: Object.freeze({...generation, maxRows: generationRows, maxBytes: generationBytes}),
+        outputLimits: Object.freeze({...output, maxRows: outputRows, maxValueNodes: valueNodes,
+          maxWireNodes: wireNodes, maxLogicalWireNodes: logicalNodes, maxColumns: columns}),
+        identitySlots: slots, workspace,
+      });
     },
     prepareRequestPrefix(parent, input, request, compiled, definition, limits, workspace) {
       if (workspace !== undefined && !workspaces.has(workspace)) {

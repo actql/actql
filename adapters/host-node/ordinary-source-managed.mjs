@@ -2199,6 +2199,23 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       });
       return view.adoptContentPreparation(prepared, identity, state.contentPlan);
     },
+    prepareSerializationOutputDemand(prepared, request, construct) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.prepared !== prepared ||
+          !['content', 'model'].includes(state.compilationFamily) || state.holder === undefined ||
+          state.preparing || state.adopting || typeof construct !== 'function') fail('ForeignInstalledSourceProducer');
+      return constructRequestDomain(state, () => {
+        const selected = construct(state.parent, producer.receipt);
+        current();
+        if (producerForRequest(request) !== producer || producer.preparation !== state ||
+            state.prepared !== prepared || state.context.runtime.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        return selected;
+      });
+    },
     prepareSerializationRun(prepared, request, identity, constructPlan, contentPreparation) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;

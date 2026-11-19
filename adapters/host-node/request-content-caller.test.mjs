@@ -196,6 +196,8 @@ test('terminal Content failed start retries only the same retained managed prefi
       checkedClientSerializationGenerationLimits:()=>({maxRows:1,maxBytes:16})}},
     preparedRunRequired:true,assertRunCurrent:()=>{},retainPreparation(p,original){assert.equal(p,preparedProgram);original.inputHolder={};},ownerPrincipal:'principal',storeAuthorityCid:'store',
     now:()=> '2026-10-31T00:00:00.000Z',authorize:()=>true,
+    prepareSerializationOutputDemand:(_p,_c,_s,generation,_reference,_contract,output,identitySlots)=>
+      ({generationLimits:generation,outputLimits:output,identitySlots,workspace:{}}),
     prepareSerializationManagedRun(p,r,actual,_limits,_workspace,original){
       assert.deepEqual([p,r,actual],[preparedProgram,request,plan]);assert.equal(original.contentControl,control);
       prepares++;return managed;}});
@@ -355,6 +357,8 @@ function modelContentFixture({constructorFailure} = {}) {
       retain(prepared, sdkRequest, actual);
       calls.push('same Request record retained');
     },
+    prepareSerializationOutputDemand:(_p,_c,_s,generation,_reference,_contract,output,identitySlots)=>
+      ({generationLimits:generation,outputLimits:output,identitySlots,workspace:{}}),
     prepareModelManagedRun: (p, r, m) => prepare(moon, p, r, m),
     prepareSerializationManagedRun() {assert.fail('No separate terminal Content adoption');},
     core: {contentGenerationControl: contentControl,
@@ -443,6 +447,8 @@ test('Request acquired Model Content borrows its adopted Source Ledger and start
         assert.equal(c, acquiredContent.captured); assert.equal(a, acquiredContent); return {};
       }}}, preparedRunRequired: true, assertRunCurrent() {},
     retainPreparation(p, record) {assert.equal(p, preparedProgram); record.inputHolder = {};},
+    prepareSerializationOutputDemand:(_p,_c,_s,generation,_reference,_contract,output,identitySlots)=>
+      ({generationLimits:generation,outputLimits:output,identitySlots,workspace:{}}),
     prepareModelManagedRun(p, r, m) {assert.deepEqual([p, r, m], [preparedProgram, request, model]); return managed;},
     ownerPrincipal: 'principal', storeAuthorityCid: 'store', now: () => '2026-11-01T00:00:00.000Z', authorize: () => true});
   run.prepareModelRun({preparedProgram, plan, request, model});
@@ -520,7 +526,7 @@ test('installed Local and HTTP Content caller always forwards its selected prepa
   walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(selected);
   const calls=[],moon={},core={},originals=[{},{},{},{},{},{}];let options,constructed=0;
   const preparation=Object.fromEntries(['assertContentRunCurrent','retainManagedContentPreparation',
-    'prepareManagedModelRun','prepareManagedSerializationRun'].map(name=>[name,function(...args){
+    'prepareManagedModelRun','prepareManagedSerializationRun','prepareManagedSerializationOutputDemand'].map(name=>[name,function(...args){
       assert.strictEqual(this,preparation);calls.push([name,...args]);return name;
     }]));
   const sourceProfile={prepareManagedContentRun(...args){assert.strictEqual(this,sourceProfile);
@@ -568,11 +574,6 @@ function modelContentWorkspaceFixture({closeInBounds = false, workspaceFailure} 
   };
   const core = {contentGenerationControl: control, publicationControl: {
     checkClientCompiledRunOwner(c, p) { assert.equal(c, compiled); assert.equal(p, prepared); },
-    checkedClientSerializationGenerationLimits(c, g) {
-      assert.equal(c, compiled); assert.equal(g, serializationGraph); boundsReads++;
-      if (closeInBounds) retained.retired = true;
-      return selectedGeneration;
-    },
   }};
   const run = installNodeContentRun({moon: {clientProgramAcquisitionCount: () => 1}, core,
     registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
@@ -580,6 +581,17 @@ function modelContentWorkspaceFixture({closeInBounds = false, workspaceFailure} 
     ownerPrincipal: 'owner', now: () => '2026-11-02T00:00:00.000Z', authorize: () => true,
     preparedRunRequired: true, assertRunCurrent() {},
     retainPreparation(p, original) { assert.equal(p, prepared); original.inputHolder = {}; retained = original; },
+    prepareSerializationOutputDemand(p, c, g, generation, _reference, _contract, output) {
+      assert.equal(p, prepared); assert.equal(c, compiled); assert.equal(g, serializationGraph); boundsReads++;
+      if (closeInBounds) {retained.retired = true; return {};}
+      // Independent explicit result of the typed demand port; arithmetic is
+      // exercised by the real Common Request component, not duplicated here.
+      const generationLimits = Object.freeze({...generation, maxRows: 1, maxBytes: 32});
+      const outputLimits = Object.freeze({...output,maxRows:1,maxColumns:1,maxWireNodes:3,
+        maxLogicalWireNodes:6,maxValueNodes:4});
+      const workspace = control.workspaceCapacity({generation:generationLimits,output:outputLimits,identitySlots:152});
+      return {generationLimits,outputLimits,identitySlots:152,workspace};
+    },
     prepareModelManagedRun(p, r, actual) {
       assert.equal(p, prepared); assert.equal(r, request); assert.equal(actual, model); hostCalls++;
       assert.equal(actual.contentPreparation, retained);
