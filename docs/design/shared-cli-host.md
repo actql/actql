@@ -127,3 +127,13 @@ Portable tests cover exact resume decimal framing, canonical and range refusal,
 the complete waiting envelope, and changed original authority/state/material.
 Native retains its consuming wrapper and existing physical checkpoint tests;
 portable tests alone do not establish cross-frontend or installed acceptance.
+
+The related `client_effect_material_journal_packet.mbt` codec retains the exact
+six-field Effect envelope: intent CID, material CID, complete material wire,
+original request scope, Run Definition CID and Submission reference. Native
+retains its current-authorized lookup and original material restoration owners;
+the codec only preserves their private outer envelope and existing finite
+bounds. It neither validates the inner material as executable nor permits a
+copied wire, missing original or matching CID to substitute for those owners.
+Its raw text and canonical framing remain unchanged, including Unicode and
+line breaks inside the retained strings.

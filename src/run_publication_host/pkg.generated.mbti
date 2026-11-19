@@ -765,6 +765,8 @@ pub fn client_effect_local_table_definition_json(ClientEffectLocalTableDefinitio
 
 pub fn client_effect_local_update_completion_free_catalog_cid() -> String
 
+pub fn client_effect_material_journal_packet_wire(ClientEffectMaterialJournalPacket) -> Result[String, ClientJournalEncodingIssue]
+
 pub fn client_effect_member_descriptor(PreparedClientEffectComputation, Int, String, Int) -> Result[(Int, String, String, String, String, String, String?, String, String?), ClientEffectMemberDescriptorIssue]
 
 pub fn client_effect_model_acquired_direct_sources(ClientEffectModelAcquiredEvidence) -> Array[ClientEffectAcquiredEvidence]
@@ -2705,6 +2707,8 @@ pub fn project_client_remote_task_run(ClientRemoteTaskProgress, String, Bool, Ar
 
 pub fn read_client_captured_effect_subject(ClientEffectAllowedRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedEffectPreviewInputs, @checkpoint_runtime.SealedCheckpoint) -> Result[ClientCapturedEffectSubjectRead, ClientEffectCheckpointBindingIssue]
 
+pub fn read_client_effect_material_journal_packet(String) -> Result[ClientEffectMaterialJournalPacket, ClientJournalDecodingIssue]
+
 pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
@@ -3534,6 +3538,15 @@ pub(all) enum ClientEffectLocalResultDefinitionIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientEffectLocalTableDefinition
+
+pub(all) struct ClientEffectMaterialJournalPacket {
+  intent_cid : String
+  materials_cid : String
+  materials_wire : String
+  request_scope_cid : String
+  run_definition_cid : String
+  submission_reference : String
+}
 
 pub(all) enum ClientEffectMemberDescriptorIssue {
   InvalidMember

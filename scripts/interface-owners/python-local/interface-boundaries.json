@@ -92295,6 +92295,113 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/run_publication_host/client_effect_material_journal_packet.mbt",
+      "sha256": "a679b140c9cba7b974246a58932e4770f67353c0cb0e793d6b8ae508eb3d9d96",
+      "operations": [
+        {
+          "name": "client_effect_material_journal_packet_wire",
+          "declaration": "client_effect_material_journal_packet_wire ( packet : ClientEffectMaterialJournalPacket , ) - > Result [ String , ClientJournalEncodingIssue ]"
+        },
+        {
+          "name": "effect_material_journal_text",
+          "declaration": "effect_material_journal_text ( object : @ decode . ObjectView , key : String , ) - > String ?"
+        },
+        {
+          "name": "read_client_effect_material_journal_packet",
+          "declaration": "read_client_effect_material_journal_packet ( wire : String , ) - > Result [ ClientEffectMaterialJournalPacket , ClientJournalDecodingIssue ]"
+        }
+      ],
+      "exports": [],
+      "role": "common-semantics",
+      "owner": "Existing Common journal codec and original Effect material, Run, request and restoration owners; outer DATA envelope only",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_effect_material_journal_packet_wire",
+            "effect_material_journal_text",
+            "read_client_effect_material_journal_packet"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "The related `client_effect_material_journal_packet.mbt` codec retains the exact"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "The related `client_effect_material_journal_packet.mbt` codec retains the exact"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_material_journal_packet.mbt",
+                "anchor": "pub(all) struct ClientEffectMaterialJournalPacket {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "The related `client_effect_material_journal_packet.mbt` codec retains the exact"
+              },
+              {
+                "path": "src/platform_native/client_host/local_effect_material_originals.mbt",
+                "anchor": "pub fn NativeLocalHostConnection::accept_submitted_effect_material_original("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "The related `client_effect_material_journal_packet.mbt` codec retains the exact"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "The related `client_effect_material_journal_packet.mbt` codec retains the exact"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "The related `client_effect_material_journal_packet.mbt` codec retains the exact"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "The related `client_effect_material_journal_packet.mbt` codec retains the exact"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "The related `client_effect_material_journal_packet.mbt` codec retains the exact"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "The related `client_effect_material_journal_packet.mbt` codec retains the exact"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/shared-cli-host.md",
+                "anchor": "The related `client_effect_material_journal_packet.mbt` codec retains the exact"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_material_journal_packet_wbtest.mbt",
+                "anchor": "test \"portable Effect material envelope retains all six exact original fields\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "syntaxProjectionBasis": "SHA256 of UTF-8 JSON.stringify over sorted declared {module,operations,exports,imports}; source inventory only."
