@@ -1020,3 +1020,106 @@ fn LocalCommandPreparationOriginal::retain_cancellation_recovery(
   .resume_original_read_after_preparation()
   .map_err(issue => CommandAdoption(issue))
 }
+
+///|
+// Read only a retained typed refusal. Every returned label is complete/static:
+// no error payload, Source/path, amount or opaque original is formatted. The
+// generic legacy code/prefix remains when no precise closed cause is retained.
+fn local_file_publication_failure_message(
+  issue : @local_host.NativeClientSourceWorkIssue?,
+) -> String {
+  match issue {
+    Some(Configuration) =>
+      "LocalSourcePublicationEvidenceUnavailable:configuration"
+    Some(OriginalRunNotCurrent) =>
+      "LocalSourcePublicationEvidenceUnavailable:current"
+    Some(NeedsOriginalReconciliation) =>
+      "LocalSourcePublicationEvidenceUnavailable:reconciliation"
+    Some(OriginalOperation(_)) =>
+      "LocalSourcePublicationEvidenceUnavailable:operation"
+    Some(Journal(_)) => "LocalSourcePublicationEvidenceUnavailable:journal"
+    Some(RelationFile(_)) => "LocalSourcePublicationEvidenceUnavailable:capture"
+    Some(CaptureIdentity(Unavailable)) =>
+      "LocalSourcePublicationEvidenceUnavailable:identity-unavailable"
+    Some(CaptureIdentity(DependencyBodyLimit)) =>
+      "LocalSourcePublicationEvidenceUnavailable:identity-body-limit"
+    Some(CaptureIdentity(_)) =>
+      "LocalSourcePublicationEvidenceUnavailable:identity"
+    Some(InputLogical(ForeignPrepared)) =>
+      "LocalSourcePublicationEvidenceUnavailable:logical-foreign-prepared"
+    Some(InputLogical(ForeignIdentity)) =>
+      "LocalSourcePublicationEvidenceUnavailable:logical-foreign-identity"
+    Some(InputLogical(ForeignRequirement)) =>
+      "LocalSourcePublicationEvidenceUnavailable:logical-foreign-requirement"
+    Some(InputLogical(_)) =>
+      "LocalSourcePublicationEvidenceUnavailable:logical-evidence"
+    Some(SourceEvidence(_)) =>
+      "LocalSourcePublicationEvidenceUnavailable:source-evidence"
+    Some(InstalledRun(Resource(Resource(RetentionLimit)))) =>
+      "LocalSourcePublicationEvidenceUnavailable:body-retention"
+    Some(InstalledRun(Resource(Resource(ExecutionLimit)))) =>
+      "LocalSourcePublicationEvidenceUnavailable:body-execution"
+    Some(InstalledRun(Resource(Resource(InvalidLimits)))) =>
+      "LocalSourcePublicationEvidenceUnavailable:body-invalid-limits"
+    Some(InstalledRun(Resource(Resource(ForeignOwner)))) =>
+      "LocalSourcePublicationEvidenceUnavailable:body-foreign-owner"
+    Some(InstalledRun(Resource(Resource(ClosedReservation)))) =>
+      "LocalSourcePublicationEvidenceUnavailable:body-closed-reservation"
+    Some(InstalledRun(Resource(Resource(InvalidCharge)))) =>
+      "LocalSourcePublicationEvidenceUnavailable:body-invalid-charge"
+    Some(InstalledRun(Resource(Resource(ChildFundingUnavailable)))) =>
+      "LocalSourcePublicationEvidenceUnavailable:body-funding-unavailable"
+    Some(InstalledRun(Resource(_))) =>
+      "LocalSourcePublicationEvidenceUnavailable:body-original"
+    Some(InstalledRun(_)) =>
+      "LocalSourcePublicationEvidenceUnavailable:installed-run"
+    Some(Preparation(ForeignOriginal)) =>
+      "LocalSourcePublicationEvidenceUnavailable:preparation-foreign-original"
+    Some(Preparation(WrongPhase)) =>
+      "LocalSourcePublicationEvidenceUnavailable:preparation-wrong-phase"
+    Some(
+      Preparation(
+        PublicationInvocation(RunEvidenceReferenceMismatch("task_run"))
+      )
+    ) => "LocalSourcePublicationEvidenceUnavailable:preparation-task-run"
+    Some(
+      Preparation(
+        PublicationInvocation(RunEvidenceReferenceMismatch("source_coverage"))
+      )
+    ) => "LocalSourcePublicationEvidenceUnavailable:preparation-source-coverage"
+    Some(
+      Preparation(
+        PublicationInvocation(RunEvidenceReferenceMismatch("source_task"))
+      )
+    ) => "LocalSourcePublicationEvidenceUnavailable:preparation-source-task"
+    Some(
+      Preparation(
+        PublicationInvocation(RunEvidenceReferenceMismatch("source_policy"))
+      )
+    ) => "LocalSourcePublicationEvidenceUnavailable:preparation-source-policy"
+    Some(
+      Preparation(
+        PublicationInvocation(RunEvidenceReferenceMismatch("source_evidence"))
+      )
+    ) => "LocalSourcePublicationEvidenceUnavailable:preparation-source-evidence"
+    Some(
+      Preparation(
+        PublicationInvocation(
+          RunEvidenceReferenceMismatch("publication_data_policy")
+        )
+      )
+    ) =>
+      "LocalSourcePublicationEvidenceUnavailable:preparation-publication-data-policy"
+    Some(Preparation(PublicationInvocation(RunEvidenceReferenceMismatch(_)))) =>
+      "LocalSourcePublicationEvidenceUnavailable:preparation-reference"
+    Some(Preparation(PublicationInvocation(RunEvidenceInvalidLimits))) =>
+      "LocalSourcePublicationEvidenceUnavailable:preparation-limits"
+    Some(Preparation(PublicationInvocation(RunEvidenceInvalidWire))) =>
+      "LocalSourcePublicationEvidenceUnavailable:preparation-wire"
+    Some(Preparation(PublicationInvocation(_))) =>
+      "LocalSourcePublicationEvidenceUnavailable:preparation-invocation"
+    Some(Preparation(_)) =>
+      "LocalSourcePublicationEvidenceUnavailable:preparation"
+    _ => "LocalSourcePublicationEvidenceUnavailable"
+  }
+}

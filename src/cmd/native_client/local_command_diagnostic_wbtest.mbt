@@ -470,6 +470,58 @@ test "File Work primary keeps the actual closed reserve cause across cleanup" {
     local_file_work_preparation_message(Configuration),
     "LocalSourceWorkEntryUnavailable",
   )
+  let primary : @local_host.NativeClientSourceWorkIssue? = Some(
+    Preparation(
+      PublicationInvocation(
+        @publication.RunEvidenceReferenceMismatch("SYNTHETIC_PRIVATE_SOURCE"),
+      ),
+    ),
+  )
+  let cases : Array[(@local_host.NativeClientSourceWorkIssue?, String)] = [
+    (None, "LocalSourcePublicationEvidenceUnavailable"),
+    (
+      Some(InputLogical(ForeignPrepared)),
+      "LocalSourcePublicationEvidenceUnavailable:logical-foreign-prepared",
+    ),
+    (
+      Some(
+        Preparation(
+          PublicationInvocation(
+            @publication.RunEvidenceReferenceMismatch("source_coverage"),
+          ),
+        ),
+      ),
+      "LocalSourcePublicationEvidenceUnavailable:preparation-source-coverage",
+    ),
+    (
+      Some(
+        InstalledRun(
+          Resource(
+            @initial_resources.Resource(@initial_resources.InvalidLimits),
+          ),
+        ),
+      ),
+      "LocalSourcePublicationEvidenceUnavailable:body-invalid-limits",
+    ),
+    (primary, "LocalSourcePublicationEvidenceUnavailable:preparation-reference"),
+  ]
+  for (original, expected) in cases {
+    let message = local_file_publication_failure_message(original)
+    assert_eq(message, expected)
+    assert_false(message.contains("SYNTHETIC_PRIVATE_SOURCE"))
+    assert_eq(local_file_publication_failure_message(original), message)
+  }
+  assert_true(
+    primary
+    is Some(
+      Preparation(
+        PublicationInvocation(
+          @publication.RunEvidenceReferenceMismatch(original)
+        )
+      )
+    ) &&
+    original == "SYNTHETIC_PRIVATE_SOURCE",
+  )
 }
 
 ///|

@@ -103,7 +103,13 @@ fn local_execute_original_publish_file_source(
     .unwrap_or_else(() => stop("LocalSourcePublicationLimit"))
   let (_, _, _, _, input, policy) = work
     .publication_invocation(65536, 8192, 64)
-    .unwrap_or_else(() => stop("LocalSourcePublicationEvidenceUnavailable"))
+    .unwrap_or_else(() => {
+      stop(
+        local_file_publication_failure_message(
+          work.publication_invocation_failure(),
+        ),
+      )
+    })
   // The retained Work supplied this resolved policy. Preserve the original
   // finite custody/timestamps while binding its Result envelope to that SAME
   // policy; neither this projection nor its CID grants an extension or read.

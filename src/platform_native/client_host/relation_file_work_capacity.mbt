@@ -48,6 +48,8 @@
 //   Some and bounded SQLite diagnostic construction, not borrowed text.
 // * Simultaneous preflight DATA H6/R3/S20: Source limit clone/addition and
 //   original Common simultaneous-limit projection (280 bytes).
+// * The caller's publication-refusal closure borrows this SAME Work (R1).
+//   Its getter returns the stored Option directly: no new envelope/current.
 // * Source failure with no acquired owner returns Ok(true) H1/S2 on cleanup.
 // * Owner-backed Failure.close then Work.close/close_export: all three
 //   allocating cleanup predicates H296/R95/S500, summed without reuse.
@@ -117,7 +119,8 @@ fn relation_file_work_control_bytes() -> Int64? {
     2L +
     95L +
     23L +
-    12L,
+    12L +
+    1L,
     scalar_words: 3L +
     13L +
     4L +

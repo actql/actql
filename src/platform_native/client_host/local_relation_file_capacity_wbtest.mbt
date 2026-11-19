@@ -174,9 +174,11 @@ test "relation entry authored minimum fixture and maximum constructor totals" {
   let (selection, limits) = relation_work_capacity_inputs()
   // One closed Single/Managed source tag: H1/R1/W1 on the existing field.
   let collection_tag = 16L + 8L + 8L
+  // One additional borrowed Work reference in the refusal closure; no payload copy.
+  let publication_failure_borrow = 8L
   assert_eq(
     relation_file_work_control_bytes().unwrap(),
-    48234L + collection_tag,
+    48234L + collection_tag + publication_failure_borrow,
   )
   let minimum = {
     ..limits,
@@ -201,11 +203,11 @@ test "relation entry authored minimum fixture and maximum constructor totals" {
     let read = native_relation_file_entry_read_capacity(selected, bounded).unwrap()
     assert_eq(
       @execution.execution_capacity_retained_bytes(work),
-      work_bytes + collection_tag,
+      work_bytes + collection_tag + publication_failure_borrow,
     )
     assert_eq(
       @execution.execution_capacity_execution_bytes(work),
-      work_bytes + collection_tag,
+      work_bytes + collection_tag + publication_failure_borrow,
     )
     assert_eq(@execution.execution_capacity_retained_bytes(read), read_bytes)
     assert_eq(@execution.execution_capacity_execution_bytes(read), read_bytes)

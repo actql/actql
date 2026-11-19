@@ -123,6 +123,15 @@ fn NativeClientRelationFileWork::grow_publication_identity(
 }
 
 ///|
+/// Borrow only the SAME retained publication refusal. This does not retry an
+/// invocation, observe currentness, grow capacity or consume the primary.
+pub fn NativeClientRelationFileWork::publication_invocation_failure(
+  self : NativeClientRelationFileWork,
+) -> NativeClientSourceWorkIssue? {
+  self.publication_identity_issue
+}
+
+///|
 /// Evidence from the actual retained whole input and original source policy.
 /// This issues once on the same Run and cannot substitute an empty audit.
 pub fn NativeClientRelationFileWork::publication_invocation(

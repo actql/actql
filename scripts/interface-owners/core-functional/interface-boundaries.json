@@ -110781,7 +110781,7 @@
     },
     {
       "module": "src/cmd/native_client/local_relation_file_original_start.mbt",
-      "sha256": "9deb602b7b477c62a4f67bb56d9a7d1318981756d6265ed43aa08f45bbd4f0fc",
+      "sha256": "46d49458e553f8d9c0959b79a8efcc65d9c2ac335b0336175b86b26946bcdc82",
       "exports": [],
       "operations": [
         {
@@ -111553,7 +111553,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_publication.mbt",
-      "sha256": "6e519c85f497e373c40efc2176f5e84c9f84f128955fb888cc38a1cee3650399",
+      "sha256": "8093534940f22173bc2eac8bfb69f2c5929f2b960fa667d3428ae04832a8e678",
       "exports": [],
       "operations": [
         {
@@ -111575,6 +111575,10 @@
         {
           "name": "NativeClientRelationFileWork::publication_invocation",
           "declaration": "NativeClientRelationFileWork : : publication_invocation ( self : NativeClientRelationFileWork , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( Array [ @ publication . RunEvidenceValue ] , Array [ @ publication . RunEvidenceValue ] , @ publication . RunEvidenceValue , @ publication . PublicationContract , Array [ String ] , String , ) , NativeClientSourceWorkIssue , ]"
+        },
+        {
+          "name": "NativeClientRelationFileWork::publication_invocation_failure",
+          "declaration": "NativeClientRelationFileWork : : publication_invocation_failure ( self : NativeClientRelationFileWork , ) - > NativeClientSourceWorkIssue ?"
         },
         {
           "name": "NativeClientRelationFileWork::publication_invocation_original",
@@ -111599,7 +111603,8 @@
             "NativeClientRelationFileWork::publication_entry_limits",
             "NativeClientRelationFileWork::publication_invocation",
             "NativeClientRelationFileWork::publication_invocation_original",
-            "NativeClientRelationFileWork::publication_limits"
+            "NativeClientRelationFileWork::publication_limits",
+            "NativeClientRelationFileWork::publication_invocation_failure"
           ],
           "exports": [],
           "attributes": {
@@ -111661,6 +111666,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_diagnostic_wbtest.mbt",
+                "anchor": "test \"File Work primary keeps the actual closed reserve cause across cleanup\" {"
               }
             ]
           }
@@ -111760,7 +111769,7 @@
     },
     {
       "module": "src/platform_native/client_host/relation_file_work_capacity.mbt",
-      "sha256": "31eeb8693c0f95b1905c722c281878ff5c4495996157a913ffce402e8f3dc761",
+      "sha256": "5627364a8cece10cd39fdf9ee2880488dfa54686f3e1cf9e90a476f83acd8c7c",
       "exports": [],
       "operations": [
         {

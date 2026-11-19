@@ -84850,7 +84850,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "d9afc474e55515497f07f91fe88bbf98d6f07c26e40ba48eb5a09b2c5ab948e1",
+      "sha256": "b5ee5d6037087d82c13f063e065a3defc56039dab45d795aa73e7394a675b994",
       "exports": [],
       "operations": [
         {
@@ -84884,6 +84884,10 @@
         {
           "name": "local_command_recovery_failure",
           "declaration": "local_command_recovery_failure ( message : String ) - > String"
+        },
+        {
+          "name": "local_file_publication_failure_message",
+          "declaration": "local_file_publication_failure_message ( issue : @ local_host . NativeClientSourceWorkIssue ? , ) - > String"
         },
         {
           "name": "local_finish_command_preparation",
@@ -84935,7 +84939,8 @@
             "LocalCommandPreparationOriginal::execute_operator_command",
             "LocalCommandPreparationOriginal::execute_product_command",
             "LocalCommandPreparationOriginal::prepare_project_text_payload",
-            "LocalCommandPreparationOriginal::retain_cancellation_recovery"
+            "LocalCommandPreparationOriginal::retain_cancellation_recovery",
+            "local_file_publication_failure_message"
           ],
           "exports": [],
           "attributes": {
@@ -85077,6 +85082,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native finite Query Source continuation"
+              },
+              {
+                "path": "src/cmd/native_client/local_command_diagnostic_wbtest.mbt",
+                "anchor": "test \"File Work primary keeps the actual closed reserve cause across cleanup\" {"
               }
             ]
           }
