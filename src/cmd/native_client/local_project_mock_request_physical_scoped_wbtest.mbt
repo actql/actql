@@ -1635,10 +1635,14 @@ fn native_pure_file_request_payload(
           // The same Work now stores Single(source): one variant header,
           // one borrowed capture reference and one tag word, not a new Source.
           let single_source_tag = 16L + 8L + 8L
+          // One caller publication-refusal closure also borrows this SAME
+          // Work. Its logical reference debit is not a physical span grant.
+          let publication_failure_borrow = 8L
           assert_eq(
             @execution.execution_capacity_retained_bytes(quoted),
             203150L +
             single_source_tag +
+            publication_failure_borrow +
             (8L * 16L + 11L * 8L + 10L * 8L) +
             task_loop,
           )
@@ -1646,6 +1650,7 @@ fn native_pure_file_request_payload(
             @execution.execution_capacity_execution_bytes(quoted),
             203150L +
             single_source_tag +
+            publication_failure_borrow +
             (8L * 16L + 11L * 8L + 10L * 8L) +
             task_loop,
           )
