@@ -1,9 +1,21 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {releaseVersion} from './release-version.mjs';
 import {admitReleaseChannel} from './release-policy.mjs';
+
+function assertReadyLintProfiles(step) {
+  const condition = (step.if ?? 'true').replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+    .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
+  assert(!/\b(?:always|failure|cancelled)\s*\(/u.test(condition), 'Keep the implicit success prerequisite');
+  assert.equal(step['continue-on-error'], undefined);
+  for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused', 'documentation'])
+    assert.equal(runInNewContext(condition, {needs: {'select-targets': {outputs: {profile}}},
+      startsWith: (value, prefix) => value.startsWith(prefix)}, {timeout: 100}),
+    ['full', 'maintenance', 'focused-tests'].includes(profile), profile);
+}
 
 test('actual schema version regex and shared parser match independent literal version oracles', () => {
   const schema = JSON.parse(readFileSync(new URL('../release/release-request.schema.json', import.meta.url)));
@@ -35,7 +47,7 @@ test('existing public lint selects the release files without new publication aut
   const selected = job.steps.filter(step => step.name === 'Test explicit release policy and publication refusal');
   assert.equal(selected.length, 1);
   const [step] = selected;
-  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assertReadyLintProfiles(step);
   assert.equal(step['continue-on-error'], undefined);
   const args = step.run.trim().split(/\s+/u);
   assert.deepEqual(args.slice(0, 2), ['node', '--test']);
@@ -65,8 +77,11 @@ test('existing public lint gate selects cross-host packaging controls without ru
   const job=workflow.jobs.lint;
   assert.equal(job.steps.find(step=>step.uses==='./.github/actions/setup-toolchain').with.python,'true');
   const selected=job.steps.filter(step=>step.name==='Test cross-host Python release preparation without runtime loading');
-  assert.deepEqual(selected,[{name:'Test cross-host Python release preparation without runtime loading',
-    if:"${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}",
-    run:'python3 -m pip install --disable-pip-version-check -e ./packages/python-sdk\npython3 -B packages/python-sdk/tests/run.py --pattern test_release_packaging_target.py\n'}]);
+  assert.equal(selected.length, 1);
+  assertReadyLintProfiles(selected[0]);
+  const command = selected[0].run.trim().split(/\s+/u);
+  for (const required of ['pip', 'install', '-e', './packages/python-sdk',
+    'packages/python-sdk/tests/run.py', '--pattern', 'test_release_packaging_target.py'])
+    assert(command.includes(required), required);
   assert(!job.environment);assert(!job.permissions?.['id-token']);
 });

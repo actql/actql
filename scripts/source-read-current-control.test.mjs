@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {tokens} from './portable-core.mjs';
 
 test('existing Source current paths keep their original control constructor shape', () => {
@@ -41,12 +42,18 @@ test('Source owner covers the exact current module and every operation', async (
   }
 });
 
-test('hosted lint always runs the Source current controls without weakening failure handling', async () => {
+test('hosted lint runs the Source current controls for code profiles without weakening failure handling', async () => {
   const {parse} = await import('yaml');
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const step = workflow.jobs.lint.steps.find(value => value.name === 'Test original Source current control ownership');
   assert(step);
   assert.equal(step.run, 'node --test scripts/source-read-current-control.test.mjs');
-  assert.equal(step.if, undefined);
+  const condition = (step.if ?? 'true').replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+    .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
+  // No status override: Actions must still require earlier steps to succeed.
+  assert(!/\b(?:always|failure|cancelled)\s*\(/u.test(condition));
+  for (const profile of ['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused', 'documentation'])
+    assert.equal(runInNewContext(condition, {needs: {'select-targets': {outputs: {profile}}}}, {timeout: 100}),
+      profile !== 'documentation', profile);
   assert.equal(step['continue-on-error'], undefined);
 });
