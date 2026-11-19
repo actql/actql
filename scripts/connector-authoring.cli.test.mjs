@@ -80,10 +80,16 @@ test('author build refuses a missing shipped pure validator before writing a pac
   const cli=join(root,'scripts/connector.mjs');
   const initialized=spawnSync(process.execPath,[cli,'init',author,'acme'],{cwd:root,encoding:'utf8'});
   assert.equal(initialized.status,0,initialized.stderr);
+  // CI places TMPDIR below its prepared workspace: a fresh directory can
+  // legitimately resolve an ancestor installation. Select a test-owned
+  // package with a missing shipped entry, rather than assume no ancestor.
+  const validator=join(author,'node_modules','@actql','local-node');mkdirSync(validator,{recursive:true});
+  writeFileSync(join(validator,'package.json'),JSON.stringify({name:'@actql/local-node',
+    type:'module',exports:{'./connector-authoring':'./missing.mjs'}}));
   const refused=spawnSync(process.execPath,[cli,'build',join(author,'connector.json'),output],{cwd:root,encoding:'utf8'});
   assert.equal(refused.status,1);assert.match(refused.stderr,/RestAuthoringValidatorUnavailable/u);
   assert.deepEqual(readdirSync(scratch),['author']);
-  assert.deepEqual(readdirSync(author),['connector.json']);
+  assert.deepEqual(readdirSync(author),['connector.json','node_modules']);
 });
 
 test('author child resolves its installed consumer validator and preserves original refusal', t => {
@@ -96,13 +102,17 @@ test('author child resolves its installed consumer validator and preserves origi
   const invoke=args=>spawnSync(process.execPath,[cli,...args],{cwd:root,encoding:'utf8',timeout:10000});
   const initialized=invoke(['init',author,'acme']);assert.equal(initialized.status,0,initialized.stderr);
   const definition=join(author,'connector.json'),original=readFileSync(definition);
+  // An explicitly absent public export must refuse even if TMPDIR inherits
+  // a matching installation. This is distinct from the missing method below.
+  const validator=join(consumer,'node_modules','@actql','local-node');mkdirSync(validator,{recursive:true});
+  writeFileSync(join(validator,'package.json'),JSON.stringify({name:'@actql/local-node',
+    type:'module',exports:{}}));
   const missing=invoke(['build',definition,output]);
   assert.equal(missing.status,1);assert.equal(missing.signal,null);
   assert.match(missing.stderr,/RestAuthoringValidatorUnavailable: install a matching/u);
   assert.deepEqual(readdirSync(scratch),['consumer']);
   // Explicit test-owned public export controls only. They do not implement or
   // qualify Common validation, a normal package, Host or successful build.
-  const validator=join(consumer,'node_modules','@actql','local-node');mkdirSync(validator,{recursive:true});
   writeFileSync(join(validator,'package.json'),JSON.stringify({name:'@actql/local-node',
     version:'0.0.0-development',type:'module',exports:{'./connector-authoring':'./author.mjs'}}));
   writeFileSync(join(validator,'author.mjs'),'export const unrelated = true;\n');
