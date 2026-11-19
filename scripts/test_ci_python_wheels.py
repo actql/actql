@@ -783,7 +783,8 @@ class ClosedTaskDriveControlTests(unittest.TestCase):
 
 
 class FailureLocationTests(unittest.TestCase):
-    def rejected_wait_fixture(self, *, completed=True, same_reference=True, task_drive_code=None):
+    def rejected_wait_fixture(self, *, completed=True, same_reference=True, task_drive_code=None,
+                              state_changes=None, expected_schema_valid=True):
         import asyncio
         (_, host, work, original, cleanup, exited,
          invoked) = self.local_work_fixture(completed=completed, task_drive_code=task_drive_code)
@@ -798,7 +799,9 @@ class FailureLocationTests(unittest.TestCase):
                  'result_availability': {},
                  'control': {'revision': 2, 'cancellation_requested': False,
                              'physical_stop': 'unknown'}}
-        self.assertTrue(wire.valid(state, 'run_state'))
+        if state_changes is not None:
+            state.update(state_changes)
+        self.assertIs(wire.valid(state, 'run_state'), expected_schema_valid)
         self.assertFalse(wire.valid_run_wait(state, None))
 
         async def observe():
@@ -831,6 +834,18 @@ class FailureLocationTests(unittest.TestCase):
         self.assertTrue(selected['rejected_wait'])
         self.assertTrue(selected['wait_status_known'])
         self.assertFalse(selected['wait_status_stable'])
+        self.assertEqual(selected['wait_status'], 'running')
+        self.assertTrue(selected['wait_state_schema_valid'])
+        self.assertTrue(selected['wait_since_none'])
+        self.assertTrue(selected['wait_since_valid'])
+        self.assertTrue(selected['wait_revision_after_since'])
+        self.assertTrue(selected['wait_control_schema_valid'])
+        self.assertFalse(selected['wait_cancellation_requested'])
+        self.assertEqual(selected['wait_physical_stop'], 'unknown')
+        self.assertFalse(selected['wait_result_available'])
+        self.assertTrue(selected['wait_availability_schema_valid'])
+        self.assertTrue(selected['wait_availability_bounded'])
+        self.assertFalse(selected['wait_availability_nonempty'])
         self.assertEqual([record.get('failure_role') for record in records[1:]],
                          ['physical-original', 'physical-cleanup', 'physical-exit'])
         self.assertIs(work._future, future)
@@ -841,6 +856,90 @@ class FailureLocationTests(unittest.TestCase):
         self.assertEqual(invoked, [work._owner])
         self.assertNotIn('private-reference-secret', stream.getvalue())
         self.assertNotIn('original-run', stream.getvalue())
+
+    def test_rejected_wait_schema_failure_is_distinct_from_a_stable_cancelled_status(self):
+        diagnostics = load('ci_wait_schema_shape', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, *_ = self.rejected_wait_fixture(state_changes={
+            'status': 'cancelled',
+            'control': {'revision': 2, 'cancellation_requested': 'private-control-secret',
+                        'physical_stop': 'private-stop-secret'},
+            'result_availability': {'private-result-secret': {
+                'state': 'unknown', 'observed_at': 'private-clock-secret',
+                'reason': 'private-reason-secret'}}}, expected_schema_valid=False)
+        stream = io.StringIO()
+        diagnostics.report_contexts(failure, stream)
+        selected = next(json.loads(line)['local_work'] for line in stream.getvalue().splitlines()
+                        if 'local_work' in json.loads(line))
+        self.assertFalse(selected['wait_state_schema_valid'])
+        self.assertEqual(selected['wait_status'], 'cancelled')
+        self.assertTrue(selected['wait_status_stable'])
+        self.assertFalse(selected['wait_control_schema_valid'])
+        self.assertIsNone(selected['wait_cancellation_requested'])
+        self.assertIsNone(selected['wait_physical_stop'])
+        self.assertFalse(selected['wait_availability_schema_valid'])
+        self.assertTrue(selected['wait_availability_nonempty'])
+        self.assertNotIn('private-', stream.getvalue())
+
+    def test_rejected_wait_unknown_status_is_not_emitted_as_a_diagnostic_value(self):
+        diagnostics = load('ci_wait_unknown_shape', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        failure, *_ = self.rejected_wait_fixture(
+            state_changes={'status': 'private-status-secret'}, expected_schema_valid=False)
+        stream = io.StringIO()
+        diagnostics.report_contexts(failure, stream)
+        selected = next(json.loads(line)['local_work'] for line in stream.getvalue().splitlines()
+                        if 'local_work' in json.loads(line))
+        self.assertFalse(selected['wait_state_schema_valid'])
+        self.assertIsNone(selected['wait_status'])
+        self.assertFalse(selected['wait_status_known'])
+        self.assertFalse(selected['wait_status_stable'])
+        self.assertNotIn('private-status-secret', stream.getvalue())
+
+    def test_rejected_wait_shape_declines_foreign_callbacks_and_cyclic_data(self):
+        diagnostics = load('ci_wait_foreign_shape', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        self.rejected_wait_fixture()  # Load the same original SDK/codec only.
+        from actql_sdk._async import wire
+        invoked = []
+
+        class Foreign(dict):
+            def get(self, *args):
+                invoked.append('foreign-get')
+                raise AssertionError('No foreign diagnostic callback')
+
+        result = diagnostics.rejected_wait_shape(Foreign(), {'since': None}, vars(wire))
+        self.assertIsNone(result['wait_state_schema_valid'])
+        cyclic = {}; cyclic['cycle'] = cyclic
+        self.assertIsNone(diagnostics.rejected_wait_shape(
+            cyclic, {'since': None}, vars(wire))['wait_state_schema_valid'])
+        self.assertIsNone(diagnostics.rejected_wait_shape(
+            {'oversized': [0] * diagnostics.MAX_VALUE_NODES}, {'since': None},
+            vars(wire))['wait_state_schema_valid'])
+        replaced = dict(vars(wire))
+        replaced['valid'] = lambda *args: invoked.append('replaced-validator')
+        self.assertIsNone(diagnostics.rejected_wait_shape(
+            {}, {'since': None}, replaced)['wait_state_schema_valid'])
+        self.assertEqual(invoked, [])
+
+    def test_rejected_wait_cancellation_label_requires_the_same_bounded_reference(self):
+        import traceback
+        diagnostics = load('ci_wait_cancel_shape', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        self.rejected_wait_fixture()
+        from actql_sdk._async import wire
+        reference = {'namespaceId': 'private-namespace-secret',
+                     'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'b' * 64}
+        original = {'ref': reference, 'cancelRef': dict(reference, cancelId='private-cancel-secret',
+                    expectedRevision=2), 'kind': 'accepted', 'revision': 3}
+
+        def same_frame(cancellation, requested):
+            try:
+                raise RuntimeError('private-cause-secret')
+            except RuntimeError as failure:
+                return diagnostics.same_frame_cancellation_kind(
+                    list(traceback.walk_tb(failure.__traceback__)), requested, vars(wire))
+
+        self.assertEqual(same_frame(original, reference), 'accepted')
+        self.assertIsNone(same_frame(original, dict(reference, namespaceId='foreign')))
+        self.assertIsNone(same_frame(dict(original, kind='private-kind-secret'), reference))
 
     def test_rejected_wait_pending_work_is_not_waited_or_invoked(self):
         diagnostics = load('ci_rejected_wait_pending', SCRIPTS / 'fixtures/ci-python-installed-run.py')

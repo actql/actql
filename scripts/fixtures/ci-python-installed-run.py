@@ -24,6 +24,136 @@ MAX_LABEL = 128
 MAX_OUTPUT_BYTES = 65536
 MAX_WORK_RECORDS = 16
 MAX_SELECTION_BYTES = 16384
+MAX_VALUE_NODES = 4096
+MAX_VALUE_DEPTH = 64
+MAX_VALUE_CHARACTERS = 1048576
+
+
+def bounded_json_data(value):
+    """Decline diagnostic classification of foreign, cyclic or oversized DATA."""
+    pending, seen, characters, nodes = [(value, 0)], set(), 0, 0
+    while pending:
+        current, depth = pending.pop()
+        nodes += 1
+        if nodes > MAX_VALUE_NODES or depth > MAX_VALUE_DEPTH:
+            return False
+        if type(current) is str:
+            characters += len(current)
+        elif type(current) in (dict, list):
+            if (id(current) in seen or len(current) > MAX_VALUE_NODES
+                    or nodes + len(pending) + len(current) > MAX_VALUE_NODES):
+                return False
+            seen.add(id(current))
+            if type(current) is dict:
+                for key, child in current.items():
+                    if type(key) is not str:
+                        return False
+                    characters += len(key)
+                    pending.append((child, depth + 1))
+            else:
+                pending.extend((child, depth + 1) for child in current)
+        elif current is not None and type(current) not in (bool, int, float):
+            return False
+        if characters > MAX_VALUE_CHARACTERS:
+            return False
+    return True
+
+
+def own_schema_validator(wire_fields):
+    """Only the same generated pure codec; never a replaced diagnostic port."""
+    codec = sys.modules.get('actql_sdk._wire_codec')
+    fields = vars(codec) if type(codec) is ModuleType else {}
+    validator = fields.get('valid')
+    if (type(validator) is FunctionType and validator.__globals__ is fields
+            and wire_fields.get('valid') is validator):
+        return validator
+    return None
+
+
+def rejected_wait_shape(value, body, wire_fields):
+    """Closed facts about the SAME rejected value, not another Host request."""
+    bits = {'wait_state_schema_valid': None, 'wait_status': None,
+            'wait_since_none': body.get('since') is None,
+            'wait_since_valid': None, 'wait_revision_after_since': None,
+            'wait_control_schema_valid': None, 'wait_cancellation_requested': None,
+            'wait_physical_stop': None, 'wait_result_available': None,
+            'wait_availability_schema_valid': None, 'wait_availability_bounded': None,
+            'wait_availability_nonempty': None,
+            'wait_availability_all_unavailable': None}
+    schemas, contract = wire_fields.get('SCHEMAS'), wire_fields.get('CONTRACT')
+    schema = schemas.get('run_state') if type(schemas) is dict else None
+    properties = schema.get('properties') if type(schema) is dict else None
+    rules = contract.get('request_response_rules') if type(contract) is dict else None
+    rule = rules.get('run_wait') if type(rules) is dict else None
+    validator = own_schema_validator(wire_fields)
+    if (type(value) is not dict or type(properties) is not dict or type(rule) is not dict
+            or validator is None or not bounded_json_data(value)):
+        return bits
+    bits['wait_state_schema_valid'] = validator(value, 'run_state') is True
+    status_schema = properties.get('status')
+    known = status_schema.get('enum') if type(status_schema) is dict else None
+    status = value.get('status')
+    if (type(status) is str and type(known) is list and len(known) <= MAX_WORK_RECORDS
+            and all(type(item) is str and len(item) <= MAX_LABEL for item in known)
+            and status in known):
+        bits['wait_status'] = status
+    revision_schema = properties.get(rule.get('revisionField'))
+    since = body.get('since')
+    bits['wait_since_valid'] = since is None or validator(since, revision_schema) is True
+    revision = value.get(rule.get('revisionField'))
+    bits['wait_revision_after_since'] = (True if since is None else
+        revision > since if type(revision) is int and type(since) is int else None)
+    control, control_schema = value.get('control'), properties.get('control')
+    bits['wait_control_schema_valid'] = validator(control, control_schema) is True
+    if type(control) is dict:
+        cancelled = control.get('cancellation_requested')
+        bits['wait_cancellation_requested'] = cancelled if type(cancelled) is bool else None
+        fields = control_schema.get('properties') if type(control_schema) is dict else None
+        physical = fields.get('physical_stop') if type(fields) is dict else None
+        choices = physical.get('enum') if type(physical) is dict else None
+        stopped = control.get('physical_stop')
+        if (type(stopped) is str and type(choices) is list and len(choices) <= MAX_WORK_RECORDS
+                and all(type(item) is str and len(item) <= MAX_LABEL for item in choices)
+                and stopped in choices):
+            bits['wait_physical_stop'] = stopped
+    available = value.get('result_available')
+    bits['wait_result_available'] = available if type(available) is bool else None
+    availability = value.get('result_availability')
+    bits['wait_availability_schema_valid'] = validator(
+        availability, properties.get('result_availability')) is True
+    bits['wait_availability_bounded'] = type(availability) is dict and len(availability) <= MAX_WORK_RECORDS
+    if bits['wait_availability_bounded']:
+        bits['wait_availability_nonempty'] = bool(availability)
+        # No result name, observation timestamp, reason or payload is emitted.
+        bits['wait_availability_all_unavailable'] = all(
+            type(item) is dict and item.get('state') == 'unavailable'
+            for item in availability.values())
+    return bits
+
+
+def same_frame_cancellation_kind(frames, requested, wire_fields):
+    """A same-reference original caller outcome label, never cancel authority."""
+    validator = own_schema_validator(wire_fields)
+    if validator is None:
+        return None
+    schemas = wire_fields.get('SCHEMAS')
+    schema = schemas.get('cancellation') if type(schemas) is dict else None
+    properties = schema.get('properties') if type(schema) is dict else None
+    kind_schema = properties.get('kind') if type(properties) is dict else None
+    choices = kind_schema.get('enum') if type(kind_schema) is dict else None
+    if (type(choices) is not list or len(choices) > MAX_WORK_RECORDS
+            or not all(type(item) is str and len(item) <= MAX_LABEL for item in choices)):
+        return None
+    matches = []
+    for frame, _ in frames:
+        candidate = frame.f_locals.get('cancellation')
+        if (type(candidate) is not dict or not bounded_json_data(candidate)
+                or set(candidate) != {'ref', 'cancelRef', 'kind', 'revision'}
+                or candidate.get('ref') != requested):
+            continue
+        if validator(candidate, 'cancellation') is True and candidate.get('kind') in choices:
+            matches.append(candidate['kind'])
+    return matches[0] if matches and all(item == matches[0] for item in matches) else None
 
 
 def selected_local_work(failure: BaseException):
@@ -117,8 +247,8 @@ def selected_local_work(failure: BaseException):
             if len(encoded_reference) > 4096 or len(encoded_reference.encode('utf-8')) > 4096:
                 return bits, []
             bits.update(rejected_wait=True, wait_status_known=None, wait_status_stable=None)
-            # Observe only the existing rejected result and contract enums.
-            # Do not repeat validation, inspect the payload, or invoke a port.
+            # Observe the retained rejected frame and classify its bounded DATA
+            # with the original pure schema codec. No Host/Core port is called.
             value = frame.f_locals.get('value')
             wire = async_fields.get('wire')
             wire_fields = vars(wire) if type(wire) is ModuleType else {}
@@ -136,6 +266,9 @@ def selected_local_work(failure: BaseException):
                     if (type(choices) is list and len(choices) <= MAX_WORK_RECORDS
                             and all(type(item) is str and len(item) <= MAX_LABEL for item in choices)):
                         bits[label] = status in choices
+            bits.update(rejected_wait_shape(value, body, wire_fields))
+            bits['wait_original_cancellation_kind'] = same_frame_cancellation_kind(
+                frames, requested, wire_fields)
         if type(requested) is not dict:
             return bits, []
         matches = []
